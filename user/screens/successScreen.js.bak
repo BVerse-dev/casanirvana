@@ -1,0 +1,192 @@
+import {
+  Text,
+  View,
+  TouchableOpacity,
+  StyleSheet,
+  Image,
+  ScrollView,
+  ImageBackground,
+} from "react-native";
+import React, { useEffect } from "react";
+import { useTranslation } from "react-i18next";
+import { Colors, Default, Fonts } from "../constants/styles";
+import MyStatusBar from "../components/myStatusBar";
+import { ms } from "react-native-size-matters/extend";
+
+const SuccessScreen = ({ navigation }) => {
+  const { t, i18n } = useTranslation();
+
+  const isRtl = i18n.dir() == "rtl";
+
+  function tr(key) {
+    return t(`successScreen:${key}`);
+  }
+
+  useEffect(() => {
+    navigation.addListener("beforeRemove", (e) => {
+      e.preventDefault();
+      navigation.navigate("homeScreen");
+    });
+  }, []);
+  setTimeout(() => {
+    navigation.navigate("homeScreen");
+  }, 2000);
+
+  const data = [
+    {
+      key: "1",
+      title: tr("securityDeposit"),
+      other: tr("paid"),
+    },
+    {
+      key: "2",
+      title: tr("amountPaid"),
+      other: "$50.00",
+    },
+    {
+      key: "3",
+      title: tr("paidOn"),
+      other: "5 June, 2022",
+    },
+    {
+      key: "4",
+      title: tr("paidVia"),
+      other: "Credit card",
+    },
+    {
+      key: "5",
+      title: tr("transactionID"),
+      other: "DF12345678910",
+    },
+  ];
+
+  return (
+    <View style={{ flex: 1 }}>
+      <MyStatusBar />
+      <ImageBackground
+        resizeMode="stretch"
+        source={require("../assets/images/onboarding.png")}
+        style={{ flex: 1 }}
+      >
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ flexGrow: 1 }}
+        >
+          <View
+            style={{
+              justifyContent: "center",
+              alignItems: "center",
+              marginTop: Default.fixPadding * 5,
+            }}
+          >
+            <Image
+              source={require("../assets/images/success.png")}
+              style={{ width: ms(101), height: ms(101), resizeMode: "contain" }}
+            />
+
+            <Text
+              style={{
+                ...Fonts.SemiBold20black,
+                marginTop: Default.fixPadding * 1.5,
+              }}
+            >
+              {tr("paymentSuccess")}
+            </Text>
+          </View>
+
+          <View
+            style={{
+              marginTop: Default.fixPadding * 5,
+              marginHorizontal: Default.fixPadding * 2,
+              borderRadius: 10,
+              backgroundColor: Colors.white,
+              ...Default.shadow,
+            }}
+          >
+            {data.map((item, index) => {
+              return (
+                <View
+                  key={item.key}
+                  style={{
+                    flexDirection: isRtl ? "row-reverse" : "row",
+                    alignItems: "center",
+                    paddingBottom: Default.fixPadding * 2,
+                    paddingHorizontal: Default.fixPadding * 1.2,
+                    paddingTop:
+                      index === 0
+                        ? Default.fixPadding * 1.8
+                        : Default.fixPadding * 2,
+                    borderTopWidth: index === 0 ? null : 1,
+                    borderTopColor: index === 0 ? null : Colors.lightGrey,
+                  }}
+                >
+                  <Text
+                    numberOfLines={1}
+                    style={{
+                      ...Fonts.Medium16black,
+                      flex: 1,
+                      overflow: "hidden",
+                      textAlign: isRtl ? "right" : "left",
+                    }}
+                  >
+                    {item.title}
+                  </Text>
+                  <View
+                    style={{
+                      flex: 1,
+                      alignItems: isRtl ? "flex-start" : "flex-end",
+                    }}
+                  >
+                    <Text
+                      numberOfLines={1}
+                      style={{
+                        ...(item.key === "1"
+                          ? Fonts.SemiBold16green
+                          : Fonts.Medium16black),
+                        overflow: "hidden",
+                      }}
+                    >
+                      {item.other}
+                    </Text>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+
+          <View style={styles.downloadReceiptBtn}>
+            <Text style={{ ...Fonts.SemiBold18primary }}>
+              {tr("downloadReceipt")}
+            </Text>
+          </View>
+        </ScrollView>
+
+        <TouchableOpacity
+          onPress={() => navigation.navigate("homeScreen")}
+          style={{
+            alignSelf: "center",
+            margin: Default.fixPadding * 1.6,
+          }}
+        >
+          <Text style={{ ...Fonts.SemiBold16primary }}>{tr("backHome")}</Text>
+        </TouchableOpacity>
+      </ImageBackground>
+    </View>
+  );
+};
+
+export default SuccessScreen;
+
+const styles = StyleSheet.create({
+  downloadReceiptBtn: {
+    alignSelf: "center",
+    paddingHorizontal: Default.fixPadding * 2.4,
+    paddingVertical: Default.fixPadding * 1.4,
+    marginTop: Default.fixPadding * 4,
+    marginBottom: Default.fixPadding * 2,
+    marginHorizontal: Default.fixPadding * 2,
+    borderRadius: 5,
+    backgroundColor: Colors.white,
+    ...Default.shadow,
+  },
+});

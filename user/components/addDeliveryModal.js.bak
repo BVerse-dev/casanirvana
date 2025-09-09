@@ -1,0 +1,622 @@
+import React, { useState } from "react";
+import {
+  Text,
+  View,
+  Modal,
+  TouchableOpacity,
+  Dimensions,
+  StyleSheet,
+  Image,
+  ScrollView,
+  FlatList,
+  TouchableWithoutFeedback,
+  TextInput,
+  KeyboardAvoidingView,
+} from "react-native";
+import { useTranslation } from "react-i18next";
+import { Colors, Fonts, Default } from "../constants/styles";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
+import Ionicons from "react-native-vector-icons/Ionicons";
+import AwesomeButton from "react-native-really-awesome-button";
+import DashedLine from "react-native-dashed-line";
+import moment from "moment";
+import FromToCalendarPicker from "./fromToCalendarPicker";
+
+const { width, height } = Dimensions.get("window");
+
+const AddDeliveryModal = (props) => {
+  const { t, i18n } = useTranslation();
+
+  const isRtl = i18n.dir() == "rtl";
+
+  function tr(key) {
+    return t(`addDeliveryModal:${key}`);
+  }
+
+  const [companyNameModal, setCompanyNameModal] = useState(false);
+  const companyNameList = [
+    {
+      key: "1",
+      name: "Fedex",
+    },
+    {
+      key: "2",
+      name: "DHL",
+    },
+    {
+      key: "3",
+      name: "USPS",
+    },
+    {
+      key: "4",
+      name: "Local",
+    },
+    {
+      key: "5",
+      name: "Other",
+    },
+  ];
+  const [selectedCompanyName, setSelectedCompanyName] = useState("Fedex");
+  const [otherCompanyName, setOtherCompanyName] = useState("");
+  const [confirmCompanyName, setConfirmCompanyName] = useState();
+
+  const renderItemCompanyName = ({ item }) => {
+    const isSelected = selectedCompanyName === item.name;
+    return (
+      <TouchableOpacity
+        onPress={() => setSelectedCompanyName(item.name)}
+        style={{
+          flex: 1,
+          flexDirection: isRtl ? "row-reverse" : "row",
+          alignItems: "center",
+          marginTop: Default.fixPadding * 2.5,
+          marginHorizontal: Default.fixPadding * 2.6,
+        }}
+      >
+        <MaterialCommunityIcons
+          name={isSelected ? "record-circle" : "circle-outline"}
+          size={22}
+          color={isSelected ? Colors.primary : Colors.grey}
+        />
+        <Text
+          numberOfLines={1}
+          style={{
+            ...Fonts.Medium16black,
+            overflow: "hidden",
+            marginHorizontal: Default.fixPadding,
+          }}
+        >
+          {item.name}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
+  const [dateCalendarModal, setDateCalendarModal] = useState(false);
+  const today = moment().format("YYYY-MM-DD");
+  const [date, setDate] = useState("");
+  
+  const onDateChange = (day) => {
+    setDate(day.dateString);
+    setDateCalendarModal(false);
+  };
+  
+  // Format the date in a more user-friendly format when displayed
+  const formatDisplayDate = (dateString) => {
+    if (!dateString || typeof dateString !== 'string') return '';
+    try {
+      const momentObj = moment(dateString);
+      if (!momentObj.isValid()) {
+        return '';
+      }
+      return momentObj.format('dddd, MMMM D, YYYY') || '';
+    } catch (error) {
+      console.warn('Error formatting date:', error);
+      return '';
+    }
+  };
+
+
+  return (
+    <Modal
+      transparent={true}
+      animationType="fade"
+      visible={props.visible}
+      onRequestClose={props.closeAddDeliveryModal}
+    >      <TouchableOpacity
+        activeOpacity={1}
+        onPressOut={props.closeAddDeliveryModal}
+        style={{ flex: 1 }}
+      >
+        <KeyboardAvoidingView behavior={"padding"} style={{ flex: 1 }}>
+          <View style={styles.mainModalView}>
+            <TouchableWithoutFeedback>
+              <View style={{ ...styles.subModalView, maxHeight: height / 1.7 }}>
+              <View
+                style={{
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
+                <View style={styles.topImageView}>
+                  <Image
+                    source={require("../assets/images/pre3.png")}
+                    style={{ width: 54, height: 54, resizeMode: "contain" }}
+                  />
+                </View>
+              </View>
+              <TouchableOpacity
+                onPress={props.closeAddDeliveryModal}
+                style={{
+                  position: "absolute",
+                  right: isRtl ? null : 0,
+                  marginTop: Default.fixPadding * 1.2,
+                  marginHorizontal: Default.fixPadding * 1.1,
+                }}
+              >
+                <Ionicons name="close" size={22} color={Colors.grey} />
+              </TouchableOpacity>
+
+              <Text
+                style={{
+                  ...Fonts.SemiBold16black,
+                  textAlign: "center",
+                  marginTop: Default.fixPadding * 1.5,
+                  marginBottom: Default.fixPadding * 2,
+                  marginHorizontal: Default.fixPadding * 2,
+                }}
+              >
+                {tr("allowMyDelivery")}
+              </Text>
+
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <View
+                  style={{
+                    marginTop: Default.fixPadding * 2,
+                    marginHorizontal: Default.fixPadding * 2,
+                  }}
+                >
+                  <Text
+                    style={{
+                      ...Fonts.Medium16black,
+                      textAlign: isRtl ? "right" : "left",
+                    }}
+                  >
+                    {tr("deliveryCompany")}
+                  </Text>                  <TouchableOpacity
+                    onPress={() => setCompanyNameModal(true)}
+                    style={{
+                      flexDirection: isRtl ? "row-reverse" : "row",
+                      marginBottom: confirmCompanyName === "Other" ? Default.fixPadding : Default.fixPadding * 2.5,
+                      ...styles.touchOpacityBox,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        ...(confirmCompanyName
+                          ? Fonts.Medium14black
+                          : Fonts.Medium14grey),
+                        flex: 1,
+                        textAlign: isRtl ? "right" : "left",
+                        marginRight: isRtl ? 0 : Default.fixPadding,
+                        marginLeft: isRtl ? Default.fixPadding : 0,
+                      }}
+                    >
+                      {confirmCompanyName
+                        ? confirmCompanyName
+                        : tr("selectDeliveryCompany")}
+                    </Text>
+
+                    <Ionicons
+                      name="chevron-down"
+                      size={18}
+                      color={Colors.black}
+                    />
+                  </TouchableOpacity>
+                  
+                  {confirmCompanyName === "Other" && (
+                    <View style={{
+                      marginBottom: Default.fixPadding * 2.5,
+                      ...styles.textInputView,
+                    }}>
+                      <TextInput
+                        value={otherCompanyName}
+                        onChangeText={setOtherCompanyName}
+                        placeholder={tr("enterCompanyName") || "Enter Company Name"}
+                        placeholderTextColor={Colors.grey}
+                        selectionColor={Colors.primary}
+                        style={{
+                          ...Fonts.Medium14black,
+                          flex: 1,
+                          textAlign: isRtl ? "right" : "left",                        }}
+                      />
+                    </View>
+                  )}
+                  
+                  <Text
+                    style={{
+                      ...Fonts.Medium16black,
+                      textAlign: isRtl ? "right" : "left",
+                    }}
+                  >
+                    {tr("enterDate")}
+                  </Text>
+                  
+                  <TouchableOpacity
+                    onPress={() => setDateCalendarModal(true)}
+                    style={{
+                      flexDirection: isRtl ? "row-reverse" : "row",
+                      ...styles.dateTouchOpacity
+                    }}
+                  >
+                    <Text
+                      style={{
+                        ...(date
+                          ? Fonts.Medium14black
+                          : Fonts.Medium14grey),
+                        flex: 1,
+                        textAlign: isRtl ? "right" : "left",
+                        marginRight: isRtl ? 0 : Default.fixPadding,
+                        marginLeft: isRtl ? Default.fixPadding : 0,
+                      }}
+                    >
+                      {date ? (formatDisplayDate(date) || tr("selectDate") || "Select Date") : (tr("selectDate") || "Select Date")}
+                    </Text>
+
+                    <MaterialCommunityIcons
+                      name="calendar-range-outline"
+                      size={20}
+                      color={Colors.primary}
+                    />
+                  </TouchableOpacity>
+
+                  <View style={{ 
+                    flexDirection: isRtl ? "row-reverse" : "row",
+                    justifyContent: 'space-between',
+                    marginTop: Default.fixPadding * 0.5,
+                    marginBottom: Default.fixPadding * 2,
+                    paddingHorizontal: Default.fixPadding * 0.5,
+                  }}>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setDate(today);
+                      }}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        padding: Default.fixPadding * 0.5,
+                      }}
+                    >
+                      <Ionicons 
+                        name="today-outline" 
+                        size={16} 
+                        color={Colors.primary}
+                        style={{marginRight: 4}} 
+                      />
+                      <Text style={{...Fonts.Medium12primary}}>
+                        {tr("today") || "Today"}
+                      </Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity
+                      onPress={() => {
+                        const tomorrow = moment().add(1, 'days').format('YYYY-MM-DD');
+                        setDate(tomorrow);
+                      }}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        padding: Default.fixPadding * 0.5,
+                      }}
+                    >
+                      <Ionicons 
+                        name="calendar-outline" 
+                        size={16} 
+                        color={Colors.primary}
+                        style={{marginRight: 4}} 
+                      />
+                      <Text style={{...Fonts.Medium12primary}}>
+                        {tr("tomorrow") || "Tomorrow"}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </ScrollView>
+              <View
+                style={{
+                  margin: Default.fixPadding * 2,
+                }}
+              >                <AwesomeButton
+                  height={50}
+                  onPress={() => {
+                    // If the user selected "Other" but didn't provide a company name, show a default
+                    const finalCompanyName = 
+                      confirmCompanyName === "Other" && otherCompanyName ? 
+                      otherCompanyName : confirmCompanyName;
+                    
+                    console.log("Delivery from: " + finalCompanyName + " on date: " + (date || "today"));
+                    
+                    props.closeAddDeliveryModal();
+                    setConfirmCompanyName("");
+                    setOtherCompanyName("");
+                    setDate("");
+                  }}
+                  raiseLevel={1}
+                  stretch={true}
+                  borderRadius={10}
+                  backgroundShadow={Colors.primary}
+                  backgroundDarker={Colors.primary}
+                  backgroundColor={Colors.primary}
+                >
+                  <Text style={{ ...Fonts.SemiBold18white }}>
+                    {tr("submit")}
+                  </Text>
+                </AwesomeButton>
+              </View>
+            </View>
+          </TouchableWithoutFeedback>
+        </View>
+      </TouchableOpacity>
+      <Modal
+        transparent={true}
+        animationType="fade"
+        visible={companyNameModal}
+        onRequestClose={() => setCompanyNameModal(false)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          onPressOut={() => setCompanyNameModal(false)}
+          style={{ flex: 1 }}
+        >
+          <View style={styles.mainModalView}>
+            <TouchableOpacity
+              activeOpacity={1}
+              style={{ maxHeight: height / 2, ...styles.subModalView }}
+            >
+              <View
+                style={{
+                  justifyContent: "center",
+                  alignItems: "center",
+                  padding: Default.fixPadding * 1.6,
+                }}
+              >
+                <Text style={{ ...Fonts.Medium18primary }}>
+                  {tr("companyName")}
+                </Text>
+              </View>
+              <DashedLine
+                dashGap={2.5}
+                dashLength={2.5}
+                dashThickness={1.5}
+                dashColor={Colors.grey}
+              />
+
+              <FlatList
+                data={companyNameList}
+                renderItem={renderItemCompanyName}
+                keyExtractor={(item) => item.key}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{
+                  paddingBottom: Default.fixPadding * 1.2,
+                }}
+              />
+
+              <View
+                style={{
+                  flexDirection: isRtl ? "row-reverse" : "row",
+                  alignItems: "center",
+                  paddingHorizontal: Default.fixPadding * 2.6,
+                  marginTop: Default.fixPadding * 1.3,
+                  marginBottom: Default.fixPadding * 2.2,
+                }}
+              >
+                <TouchableOpacity
+                  onPress={() => setCompanyNameModal(false)}
+                  style={{
+                    marginRight: isRtl ? 0 : Default.fixPadding * 1.5,
+                    marginLeft: isRtl ? Default.fixPadding * 1.5 : 0,
+                    backgroundColor: Colors.white,
+                    ...styles.cancelOkBtn,
+                  }}
+                >
+                  <Text
+                    numberOfLines={1}
+                    style={{ ...Fonts.SemiBold18black, overflow: "hidden" }}
+                  >
+                    {tr("cancel")}
+                  </Text>
+                </TouchableOpacity>                <TouchableOpacity
+                  onPress={() => {
+                    setConfirmCompanyName(selectedCompanyName);
+                    setCompanyNameModal(false);
+                  }}
+                  style={{
+                    backgroundColor: Colors.primary,
+                    ...styles.cancelOkBtn,
+                  }}
+                >
+                  <Text
+                    numberOfLines={1}
+                    style={{ ...Fonts.SemiBold18white, overflow: "hidden" }}
+                  >
+                    {tr("okay")}
+                  </Text>
+                </TouchableOpacity></View>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+      
+      <Modal
+        transparent={true}
+        animationType="fade"
+        visible={dateCalendarModal}
+        onRequestClose={() => setDateCalendarModal(false)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          onPressOut={() => setDateCalendarModal(false)}
+          style={{ flex: 1 }}
+        >
+          <View style={styles.mainModalView}>
+            <View style={{
+                ...styles.subModalView,
+                borderRadius: 20,
+                overflow: 'hidden',
+              }}>
+              <View
+                style={{
+                  justifyContent: "center",
+                  alignItems: "center",
+                  margin: Default.fixPadding,
+                  paddingVertical: Default.fixPadding,
+                  backgroundColor: Colors.white,
+                  borderBottomWidth: 1,
+                  borderBottomColor: Colors.lightGrey,
+                }}
+              >
+                <Text
+                  numberOfLines={1}
+                  style={{
+                    textAlign: "center",
+                    overflow: "hidden",
+                    ...Fonts.SemiBold18primary,
+                  }}
+                >
+                  {tr("selectDeliveryDate") || "Select Delivery Date"}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setDateCalendarModal(false)}
+                  style={{
+                    position: "absolute",
+                    alignSelf: isRtl ? "flex-start" : "flex-end",
+                    width: 30,
+                    height: 30,
+                    borderRadius: 15,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    backgroundColor: Colors.lightGrey + '20', // semi-transparent
+                  }}
+                >
+                  <Ionicons name="close" size={20} color={Colors.grey} />
+                </TouchableOpacity>
+              </View>
+                <View
+                style={{
+                  justifyContent: "center",
+                  alignItems: "center",
+                  marginBottom: Default.fixPadding * 1.5,
+                }}
+              >
+                {/* Calendar picker component */}
+                <FromToCalendarPicker
+                  minDate={today}
+                  current={date}
+                  onDayPress={onDateChange}
+                />
+              </View>
+              
+              <View style={{
+                  flexDirection: isRtl ? "row-reverse" : "row",
+                  justifyContent: "center",
+                  marginVertical: Default.fixPadding * 1.5,
+                  paddingHorizontal: Default.fixPadding * 2,
+                }}>
+                  <TouchableOpacity
+                    onPress={() => setDateCalendarModal(false)}
+                    style={{
+                      backgroundColor: Colors.primary,
+                      paddingVertical: Default.fixPadding * 0.8,
+                      paddingHorizontal: Default.fixPadding * 4,
+                      borderRadius: 20,
+                      elevation: 3,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      shadowColor: Colors.primary,
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.3,
+                      shadowRadius: 3,
+                    }}
+                  >
+                    <Ionicons name="checkmark-circle" size={18} color={Colors.white} style={{marginRight: 8}} />
+                    <Text style={{ ...Fonts.SemiBold16white }}>
+                      {tr("done") || "Done"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    </Modal>
+  );
+};
+
+export default AddDeliveryModal;
+
+const styles = StyleSheet.create({
+  mainModalView: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: Colors.transparentBlack,
+  },
+  subModalView: {
+    width: width * 0.9,
+    borderRadius: 10,
+    backgroundColor: Colors.white,
+    ...Default.shadow,
+  },
+  cancelOkBtn: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: Default.fixPadding * 1.4,
+    borderRadius: 10,
+    ...Default.shadow,
+  },
+  topImageView: {
+    justifyContent: "center",
+    alignItems: "center",
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    borderWidth: 2,
+    borderColor: Colors.white,
+    backgroundColor: Colors.geyser,
+    marginTop: -Default.fixPadding * 5,
+    ...Default.shadow,
+  },  touchOpacityBox: {
+    alignItems: "center",
+    marginTop: Default.fixPadding * 0.5,
+    paddingHorizontal: Default.fixPadding * 1.4,
+    paddingVertical: Default.fixPadding * 1.5,
+    borderRadius: 10,
+    backgroundColor: Colors.white,
+    ...Default.shadow,
+  },
+  dateTouchOpacity: {
+    alignItems: "center",
+    paddingHorizontal: Default.fixPadding * 1.4,
+    paddingVertical: Default.fixPadding * 1.5,
+    marginTop: Default.fixPadding * 0.5,
+    marginBottom: Default.fixPadding,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.primary + '40', // Semi-transparent primary color
+    backgroundColor: Colors.white,
+    ...Default.shadow,
+    shadowColor: Colors.primary,
+    shadowOpacity: 0.1,
+    elevation: 2,
+  },
+  textInputView: {
+    alignItems: "center",
+    paddingHorizontal: Default.fixPadding * 1.4,
+    paddingVertical: Default.fixPadding * 1.2,
+    marginTop: Default.fixPadding * 0.5,
+    borderRadius: 10,
+    backgroundColor: Colors.white,
+    ...Default.shadow,
+  },
+});

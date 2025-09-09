@@ -1,0 +1,198 @@
+{
+    "loginScreen": {
+        "login": "登录",
+        "helloUsers": "您好用户请登录您的帐户",
+        "enterMobileNumber": "输入手机号码",
+        "verification": "*我们将发送OTP进行验证",
+        "search": "搜索",
+        "close": "关闭",
+        "tapBack": "再次点击以退出应用程序"
+    },
+        "notificationScreen": {
+            "remove": "通知已删除。",
+            "notification": "通知",
+            "noNotification": "没有新通知"
+        },
+    "registerScreen": {
+        "register": "登记",
+        "helloUsers": "您好用户请创建您的帐户",
+        "userName": "用户名",
+        "mobileNumber": "手机号码",
+        "emailAddress": "电子邮件地址"
+    },
+    "verificationScreen": {
+        "otpVerification": "OTP验证",
+        "pleaseEnter": "请输入我们将在您的手机号上发送给您的OTP",
+        "verify": "核实",
+        "resend": "没有收到？重发"
+    },
+    "bottomTab": {
+        "tapBack": "再次点击以退出应用程序",
+        "home": "家",
+        "inOut": "进出",
+        "messages": "消息",
+        "settings": "设置"
+    },
+    "homeScreen": {
+        "visitorEntry": "访客条目",
+        "enterVisitor": "输入访问者条目代码或扫描代码",
+        "confirm": "确认",
+        "addNewVisitor": "添加新访客",
+        "guestEntry": "来宾条目",
+        "cabEntry": "出租车进入",
+        "deliveryEntry": "送货进入",
+        "serviceEntry": "服务条目"
+    },
+    "guestEntryScreen": {
+        "guestEntry": "来宾条目",
+        "entryConfirmation": "入场确认",
+        "guestName": "客人姓名",
+        "enterGuestName": "输入来宾名称",
+        "mobileNumber": "手机号码",
+        "enterMobileNumber": "输入手机号码",
+        "insideTime": "内部时间",
+        "enterTime": "输入内部时间",
+        "continue": "继续",
+        "visiting": "来访",
+        "enterVisiting": "进入访问",
+        "hostName": "主机名",
+        "confirmNotification": "确认并发送通知"
+    },
+    "flatNoScreen": {
+        "blockA": "块A。",
+        "blockB": "B座",
+        "clubhouse": "俱乐部",
+        "common": "公共区域"
+    },
+    "flatNoTab": {
+        "selectFlatNum": "选择公寓/单元号码",
+        "continue": "继续"
+    },
+    "ringingScreen": {
+        "ringing": "铃声...",
+        "theyAreGettingInform": "他们正在告知"
+    },
+    "allowedScreen": {
+        "allowed": "允许",
+        "letsGuest": "让客人进入社会",
+        "backToHome": "回到家"
+    },
+    "deliveryEntryScreen": {
+        "deliveryEntry": "送货进入",
+        "deliverymanName": "送货员名称",
+        "enterDeliverymanName": "输入送货员名称",
+        "phoneNumber": "电话号码",
+        "enterPhoneNumber": "输入电话号码",
+        "deliveryCompany": "送货公司",
+        "enterDeliveryCompany": "输入送货公司",
+        "insideTime": "内部时间",
+        "enterTime": "输入内部时间",
+        "continue": "继续"
+    },
+    "cabEntryScreen": {
+        "cabEntry": "出租车进入",
+        "cabDriverName": "出租车驾驶员名称",
+        "enterName": "输入驾驶室驾驶员名称",
+        "enterLast": "输入最后4位驾驶室",
+        "cabCompany": "出租车公司",
+        "enterCabCompany": "输入出租车公司",
+        "pickup": "拾音器/抽奖",
+        "continue": "继续"
+    },
+    "serviceEntryScreen": {
+        "serviceEntry": "服务条目",
+        "servicemanName": "服务员名字",
+        "enterName": "输入服务员名称",
+        "phoneNumber": "电话号码",
+        "enterPhoneNumber": "输入电话号码",
+        "servicemanCompany": "服务员公司",
+        "enterCompany": "输入服务员公司",
+        "insideTime": "内部时间",
+        "enterTime": "输入内部时间",
+        "continue": "继续"
+    },
+    "confirmScreen": {
+        "guest": "客人",
+        "visiting": "来访",
+        "gatePass": "街头看",
+        "confirmSendIn": "确认"
+    },
+    "inOutScreen": {
+        "inOut": "进出",
+        "checkedIn": "已进入",
+        "checkedOut": "已离开"
+    },
+    "checkedInTab": {
+        "in": "在",
+        "block": "堵塞"
+    },
+    "checkedOutTab": {
+        "out": "出去",
+        "block": "堵塞"
+    },
+    "messageScreen": {
+        "message": "信息"
+    },
+    "chatScreen": {
+        "block": "堵塞",
+        "typeHere": "在此输入文字...."
+    },
+    "settingScreen": {
+        "settings": "设置",
+        "onDuty": "值班",
+        "quickContact": "快速联系",
+        "callAdmin": "致电管理员",
+        "callSecretory": "致电分泌",
+        "language": "语言",
+        "getSupport": "得到支持",
+        "termsCondition": "条款与协议",
+        "privacyPolicy": "隐私政策",
+        "logout": "登出"
+    },
+    "editProfileScreen": {
+        "editProfile": "编辑个人资料",
+        "name": "姓名",
+        "enterName": "输入你的名字",
+        "emailAddress": "电子邮件地址",
+        "enterEmail": "请输入电邮地址",
+        "phoneNumber": "电话号码",
+        "enterPhoneNumber": "输入电话号码",
+        "update": "更新",
+        "deny": "您否认访问相机！！！",
+        "removeImage": "删除了个人资料照片。"
+    },
+    "addImageBottomSheet": {
+        "addImage": "添加图片",
+        "camera": "相机",
+        "gallery": "画廊",
+        "remove": "消除"
+    },
+    "languageScreen": {
+        "language": "语言",
+        "update": "更新"
+    },
+    "getSupportScreen": {
+        "getSupport": "得到支持",
+        "askSuggestImprove": "问我们建议我们有任何改进的方式",
+        "issueType": "问题类型",
+        "enterTopic": "输入主题 /问题类型",
+        "message": "信息",
+        "enterYourMessage": "输入您的消息",
+        "submitMessage": "提交消息"
+    },
+    "termsConditionScreen": {
+        "termsCondition": "条款与协议"
+    },
+    "privacyPolicyScreen": {
+        "privacyPolicy": "隐私政策"
+    },
+    "logoutModal": {
+        "logout": "登出",
+        "areYouSureLogout": "您确定要注销吗？",
+        "no": "不",
+        "yes": "是的"
+    },
+    "callScreen": {
+        "calling": "叫..."
+    }
+}

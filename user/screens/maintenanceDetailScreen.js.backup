@@ -1,0 +1,751 @@
+import {
+  Text,
+  View,
+  TouchableOpacity,
+  BackHandler,
+  StyleSheet,
+  Image,
+  ScrollView,
+  ImageBackground,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  ActivityIndicator,
+  Keyboard,
+  Alert,
+} from "react-native";
+import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Colors, Default, Fonts } from "../constants/styles";
+import Ionicons from "react-native-vector-icons/Ionicons";
+import MyStatusBar from "../components/myStatusBar";
+import { ms } from "react-native-size-matters/extend";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
+import AwesomeButton from "react-native-really-awesome-button";
+import { useGetMaintenanceRequest, useListMaintenanceRequestComments, useCreateMaintenanceRequestComment, useGetUserUnit, useUpdateMaintenanceRequest } from "../hooks/useSupabaseData";
+import { useAuth } from '../contexts/AuthContext';
+import { getAvatarSource } from "../utils/avatarMapping";
+import { useQueryClient } from '@tanstack/react-query';
+
+const MaintenanceDetailScreen = ({ navigation, route }) => {
+  const { 
+    maintenanceId, 
+    headerTitle, 
+    // Legacy props for fallback
+    image, title, dateTime, other, name, resolved 
+  } = route.params;
+
+  const { t, i18n } = useTranslation();
+  
+  // Fetch real maintenance request data from Supabase
+  const { 
+    data: maintenanceRequest, 
+    isLoading, 
+    error 
+  } = useGetMaintenanceRequest(maintenanceId);
+
+  // Get current user from auth context
+  const { user, profile } = useAuth();
+  const queryClient = useQueryClient();
+
+  // Get user's unit information
+  const { data: userUnit } = useGetUserUnit(user?.id);
+
+  // Fetch comments for this maintenance request
+  const { 
+    data: comments = [], 
+    isLoading: commentsLoading,
+    error: commentsError 
+  } = useListMaintenanceRequestComments(maintenanceId);
+
+  console.log('💬 Maintenance Comment Hook Debug:', {
+    maintenanceId,
+    commentsLength: comments.length,
+    commentsLoading,
+    commentsError: commentsError?.message,
+    comments: comments.slice(0, 2) // Show first 2 comments for debugging
+  });
+
+  // Create comment mutation
+  const createCommentMutation = useCreateMaintenanceRequestComment();
+  
+  // Update maintenance request mutation for status changes
+  const updateMaintenanceRequestMutation = useUpdateMaintenanceRequest();
+
+  // Get user's unit information for flatNo display
+  const getUserFlatNo = () => {
+    if (userUnit?.block && userUnit?.number) {
+      return `${userUnit.block}-${userUnit.number}`;
+    }
+    return "N/A";
+  };
+
+  // Check if this is a valid UUID to determine if we should try fetching from Supabase
+  const isValidUUID = (id) => {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    return id && uuidRegex.test(id);
+  };
+
+  const isRtl = i18n.dir() == "rtl";
+
+  function tr(key) {
+    return t(`maintenanceDetailScreen:${key}`);
+  }
+
+  // Helper functions for data display - define these first
+  const formatDateTime = (dateString) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    return date.toLocaleDateString() + ", " + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+  };
+
+  const formatRelativeTime = (dateString) => {
+    if (!dateString) return "N/A";
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffInMinutes = Math.floor((now - date) / (1000 * 60));
+    
+    if (diffInMinutes < 1) return "Just now";
+    if (diffInMinutes < 60) return `${diffInMinutes}min ago`;
+    
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) return `${diffInHours}h ago`;
+    
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays < 7) return `${diffInDays}d ago`;
+    
+    return formatDateTime(dateString);
+  };
+
+  const backAction = () => {
+    navigation.pop();
+    return true;
+  };
+  
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener("hardwareBackPress", backAction);
+    return () => subscription?.remove();
+  }, []);
+
+  // Format comment data for display
+  const commentList = comments.length > 0 ? comments.map((comment) => ({
+    key: comment.id,
+    name: comment.created_by_profile ? 
+      `${comment.created_by_profile.first_name} ${comment.created_by_profile.last_name}` : 
+      'Unknown User',
+    email: comment.created_by_profile?.email,
+    time: formatRelativeTime(comment.created_at),
+    flatNo: comment.created_by === user?.id ? getUserFlatNo() : "N/A", // Show user's unit for their own comments
+    comment: comment.comment,
+    image: getAvatarSource(comment.created_by_profile?.avatar_url), // Use consistent avatar mapping
+  })) : [
+    // Original mock data for when no real comments exist
+    {
+      key: "1",
+      name: "George Haydon",
+      email: "george@example.com",
+      time: "5min ago",
+      flatNo: "A-102",
+      comment: "I have the same maintenance issue in my unit. Has this been resolved?",
+      image: getAvatarSource('/assets/images/users/avatar-1.jpg'),
+    },
+    {
+      key: "2", 
+      name: "Natasha Jain",
+      email: "natasha@example.com",
+      time: "2h ago",
+      flatNo: "B-205",
+      comment: "Thank you for reporting this. The maintenance team should look into it soon.",
+      image: getAvatarSource('/assets/images/users/avatar-2.jpg'),
+    },
+    {
+      key: "3",
+      name: "Mihir Sharma", 
+      email: "mihir@example.com",
+      time: "1d ago",
+      flatNo: "C-301",
+      comment: "This is a recurring problem in our building. We need a permanent solution.",
+      image: getAvatarSource('/assets/images/users/avatar-3.jpg'),
+    },
+  ];
+
+  console.log('📝 Maintenance CommentList Debug:', {
+    commentsLength: comments.length,
+    commentListLength: commentList.length,
+    usingRealData: comments.length > 0,
+    firstComment: commentList[0]
+  });
+
+  const [writeComment, setWriteComment] = useState("");
+
+  // Handle comment submission - disabled until comments table is created
+  const handleSendComment = async () => {
+    // Temporarily disabled - comments table doesn't exist yet
+    Alert.alert("Info", "Comments functionality will be available soon!");
+    return;
+    
+    if (!writeComment?.trim() || !user?.id) return;
+    
+    try {
+      await createCommentMutation.mutateAsync({
+        maintenance_request_id: maintenanceId,
+        comment: writeComment.trim(),
+        created_by: user.id,
+      });
+      setWriteComment("");
+      Keyboard.dismiss(); // Dismiss keyboard after sending comment
+    } catch (error) {
+      console.error('Error creating maintenance comment:', error);
+      // You can add error toast/alert here
+    }
+  };
+
+  // Handle status change for maintenance request
+  const handleToggleMaintenanceStatus = async () => {
+    if (!maintenanceId || !isValidUUID(maintenanceId)) return;
+    
+    try {
+      const currentStatus = maintenanceRequest?.status || 'pending';
+      const newStatus = currentStatus === 'completed' ? 'pending' : 'completed';
+      
+      await updateMaintenanceRequestMutation.mutateAsync({
+        id: maintenanceId,
+        data: {
+          status: newStatus,
+          updated_at: new Date().toISOString(),
+          // Add completed fields if marking as completed
+          ...(newStatus === 'completed' && {
+            completed_at: new Date().toISOString(),
+          }),
+          // Clear completed fields if reopening
+          ...(newStatus === 'pending' && {
+            completed_at: null,
+          })
+        }
+      });
+      
+      // Invalidate and refetch the maintenance request data to update UI immediately
+      queryClient.invalidateQueries({ queryKey: ['maintenance-request', maintenanceId] });
+      queryClient.invalidateQueries({ queryKey: ['maintenance-requests'] });
+      
+      console.log(`Maintenance request ${newStatus === 'completed' ? 'completed' : 'reopened'} successfully`);
+    } catch (error) {
+      console.error('Error updating maintenance request status:', error);
+      // You can add error toast/alert here
+    }
+  };
+
+  // Get priority color
+  const getPriorityColor = (priority) => {
+    switch (priority?.toLowerCase()) {
+      case 'low': return Colors.green;
+      case 'medium': return Colors.orange;
+      case 'high': return Colors.red;
+      case 'urgent': return Colors.darkRed;
+      default: return Colors.grey;
+    }
+  };
+
+  // Get data either from Supabase or fallback to legacy route params
+  const getMaintenanceData = () => {
+    // If we have real maintenance request data from Supabase, use it
+    if (maintenanceRequest && isValidUUID(maintenanceId)) {
+      return {
+        title: maintenanceRequest.title,
+        dateTime: formatDateTime(maintenanceRequest.created_at),
+        description: maintenanceRequest.description,
+        submittedBy: "User", // Simple since we don't have profile data in simplified hook
+        status: maintenanceRequest.status,
+        priority: maintenanceRequest.priority,
+        type: maintenanceRequest.request_type,
+        category: 'personal', // Default since not in schema
+        images: [], // No images field in current schema
+        completed: maintenanceRequest.status === 'completed'
+      };
+    }
+    // Fallback to legacy route params for mock data
+    return {
+      title: title || "Sample Maintenance Request",
+      dateTime: dateTime || formatDateTime(new Date().toISOString()),
+      description: other || "Sample maintenance description",
+      submittedBy: name || "Unknown User",
+      status: resolved ? 'completed' : 'pending',
+      priority: 'medium',
+      type: 'General',
+      category: 'personal',
+      images: image ? [image] : [],
+      completed: resolved || false
+    };
+  };
+
+  const maintenanceData = getMaintenanceData();
+
+  // Show loading state only for valid UUIDs that should hit the database
+  if (isLoading && isValidUUID(maintenanceId)) {
+    return (
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : null}
+        style={{ flex: 1, backgroundColor: Colors.white }}
+      >
+        <MyStatusBar />
+        <View style={{ flex: 1 }}>
+          <View
+            style={{
+              alignSelf: isRtl ? "flex-end" : "flex-start",
+              paddingVertical: Default.fixPadding * 1.2,
+              paddingHorizontal: Default.fixPadding * 2,
+            }}
+          >
+            <TouchableOpacity onPress={() => navigation.pop()}>
+              <Ionicons
+                name={isRtl ? "arrow-forward-outline" : "arrow-back-outline"}
+                size={25}
+                color={Colors.black}
+              />
+            </TouchableOpacity>
+          </View>
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <ActivityIndicator size="large" color={Colors.primary} />
+            <Text style={{ ...Fonts.Medium16grey, marginTop: Default.fixPadding }}>
+              Loading maintenance details...
+            </Text>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    );
+  }
+
+  // Show error state only for valid UUIDs that should hit the database and have real errors
+  if (error && isValidUUID(maintenanceId)) {
+    return (
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : null}
+        style={{ flex: 1, backgroundColor: Colors.white }}
+      >
+        <MyStatusBar />
+        <View style={{ flex: 1 }}>
+          <View
+            style={{
+              alignSelf: isRtl ? "flex-end" : "flex-start",
+              paddingVertical: Default.fixPadding * 1.2,
+              paddingHorizontal: Default.fixPadding * 2,
+            }}
+          >
+            <TouchableOpacity onPress={() => navigation.pop()}>
+              <Ionicons
+                name={isRtl ? "arrow-forward-outline" : "arrow-back-outline"}
+                size={25}
+                color={Colors.black}
+              />
+            </TouchableOpacity>
+          </View>
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <Text style={{ ...Fonts.Medium16grey, textAlign: 'center' }}>
+              Error loading maintenance details: {error.message}
+            </Text>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    );
+  }
+
+  return (
+    <View style={{ flex: 1, backgroundColor: Colors.white }}>
+      <MyStatusBar />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={0}
+      >
+        <View
+          style={{
+            alignSelf: isRtl ? "flex-end" : "flex-start",
+            paddingVertical: Default.fixPadding * 1.2,
+            paddingHorizontal: Default.fixPadding * 2,
+          }}
+        >
+          <TouchableOpacity onPress={() => navigation.pop()}>
+            <Ionicons
+              name={isRtl ? "arrow-forward-outline" : "arrow-back-outline"}
+              size={25}
+              color={Colors.black}
+            />
+          </TouchableOpacity>
+        </View>
+        <ScrollView 
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ flexGrow: 1 }}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View
+            style={{
+              marginTop: Default.fixPadding * 0.8,
+              marginHorizontal: Default.fixPadding * 2,
+            }}
+          >
+            <Text
+              style={{
+                ...Fonts.SemiBold16black,
+                textAlign: isRtl ? "right" : "left",
+              }}
+            >{`${headerTitle} ${tr("maintenanceRequest")}`}</Text>
+
+            <View
+              style={{
+                flexDirection: isRtl ? "row-reverse" : "row",
+                paddingLeft: Default.fixPadding * 1.5,
+                ...styles.mainViewBox,
+              }}
+            >
+              <View
+                style={{
+                  flex: 1,
+                  flexDirection: isRtl ? "row-reverse" : "row",
+                  alignItems: "center",
+                }}
+              >
+                <Image
+                  source={
+                    (maintenanceData.images && maintenanceData.images.length > 0) 
+                      ? typeof maintenanceData.images[0] === 'number'
+                        ? maintenanceData.images[0] // It's already a require() result
+                        : typeof maintenanceData.images[0] === 'string' && maintenanceData.images[0].startsWith('http')
+                          ? { uri: maintenanceData.images[0] } // It's a URL string
+                          : require("../assets/images/pic1.png") // Fallback for invalid data
+                      : require("../assets/images/pic1.png") // Default fallback
+                  }
+                  style={{
+                    width: ms(87),
+                    height: ms(87),
+                    borderRadius: 5,
+                    marginTop: Default.fixPadding * 1.5,
+                  }}
+                />
+
+                <View
+                  style={{
+                    flex: 1,
+                    alignItems: isRtl ? "flex-end" : "flex-start",
+                    marginLeft: isRtl ? 0 : Default.fixPadding,
+                    marginRight: isRtl ? Default.fixPadding : 0,
+                  }}
+                >
+                  <Text
+                    numberOfLines={1}
+                    style={{
+                      ...Fonts.SemiBold16black,
+                      overflow: "hidden",
+                      textAlign: isRtl ? "right" : "left",
+                      paddingTop: Default.fixPadding,
+                      marginRight: isRtl ? 0 : Default.fixPadding * 10,
+                      marginLeft: isRtl ? Default.fixPadding * 10 : 0,
+                    }}
+                  >
+                    {maintenanceData.title}
+                  </Text>
+
+                  <View
+                    style={{
+                      alignItems: isRtl ? "flex-end" : "flex-start",
+                      marginRight: isRtl ? 0 : Default.fixPadding,
+                      marginLeft: isRtl ? Default.fixPadding : 0,
+                    }}
+                  >
+                    <Text
+                      numberOfLines={1}
+                      style={{
+                        ...Fonts.Medium14grey,
+                        overflow: "hidden",
+                      }}
+                    >
+                      {maintenanceData.dateTime}
+                    </Text>
+                    
+                    {/* Priority and Type */}
+                    <View style={{
+                      flexDirection: isRtl ? "row-reverse" : "row",
+                      alignItems: "center",
+                      marginVertical: Default.fixPadding * 0.3,
+                    }}>
+                      <View style={{
+                        backgroundColor: getPriorityColor(maintenanceData.priority),
+                        paddingHorizontal: Default.fixPadding * 0.5,
+                        paddingVertical: Default.fixPadding * 0.2,
+                        borderRadius: 3,
+                        marginRight: isRtl ? 0 : Default.fixPadding * 0.5,
+                        marginLeft: isRtl ? Default.fixPadding * 0.5 : 0,
+                      }}>
+                        <Text style={{ ...Fonts.Medium12white }}>
+                          {maintenanceData.priority}
+                        </Text>
+                      </View>
+                      <Text style={{ ...Fonts.Medium12grey }}>
+                        {maintenanceData.type} • {maintenanceData.category}
+                      </Text>
+                    </View>
+
+                    <Text
+                      numberOfLines={1}
+                      style={{
+                        ...Fonts.Medium14grey,
+                        overflow: "hidden",
+                        marginVertical: Default.fixPadding * 0.3,
+                      }}
+                    >
+                      {maintenanceData.description}
+                    </Text>
+
+                    <Text
+                      numberOfLines={1}
+                      style={{ ...Fonts.Medium14grey, overflow: "hidden" }}
+                    >
+                      {maintenanceData.completed ? tr("completedBy") : tr("requestedBy")}
+                      <Text
+                        style={{ ...Fonts.Medium14black }}
+                      >{` : ${maintenanceData.submittedBy}`}</Text>
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              <View
+                style={{
+                  position: "absolute",
+                  right: isRtl ? null : 0,
+                  left: isRtl ? 0 : null,
+                  justifyContent: "center",
+                  alignItems: "center",
+                  width: 90,
+                  paddingVertical: Default.fixPadding * 0.3,
+                  backgroundColor: maintenanceData.completed ? Colors.green : Colors.primary,
+                  borderTopRightRadius: isRtl ? 0 : 10,
+                  borderTopLeftRadius: isRtl ? 10 : 0,
+                }}
+              >
+                <Text
+                  numberOfLines={1}
+                  style={{
+                    ...Fonts.SemiBold16white,
+                    overflow: "hidden",
+                    paddingHorizontal: Default.fixPadding * 0.5,
+                  }}
+                >
+                  {maintenanceData.completed ? tr("completed") : tr("pending")}
+                </Text>
+              </View>
+            </View>
+
+            <AwesomeButton
+              height={50}
+              onPress={() => {
+                // Only allow status changes for real database records
+                if (isValidUUID(maintenanceId) && maintenanceRequest) {
+                  handleToggleMaintenanceStatus();
+                } else {
+                  Alert.alert("Info", "Status changes are only available for real maintenance requests.");
+                }
+              }}
+              disabled={updateMaintenanceRequestMutation.isLoading || !isValidUUID(maintenanceId)}
+              raiseLevel={1}
+              stretch={true}
+              borderRadius={10}
+              backgroundShadow={maintenanceData.completed ? Colors.green : Colors.primary}
+              backgroundDarker={maintenanceData.completed ? Colors.green : Colors.primary}
+              backgroundColor={maintenanceData.completed ? Colors.green : Colors.primary}
+              style={{
+                marginTop: Default.fixPadding * 2,
+                opacity: isValidUUID(maintenanceId) && maintenanceRequest ? 1 : 0.5,
+              }}
+            >
+              <Text style={{ ...Fonts.SemiBold18white }}>
+                {updateMaintenanceRequestMutation.isLoading 
+                  ? tr("updating") 
+                  : maintenanceData.completed 
+                    ? tr("markAsIncomplete") 
+                    : tr("markAsCompleted")
+                }
+              </Text>
+            </AwesomeButton>
+
+            <Text
+              style={{
+                ...Fonts.SemiBold16black,
+                textAlign: isRtl ? "right" : "left",
+                marginTop: Default.fixPadding * 2,
+              }}
+            >
+              {tr("comments")}
+            </Text>
+
+            {commentsLoading ? (
+              <View style={{ 
+                alignItems: 'center', 
+                paddingVertical: Default.fixPadding * 2 
+              }}>
+                <ActivityIndicator size="small" color={Colors.primary} />
+                <Text style={{ ...Fonts.Medium14grey, marginTop: Default.fixPadding }}>
+                  Loading comments...
+                </Text>
+              </View>
+            ) : (
+              commentList.map((item, index) => {
+                return (
+                  <View
+                    key={index}
+                    style={{
+                      ...styles.mainViewBox,
+                      flexDirection: isRtl ? "row-reverse" : "row",
+                      paddingHorizontal: Default.fixPadding * 1.5,
+                    }}
+                  >
+                    <Image
+                      source={item.image}
+                      style={{
+                        width: ms(43.5),
+                        height: ms(43.5),
+                        borderRadius: 43.5,
+                      }}
+                    />
+
+                    <View
+                      style={{
+                        flex: 1,
+                        alignItems: isRtl ? "flex-end" : "flex-start",
+                        marginLeft: isRtl ? 0 : Default.fixPadding,
+                        marginRight: isRtl ? Default.fixPadding : 0,
+                      }}
+                    >
+                      <View
+                        style={{
+                          flexDirection: isRtl ? "row-reverse" : "row",
+                          alignItems: "center",
+                        }}
+                      >
+                        <Text
+                          numberOfLines={1}
+                          style={{
+                            ...Fonts.SemiBold14black,
+                            overflow: "hidden",
+                            textAlign: isRtl ? "right" : "left",
+                          }}
+                        >
+                          {item.name}
+                        </Text>
+                        <Text
+                          numberOfLines={1}
+                          style={{
+                            ...Fonts.Medium12grey,
+                            overflow: "hidden",
+                            marginHorizontal: Default.fixPadding * 0.5,
+                          }}
+                        >
+                          ({item.flatNo})
+                        </Text>
+                      </View>
+
+                      <Text
+                        numberOfLines={1}
+                        style={{
+                          ...Fonts.Medium12grey,
+                          overflow: "hidden",
+                          textAlign: isRtl ? "right" : "left",
+                        }}
+                      >
+                        {item.time}
+                      </Text>
+
+                      <Text
+                        style={{
+                          ...Fonts.Medium14black,
+                          textAlign: isRtl ? "right" : "left",
+                          marginTop: Default.fixPadding * 0.5,
+                        }}
+                      >
+                        {item.comment}
+                      </Text>
+                    </View>
+                  </View>
+                );
+              })
+            )}
+          </View>
+        </ScrollView>
+
+        <View
+          style={{
+            paddingHorizontal: Default.fixPadding * 2,
+            paddingVertical: Default.fixPadding,
+            backgroundColor: Colors.white,
+            ...Default.shadow,
+          }}
+        >
+          <View
+            style={{
+              flexDirection: isRtl ? "row-reverse" : "row",
+              alignItems: "center",
+            }}
+          >
+            <View
+              style={{
+                flex: 1,
+                flexDirection: isRtl ? "row-reverse" : "row",
+                alignItems: "center",
+                backgroundColor: Colors.lightGrey,
+                borderRadius: 25,
+                paddingHorizontal: Default.fixPadding,
+              }}
+            >
+              <TextInput
+                value={writeComment}
+                onChangeText={setWriteComment}
+                placeholder={tr("writeComment")}
+                placeholderTextColor={Colors.grey}
+                selectionColor={Colors.primary}
+                multiline={true}
+                style={{
+                  flex: 1,
+                  ...Fonts.Medium14black,
+                  textAlign: isRtl ? "right" : "left",
+                  paddingVertical: Default.fixPadding,
+                  maxHeight: 100,
+                }}
+              />
+            </View>
+
+            <TouchableOpacity
+              onPress={handleSendComment}
+              disabled={!writeComment?.trim() || createCommentMutation.isLoading}
+              style={{
+                backgroundColor: Colors.primary,
+                borderRadius: 25,
+                padding: Default.fixPadding,
+                marginLeft: isRtl ? 0 : Default.fixPadding,
+                marginRight: isRtl ? Default.fixPadding : 0,
+                opacity: (!writeComment?.trim() || createCommentMutation.isLoading) ? 0.5 : 1,
+              }}
+            >
+              {createCommentMutation.isLoading ? (
+                <ActivityIndicator size="small" color={Colors.white} />
+              ) : (
+                <Ionicons name="send" size={20} color={Colors.white} />
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </View>
+  );
+};
+
+export default MaintenanceDetailScreen;
+
+const styles = StyleSheet.create({
+  mainViewBox: {
+    ...Default.shadow,
+    backgroundColor: Colors.white,
+    borderRadius: 10,
+    paddingTop: Default.fixPadding * 1.5,
+    paddingBottom: Default.fixPadding * 1.5,
+    marginTop: Default.fixPadding * 1.5,
+  },
+});

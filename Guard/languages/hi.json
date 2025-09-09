@@ -1,0 +1,203 @@
+{
+    "loginScreen": {
+        "login": "लॉग इन करें",
+        "helloUsers": "हैलो उपयोगकर्ता कृपया अपना खाता लॉगिन करें",
+        "enterMobileNumber": "मोबाइल नंबर दर्ज करें",
+        "verification": "*हम सत्यापन के लिए OTP भेजेंगे",
+        "search": "खोज",
+        "close": "बंद करना",
+        "tapBack": "ऐप से बाहर निकलने के लिए फिर से टैप करें"
+    },
+        "notificationScreen": {
+            "remove": "सूचना हटाई गई।",
+            "notification": "सूचना",
+            "noNotification": "कोई नई सूचना नहीं"
+        },
+    "registerScreen": {
+        "register": "पंजीकरण करवाना",
+        "helloUsers": "नमस्कार उपयोगकर्ता कृपया अपना खाता बनाएं",
+        "userName": "उपयोगकर्ता नाम",
+        "mobileNumber": "मोबाइल नंबर",
+        "emailAddress": "मेल पता"
+    },
+    "verificationScreen": {
+        "otpVerification": "ओटीपी सत्यापन",
+        "pleaseEnter": "कृपया ओटीपी दर्ज करें हम आपको अपने मोबाइल नंबर पर भेजेंगे",
+        "verify": "सत्यापित करें",
+        "resend": "प्राप्त नहीं हुआ?पुन: भेजेंेजें"
+    },
+    "bottomTab": {
+        "tapBack": "ऐप से बाहर निकलने के लिए फिर से टैप करें",
+        "home": "घर",
+        "inOut": "बाहर में",
+        "messages": "संदेशों",
+        "settings": "समायोजन"
+    },
+    "homeScreen": {
+        "visitorEntry": "आगंतुक प्रविष्टि",
+        "enterVisitor": "आगंतुक प्रविष्टि कोड या स्कैन कोड दर्ज करें",
+        "confirm": "पुष्टि करना",
+        "addNewVisitor": "नया आगंतुक जोड़ें",
+        "guestEntry": "अतिथि प्रविष्टि",
+        "cabEntry": "कैब प्रविष्टि",
+        "deliveryEntry": "वितरण प्रविष्टि",
+        "serviceEntry": "सेवा प्रविष्टि"
+    },
+    "guestEntryScreen": {
+        "guestEntry": "अतिथि प्रविष्टि",
+        "entryConfirmation": "प्रविष्टि पुष्टि",
+        "guestName": "अतिथि का नाम",
+        "enterGuestName": "अतिथि नाम दर्ज करें",
+        "mobileNumber": "मोबाइल नंबर",
+        "enterMobileNumber": "मोबाइल नंबर दर्ज करें",
+        "insideTime": "के अंदर का समय",
+        "enterTime": "इनसाइड टाइम दर्ज करें",
+        "continue": "जारी रखना",
+        "visiting": "यात्रा पर जाने वाले",
+        "enterVisiting": "विजिटिंग दर्ज करें",
+        "hostName": "मेजबान का नाम",
+        "confirmNotification": "पुष्टि करें और अधिसूचना भेजें"
+    },
+    "flatNoScreen": {
+        "blockA": "ब्लॉक ए",
+        "blockB": "ब्लॉक बी",
+        "clubhouse": "क्लब हाउस",
+        "common": "सामान्य क्षेत्र"
+    },
+    "flatNoTab": {
+        "selectFlatNum": "फ्लैट/यूनिट नंबर का चयन करें",
+        "continue": "जारी रखना"
+    },
+    "ringingScreen": {
+        "ringing": "बजना ...",
+        "theyAreGettingInform": "उन्हें सूचित किया जा रहा है"
+    },
+    "allowedScreen": {
+        "allowed": "अनुमत",
+        "letsGuest": "चलो अतिथि सोसायटी में प्रवेश करते हैं",
+        "backToHome": "घर वापिस जा रहा हूँ"
+    },
+    "cancelledScreen": {
+        "notAllowed": "अनुमति नहीं",
+        "entryDenied": "प्रवेश से मना कर दिया",
+        "backToHome": "घर वापिस जा रहा हूँ"
+    },
+    "deliveryEntryScreen": {
+        "deliveryEntry": "वितरण प्रविष्टि",
+        "deliverymanName": "डिलीवरीमैन नाम",
+        "enterDeliverymanName": "डिलीवरी नाम दर्ज करें",
+        "phoneNumber": "फ़ोन नंबर",
+        "enterPhoneNumber": "फोन नंबर दर्ज",
+        "deliveryCompany": "वितरण कंपनी",
+        "enterDeliveryCompany": "डिलीवरी कंपनी दर्ज करें",
+        "insideTime": "के अंदर का समय",
+        "enterTime": "इनसाइड टाइम दर्ज करें",
+        "continue": "जारी रखना"
+    },
+    "cabEntryScreen": {
+        "cabEntry": "कैब प्रविष्टि",
+        "cabDriverName": "कैब चालक का नाम",
+        "enterName": "कैब ड्राइवर का नाम दर्ज करें",
+        "enterLast": "कैब के अंतिम 4 अंक दर्ज करें",
+        "cabCompany": "कैब कंपनी",
+        "enterCabCompany": "कैब कंपनी दर्ज करें",
+        "pickup": "पिकअप/समूहबद्ध होना",
+        "continue": "जारी रखना"
+    },
+    "serviceEntryScreen": {
+        "serviceEntry": "सेवा प्रविष्टि",
+        "servicemanName": "सर्विसमैन का नाम",
+        "enterName": "सर्विसमैन नाम दर्ज करें",
+        "phoneNumber": "फ़ोन नंबर",
+        "enterPhoneNumber": "फोन नंबर दर्ज",
+        "servicemanCompany": "सर्विसमैन कंपनी",
+        "enterCompany": "सर्विसमैन कंपनी दर्ज करें",
+        "insideTime": "के अंदर का समय",
+        "enterTime": "इनसाइड टाइम दर्ज करें",
+        "continue": "जारी रखना"
+    },
+    "confirmScreen": {
+        "guest": "अतिथि",
+        "visiting": "यात्रा पर जाने वाले",
+        "gatePass": "स्ट्रीट लुक",
+        "confirmSendIn": "पुष्टि करें और अंदर भेजें"
+    },
+    "inOutScreen": {
+        "inOut": "बाहर में",
+        "checkedIn": "अंदर आया",
+        "checkedOut": "बाहर गया"
+    },
+    "checkedInTab": {
+        "in": "में",
+        "block": "अवरोध पैदा करना"
+    },
+    "checkedOutTab": {
+        "out": "बाहर",
+        "block": "अवरोध पैदा करना"
+    },
+    "messageScreen": {
+        "message": "संदेश"
+    },
+    "chatScreen": {
+        "block": "अवरोध पैदा करना",
+        "typeHere": "यहां अपना पाठ लिखें...."
+    },
+    "settingScreen": {
+        "settings": "समायोजन",
+        "onDuty": "काम पर",
+        "quickContact": "त्वरित संपर्क करें",
+        "callAdmin": "कॉल एडमिन",
+        "callSecretory": "कॉल स्रावी",
+        "language": "भाषा",
+        "getSupport": "समर्थन प्राप्त करें",
+        "termsCondition": "नियम व शर्त",
+        "privacyPolicy": "गोपनीयता नीति",
+        "logout": "लॉग आउट"
+    },
+    "editProfileScreen": {
+        "editProfile": "प्रोफ़ाइल संपादित करें",
+        "name": "नाम",
+        "enterName": "अपना नाम दर्ज करें",
+        "emailAddress": "मेल पता",
+        "enterEmail": "ईमेल पता दर्ज करें",
+        "phoneNumber": "फ़ोन नंबर",
+        "enterPhoneNumber": "फोन नंबर दर्ज",
+        "update": "अद्यतन",
+        "deny": "आपने कैमरा एक्सेस करने से इनकार कर दिया है !!!",
+        "removeImage": "प्रोफ़ाइल फोटो हटा दिया गया।"
+    },
+    "addImageBottomSheet": {
+        "addImage": "छवि जोड़ें",
+        "camera": "कैमरा",
+        "gallery": "गैलरी",
+        "remove": "निकालना"
+    },
+    "languageScreen": {
+        "language": "भाषा",
+        "update": "अद्यतन"
+    },
+    "getSupportScreen": {
+        "getSupport": "समर्थन प्राप्त करें",
+        "askSuggestImprove": "हमसे पूछें कि हम किसी भी तरह से सुधार कर सकते हैं",
+        "issueType": "विषय वर्ग",
+        "enterTopic": "विषय / अंक प्रकार दर्ज करें",
+        "message": "संदेश",
+        "enterYourMessage": "अपना संदेश दर्ज करें",
+        "submitMessage": "संदेश जमा करें"
+    },
+    "termsConditionScreen": {
+        "termsCondition": "नियम व शर्त"
+    },
+    "privacyPolicyScreen": {
+        "privacyPolicy": "गोपनीयता नीति"
+    },
+    "logoutModal": {
+        "logout": "लॉग आउट",
+        "areYouSureLogout": "क्या आप लॉग आउट करना चाहते हैं?",
+        "no": "नहीं",
+        "yes": "हाँ"
+    },
+    "callScreen": {
+        "calling": "बुला रहा है ..."
+    }
+}

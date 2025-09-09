@@ -1,0 +1,450 @@
+{
+    "onboardingScreen": {
+        "tapBack": "Toque de volta novamente para sair do aplicativo",
+        "title1": "Melhore a segurança da sua família",
+        "title2": "Obtenha a equipe de serviço à sua porta",
+        "title3": "Obtenha notificar sobre o evento",
+        "next": "Próxima",
+        "getStarted": "iniciar"
+    },
+    "loginScreen": {
+        "login": "Conecte-se",
+        "helloUsers": "Olá usuários, por favor, login sua conta",
+        "enterMobileNumber": "Digite o número do celular",
+        "verification": "*Enviaremos o OTP para verificação",
+        "search": "Procurar",
+        "close": "Fechar",
+        "tapBack": "Toque de volta novamente para sair do aplicativo"
+    },
+    "registerScreen": {
+        "register": "Registro",
+        "helloUsers": "Olá usuários, crie sua conta",
+        "userName": "Nome de usuário",
+        "mobileNumber": "Número de telemóvel",
+        "emailAddress": "Endereço de email"
+    },
+    "verificationScreen": {
+        "otpVerification": "Verificação de OTP",
+        "pleaseEnter": "Por favor, digite o OTP que enviaremos para você no seu celular não",
+        "verify": "Verificar",
+        "resend": "Não recebeu?reenviar"
+    },
+    "bottomTab": {
+        "home": "Lar",
+        "chats": "Bate -papos",
+        "service": "Serviço",
+        "profile": "Perfil",
+        "tapBack": "Toque de volta novamente para sair do aplicativo",
+        "sendMessage": "Enviar mensagem",
+        "securityAlert": "Alerta de segurança",
+        "admin": "admin",
+        "security": "Segurança",
+        "fireAlert": "Alerta de incêndio",
+        "stuckLift": "Preso no elevador",
+        "animalThreat": "Ameaça animal",
+        "visiterThreat": "Ameaça do visitador"
+    },
+    "homeScreen": {
+        "hi": "Oi",
+        "notice": "PERCEBER",
+        "description": "Ano Novo Reunião no salão da Seven Gen Society em 3 de novembro",
+        "community": "Comunidade",
+        "members": "Membros",
+        "visitors": "Visitantes",
+        "noticeBoard": "Quadro de notícias",
+        "payment": "Pagamento",
+        "bookAmenities": "Livro comodidades",
+        "helpDesk": "Central de Ajuda",
+        "connectMember": "Membro da Sociedade de Connect",
+        "manageEntry": "Gerencie a entrada dos visitantes",
+        "societyAnnouncement": "Anúncio da sociedade e aviso de evento",
+        "directPayment": "Pagamento direto da sociedade devido",
+        "preBook": "Comodidades da sociedade pré -livro",
+        "complaint": "Reclamação e sugestão",
+        "new": "Nova"
+    },
+    "notificationScreen": {
+        "remove": "Notificação removida.",
+        "notification": "Notificação",
+        "noNotification": "Nenhuma nova notificação"
+    },
+    "societyMemberScreen": {
+        "members": "Membros",
+        "member": "Membro",
+        "admin": "admin",
+        "committee": "Comitê"
+    },
+    "memberDetailModal": {
+        "flatNo": "Não",
+        "blockNo": "Bloco não",
+        "call": "Chamar",
+        "chat": "Bater papo"
+    },
+    "visitorsScreen": {
+        "visitors": "Visitantes",
+        "preVisitors": "Visitantes pré -aprovar",
+        "inside": "Dentro",
+        "preApproved": "Pré-aprovado",
+        "serviceBooked": "Serviço reservado",
+        "call": "Chamar",
+        "delete": "Excluir",
+        "gatepass": "Look de rua",
+        "removedVisitor": "Visitante removido.",
+        "noVisitors": "Nenhum novo visitante"
+    },
+    "preApproveVisitorsScreen": {
+        "visitors": "Visitantes",
+        "preApproveVisitors": "Visitantes pré -aprovar",
+        "addVisitor": "Adicione detalhes do visitante para ação rápida",
+        "addGuest": "Adicione convidado",
+        "addCab": "Adicione o táxi",
+        "addDelivery": "Adicione a entrega",
+        "addService": "Adicionar serviço",
+        "allowMyServiceman": "Permita meu serviço",
+        "servicemanCompanyName": "Nome do Serviço/ Companhia",
+        "enterServicemanCompany": "Digite o nome do Serviço/Companhia",
+        "phoneNumber": "Número de telefone",
+        "enterPhoneNumber": "Insira o número de telefone",
+        "toEnterInNext": "Para entrar em seguida",
+        "today": "Hoje",
+        "submit": "Enviar",
+        "tomorrow": "Amanhã",
+        "cancel": "Cancelar",
+        "okay": "OK"
+    },
+    "allowGuestModal": {
+        "allowMyGuest": "Permitir meu convidado",
+        "guestName": "Nome do convidado",
+        "enterGuestName": "Digite o nome do convidado",
+        "phoneNumber": "Número de telefone",
+        "enterPhoneNumber": "Insira o número de telefone",
+        "enterDate": "Insira a data",
+        "sendGate": "Envie o Gate Pass para o convidado",
+        "submit": "Enviar",
+        "selectDate": "Selecione a data",
+        "ok": "OK"
+    },
+    "addCabModal": {
+        "allowMyCab": "Permitir meu táxi",
+        "allowMyCabNext": "Permita que meu táxi entre hoje uma vez no próximo",
+        "addLastDigit": "Adicione os últimos 4 dígitos do veículo no.",
+        "companyName": "Nome da empresa",
+        "enterCompanyName": "Digite o nome da empresa",
+        "submit": "Enviar",
+        "cancel": "Cancelar",
+        "okay": "OK"
+    },
+    "addDeliveryModal": {
+        "allowMyDelivery": "Permitir minha entrega",
+        "deliveryCompany": "Nome da empresa de entrega",
+        "selectDeliveryCompany": "Selecione a empresa de entrega",
+        "toEnterNext": "Para entrar em seguida",
+        "today": "Hoje",
+        "submit": "Enviar",
+        "cancel": "Cancelar",
+        "okay": "OK",
+        "companyName": "Nome da empresa",
+        "tomorrow": "Amanhã"
+    },
+    "noticeBoardScreen": {
+        "noticeBoard": "Quadro de notícias",
+        "new": "Nova",
+        "postBy": "Postar por"
+    },
+    "paymentScreen": {
+        "payment": "Pagamento",
+        "new": "Nova",
+        "paid": "Paga",
+        "pending": "Pendente",
+        "failed": "Fracassada",
+        "dueDate": "Data de vencimento",
+        "payNow": "Pague agora",
+        "receipt": "Recibo"
+    },
+    "paymentMethodScreen": {
+        "selectPaymentMethod": "Selecione o método de pagamento",
+        "securityDeposit": "Depósito de segurança",
+        "continue": "Continuar"
+    },
+    "creditCardScreen": {
+        "creditCard": "Cartão de crédito",
+        "continue": "Continuar",
+        "name": "Nome no cartão",
+        "cardNo": "Número do cartão",
+        "enterName": "Insira o nome no cartão",
+        "enterCard": "Digite o número do seu cartão",
+        "expiryDate": "Data de validade"
+    },
+    "successScreen": {
+        "paymentSuccess": "Pagamento bem -sucedido !!",
+        "securityDeposit": "Depósito de segurança",
+        "amountPaid": "Quantia paga",
+        "paidOn": "Pago em",
+        "paidVia": "Pago via",
+        "transactionID": "ID da transação",
+        "downloadReceipt": "Baixar recibo",
+        "backHome": "De volta para casa",
+        "paid": "Paga"
+    },
+    "bookedAmenitiesScreen": {
+        "bookedAmenities": "Comodidades reservadas",
+        "bookAmenity": "Livro comodidade",
+        "confirmed": "Confirmada",
+        "pending": "Pendente",
+        "canceled": "Cancelada",
+        "confirmedBy": "Confirmado por",
+        "paidDebitCard": "Pago por cartão de débito",
+        "noPayment": "Sem pagamento"
+    },
+    "amenityScreen": {
+        "selectAmenity": "Selecione comodidade",
+        "paid": "Paga",
+        "free": "Livre"
+    },
+    "bookAmenityScreen": {
+        "bookAmenity": "Livro comodidade",
+        "maximinCapacity": "Capacidade máxima",
+        "bookBeforeLeast": "Livro antes de pelo menos",
+        "selectDates": "Selecione datas",
+        "from": "De",
+        "to": "Para",
+        "selectTime": "Selecione o tempo",
+        "totalDay": "Dia total",
+        "amountPay": "Valor a pagar",
+        "proceedPay": "Prossiga para pagar",
+        "paid": "Paga",
+        "selectDate": "Selecione a data",
+        "ok": "OK"
+    },
+    "helpDeskScreen": {
+        "helpDesk": "Central de Ajuda",
+        "personal": "Pessoal",
+        "community": "Comunidade"
+    },
+    "helpDeskPersonalTab": {
+        "resolvedBy": "Resolvido por",
+        "resolved": "Resolvida",
+        "raisedBy": "Criado por",
+        "pending": "Pendente",
+        "personal": "Pessoal",
+        "raiseNewComplaint": "Levante nova queixa",
+        "viewAllComplaints": "Ver todas as reclamações"
+    },
+    "helpDeskCommunityTab": {
+        "resolvedBy": "Resolvido por",
+        "community": "Comunidade",
+        "resolved": "Resolvida",
+        "raisedBy": "Criado por",
+        "pending": "Pendente",
+        "raiseNewComplaint": "Levante nova queixa",
+        "viewAllComplaints": "Ver todas as reclamações"
+    },
+    "addComplaintScreen": {
+        "addComplaint": "Adicione reclamação",
+        "attachPhoto": "Anexe uma foto (opcional)",
+        "personal": "Pessoal",
+        "community": "Comunidade",
+        "complaintType": "Tipo de queixa",
+        "enterComplaintType": "Digite o tipo de reclamação",
+        "briefYourComplaint": "Resumir sua reclamação",
+        "submitComplaint": "Enviar reclamação",
+        "deny": "Você negou acessar a câmera !!!",
+        "ToNext": "Para entrar em seguida",
+        "today": "Hoje",
+        "tomorrow": "Amanhã",
+        "cancel": "Cancelar",
+        "okay": "OK",
+        "complaintRaised": "Reclamação levantada!",
+        "adminWill": "O administrador será notificado e entrará em contato com você em breve"
+    },
+    "complaintDetailScreen": {
+        "complaint": "reclamação",
+        "resolvedBy": "Resolvido por",
+        "resolved": "Resolvida",
+        "raisedBy": "Criado por",
+        "pending": "Pendente",
+        "reopen": "Reabrir",
+        "markResolved": "Marca conforme resolvido",
+        "complaintImage": "Imagem de reclamação",
+        "recentComments": "comentários recentes",
+        "writeComment": "Escreva seu comentário"
+    },
+    "callScreen": {
+        "calling": "Chamando ..."
+    },
+    "guardCallingScreen": {
+        "guestGate": "Convidado esperando no portão",
+        "callGate": "Portão de chamada",
+        "swipeUp": "Deslizar para cima para permitir",
+        "deny": "Negar"
+    },
+    "chatScreen": {
+        "chats": "Bate -papos",
+        "residents": "Moradores"
+    },
+    "messageScreen": {
+        "typeHere": "Escreva aqui...."
+    },
+    "searchScreen": {
+        "search": "Procurar",
+        "recentSearch": "Pesquisa recente",
+        "clearAll": "Limpar tudo",
+        "noSearch": "Sem história de pesquisa"
+    },
+    "serviceScreen": {
+        "service": "Serviço",
+        "yourBooking": "Sua reserva",
+        "homePainting": "Pintura em casa",
+        "paintService": "Pinte minha casa.Precisa de serviço.",
+        "nearbyProviders": "Provedores de serviços próximos",
+        "homeCleaning": "Limpeza em casa",
+        "appliancesRepair": "Reparos de aparelhos",
+        "carpentersService": "Serviço de carpinteiros",
+        "plumbingService": "Serviço de encanamento",
+        "packerMovers": "packer &Movers",
+        "homeSanitize": "Home Sinitize",
+        "hairBeauty": "Beleza capilar",
+        "plumbingServices": "Serviços de encanamento",
+        "laundryServices": "Serviços de lavanderia",
+        "gardening": "Jardinagem",
+        "cooking": "Culinária"
+    },
+    "serviceModal": {
+        "bookFor": "Livro para",
+        "selectService": "Selecione Serviço",
+        "bookVisit": "Visita de livro em",
+        "selectDate": "Selecione a data",
+        "selectTime": "Selecione o tempo",
+        "briefYourProblem": "Informe seu problema",
+        "writeYourProblem": "Escreva seu problema",
+        "submit": "Enviar",
+        "aCRepair": "Reparo CA.",
+        "tvRepair": "Reparo de TV",
+        "mixerGrinderRepair": "Reparo de moedor de misturador",
+        "doorBellRepair": "Reparo da campainha da porta",
+        "fanRepair": "Reparo do ventilador",
+        "cancel": "Cancelar",
+        "ok": "OK"
+    },
+    "profileScreen": {
+        "profile": "Perfil",
+        "viewProfile": "Ver perfil",
+        "flatNo": "Não",
+        "blockNo": "Bloco não",
+        "household": "Doméstica",
+        "myFamily": "Minha família",
+        "add": "Adicionar",
+        "addFamilyMember": "Adicionar membro da família para entrada rápida",
+        "dailyHelp": "Ajuda diária",
+        "addMaidLaundry": "Adicionar empregada doméstica, lavanderia, ajudante para entrada rápida",
+        "myVehicles": "Meus veículos",
+        "addVehiclesQuick": "Adicione seus veículos para entrada rápida",
+        "frequentEntries": "Entradas frequentes",
+        "addFrequentPerson": "Adicionar entradas rápidas de pessoa frequente"
+    },
+    "addImageBottomSheet": {
+        "addImage": "Adicionar imagem",
+        "camera": "Câmera",
+        "gallery": "Galeria",
+        "remove": "Remover"
+    },
+    "addFamilyMemberModal": {
+        "addFamilyMember": "Adicionar membro da família",
+        "name": "Nome",
+        "enterName": "Insira o nome",
+        "phoneNumber": "Número de telefone",
+        "enterPhoneNumber": "Insira o número de telefone",
+        "relations": "Relações",
+        "selectRelations": "Selecione relações",
+        "sendGateGuest": "Envie o Gate Pass para o convidado",
+        "submit": "Enviar",
+        "relation": "Relação",
+        "father": "Pai",
+        "mother": "Mãe",
+        "son": "Filho",
+        "daughter": "Filha",
+        "wife": "Esposa",
+        "cancel": "Cancelar",
+        "okay": "OK",
+        "deny": "Você negou acessar a câmera !!!",
+        "removeImage": "Foto de perfil removida.",
+        "enterRelations": "Insira relações",
+        "addFrequentEntries": "Adicione entradas frequentes",
+        "addDailyHelp": "Adicione ajuda diária",
+        "helpType": "Ajuda tipo",
+        "selectHelpType": "Selecione o tipo de ajuda",
+        "made": "Feita",
+        "laundryman": "Lavanderia",
+        "gardner": "Jardineira",
+        "cook": "Cozinhar",
+        "milkman": "Leiteiro"
+    },
+    "myVehiclesModal": {
+        "addVehicles": "Adicione meus veículos",
+        "vehicleNumber": "Número do veículo",
+        "enterVehicleNumber": "Insira o número do veículo",
+        "vehicleModel": "Modelo do veículo",
+        "enterVehicleModel": "Entre no modelo do veículo",
+        "vehicleColor": "Cor do veículo",
+        "enterVehicleColor": "Digite a cor do veículo",
+        "sendGateGuest": "Envie o Gate Pass para o convidado",
+        "submit": "Enviar",
+        "deny": "Você negou acessar a câmera !!!",
+        "removeImage": "Foto de perfil removida."
+    },
+    "gatePassModal": {
+        "gatePass": "Ingresso",
+        "guestAt": "Convidado em",
+        "entryCode": "Código de entrada",
+        "showQr": "Mostre o código QR ou diga ao OTP para proteger",
+        "share": "Compartilhar",
+        "download": "download",
+        "copy": "Copiada!"
+    },
+    "settingScreen": {
+        "settings": "Configurações",
+        "editProfile": "Editar Perfil",
+        "language": "Linguagem",
+        "getSupport": "Obtenha suporte",
+        "termsCondition": "Termos e Condições",
+        "privacyPolicy": "Política de Privacidade",
+        "logout": "Sair"
+    },
+    "logoutModal": {
+        "logout": "Sair",
+        "areYouSureLogout": "Tem certeza que deseja sair?",
+        "no": "Não",
+        "yes": "Sim"
+    },
+    "editProfileScreen": {
+        "editProfile": "Editar Perfil",
+        "name": "Nome",
+        "enterName": "Digite seu nome",
+        "emailAddress": "Endereço de email",
+        "enterEmail": "Insira o seu endereço de email",
+        "phoneNumber": "Número de telefone",
+        "enterPhoneNumber": "Digite seu número de telefone",
+        "update": "Atualizar",
+        "deny": "Você negou acessar a câmera !!!",
+        "removeImage": "Foto de perfil removida."
+    },
+    "languageScreen": {
+        "language": "Linguagem",
+        "update": "Atualizar"
+    },
+    "termsConditionScreen": {
+        "termsCondition": "Termos e Condições"
+    },
+    "privacyPolicyScreen": {
+        "privacyPolicy": "Política de Privacidade"
+    },
+    "getSupportScreen": {
+        "getSupport": "Obtenha suporte",
+        "askSuggestImprove": "Pergunte -nos sugerir da maneira que possamos melhorar",
+        "issueType": "Tipo de problema",
+        "enterTopic": "Insira o tipo de tópico / problema",
+        "message": "Mensagem",
+        "enterYourMessage": "Digite sua mensagem",
+        "submitMessage": "Enviar mensagem"
+    }
+}

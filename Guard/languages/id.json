@@ -1,0 +1,198 @@
+{
+    "loginScreen": {
+        "login": "Gabung",
+        "helloUsers": "Halo pengguna tolong login akun Anda",
+        "enterMobileNumber": "Masukkan nomor ponsel",
+        "verification": "*Kami akan mengirim OTP untuk verifikasi",
+        "search": "Mencari",
+        "close": "Menutup",
+        "tapBack": "Ketuk Kembali Lagi untuk Keluar dari Aplikasi"
+    },
+        "notificationScreen": {
+            "remove": "Notifikasi dihapus.",
+            "notification": "Notifikasi",
+            "noNotification": "Tidak ada notifikasi baru"
+        },
+    "registerScreen": {
+        "register": "Daftar",
+        "helloUsers": "Halo pengguna tolong buat akun Anda",
+        "userName": "Nama belakang",
+        "mobileNumber": "Nomor handphone",
+        "emailAddress": "Alamat email"
+    },
+    "verificationScreen": {
+        "otpVerification": "Verifikasi OTP",
+        "pleaseEnter": "Harap masukkan OTP yang akan kami kirimkan kepada Anda di ponsel Anda",
+        "verify": "Memeriksa",
+        "resend": "Tidak menerima?ulang"
+    },
+    "bottomTab": {
+        "tapBack": "Ketuk Kembali Lagi untuk Keluar dari Aplikasi",
+        "home": "Rumah",
+        "inOut": "Di luar",
+        "messages": "Pesan",
+        "settings": "Pengaturan"
+    },
+    "homeScreen": {
+    "visitorEntry": "Entri Pengunjung",
+        "enterVisitor": "Masukkan kode entri pengunjung atau kode pemindaian",
+        "confirm": "Mengonfirmasi",
+    "addNewVisitor": "Tambahkan Pengunjung Baru",
+    "guestEntry": "Entri Tamu",
+    "cabEntry": "Entri Taksi",
+    "deliveryEntry": "Entri Pengiriman",
+    "serviceEntry": "Entri Layanan"
+    },
+    "guestEntryScreen": {
+        "guestEntry": "Entri tamu",
+        "entryConfirmation": "Konfirmasi masuk",
+        "guestName": "Nama tamu",
+        "enterGuestName": "Masukkan nama tamu",
+        "mobileNumber": "Nomor handphone",
+        "enterMobileNumber": "Masukkan nomor ponsel",
+        "insideTime": "Di dalam waktu",
+        "enterTime": "Masuk ke dalam waktu",
+        "continue": "Melanjutkan",
+        "visiting": "Mengunjungi",
+        "enterVisiting": "Masukkan kunjungan",
+        "hostName": "Nama tuan rumah",
+        "confirmNotification": "Konfirmasi dan kirim pemberitahuan"
+    },
+    "flatNoScreen": {
+        "blockA": "Blok a",
+        "blockB": "Blok B",
+        "clubhouse": "clubhouse",
+        "common": "Area umum"
+    },
+    "flatNoTab": {
+        "selectFlatNum": "Pilih nomor apartemen/unit",
+        "continue": "Melanjutkan"
+    },
+    "ringingScreen": {
+        "ringing": "Berdering ...",
+        "theyAreGettingInform": "Mereka mendapatkan informasi"
+    },
+    "allowedScreen": {
+        "allowed": "Diizinkan",
+        "letsGuest": "Mari Tamu Masuk Masyarakat",
+        "backToHome": "Kembali ke rumah"
+    },
+    "deliveryEntryScreen": {
+        "deliveryEntry": "Entri pengiriman",
+        "deliverymanName": "Nama pengiriman",
+        "enterDeliverymanName": "Masukkan nama pengiriman",
+        "phoneNumber": "Nomor telepon",
+        "enterPhoneNumber": "Masukkan nomor telepon",
+        "deliveryCompany": "Perusahaan pengantar",
+        "enterDeliveryCompany": "Masukkan perusahaan pengiriman",
+        "insideTime": "Di dalam waktu",
+        "enterTime": "Masuk ke dalam waktu",
+        "continue": "Melanjutkan"
+    },
+    "cabEntryScreen": {
+        "cabEntry": "Entri taksi",
+        "cabDriverName": "Nama pengemudi taksi",
+        "enterName": "Masukkan nama pengemudi taksi",
+        "enterLast": "Masukkan 4 digit taksi terakhir",
+        "cabCompany": "Perusahaan Cab",
+        "enterCabCompany": "Masukkan Cab Company",
+        "pickup": "Pickup/droupup",
+        "continue": "Melanjutkan"
+    },
+    "serviceEntryScreen": {
+        "serviceEntry": "Entri Layanan",
+        "servicemanName": "Nama prajurit",
+        "enterName": "Masukkan nama prajurit",
+        "phoneNumber": "nomor telepon",
+        "enterPhoneNumber": "Masukkan nomor telepon",
+        "servicemanCompany": "Perusahaan Prajurit",
+        "enterCompany": "Masukkan perusahaan prajurit",
+        "insideTime": "Di dalam waktu",
+        "enterTime": "Masuk ke dalam waktu",
+        "continue": "Melanjutkan"
+    },
+    "confirmScreen": {
+        "guest": "Tamu",
+        "visiting": "Mengunjungi",
+        "gatePass": "Tampilan jalanan",
+        "confirmSendIn": "Konfirmasi dan kirim"
+    },
+    "inOutScreen": {
+        "inOut": "Di - out",
+        "checkedIn": "Sudah Masuk",
+        "checkedOut": "Sudah Keluar"
+    },
+    "checkedInTab": {
+        "in": "DIDALAM",
+        "block": "Memblokir"
+    },
+    "checkedOutTab": {
+        "out": "KELUAR",
+        "block": "Memblokir"
+    },
+    "messageScreen": {
+        "message": "Pesan"
+    },
+    "chatScreen": {
+        "block": "Memblokir",
+        "typeHere": "Ketik teks Anda di sini ...."
+    },
+    "settingScreen": {
+        "settings": "Pengaturan",
+        "onDuty": "Sedang bertugas",
+        "quickContact": "kontak cepat",
+        "callAdmin": "Hubungi Admin",
+        "callSecretory": "Hubungi sekretori",
+        "language": "Bahasa",
+        "getSupport": "Dapatkan dukungan",
+        "termsCondition": "Syarat & Kondisi",
+        "privacyPolicy": "Kebijakan pribadi",
+        "logout": "Keluar"
+    },
+    "editProfileScreen": {
+        "editProfile": "Sunting profil",
+        "name": "Nama",
+        "enterName": "Masukkan nama Anda",
+        "emailAddress": "Alamat email",
+        "enterEmail": "Masukkan alamat email",
+        "phoneNumber": "Nomor telepon",
+        "enterPhoneNumber": "Masukkan nomor telepon",
+        "update": "Memperbarui",
+        "deny": "Anda telah ditolak untuk mengakses kamera !!!",
+        "removeImage": "Foto profil dihapus."
+    },
+    "addImageBottomSheet": {
+        "addImage": "Menambahkan gambar",
+        "camera": "Kamera",
+        "gallery": "Galeri",
+        "remove": "Menghapus"
+    },
+    "languageScreen": {
+        "language": "Bahasa",
+        "update": "Memperbarui"
+    },
+    "getSupportScreen": {
+        "getSupport": "Dapatkan dukungan",
+        "askSuggestImprove": "Tanyakan kepada kami menyarankan cara apa pun yang dapat kami tingkatkan",
+        "issueType": "Jenis masalah",
+        "enterTopic": "Masukkan Jenis Topik / Masalah",
+        "message": "Pesan",
+        "enterYourMessage": "Masukkan pesan Anda",
+        "submitMessage": "Kirim pesan"
+    },
+    "termsConditionScreen": {
+        "termsCondition": "Syarat & Kondisi"
+    },
+    "privacyPolicyScreen": {
+        "privacyPolicy": "Kebijakan pribadi"
+    },
+    "logoutModal": {
+        "logout": "Keluar",
+        "areYouSureLogout": "Apakah Anda yakin ingin keluar?",
+        "no": "TIDAK",
+        "yes": "Ya"
+    },
+    "callScreen": {
+        "calling": "Panggilan..."
+    }
+}

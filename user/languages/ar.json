@@ -1,0 +1,451 @@
+{
+    "onboardingScreen": {
+        "tapBack": "اضغط مرة أخرى للخروج من التطبيق",
+        "title1": "تحسين سلامة عائلتك",
+        "title2": "احصل على موظفي الخدمة على عتبة داركم",
+        "title3": "احصل على إخطار حول الحدث",
+        "next": "التالي",
+        "getStarted": "البدء"
+    },
+    "loginScreen": {
+        "login": "تسجيل الدخول",
+        "helloUsers": "مرحبا المستخدمين يرجى تسجيل الدخول إلى حسابك",
+        "enterMobileNumber": "أدخل رقم الهاتف المحمول",
+        "verification": "*سنرسل OTP للتحقق",
+        "search": "يبحث",
+        "close": "يغلق",
+        "tapBack": "اضغط مرة أخرى للخروج من التطبيق"
+    },
+    "registerScreen": {
+        "register": "يسجل",
+        "helloUsers": "مرحبا المستخدمين يرجى إنشاء حسابك",
+        "userName": "اسم المستخدم",
+        "mobileNumber": "رقم الهاتف المحمول",
+        "emailAddress": "عنوان البريد الإلكتروني"
+    },
+    "verificationScreen": {
+        "otpVerification": "التحقق من OTP",
+        "pleaseEnter": "الرجاء إدخال OTP سنرسل إليك على هاتفك المحمول",
+        "verify": "يؤكد",
+        "resend": "لم يستلم؟إعادة إرسال"
+    },
+    "bottomTab": {
+        "home": "بيت",
+        "chats": "الدردشات",
+        "service": "خدمة",
+        "profile": "حساب تعريفي",
+        "tapBack": "اضغط مرة أخرى للخروج من التطبيق",
+        "sendMessage": "أرسل رسالة",
+        "securityAlert": "انذار امني",
+        "admin": "مسؤل",
+        "security": "حماية",
+        "fireAlert": "تنبيه النار",
+        "stuckLift": "عالق في الرفع",
+        "animalThreat": "تهديد الحيوانات",
+        "visiterThreat": "تهديد زائر"
+    },
+    "homeScreen": {
+        "hi": "أهلاً",
+        "notice": "يلاحظ",
+        "description": "تجمع العام الجديد في قاعة Seven Gen Society في 3 نوفمبر",
+        "community": "مجتمع",
+        "members": "أعضاء",
+        "visitors": "الزائرين",
+        "noticeBoard": "لوح الإعلانات",
+        "payment": "قسط",
+        "bookAmenities": "وسائل الراحة الكتاب",
+        "helpDesk": "مكتب المساعدة",
+        "connectMember": "ربط عضو المجتمع",
+        "manageEntry": "إدارة دخول الزوار",
+        "societyAnnouncement": "إعلان المجتمع وإشعار الحدث",
+        "directPayment": "الدفع المباشر للمجتمع مستحق",
+        "preBook": "مرافق المجتمع قبل الكتاب",
+        "complaint": "الشكوى والاقتراح",
+        "new": "جديد"
+    },
+    "notificationScreen": {
+        "remove": "الإخطار تمت إزالته.",
+        "notification": "إشعار",
+        "noNotification": "لا يوجد إشعار جديد"
+    },
+    "societyMemberScreen": {
+        "members": "أعضاء",
+        "member": "عضو",
+        "admin": "مسؤل",
+        "committee": "لجنة"
+    },
+    "memberDetailModal": {
+        "flatNo": "شقة لا",
+        "blockNo": "كتلة لا",
+        "call": "يتصل",
+        "chat": "محادثة"
+    },
+    "visitorsScreen": {
+        "visitors": "الزائرين",
+        "preVisitors": "قبل الموافقة على الزوار",
+        "inside": "داخل",
+        "preApproved": "موافقة مسبقة",
+        "serviceBooked": "تم حجز الخدمة",
+        "call": "يتصل",
+        "delete": "يمسح",
+        "gatepass": "نظرة الشارع",
+        "removedVisitor": "تمت إزالة الزائر.",
+        "noVisitors": "لا زائر جديد"
+    },
+    "preApproveVisitorsScreen": {
+        "visitors": "الزائرين",
+        "preApproveVisitors": "قبل الموافقة على الزوار",
+        "addVisitor": "أضف تفاصيل الزائر للعمل السريع",
+        "addGuest": "أضف ضيفًا",
+        "addCab": "أضف سيارة أجرة",
+        "addDelivery": "أضف التسليم",
+        "addService": "أضف الخدمة",
+        "allowMyServiceman": "اسمح للخدمة الخاصة بي",
+        "servicemanCompanyName": "جنود/ اسم الشركة",
+        "enterServicemanCompany": "أدخل اسم الخدمة/الشركة",
+        "phoneNumber": "رقم التليفون",
+        "enterPhoneNumber": "أدخل رقم الهاتف",
+        "toEnterInNext": "للدخول في المقبل",
+        "today": "اليوم",
+        "submit": "يُقدِّم",
+        "tomorrow": "غداً",
+        "cancel": "يلغي",
+        "okay": "تمام"
+    },
+    "allowGuestModal": {
+        "allowMyGuest": "اسمح لضيفتي",
+        "guestName": "اسم الضيف",
+        "enterGuestName": "أدخل اسم الضيف",
+        "phoneNumber": "رقم التليفون",
+        "enterPhoneNumber": "أدخل رقم الهاتف",
+        "enterDate": "أدخل التاريخ",
+        "sendGate": "أرسل بوابة مرور إلى الضيف",
+        "submit": "يُقدِّم",
+        "selectDate": "حدد تاريخ",
+        "ok": "تمام"
+    },
+    "addCabModal": {
+        "allowMyCab": "اسمح سيارة الكابينة الخاصة بي",
+        "allowMyCabNext": "اسمح لسيارة الكابينة بالدخول اليوم مرة واحدة في المقبل",
+        "addLastDigit": "أضف آخر 4 أرقام من السيارة رقم.",
+        "companyName": "اسم الشركة",
+        "enterCompanyName": "أدخل اسم الشركة",
+        "submit": "يُقدِّم",
+        "cancel": "يلغي",
+        "okay": "تمام"
+    },
+    "addDeliveryModal": {
+        "allowMyDelivery": "السماح بتسليم بلدي",
+        "deliveryCompany": "اسم شركة التسليم",
+        "selectDeliveryCompany": "حدد شركة التوصيل",
+        "toEnterNext": "للدخول في المقبل",
+        "today": "اليوم",
+        "submit": "يُقدِّم",
+        "cancel": "يلغي",
+        "okay": "تمام",
+        "companyName": "اسم الشركة",
+        "tomorrow": "غداً"
+    },
+    "noticeBoardScreen": {
+        "noticeBoard": "لوح الإعلانات",
+        "noticeDetails": "تفاصيل الإشعار",
+        "new": "جديد",
+        "postBy": "نشر بواسطة"
+    },
+    "paymentScreen": {
+        "payment": "قسط",
+        "new": "جديد",
+        "paid": "مدفوع",
+        "pending": "قيد الانتظار",
+        "failed": "فشل",
+        "dueDate": "تاريخ الاستحقاق",
+        "payNow": "ادفع الآن",
+        "receipt": "إيصال"
+    },
+    "paymentMethodScreen": {
+        "selectPaymentMethod": "اختار طريقة الدفع",
+        "securityDeposit": "مبلغ التأمين",
+        "continue": "يكمل"
+    },
+    "creditCardScreen": {
+        "creditCard": "بطاقة إئتمان",
+        "continue": "يكمل",
+        "name": "الاسم على البطاقة",
+        "cardNo": "رقم البطاقة",
+        "enterName": "أدخل الاسم على البطاقة",
+        "enterCard": "أدخل رقم بطاقتك",
+        "expiryDate": "تاريخ الانتهاء"
+    },
+    "successScreen": {
+        "paymentSuccess": "الدفع ناجح !!",
+        "securityDeposit": "مبلغ التأمين",
+        "amountPaid": "المبلغ المدفوع",
+        "paidOn": "المدفوعة على",
+        "paidVia": "دفعت عبر",
+        "transactionID": "رقم المعاملة",
+        "downloadReceipt": "تنزيل إيصال",
+        "backHome": "العودة إلى المنزل",
+        "paid": "مدفوع"
+    },
+    "bookedAmenitiesScreen": {
+        "bookedAmenities": "وسائل الراحة المحجوزة",
+        "bookAmenity": "كتاب الراحة",
+        "confirmed": "مؤكد",
+        "pending": "قيد الانتظار",
+        "canceled": "ألغيت",
+        "confirmedBy": "موكد بواسطة",
+        "paidDebitCard": "مدفوع عبر بطاقة الخصم",
+        "noPayment": "لا دفعة"
+    },
+    "amenityScreen": {
+        "selectAmenity": "حدد الراحة",
+        "paid": "مدفوع",
+        "free": "حر"
+    },
+    "bookAmenityScreen": {
+        "bookAmenity": "كتاب الراحة",
+        "maximinCapacity": "سعة الحد الأقصى",
+        "bookBeforeLeast": "احجز من قبل على الأقل",
+        "selectDates": "حدد التواريخ",
+        "from": "من",
+        "to": "ل",
+        "selectTime": "حدد الوقت",
+        "totalDay": "اليوم الكلي",
+        "amountPay": "مبلغ الدفع",
+        "proceedPay": "تابع الدفع",
+        "paid": "مدفوع",
+        "selectDate": "حدد تاريخ",
+        "ok": "تمام"
+    },
+    "helpDeskScreen": {
+        "helpDesk": "مكتب المساعدة",
+        "personal": "شخصي",
+        "community": "مجتمع"
+    },
+    "helpDeskPersonalTab": {
+        "resolvedBy": "حل بواسطة",
+        "resolved": "تم الحل",
+        "raisedBy": "أرتفع بواسطة",
+        "pending": "قيد الانتظار",
+        "personal": "شخصي",
+        "raiseNewComplaint": "رفع شكوى جديدة",
+        "viewAllComplaints": "عرض جميع الشكاوى"
+    },
+    "helpDeskCommunityTab": {
+        "resolvedBy": "حل بواسطة",
+        "community": "مجتمع",
+        "resolved": "تم الحل",
+        "raisedBy": "أرتفع بواسطة",
+        "pending": "قيد الانتظار",
+        "raiseNewComplaint": "رفع شكوى جديدة",
+        "viewAllComplaints": "عرض جميع الشكاوى"
+    },
+    "addComplaintScreen": {
+        "addComplaint": "أضف شكوى",
+        "attachPhoto": "إرفاق صورة (اختياري)",
+        "personal": "شخصي",
+        "community": "مجتمع",
+        "complaintType": "نوع الشكوى",
+        "enterComplaintType": "أدخل نوع الشكوى",
+        "briefYourComplaint": "واختصر شكواك",
+        "submitComplaint": "تقديم الشكوى",
+        "deny": "لقد أنكرت الوصول إلى الكاميرا !!!",
+        "ToNext": "للدخول في المقبل",
+        "today": "اليوم",
+        "tomorrow": "غداً",
+        "cancel": "يلغي",
+        "okay": "تمام",
+        "complaintRaised": "رفعت الشكوى!",
+        "adminWill": "سيتم إخطار المسؤول وسيعود إليك قريبًا"
+    },
+    "complaintDetailScreen": {
+        "complaint": "شكوى",
+        "resolvedBy": "حل بواسطة",
+        "resolved": "تم الحل",
+        "raisedBy": "أرتفع بواسطة",
+        "pending": "قيد الانتظار",
+        "reopen": "إعادة فتح",
+        "markResolved": "علامة كما تم حلها",
+        "complaintImage": "صورة الشكوى",
+        "recentComments": "احدث التعليقات",
+        "writeComment": "اكتب تعليقك"
+    },
+    "callScreen": {
+        "calling": "الدعوة ..."
+    },
+    "guardCallingScreen": {
+        "guestGate": "ضيف ينتظر عند البوابة",
+        "callGate": "بوابة الاتصال",
+        "swipeUp": "انقلب للسماح",
+        "deny": "ينكر"
+    },
+    "chatScreen": {
+        "chats": "الدردشات",
+        "residents": "السكان"
+    },
+    "messageScreen": {
+        "typeHere": "اكتب النص هنا...."
+    },
+    "searchScreen": {
+        "search": "يبحث",
+        "recentSearch": "البحث الأخير",
+        "clearAll": "امسح الكل",
+        "noSearch": "لا يوجد تاريخ بحث"
+    },
+    "serviceScreen": {
+        "service": "خدمة",
+        "yourBooking": "حجزك",
+        "homePainting": "اللوحة المنزلية",
+        "paintService": "رسم منزلي.تحتاج الخدمة.",
+        "nearbyProviders": "مقدمي الخدمات القريبة",
+        "homeCleaning": "تنظيف المنزل",
+        "appliancesRepair": "إصلاح الأجهزة",
+        "carpentersService": "خدمة النجارين",
+        "plumbingService": "خدمة السباكة",
+        "packerMovers": "packer &Movers",
+        "homeSanitize": "ترقيم المنزل",
+        "hairBeauty": "جمال الشعر",
+        "plumbingServices": "خدمات السباكة",
+        "laundryServices": "خدمات الغسيل",
+        "gardening": "الحدائق",
+        "cooking": "طبخ"
+    },
+    "serviceModal": {
+        "bookFor": "كتاب ل",
+        "selectService": "حدد الخدمة",
+        "bookVisit": "زيارة كتاب على",
+        "selectDate": "حدد تاريخ",
+        "selectTime": "حدد الوقت",
+        "briefYourProblem": "اختصر مشكلتك",
+        "writeYourProblem": "اكتب مشكلتك",
+        "submit": "يُقدِّم",
+        "aCRepair": "إصلاح التيار المتردد",
+        "tvRepair": "إصلاح التلفزيون",
+        "mixerGrinderRepair": "إصلاح طاحونة الخلاط",
+        "doorBellRepair": "إصلاح جرس الباب",
+        "fanRepair": "إصلاح المعجبين",
+        "cancel": "يلغي",
+        "ok": "تمام"
+    },
+    "profileScreen": {
+        "profile": "حساب تعريفي",
+        "viewProfile": "عرض الصفحة الشخصية",
+        "flatNo": "شقة لا",
+        "blockNo": "كتلة لا",
+        "household": "أُسرَة",
+        "myFamily": "عائلتي",
+        "add": "يضيف",
+        "addFamilyMember": "أضف أحد أفراد الأسرة للدخول السريع",
+        "dailyHelp": "المساعدة اليومية",
+        "addMaidLaundry": "أضف خادمة ، غسيل ، مساعد للدخول السريع",
+        "myVehicles": "سياراتي",
+        "addVehiclesQuick": "أضف سياراتك للدخول السريع",
+        "frequentEntries": "إدخالات متكررة",
+        "addFrequentPerson": "أضف إدخالات سريعة شخص متكرر"
+    },
+    "addImageBottomSheet": {
+        "addImage": "إضافة صورة",
+        "camera": "آلة تصوير",
+        "gallery": "صالة عرض",
+        "remove": "يزيل"
+    },
+    "addFamilyMemberModal": {
+        "addFamilyMember": "أضف أحد أفراد الأسرة",
+        "name": "اسم",
+        "enterName": "أدخل الاسم",
+        "phoneNumber": "رقم التليفون",
+        "enterPhoneNumber": "أدخل رقم الهاتف",
+        "relations": "علاقات",
+        "selectRelations": "حدد العلاقات",
+        "sendGateGuest": "أرسل بوابة مرور إلى الضيف",
+        "submit": "يُقدِّم",
+        "relation": "علاقة",
+        "father": "أب",
+        "mother": "الأم",
+        "son": "ابن",
+        "daughter": "بنت",
+        "wife": "زوجة",
+        "cancel": "يلغي",
+        "okay": "تمام",
+        "deny": "لقد أنكرت الوصول إلى الكاميرا !!!",
+        "removeImage": "تمت إزالة صورة الملف الشخصي.",
+        "enterRelations": "أدخل العلاقات",
+        "addFrequentEntries": "أضف إدخالات متكررة",
+        "addDailyHelp": "أضف المساعدة اليومية",
+        "helpType": "نوع المساعدة",
+        "selectHelpType": "حدد نوع المساعدة",
+        "made": "صنع",
+        "laundryman": "الغسيل",
+        "gardner": "عامل الحديقة",
+        "cook": "يطبخ",
+        "milkman": "حلاب"
+    },
+    "myVehiclesModal": {
+        "addVehicles": "أضف مركبي",
+        "vehicleNumber": "عدد المركبات",
+        "enterVehicleNumber": "أدخل رقم السيارة",
+        "vehicleModel": "نموذج السيارة",
+        "enterVehicleModel": "أدخل نموذج السيارة",
+        "vehicleColor": "لون السيارة",
+        "enterVehicleColor": "أدخل لون السيارة",
+        "sendGateGuest": "أرسل بوابة مرور إلى الضيف",
+        "submit": "يُقدِّم",
+        "deny": "لقد أنكرت الوصول إلى الكاميرا !!!",
+        "removeImage": "تمت إزالة صورة الملف الشخصي."
+    },
+    "gatePassModal": {
+        "gatePass": "عبور البوابة",
+        "guestAt": "ضيف في",
+        "entryCode": "رمز الدخول",
+        "showQr": "إظهار رمز الاستجابة السريعة أو أخبر OTP بالحراسة",
+        "share": "يشارك",
+        "download": "تحميل",
+        "copy": "نسخ!"
+    },
+    "settingScreen": {
+        "settings": "إعدادات",
+        "editProfile": "تعديل الملف الشخصي",
+        "language": "لغة",
+        "getSupport": "احصل على الدعم",
+        "termsCondition": "الشروط والشرط",
+        "privacyPolicy": "سياسة الخصوصية",
+        "logout": "تسجيل خروج"
+    },
+    "logoutModal": {
+        "logout": "تسجيل خروج",
+        "areYouSureLogout": "هل أنت متأكد أنك تريد تسجيل الخروج؟",
+        "no": "لا",
+        "yes": "نعم"
+    },
+    "editProfileScreen": {
+        "editProfile": "تعديل الملف الشخصي",
+        "name": "اسم",
+        "enterName": "أدخل أسمك",
+        "emailAddress": "عنوان البريد الإلكتروني",
+        "enterEmail": "أدخل عنوان بريدك الالكتروني",
+        "phoneNumber": "رقم التليفون",
+        "enterPhoneNumber": "أدخل رقم هاتفك",
+        "update": "تحديث",
+        "deny": "لقد أنكرت الوصول إلى الكاميرا !!!",
+        "removeImage": "تمت إزالة صورة الملف الشخصي."
+    },
+    "languageScreen": {
+        "language": "لغة",
+        "update": "تحديث"
+    },
+    "termsConditionScreen": {
+        "termsCondition": "الشروط والشرط"
+    },
+    "privacyPolicyScreen": {
+        "privacyPolicy": "سياسة الخصوصية"
+    },
+    "getSupportScreen": {
+        "getSupport": "احصل على الدعم",
+        "askSuggestImprove": "اطلب منا أن نقترح بأي طريقة يمكننا تحسينها",
+        "issueType": "نوع القضية",
+        "enterTopic": "أدخل الموضوع / نوع العدد",
+        "message": "رسالة",
+        "enterYourMessage": "أدخل رسالتك",
+        "submitMessage": "تقديم رسالة"
+    }
+}

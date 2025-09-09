@@ -1,0 +1,224 @@
+import React, { useEffect, useState, useRef } from "react";
+import {
+  Text,
+  View,
+  ImageBackground,
+  BackHandler,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+} from "react-native";
+import { Colors, Fonts, Default } from "../../constants/styles";
+import { useTranslation } from "react-i18next";
+import MyStatusBar from "../../components/myStatusBar";
+import { ms } from "react-native-size-matters/extend";
+import AwesomeButton from "react-native-really-awesome-button";
+import Ionicons from "react-native-vector-icons/Ionicons";
+import { OtpInput } from "react-native-otp-entry";
+
+const VerificationScreen = ({ navigation }) => {
+  const { t, i18n } = useTranslation();
+
+  const isRtl = i18n.dir() == "rtl";
+
+  function tr(key) {
+    return t(`verificationScreen:${key}`);
+  }
+  const backAction = () => {
+    setIntervalStop(false);
+    navigation.pop();
+    return true;
+  };
+  useEffect(() => {
+    BackHandler.addEventListener("hardwareBackPress", backAction);
+
+    return () => {
+      const subscription = BackHandler.addEventListener("hardwareBackPress", backAction); return () => subscription?.remove(); }
+  }, []);
+
+  const [timer, setTimer] = useState(59);
+  const [intervalStop, setIntervalStop] = useState(true);
+
+  const intervalRef = useRef();
+
+  useEffect(() => {    if (intervalStop) {
+      intervalRef.current = setInterval(() => {
+        if (timer > 0) {
+          setTimer((prevTimer) => prevTimer - 1);
+        } else {
+          clearInterval(intervalRef.current);
+        }
+      }, 1000);
+    }
+
+    return () => {
+      clearInterval(intervalRef.current);
+    };
+  }, [timer, intervalStop]);
+
+  const formatSecondsToTime = (totalSeconds) => {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+
+    const formattedMinutes = String(minutes).padStart(2, "0");
+    const formattedSeconds = String(seconds).padStart(2, "0");
+
+    return `${formattedMinutes}:${formattedSeconds}`;
+  };
+
+  const handleTextChange = (otp) => {
+    if (otp.length === 4) {
+      setIntervalStop(false);
+      navigation.push("bottomTab");
+    }
+  };
+
+  return (
+    <View style={{ flex: 1 }}>
+      <MyStatusBar />
+
+      <ImageBackground
+        resizeMode="stretch"
+        source={require("../../assets/images/login.png")}
+        style={{ flex: 1 }}
+      >
+        <TouchableOpacity
+          onPress={() => {
+            setIntervalStop(false);
+            navigation.pop();
+          }}
+          style={{
+            alignSelf: isRtl ? "flex-end" : "flex-start",
+            marginHorizontal: Default.fixPadding * 2,
+            marginVertical: Default.fixPadding * 1.2,
+          }}
+        >
+          <Ionicons
+            name={isRtl ? "arrow-forward-outline" : "arrow-back-outline"}
+            size={24}
+            color={Colors.black}
+          />
+        </TouchableOpacity>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          automaticallyAdjustKeyboardInsets={true}
+        >
+          <View
+            style={{
+              justifyContent: "center",
+              alignItems: "center",
+              marginTop: Default.fixPadding * 0.8,
+              marginHorizontal: Default.fixPadding * 3,
+            }}
+          >
+            <Text style={{ ...Fonts.SemiBold21primary }}>
+              {tr("otpVerification")}
+            </Text>
+
+            <Text
+              style={{
+                ...Fonts.Medium14extraDarkGrey,
+                textAlign: "center",
+                marginTop: Default.fixPadding * 1.1,
+              }}
+            >
+              {`${tr("pleaseEnter")} +91 1234567890`}
+            </Text>
+          </View>
+
+          <View
+            style={{
+              marginHorizontal: Default.fixPadding * 7,
+              marginVertical: Default.fixPadding * 5,
+            }}
+          >
+            <OtpInput
+              numberOfDigits={4}
+              onTextChange={(text) => handleTextChange(text)}
+              theme={{
+                pinCodeContainerStyle: {
+                  borderWidth: 0,
+                  width: ms(50),
+                  height: ms(50),
+                  borderRadius: 5,
+                  backgroundColor: Colors.white,
+                  ...Default.shadow,
+                },
+                pinCodeTextStyle: { ...Fonts.Medium20black },
+                focusedPinCodeContainerStyle: {
+                  borderWidth: 0,
+                  borderRadius: 5,
+                },
+                focusStickStyle: { backgroundColor: Colors.primary },
+              }}
+            />
+          </View>
+          <View style={styles.timeView}>
+            <Text style={{ ...Fonts.Regular16black }}>
+              {formatSecondsToTime(timer)}
+            </Text>
+          </View>
+
+          <View
+            style={{
+              marginTop: Default.fixPadding * 2.5,
+              marginBottom: Default.fixPadding,
+              marginHorizontal: Default.fixPadding * 2,
+            }}
+          >
+            <AwesomeButton
+              progress
+              height={50}
+              progressLoadingTime={1500}
+              onPress={(next) => {
+                setIntervalStop(false);
+                setTimeout(() => {
+                  next();
+                  navigation.push("bottomTab");
+                }, 1500);
+              }}
+              raiseLevel={1}
+              stretch={true}
+              borderRadius={10}
+              backgroundShadow={Colors.primary}
+              backgroundDarker={Colors.primary}
+              backgroundColor={Colors.primary}
+            >
+              <Text style={{ ...Fonts.SemiBold18white }}>{tr("verify")}</Text>
+            </AwesomeButton>
+          </View>
+
+          <Text
+            disabled={timer !== 0}
+            onPress={() => {
+              if (timer === 0) {
+                setTimer(59);
+              }
+            }}
+            style={{
+              ...Fonts.Medium16primary,
+              textAlign: "center",
+              marginBottom: Default.fixPadding,
+            }}
+          >
+            {tr("resend")}
+          </Text>
+        </ScrollView>
+      </ImageBackground>
+    </View>
+  );
+};
+
+export default VerificationScreen;
+
+const styles = StyleSheet.create({
+  timeView: {
+    justifyContent: "center",
+    alignItems: "center",
+    alignSelf: "center",
+    paddingVertical: Default.fixPadding * 0.6,
+    paddingHorizontal: Default.fixPadding * 1.6,
+    borderRadius: 40,
+    backgroundColor: Colors.sky,
+  },
+});

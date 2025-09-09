@@ -1,0 +1,476 @@
+{
+    "onboardingScreen": {
+        "tapBack": "ऐप से बाहर निकलने के लिए फिर से टैप करें",
+        "title1": "अपने परिवार की सुरक्षा में सुधार करें",
+        "title2": "अपने दरवाजे पर सेवा कर्मचारी प्राप्त करें",
+        "title3": "घटना के बारे में सूचित करें",
+        "next": "अगला",
+        "getStarted": "शुरू हो जाओ"
+    },
+    "loginScreen": {
+        "login": "लॉग इन करें",
+        "helloUsers": "हैलो उपयोगकर्ता कृपया अपना खाता लॉगिन करें",
+        "enterMobileNumber": "मोबाइल नंबर दर्ज करें",
+        "verification": "*हम सत्यापन के लिए OTP भेजेंगे",
+        "search": "खोज",
+        "close": "बंद करना",
+        "tapBack": "ऐप से बाहर निकलने के लिए फिर से टैप करें"
+    },
+    "registerScreen": {
+        "register": "पंजीकरण करवाना",
+        "helloUsers": "नमस्कार उपयोगकर्ता कृपया अपना खाता बनाएं",
+        "userName": "उपयोगकर्ता नाम",
+        "mobileNumber": "मोबाइल नंबर",
+        "emailAddress": "मेल पता"
+    },
+    "verificationScreen": {
+        "otpVerification": "ओटीपी सत्यापन",
+        "pleaseEnter": "कृपया ओटीपी दर्ज करें हम आपको अपने मोबाइल नंबर पर भेजेंगे",
+        "verify": "सत्यापित करें",
+        "resend": "प्राप्त नहीं हुआ?पुन: भेजें"
+    },
+    "bottomTab": {
+        "home": "घर",
+        "chats": "चैट",
+        "service": "सेवा",
+        "profile": "प्रोफ़ाइल",
+        "tapBack": "ऐप से बाहर निकलने के लिए फिर से टैप करें",
+        "sendMessage": "मेसेज भेजें",
+        "securityAlert": "सुरक्षा चेतावनी",
+        "admin": "व्यवस्थापक",
+        "security": "सुरक्षा",
+        "fireAlert": "अग्नि अलर्ट",
+        "stuckLift": "लिफ्ट में फंस गया",
+        "animalThreat": "जानवरों की धमकी",
+        "visiterThreat": "विजिटर खतरा"
+    },
+    "homeScreen": {
+        "hi": "नमस्ते",
+        "notice": "सूचना",
+        "description": "3 नवंबर को सेवन जेन सोसाइटी के हॉल में नया साल सभा",
+        "community": "समुदाय",
+        "members": "सदस्यों",
+        "visitors": "आगंतुकों",
+        "noticeBoard": "सूचना पट्ट",
+        "payment": "भुगतान",
+        "bookAmenities": "पुस्तक सुविधाएं",
+        "helpDesk": "सहायता केंद्र",
+        "connectMember": "सोसायटी के सदस्य को जोड़ें",
+        "manageEntry": "आगंतुकों की प्रविष्टि का प्रबंधन करें",
+        "societyAnnouncement": "सोसायटी की घोषणा और घटना नोटिस",
+        "directPayment": "समाज का प्रत्यक्ष भुगतान",
+        "preBook": "पूर्व पुस्तक समाज सुविधाएं",
+        "complaint": "शिकायत और सुझाव",
+        "new": "नया"
+    },
+    "notificationScreen": {
+        "remove": "अधिसूचना हटा दी गई।",
+        "notification": "अधिसूचना",
+        "noNotification": "कोई नई अधिसूचना नहीं"
+    },
+    "societyMemberScreen": {
+        "members": "सदस्यों",
+        "member": "सदस्य",
+        "admin": "व्यवस्थापक",
+        "committee": "समिति"
+    },
+    "memberDetailModal": {
+        "flatNo": "नीरस नहीं",
+        "blockNo": "ब्लॉक नं",
+        "call": "पुकारना",
+        "chat": "बात करना"
+    },
+    "visitorsScreen": {
+        "visitors": "आगंतुकों",
+        "preVisitors": "आगंतुकों को मंजूरी दें",
+        "inside": "अंदर",
+        "preApproved": "पूर्व अनुमोदित",
+        "serviceBooked": "बुक -बुक की गई सेवा",
+        "call": "पुकारना",
+        "delete": "मिटाना",
+        "gatepass": "स्ट्रीट लुक",
+        "removedVisitor": "आगंतुक हटा दिया।",
+        "noVisitors": "कोई नया आगंतुक नहीं"
+    },
+    "preApproveVisitorsScreen": {
+        "visitors": "आगंतुकों",
+        "preApproveVisitors": "आगंतुकों को मंजूरी दें",
+        "addVisitor": "त्वरित कार्रवाई के लिए आगंतुक विवरण जोड़ें",
+        "addGuest": "अतिथि जोड़ें",
+        "addCab": "कैब जोड़ें",
+        "addDelivery": "वितरण जोड़ें",
+        "addService": "सेवा जोड़ें",
+        "allowMyServiceman": "मेरे सेवादार की अनुमति दें",
+        "servicemanCompanyName": "सर्विसमैन/ कंपनी का नाम",
+        "enterServicemanCompany": "सर्विसमैन/कंपनी का नाम दर्ज करें",
+        "phoneNumber": "फ़ोन नंबर",
+        "enterPhoneNumber": "फोन नंबर दर्ज",
+        "toEnterInNext": "अगले में प्रवेश करने के लिए",
+        "today": "आज",
+        "submit": "जमा करना",
+        "tomorrow": "कल",
+        "cancel": "रद्द करना",
+        "okay": "ठीक है"
+    },
+    "allowGuestModal": {
+        "allowMyGuest": "मेरे मेहमान की अनुमति दें",
+        "guestName": "अतिथि का नाम",
+        "enterGuestName": "अतिथि नाम दर्ज करें",
+        "phoneNumber": "फ़ोन नंबर",
+        "enterPhoneNumber": "फोन नंबर दर्ज",
+        "enterDate": "दिनांक दर्ज करें",
+        "sendGate": "अतिथि को गेट पास भेजें",
+        "submit": "जमा करना",
+        "selectDate": "तारीख़ चुनें",
+        "ok": "ठीक है"
+    },
+    "addCabModal": {
+        "allowMyCab": "मेरी कैब की अनुमति दें",
+        "allowMyCabNext": "मेरी कैब को अगले में एक बार आज भी प्रवेश करने दें",
+        "addLastDigit": "वाहन नं के अंतिम 4 अंक जोड़ें।",
+        "companyName": "कंपनी का नाम",
+        "enterCompanyName": "कंपनी का नाम दर्ज करें",
+        "submit": "जमा करना",
+        "cancel": "रद्द करना",
+        "okay": "ठीक है"
+    },
+    "addDeliveryModal": {
+        "allowMyDelivery": "मेरी डिलीवरी की अनुमति दें",
+        "deliveryCompany": "वितरण कंपनी का नाम",
+        "selectDeliveryCompany": "डिलीवरी कंपनी का चयन करें",
+        "toEnterNext": "अगले में प्रवेश करने के लिए",
+        "today": "आज",
+        "submit": "जमा करना",
+        "cancel": "रद्द करना",
+        "okay": "ठीक है",
+        "companyName": "कंपनी का नाम",
+        "tomorrow": "कल"
+    },
+    "noticeBoardScreen": {
+        "noticeBoard": "सूचना पट्ट",
+        "noticeDetails": "सूचना विवरण",
+        "new": "नया",
+        "postBy": "द्वारा पोस्ट करना"
+    },
+    "paymentScreen": {
+        "payment": "भुगतान",
+        "new": "नया",
+        "paid": "चुकाया गया",
+        "pending": "लंबित",
+        "failed": "असफल",
+        "dueDate": "नियत तारीख",
+        "payNow": "अब भुगतान करें",
+        "receipt": "रसीद"
+    },
+    "paymentMethodScreen": {
+        "selectPaymentMethod": "भुगतान का तरीका चुनें",
+        "securityDeposit": "सुरक्षा जमा राशि",
+        "continue": "जारी रखना"
+    },
+    "creditCardScreen": {
+        "creditCard": "क्रेडिट कार्ड",
+        "continue": "जारी रखना",
+        "name": "कार्ड पर नाम",
+        "cardNo": "कार्ड संख्या",
+        "enterName": "कार्ड पर नाम दर्ज करें",
+        "enterCard": "अपना कार्ड नंबर दर्ज करें",
+        "expiryDate": "समाप्ति तिथि"
+    },
+    "successScreen": {
+        "paymentSuccess": "भुगतान सफल !!",
+        "securityDeposit": "सुरक्षा जमा राशि",
+        "amountPaid": "राशि का भुगतान",
+        "paidOn": "भुगतान करना",
+        "paidVia": "के माध्यम से भुगतान किया",
+        "transactionID": "लेन -देन आईडी",
+        "downloadReceipt": "डाउनलोड रसीद",
+        "backHome": "घर वापिस जा रहा हूँ",
+        "paid": "चुकाया गया"
+    },
+    "bookedAmenitiesScreen": {
+        "bookedAmenities": "नामित सुविधाएं",
+        "bookAmenity": "बुक एमेनिटी",
+        "confirmed": "की पुष्टि",
+        "pending": "लंबित",
+        "canceled": "रद्द",
+        "confirmedBy": "पक्का करना",
+        "paidDebitCard": "डेबिट कार्ड के माध्यम से भुगतान किया",
+        "noPayment": "भुगतान नहीं"
+    },
+    "amenityScreen": {
+        "selectAmenity": "एमेनिटी का चयन करें",
+        "paid": "चुकाया गया",
+        "free": "मुक्त"
+    },
+    "bookAmenityScreen": {
+        "bookAmenity": "बुक एमेनिटी",
+        "maximinCapacity": "अधिकतम क्षमता",
+        "bookBeforeLeast": "कम से कम बुक करें",
+        "selectDates": "दिनांक का चयन करें",
+        "from": "से",
+        "to": "को",
+        "selectTime": "समय का चयन करें",
+        "totalDay": "कुल दिन",
+        "amountPay": "भुगतान की जाने वाली राशि",
+        "proceedPay": "चुकाने के लिए कार्रवाई शुरू करो",
+        "paid": "चुकाया गया",
+        "selectDate": "तारीख़ चुनें",
+        "ok": "ठीक है"
+    },
+    "helpDeskScreen": {
+        "helpDesk": "सहायता केंद्र",
+        "personal": "निजी",
+        "community": "समुदाय"
+    },
+    "helpDeskPersonalTab": {
+        "resolvedBy": "द्वारा हल किया गया",
+        "resolved": "हल किया",
+        "raisedBy": "द्वारा उठाए गए",
+        "pending": "लंबित",
+        "personal": "निजी",
+        "raiseNewComplaint": "नई शिकायतें बढ़ाएं",
+        "viewAllComplaints": "सभी शिकायतें देखें"
+    },
+    "helpDeskCommunityTab": {
+        "resolvedBy": "द्वारा हल किया गया",
+        "community": "समुदाय",
+        "resolved": "हल किया",
+        "raisedBy": "द्वारा उठाए गए",
+        "pending": "लंबित",
+        "raiseNewComplaint": "नई शिकायतें बढ़ाएं",
+        "viewAllComplaints": "सभी शिकायतें देखें"
+    },
+    "addComplaintScreen": {
+        "addComplaint": "शिकायत जोड़ें",
+        "attachPhoto": "एक फोटो संलग्न करें (वैकल्पिक)",
+        "personal": "निजी",
+        "community": "समुदाय",
+        "complaintType": "शिकायत प्रकार",
+        "enterComplaintType": "शिकायत प्रकार दर्ज करें",
+        "briefYourComplaint": "अपनी शिकायत को संक्षिप्त करें",
+        "submitComplaint": "शिकायत प्रस्तुत करें",
+        "deny": "आपने कैमरा एक्सेस करने से इनकार कर दिया है !!!",
+        "ToNext": "अगले में प्रवेश करने के लिए",
+        "today": "आज",
+        "tomorrow": "कल",
+        "cancel": "रद्द करना",
+        "okay": "ठीक है",
+        "complaintRaised": "शिकायत उठाई!",
+        "adminWill": "व्यवस्थापक सूचित करेगा और जल्द ही आपको वापस मिल जाएगा"
+    },
+    "complaintDetailScreen": {
+        "complaint": "शिकायत",
+        "resolvedBy": "द्वारा हल किया गया",
+        "resolved": "हल किया",
+        "raisedBy": "द्वारा उठाए गए",
+        "pending": "लंबित",
+        "reopen": "फिर से खोलना",
+        "markResolved": "सही के रूप में चिन्हित करो",
+        "complaintImage": "शिकायत छवि",
+        "recentComments": "हाल की टिप्पणियां",
+        "writeComment": "अपनी टिप्पणी लिखें"
+    },
+    "callScreen": {
+        "calling": "बुला रहा है ..."
+    },
+    "guardCallingScreen": {
+        "guestGate": "गेट पर अतिथि प्रतीक्षा कर रहे हैं",
+        "callGate": "कॉल गेट",
+        "swipeUp": "अनुमति देने के लिए स्वाइप करें",
+        "deny": "अस्वीकार करना"
+    },
+    "chatScreen": {
+        "chats": "चैट",
+        "residents": "रहने वाले"
+    },
+    "messageScreen": {
+        "typeHere": "यहां अपना पाठ लिखें...."
+    },
+    "searchScreen": {
+        "search": "खोज",
+        "recentSearch": "हाल ही में खोज",
+        "clearAll": "सभी साफ करें",
+        "noSearch": "कोई खोज इतिहास नहीं"
+    },
+    "serviceScreen": {
+        "service": "सेवा",
+        "yourBooking": "आपकी बुकिंग",
+        "homePainting": "गृह पेंटिंग",
+        "paintService": "मेरे घर को पेंट करें।सेवा की आवश्यकता है।",
+        "nearbyProviders": "पास के सेवा प्रदाता",
+        "homeCleaning": "घर की सफाई",
+        "appliancesRepair": "उपकरण मरम्मत",
+        "carpentersService": "बढ़ई सेवा",
+        "plumbingService": "नलसाजी सेवा",
+        "packerMovers": "पैकर और मूवर्स",
+        "homeSanitize": "घर की स्वच्छता",
+        "hairBeauty": "बाल और सौंदर्य",
+        "plumbingServices": "नलसाजी सेवाएँ",
+        "laundryServices": "धुलाई सेवाएं",
+        "gardening": "बागवानी",
+        "cooking": "खाना बनाना"
+    },
+    "serviceModal": {
+        "bookFor": "बुकिंग करना",
+        "selectService": "सेवा का चयन करें",
+        "bookVisit": "बुक विजिट पर",
+        "selectDate": "तारीख़ चुनें",
+        "selectTime": "समय का चयन करें",
+        "briefYourProblem": "अपनी समस्या को संक्षिप्त करें",
+        "writeYourProblem": "अपनी समस्या लिखें",
+        "submit": "जमा करना",
+        "aCRepair": "एसी मरम्मत",
+        "tvRepair": "टीवी मरम्मत",
+        "mixerGrinderRepair": "मिक्सर ग्राइंडर मरम्मत",
+        "doorBellRepair": "दरवाजा घंटी मरम्मत",
+        "fanRepair": "प्रशंसक मरम्मत",
+        "cancel": "रद्द करना",
+        "ok": "ठीक है"
+    },
+    "profileScreen": {
+        "profile": "प्रोफ़ाइल",
+        "viewProfile": "प्रोफ़ाइल देखें",
+        "flatNo": "नीरस नहीं",
+        "blockNo": "ब्लॉक नं",
+        "household": "परिवार",
+        "myFamily": "मेरा परिवार",
+        "add": "जोड़ना",
+        "addFamilyMember": "त्वरित प्रविष्टि के लिए परिवार के सदस्य को जोड़ें",
+        "dailyHelp": "दैनिक सहायता",
+        "addMaidLaundry": "त्वरित प्रविष्टि के लिए नौकरानी, कपड़े धोने, सहायक जोड़ें",
+        "myVehicles": "मेरे वाहन",
+        "addVehiclesQuick": "त्वरित प्रविष्टि के लिए अपने वाहन जोड़ें",
+        "frequentEntries": "बार -बार प्रविष्टियाँ",
+        "addFrequentPerson": "लगातार व्यक्ति त्वरित प्रविष्टियाँ जोड़ें"
+    },
+    "addImageBottomSheet": {
+        "addImage": "छवि जोड़ें",
+        "camera": "कैमरा",
+        "gallery": "गैलरी",
+        "remove": "निकालना"
+    },
+    "addFamilyMemberModal": {
+        "addFamilyMember": "परिवार के सदस्य को जोड़ें",
+        "name": "नाम",
+        "enterName": "नाम दर्ज करें",
+        "phoneNumber": "फ़ोन नंबर",
+        "enterPhoneNumber": "फोन नंबर दर्ज",
+        "relations": "रिश्ते",
+        "selectRelations": "संबंधों का चयन करें",
+        "sendGateGuest": "अतिथि को गेट पास भेजें",
+        "submit": "जमा करना",
+        "relation": "रिश्ता",
+        "father": "पिता",
+        "mother": "माँ",
+        "son": "बेटा",
+        "daughter": "बेटी",
+        "wife": "पत्नी",
+        "cancel": "रद्द करना",
+        "okay": "ठीक है",
+        "deny": "आपने कैमरा एक्सेस करने से इनकार कर दिया है !!!",
+        "removeImage": "प्रोफ़ाइल फोटो हटा दिया गया।",
+        "enterRelations": "संबंध दर्ज करें",
+        "addFrequentEntries": "लगातार प्रविष्टियाँ जोड़ें",
+        "addDailyHelp": "दैनिक सहायता जोड़ें",
+        "helpType": "सहायता प्रकार",
+        "selectHelpType": "सहायता प्रकार का चयन करें",
+        "made": "बनाया",
+        "laundryman": "धोबी",
+        "gardner": "गार्डनर",
+        "cook": "पकाना",
+        "milkman": "दूधिया"
+    },
+    "myVehiclesModal": {
+        "addVehicles": "मेरे वाहन जोड़ें",
+        "vehicleNumber": "गाडी नंबर",
+        "enterVehicleNumber": "वाहन संख्या दर्ज करें",
+        "vehicleModel": "वाहन मॉडल",
+        "enterVehicleModel": "वाहन मॉडल दर्ज करें",
+        "vehicleColor": "वाहन रंग",
+        "enterVehicleColor": "वाहन का रंग दर्ज करें",
+        "sendGateGuest": "अतिथि को गेट पास भेजें",
+        "submit": "जमा करना",
+        "deny": "आपने कैमरा एक्सेस करने से इनकार कर दिया है !!!",
+        "removeImage": "प्रोफ़ाइल फोटो हटा दिया गया।"
+    },
+    "gatePassModal": {
+        "gatePass": "प्रवेश पत्र",
+        "guestAt": "अतिथि",
+        "entryCode": "प्रविष्टि कोड",
+        "showQr": "QR कोड दिखाएं या OTP को गार्ड को बताएं",
+        "share": "शेयर करना",
+        "download": "डाउनलोड करना",
+        "copy": "कॉपी!"
+    },
+    "settingScreen": {
+        "settings": "समायोजन",
+        "editProfile": "प्रोफ़ाइल संपादित करें",
+        "language": "भाषा",
+        "getSupport": "समर्थन प्राप्त करें",
+        "termsCondition": "नियम व शर्त",
+        "privacyPolicy": "गोपनीयता नीति",
+        "logout": "लॉग आउट"
+    },
+    "logoutModal": {
+        "logout": "लॉग आउट",
+        "areYouSureLogout": "क्या आप लॉग आउट करना चाहते हैं?",
+        "no": "नहीं",
+        "yes": "हाँ"
+    },
+    "editProfileScreen": {
+        "editProfile": "प्रोफ़ाइल संपादित करें",
+        "name": "नाम",
+        "enterName": "अपना नाम दर्ज करें",
+        "emailAddress": "ईमेल पता",
+        "enterEmail": "अपना ईमेल पता दर्ज करें",
+        "phoneNumber": "फ़ोन नंबर",
+        "enterPhoneNumber": "अपना फोन नंबर डालें",
+        "update": "अद्यतन करें",
+        "deny": "आपने कैमरा एक्सेस करने से इनकार कर दिया है!",
+        "removeImage": "प्रोफ़ाइल फोटो हटा दिया गया",
+        "personalInformation": "व्यक्तिगत जानकारी",
+        "firstName": "पहला नाम",
+        "lastName": "अंतिम नाम",
+        "enterFirstName": "अपना पहला नाम दर्ज करें",
+        "enterLastName": "अपना अंतिम नाम दर्ज करें",
+        "dateOfBirth": "जन्म तिथि",
+        "selectDateOfBirth": "अपनी जन्म तिथि चुनें",
+        "gender": "लिंग",
+        "selectGender": "अपना लिंग चुनें",
+        "alternativeEmail": "वैकल्पिक ईमेल",
+        "enterAlternativeEmail": "वैकल्पिक ईमेल दर्ज करें",
+        "householdInformation": "घरेलू जानकारी",
+        "totalFamilyMembers": "कुल पारिवारिक सदस्य",
+        "hasPets": "पालतू जानवर हैं",
+        "vehicleCount": "वाहन संख्या",
+        "privacySettings": "गोपनीयता सेटिंग्स",
+        "profileVisibility": "प्रोफ़ाइल दृश्यता",
+        "selectVisibility": "दृश्यता चुनें",
+        "contactSharing": "संपर्क साझाकरण",
+        "selectContactSharing": "संपर्क साझाकरण चुनें",
+        "showContactInfo": "संपर्क जानकारी दिखाएं",
+        "selectContactVisibility": "संपर्क दृश्यता चुनें",
+        "profilePicturePrivacy": "प्रोफ़ाइल चित्र गोपनीयता",
+        "selectPicturePrivacy": "चित्र गोपनीयता चुनें",
+        "activityStatus": "गतिविधि स्थिति"
+    },
+    "languageScreen": {
+        "language": "भाषा",
+        "update": "अद्यतन"
+    },
+    "termsConditionScreen": {
+        "termsCondition": "नियम व शर्त"
+    },
+    "privacyPolicyScreen": {
+        "privacyPolicy": "गोपनीयता नीति"
+    },
+    "getSupportScreen": {
+        "getSupport": "समर्थन प्राप्त करें",
+        "askSuggestImprove": "हमसे पूछें कि हम किसी भी तरह से सुधार कर सकते हैं",
+        "issueType": "विषय वर्ग",
+        "enterTopic": "विषय / अंक प्रकार दर्ज करें",
+        "message": "संदेश",
+        "enterYourMessage": "अपना संदेश दर्ज करें",
+        "submitMessage": "संदेश जमा करें"
+    }
+}

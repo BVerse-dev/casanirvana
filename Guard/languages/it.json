@@ -1,0 +1,198 @@
+{
+    "loginScreen": {
+        "login": "login",
+        "helloUsers": "Ciao utenti, accedi al tuo account",
+        "enterMobileNumber": "Immettere il numero di cellulare",
+        "verification": "*Inviamo OTP per la verifica",
+        "search": "Ricerca",
+        "close": "Vicina",
+        "tapBack": "Tocca di nuovo per uscire dall'app"
+    },
+        "notificationScreen": {
+            "remove": "Notifica rimossa.",
+            "notification": "Notifica",
+            "noNotification": "Nessuna nuova notifica"
+        },
+    "registerScreen": {
+        "register": "Registrati",
+        "helloUsers": "Ciao utenti, crea il tuo account",
+        "userName": "Nome utente",
+        "mobileNumber": "Numero di cellulare",
+        "emailAddress": "Indirizzo e-mail"
+    },
+    "verificationScreen": {
+        "otpVerification": "Verifica OTP",
+        "pleaseEnter": "Inserisci OTP che ti inviamo sul tuo cellulare no",
+        "verify": "Verificare",
+        "resend": "Non hai ricevuto?RECEND"
+    },
+    "bottomTab": {
+        "tapBack": "Tocca di nuovo per uscire dall'app",
+        "home": "Casa",
+        "inOut": "Dentro fuori",
+        "messages": "Messaggi",
+        "settings": "Impostazioni"
+    },
+    "homeScreen": {
+    "visitorEntry": "Ingresso Dei Visitatori",
+        "enterVisitor": "Immettere il codice di iscrizione dei visitatori o il codice di scansione",
+        "confirm": "Confermare",
+    "addNewVisitor": "Aggiungi Nuovo Visitatore",
+    "guestEntry": "Ingresso Per Gli Ospiti",
+    "cabEntry": "Ingresso In Cabina",
+    "deliveryEntry": "Ingresso Di Consegna",
+    "serviceEntry": "Ingresso Del Servizio"
+    },
+    "guestEntryScreen": {
+        "guestEntry": "Ingresso per gli ospiti",
+        "entryConfirmation": "Conferma di ingresso",
+        "guestName": "Nome ospite",
+        "enterGuestName": "Immettere il nome ospite",
+        "mobileNumber": "Numero di cellulare",
+        "enterMobileNumber": "Immettere il numero di cellulare",
+        "insideTime": "Tempo interno",
+        "enterTime": "Entra nel tempo",
+        "continue": "Continua",
+        "visiting": "Visita",
+        "enterVisiting": "Entra in visita",
+        "hostName": "Nome dell'host",
+        "confirmNotification": "Conferma e invia la notifica"
+    },
+    "flatNoScreen": {
+        "blockA": "Blocco a",
+        "blockB": "Blocco B",
+        "clubhouse": "clubhouse",
+        "common": "Area comune"
+    },
+    "flatNoTab": {
+        "selectFlatNum": "Seleziona il numero dell'appartamento/unità",
+        "continue": "Continua"
+    },
+    "ringingScreen": {
+        "ringing": "Ringing ...",
+        "theyAreGettingInform": "Stanno informando"
+    },
+    "allowedScreen": {
+        "allowed": "Permessa",
+        "letsGuest": "ESSERE ESPETTI INTERNO NELLA SOCIETÀ",
+        "backToHome": "Tornare a casa"
+    },
+    "deliveryEntryScreen": {
+        "deliveryEntry": "Ingresso di consegna",
+        "deliverymanName": "Nome Deliveryman",
+        "enterDeliverymanName": "Immettere il nome di consegna",
+        "phoneNumber": "Numero di telefono",
+        "enterPhoneNumber": "Inserisci il numero di telefono",
+        "deliveryCompany": "Corriere",
+        "enterDeliveryCompany": "Inserisci la società di consegna",
+        "insideTime": "Tempo interno",
+        "enterTime": "Entra nel tempo",
+        "continue": "Continua"
+    },
+    "cabEntryScreen": {
+        "cabEntry": "Ingresso in cabina",
+        "cabDriverName": "Nome del tassista",
+        "enterName": "Immettere il nome del conducente del taxi",
+        "enterLast": "Inserisci ultimo 4 cifre di cabina",
+        "cabCompany": "CAB COMPANY",
+        "enterCabCompany": "ENTRA la compagnia di taxi",
+        "pickup": "pickup/droupup",
+        "continue": "Continua"
+    },
+    "serviceEntryScreen": {
+        "serviceEntry": "Ingresso del servizio",
+        "servicemanName": "Nome del serviceman",
+        "enterName": "Inserisci il nome del serviceman",
+        "phoneNumber": "numero di telefono",
+        "enterPhoneNumber": "Inserisci il numero di telefono",
+        "servicemanCompany": "Serviceman Company",
+        "enterCompany": "Inserisci Serviceman Company",
+        "insideTime": "Tempo interno",
+        "enterTime": "Entra nel tempo",
+        "continue": "Continua"
+    },
+    "confirmScreen": {
+        "guest": "Ospite",
+        "visiting": "Visita",
+        "gatePass": "Look da strada",
+        "confirmSendIn": "Confermare e inviare"
+    },
+    "inOutScreen": {
+        "inOut": "Dentro fuori",
+        "checkedIn": "Entrato",
+        "checkedOut": "Uscito"
+    },
+    "checkedInTab": {
+        "in": "NELLA",
+        "block": "Bloccare"
+    },
+    "checkedOutTab": {
+        "out": "FUORI",
+        "block": "Bloccare"
+    },
+    "messageScreen": {
+        "message": "Messaggio"
+    },
+    "chatScreen": {
+        "block": "Bloccare",
+        "typeHere": "Scrivi il tuo testo qui...."
+    },
+    "settingScreen": {
+        "settings": "Impostazioni",
+        "onDuty": "In servizio",
+        "quickContact": "contatto veloce",
+        "callAdmin": "Chiama l'amministratore",
+        "callSecretory": "Chiama Secretory",
+        "language": "Lingua",
+        "getSupport": "Ottieni supporto",
+        "termsCondition": "Termini e condizioni",
+        "privacyPolicy": "Politica sulla riservatezza",
+        "logout": "Disconnettersi"
+    },
+    "editProfileScreen": {
+        "editProfile": "Modifica Profilo",
+        "name": "Nome",
+        "enterName": "Inserisci il tuo nome",
+        "emailAddress": "Indirizzo e-mail",
+        "enterEmail": "Inserisci l'indirizzo email",
+        "phoneNumber": "Numero di telefono",
+        "enterPhoneNumber": "Inserisci il numero di telefono",
+        "update": "Aggiornamento",
+        "deny": "Hai negato di accedere alla fotocamera !!!",
+        "removeImage": "Foto del profilo rimosso."
+    },
+    "addImageBottomSheet": {
+        "addImage": "Aggiungi immagine",
+        "camera": "Telecamera",
+        "gallery": "Galleria",
+        "remove": "Rimuovere"
+    },
+    "languageScreen": {
+        "language": "Lingua",
+        "update": "Aggiornamento"
+    },
+    "getSupportScreen": {
+        "getSupport": "Ottieni supporto",
+        "askSuggestImprove": "Chiedici suggerire in qualsiasi modo possiamo migliorare",
+        "issueType": "Tipo di problema",
+        "enterTopic": "Immettere il tipo di argomento / emissione",
+        "message": "Messaggio",
+        "enterYourMessage": "Inserisci il tuo messaggio",
+        "submitMessage": "Invia messaggio"
+    },
+    "termsConditionScreen": {
+        "termsCondition": "Termini e condizioni"
+    },
+    "privacyPolicyScreen": {
+        "privacyPolicy": "Politica sulla riservatezza"
+    },
+    "logoutModal": {
+        "logout": "Disconnettersi",
+        "areYouSureLogout": "Sei sicuro di voler uscire?",
+        "no": "NO",
+        "yes": "SÌ"
+    },
+    "callScreen": {
+        "calling": "Calling ..."
+    }
+}

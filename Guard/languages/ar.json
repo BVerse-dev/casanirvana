@@ -1,0 +1,198 @@
+{
+    "loginScreen": {
+        "login": "تسجيل الدخول",
+        "helloUsers": "مرحبا المستخدمين يرجى تسجيل الدخول إلى حسابك",
+        "enterMobileNumber": "أدخل رقم الهاتف المحمول",
+        "verification": "*سنرسل OTP للتحقق",
+        "search": "يبحث",
+        "close": "يغلق",
+        "tapBack": "اضغط مرة أخرى للخروج من التطبيق"
+    },
+        "notificationScreen": {
+            "remove": "تمت إزالة الإشعار.",
+            "notification": "إشعار",
+            "noNotification": "لا توجد إشعارات جديدة"
+        },
+    "registerScreen": {
+        "register": "يسجل",
+        "helloUsers": "مرحبا المستخدمين يرجى إنشاء حسابك",
+        "userName": "اسم المستخدم",
+        "mobileNumber": "رقم الهاتف المحمول",
+        "emailAddress": "عنوان البريد الإلكتروني"
+    },
+    "verificationScreen": {
+        "otpVerification": "التحقق من OTP",
+        "pleaseEnter": "الرجاء إدخال OTP سنرسل إليك على هاتفك المحمول",
+        "verify": "يؤكد",
+        "resend": "لم يستلم؟إعادة إرسال"
+    },
+    "bottomTab": {
+        "tapBack": "اضغط مرة أخرى للخروج من التطبيق",
+        "home": "بيت",
+        "inOut": "في خارج",
+        "messages": "رسائل",
+        "settings": "إعدادات"
+    },
+    "homeScreen": {
+        "visitorEntry": "دخول الزوار",
+        "enterVisitor": "أدخل رمز إدخال الزوار أو رمز المسح",
+        "confirm": "يتأكد",
+        "addNewVisitor": "أضف زائرًا جديدًا",
+        "guestEntry": "دخول الضيوف",
+        "cabEntry": "إدخال الكابينة",
+        "deliveryEntry": "دخول التسليم",
+        "serviceEntry": "إدخال الخدمة"
+    },
+    "guestEntryScreen": {
+        "guestEntry": "دخول الضيوف",
+        "entryConfirmation": "تأكيد الدخول",
+        "guestName": "اسم الضيف",
+        "enterGuestName": "أدخل اسم الضيف",
+        "mobileNumber": "رقم الهاتف المحمول",
+        "enterMobileNumber": "أدخل رقم الهاتف المحمول",
+        "insideTime": "داخل الوقت",
+        "enterTime": "أدخل الوقت الداخلي",
+        "continue": "يكمل",
+        "visiting": "زيارة",
+        "enterVisiting": "أدخل الزيارة",
+        "hostName": "اسم المضيف",
+        "confirmNotification": "تأكيد وإرسال الإخطار"
+    },
+    "flatNoScreen": {
+        "blockA": "كتلة أ",
+        "blockB": "بلوك ب",
+        "clubhouse": "النادي",
+        "common": "منطقة مشتركة"
+    },
+    "flatNoTab": {
+        "selectFlatNum": "حدد رقم الشقة/الوحدة",
+        "continue": "يكمل"
+    },
+    "ringingScreen": {
+        "ringing": "رنين...",
+        "theyAreGettingInform": "يحصلون على إعلام"
+    },
+    "allowedScreen": {
+        "allowed": "مسموح",
+        "letsGuest": "دعونا ندخل المجتمع",
+        "backToHome": "العودة إلى المنزل"
+    },
+    "deliveryEntryScreen": {
+        "deliveryEntry": "دخول التسليم",
+        "deliverymanName": "اسم التسليم",
+        "enterDeliverymanName": "أدخل اسم التسليم",
+        "phoneNumber": "رقم التليفون",
+        "enterPhoneNumber": "أدخل رقم الهاتف",
+        "deliveryCompany": "شركة توصيل",
+        "enterDeliveryCompany": "أدخل شركة التسليم",
+        "insideTime": "داخل الوقت",
+        "enterTime": "أدخل الوقت الداخلي",
+        "continue": "يكمل"
+    },
+    "cabEntryScreen": {
+        "cabEntry": "إدخال الكابينة",
+        "cabDriverName": "اسم سائق الكابينة",
+        "enterName": "أدخل اسم سائق الكابينة",
+        "enterLast": "أدخل آخر 4 أرقام من الكابينة",
+        "cabCompany": "شركة الكابينة",
+        "enterCabCompany": "أدخل شركة الكابينة",
+        "pickup": "بيك آب/دروبوب",
+        "continue": "يكمل"
+    },
+    "serviceEntryScreen": {
+        "serviceEntry": "إدخال الخدمة",
+        "servicemanName": "اسم الخدمة",
+        "enterName": "أدخل اسم الخدمة",
+        "phoneNumber": "رقم التليفون",
+        "enterPhoneNumber": "أدخل رقم الهاتف",
+        "servicemanCompany": "شركة جنود",
+        "enterCompany": "أدخل شركة Serviceman",
+        "insideTime": "داخل الوقت",
+        "enterTime": "أدخل الوقت الداخلي",
+        "continue": "يكمل"
+    },
+    "confirmScreen": {
+        "guest": "ضيف",
+        "visiting": "زيارة",
+        "gatePass": "نظرة الشارع",
+        "confirmSendIn": "تأكيد وأرسل"
+    },
+    "inOutScreen": {
+        "inOut": "في خارج",
+        "checkedIn": "تم الدخول",
+        "checkedOut": "تم الخروج"
+    },
+    "checkedInTab": {
+        "in": "في",
+        "block": "حاجز"
+    },
+    "checkedOutTab": {
+        "out": "خارج",
+        "block": "حاجز"
+    },
+    "messageScreen": {
+        "message": "رسالة"
+    },
+    "chatScreen": {
+        "block": "حاجز",
+        "typeHere": "اكتب النص هنا...."
+    },
+    "settingScreen": {
+        "settings": "إعدادات",
+        "onDuty": "في الخدمة",
+        "quickContact": "اتصال سريع",
+        "callAdmin": "مكالمة المسؤول",
+        "callSecretory": "استدعاء",
+        "language": "لغة",
+        "getSupport": "احصل على الدعم",
+        "termsCondition": "الشروط والشرط",
+        "privacyPolicy": "سياسة الخصوصية",
+        "logout": "تسجيل خروج"
+    },
+    "editProfileScreen": {
+        "editProfile": "تعديل الملف الشخصي",
+        "name": "اسم",
+        "enterName": "أدخل أسمك",
+        "emailAddress": "عنوان البريد الإلكتروني",
+        "enterEmail": "أدخل عنوان البريد الالكتروني",
+        "phoneNumber": "رقم التليفون",
+        "enterPhoneNumber": "أدخل رقم الهاتف",
+        "update": "تحديث",
+        "deny": "لقد أنكرت الوصول إلى الكاميرا !!!",
+        "removeImage": "تمت إزالة صورة الملف الشخصي."
+    },
+    "addImageBottomSheet": {
+        "addImage": "إضافة صورة",
+        "camera": "آلة تصوير",
+        "gallery": "صالة عرض",
+        "remove": "يزيل"
+    },
+    "languageScreen": {
+        "language": "لغة",
+        "update": "تحديث"
+    },
+    "getSupportScreen": {
+        "getSupport": "احصل على الدعم",
+        "askSuggestImprove": "اطلب منا أن نقترح بأي طريقة يمكننا تحسينها",
+        "issueType": "نوع القضية",
+        "enterTopic": "أدخل الموضوع / نوع العدد",
+        "message": "رسالة",
+        "enterYourMessage": "أدخل رسالتك",
+        "submitMessage": "تقديم رسالة"
+    },
+    "termsConditionScreen": {
+        "termsCondition": "الشروط والشرط"
+    },
+    "privacyPolicyScreen": {
+        "privacyPolicy": "سياسة الخصوصية"
+    },
+    "logoutModal": {
+        "logout": "تسجيل خروج",
+        "areYouSureLogout": "هل أنت متأكد أنك تريد تسجيل الخروج؟",
+        "no": "لا",
+        "yes": "نعم"
+    },
+    "callScreen": {
+        "calling": "الدعوة ..."
+    }
+}

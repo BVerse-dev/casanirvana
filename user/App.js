@@ -1,0 +1,309 @@
+import "react-native-gesture-handler";
+import 'react-native-reanimated';
+import { useFonts } from "expo-font";
+import {
+  createStackNavigator,
+  TransitionPresets,
+} from "@react-navigation/stack";
+import { withTranslation } from "react-i18next";
+import { NavigationContainer } from "@react-navigation/native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { AppQueryClientProvider } from "./components/QueryClientProvider";
+import { AuthProvider } from "./contexts/AuthContext";
+import { NotificationProvider } from "./contexts/NotificationContext";
+import { NotificationNavigationHandler } from "./components/NotificationNavigationHandler";
+import SplashScreen from "./screens/splashScreen";
+import OnboardingScreen from "./screens/auth/onboardingScreen";
+import LoginScreen from "./screens/auth/loginScreen";
+import RegisterScreen from "./screens/auth/registerScreen";
+import VerificationScreen from "./screens/auth/verificationScreen";
+import BottomTab from "./components/bottomTab";
+import NotificationScreen from "./screens/notificationScreen";
+import NotificationDetailScreen from "./screens/notificationDetailScreen";
+import NotificationSettingsScreen from "./screens/notificationSettingsScreen";
+import SocietyMemberScreen from "./screens/societyMemberScreen";
+import VisitorsScreen from "./screens/visitorsScreen";
+import PreApproveVisitorsScreen from "./screens/preApproveVisitorsScreen";
+import NoticeBoardScreen from "./screens/noticeBoardScreen";
+import NoticeDetailScreen from "./screens/noticeDetailScreen";
+import PaymentScreen from "./screens/paymentScreen";
+import PaymentHistoryScreen from './screens/paymentHistoryScreen';
+import PaymentMethodScreen from "./screens/paymentMethodScreen";
+import CreditCardScreen from "./screens/creditCardScreen";
+import MobileMoneyScreen from "./screens/mobileMoneyScreen";
+import PayPalScreen from "./screens/paypalScreen";
+import SuccessScreen from "./screens/successScreen";
+import BookedAmenitiesScreen from "./screens/bookedAmenitiesScreen";
+import AmenityScreen from "./screens/amenityScreen";
+import BookAmenityScreen from "./screens/bookAmenityScreen";
+import HelpDeskScreen from "./screens/helpDeskScreen";
+import UserGuideScreen from "./screens/userGuideScreen";
+import GeneralInquiryScreen from "./screens/generalInquiryScreen";
+import TechnicalSupportScreen from "./screens/technicalSupportScreen";
+import FeedbackScreen from "./screens/feedbackScreen";
+import SuggestionsScreen from "./screens/suggestionsScreen";
+import AddComplaintScreen from "./screens/addComplaintScreen";
+import ComplaintDetailScreen from "./screens/complaintDetailScreen";
+import CallScreen from "./screens/callScreen";
+import GuardCallingScreen from "./screens/guardCallingScreen";
+import MessageScreen from "./screens/messageScreen";
+import SearchScreen from "./screens/searchScreen";
+import SettingScreen from "./screens/settingScreen";
+import EditProfileScreen from "./screens/editProfileScreen";
+import LanguageScreen from "./screens/languageScreen";
+import TermsConditionScreen from "./screens/termsConditionScreen";
+import PrivacyPolicyScreen from "./screens/privacyPolicyScreen";
+import GetSupportScreen from "./screens/getSupportScreen";
+import i18n from "./languages/index"; //don't remove this line
+import MaintenanceRequestsScreen from "./screens/maintenanceRequestsScreen";
+import MaintenanceRequestDetailScreen from "./screens/maintenanceRequestDetailScreen";
+import AddMaintenanceRequestScreen from "./screens/addMaintenanceRequestScreen";
+import MaintenanceDetailScreen from "./screens/maintenanceDetailScreen";
+import ServiceBookingDetailScreen from "./screens/serviceBookingDetailScreen";
+import AmenityBookingDetailScreen from "./screens/amenityBookingDetailScreen";
+import JoinCommunityScreen from "./screens/joinCommunityScreen";
+import SocietyInfoScreen from "./screens/societyInfoScreen";
+import MemberDirectoryScreen from "./screens/memberDirectoryScreen";
+import UnitInformationScreen from "./screens/unitInformationScreen";
+import PinCodeScreen from "./screens/pinCodeScreen";
+import EmergencyContactsScreen from "./screens/emergencyContactsScreen";
+import ChatSettingsScreen from "./screens/chatSettingsScreen";
+import ServiceProvidersScreen from "./screens/serviceProvidersScreen";
+import BookingHistoryScreen from "./screens/bookingHistoryScreen";
+import BackupRestoreScreen from "./screens/backupRestoreScreen";
+import AppUpdatesScreen from "./screens/appUpdatesScreen";
+import DeleteAccountScreen from "./screens/deleteAccountScreen";
+import AboutAppScreen from "./screens/aboutAppScreen";
+import { LogBox } from "react-native";
+
+const Stack = createStackNavigator();
+LogBox.ignoreAllLogs();
+
+const MainNavigation = () => {
+  return (
+    <NavigationContainer>
+      <NotificationProvider>
+        <NotificationNavigationHandler>
+          <Stack.Navigator
+          initialRouteName="splashScreen"
+          screenOptions={{
+            ...TransitionPresets.SlideFromRightIOS,
+            headerShown: false,
+          }}
+        >
+        <Stack.Screen
+          name="complaintsScreen"
+          component={require("./screens/complaintsScreen").default}
+        />
+        <Stack.Screen name="splashScreen" component={SplashScreen} />
+        <Stack.Screen name="onboardingScreen" component={OnboardingScreen} />
+        <Stack.Screen name="loginScreen" component={LoginScreen} />
+        <Stack.Screen name="registerScreen" component={RegisterScreen} />
+        <Stack.Screen
+          name="verificationScreen"
+          component={VerificationScreen}
+        />
+        <Stack.Screen
+          name="bottomTab"
+          component={BottomTab}
+          options={{
+            ...TransitionPresets.DefaultTransition,
+          }}
+        />
+        <Stack.Screen
+          name="notificationScreen"
+          component={NotificationScreen}
+        />
+        <Stack.Screen
+          name="notificationDetailScreen"
+          component={NotificationDetailScreen}
+        />
+        <Stack.Screen
+          name="notificationSettingsScreen"
+          component={NotificationSettingsScreen}
+        />
+        <Stack.Screen
+          name="societyMemberScreen"
+          component={SocietyMemberScreen}
+        />
+        <Stack.Screen name="visitorsScreen" component={VisitorsScreen} />
+        <Stack.Screen
+          name="preApproveVisitorsScreen"
+          component={PreApproveVisitorsScreen}
+        />
+        <Stack.Screen name="noticeBoardScreen" component={NoticeBoardScreen} />
+        <Stack.Screen name="noticeDetailScreen" component={NoticeDetailScreen} />
+        <Stack.Screen name="paymentScreen" component={PaymentScreen} />
+        <Stack.Screen name="paymentHistoryScreen" component={PaymentHistoryScreen} />
+        <Stack.Screen
+          name="paymentMethodScreen"
+          component={PaymentMethodScreen}
+        />
+        <Stack.Screen name="creditCardScreen" component={CreditCardScreen} />
+        <Stack.Screen name="mobileMoneyScreen" component={MobileMoneyScreen} />
+        <Stack.Screen name="paypalScreen" component={PayPalScreen} />
+        <Stack.Screen name="successScreen" component={SuccessScreen} />
+        <Stack.Screen
+          name="bookedAmenitiesScreen"
+          component={BookedAmenitiesScreen}
+        />
+        <Stack.Screen name="amenityScreen" component={AmenityScreen} />
+        <Stack.Screen name="bookAmenityScreen" component={BookAmenityScreen} />
+        <Stack.Screen name="helpDeskScreen" component={HelpDeskScreen} />
+        <Stack.Screen name="userGuideScreen" component={UserGuideScreen} />
+        <Stack.Screen
+          name="generalInquiryScreen"
+          component={GeneralInquiryScreen}
+        />
+        <Stack.Screen
+          name="technicalSupportScreen"
+          component={TechnicalSupportScreen}
+        />
+        <Stack.Screen
+          name="feedbackScreen"
+          component={FeedbackScreen}
+        />
+        <Stack.Screen
+          name="suggestionsScreen"
+          component={SuggestionsScreen}
+        />
+        <Stack.Screen
+          name="addComplaintScreen"
+          component={AddComplaintScreen}
+        />
+        <Stack.Screen
+          name="complaintDetailScreen"
+          component={ComplaintDetailScreen}
+        />
+        <Stack.Screen name="callScreen" component={CallScreen} />
+        <Stack.Screen
+          name="guardCallingScreen"
+          component={GuardCallingScreen}
+        />
+        <Stack.Screen name="messageScreen" component={MessageScreen} />
+        <Stack.Screen name="searchScreen" component={SearchScreen} />
+        <Stack.Screen name="settingScreen" component={SettingScreen} />
+        <Stack.Screen name="editProfileScreen" component={EditProfileScreen} />
+        <Stack.Screen name="languageScreen" component={LanguageScreen} />
+        <Stack.Screen
+          name="termsConditionScreen"
+          component={TermsConditionScreen}
+        />
+        <Stack.Screen
+          name="privacyPolicyScreen"
+          component={PrivacyPolicyScreen}
+        />
+        <Stack.Screen name="getSupportScreen" component={GetSupportScreen} />
+        <Stack.Screen
+          name="MaintenanceRequestsScreen"
+          component={MaintenanceRequestsScreen}
+          options={{ title: 'Maintenance Requests' }}
+        />
+        {/* Old maintenance detail screen - replaced with maintenanceDetailScreen
+        <Stack.Screen
+          name="maintenanceRequestDetailScreen"
+          component={MaintenanceRequestDetailScreen}
+          options={{ title: 'Request Details' }}
+        />
+        */}
+        <Stack.Screen
+          name="addMaintenanceRequestScreen"
+          component={AddMaintenanceRequestScreen}
+          options={{ title: 'Request Maintenance' }}
+        />
+        <Stack.Screen
+          name="maintenanceDetailScreen"
+          component={MaintenanceDetailScreen}
+          options={{ title: 'Maintenance Details' }}
+        />
+        <Stack.Screen
+          name="serviceBookingDetailScreen"
+          component={ServiceBookingDetailScreen}
+          options={{ title: 'Service Booking Details' }}
+        />
+        <Stack.Screen
+          name="amenityBookingDetailScreen"
+          component={AmenityBookingDetailScreen}
+          options={{ title: 'Amenity Booking Details' }}
+        />
+        <Stack.Screen
+          name="joinCommunityScreen"
+          component={JoinCommunityScreen}
+        />
+        <Stack.Screen
+          name="societyInfoScreen"
+          component={SocietyInfoScreen}
+        />
+        <Stack.Screen
+          name="memberDirectoryScreen"
+          component={MemberDirectoryScreen}
+        />
+        <Stack.Screen
+          name="unitInformationScreen"
+          component={UnitInformationScreen}
+        />
+        <Stack.Screen
+          name="pinCodeScreen"
+          component={PinCodeScreen}
+        />
+        <Stack.Screen
+          name="emergencyContactsScreen"
+          component={EmergencyContactsScreen}
+        />
+        <Stack.Screen
+          name="chatSettingsScreen"
+          component={ChatSettingsScreen}
+        />
+        <Stack.Screen
+          name="serviceProvidersScreen"
+          component={ServiceProvidersScreen}
+        />
+        <Stack.Screen
+          name="bookingHistoryScreen"
+          component={BookingHistoryScreen}
+        />
+        <Stack.Screen
+          name="appUpdatesScreen"
+          component={AppUpdatesScreen}
+        />
+        <Stack.Screen
+          name="deleteAccountScreen"
+          component={DeleteAccountScreen}
+        />
+        <Stack.Screen
+          name="aboutAppScreen"
+          component={AboutAppScreen}
+        />
+      </Stack.Navigator>
+      </NotificationNavigationHandler>
+      </NotificationProvider>
+    </NavigationContainer>
+  );
+};
+
+const ReloadAppOnLanguageChange = withTranslation("translation", {
+  bindI18n: "languageChanged",
+  bindStore: false,
+})(MainNavigation);
+
+export default function App() {
+  const [loaded] = useFonts({
+    "Inter-SemiBold": require("./assets/fonts/Inter-SemiBold.ttf"),
+    "Inter-Regular": require("./assets/fonts/Inter-Regular.ttf"),
+    "Inter-Medium": require("./assets/fonts/Inter-Medium.ttf"),
+  });
+
+  if (!loaded) {
+    return null;
+  }
+
+  return (
+    <SafeAreaProvider>
+      <AppQueryClientProvider>
+        <AuthProvider>
+          <ReloadAppOnLanguageChange />
+        </AuthProvider>
+      </AppQueryClientProvider>
+    </SafeAreaProvider>
+  );
+}

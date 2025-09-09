@@ -1,0 +1,450 @@
+{
+    "onboardingScreen": {
+        "tapBack": "Uygulamadan çıkmak için tekrar tekrar dokunun",
+        "title1": "Aile Güvenliğinizi Geliştirin",
+        "title2": "Servis personelini kapınıza alın",
+        "title3": "Etkinlik hakkında bilgi alın",
+        "next": "Sonraki",
+        "getStarted": "Başlamak"
+    },
+    "loginScreen": {
+        "login": "Giriş yapmak",
+        "helloUsers": "Merhaba Kullanıcılar Lütfen hesabınızı giriş yapın",
+        "enterMobileNumber": "Cep telefonu numarasını girin",
+        "verification": "*Doğrulama için OTP göndereceğiz",
+        "search": "Aramak",
+        "close": "Kapalı",
+        "tapBack": "Uygulamadan çıkmak için tekrar tekrar dokunun"
+    },
+    "registerScreen": {
+        "register": "Kayıt olmak",
+        "helloUsers": "Merhaba Kullanıcılar Lütfen hesabınızı oluşturun",
+        "userName": "Kullanıcı adı",
+        "mobileNumber": "Cep numarası",
+        "emailAddress": "E -posta adresi"
+    },
+    "verificationScreen": {
+        "otpVerification": "OTP doğrulaması",
+        "pleaseEnter": "Lütfen size cep telefonunuzdan size göndereceğiz OTP'ye girin",
+        "verify": "Doğrulamak",
+        "resend": "Almadın mı?Yeniden gönder"
+    },
+    "bottomTab": {
+        "home": "Ev",
+        "chats": "Sohbetler",
+        "service": "Hizmet",
+        "profile": "Profil",
+        "tapBack": "Uygulamadan çıkmak için tekrar tekrar dokunun",
+        "sendMessage": "Mesaj gönder",
+        "securityAlert": "Güvenlik uyarısı",
+        "admin": "Yönetici",
+        "security": "Güvenlik",
+        "fireAlert": "Yangın uyarı",
+        "stuckLift": "Asansöre sıkışmış",
+        "animalThreat": "Hayvan tehdidi",
+        "visiterThreat": "Ziyaretçi tehdidi"
+    },
+    "homeScreen": {
+        "hi": "MERHABA",
+        "notice": "FARK ETME",
+        "description": "3 Kasım'da Yedi Gen Society'nin Salonunda Yeni Yıl Toplantısı",
+        "community": "Toplum",
+        "members": "Üyeler",
+        "visitors": "Ziyaretçi",
+        "noticeBoard": "Bildirim Kurulu",
+        "payment": "Ödeme",
+        "bookAmenities": "Repenities rezervasyonu",
+        "helpDesk": "Yardım Masası",
+        "connectMember": "Toplum üyesini bağlayın",
+        "manageEntry": "Ziyaretçilerin Girişini Yönetin",
+        "societyAnnouncement": "Toplum Duyurusu ve Etkinlik Bildirimi",
+        "directPayment": "İzin Verilen Toplumun Doğrudan Ödeme",
+        "preBook": "Pre -Book Derneği olanakları",
+        "complaint": "Şikayet ve Öneri",
+        "new": "Yeni"
+    },
+    "notificationScreen": {
+        "remove": "Bildirim kaldırıldı.",
+        "notification": "Bildiri",
+        "noNotification": "Yeni bildirim yok"
+    },
+    "societyMemberScreen": {
+        "members": "Üyeler",
+        "member": "Üye",
+        "admin": "Yönetici",
+        "committee": "Kurul"
+    },
+    "memberDetailModal": {
+        "flatNo": "Düz değil",
+        "blockNo": "Blok Hayır",
+        "call": "Arama",
+        "chat": "Sohbet"
+    },
+    "visitorsScreen": {
+        "visitors": "Ziyaretçi",
+        "preVisitors": "Ziyaretçileri önceden onaylayın",
+        "inside": "İçeri",
+        "preApproved": "Ön onaylı",
+        "serviceBooked": "Hizmet rezerve edildi",
+        "call": "Arama",
+        "delete": "Silmek",
+        "gatepass": "Sokak görünümü",
+        "removedVisitor": "Ziyaretçi kaldırıldı.",
+        "noVisitors": "Yeni Ziyaretçi Yok"
+    },
+    "preApproveVisitorsScreen": {
+        "visitors": "Ziyaretçi",
+        "preApproveVisitors": "Ziyaretçileri önceden onaylayın",
+        "addVisitor": "Hızlı eylem için ziyaretçi detayı ekleyin",
+        "addGuest": "Misafir ekleyin",
+        "addCab": "Kabin ekle",
+        "addDelivery": "Teslimat Ekle",
+        "addService": "Hizmet Ekle",
+        "allowMyServiceman": "Askerime izin ver",
+        "servicemanCompanyName": "Asker/ şirket adı",
+        "enterServicemanCompany": "SERCECEMAN/Şirket Adını Girin",
+        "phoneNumber": "Telefon numarası",
+        "enterPhoneNumber": "Telefon Numarasını Girin",
+        "toEnterInNext": "Bir sonraki girmek için",
+        "today": "Bugün",
+        "submit": "Göndermek",
+        "tomorrow": "Yarın",
+        "cancel": "İptal etmek",
+        "okay": "Tamam"
+    },
+    "allowGuestModal": {
+        "allowMyGuest": "Misafirime izin ver",
+        "guestName": "Misafir adı",
+        "enterGuestName": "Misafir Adı Girin",
+        "phoneNumber": "Telefon numarası",
+        "enterPhoneNumber": "Telefon Numarasını Girin",
+        "enterDate": "Tarihi Gir",
+        "sendGate": "Konuk'a Gate Pass'ı gönderin",
+        "submit": "Göndermek",
+        "selectDate": "Tarih seç",
+        "ok": "Tamam"
+    },
+    "addCabModal": {
+        "allowMyCab": "Kabine izin ver",
+        "allowMyCabNext": "Taksimin bugün bir kez girmesine izin verin",
+        "addLastDigit": "Araç no. Son 4 basamak ekleyin.",
+        "companyName": "Firma Adı",
+        "enterCompanyName": "Şirket Adını Girin",
+        "submit": "Göndermek",
+        "cancel": "İptal etmek",
+        "okay": "Tamam"
+    },
+    "addDeliveryModal": {
+        "allowMyDelivery": "Teslimatıma izin ver",
+        "deliveryCompany": "Teslimat Şirketi Adı",
+        "selectDeliveryCompany": "Teslimat Şirketi Seçin",
+        "toEnterNext": "Bir sonraki girmek için",
+        "today": "Bugün",
+        "submit": "Göndermek",
+        "cancel": "İptal etmek",
+        "okay": "Tamam",
+        "companyName": "Firma Adı",
+        "tomorrow": "Yarın"
+    },
+    "noticeBoardScreen": {
+        "noticeBoard": "Bildirim Kurulu",
+        "new": "Yeni",
+        "postBy": "Göndermek"
+    },
+    "paymentScreen": {
+        "payment": "Ödeme",
+        "new": "Yeni",
+        "paid": "Paralı",
+        "pending": "Askıda olması",
+        "failed": "Arızalı",
+        "dueDate": "Bitiş tarihi",
+        "payNow": "Şimdi öde",
+        "receipt": "Fiş"
+    },
+    "paymentMethodScreen": {
+        "selectPaymentMethod": "Ödeme türünü seçin",
+        "securityDeposit": "Güvence bedeli",
+        "continue": "Devam etmek"
+    },
+    "creditCardScreen": {
+        "creditCard": "Kredi kartı",
+        "continue": "Devam etmek",
+        "name": "Kartta isim",
+        "cardNo": "Kart numarası",
+        "enterName": "Kartın adı girin",
+        "enterCard": "Kart numaranızı girin",
+        "expiryDate": "Son kullanma tarihi"
+    },
+    "successScreen": {
+        "paymentSuccess": "Ödeme başarılı !!",
+        "securityDeposit": "Güvence bedeli",
+        "amountPaid": "Ödenen miktar",
+        "paidOn": "Ödenmiş",
+        "paidVia": "Üzerinden ödenmiş",
+        "transactionID": "İşlem Kimliği",
+        "downloadReceipt": "Makbuzu indir",
+        "backHome": "Eve geri dön",
+        "paid": "Paralı"
+    },
+    "bookedAmenitiesScreen": {
+        "bookedAmenities": "Rezervasyon Yaptı",
+        "bookAmenity": "Dostluk Kitabı",
+        "confirmed": "Onaylanmış",
+        "pending": "Askıda olması",
+        "canceled": "İptal edildi",
+        "confirmedBy": "Tarafından onaylandı",
+        "paidDebitCard": "Banka kartı üzerinden ödenmiş",
+        "noPayment": "Ödeme yok"
+    },
+    "amenityScreen": {
+        "selectAmenity": "RENTLITY SEÇ",
+        "paid": "Paralı",
+        "free": "Özgür"
+    },
+    "bookAmenityScreen": {
+        "bookAmenity": "Dostluk Kitabı",
+        "maximinCapacity": "Maksimum kapasite",
+        "bookBeforeLeast": "En azından önce kitap",
+        "selectDates": "Tarihleri Seçin",
+        "from": "İtibaren",
+        "to": "İle",
+        "selectTime": "Zaman seçin",
+        "totalDay": "Toplam gün",
+        "amountPay": "Ödenecek miktar",
+        "proceedPay": "Ödemeye devam",
+        "paid": "Paralı",
+        "selectDate": "Tarih seç",
+        "ok": "Tamam"
+    },
+    "helpDeskScreen": {
+        "helpDesk": "Yardım Masası",
+        "personal": "Kişisel",
+        "community": "Toplum"
+    },
+    "helpDeskPersonalTab": {
+        "resolvedBy": "Çözüldü",
+        "resolved": "Çözülmüş",
+        "raisedBy": "Tarafından yükseltildi",
+        "pending": "Askıda olması",
+        "personal": "Kişisel",
+        "raiseNewComplaint": "Yeni şikayette bulunmak",
+        "viewAllComplaints": "Tüm Şikayetleri Görüntüle"
+    },
+    "helpDeskCommunityTab": {
+        "resolvedBy": "Çözüldü",
+        "community": "Toplum",
+        "resolved": "Çözülmüş",
+        "raisedBy": "Tarafından yükseltildi",
+        "pending": "Askıda olması",
+        "raiseNewComplaint": "Yeni şikayette bulunmak",
+        "viewAllComplaints": "Tüm Şikayetleri Görüntüle"
+    },
+    "addComplaintScreen": {
+        "addComplaint": "Şikayet ekle",
+        "attachPhoto": "Bir fotoğraf ekleyin (isteğe bağlı)",
+        "personal": "Kişisel",
+        "community": "Toplum",
+        "complaintType": "Şikayet tipi",
+        "enterComplaintType": "Şikayet Türünü Girin",
+        "briefYourComplaint": "Şikayetinizi Kısa",
+        "submitComplaint": "Şikayet Gönder",
+        "deny": "Kameraya erişmeyi reddettiniz !!!",
+        "ToNext": "Bir sonraki girmek için",
+        "today": "Bugün",
+        "tomorrow": "Yarın",
+        "cancel": "İptal etmek",
+        "okay": "Tamam",
+        "complaintRaised": "Şikayet yükseltildi!",
+        "adminWill": "Yönetici bilgilendirecek ve yakında size geri dönecek"
+    },
+    "complaintDetailScreen": {
+        "complaint": "şikayet",
+        "resolvedBy": "Çözüldü",
+        "resolved": "Çözülmüş",
+        "raisedBy": "Tarafından yükseltildi",
+        "pending": "Askıda olması",
+        "reopen": "Yeniden açmak",
+        "markResolved": "Çözüldüğü gibi işaretleyin",
+        "complaintImage": "Şikayet Görüntüsü",
+        "recentComments": "Son Yorumlar",
+        "writeComment": "Yorumunuzu yazın"
+    },
+    "callScreen": {
+        "calling": "Arama ..."
+    },
+    "guardCallingScreen": {
+        "guestGate": "Konuk Kapıda Bekliyor",
+        "callGate": "Çağrı Kapısı",
+        "swipeUp": "İzin vermek için yukarı kaydırın",
+        "deny": "Reddetmek"
+    },
+    "chatScreen": {
+        "chats": "Sohbetler",
+        "residents": "Sakinler"
+    },
+    "messageScreen": {
+        "typeHere": "Metninizi buraya yazın...."
+    },
+    "searchScreen": {
+        "search": "Aramak",
+        "recentSearch": "Son Arama",
+        "clearAll": "Hepsini temizle",
+        "noSearch": "Arama geçmişi yok"
+    },
+    "serviceScreen": {
+        "service": "Hizmet",
+        "yourBooking": "Rezervasyonunuz",
+        "homePainting": "Ev boyama",
+        "paintService": "Evimi boya.Hizmete ihtiyacım var.",
+        "nearbyProviders": "Yakındaki servis sağlayıcılar",
+        "homeCleaning": "Ev temizliği",
+        "appliancesRepair": "Aletler Onarımı",
+        "carpentersService": "Marangoz hizmeti",
+        "plumbingService": "Sıhhi tesisat hizmeti",
+        "packerMovers": "packer &Movers",
+        "homeSanitize": "Ana Sayfa Sanitize",
+        "hairBeauty": "Saç güzelliği",
+        "plumbingServices": "Sıhhi Tesisat Hizmetleri",
+        "laundryServices": "Kuru temizleme hizmetleri",
+        "gardening": "Bahçıvanlık",
+        "cooking": "Yemek pişirmek"
+    },
+    "serviceModal": {
+        "bookFor": "İçin kitap",
+        "selectService": "Hizmet'i seçin",
+        "bookVisit": "Kitap Ziyareti",
+        "selectDate": "Tarih seç",
+        "selectTime": "Zaman seçin",
+        "briefYourProblem": "Sorununuza Kısa",
+        "writeYourProblem": "Sorununuzu yaz",
+        "submit": "Göndermek",
+        "aCRepair": "AC onarımı",
+        "tvRepair": "TV onarımı",
+        "mixerGrinderRepair": "Mikser öğütücü onarım",
+        "doorBellRepair": "Kapı Bell Onarımı",
+        "fanRepair": "Fan onarımı",
+        "cancel": "İptal etmek",
+        "ok": "Tamam"
+    },
+    "profileScreen": {
+        "profile": "Profil",
+        "viewProfile": "Profili Görüntüle",
+        "flatNo": "Düz değil",
+        "blockNo": "Blok Hayır",
+        "household": "Ev",
+        "myFamily": "Ailem",
+        "add": "Eklemek",
+        "addFamilyMember": "Hızlı giriş için aile üyesi ekleyin",
+        "dailyHelp": "Günlük Yardım",
+        "addMaidLaundry": "Hızlı giriş için hizmetçi, çamaşırhane, yardımcı ekleyin",
+        "myVehicles": "Araçlarım",
+        "addVehiclesQuick": "Hızlı giriş için araçlarınızı ekleyin",
+        "frequentEntries": "Sık Girişler",
+        "addFrequentPerson": "Sık Kişi Hızlı Girişleri Ekleyin"
+    },
+    "addImageBottomSheet": {
+        "addImage": "Resim eklemek",
+        "camera": "Kamera",
+        "gallery": "Galeri",
+        "remove": "Kaldırmak"
+    },
+    "addFamilyMemberModal": {
+        "addFamilyMember": "Aile Üyesi Ekle",
+        "name": "İsim",
+        "enterName": "İsim giriniz",
+        "phoneNumber": "Telefon numarası",
+        "enterPhoneNumber": "Telefon Numarasını Girin",
+        "relations": "İlişkiler",
+        "selectRelations": "İlişkileri Seçin",
+        "sendGateGuest": "Konuk'a Gate Pass'ı gönderin",
+        "submit": "Göndermek",
+        "relation": "İlişki",
+        "father": "Baba",
+        "mother": "Anne",
+        "son": "Oğul",
+        "daughter": "Kız çocuğu",
+        "wife": "Eş",
+        "cancel": "İptal etmek",
+        "okay": "Tamam",
+        "deny": "Kameraya erişmeyi reddettiniz !!!",
+        "removeImage": "Profil fotoğrafı kaldırıldı.",
+        "enterRelations": "İlişkileri Girin",
+        "addFrequentEntries": "Sık Girişler Ekle",
+        "addDailyHelp": "Günlük Yardım Ekle",
+        "helpType": "Yardım Türü",
+        "selectHelpType": "Yardım Türünü Seçin",
+        "made": "Yapılmış",
+        "laundryman": "Çamaşırhane",
+        "gardner": "gardner",
+        "cook": "Aşçı",
+        "milkman": "Sütçü"
+    },
+    "myVehiclesModal": {
+        "addVehicles": "Araçlarımı ekle",
+        "vehicleNumber": "Araç numarası",
+        "enterVehicleNumber": "Araç Numarasını Girin",
+        "vehicleModel": "Araç modeli",
+        "enterVehicleModel": "Araç modelini girin",
+        "vehicleColor": "Araç rengi",
+        "enterVehicleColor": "Araç Rengi Girin",
+        "sendGateGuest": "Konuk'a Gate Pass'ı gönderin",
+        "submit": "Göndermek",
+        "deny": "Kameraya erişmeyi reddettiniz !!!",
+        "removeImage": "Profil fotoğrafı kaldırıldı."
+    },
+    "gatePassModal": {
+        "gatePass": "Geçit kapısı",
+        "guestAt": "Konuk",
+        "entryCode": "Giriş kodu",
+        "showQr": "QR kodunu gösterin veya OTP'ye korumasını söyle",
+        "share": "Paylaşmak",
+        "download": "İndirmek",
+        "copy": "Kopyalı!"
+    },
+    "settingScreen": {
+        "settings": "Ayarlar",
+        "editProfile": "Profili Düzenle",
+        "language": "Dil",
+        "getSupport": "Destek almak",
+        "termsCondition": "Şartlar ve koşullar",
+        "privacyPolicy": "Gizlilik Politikası",
+        "logout": "Çıkış Yap"
+    },
+    "logoutModal": {
+        "logout": "Çıkış Yap",
+        "areYouSureLogout": "Oturum açmak istediğinden emin misiniz?",
+        "no": "HAYIR",
+        "yes": "Evet"
+    },
+    "editProfileScreen": {
+        "editProfile": "Profili Düzenle",
+        "name": "İsim",
+        "enterName": "Adınızı giriniz",
+        "emailAddress": "E -posta adresi",
+        "enterEmail": "E-posta adresinizi giriniz",
+        "phoneNumber": "Telefon numarası",
+        "enterPhoneNumber": "Telefon numaranızı girin",
+        "update": "Güncelleme",
+        "deny": "Kameraya erişmeyi reddettiniz !!!",
+        "removeImage": "Profil fotoğrafı kaldırıldı."
+    },
+    "languageScreen": {
+        "language": "Dil",
+        "update": "Güncelleme"
+    },
+    "termsConditionScreen": {
+        "termsCondition": "Şartlar ve koşullar"
+    },
+    "privacyPolicyScreen": {
+        "privacyPolicy": "Gizlilik Politikası"
+    },
+    "getSupportScreen": {
+        "getSupport": "Destek almak",
+        "askSuggestImprove": "Bize, iyileştirebileceğimizi önermek",
+        "issueType": "Sorun Tipi",
+        "enterTopic": "Konu / Sayı Türüne Girin",
+        "message": "İleti",
+        "enterYourMessage": "Mesajınızı girin",
+        "submitMessage": "Mesajı gönder"
+    }
+}

@@ -1,0 +1,213 @@
+import {
+  Text,
+  View,
+  TouchableOpacity,
+  BackHandler,
+  StyleSheet,
+  FlatList,
+} from "react-native";
+import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Colors, Default, Fonts } from "../constants/styles";
+import Ionicons from "react-native-vector-icons/Ionicons";
+import Feather from "react-native-vector-icons/Feather";
+import MyStatusBar from "../components/myStatusBar";
+import SimpleLineIcons from "react-native-vector-icons/SimpleLineIcons";
+import MaterialIcons from "react-native-vector-icons/MaterialIcons";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
+import LogoutModal from "../components/logoutModal";
+
+const SettingScreen = ({ navigation }) => {
+  const { t, i18n } = useTranslation();
+
+  const isRtl = i18n.dir() == "rtl";
+
+  function tr(key) {
+    return t(`settingScreen:${key}`);
+  }
+  const backAction = () => {
+    navigation.goBack();
+    return true;
+  };
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      backAction
+    );
+    return () => backHandler.remove();
+  });
+
+  const [openLogoutModal, setOpenLogoutModal] = useState(false);
+
+  const settingList = [
+    {
+      key: "1",
+      icon: Ionicons,
+      iconName: "person-outline",
+      title: tr("editProfile"),
+      navigateTo: "editProfileScreen",
+    },
+    {
+      key: "2",
+      icon: SimpleLineIcons,
+      iconName: "globe",
+      title: tr("language"),
+      navigateTo: "languageScreen",
+    },
+    {
+      key: "3",
+      icon: SimpleLineIcons,
+      iconName: "question",
+      title: tr("getSupport"),
+      navigateTo: "getSupportScreen",
+    },
+    {
+      key: "4",
+      icon: MaterialIcons,
+      iconName: "list-alt",
+      title: tr("termsCondition"),
+      navigateTo: "termsConditionScreen",
+    },
+    {
+      key: "5",
+      icon: MaterialCommunityIcons,
+      iconName: "shield-alert-outline",
+      title: tr("privacyPolicy"),
+      navigateTo: "privacyPolicyScreen",
+    },
+    {
+      key: "6",
+      icon: Feather,
+      iconName: "log-out",
+      title: tr("logout"),
+    },
+  ];
+
+  const renderItem = ({ item }) => {
+    return (
+      <TouchableOpacity
+        onPress={() => {
+          if (item.key === "6") {
+            setOpenLogoutModal(true);
+          } else {
+            navigation.push(item.navigateTo);
+          }
+        }}
+        style={{
+          flexDirection: isRtl ? "row-reverse" : "row",
+          ...styles.mainTouchOpacity,
+        }}
+      >
+        <View
+          style={{
+            flex: 1,
+            flexDirection: isRtl ? "row-reverse" : "row",
+            alignItems: "center",
+          }}
+        >
+          <View
+            style={{
+              justifyContent: "center",
+              alignItems: "center",
+              width: 35,
+              height: 35,
+              borderRadius: 5,
+              backgroundColor: Colors.regularGrey,
+            }}
+          >
+            <item.icon
+              name={item.iconName}
+              size={22}
+              color={item.key === "6" ? Colors.red : Colors.primary}
+            />
+          </View>
+
+          <View
+            style={{
+              flex: 1,
+              alignItems: isRtl ? "flex-end" : "flex-start",
+              marginHorizontal: Default.fixPadding,
+            }}
+          >
+            <Text
+              numberOfLines={1}
+              style={{
+                ...(item.key === "6" ? Fonts.Medium15red : Fonts.Medium15black),
+                overflow: "hidden",
+              }}
+            >
+              {item.title}
+            </Text>
+          </View>
+        </View>
+        <Ionicons
+          name={isRtl ? "chevron-back" : "chevron-forward"}
+          size={20}
+          color={Colors.black}
+        />
+      </TouchableOpacity>
+    );
+  };
+
+  return (
+    <View style={{ flex: 1, backgroundColor: Colors.white }}>
+      <MyStatusBar />
+      <View
+        style={{
+          flexDirection: isRtl ? "row-reverse" : "row",
+          alignItems: "center",
+          paddingVertical: Default.fixPadding * 1.2,
+          paddingHorizontal: Default.fixPadding * 2,
+        }}
+      >
+        <TouchableOpacity onPress={() => navigation.pop()}>
+          <Ionicons
+            name={isRtl ? "arrow-forward-outline" : "arrow-back-outline"}
+            size={25}
+            color={Colors.black}
+          />
+        </TouchableOpacity>
+        <Text
+          style={{
+            ...Fonts.SemiBold18black,
+            marginHorizontal: Default.fixPadding,
+          }}
+        >
+          {tr("settings")}
+        </Text>
+      </View>
+
+      <FlatList
+        data={settingList}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.key}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingTop: Default.fixPadding * 0.8 }}
+      />
+
+      <LogoutModal
+        visible={openLogoutModal}
+        modalClose={() => setOpenLogoutModal(false)}
+        onLogoutHandle={() => {
+          setOpenLogoutModal(false);
+          navigation.push("loginScreen");
+        }}
+      />
+    </View>
+  );
+};
+
+export default SettingScreen;
+
+const styles = StyleSheet.create({
+  mainTouchOpacity: {
+    alignItems: "center",
+    marginBottom: Default.fixPadding * 2,
+    marginHorizontal: Default.fixPadding * 2,
+    paddingVertical: Default.fixPadding * 0.8,
+    paddingHorizontal: Default.fixPadding,
+    borderRadius: 5,
+    backgroundColor: Colors.white,
+    ...Default.shadow,
+  },
+});

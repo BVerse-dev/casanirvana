@@ -1,0 +1,450 @@
+{
+    "onboardingScreen": {
+        "tapBack": "Ketuk Kembali Lagi untuk Keluar dari Aplikasi",
+        "title1": "Tingkatkan Keselamatan Keluarga Anda",
+        "title2": "Dapatkan staf layanan di depan pintu Anda",
+        "title3": "Dapatkan Notify About Event",
+        "next": "Berikutnya",
+        "getStarted": "Memulai"
+    },
+    "loginScreen": {
+        "login": "Gabung",
+        "helloUsers": "Halo pengguna tolong login akun Anda",
+        "enterMobileNumber": "Masukkan nomor ponsel",
+        "verification": "*Kami akan mengirim OTP untuk verifikasi",
+        "search": "Mencari",
+        "close": "Menutup",
+        "tapBack": "Ketuk Kembali Lagi untuk Keluar dari Aplikasi"
+    },
+    "registerScreen": {
+        "register": "Daftar",
+        "helloUsers": "Halo pengguna tolong buat akun Anda",
+        "userName": "Nama belakang",
+        "mobileNumber": "Nomor handphone",
+        "emailAddress": "Alamat email"
+    },
+    "verificationScreen": {
+        "otpVerification": "Verifikasi OTP",
+        "pleaseEnter": "Harap masukkan OTP yang akan kami kirimkan kepada Anda di ponsel Anda",
+        "verify": "Memeriksa",
+        "resend": "Tidak menerima?ulang"
+    },
+    "bottomTab": {
+        "home": "Rumah",
+        "chats": "Obrolan",
+        "service": "Melayani",
+        "profile": "Profil",
+        "tapBack": "Ketuk Kembali Lagi untuk Keluar dari Aplikasi",
+        "sendMessage": "Mengirim pesan",
+        "securityAlert": "Peringatan keamanan",
+        "admin": "admin",
+        "security": "Keamanan",
+        "fireAlert": "Peringatan Kebakaran",
+        "stuckLift": "Terjebak di lift",
+        "animalThreat": "Ancaman hewan",
+        "visiterThreat": "Ancaman pengunjung"
+    },
+    "homeScreen": {
+        "hi": "Hai",
+        "notice": "MELIHAT",
+        "description": "Pertemuan Tahun Baru di Seven Gen Society's Hall pada 3 November",
+        "community": "Masyarakat",
+        "members": "Anggota",
+        "visitors": "Pengunjung",
+        "noticeBoard": "Papan peringatan",
+        "payment": "Pembayaran",
+        "bookAmenities": "Fasilitas buku",
+        "helpDesk": "Meja Bantuan",
+        "connectMember": "Hubungkan anggota Society",
+        "manageEntry": "Kelola entri pengunjung",
+        "societyAnnouncement": "Pengumuman & Pemberitahuan Acara Masyarakat",
+        "directPayment": "Pembayaran langsung masyarakat jatuh tempo",
+        "preBook": "Fasilitas Masyarakat Pra Buku",
+        "complaint": "Keluhan & Saran",
+        "new": "Baru"
+    },
+    "notificationScreen": {
+        "remove": "Pemberitahuan dihapus.",
+        "notification": "Pemberitahuan",
+        "noNotification": "Tidak ada pemberitahuan baru"
+    },
+    "societyMemberScreen": {
+        "members": "Anggota",
+        "member": "Anggota",
+        "admin": "admin",
+        "committee": "Komite"
+    },
+    "memberDetailModal": {
+        "flatNo": "No datar",
+        "blockNo": "Blok no",
+        "call": "Panggilan",
+        "chat": "Mengobrol"
+    },
+    "visitorsScreen": {
+        "visitors": "Pengunjung",
+        "preVisitors": "Pra menyetujui pengunjung",
+        "inside": "Di dalam",
+        "preApproved": "Sebelum diterima",
+        "serviceBooked": "Layanan dipesan",
+        "call": "Panggilan",
+        "delete": "Menghapus",
+        "gatepass": "Tampilan jalanan",
+        "removedVisitor": "Pengunjung dihapus.",
+        "noVisitors": "Tidak ada pengunjung baru"
+    },
+    "preApproveVisitorsScreen": {
+        "visitors": "Pengunjung",
+        "preApproveVisitors": "Pra menyetujui pengunjung",
+        "addVisitor": "Tambahkan detail pengunjung untuk tindakan cepat",
+        "addGuest": "Tambahkan tamu",
+        "addCab": "Tambahkan taksi",
+        "addDelivery": "Tambahkan pengiriman",
+        "addService": "Tambahkan Layanan",
+        "allowMyServiceman": "Izinkan prajurit saya",
+        "servicemanCompanyName": "Nama prajurit/ perusahaan",
+        "enterServicemanCompany": "Masukkan prajurit/nama perusahaan",
+        "phoneNumber": "Nomor telepon",
+        "enterPhoneNumber": "Masukkan nomor telepon",
+        "toEnterInNext": "Untuk masuk berikutnya",
+        "today": "Hari ini",
+        "submit": "Kirim",
+        "tomorrow": "Besok",
+        "cancel": "Membatalkan",
+        "okay": "Oke"
+    },
+    "allowGuestModal": {
+        "allowMyGuest": "Izinkan tamuku",
+        "guestName": "Nama tamu",
+        "enterGuestName": "Masukkan nama tamu",
+        "phoneNumber": "Nomor telepon",
+        "enterPhoneNumber": "Masukkan nomor telepon",
+        "enterDate": "Masukkan tanggal",
+        "sendGate": "Kirim Gerbang Pass ke Tamu",
+        "submit": "Kirim",
+        "selectDate": "Pilih Tanggal",
+        "ok": "Oke"
+    },
+    "addCabModal": {
+        "allowMyCab": "Biarkan taksi saya",
+        "allowMyCabNext": "Biarkan taksi saya masuk hari ini sekali di berikutnya",
+        "addLastDigit": "Tambahkan 4 digit terakhir kendaraan no.",
+        "companyName": "Nama perusahaan",
+        "enterCompanyName": "Masukkan nama perusahaan",
+        "submit": "Kirim",
+        "cancel": "Membatalkan",
+        "okay": "Oke"
+    },
+    "addDeliveryModal": {
+        "allowMyDelivery": "Izinkan pengiriman saya",
+        "deliveryCompany": "Nama Perusahaan Pengiriman",
+        "selectDeliveryCompany": "Pilih Perusahaan Pengiriman",
+        "toEnterNext": "Untuk masuk berikutnya",
+        "today": "Hari ini",
+        "submit": "Kirim",
+        "cancel": "Membatalkan",
+        "okay": "Oke",
+        "companyName": "Nama perusahaan",
+        "tomorrow": "Besok"
+    },
+    "noticeBoardScreen": {
+        "noticeBoard": "Papan peringatan",
+        "new": "Baru",
+        "postBy": "Diposting oleh"
+    },
+    "paymentScreen": {
+        "payment": "Pembayaran",
+        "new": "Baru",
+        "paid": "Dibayar",
+        "pending": "Tertunda",
+        "failed": "Gagal",
+        "dueDate": "Tenggat waktu",
+        "payNow": "Bayar sekarang",
+        "receipt": "Kuitansi"
+    },
+    "paymentMethodScreen": {
+        "selectPaymentMethod": "Pilih metode pembayaran",
+        "securityDeposit": "Uang jaminan",
+        "continue": "Melanjutkan"
+    },
+    "creditCardScreen": {
+        "creditCard": "Kartu kredit",
+        "continue": "Melanjutkan",
+        "name": "Nama di kartu",
+        "cardNo": "Nomor kartu",
+        "enterName": "Masukkan Nama di Kartu",
+        "enterCard": "Masukkan Nomor Kartu Anda",
+        "expiryDate": "Tanggal kadaluarsa"
+    },
+    "successScreen": {
+        "paymentSuccess": "Pembayaran berhasil !!",
+        "securityDeposit": "Uang jaminan",
+        "amountPaid": "Jumlah yang dibayarkan",
+        "paidOn": "Dibayarkan pada",
+        "paidVia": "Dibayar via",
+        "transactionID": "ID transaksi",
+        "downloadReceipt": "Unduh tanda terima",
+        "backHome": "Kembali ke rumah",
+        "paid": "Dibayar"
+    },
+    "bookedAmenitiesScreen": {
+        "bookedAmenities": "Fasilitas yang dipesan",
+        "bookAmenity": "Fasilitas buku",
+        "confirmed": "Dikonfirmasi",
+        "pending": "Tertunda",
+        "canceled": "Dibatalkan",
+        "confirmedBy": "Dikonfirmasi oleh",
+        "paidDebitCard": "Dibayar melalui kartu debit",
+        "noPayment": "Tidak ada pembayaran"
+    },
+    "amenityScreen": {
+        "selectAmenity": "Pilih kemudahan",
+        "paid": "Dibayar",
+        "free": "Bebas"
+    },
+    "bookAmenityScreen": {
+        "bookAmenity": "Fasilitas buku",
+        "maximinCapacity": "Kapasitas Maximin",
+        "bookBeforeLeast": "Pesan sebelumnya setidaknya",
+        "selectDates": "Pilih tanggal",
+        "from": "Dari",
+        "to": "Ke",
+        "selectTime": "Pilih waktu",
+        "totalDay": "Total hari",
+        "amountPay": "Jumlah yang harus dibayar",
+        "proceedPay": "Lanjutkan untuk membayar",
+        "paid": "Dibayar",
+        "selectDate": "Pilih Tanggal",
+        "ok": "Oke"
+    },
+    "helpDeskScreen": {
+        "helpDesk": "Meja Bantuan",
+        "personal": "Pribadi",
+        "community": "Masyarakat"
+    },
+    "helpDeskPersonalTab": {
+        "resolvedBy": "Diselesaikan oleh",
+        "resolved": "Terselesaikan",
+        "raisedBy": "Dibesarkan oleh",
+        "pending": "Tertunda",
+        "personal": "Pribadi",
+        "raiseNewComplaint": "Meningkatkan keluhan baru",
+        "viewAllComplaints": "Lihat Semua Keluhan"
+    },
+    "helpDeskCommunityTab": {
+        "resolvedBy": "Diselesaikan oleh",
+        "community": "Masyarakat",
+        "resolved": "Terselesaikan",
+        "raisedBy": "Dibesarkan oleh",
+        "pending": "Tertunda",
+        "raiseNewComplaint": "Meningkatkan keluhan baru",
+        "viewAllComplaints": "Lihat Semua Keluhan"
+    },
+    "addComplaintScreen": {
+        "addComplaint": "Tambahkan keluhan",
+        "attachPhoto": "Lampirkan foto (opsional)",
+        "personal": "Pribadi",
+        "community": "Masyarakat",
+        "complaintType": "Jenis keluhan",
+        "enterComplaintType": "Masukkan jenis keluhan",
+        "briefYourComplaint": "BINGINKAN Keluhan Anda",
+        "submitComplaint": "Kirim Keluhan",
+        "deny": "Anda telah ditolak untuk mengakses kamera !!!",
+        "ToNext": "Untuk masuk berikutnya",
+        "today": "Hari ini",
+        "tomorrow": "Besok",
+        "cancel": "Membatalkan",
+        "okay": "Oke",
+        "complaintRaised": "Keluhan diangkat!",
+        "adminWill": "Admin akan diberitahu dan akan segera menghubungi Anda"
+    },
+    "complaintDetailScreen": {
+        "complaint": "keluhan",
+        "resolvedBy": "Diselesaikan oleh",
+        "resolved": "Terselesaikan",
+        "raisedBy": "Dibesarkan oleh",
+        "pending": "Tertunda",
+        "reopen": "Dibuka kembali",
+        "markResolved": "Tandai sebagai diselesaikan",
+        "complaintImage": "Gambar keluhan",
+        "recentComments": "komentar terbaru",
+        "writeComment": "Tulis komentar Anda"
+    },
+    "callScreen": {
+        "calling": "Panggilan..."
+    },
+    "guardCallingScreen": {
+        "guestGate": "Tamu menunggu di gerbang",
+        "callGate": "Gerbang Panggilan",
+        "swipeUp": "Geser ke atas untuk mengizinkan",
+        "deny": "Membantah"
+    },
+    "chatScreen": {
+        "chats": "Obrolan",
+        "residents": "Warga"
+    },
+    "messageScreen": {
+        "typeHere": "Ketik teks Anda di sini ...."
+    },
+    "searchScreen": {
+        "search": "Mencari",
+        "recentSearch": "Pencarian Terbaru",
+        "clearAll": "Bersihkan semua",
+        "noSearch": "Tidak ada riwayat pencarian"
+    },
+    "serviceScreen": {
+        "service": "Melayani",
+        "yourBooking": "Pemesanan Anda",
+        "homePainting": "Lukisan rumah",
+        "paintService": "Lukis rumah saya.Butuh layanan.",
+        "nearbyProviders": "Penyedia layanan terdekat",
+        "homeCleaning": "Pembersihan rumah",
+        "appliancesRepair": "Perbaikan peralatan",
+        "carpentersService": "Layanan tukang kayu",
+        "plumbingService": "Layanan Plumbing",
+        "packerMovers": "packer &Movers",
+        "homeSanitize": "Rumah sanitasi",
+        "hairBeauty": "Rambut & Kecantikan",
+        "plumbingServices": "Layanan Plumbing",
+        "laundryServices": "Layanan binatu",
+        "gardening": "Berkebun",
+        "cooking": "Memasak"
+    },
+    "serviceModal": {
+        "bookFor": "Buku untuk",
+        "selectService": "Pilih Layanan",
+        "bookVisit": "Kunjungi buku di",
+        "selectDate": "Pilih Tanggal",
+        "selectTime": "Pilih waktu",
+        "briefYourProblem": "Singkat masalah Anda",
+        "writeYourProblem": "Tulis masalah Anda",
+        "submit": "Kirim",
+        "aCRepair": "Perbaikan AC",
+        "tvRepair": "Perbaikan TV",
+        "mixerGrinderRepair": "Perbaikan penggiling mixer",
+        "doorBellRepair": "Perbaikan bel pintu",
+        "fanRepair": "Perbaikan kipas",
+        "cancel": "Membatalkan",
+        "ok": "Oke"
+    },
+    "profileScreen": {
+        "profile": "Profil",
+        "viewProfile": "Tampilkan profil",
+        "flatNo": "No datar",
+        "blockNo": "Blok no",
+        "household": "Rumah tangga",
+        "myFamily": "Keluarga saya",
+        "add": "Menambahkan",
+        "addFamilyMember": "Tambahkan anggota keluarga untuk entri cepat",
+        "dailyHelp": "Bantuan harian",
+        "addMaidLaundry": "Tambahkan pelayan, binatu, penolong untuk masuk cepat",
+        "myVehicles": "Kendaraan saya",
+        "addVehiclesQuick": "Tambahkan kendaraan Anda untuk masuk cepat",
+        "frequentEntries": "Entri yang sering",
+        "addFrequentPerson": "Tambahkan entri cepat orang yang sering"
+    },
+    "addImageBottomSheet": {
+        "addImage": "Menambahkan gambar",
+        "camera": "Kamera",
+        "gallery": "Galeri",
+        "remove": "Menghapus"
+    },
+    "addFamilyMemberModal": {
+        "addFamilyMember": "Tambahkan anggota keluarga",
+        "name": "Nama",
+        "enterName": "Masukkan nama",
+        "phoneNumber": "Nomor telepon",
+        "enterPhoneNumber": "Masukkan nomor telepon",
+        "relations": "Hubungan",
+        "selectRelations": "Pilih Hubungan",
+        "sendGateGuest": "Kirim Gerbang Pass ke Tamu",
+        "submit": "Kirim",
+        "relation": "Hubungan",
+        "father": "Ayah",
+        "mother": "Ibu",
+        "son": "Putra",
+        "daughter": "Anak perempuan",
+        "wife": "Istri",
+        "cancel": "Membatalkan",
+        "okay": "Oke",
+        "deny": "Anda telah ditolak untuk mengakses kamera !!!",
+        "removeImage": "Foto profil dihapus.",
+        "enterRelations": "Masukkan hubungan",
+        "addFrequentEntries": "Tambahkan entri yang sering",
+        "addDailyHelp": "Tambahkan Bantuan Harian",
+        "helpType": "Jenis bantuan",
+        "selectHelpType": "Pilih Tipe Bantuan",
+        "made": "Dibuat",
+        "laundryman": "Binatu",
+        "gardner": "gardner",
+        "cook": "Memasak",
+        "milkman": "Tukang susu"
+    },
+    "myVehiclesModal": {
+        "addVehicles": "Tambahkan kendaraan saya",
+        "vehicleNumber": "Nomor kendaraan",
+        "enterVehicleNumber": "Masukkan Nomor Kendaraan",
+        "vehicleModel": "Model Kendaraan",
+        "enterVehicleModel": "Masukkan model kendaraan",
+        "vehicleColor": "Warna kendaraan",
+        "enterVehicleColor": "Masukkan warna kendaraan",
+        "sendGateGuest": "Kirim Gerbang Pass ke Tamu",
+        "submit": "Kirim",
+        "deny": "Anda telah ditolak untuk mengakses kamera !!!",
+        "removeImage": "Foto profil dihapus."
+    },
+    "gatePassModal": {
+        "gatePass": "Gerbang Pass",
+        "guestAt": "Tamu di",
+        "entryCode": "Kode Masuk",
+        "showQr": "Tunjukkan kode QR atau beri tahu OTP untuk menjaga",
+        "share": "Membagikan",
+        "download": "Unduh",
+        "copy": "Disalin!"
+    },
+    "settingScreen": {
+        "settings": "Pengaturan",
+        "editProfile": "Sunting profil",
+        "language": "Bahasa",
+        "getSupport": "Dapatkan dukungan",
+        "termsCondition": "Syarat & Kondisi",
+        "privacyPolicy": "Kebijakan pribadi",
+        "logout": "Keluar"
+    },
+    "logoutModal": {
+        "logout": "Keluar",
+        "areYouSureLogout": "Apakah Anda yakin ingin keluar?",
+        "no": "TIDAK",
+        "yes": "Ya"
+    },
+    "editProfileScreen": {
+        "editProfile": "Sunting profil",
+        "name": "Nama",
+        "enterName": "Masukkan nama Anda",
+        "emailAddress": "Alamat email",
+        "enterEmail": "Masukkan alamat email Anda",
+        "phoneNumber": "Nomor telepon",
+        "enterPhoneNumber": "Masukkan Nomor Telepon Anda",
+        "update": "Memperbarui",
+        "deny": "Anda telah ditolak untuk mengakses kamera !!!",
+        "removeImage": "Foto profil dihapus."
+    },
+    "languageScreen": {
+        "language": "Bahasa",
+        "update": "Memperbarui"
+    },
+    "termsConditionScreen": {
+        "termsCondition": "Syarat & Kondisi"
+    },
+    "privacyPolicyScreen": {
+        "privacyPolicy": "Kebijakan pribadi"
+    },
+    "getSupportScreen": {
+        "getSupport": "Dapatkan dukungan",
+        "askSuggestImprove": "Tanyakan kepada kami menyarankan cara apa pun yang dapat kami tingkatkan",
+        "issueType": "Jenis masalah",
+        "enterTopic": "Masukkan Jenis Topik / Masalah",
+        "message": "Pesan",
+        "enterYourMessage": "Masukkan pesan Anda",
+        "submitMessage": "Kirim pesan"
+    }
+}

@@ -1,0 +1,476 @@
+{
+    "onboardingScreen": {
+        "tapBack": "Appuyez à nouveau en arrière pour quitter l'application",
+        "title1": "Améliorez votre sécurité familiale",
+        "title2": "Obtenez du personnel de service à votre porte",
+        "title3": "Obtenez un avis sur l'événement",
+        "next": "Suivante",
+        "getStarted": "Commencer"
+    },
+    "loginScreen": {
+        "login": "Se connecter",
+        "helloUsers": "Bonjour les utilisateurs, veuillez connecter votre compte",
+        "enterMobileNumber": "Entrez le numéro de mobile",
+        "verification": "* Nous envagerons OTP pour vérification",
+        "search": "Recherche",
+        "close": "Fermer",
+        "tapBack": "Appuyez à nouveau en arrière pour quitter l'application"
+    },
+    "registerScreen": {
+        "register": "Registre",
+        "helloUsers": "Bonjour les utilisateurs, veuillez créer votre compte",
+        "userName": "Nom d'utilisateur",
+        "mobileNumber": "Numéro de portable",
+        "emailAddress": "Adresse e-mail"
+    },
+    "verificationScreen": {
+        "otpVerification": "Vérification OTP",
+        "pleaseEnter": "Veuillez entrer OTP, nous vous envoyons sur votre mobile non",
+        "verify": "Vérifier",
+        "resend": "Vous n'avez pas reçu?revivre"
+    },
+    "bottomTab": {
+        "home": "Maison",
+        "chats": "Chatte",
+        "service": "service",
+        "profile": "Profil",
+        "tapBack": "Appuyez à nouveau en arrière pour quitter l'application",
+        "sendMessage": "Envoyer le message",
+        "securityAlert": "Alerte de sécurité",
+        "admin": "Administrer",
+        "security": "Sécurité",
+        "fireAlert": "Alerte",
+        "stuckLift": "Coincé dans l'ascenseur",
+        "animalThreat": "Menace animale",
+        "visiterThreat": "Menace de vision"
+    },
+    "homeScreen": {
+        "hi": "Salut",
+        "notice": "AVIS",
+        "description": "Rassemblement du Nouvel An dans la salle de Seven Gen Society le 3 novembre",
+        "community": "Communauté",
+        "members": "Membres",
+        "visitors": "Visiteuses",
+        "noticeBoard": "Tableau d'affichage",
+        "payment": "Paiement",
+        "bookAmenities": "Réserver des équipements",
+        "helpDesk": "Bureau d'aide",
+        "connectMember": "Membre de la société connectée",
+        "manageEntry": "Gérer l'entrée des visiteurs",
+        "societyAnnouncement": "Annonce de la société et avis d'événement",
+        "directPayment": "Paiement direct de la société due",
+        "preBook": "Amérités de la société pré-livre",
+        "complaint": "Plainte et suggestion",
+        "new": "Nouvelle"
+    },
+    "notificationScreen": {
+        "remove": "Notification supprimée.",
+        "notification": "notification",
+        "noNotification": "Aucune nouvelle notification"
+    },
+    "societyMemberScreen": {
+        "members": "Membres",
+        "member": "Membre",
+        "admin": "Administrer",
+        "committee": "Comité"
+    },
+    "memberDetailModal": {
+        "flatNo": "Appartement non",
+        "blockNo": "Bloc no",
+        "call": "Appel",
+        "chat": "Chatte"
+    },
+    "visitorsScreen": {
+        "visitors": "Visiteuses",
+        "preVisitors": "Pré approuver les visiteurs",
+        "inside": "À l'intérieur",
+        "preApproved": "Pré-approuvé",
+        "serviceBooked": "Service réservé",
+        "call": "Appel",
+        "delete": "Supprimer",
+        "gatepass": "Look de la rue",
+        "removedVisitor": "Le visiteur supprimé.",
+        "noVisitors": "Pas de nouveau visiteur"
+    },
+    "preApproveVisitorsScreen": {
+        "visitors": "Visiteuses",
+        "preApproveVisitors": "Pré approuver les visiteurs",
+        "addVisitor": "Ajouter le détail des visiteurs pour une action rapide",
+        "addGuest": "Ajouter",
+        "addCab": "Ajouter une cabine",
+        "addDelivery": "Ajouter la livraison",
+        "addService": "Ajouter un service",
+        "allowMyServiceman": "Permettre à mon militaire",
+        "servicemanCompanyName": "Militaire / nom de l'entreprise",
+        "enterServicemanCompany": "Entrez le nom du service / nom de l'entreprise",
+        "phoneNumber": "Numéro de téléphone",
+        "enterPhoneNumber": "Entrez le numéro de téléphone",
+        "toEnterInNext": "Pour entrer prochain",
+        "today": "Aujourd'hui",
+        "submit": "Soumettre",
+        "tomorrow": "Demain",
+        "cancel": "Annuler",
+        "okay": "D'accord"
+    },
+    "allowGuestModal": {
+        "allowMyGuest": "Permettre à mon invité",
+        "guestName": "Nom de l'invité",
+        "enterGuestName": "Entrez le nom de l'invité",
+        "phoneNumber": "Numéro de téléphone",
+        "enterPhoneNumber": "Entrez le numéro de téléphone",
+        "enterDate": "Entrer la date",
+        "sendGate": "Envoyer la passerelle à l'invité",
+        "submit": "Soumettre",
+        "selectDate": "Sélectionner une date",
+        "ok": "D'accord"
+    },
+    "addCabModal": {
+        "allowMyCab": "Permettre mon taxi",
+        "allowMyCabNext": "Permettez à mon taxi d'entrer aujourd'hui une fois après",
+        "addLastDigit": "Ajouter les 4 derniers chiffres du véhicule no.",
+        "companyName": "Nom de l'entreprise",
+        "enterCompanyName": "Entrez le nom de l'entreprise",
+        "submit": "Soumettre",
+        "cancel": "Annuler",
+        "okay": "D'accord"
+    },
+    "addDeliveryModal": {
+        "allowMyDelivery": "Autoriser ma livraison",
+        "deliveryCompany": "Nom de la société de livraison",
+        "selectDeliveryCompany": "Sélectionner la société de livraison",
+        "toEnterNext": "Pour entrer prochain",
+        "today": "Aujourd'hui",
+        "submit": "Soumettre",
+        "cancel": "Annuler",
+        "okay": "D'accord",
+        "companyName": "Nom de l'entreprise",
+        "tomorrow": "Demain"
+    },
+    "noticeBoardScreen": {
+        "noticeBoard": "Tableau d'affichage",
+        "noticeDetails": "Détails de l'avis",
+        "new": "Nouvelle",
+        "postBy": "Poster"
+    },
+    "paymentScreen": {
+        "payment": "Paiement",
+        "new": "Nouvelle",
+        "paid": "Payé",
+        "pending": "En attente",
+        "failed": "Échoué",
+        "dueDate": "Date d'échéance",
+        "payNow": "Payez maintenant",
+        "receipt": "Reçu"
+    },
+    "paymentMethodScreen": {
+        "selectPaymentMethod": "Sélectionnez le mode de paiement",
+        "securityDeposit": "Dépôt de garantie",
+        "continue": "Continuer"
+    },
+    "creditCardScreen": {
+        "creditCard": "Carte de crédit",
+        "continue": "Continuer",
+        "name": "Nom sur la carte",
+        "cardNo": "Numéro de carte",
+        "enterName": "Entrez le nom sur la carte",
+        "enterCard": "Entrez votre numéro de carte",
+        "expiryDate": "Date d'expiration"
+    },
+    "successScreen": {
+        "paymentSuccess": "Paiement réussi !!",
+        "securityDeposit": "Dépôt de garantie",
+        "amountPaid": "Le montant payé",
+        "paidOn": "Payé",
+        "paidVia": "Payé via",
+        "transactionID": "identifiant de transaction",
+        "downloadReceipt": "Réception de téléchargement",
+        "backHome": "De retour à la maison",
+        "paid": "Payé"
+    },
+    "bookedAmenitiesScreen": {
+        "bookedAmenities": "Commodités réservées",
+        "bookAmenity": "Réserve de livre",
+        "confirmed": "Confirmé",
+        "pending": "En attente",
+        "canceled": "Annulé",
+        "confirmedBy": "Confirmé par",
+        "paidDebitCard": "Payé par carte de débit",
+        "noPayment": "Pas de paiement"
+    },
+    "amenityScreen": {
+        "selectAmenity": "Sélectionnez les équipements",
+        "paid": "Payé",
+        "free": "Gratuite"
+    },
+    "bookAmenityScreen": {
+        "bookAmenity": "Réserve de livre",
+        "maximinCapacity": "Capacité maximin",
+        "bookBeforeLeast": "Réservez avant au moins",
+        "selectDates": "Sélectionner les dates",
+        "from": "Depuis",
+        "to": "À",
+        "selectTime": "Sélectionner l'heure",
+        "totalDay": "Journée totale",
+        "amountPay": "Montant à payer",
+        "proceedPay": "Procéder au paiement",
+        "paid": "Payé",
+        "selectDate": "Sélectionner une date",
+        "ok": "D'accord"
+    },
+    "helpDeskScreen": {
+        "helpDesk": "Bureau d'aide",
+        "personal": "Personnelle",
+        "community": "Communauté"
+    },
+    "helpDeskPersonalTab": {
+        "resolvedBy": "Résolu par",
+        "resolved": "Résolue",
+        "raisedBy": "Élevé par",
+        "pending": "En attente",
+        "personal": "Personnelle",
+        "raiseNewComplaint": "Soulever une nouvelle plainte",
+        "viewAllComplaints": "Voir toutes les plaintes"
+    },
+    "helpDeskCommunityTab": {
+        "resolvedBy": "Résolu par",
+        "community": "Communauté",
+        "resolved": "Résolue",
+        "raisedBy": "Élevé par",
+        "pending": "En attente",
+        "raiseNewComplaint": "Soulever une nouvelle plainte",
+        "viewAllComplaints": "Voir toutes les plaintes"
+    },
+    "addComplaintScreen": {
+        "addComplaint": "Ajouter une plainte",
+        "attachPhoto": "Joindre une photo (facultative)",
+        "personal": "Personnelle",
+        "community": "Communauté",
+        "complaintType": "Type de plainte",
+        "enterComplaintType": "Entrez le type de plainte",
+        "briefYourComplaint": "Informer votre plainte",
+        "submitComplaint": "Soumettre une plainte",
+        "deny": "Vous avez nié d'accéder à la caméra !!!",
+        "ToNext": "Pour entrer prochain",
+        "today": "Aujourd'hui",
+        "tomorrow": "Demain",
+        "cancel": "Annuler",
+        "okay": "D'accord",
+        "complaintRaised": "Plainte soulevée!",
+        "adminWill": "L'administrateur sera informé et vous reviendra bientôt"
+    },
+    "complaintDetailScreen": {
+        "complaint": "plainte",
+        "resolvedBy": "Résolu par",
+        "resolved": "Résolue",
+        "raisedBy": "Élevé par",
+        "pending": "En attente",
+        "reopen": "Rouvrir",
+        "markResolved": "Marquer comme résolu",
+        "complaintImage": "Image de plainte",
+        "recentComments": "Commentaires récents",
+        "writeComment": "Écrivez votre commentaire"
+    },
+    "callScreen": {
+        "calling": "Appel..."
+    },
+    "guardCallingScreen": {
+        "guestGate": "Invité attendant à la porte",
+        "callGate": "Porte d'appel",
+        "swipeUp": "Glisser vers le haut pour permettre",
+        "deny": "Refuser"
+    },
+    "chatScreen": {
+        "chats": "Chatte",
+        "residents": "Résidentes"
+    },
+    "messageScreen": {
+        "typeHere": "Écrivez votre texte ici...."
+    },
+    "searchScreen": {
+        "search": "Recherche",
+        "recentSearch": "Recherche récente",
+        "clearAll": "Tout effacer",
+        "noSearch": "Pas d'historique de recherche"
+    },
+    "serviceScreen": {
+        "service": "service",
+        "yourBooking": "Votre réservation",
+        "homePainting": "Peinture à domicile",
+        "paintService": "Peindre ma maison.Besoin de service.",
+        "nearbyProviders": "Fournisseurs de services à proximité",
+        "homeCleaning": "Nettoyage à domicile",
+        "appliancesRepair": "Réparation des appareils",
+        "carpentersService": "Service de charpente",
+        "plumbingService": "Service de plomberie",
+        "packerMovers": "Packer et déménageurs",
+        "homeSanitize": "Désinfecter",
+        "hairBeauty": "Cheveux et beauté",
+        "plumbingServices": "Services de plomberie",
+        "laundryServices": "Services de blanchisserie",
+        "gardening": "Jardinage",
+        "cooking": "Cuisson"
+    },
+    "serviceModal": {
+        "bookFor": "Réserver",
+        "selectService": "Sélectionner le service",
+        "bookVisit": "Visite de réservation",
+        "selectDate": "Sélectionner une date",
+        "selectTime": "Sélectionner l'heure",
+        "briefYourProblem": "Informez votre problème",
+        "writeYourProblem": "Écrivez votre problème",
+        "submit": "Soumettre",
+        "aCRepair": "Réparation de CA",
+        "tvRepair": "Réparation de télévision",
+        "mixerGrinderRepair": "Réparation de broyeur de mixage",
+        "doorBellRepair": "Réparation de la cloche de la porte",
+        "fanRepair": "Réparation des ventilateurs",
+        "cancel": "Annuler",
+        "ok": "D'accord"
+    },
+    "profileScreen": {
+        "profile": "Profil",
+        "viewProfile": "Voir le profil",
+        "flatNo": "Appartement non",
+        "blockNo": "Bloc no",
+        "household": "Ménage",
+        "myFamily": "Ma famille",
+        "add": "Ajouter",
+        "addFamilyMember": "Ajouter un membre de la famille pour une entrée rapide",
+        "dailyHelp": "Aide quotidienne",
+        "addMaidLaundry": "Ajouter une femme de chambre, une blanchisserie, une aide pour une entrée rapide",
+        "myVehicles": "Mes véhicules",
+        "addVehiclesQuick": "Ajoutez vos véhicules pour une entrée rapide",
+        "frequentEntries": "Entrées fréquentes",
+        "addFrequentPerson": "Ajouter des entrées rapides de personne fréquente"
+    },
+    "addImageBottomSheet": {
+        "addImage": "Ajouter une image",
+        "camera": "Caméra",
+        "gallery": "Galerie",
+        "remove": "Retirer"
+    },
+    "addFamilyMemberModal": {
+        "addFamilyMember": "Ajouter un membre de la famille",
+        "name": "Nom",
+        "enterName": "Entrez le nom",
+        "phoneNumber": "Numéro de téléphone",
+        "enterPhoneNumber": "Entrez le numéro de téléphone",
+        "relations": "Rapports",
+        "selectRelations": "Sélectionner les relations",
+        "sendGateGuest": "Envoyer la passerelle à l'invité",
+        "submit": "Soumettre",
+        "relation": "relation",
+        "father": "Père",
+        "mother": "Mère",
+        "son": "Fils",
+        "daughter": "Fille",
+        "wife": "Épouse",
+        "cancel": "Annuler",
+        "okay": "D'accord",
+        "deny": "Vous avez nié d'accéder à la caméra !!!",
+        "removeImage": "Photo de profil supprimée.",
+        "enterRelations": "Entreprendre des relations",
+        "addFrequentEntries": "Ajouter des entrées fréquentes",
+        "addDailyHelp": "Ajouter une aide quotidienne",
+        "helpType": "Aide à taper",
+        "selectHelpType": "Sélectionner le type d'aide",
+        "made": "Fait",
+        "laundryman": "Buanderie",
+        "gardner": "gardner",
+        "cook": "Cuisiner",
+        "milkman": "Laitier"
+    },
+    "myVehiclesModal": {
+        "addVehicles": "Ajouter mes véhicules",
+        "vehicleNumber": "Numéro de véhicule",
+        "enterVehicleNumber": "Entrez le numéro du véhicule",
+        "vehicleModel": "Modèle de véhicule",
+        "enterVehicleModel": "Entrez le modèle de véhicule",
+        "vehicleColor": "Couleur du véhicule",
+        "enterVehicleColor": "Entrez la couleur du véhicule",
+        "sendGateGuest": "Envoyer la passerelle à l'invité",
+        "submit": "Soumettre",
+        "deny": "Vous avez nié d'accéder à la caméra !!!",
+        "removeImage": "Photo de profil supprimée."
+    },
+    "gatePassModal": {
+        "gatePass": "Billet d'embarquement",
+        "guestAt": "Invité à",
+        "entryCode": "Code d'entrée",
+        "showQr": "Afficher le code QR ou dire à OTP de garder",
+        "share": "Partager",
+        "download": "Télécharger",
+        "copy": "Copié!"
+    },
+    "settingScreen": {
+        "settings": "Paramètres",
+        "editProfile": "Editer le profil",
+        "language": "Langue",
+        "getSupport": "Obtenir de l'aide",
+        "termsCondition": "Termes et conditions",
+        "privacyPolicy": "Politique de confidentialité",
+        "logout": "Se déconnecter"
+    },
+    "logoutModal": {
+        "logout": "Se déconnecter",
+        "areYouSureLogout": "Êtes-vous sûr de vouloir vous déconnecter?",
+        "no": "Non",
+        "yes": "Oui"
+    },
+    "editProfileScreen": {
+        "editProfile": "Modifier le Profil",
+        "name": "Nom",
+        "enterName": "Entrez Votre Nom",
+        "emailAddress": "Adresse Email",
+        "enterEmail": "Entrez Votre Adresse Email",
+        "phoneNumber": "Numéro de Téléphone",
+        "enterPhoneNumber": "Entrez Votre Numéro de Téléphone",
+        "update": "Mettre à Jour",
+        "deny": "Vous Avez Refusé l'Accès à la Caméra!",
+        "removeImage": "Photo de Profil Supprimée",
+        "personalInformation": "Informations Personnelles",
+        "firstName": "Prénom",
+        "lastName": "Nom de Famille",
+        "enterFirstName": "Entrez Votre Prénom",
+        "enterLastName": "Entrez Votre Nom de Famille",
+        "dateOfBirth": "Date de Naissance",
+        "selectDateOfBirth": "Sélectionnez Votre Date de Naissance",
+        "gender": "Genre",
+        "selectGender": "Sélectionnez Votre Genre",
+        "alternativeEmail": "Email Alternatif",
+        "enterAlternativeEmail": "Entrez un Email Alternatif",
+        "householdInformation": "Informations du Ménage",
+        "totalFamilyMembers": "Nombre Total de Membres de la Famille",
+        "hasPets": "A des Animaux de Compagnie",
+        "vehicleCount": "Nombre de Véhicules",
+        "privacySettings": "Paramètres de Confidentialité",
+        "profileVisibility": "Visibilité du Profil",
+        "selectVisibility": "Sélectionner la Visibilité",
+        "contactSharing": "Partage de Contact",
+        "selectContactSharing": "Sélectionner le Partage de Contact",
+        "showContactInfo": "Afficher les Informations de Contact",
+        "selectContactVisibility": "Sélectionner la Visibilité du Contact",
+        "profilePicturePrivacy": "Confidentialité de la Photo de Profil",
+        "selectPicturePrivacy": "Sélectionner la Confidentialité de l'Image",
+        "activityStatus": "Statut d'Activité"
+    },
+    "languageScreen": {
+        "language": "Langue",
+        "update": "Mise à jour"
+    },
+    "termsConditionScreen": {
+        "termsCondition": "Termes et conditions"
+    },
+    "privacyPolicyScreen": {
+        "privacyPolicy": "Politique de confidentialité"
+    },
+    "getSupportScreen": {
+        "getSupport": "Obtenir de l'aide",
+        "askSuggestImprove": "Demandez-nous à suggérer de la façon dont nous pouvons améliorer",
+        "issueType": "Type de probleme",
+        "enterTopic": "Entrez le type de sujet / problème",
+        "message": "message",
+        "enterYourMessage": "entrez votre message",
+        "submitMessage": "Soumettre un message"
+    }
+}

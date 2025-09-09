@@ -1,0 +1,198 @@
+{
+    "loginScreen": {
+        "login": "Conecte-se",
+        "helloUsers": "Olá usuários, por favor, login sua conta",
+        "enterMobileNumber": "Digite o número do celular",
+        "verification": "*Enviaremos o OTP para verificação",
+        "search": "Procurar",
+        "close": "Fechar",
+        "tapBack": "Toque de volta novamente para sair do aplicativo"
+    },
+        "notificationScreen": {
+            "remove": "Notificação removida.",
+            "notification": "Notificação",
+            "noNotification": "Nenhuma nova notificação"
+        },
+    "registerScreen": {
+        "register": "Registro",
+        "helloUsers": "Olá usuários, crie sua conta",
+        "userName": "Nome de usuário",
+        "mobileNumber": "Número de telemóvel",
+        "emailAddress": "Endereço de email"
+    },
+    "verificationScreen": {
+        "otpVerification": "Verificação de OTP",
+        "pleaseEnter": "Por favor, digite o OTP que enviaremos para você no seu celular não",
+        "verify": "Verificar",
+        "resend": "Não recebeu?reenviar"
+    },
+    "bottomTab": {
+        "tapBack": "Toque de volta novamente para sair do aplicativo",
+        "home": "Lar",
+        "inOut": "In-fora",
+        "messages": "Mensagens",
+        "settings": "Configurações"
+    },
+    "homeScreen": {
+    "visitorEntry": "Entrada Do Visitante",
+        "enterVisitor": "Digite o código de entrada ou código de digitalização do visitante",
+        "confirm": "confirme",
+    "addNewVisitor": "Adicione Um Novo Visitante",
+    "guestEntry": "Entrada De Hóspedes",
+    "cabEntry": "Entrada De Táxi",
+    "deliveryEntry": "Entrada De Entrega",
+    "serviceEntry": "Entrada De Serviço"
+    },
+    "guestEntryScreen": {
+        "guestEntry": "Entrada de hóspedes",
+        "entryConfirmation": "Confirmação de entrada",
+        "guestName": "Nome do convidado",
+        "enterGuestName": "Digite o nome do convidado",
+        "mobileNumber": "Número de telemóvel",
+        "enterMobileNumber": "Digite o número do celular",
+        "insideTime": "Dentro do tempo",
+        "enterTime": "Digite dentro do tempo",
+        "continue": "Continuar",
+        "visiting": "Visitando",
+        "enterVisiting": "Digite visitar",
+        "hostName": "Nome do anfitrião",
+        "confirmNotification": "Confirmar e enviar notificação"
+    },
+    "flatNoScreen": {
+        "blockA": "Bloco a",
+        "blockB": "Bloco B",
+        "clubhouse": "clubhouse",
+        "common": "Área comum"
+    },
+    "flatNoTab": {
+        "selectFlatNum": "Selecione o número do apartamento/unidade",
+        "continue": "Continuar"
+    },
+    "ringingScreen": {
+        "ringing": "Toque...",
+        "theyAreGettingInform": "Eles estão sendo informados"
+    },
+    "allowedScreen": {
+        "allowed": "Permitida",
+        "letsGuest": "Vamos convidar na sociedade",
+        "backToHome": "De volta para casa"
+    },
+    "deliveryEntryScreen": {
+        "deliveryEntry": "Entrada de entrega",
+        "deliverymanName": "Nome do entrega",
+        "enterDeliverymanName": "Digite o nome da entrega",
+        "phoneNumber": "Número de telefone",
+        "enterPhoneNumber": "Insira o número de telefone",
+        "deliveryCompany": "Empresa de entrega",
+        "enterDeliveryCompany": "Digite a empresa de entrega",
+        "insideTime": "Dentro do tempo",
+        "enterTime": "Digite dentro do tempo",
+        "continue": "Continuar"
+    },
+    "cabEntryScreen": {
+        "cabEntry": "Entrada de táxi",
+        "cabDriverName": "Nome do driver do táxi",
+        "enterName": "Digite o nome do driver do táxi",
+        "enterLast": "Digite os últimos 4 dígitos de táxi",
+        "cabCompany": "Companhia de táxi",
+        "enterCabCompany": "Entre na CAB Company",
+        "pickup": "pickup/droupup",
+        "continue": "Continuar"
+    },
+    "serviceEntryScreen": {
+        "serviceEntry": "Entrada de serviço",
+        "servicemanName": "Nome do Serviço",
+        "enterName": "Digite o nome do ServiceMan",
+        "phoneNumber": "número de telefone",
+        "enterPhoneNumber": "Insira o número de telefone",
+        "servicemanCompany": "Companhia de Serviços",
+        "enterCompany": "Digite a ServiceMan Company",
+        "insideTime": "Dentro do tempo",
+        "enterTime": "Digite dentro do tempo",
+        "continue": "Continuar"
+    },
+    "confirmScreen": {
+        "guest": "Convidada",
+        "visiting": "Visitando",
+        "gatePass": "Look de rua",
+        "confirmSendIn": "Confirmar e enviar"
+    },
+    "inOutScreen": {
+        "inOut": "In - fora",
+        "checkedIn": "Entrou",
+        "checkedOut": "Saiu"
+    },
+    "checkedInTab": {
+        "in": "EM",
+        "block": "Bloquear"
+    },
+    "checkedOutTab": {
+        "out": "FORA",
+        "block": "Bloquear"
+    },
+    "messageScreen": {
+        "message": "Mensagem"
+    },
+    "chatScreen": {
+        "block": "Bloquear",
+        "typeHere": "Escreva aqui...."
+    },
+    "settingScreen": {
+        "settings": "Configurações",
+        "onDuty": "Em serviço",
+        "quickContact": "contato rápido",
+        "callAdmin": "Ligue para o administrador",
+        "callSecretory": "Ligue para o secretário",
+        "language": "Linguagem",
+        "getSupport": "Obtenha suporte",
+        "termsCondition": "Termos e Condições",
+        "privacyPolicy": "Política de Privacidade",
+        "logout": "Sair"
+    },
+    "editProfileScreen": {
+        "editProfile": "Editar Perfil",
+        "name": "Nome",
+        "enterName": "Digite seu nome",
+        "emailAddress": "Endereço de email",
+        "enterEmail": "Insira o endereço de e-mail",
+        "phoneNumber": "Número de telefone",
+        "enterPhoneNumber": "Insira o número de telefone",
+        "update": "Atualizar",
+        "deny": "Você negou acessar a câmera !!!",
+        "removeImage": "Foto de perfil removida."
+    },
+    "addImageBottomSheet": {
+        "addImage": "Adicionar imagem",
+        "camera": "Câmera",
+        "gallery": "Galeria",
+        "remove": "Remover"
+    },
+    "languageScreen": {
+        "language": "Linguagem",
+        "update": "Atualizar"
+    },
+    "getSupportScreen": {
+        "getSupport": "Obtenha suporte",
+        "askSuggestImprove": "Pergunte -nos sugerir da maneira que possamos melhorar",
+        "issueType": "Tipo de problema",
+        "enterTopic": "Insira o tipo de tópico / problema",
+        "message": "Mensagem",
+        "enterYourMessage": "Digite sua mensagem",
+        "submitMessage": "Enviar mensagem"
+    },
+    "termsConditionScreen": {
+        "termsCondition": "Termos e Condições"
+    },
+    "privacyPolicyScreen": {
+        "privacyPolicy": "Política de Privacidade"
+    },
+    "logoutModal": {
+        "logout": "Sair",
+        "areYouSureLogout": "Tem certeza que deseja sair?",
+        "no": "Não",
+        "yes": "Sim"
+    },
+    "callScreen": {
+        "calling": "Chamando ..."
+    }
+}

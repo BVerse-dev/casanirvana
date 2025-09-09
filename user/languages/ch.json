@@ -1,0 +1,450 @@
+{
+    "onboardingScreen": {
+        "tapBack": "再次点击以退出应用程序",
+        "title1": "提高家庭安全",
+        "title2": "让服务人员在您家门口",
+        "title3": "通知事件",
+        "next": "下一个",
+        "getStarted": "开始"
+    },
+    "loginScreen": {
+        "login": "登录",
+        "helloUsers": "您好用户请登录您的帐户",
+        "enterMobileNumber": "输入手机号码",
+        "verification": "*我们将发送OTP进行验证",
+        "search": "搜索",
+        "close": "关闭",
+        "tapBack": "再次点击以退出应用程序"
+    },
+    "registerScreen": {
+        "register": "登记",
+        "helloUsers": "您好用户请创建您的帐户",
+        "userName": "用户名",
+        "mobileNumber": "手机号码",
+        "emailAddress": "电子邮件地址"
+    },
+    "verificationScreen": {
+        "otpVerification": "OTP验证",
+        "pleaseEnter": "请输入我们将在您的手机号上发送给您的OTP",
+        "verify": "核实",
+        "resend": "没有收到？重发"
+    },
+    "bottomTab": {
+        "home": "家",
+        "chats": "聊天",
+        "service": "服务",
+        "profile": "轮廓",
+        "tapBack": "再次点击以退出应用程序",
+        "sendMessage": "发信息",
+        "securityAlert": "安全警报",
+        "admin": "行政",
+        "security": "安全",
+        "fireAlert": "火警警报",
+        "stuckLift": "卡在电梯中",
+        "animalThreat": "动物威胁",
+        "visiterThreat": "访问者威胁"
+    },
+    "homeScreen": {
+        "hi": "你好",
+        "notice": "注意",
+        "description": "11月3日在七代社会大厅举行的新年聚会",
+        "community": "社区",
+        "members": "成员",
+        "visitors": "访客",
+        "noticeBoard": "公告栏",
+        "payment": "支付",
+        "bookAmenities": "书店",
+        "helpDesk": "帮助台",
+        "connectMember": "连接社会成员",
+        "manageEntry": "管理访问者的条目",
+        "societyAnnouncement": "社会公告和活动通知",
+        "directPayment": "直接支付社会应得的",
+        "preBook": "预科学会便利设施",
+        "complaint": "投诉和建议",
+        "new": "新的"
+    },
+    "notificationScreen": {
+        "remove": "删除了通知。",
+        "notification": "通知",
+        "noNotification": "没有新的通知"
+    },
+    "societyMemberScreen": {
+        "members": "成员",
+        "member": "成员",
+        "admin": "行政",
+        "committee": "委员会"
+    },
+    "memberDetailModal": {
+        "flatNo": "公寓",
+        "blockNo": "块",
+        "call": "称呼",
+        "chat": "聊天"
+    },
+    "visitorsScreen": {
+        "visitors": "访客",
+        "preVisitors": "预先批准访客",
+        "inside": "里面",
+        "preApproved": "预先批准",
+        "serviceBooked": "服务预订",
+        "call": "称呼",
+        "delete": "删除",
+        "gatepass": "街头看",
+        "removedVisitor": "访客被删除。",
+        "noVisitors": "没有新的访客"
+    },
+    "preApproveVisitorsScreen": {
+        "visitors": "访客",
+        "preApproveVisitors": "预先批准访客",
+        "addVisitor": "添加访客细节以进行快速操作",
+        "addGuest": "添加客人",
+        "addCab": "添加出租车",
+        "addDelivery": "添加交货",
+        "addService": "添加服务",
+        "allowMyServiceman": "允许我的服务员",
+        "servicemanCompanyName": "服务员/公司名称",
+        "enterServicemanCompany": "输入服务员/公司名称",
+        "phoneNumber": "电话号码",
+        "enterPhoneNumber": "输入电话号码",
+        "toEnterInNext": "进入下一个",
+        "today": "今天",
+        "submit": "提交",
+        "tomorrow": "明天",
+        "cancel": "取消",
+        "okay": "好的"
+    },
+    "allowGuestModal": {
+        "allowMyGuest": "允许我的客人",
+        "guestName": "客人姓名",
+        "enterGuestName": "输入来宾名称",
+        "phoneNumber": "电话号码",
+        "enterPhoneNumber": "输入电话号码",
+        "enterDate": "输入日期",
+        "sendGate": "将大门通行证发送给客人",
+        "submit": "提交",
+        "selectDate": "选择日期",
+        "ok": "好的"
+    },
+    "addCabModal": {
+        "allowMyCab": "允许我的出租车",
+        "allowMyCabNext": "让我的出租车今天进入下一步",
+        "addLastDigit": "添加最后4位车辆数字。",
+        "companyName": "公司名称",
+        "enterCompanyName": "输入公司名称",
+        "submit": "提交",
+        "cancel": "取消",
+        "okay": "好的"
+    },
+    "addDeliveryModal": {
+        "allowMyDelivery": "允许我的交货",
+        "deliveryCompany": "送货公司名称",
+        "selectDeliveryCompany": "选择送货公司",
+        "toEnterNext": "进入下一个",
+        "today": "今天",
+        "submit": "提交",
+        "cancel": "取消",
+        "okay": "好的",
+        "companyName": "公司名称",
+        "tomorrow": "明天"
+    },
+    "noticeBoardScreen": {
+        "noticeBoard": "公告栏",
+        "new": "新的",
+        "postBy": "发帖"
+    },
+    "paymentScreen": {
+        "payment": "支付",
+        "new": "新的",
+        "paid": "有薪酬的",
+        "pending": "待办的",
+        "failed": "失败的",
+        "dueDate": "到期日",
+        "payNow": "现在付款",
+        "receipt": "收据"
+    },
+    "paymentMethodScreen": {
+        "selectPaymentMethod": "选择付款方式",
+        "securityDeposit": "保证金",
+        "continue": "继续"
+    },
+    "creditCardScreen": {
+        "creditCard": "信用卡",
+        "continue": "继续",
+        "name": "卡片上的名字",
+        "cardNo": "卡号",
+        "enterName": "在卡片上输入名称",
+        "enterCard": "输入您的卡号",
+        "expiryDate": "到期日"
+    },
+    "successScreen": {
+        "paymentSuccess": "支付成功 ！！",
+        "securityDeposit": "保证金",
+        "amountPaid": "支付的金额",
+        "paidOn": "支付",
+        "paidVia": "通过",
+        "transactionID": "事务ID",
+        "downloadReceipt": "下载收据",
+        "backHome": "回到家",
+        "paid": "有薪酬的"
+    },
+    "bookedAmenitiesScreen": {
+        "bookedAmenities": "预订设施",
+        "bookAmenity": "书店",
+        "confirmed": "确认的",
+        "pending": "待办的",
+        "canceled": "取消",
+        "confirmedBy": "经证实",
+        "paidDebitCard": "通过借记卡付款",
+        "noPayment": "没有付款"
+    },
+    "amenityScreen": {
+        "selectAmenity": "选择便利",
+        "paid": "有薪酬的",
+        "free": "自由的"
+    },
+    "bookAmenityScreen": {
+        "bookAmenity": "书店",
+        "maximinCapacity": "最大能力",
+        "bookBeforeLeast": "至少在",
+        "selectDates": "选择日期",
+        "from": "从",
+        "to": "到",
+        "selectTime": "选择时间",
+        "totalDay": "总日",
+        "amountPay": "支付数量",
+        "proceedPay": "继续付款",
+        "paid": "有薪酬的",
+        "selectDate": "选择日期",
+        "ok": "好的"
+    },
+    "helpDeskScreen": {
+        "helpDesk": "帮助台",
+        "personal": "个人的",
+        "community": "社区"
+    },
+    "helpDeskPersonalTab": {
+        "resolvedBy": "解决",
+        "resolved": "解决",
+        "raisedBy": "由",
+        "pending": "待办的",
+        "personal": "个人的",
+        "raiseNewComplaint": "提出新的投诉",
+        "viewAllComplaints": "查看所有投诉"
+    },
+    "helpDeskCommunityTab": {
+        "resolvedBy": "解决",
+        "community": "社区",
+        "resolved": "解决",
+        "raisedBy": "由",
+        "pending": "待办的",
+        "raiseNewComplaint": "提出新的投诉",
+        "viewAllComplaints": "查看所有投诉"
+    },
+    "addComplaintScreen": {
+        "addComplaint": "添加投诉",
+        "attachPhoto": "附加照片（可选）",
+        "personal": "个人的",
+        "community": "社区",
+        "complaintType": "投诉类型",
+        "enterComplaintType": "输入投诉类型",
+        "briefYourComplaint": "向您的投诉介绍",
+        "submitComplaint": "提交投诉",
+        "deny": "您否认访问相机！！！",
+        "ToNext": "进入下一个",
+        "today": "今天",
+        "tomorrow": "明天",
+        "cancel": "取消",
+        "okay": "好的",
+        "complaintRaised": "提出了投诉！",
+        "adminWill": "管理员将通知，并将尽快与您联系"
+    },
+    "complaintDetailScreen": {
+        "complaint": "抱怨",
+        "resolvedBy": "解决",
+        "resolved": "解决",
+        "raisedBy": "由",
+        "pending": "待办的",
+        "reopen": "重新开放",
+        "markResolved": "标记为解决",
+        "complaintImage": "投诉图像",
+        "recentComments": "最近的评论",
+        "writeComment": "写你的评论"
+    },
+    "callScreen": {
+        "calling": "叫..."
+    },
+    "guardCallingScreen": {
+        "guestGate": "客人在门口等待",
+        "callGate": "通话门",
+        "swipeUp": "向上滑动以允许",
+        "deny": "否定"
+    },
+    "chatScreen": {
+        "chats": "聊天",
+        "residents": "居民"
+    },
+    "messageScreen": {
+        "typeHere": "在此输入文字...."
+    },
+    "searchScreen": {
+        "search": "搜索",
+        "recentSearch": "最近的搜索",
+        "clearAll": "清除全部",
+        "noSearch": "没有搜索历史记录"
+    },
+    "serviceScreen": {
+        "service": "服务",
+        "yourBooking": "您的预订",
+        "homePainting": "家庭绘画",
+        "paintService": "画我的家。需要服务。",
+        "nearbyProviders": "附近的服务提供商",
+        "homeCleaning": "家庭清洁",
+        "appliancesRepair": "电器维修",
+        "carpentersService": "木匠服务",
+        "plumbingService": "管道服务",
+        "packerMovers": "Packer＆Movers",
+        "homeSanitize": "家庭卫生",
+        "hairBeauty": "头发和美丽",
+        "plumbingServices": "管道服务",
+        "laundryServices": "洗衣服务",
+        "gardening": "园艺",
+        "cooking": "烹饪"
+    },
+    "serviceModal": {
+        "bookFor": "预订",
+        "selectService": "选择服务",
+        "bookVisit": "访问",
+        "selectDate": "选择日期",
+        "selectTime": "选择时间",
+        "briefYourProblem": "简要介绍您的问题",
+        "writeYourProblem": "写你的问题",
+        "submit": "提交",
+        "aCRepair": "交流维修",
+        "tvRepair": "电视维修",
+        "mixerGrinderRepair": "搅拌机磨床维修",
+        "doorBellRepair": "门铃修理",
+        "fanRepair": "风扇维修",
+        "cancel": "取消",
+        "ok": "好的"
+    },
+    "profileScreen": {
+        "profile": "轮廓",
+        "viewProfile": "查看资料",
+        "flatNo": "公寓",
+        "blockNo": "块",
+        "household": "家庭",
+        "myFamily": "我的家人",
+        "add": "添加",
+        "addFamilyMember": "添加家庭成员以快速进入",
+        "dailyHelp": "每日帮助",
+        "addMaidLaundry": "添加女佣，洗衣，助手以快速进入",
+        "myVehicles": "我的车辆",
+        "addVehiclesQuick": "添加您的车辆以快速进入",
+        "frequentEntries": "频繁的条目",
+        "addFrequentPerson": "添加经常的人快速参赛"
+    },
+    "addImageBottomSheet": {
+        "addImage": "添加图片",
+        "camera": "相机",
+        "gallery": "画廊",
+        "remove": "消除"
+    },
+    "addFamilyMemberModal": {
+        "addFamilyMember": "添加家庭成员",
+        "name": "姓名",
+        "enterName": "输入名字",
+        "phoneNumber": "电话号码",
+        "enterPhoneNumber": "输入电话号码",
+        "relations": "关系",
+        "selectRelations": "选择关系",
+        "sendGateGuest": "将大门通行证发送给客人",
+        "submit": "提交",
+        "relation": "关系",
+        "father": "父亲",
+        "mother": "母亲",
+        "son": "儿子",
+        "daughter": "女儿",
+        "wife": "妻子",
+        "cancel": "取消",
+        "okay": "好的",
+        "deny": "您否认访问相机！！！",
+        "removeImage": "删除了个人资料照片。",
+        "enterRelations": "输入关系",
+        "addFrequentEntries": "添加频繁的条目",
+        "addDailyHelp": "增加日常帮助",
+        "helpType": "帮助类型",
+        "selectHelpType": "选择帮助类型",
+        "made": "制成",
+        "laundryman": "洗衣员",
+        "gardner": "加德纳",
+        "cook": "厨师",
+        "milkman": "牛奶员"
+    },
+    "myVehiclesModal": {
+        "addVehicles": "添加我的车辆",
+        "vehicleNumber": "车辆号码",
+        "enterVehicleNumber": "输入车辆号码",
+        "vehicleModel": "车辆型号",
+        "enterVehicleModel": "输入车辆型号",
+        "vehicleColor": "车辆颜色",
+        "enterVehicleColor": "输入车辆颜色",
+        "sendGateGuest": "将大门通行证发送给客人",
+        "submit": "提交",
+        "deny": "您否认访问相机！！！",
+        "removeImage": "删除了个人资料照片。"
+    },
+    "gatePassModal": {
+        "gatePass": "门通道",
+        "guestAt": "来宾",
+        "entryCode": "条目代码",
+        "showQr": "显示QR码或告诉OTP守卫",
+        "share": "分享",
+        "download": "下载",
+        "copy": "复制！"
+    },
+    "settingScreen": {
+        "settings": "设置",
+        "editProfile": "编辑个人资料",
+        "language": "语言",
+        "getSupport": "得到支持",
+        "termsCondition": "条款与协议",
+        "privacyPolicy": "隐私政策",
+        "logout": "登出"
+    },
+    "logoutModal": {
+        "logout": "登出",
+        "areYouSureLogout": "您确定要注销吗？",
+        "no": "不",
+        "yes": "是的"
+    },
+    "editProfileScreen": {
+        "editProfile": "编辑个人资料",
+        "name": "姓名",
+        "enterName": "输入你的名字",
+        "emailAddress": "电子邮件地址",
+        "enterEmail": "输入你的电子邮箱地址",
+        "phoneNumber": "电话号码",
+        "enterPhoneNumber": "输入你的电话号码",
+        "update": "更新",
+        "deny": "您否认访问相机！！！",
+        "removeImage": "删除了个人资料照片。"
+    },
+    "languageScreen": {
+        "language": "语言",
+        "update": "更新"
+    },
+    "termsConditionScreen": {
+        "termsCondition": "条款与协议"
+    },
+    "privacyPolicyScreen": {
+        "privacyPolicy": "隐私政策"
+    },
+    "getSupportScreen": {
+        "getSupport": "得到支持",
+        "askSuggestImprove": "问我们建议我们有任何改进的方式",
+        "issueType": "问题类型",
+        "enterTopic": "输入主题 /问题类型",
+        "message": "信息",
+        "enterYourMessage": "输入您的消息",
+        "submitMessage": "提交消息"
+    }
+}

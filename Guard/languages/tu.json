@@ -1,0 +1,198 @@
+{
+    "loginScreen": {
+        "login": "Giriş yapmak",
+        "helloUsers": "Merhaba Kullanıcılar Lütfen hesabınızı giriş yapın",
+        "enterMobileNumber": "Cep telefonu numarasını girin",
+        "verification": "*Doğrulama için OTP göndereceğiz",
+        "search": "Aramak",
+        "close": "Kapalı",
+        "tapBack": "Uygulamadan çıkmak için tekrar tekrar dokunun"
+    },
+        "notificationScreen": {
+            "remove": "Bildirim kaldırıldı.",
+            "notification": "Bildirim",
+            "noNotification": "Yeni bildirim yok"
+        },
+    "registerScreen": {
+        "register": "Kayıt olmak",
+        "helloUsers": "Merhaba Kullanıcılar Lütfen hesabınızı oluşturun",
+        "userName": "Kullanıcı adı",
+        "mobileNumber": "Cep numarası",
+        "emailAddress": "E -posta adresi"
+    },
+    "verificationScreen": {
+        "otpVerification": "OTP doğrulaması",
+        "pleaseEnter": "Lütfen size cep telefonunuzdan size göndereceğiz OTP'ye girin",
+        "verify": "Doğrulamak",
+        "resend": "Almadın mı?Yeniden gönder"
+    },
+    "bottomTab": {
+        "tapBack": "Uygulamadan çıkmak için tekrar tekrar dokunun",
+        "home": "Ev",
+        "inOut": "İçten çıkmış",
+        "messages": "Mesaj",
+        "settings": "Ayarlar"
+    },
+    "homeScreen": {
+    "visitorEntry": "Ziyaretçi Girişi",
+        "enterVisitor": "Ziyaretçi Giriş Kodu veya Tarama Kodunu girin",
+        "confirm": "Onaylamak",
+    "addNewVisitor": "Yeni Ziyaretçi Ekleyin",
+    "guestEntry": "Misafir Girişi",
+    "cabEntry": "Kabin Girişi",
+    "deliveryEntry": "Teslimat Girişi",
+    "serviceEntry": "Hizmet Girişi"
+    },
+    "guestEntryScreen": {
+        "guestEntry": "Misafir girişi",
+        "entryConfirmation": "Giriş onayı",
+        "guestName": "Misafir adı",
+        "enterGuestName": "Misafir Adı Girin",
+        "mobileNumber": "Cep numarası",
+        "enterMobileNumber": "Cep telefonu numarasını girin",
+        "insideTime": "İçinde Zaman",
+        "enterTime": "Zamana girin",
+        "continue": "Devam etmek",
+        "visiting": "Ziyaret",
+        "enterVisiting": "Ziyarete girin",
+        "hostName": "Ana makine adı",
+        "confirmNotification": "Bildirimi onaylayın ve gönder"
+    },
+    "flatNoScreen": {
+        "blockA": "Blok A",
+        "blockB": "Blok b",
+        "clubhouse": "Kulüp binası",
+        "common": "Ortak alan"
+    },
+    "flatNoTab": {
+        "selectFlatNum": "Daire/Ünite Numarasını Seçin",
+        "continue": "Devam etmek"
+    },
+    "ringingScreen": {
+        "ringing": "Zil ...",
+        "theyAreGettingInform": "Bilgilendiriliyorlar"
+    },
+    "allowedScreen": {
+        "allowed": "İzin verilmiş",
+        "letsGuest": "Topluma konuk girelim",
+        "backToHome": "Eve geri dön"
+    },
+    "deliveryEntryScreen": {
+        "deliveryEntry": "Teslimat girişi",
+        "deliverymanName": "Teslimatçı adı",
+        "enterDeliverymanName": "Dağıtımcı adını girin",
+        "phoneNumber": "Telefon numarası",
+        "enterPhoneNumber": "Telefon Numarasını Girin",
+        "deliveryCompany": "Teslimat şirketi",
+        "enterDeliveryCompany": "Teslimat Şirketi'ne girin",
+        "insideTime": "İçinde Zaman",
+        "enterTime": "Zamana girin",
+        "continue": "Devam etmek"
+    },
+    "cabEntryScreen": {
+        "cabEntry": "Kabin girişi",
+        "cabDriverName": "Kabin Sürücüsü Adı",
+        "enterName": "CAB DRIVE ADI GİRİN",
+        "enterLast": "Son 4 KABİT KABUL EDİN",
+        "cabCompany": "Taksi şirketi",
+        "enterCabCompany": "Cab Company'ye girin",
+        "pickup": "Pikap/droupup",
+        "continue": "Devam etmek"
+    },
+    "serviceEntryScreen": {
+        "serviceEntry": "Hizmet girişi",
+        "servicemanName": "Asker adı",
+        "enterName": "SERCEICEMAN ADI GİRİN",
+        "phoneNumber": "telefon numarası",
+        "enterPhoneNumber": "Telefon Numarasını Girin",
+        "servicemanCompany": "Hizmetçi şirketi",
+        "enterCompany": "Serviceman Company'ye girin",
+        "insideTime": "İçinde Zaman",
+        "enterTime": "Zamana girin",
+        "continue": "Devam etmek"
+    },
+    "confirmScreen": {
+        "guest": "Misafir",
+        "visiting": "Ziyaret",
+        "gatePass": "Sokak görünümü",
+        "confirmSendIn": "Onay ve Gönder"
+    },
+    "inOutScreen": {
+        "inOut": "Dışarıda",
+        "checkedIn": "Giriş Yaptı",
+        "checkedOut": "Çıkış Yaptı"
+    },
+    "checkedInTab": {
+        "in": "İÇİNDE",
+        "block": "Engellemek"
+    },
+    "checkedOutTab": {
+        "out": "DIŞARI",
+        "block": "Engellemek"
+    },
+    "messageScreen": {
+        "message": "İleti"
+    },
+    "chatScreen": {
+        "block": "Engellemek",
+        "typeHere": "Metninizi buraya yazın...."
+    },
+    "settingScreen": {
+        "settings": "Ayarlar",
+        "onDuty": "Görevde",
+        "quickContact": "Hızlı temas",
+        "callAdmin": "Yöneticiyi arayın",
+        "callSecretory": "Sakatname çağırmak",
+        "language": "Dil",
+        "getSupport": "Destek almak",
+        "termsCondition": "Şartlar ve koşullar",
+        "privacyPolicy": "Gizlilik Politikası",
+        "logout": "Çıkış Yap"
+    },
+    "editProfileScreen": {
+        "editProfile": "Profili Düzenle",
+        "name": "İsim",
+        "enterName": "Adınızı giriniz",
+        "emailAddress": "E -posta adresi",
+        "enterEmail": "Email adresini gir",
+        "phoneNumber": "Telefon numarası",
+        "enterPhoneNumber": "Telefon Numarasını Girin",
+        "update": "Güncelleme",
+        "deny": "Kameraya erişmeyi reddettiniz !!!",
+        "removeImage": "Profil fotoğrafı kaldırıldı."
+    },
+    "addImageBottomSheet": {
+        "addImage": "Resim eklemek",
+        "camera": "Kamera",
+        "gallery": "Galeri",
+        "remove": "Kaldırmak"
+    },
+    "languageScreen": {
+        "language": "Dil",
+        "update": "Güncelleme"
+    },
+    "getSupportScreen": {
+        "getSupport": "Destek almak",
+        "askSuggestImprove": "Bize, iyileştirebileceğimizi önermek",
+        "issueType": "Sorun Tipi",
+        "enterTopic": "Konu / Sayı Türüne Girin",
+        "message": "İleti",
+        "enterYourMessage": "Mesajınızı girin",
+        "submitMessage": "Mesajı gönder"
+    },
+    "termsConditionScreen": {
+        "termsCondition": "Şartlar ve koşullar"
+    },
+    "privacyPolicyScreen": {
+        "privacyPolicy": "Gizlilik Politikası"
+    },
+    "logoutModal": {
+        "logout": "Çıkış Yap",
+        "areYouSureLogout": "Oturum açmak istediğinden emin misiniz?",
+        "no": "HAYIR",
+        "yes": "Evet"
+    },
+    "callScreen": {
+        "calling": "Arama ..."
+    }
+}
