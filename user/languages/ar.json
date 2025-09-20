@@ -68,7 +68,7 @@
         "notification": "إشعار",
         "noNotification": "لا يوجد إشعار جديد"
     },
-    "societyMemberScreen": {
+    "communityMemberScreen": {
         "members": "أعضاء",
         "member": "عضو",
         "admin": "مسؤل",
@@ -409,7 +409,8 @@
         "getSupport": "احصل على الدعم",
         "termsCondition": "الشروط والشرط",
         "privacyPolicy": "سياسة الخصوصية",
-        "logout": "تسجيل خروج"
+        "logout": "تسجيل خروج",
+        "communityInfo": "معلومات المجتمع"
     },
     "logoutModal": {
         "logout": "تسجيل خروج",
@@ -447,5 +448,45 @@
         "message": "رسالة",
         "enterYourMessage": "أدخل رسالتك",
         "submitMessage": "تقديم رسالة"
+    },
+    "communityInfoScreen": {
+        "communityInfo": "معلومات المجتمع",
+        "basicInformation": "المعلومات الأساسية",
+        "contactInformation": "معلومات الاتصال",
+        "amenitiesFeatures": "المرافق والميزات",
+        "communityName": "اسم المجتمع",
+        "address": "العنوان",
+        "description": "الوصف",
+        "establishedYear": "سنة التأسيس",
+        "totalUnits": "إجمالي الوحدات",
+        "phoneNumber": "رقم الهاتف",
+        "emailAddress": "عنوان البريد الإلكتروني",
+        "website": "الموقع الإلكتروني",
+        "establishedIn": "تأسست في",
+        "units": "وحدات",
+        "swimmingPool": "حمام سباحة",
+        "gymnasium": "صالة رياضية",
+        "parking": "موقف سيارات",
+        "security24x7": "أمن 24/7",
+        "playground": "ملعب",
+        "wifiInternet": "واي فاي إنترنت"
+    },
+    "memberDirectoryScreen": {
+        "memberDirectory": "دليل الأعضاء",
+        "searchMembers": "البحث بالاسم أو الكتلة أو الوحدة...",
+        "all": "الكل",
+        "admins": "المشرفون",
+        "committee": "اللجنة",
+        "members": "الأعضاء",
+        "admin": "مشرف",
+        "member": "عضو",
+        "showing": "عرض",
+        "of": "من",
+        "totalMembers": "إجمالي الأعضاء",
+        "loadingMembers": "تحميل الأعضاء...",
+        "noMembersFound": "لا توجد أعضاء",
+        "noSearchResults": "لا توجد نتائج",
+        "tryDifferentSearch": "جرب تعديل مصطلحات البحث",
+        "membersWillAppearHere": "سيظهر الأعضاء هنا بعد الانضمام"
     }
 }

@@ -13,7 +13,6 @@ import { Colors, Default, Fonts } from "../constants/styles";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import MyStatusBar from "../components/myStatusBar";
-import AwesomeButton from "react-native-really-awesome-button";
 
 const PinCodeScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
@@ -169,15 +168,13 @@ const PinCodeScreen = ({ navigation }) => {
             </View>
           </View>
 
-          <AwesomeButton
+          <TouchableOpacity
             style={styles.saveButton}
-            height={50}
             onPress={handleSavePin}
-            backgroundColor={Colors.primary}
-            borderRadius={10}
           >
+            <MaterialCommunityIcons name="lock-check" size={20} color={Colors.white} />
             <Text style={styles.saveButtonText}>Update PIN</Text>
-          </AwesomeButton>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </View>
@@ -260,10 +257,20 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   saveButton: {
-    alignSelf: "center",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Default.fixPadding * 2,
+    paddingVertical: Default.fixPadding * 1.2,
+    borderRadius: 10,
+    minHeight: 50,
     width: "100%",
+    ...Default.shadow,
+    elevation: 3,
   },
   saveButtonText: {
     ...Fonts.SemiBold16white,
+    marginLeft: Default.fixPadding * 0.8,
   },
 });

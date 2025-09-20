@@ -15,7 +15,11 @@
     "ios": {
       "bundleIdentifier": "com.casanirvana.user",
       "buildNumber": "1.0.0",
-      "supportsTablet": false
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "This app needs location access to share your location during emergency alerts, helping responders find you quickly.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "This app needs location access to share your location during emergency alerts, helping responders find you quickly."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -24,7 +28,11 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.casanirvana.user"
+      "package": "com.casanirvana.user",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
     },
     "web": {
       "bundler": "metro",

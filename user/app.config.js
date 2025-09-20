@@ -40,6 +40,12 @@ export default {
       androidMode: "default",
       androidCollapsedTitle: "Casa Nirvana"
     },
+    updates: {
+      url: "https://u.expo.dev/74ab69b9-9b75-45e3-83ad-84c0369ac218"
+    },
+    runtimeVersion: {
+      policy: "appVersion"
+    },
     extra: {
       // Hardcode the values directly instead of using environment variables
       supabaseUrl: "https://pswnlowvmdgeifhxilao.supabase.co",

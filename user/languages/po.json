@@ -68,7 +68,7 @@
         "notification": "Notificação",
         "noNotification": "Nenhuma nova notificação"
     },
-    "societyMemberScreen": {
+    "communityMemberScreen": {
         "members": "Membros",
         "member": "Membro",
         "admin": "admin",
@@ -408,7 +408,8 @@
         "getSupport": "Obtenha suporte",
         "termsCondition": "Termos e Condições",
         "privacyPolicy": "Política de Privacidade",
-        "logout": "Sair"
+        "logout": "Sair",
+        "communityInfo": "Informações da Comunidade"
     },
     "logoutModal": {
         "logout": "Sair",
@@ -446,5 +447,45 @@
         "message": "Mensagem",
         "enterYourMessage": "Digite sua mensagem",
         "submitMessage": "Enviar mensagem"
+    },
+    "communityInfoScreen": {
+        "communityInfo": "Informações da Comunidade",
+        "basicInformation": "Informações Básicas",
+        "contactInformation": "Informações de Contato",
+        "amenitiesFeatures": "Comodidades e Recursos",
+        "communityName": "Nome da Comunidade",
+        "address": "Endereço",
+        "description": "Descrição",
+        "establishedYear": "Ano de Fundação",
+        "totalUnits": "Total de Unidades",
+        "phoneNumber": "Número de Telefone",
+        "emailAddress": "Endereço de Email",
+        "website": "Site",
+        "establishedIn": "Fundado em",
+        "units": "Unidades",
+        "swimmingPool": "Piscina",
+        "gymnasium": "Ginásio",
+        "parking": "Estacionamento",
+        "security24x7": "Segurança 24/7",
+        "playground": "Parque Infantil",
+        "wifiInternet": "WiFi Internet"
+    },
+    "memberDirectoryScreen": {
+        "memberDirectory": "Diretório de Membros",
+        "searchMembers": "Pesquisar por nome, bloco ou unidade...",
+        "all": "Todos",
+        "admins": "Administradores",
+        "committee": "Comitê",
+        "members": "Membros",
+        "admin": "Admin",
+        "member": "Membro",
+        "showing": "Mostrando",
+        "of": "de",
+        "totalMembers": "membros totais",
+        "loadingMembers": "Carregando membros...",
+        "noMembersFound": "Nenhum Membro Encontrado",
+        "noSearchResults": "Nenhum Resultado",
+        "tryDifferentSearch": "Tente ajustar seus termos de pesquisa",
+        "membersWillAppearHere": "Os membros aparecerão aqui após se juntarem"
     }
 }

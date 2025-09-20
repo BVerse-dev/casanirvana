@@ -57,7 +57,7 @@
         "helpDesk": "Yardım Masası",
         "connectMember": "Toplum üyesini bağlayın",
         "manageEntry": "Ziyaretçilerin Girişini Yönetin",
-        "societyAnnouncement": "Toplum Duyurusu ve Etkinlik Bildirimi",
+        "communityAnnouncement": "Topluluk Duyurusu ve Etkinlik Bildirimi",
         "directPayment": "İzin Verilen Toplumun Doğrudan Ödeme",
         "preBook": "Pre -Book Derneği olanakları",
         "complaint": "Şikayet ve Öneri",
@@ -68,7 +68,7 @@
         "notification": "Bildiri",
         "noNotification": "Yeni bildirim yok"
     },
-    "societyMemberScreen": {
+    "communityMemberScreen": {
         "members": "Üyeler",
         "member": "Üye",
         "admin": "Yönetici",
@@ -408,7 +408,8 @@
         "getSupport": "Destek almak",
         "termsCondition": "Şartlar ve koşullar",
         "privacyPolicy": "Gizlilik Politikası",
-        "logout": "Çıkış Yap"
+        "logout": "Çıkış Yap",
+        "communityInfo": "Topluluk Bilgileri"
     },
     "logoutModal": {
         "logout": "Çıkış Yap",
@@ -446,5 +447,45 @@
         "message": "İleti",
         "enterYourMessage": "Mesajınızı girin",
         "submitMessage": "Mesajı gönder"
+    },
+    "communityInfoScreen": {
+        "communityInfo": "Topluluk Bilgileri",
+        "basicInformation": "Temel Bilgiler",
+        "contactInformation": "İletişim Bilgileri",
+        "amenitiesFeatures": "Olanaklar ve Özellikler",
+        "communityName": "Topluluk Adı",
+        "address": "Adres",
+        "description": "Açıklama",
+        "establishedYear": "Kuruluş Yılı",
+        "totalUnits": "Toplam Birim Sayısı",
+        "phoneNumber": "Telefon Numarası",
+        "emailAddress": "E-posta Adresi",
+        "website": "Web Sitesi",
+        "establishedIn": "Kuruluş",
+        "units": "Birim",
+        "swimmingPool": "Yüzme Havuzu",
+        "gymnasium": "Spor Salonu",
+        "parking": "Otopark",
+        "security24x7": "7/24 Güvenlik",
+        "playground": "Oyun Alanı",
+        "wifiInternet": "WiFi İnternet"
+    },
+    "memberDirectoryScreen": {
+        "memberDirectory": "Üye Rehberi",
+        "searchMembers": "İsim, blok veya birime göre ara...",
+        "all": "Tümü",
+        "admins": "Yöneticiler",
+        "committee": "Komite",
+        "members": "Üyeler",
+        "admin": "Yönetici",
+        "member": "Üye",
+        "showing": "Gösteriliyor",
+        "of": "toplam",
+        "totalMembers": "üye",
+        "loadingMembers": "Üyeler yükleniyor...",
+        "noMembersFound": "Üye Bulunamadı",
+        "noSearchResults": "Sonuç Bulunamadı",
+        "tryDifferentSearch": "Arama terimlerinizi ayarlamayı deneyin",
+        "membersWillAppearHere": "Üyeler katıldıktan sonra burada görünecek"
     }
 }

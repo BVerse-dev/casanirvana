@@ -11,24 +11,28 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AppQueryClientProvider } from "./components/QueryClientProvider";
 import { AuthProvider } from "./contexts/AuthContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
+import { AppLockProvider } from "./contexts/AppLockContext";
 import { NotificationNavigationHandler } from "./components/NotificationNavigationHandler";
 import SplashScreen from "./screens/splashScreen";
 import OnboardingScreen from "./screens/auth/onboardingScreen";
 import LoginScreen from "./screens/auth/loginScreen";
+import EmailLoginScreen from "./screens/auth/emailLoginScreen";
 import RegisterScreen from "./screens/auth/registerScreen";
 import VerificationScreen from "./screens/auth/verificationScreen";
 import BottomTab from "./components/bottomTab";
 import NotificationScreen from "./screens/notificationScreen";
 import NotificationDetailScreen from "./screens/notificationDetailScreen";
 import NotificationSettingsScreen from "./screens/notificationSettingsScreen";
-import SocietyMemberScreen from "./screens/societyMemberScreen";
+import CommunityMemberScreen from "./screens/communityMemberScreen";
 import VisitorsScreen from "./screens/visitorsScreen";
 import PreApproveVisitorsScreen from "./screens/preApproveVisitorsScreen";
 import NoticeBoardScreen from "./screens/noticeBoardScreen";
 import NoticeDetailScreen from "./screens/noticeDetailScreen";
 import PaymentScreen from "./screens/paymentScreen";
 import PaymentHistoryScreen from './screens/paymentHistoryScreen';
+import BillingHistoryScreen from './screens/billingHistoryScreen';
 import PaymentMethodScreen from "./screens/paymentMethodScreen";
+import MyPaymentMethodsScreen from "./screens/myPaymentMethodsScreen";
 import CreditCardScreen from "./screens/creditCardScreen";
 import MobileMoneyScreen from "./screens/mobileMoneyScreen";
 import PayPalScreen from "./screens/paypalScreen";
@@ -51,7 +55,7 @@ import SearchScreen from "./screens/searchScreen";
 import SettingScreen from "./screens/settingScreen";
 import EditProfileScreen from "./screens/editProfileScreen";
 import LanguageScreen from "./screens/languageScreen";
-import TermsConditionScreen from "./screens/termsConditionScreen";
+import TermsOfServiceScreen from "./screens/termsOfServiceScreen";
 import PrivacyPolicyScreen from "./screens/privacyPolicyScreen";
 import GetSupportScreen from "./screens/getSupportScreen";
 import i18n from "./languages/index"; //don't remove this line
@@ -62,7 +66,7 @@ import MaintenanceDetailScreen from "./screens/maintenanceDetailScreen";
 import ServiceBookingDetailScreen from "./screens/serviceBookingDetailScreen";
 import AmenityBookingDetailScreen from "./screens/amenityBookingDetailScreen";
 import JoinCommunityScreen from "./screens/joinCommunityScreen";
-import SocietyInfoScreen from "./screens/societyInfoScreen";
+import CommunityInfoScreen from "./screens/communityInfoScreen";
 import MemberDirectoryScreen from "./screens/memberDirectoryScreen";
 import UnitInformationScreen from "./screens/unitInformationScreen";
 import PinCodeScreen from "./screens/pinCodeScreen";
@@ -74,6 +78,10 @@ import BackupRestoreScreen from "./screens/backupRestoreScreen";
 import AppUpdatesScreen from "./screens/appUpdatesScreen";
 import DeleteAccountScreen from "./screens/deleteAccountScreen";
 import AboutAppScreen from "./screens/aboutAppScreen";
+import LicenseAgreementScreen from "./screens/licenseAgreementScreen";
+import OpenSourceLicensesScreen from "./screens/openSourceLicensesScreen";
+import PinSetupScreen from "./screens/pinSetupScreen";
+import LockScreen from "./screens/lockScreen";
 import { LogBox } from "react-native";
 
 const Stack = createStackNavigator();
@@ -82,8 +90,9 @@ LogBox.ignoreAllLogs();
 const MainNavigation = () => {
   return (
     <NavigationContainer>
-      <NotificationProvider>
-        <NotificationNavigationHandler>
+      <AppLockProvider>
+        <NotificationProvider>
+          <NotificationNavigationHandler>
           <Stack.Navigator
           initialRouteName="splashScreen"
           screenOptions={{
@@ -98,6 +107,7 @@ const MainNavigation = () => {
         <Stack.Screen name="splashScreen" component={SplashScreen} />
         <Stack.Screen name="onboardingScreen" component={OnboardingScreen} />
         <Stack.Screen name="loginScreen" component={LoginScreen} />
+        <Stack.Screen name="emailLoginScreen" component={EmailLoginScreen} />
         <Stack.Screen name="registerScreen" component={RegisterScreen} />
         <Stack.Screen
           name="verificationScreen"
@@ -123,8 +133,8 @@ const MainNavigation = () => {
           component={NotificationSettingsScreen}
         />
         <Stack.Screen
-          name="societyMemberScreen"
-          component={SocietyMemberScreen}
+          name="communityMemberScreen"
+          component={CommunityMemberScreen}
         />
         <Stack.Screen name="visitorsScreen" component={VisitorsScreen} />
         <Stack.Screen
@@ -135,9 +145,14 @@ const MainNavigation = () => {
         <Stack.Screen name="noticeDetailScreen" component={NoticeDetailScreen} />
         <Stack.Screen name="paymentScreen" component={PaymentScreen} />
         <Stack.Screen name="paymentHistoryScreen" component={PaymentHistoryScreen} />
+        <Stack.Screen name="billingHistoryScreen" component={BillingHistoryScreen} />
         <Stack.Screen
           name="paymentMethodScreen"
           component={PaymentMethodScreen}
+        />
+        <Stack.Screen
+          name="myPaymentMethodsScreen"
+          component={MyPaymentMethodsScreen}
         />
         <Stack.Screen name="creditCardScreen" component={CreditCardScreen} />
         <Stack.Screen name="mobileMoneyScreen" component={MobileMoneyScreen} />
@@ -186,8 +201,8 @@ const MainNavigation = () => {
         <Stack.Screen name="editProfileScreen" component={EditProfileScreen} />
         <Stack.Screen name="languageScreen" component={LanguageScreen} />
         <Stack.Screen
-          name="termsConditionScreen"
-          component={TermsConditionScreen}
+          name="termsOfServiceScreen"
+          component={TermsOfServiceScreen}
         />
         <Stack.Screen
           name="privacyPolicyScreen"
@@ -231,8 +246,8 @@ const MainNavigation = () => {
           component={JoinCommunityScreen}
         />
         <Stack.Screen
-          name="societyInfoScreen"
-          component={SocietyInfoScreen}
+          name="communityInfoScreen"
+          component={CommunityInfoScreen}
         />
         <Stack.Screen
           name="memberDirectoryScreen"
@@ -263,6 +278,10 @@ const MainNavigation = () => {
           component={BookingHistoryScreen}
         />
         <Stack.Screen
+          name="backupRestoreScreen"
+          component={BackupRestoreScreen}
+        />
+        <Stack.Screen
           name="appUpdatesScreen"
           component={AppUpdatesScreen}
         />
@@ -274,9 +293,26 @@ const MainNavigation = () => {
           name="aboutAppScreen"
           component={AboutAppScreen}
         />
-      </Stack.Navigator>
-      </NotificationNavigationHandler>
-      </NotificationProvider>
+        <Stack.Screen
+          name="licenseAgreementScreen"
+          component={LicenseAgreementScreen}
+        />
+        <Stack.Screen
+          name="openSourceLicensesScreen"
+          component={OpenSourceLicensesScreen}
+        />
+        <Stack.Screen
+          name="pinSetupScreen"
+          component={PinSetupScreen}
+        />
+        <Stack.Screen
+          name="lockScreen"
+          component={LockScreen}
+        />
+          </Stack.Navigator>
+          </NotificationNavigationHandler>
+        </NotificationProvider>
+      </AppLockProvider>
     </NavigationContainer>
   );
 };

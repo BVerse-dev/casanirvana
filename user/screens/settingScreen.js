@@ -83,8 +83,8 @@ const SettingScreen = ({ navigation }) => {
           key: "5",
           icon: MaterialCommunityIcons,
           iconName: "information-outline",
-          title: tr("societyInfo"),
-          navigateTo: "societyInfoScreen",
+          title: tr("communityInfo"),
+          navigateTo: "communityInfoScreen",
         },
         {
           key: "6",
@@ -129,14 +129,14 @@ const SettingScreen = ({ navigation }) => {
           icon: MaterialCommunityIcons,
           iconName: "credit-card-outline",
           title: tr("paymentMethods"),
-          navigateTo: "paymentMethodScreen",
+          navigateTo: "myPaymentMethodsScreen",
         },
         {
           key: "11",
           icon: MaterialCommunityIcons,
           iconName: "history",
           title: tr("billingHistory"),
-          navigateTo: "paymentHistoryScreen",
+          navigateTo: "billingHistoryScreen",
         },
       ]
     },
@@ -239,7 +239,7 @@ const SettingScreen = ({ navigation }) => {
           icon: MaterialIcons,
           iconName: "list-alt",
           title: tr("termsCondition"),
-          navigateTo: "termsConditionScreen",
+          navigateTo: "termsOfServiceScreen",
         },
         {
           key: "23",

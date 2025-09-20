@@ -49,10 +49,10 @@ export const useGenerateUserGatePass = () => {
         .select(`
           full_name, 
           email, 
-          society_id, 
+          community_id, 
           unit_id,
           units!profiles_unit_id_fkey(block, number),
-          societies!profiles_society_id_fkey(name)
+          communities!profiles_society_id_fkey(name)
         `)
         .eq('id', userId)
         .single();
@@ -66,11 +66,11 @@ export const useGenerateUserGatePass = () => {
         id: userGatePassId,
         name: profile.full_name,
         email: profile.email,
-        society_id: profile.society_id,
+        community_id: profile.community_id,
         unit_id: profile.unit_id,
         unit_block: profile.units?.[0]?.block,
         unit_number: profile.units?.[0]?.number,
-        society_name: profile.societies?.[0]?.name,
+        community_name: profile.communities?.[0]?.name,
         type: 'user_gate_pass',
         entry_code: entryCode,
         created_at: new Date().toISOString(),

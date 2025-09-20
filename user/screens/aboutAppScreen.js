@@ -13,7 +13,6 @@ import { Colors, Default, Fonts } from "../constants/styles";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import MyStatusBar from "../components/myStatusBar";
-import AwesomeButton from "react-native-really-awesome-button";
 
 const AboutAppScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
@@ -28,7 +27,7 @@ const AboutAppScreen = ({ navigation }) => {
     version: "2.1.4",
     buildNumber: "214",
     releaseDate: "July 28, 2024",
-    developer: "Casa Nirvana Technologies",
+    developer: "BVerse",
     description: "Your complete community management solution for modern residential living.",
     features: [
       "Community member directory and communication",
@@ -62,9 +61,9 @@ const AboutAppScreen = ({ navigation }) => {
 
   const [legalInfo] = useState([
     { title: "Privacy Policy", description: "How we collect, use, and protect your data", screen: "privacyPolicyScreen" },
-    { title: "Terms of Service", description: "Terms and conditions for using our app", screen: "termsConditionScreen" },
-    { title: "License Agreement", description: "End User License Agreement (EULA)", action: "external" },
-    { title: "Open Source Licenses", description: "Third-party libraries and their licenses", action: "external" },
+    { title: "Terms of Service", description: "Terms and conditions for using our app", screen: "termsOfServiceScreen" },
+    { title: "License Agreement", description: "End User License Agreement (EULA)", screen: "licenseAgreementScreen" },
+    { title: "Open Source Licenses", description: "Third-party libraries and their licenses", screen: "openSourceLicensesScreen" },
   ]);
 
   const openWebsite = () => {
@@ -299,7 +298,7 @@ const AboutAppScreen = ({ navigation }) => {
         {/* Contact Information */}
         <View style={styles.contactSection}>
           <View style={styles.sectionHeader}>
-            <MaterialCommunityIcons name="contact-mail" size={20} color={Colors.primary} />
+            <MaterialCommunityIcons name="phone-message" size={20} color={Colors.primary} />
             <Text style={styles.sectionTitle}>Get in Touch</Text>
           </View>
           
@@ -333,36 +332,26 @@ const AboutAppScreen = ({ navigation }) => {
 
         {/* App Actions */}
         <View style={styles.actionsSection}>
-          <AwesomeButton
-            style={styles.actionButton}
-            height={50}
+          <TouchableOpacity
+            style={[styles.actionButton, styles.rateButton]}
             onPress={rateApp}
-            backgroundColor={Colors.orange}
-            borderRadius={10}
           >
-            <View style={styles.buttonContent}>
-              <MaterialCommunityIcons name="star" size={20} color={Colors.white} />
-              <Text style={styles.buttonText}>Rate Our App</Text>
-            </View>
-          </AwesomeButton>
+            <MaterialCommunityIcons name="star" size={20} color={Colors.white} />
+            <Text style={styles.buttonText}>Rate Our App</Text>
+          </TouchableOpacity>
           
-          <AwesomeButton
-            style={styles.actionButton}
-            height={50}
+          <TouchableOpacity
+            style={[styles.actionButton, styles.shareButton]}
             onPress={shareApp}
-            backgroundColor={Colors.blue}
-            borderRadius={10}
           >
-            <View style={styles.buttonContent}>
-              <MaterialCommunityIcons name="share" size={20} color={Colors.white} />
-              <Text style={styles.buttonText}>Share with Friends</Text>
-            </View>
-          </AwesomeButton>
+            <MaterialCommunityIcons name="share" size={20} color={Colors.white} />
+            <Text style={styles.buttonText}>Share with Friends</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Copyright */}
         <View style={styles.copyrightSection}>
-          <Text style={styles.copyrightText}>© 2024 Casa Nirvana Technologies</Text>
+          <Text style={styles.copyrightText}>© 2024 BVerse</Text>
           <Text style={styles.copyrightSubtext}>All rights reserved</Text>
           <Text style={styles.versionFooter}>
             Built with ❤️ for modern communities
@@ -595,13 +584,23 @@ const styles = StyleSheet.create({
     marginBottom: Default.fixPadding * 2,
   },
   actionButton: {
-    width: "100%",
-    marginBottom: Default.fixPadding,
-  },
-  buttonContent: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    paddingHorizontal: Default.fixPadding * 2,
+    paddingVertical: Default.fixPadding * 1.2,
+    borderRadius: 10,
+    minHeight: 50,
+    width: "100%",
+    marginBottom: Default.fixPadding,
+    ...Default.shadow,
+    elevation: 3,
+  },
+  rateButton: {
+    backgroundColor: Colors.orange,
+  },
+  shareButton: {
+    backgroundColor: Colors.blue,
   },
   buttonText: {
     ...Fonts.SemiBold16white,

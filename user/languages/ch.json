@@ -57,7 +57,7 @@
         "helpDesk": "帮助台",
         "connectMember": "连接社会成员",
         "manageEntry": "管理访问者的条目",
-        "societyAnnouncement": "社会公告和活动通知",
+        "communityAnnouncement": "社区公告和活动通知",
         "directPayment": "直接支付社会应得的",
         "preBook": "预科学会便利设施",
         "complaint": "投诉和建议",
@@ -68,7 +68,7 @@
         "notification": "通知",
         "noNotification": "没有新的通知"
     },
-    "societyMemberScreen": {
+    "communityMemberScreen": {
         "members": "成员",
         "member": "成员",
         "admin": "行政",
@@ -408,7 +408,8 @@
         "getSupport": "得到支持",
         "termsCondition": "条款与协议",
         "privacyPolicy": "隐私政策",
-        "logout": "登出"
+        "logout": "登出",
+        "communityInfo": "社区信息"
     },
     "logoutModal": {
         "logout": "登出",
@@ -446,5 +447,45 @@
         "message": "信息",
         "enterYourMessage": "输入您的消息",
         "submitMessage": "提交消息"
+    },
+    "communityInfoScreen": {
+        "communityInfo": "社区信息",
+        "basicInformation": "基本信息",
+        "contactInformation": "联系信息",
+        "amenitiesFeatures": "设施和功能",
+        "communityName": "社区名称",
+        "address": "地址",
+        "description": "描述",
+        "establishedYear": "成立年份",
+        "totalUnits": "总单位数",
+        "phoneNumber": "电话号码",
+        "emailAddress": "电子邮件地址",
+        "website": "网站",
+        "establishedIn": "成立于",
+        "units": "单位",
+        "swimmingPool": "游泳池",
+        "gymnasium": "健身房",
+        "parking": "停车场",
+        "security24x7": "24/7安保",
+        "playground": "游乐场",
+        "wifiInternet": "WiFi网络"
+    },
+    "memberDirectoryScreen": {
+        "memberDirectory": "成员目录",
+        "searchMembers": "按姓名、楼栋或单元搜索...",
+        "all": "全部",
+        "admins": "管理员",
+        "committee": "委员会",
+        "members": "成员",
+        "admin": "管理员",
+        "member": "成员",
+        "showing": "显示",
+        "of": "共",
+        "totalMembers": "位成员",
+        "loadingMembers": "正在加载成员...",
+        "noMembersFound": "未找到成员",
+        "noSearchResults": "无搜索结果",
+        "tryDifferentSearch": "请尝试调整搜索条件",
+        "membersWillAppearHere": "成员加入后将显示在这里"
     }
 }

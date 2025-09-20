@@ -22,14 +22,17 @@ const HomeScreen = ({ navigation }) => {
     hasJoinedCommunity,
     hasPendingRequest, 
     unitDisplay,
-    communityLoading
+    communityLoading,
+    profileCommunityId: profile?.community_id,
+    profileUnitId: profile?.unit_id,
+    profileEmail: profile?.email
   });
 
   // Real notification system
   const { data: unreadCount = 0 } = useUnreadNotificationsCount();
   
   // Fetch latest notices for the banner
-  const { data: noticesResponse } = useListNotices(profile?.society_id, 1, 1);
+  const { data: noticesResponse } = useListNotices(profile?.community_id, 1, 1);
   const latestNotice = noticesResponse?.data?.[0];
   
   // Set up real-time subscriptions
@@ -63,7 +66,7 @@ const HomeScreen = ({ navigation }) => {
       image: require("../assets/images/community1.png"),
       title: tr("members"),
       other: tr("connectMember"),
-      navigateTo: "societyMemberScreen",
+      navigateTo: "communityMemberScreen",
     },
     {
       key: "2",

@@ -68,7 +68,7 @@
         "notification": "Pemberitahuan",
         "noNotification": "Tidak ada pemberitahuan baru"
     },
-    "societyMemberScreen": {
+    "communityMemberScreen": {
         "members": "Anggota",
         "member": "Anggota",
         "admin": "admin",
@@ -408,7 +408,8 @@
         "getSupport": "Dapatkan dukungan",
         "termsCondition": "Syarat & Kondisi",
         "privacyPolicy": "Kebijakan pribadi",
-        "logout": "Keluar"
+        "logout": "Keluar",
+        "communityInfo": "Informasi Komunitas"
     },
     "logoutModal": {
         "logout": "Keluar",
@@ -446,5 +447,45 @@
         "message": "Pesan",
         "enterYourMessage": "Masukkan pesan Anda",
         "submitMessage": "Kirim pesan"
+    },
+    "communityInfoScreen": {
+        "communityInfo": "Informasi Komunitas",
+        "basicInformation": "Informasi Dasar",
+        "contactInformation": "Informasi Kontak",
+        "amenitiesFeatures": "Fasilitas dan Fitur",
+        "communityName": "Nama Komunitas",
+        "address": "Alamat",
+        "description": "Deskripsi",
+        "establishedYear": "Tahun Didirikan",
+        "totalUnits": "Total Unit",
+        "phoneNumber": "Nomor Telepon",
+        "emailAddress": "Alamat Email",
+        "website": "Situs Web",
+        "establishedIn": "Didirikan pada",
+        "units": "Unit",
+        "swimmingPool": "Kolam Renang",
+        "gymnasium": "Gimnasium",
+        "parking": "Parkir",
+        "security24x7": "Keamanan 24/7",
+        "playground": "Taman Bermain",
+        "wifiInternet": "WiFi Internet"
+    },
+    "memberDirectoryScreen": {
+        "memberDirectory": "Direktori Anggota",
+        "searchMembers": "Cari berdasarkan nama, blok, atau unit...",
+        "all": "Semua",
+        "admins": "Administrator",
+        "committee": "Komite",
+        "members": "Anggota",
+        "admin": "Admin",
+        "member": "Anggota",
+        "showing": "Menampilkan",
+        "of": "dari",
+        "totalMembers": "total anggota",
+        "loadingMembers": "Memuat anggota...",
+        "noMembersFound": "Tidak Ada Anggota",
+        "noSearchResults": "Tidak Ada Hasil",
+        "tryDifferentSearch": "Coba sesuaikan kata kunci pencarian",
+        "membersWillAppearHere": "Anggota akan muncul di sini setelah bergabung"
     }
 }

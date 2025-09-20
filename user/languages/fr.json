@@ -57,7 +57,7 @@
         "helpDesk": "Bureau d'aide",
         "connectMember": "Membre de la société connectée",
         "manageEntry": "Gérer l'entrée des visiteurs",
-        "societyAnnouncement": "Annonce de la société et avis d'événement",
+        "communityAnnouncement": "Annonce de la communauté et avis d'événement",
         "directPayment": "Paiement direct de la société due",
         "preBook": "Amérités de la société pré-livre",
         "complaint": "Plainte et suggestion",
@@ -68,7 +68,7 @@
         "notification": "notification",
         "noNotification": "Aucune nouvelle notification"
     },
-    "societyMemberScreen": {
+    "communityMemberScreen": {
         "members": "Membres",
         "member": "Membre",
         "admin": "Administrer",
@@ -409,7 +409,8 @@
         "getSupport": "Obtenir de l'aide",
         "termsCondition": "Termes et conditions",
         "privacyPolicy": "Politique de confidentialité",
-        "logout": "Se déconnecter"
+        "logout": "Se déconnecter",
+        "communityInfo": "Informations Communautaires"
     },
     "logoutModal": {
         "logout": "Se déconnecter",
@@ -472,5 +473,45 @@
         "message": "message",
         "enterYourMessage": "entrez votre message",
         "submitMessage": "Soumettre un message"
+    },
+    "communityInfoScreen": {
+        "communityInfo": "Informations Communautaires",
+        "basicInformation": "Informations de Base",
+        "contactInformation": "Informations de Contact",
+        "amenitiesFeatures": "Équipements et Fonctionnalités",
+        "communityName": "Nom de la Communauté",
+        "address": "Adresse",
+        "description": "Description",
+        "establishedYear": "Année de Création",
+        "totalUnits": "Nombre Total d'Unités",
+        "phoneNumber": "Numéro de Téléphone",
+        "emailAddress": "Adresse E-mail",
+        "website": "Site Web",
+        "establishedIn": "Créé en",
+        "units": "Unités",
+        "swimmingPool": "Piscine",
+        "gymnasium": "Gymnase",
+        "parking": "Parking",
+        "security24x7": "Sécurité 24h/24",
+        "playground": "Aire de Jeux",
+        "wifiInternet": "WiFi Internet"
+    },
+    "memberDirectoryScreen": {
+        "memberDirectory": "Annuaire des Membres",
+        "searchMembers": "Rechercher par nom, bloc ou unité...",
+        "all": "Tous",
+        "admins": "Administrateurs",
+        "committee": "Comité",
+        "members": "Membres",
+        "admin": "Admin",
+        "member": "Membre",
+        "showing": "Affichage",
+        "of": "de",
+        "totalMembers": "membres au total",
+        "loadingMembers": "Chargement des membres...",
+        "noMembersFound": "Aucun Membre Trouvé",
+        "noSearchResults": "Aucun Résultat",
+        "tryDifferentSearch": "Essayez d'ajuster vos termes de recherche",
+        "membersWillAppearHere": "Les membres apparaîtront ici une fois qu'ils auront rejoint"
     }
 }

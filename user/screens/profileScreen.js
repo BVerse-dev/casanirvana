@@ -87,10 +87,10 @@ const ProfileScreen = ({ navigation }) => {
           email, 
           qr_code_data, 
           entry_code, 
-          society_id, 
+          community_id, 
           unit_id,
           units(block, number),
-          societies!profiles_society_id_fkey(name)
+          communities!profiles_society_id_fkey(name)
         `)
         .eq('user_id', demoUserId)
         .single();

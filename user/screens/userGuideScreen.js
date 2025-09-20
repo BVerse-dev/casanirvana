@@ -263,12 +263,6 @@ const UserGuideScreen = ({ navigation }) => {
     
     return (
       <ScrollView style={styles.detailContainer}>
-        <View style={styles.detailHeader}>
-          <TouchableOpacity onPress={() => setSelectedSection(null)} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={Colors.primary} />
-          </TouchableOpacity>
-          <Text style={styles.detailTitle}>{selectedSection.title}</Text>
-        </View>
 
         <View style={styles.progressContainer}>
           <Text style={styles.progressText}>
@@ -381,12 +375,22 @@ const UserGuideScreen = ({ navigation }) => {
     <View style={styles.screen}>
       <MyStatusBar />
       <View style={styles.headerRow}>
-        <TouchableOpacity onPress={backAction} style={styles.headerBackBtn}>
+        <TouchableOpacity 
+          onPress={selectedSection ? () => setSelectedSection(null) : backAction} 
+          style={styles.headerBackBtn}
+        >
           <Ionicons name="arrow-back-outline" size={25} color={Colors.black} />
         </TouchableOpacity>
-        <Text style={styles.headerTitleText}>
-          {selectedSection ? selectedSection.title : "User Guide"}
-        </Text>
+        <View style={styles.headerTitleContainer}>
+          <Text style={styles.headerTitleText}>
+            {selectedSection ? selectedSection.title : "User Guide"}
+          </Text>
+        </View>
+        {selectedSection && (
+          <TouchableOpacity onPress={backAction} style={styles.settingsBackBtn}>
+            <Ionicons name="close-outline" size={25} color={Colors.grey} />
+          </TouchableOpacity>
+        )}
       </View>
       
       {selectedSection ? renderDetailedView() : renderMainView()}
@@ -408,6 +412,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderBottomWidth: 1,
     borderBottomColor: Colors.lightGrey,
+    minHeight: 60,
   },
   headerBackBtn: {
     width: 44,
@@ -416,14 +421,25 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.16)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 2,
+  },
+  headerTitleContainer: {
+    flex: 1,
+    marginLeft: Default.fixPadding,
+    justifyContent: 'center',
   },
   headerTitleText: {
     ...Fonts.SemiBold18black,
     letterSpacing: 0.2,
     color: Colors.black,
+  },
+  settingsBackBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginLeft: Default.fixPadding,
-    marginBottom: 2,
   },
   container: {
     flex: 1,
@@ -499,22 +515,6 @@ const styles = StyleSheet.create({
     ...Fonts.Medium12grey,
   },
   detailContainer: {
-    flex: 1,
-  },
-  detailHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Default.fixPadding * 2,
-    backgroundColor: Colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.lightGrey,
-  },
-  backButton: {
-    marginRight: Default.fixPadding * 1.5,
-    padding: Default.fixPadding * 0.5,
-  },
-  detailTitle: {
-    ...Fonts.SemiBold18black,
     flex: 1,
   },
   progressContainer: {

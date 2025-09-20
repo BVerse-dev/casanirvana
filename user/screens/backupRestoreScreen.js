@@ -7,6 +7,7 @@ import {
   Alert,
   ProgressBarAndroid,
   Platform,
+  Modal,
 } from "react-native";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -14,7 +15,6 @@ import { Colors, Default, Fonts } from "../constants/styles";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import MyStatusBar from "../components/myStatusBar";
-import AwesomeButton from "react-native-really-awesome-button";
 
 const BackupRestoreScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
@@ -28,6 +28,13 @@ const BackupRestoreScreen = ({ navigation }) => {
   const [isRestoring, setIsRestoring] = useState(false);
   const [backupProgress, setBackupProgress] = useState(0);
   const [restoreProgress, setRestoreProgress] = useState(0);
+  const [autoBackupEnabled, setAutoBackupEnabled] = useState(true);
+  const [selectedBackupLocation, setSelectedBackupLocation] = useState("Google Drive");
+  
+  // Modal states
+  const [showAutoBackupModal, setShowAutoBackupModal] = useState(false);
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const [backupInfo] = useState({
     lastBackup: "2024-07-30 14:30",
@@ -133,6 +140,18 @@ const BackupRestoreScreen = ({ navigation }) => {
     );
   };
 
+  const handleAutoBackupToggle = () => {
+    setShowAutoBackupModal(true);
+  };
+
+  const handleBackupLocationSelect = () => {
+    setShowLocationModal(true);
+  };
+
+  const handleDeleteOldBackups = () => {
+    setShowDeleteModal(true);
+  };
+
   const DataTypeCard = ({ item }) => (
     <View style={styles.dataTypeCard}>
       <View style={styles.dataTypeLeft}>
@@ -157,6 +176,170 @@ const BackupRestoreScreen = ({ navigation }) => {
         />
       </View>
     </View>
+  );
+
+  // Auto Backup Toggle Modal
+  const AutoBackupModal = () => (
+    <Modal
+      animationType="fade"
+      transparent={true}
+      visible={showAutoBackupModal}
+      onRequestClose={() => setShowAutoBackupModal(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <MaterialCommunityIcons name="cloud-sync" size={48} color={Colors.blue} />
+            <Text style={styles.modalTitle}>Auto Backup</Text>
+          </View>
+          
+          <Text style={styles.modalMessage}>
+            {autoBackupEnabled 
+              ? 'Disable automatic weekly backups? Your data won\'t be backed up automatically.' 
+              : 'Enable automatic weekly backups? Your data will be backed up every week.'}
+          </Text>
+          
+          <View style={styles.modalButtons}>
+            <TouchableOpacity 
+              style={[styles.modalButton, styles.cancelButton]}
+              onPress={() => setShowAutoBackupModal(false)}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.modalButton, styles.confirmButton]}
+              onPress={() => {
+                setAutoBackupEnabled(!autoBackupEnabled);
+                setShowAutoBackupModal(false);
+                Alert.alert("Success", `Auto backup ${!autoBackupEnabled ? 'enabled' : 'disabled'} successfully!`);
+              }}
+            >
+              <Text style={styles.confirmButtonText}>
+                {autoBackupEnabled ? 'Disable' : 'Enable'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+
+  // Backup Location Selection Modal
+  const BackupLocationModal = () => {
+    const locations = [
+      { name: "Google Drive", icon: "google-drive", color: Colors.blue },
+      { name: "iCloud", icon: "cloud", color: Colors.green },
+      { name: "Local Storage", icon: "cellphone", color: Colors.orange },
+      { name: "Dropbox", icon: "dropbox", color: Colors.primary }
+    ];
+
+    return (
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={showLocationModal}
+        onRequestClose={() => setShowLocationModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <MaterialCommunityIcons name="cloud" size={48} color={Colors.green} />
+              <Text style={styles.modalTitle}>Backup Location</Text>
+            </View>
+            
+            <Text style={styles.modalMessage}>Choose where to store your backups:</Text>
+            
+            <View style={styles.locationOptions}>
+              {locations.map((location) => (
+                <TouchableOpacity
+                  key={location.name}
+                  style={[
+                    styles.locationOption,
+                    selectedBackupLocation === location.name && styles.selectedLocationOption
+                  ]}
+                  onPress={() => {
+                    setSelectedBackupLocation(location.name);
+                    setShowLocationModal(false);
+                    Alert.alert("Success", `Backup location set to ${location.name}!`);
+                  }}
+                >
+                  <MaterialCommunityIcons 
+                    name={location.icon} 
+                    size={24} 
+                    color={location.color} 
+                  />
+                  <Text style={styles.locationOptionText}>{location.name}</Text>
+                  {selectedBackupLocation === location.name && (
+                    <MaterialCommunityIcons 
+                      name="check-circle" 
+                      size={20} 
+                      color={Colors.green} 
+                    />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+            
+            <View style={styles.locationModalButtons}>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.locationCancelButton]}
+                onPress={() => setShowLocationModal(false)}
+              >
+                <Text style={styles.locationCancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
+
+  // Delete Old Backups Confirmation Modal
+  const DeleteBackupsModal = () => (
+    <Modal
+      animationType="fade"
+      transparent={true}
+      visible={showDeleteModal}
+      onRequestClose={() => setShowDeleteModal(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <MaterialCommunityIcons name="delete-alert" size={48} color={Colors.red} />
+            <Text style={styles.modalTitle}>Delete Old Backups</Text>
+          </View>
+          
+          <Text style={styles.modalMessage}>
+            This will permanently delete all backups older than 30 days. This action cannot be undone.
+          </Text>
+          
+          <View style={styles.warningBox}>
+            <MaterialCommunityIcons name="alert" size={20} color={Colors.orange} />
+            <Text style={styles.warningText}>This action is irreversible!</Text>
+          </View>
+          
+          <View style={styles.modalButtons}>
+            <TouchableOpacity 
+              style={[styles.modalButton, styles.cancelButton]}
+              onPress={() => setShowDeleteModal(false)}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.modalButton, styles.deleteButton]}
+              onPress={() => {
+                setShowDeleteModal(false);
+                Alert.alert("Success", "Old backups deleted successfully!");
+              }}
+            >
+              <Text style={styles.deleteButtonText}>Delete</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
   );
 
   return (
@@ -266,37 +449,27 @@ const BackupRestoreScreen = ({ navigation }) => {
 
         {/* Actions */}
         <View style={styles.actionsSection}>
-          <AwesomeButton
-            style={styles.actionButton}
-            height={50}
+          <TouchableOpacity
+            style={[styles.actionButton, styles.backupButton]}
             onPress={simulateBackup}
-            backgroundColor={Colors.primary}
-            borderRadius={10}
             disabled={isBackingUp || isRestoring}
           >
-            <View style={styles.buttonContent}>
-              <MaterialCommunityIcons name="backup-restore" size={20} color={Colors.white} />
-              <Text style={styles.buttonText}>
-                {isBackingUp ? "Creating Backup..." : "Backup Now"}
-              </Text>
-            </View>
-          </AwesomeButton>
+            <MaterialCommunityIcons name="backup-restore" size={20} color={Colors.white} />
+            <Text style={styles.buttonText}>
+              {isBackingUp ? "Creating Backup..." : "Backup Now"}
+            </Text>
+          </TouchableOpacity>
 
-          <AwesomeButton
-            style={styles.actionButton}
-            height={50}
+          <TouchableOpacity
+            style={[styles.actionButton, styles.restoreButton]}
             onPress={simulateRestore}
-            backgroundColor={Colors.orange}
-            borderRadius={10}
             disabled={isBackingUp || isRestoring}
           >
-            <View style={styles.buttonContent}>
-              <MaterialCommunityIcons name="restore" size={20} color={Colors.white} />
-              <Text style={styles.buttonText}>
-                {isRestoring ? "Restoring..." : "Restore from Backup"}
-              </Text>
-            </View>
-          </AwesomeButton>
+            <MaterialCommunityIcons name="restore" size={20} color={Colors.white} />
+            <Text style={styles.buttonText}>
+              {isRestoring ? "Restoring..." : "Restore from Backup"}
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* Settings */}
@@ -306,25 +479,27 @@ const BackupRestoreScreen = ({ navigation }) => {
             <Text style={styles.sectionTitle}>Backup Settings</Text>
           </View>
           
-          <TouchableOpacity style={styles.settingRow}>
+          <TouchableOpacity style={styles.settingRow} onPress={handleAutoBackupToggle}>
             <MaterialCommunityIcons name="cloud-sync" size={24} color={Colors.blue} />
             <View style={styles.settingInfo}>
               <Text style={styles.settingName}>Auto Backup</Text>
-              <Text style={styles.settingDescription}>Automatically backup your data weekly</Text>
+              <Text style={styles.settingDescription}>
+                {autoBackupEnabled ? 'Enabled - Weekly backups' : 'Disabled - Tap to enable'}
+              </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={Colors.grey} />
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.settingRow}>
+          <TouchableOpacity style={styles.settingRow} onPress={handleBackupLocationSelect}>
             <MaterialCommunityIcons name="cloud" size={24} color={Colors.green} />
             <View style={styles.settingInfo}>
               <Text style={styles.settingName}>Backup Location</Text>
-              <Text style={styles.settingDescription}>Choose where to store your backups</Text>
+              <Text style={styles.settingDescription}>Current: {selectedBackupLocation}</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={Colors.grey} />
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.settingRow}>
+          <TouchableOpacity style={styles.settingRow} onPress={handleDeleteOldBackups}>
             <MaterialCommunityIcons name="delete" size={24} color={Colors.red} />
             <View style={styles.settingInfo}>
               <Text style={styles.settingName}>Delete Old Backups</Text>
@@ -334,6 +509,11 @@ const BackupRestoreScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
       </ScrollView>
+      
+      {/* Custom Modals */}
+      <AutoBackupModal />
+      <BackupLocationModal />
+      <DeleteBackupsModal />
     </View>
   );
 };
@@ -458,15 +638,24 @@ const styles = StyleSheet.create({
   actionsSection: {
     paddingHorizontal: Default.fixPadding * 2,
     marginBottom: Default.fixPadding * 2,
+    gap: Default.fixPadding,
   },
   actionButton: {
-    width: "100%",
-    marginBottom: Default.fixPadding,
-  },
-  buttonContent: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    paddingHorizontal: Default.fixPadding * 2,
+    paddingVertical: Default.fixPadding * 1.2,
+    borderRadius: 10,
+    minHeight: 50,
+    ...Default.shadow,
+    elevation: 3,
+  },
+  backupButton: {
+    backgroundColor: Colors.primary,
+  },
+  restoreButton: {
+    backgroundColor: Colors.orange,
   },
   buttonText: {
     ...Fonts.SemiBold16white,
@@ -489,5 +678,131 @@ const styles = StyleSheet.create({
   },
   settingDescription: {
     ...Fonts.Medium12grey,
+  },
+  
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: Default.fixPadding * 2,
+    paddingVertical: Default.fixPadding * 3,
+  },
+  modalContainer: {
+    backgroundColor: Colors.white,
+    borderRadius: 20,
+    paddingTop: Default.fixPadding * 2,
+    paddingHorizontal: Default.fixPadding * 2,
+    paddingBottom: Default.fixPadding * 3.5,
+    width: '100%',
+    maxWidth: 400,
+    maxHeight: '80%',
+    ...Default.shadow,
+    elevation: 10,
+  },
+  modalHeader: {
+    alignItems: 'center',
+    marginBottom: Default.fixPadding * 1.5,
+  },
+  modalTitle: {
+    ...Fonts.SemiBold20black,
+    marginTop: Default.fixPadding,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    ...Fonts.Medium16grey,
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: Default.fixPadding * 1.2,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: Default.fixPadding,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: Default.fixPadding * 1.2,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 48,
+  },
+  cancelButton: {
+    backgroundColor: Colors.lightGrey,
+    borderWidth: 1,
+    borderColor: Colors.grey,
+  },
+  cancelButtonText: {
+    ...Fonts.SemiBold16black,
+    color: Colors.darkGrey,
+  },
+  confirmButton: {
+    backgroundColor: Colors.blue,
+  },
+  confirmButtonText: {
+    ...Fonts.SemiBold16white,
+  },
+  deleteButton: {
+    backgroundColor: Colors.primary,
+  },
+  deleteButtonText: {
+    ...Fonts.SemiBold16white,
+  },
+  
+  // Location Selection Styles
+  locationOptions: {
+    marginBottom: Default.fixPadding * 0.8,
+    maxHeight: 300,
+  },
+  locationOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Default.fixPadding,
+    borderRadius: 12,
+    marginBottom: Default.fixPadding * 0.5,
+    backgroundColor: Colors.extraLightGrey,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  selectedLocationOption: {
+    backgroundColor: Colors.primary + '10',
+    borderColor: Colors.primary,
+  },
+  locationOptionText: {
+    ...Fonts.Medium16black,
+    flex: 1,
+    marginLeft: Default.fixPadding,
+  },
+  locationModalButtons: {
+    paddingTop: Default.fixPadding * 0.8,
+    paddingBottom: Default.fixPadding * 1.2,
+    borderTopWidth: 1,
+    borderTopColor: Colors.extraLightGrey,
+    marginTop: Default.fixPadding * 0.4,
+  },
+  locationCancelButton: {
+    backgroundColor: Colors.primary,
+    width: '100%',
+  },
+  locationCancelButtonText: {
+    ...Fonts.SemiBold16white,
+    color: Colors.white,
+  },
+  
+  // Warning Box
+  warningBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.orange + '15',
+    padding: Default.fixPadding,
+    borderRadius: 8,
+    marginBottom: Default.fixPadding * 1.5,
+  },
+  warningText: {
+    ...Fonts.Medium14black,
+    marginLeft: Default.fixPadding * 0.5,
+    color: Colors.orange,
+    fontWeight: '600',
   },
 });

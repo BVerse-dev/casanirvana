@@ -8,16 +8,16 @@ import {
   TouchableOpacity,
   TextInput,
   ScrollView,
+  Alert,
 } from "react-native";
 import { Colors, Fonts, Default } from "../../constants/styles";
 import { useTranslation } from "react-i18next";
 import MyStatusBar from "../../components/myStatusBar";
 import AwesomeButton from "react-native-really-awesome-button";
-import { supabase } from "../../utils/supabase";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import FontAwesome from "react-native-vector-icons/FontAwesome";
 import Feather from "react-native-vector-icons/Feather";
-
+import { supabase } from "../../utils/supabase";
 const RegisterScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
 
@@ -26,12 +26,14 @@ const RegisterScreen = ({ navigation }) => {
   function tr(key) {
     return t(`registerScreen:${key}`);
   }
+  
   const backAction = () => {
     navigation.pop();
     return true;
-  };  useEffect(() => {
+  };
+  
+  useEffect(() => {
     const subscription = BackHandler.addEventListener("hardwareBackPress", backAction);
-
     return () => {
       subscription?.remove();
     };
@@ -46,30 +48,83 @@ const RegisterScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const validateForm = () => {
+    if (!firstName.trim()) {
+      setError("First name is required");
+      return false;
+    }
+    if (!lastName.trim()) {
+      setError("Last name is required");
+      return false;
+    }
+    if (!mobile.trim()) {
+      setError("Mobile number is required");
+      return false;
+    }
+    if (!email.trim()) {
+      setError("Email address is required");
+      return false;
+    }
+    if (!email.includes('@')) {
+      setError("Please enter a valid email address");
+      return false;
+    }
+    if (!password.trim()) {
+      setError("Password is required");
+      return false;
+    }
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters long");
+      return false;
+    }
+    return true;
+  };
+
   const handleRegister = async (next) => {
-    setLoading(true);
     setError("");
+    
+    if (!validateForm()) {
+      return;
+    }
+
     try {
+      setLoading(true);
+      
       const { data, error } = await supabase.auth.signUp({
-        email,
+        email: email.trim(),
         password,
         options: {
           data: {
-            first_name: firstName,
-            last_name: lastName,
-            mobile: mobile,
+            first_name: firstName.trim(),
+            last_name: lastName.trim(),
+            mobile: mobile.trim(),
           },
         },
       });
+
       if (error) {
-        setError(error.message || tr("registrationFailed"));
+        setError(error.message || "Registration failed. Please try again.");
         return;
       }
+
       // Registration successful
-      next();
-      navigation.push("verificationScreen");
+      Alert.alert(
+        'Registration Successful!',
+        'Please check your email to verify your account, then sign in.',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              next();
+              navigation.push("verificationScreen");
+            },
+          },
+        ],
+      );
+      
     } catch (err) {
-      setError(err.message || tr("registrationFailed"));
+      console.error("Registration error:", err);
+      setError(err.message || "Registration failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -316,7 +371,7 @@ const RegisterScreen = ({ navigation }) => {
 
           <View
             style={{
-              marginTop: Default.fixPadding * 6,
+              marginTop: Default.fixPadding * 3,
               marginBottom: Default.fixPadding * 2,
               marginHorizontal: Default.fixPadding * 2,
             }}
@@ -335,14 +390,33 @@ const RegisterScreen = ({ navigation }) => {
               disabled={loading}
             >
               {loading ? (
-                <Text style={{ ...Fonts.SemiBold18white }}>{tr("loading") || "Loading..."}</Text>
+                <Text style={{ ...Fonts.SemiBold18white }}>Signing Up...</Text>
               ) : (
                 <Text style={{ ...Fonts.SemiBold18white }}>{tr("register")}</Text>
               )}
             </AwesomeButton>
             {!!error && (
-              <Text style={{ color: Colors.red, marginTop: 10, textAlign: "center" }}>{error}</Text>
+              <Text style={{ color: Colors.red, marginTop: 10, textAlign: "center" }}>
+                {error}
+              </Text>
             )}
+          </View>
+
+          <View style={{ 
+            alignItems: 'center', 
+            marginHorizontal: Default.fixPadding * 2,
+            marginBottom: Default.fixPadding * 2 
+          }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={{
+                ...Fonts.SemiBold14grey
+              }}>
+                Already have an account? 
+              </Text>
+              <TouchableOpacity onPress={() => navigation.goBack()}>
+                <Text style={{...Fonts.SemiBold14primary}}> Sign In</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </ScrollView>
       </ImageBackground>

@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Alert,
   TextInput,
+  Modal,
 } from "react-native";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -13,7 +14,6 @@ import { Colors, Default, Fonts } from "../constants/styles";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import MyStatusBar from "../components/myStatusBar";
-import AwesomeButton from "react-native-really-awesome-button";
 
 const DeleteAccountScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
@@ -28,14 +28,24 @@ const DeleteAccountScreen = ({ navigation }) => {
   const [otherReason, setOtherReason] = useState("");
   const [confirmationText, setConfirmationText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
+  
+  // Alternative modals state
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [showDeactivateModal, setShowDeactivateModal] = useState(false);
+  const [showContactModal, setShowContactModal] = useState(false);
+
+  // Alternative handlers
+  const exportData = () => setShowExportModal(true);
+  const deactivateAccount = () => setShowDeactivateModal(true);
+  const contactSupport = () => setShowContactModal(true);
 
   const deleteReasons = [
     { id: "privacy", text: "Privacy concerns", icon: "shield-alert" },
-    { id: "not_using", text: "Not using the app anymore", icon: "clock-off" },
-    { id: "too_many_notifications", text: "Too many notifications", icon: "bell-off" },
+    { id: "not_using", text: "Not using the app anymore", icon: "clock-outline" },
+    { id: "too_many_notifications", text: "Too many notifications", icon: "bell-off-outline" },
     { id: "found_alternative", text: "Found a better alternative", icon: "swap-horizontal" },
     { id: "technical_issues", text: "Technical issues", icon: "bug" },
-    { id: "moving_out", text: "Moving out of community", icon: "home-export" },
+    { id: "moving_out", text: "Moving out of community", icon: "home-minus" },
     { id: "other", text: "Other reason", icon: "dots-horizontal" },
   ];
 
@@ -81,24 +91,6 @@ const DeleteAccountScreen = ({ navigation }) => {
     }, 3000);
   };
 
-  const exportData = () => {
-    Alert.alert(
-      "Export Data",
-      "Your data will be prepared and sent to your registered email address within 24 hours.",
-      [{ text: "OK" }]
-    );
-  };
-
-  const contactSupport = () => {
-    Alert.alert(
-      "Contact Support",
-      "Need help before deleting your account? Our support team is here to assist you.",
-      [
-        { text: "Cancel", style: "cancel" },
-        { text: "Contact Support", onPress: () => console.log("Opening support...") },
-      ]
-    );
-  };
 
   const renderStep1 = () => (
     <ScrollView showsVerticalScrollIndicator={false}>
@@ -148,7 +140,7 @@ const DeleteAccountScreen = ({ navigation }) => {
           <Ionicons name="chevron-forward" size={20} color={Colors.grey} />
         </TouchableOpacity>
         
-        <TouchableOpacity style={styles.alternativeItem}>
+        <TouchableOpacity style={styles.alternativeItem} onPress={deactivateAccount}>
           <MaterialCommunityIcons name="pause-circle" size={24} color={Colors.green} />
           <View style={styles.alternativeInfo}>
             <Text style={styles.alternativeTitle}>Deactivate Account</Text>
@@ -172,15 +164,12 @@ const DeleteAccountScreen = ({ navigation }) => {
       </View>
 
       <View style={styles.actionsSection}>
-        <AwesomeButton
-          style={styles.actionButton}
-          height={50}
+        <TouchableOpacity
+          style={[styles.actionButton, styles.deleteButton]}
           onPress={() => setStep(2)}
-          backgroundColor={Colors.red}
-          borderRadius={10}
         >
           <Text style={styles.deleteButtonText}>Continue with Deletion</Text>
-        </AwesomeButton>
+        </TouchableOpacity>
         
         <TouchableOpacity
           style={styles.cancelButton}
@@ -242,15 +231,12 @@ const DeleteAccountScreen = ({ navigation }) => {
       </View>
 
       <View style={styles.actionsSection}>
-        <AwesomeButton
-          style={styles.actionButton}
-          height={50}
+        <TouchableOpacity
+          style={[styles.actionButton, styles.deleteButton]}
           onPress={() => setStep(3)}
-          backgroundColor={Colors.red}
-          borderRadius={10}
         >
           <Text style={styles.deleteButtonText}>Proceed to Final Step</Text>
-        </AwesomeButton>
+        </TouchableOpacity>
         
         <TouchableOpacity
           style={styles.backButton}
@@ -299,18 +285,19 @@ const DeleteAccountScreen = ({ navigation }) => {
       )}
 
       <View style={styles.actionsSection}>
-        <AwesomeButton
-          style={styles.actionButton}
-          height={50}
+        <TouchableOpacity
+          style={[
+            styles.actionButton, 
+            styles.deleteButton,
+            (isDeleting || confirmationText.toLowerCase() !== "delete my account") && styles.disabledButton
+          ]}
           onPress={confirmDeletion}
-          backgroundColor={Colors.red}
-          borderRadius={10}
           disabled={isDeleting || confirmationText.toLowerCase() !== "delete my account"}
         >
           <Text style={styles.deleteButtonText}>
             {isDeleting ? "Deleting..." : "Delete My Account Forever"}
           </Text>
-        </AwesomeButton>
+        </TouchableOpacity>
         
         <TouchableOpacity
           style={styles.backButton}
@@ -402,6 +389,171 @@ const DeleteAccountScreen = ({ navigation }) => {
         {step === 2 && renderStep2()}
         {step === 3 && renderStep3()}
       </View>
+
+      {/* Export Data Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={showExportModal}
+        onRequestClose={() => setShowExportModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <MaterialCommunityIcons 
+                name="download" 
+                size={50} 
+                color={Colors.blue} 
+              />
+              <Text style={styles.modalTitle}>Export Your Data</Text>
+            </View>
+            
+            <Text style={styles.modalMessage}>
+              We'll prepare a comprehensive export of your data including:
+              {'\n\n'}• Profile information and preferences{'\n'}
+              • Payment methods and billing history{'\n'}
+              • Service bookings and maintenance requests{'\n'}
+              • Messages and communication history{'\n'}
+              • Community interactions and notifications
+              {'\n\n'}
+              The export will be sent to your registered email address within 24 hours.
+            </Text>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={styles.modalCancelButton}
+                onPress={() => setShowExportModal(false)}
+              >
+                <Text style={styles.modalCancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.confirmButton}
+                onPress={() => {
+                  setShowExportModal(false);
+                  Alert.alert('Export Requested', 'Your data export has been initiated. You will receive an email with download instructions within 24 hours.');
+                }}
+              >
+                <Text style={styles.confirmButtonText}>Export</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Deactivate Account Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={showDeactivateModal}
+        onRequestClose={() => setShowDeactivateModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <MaterialCommunityIcons 
+                name="pause-circle" 
+                size={50} 
+                color={Colors.green} 
+              />
+              <Text style={styles.modalTitle}>Deactivate Account</Text>
+            </View>
+            
+            <Text style={styles.modalMessage}>
+              Deactivating your account will:
+              {'\n\n'}• Hide your profile from other community members{'\n'}
+              • Pause all notifications and communications{'\n'}
+              • Preserve all your data and settings{'\n'}
+              • Allow you to reactivate anytime by logging in
+              {'\n\n'}
+              This is a reversible alternative to permanent deletion.
+            </Text>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={styles.modalCancelButton}
+                onPress={() => setShowDeactivateModal(false)}
+              >
+                <Text style={styles.modalCancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.confirmButton}
+                onPress={() => {
+                  setShowDeactivateModal(false);
+                  Alert.alert('Account Deactivated', 'Your account has been deactivated. You can reactivate it anytime by logging in.');
+                  navigation.goBack();
+                }}
+              >
+                <Text style={styles.confirmButtonText}>Deactivate</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Contact Support Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={showContactModal}
+        onRequestClose={() => setShowContactModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <MaterialCommunityIcons 
+                name="help-circle" 
+                size={50} 
+                color={Colors.primary} 
+              />
+              <Text style={styles.modalTitle}>Contact Support</Text>
+            </View>
+            
+            <Text style={styles.modalMessage}>
+              Our support team is here to help! We can assist with:
+              {'\n\n'}• Technical issues and bug reports{'\n'}
+              • Account and privacy concerns{'\n'}
+              • Feature requests and feedback{'\n'}
+              • Community and building management{'\n'}
+              • Payment and billing questions
+              {'\n\n'}
+              Choose how you'd like to reach us:
+            </Text>
+
+            <View style={styles.contactOptions}>
+              <TouchableOpacity 
+                style={styles.contactOption}
+                onPress={() => {
+                  setShowContactModal(false);
+                  Alert.alert('Email Support', 'Opening your email app to contact support@casanirvana.com');
+                }}
+              >
+                <MaterialCommunityIcons name="email" size={24} color={Colors.primary} />
+                <Text style={styles.contactOptionText}>Email Support</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.contactOption}
+                onPress={() => {
+                  setShowContactModal(false);
+                  Alert.alert('Live Chat', 'Connecting you to our live chat support...');
+                }}
+              >
+                <MaterialCommunityIcons name="chat" size={24} color={Colors.green} />
+                <Text style={styles.contactOptionText}>Live Chat</Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity 
+              style={styles.cancelButton}
+              onPress={() => setShowContactModal(false)}
+            >
+              <Text style={styles.cancelButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -637,32 +789,161 @@ const styles = StyleSheet.create({
     paddingBottom: Default.fixPadding * 2,
   },
   actionButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: Default.fixPadding * 2,
+    paddingVertical: Default.fixPadding * 1.2,
+    borderRadius: 10,
+    minHeight: 50,
     width: "100%",
     marginBottom: Default.fixPadding,
+    ...Default.shadow,
+    elevation: 3,
+  },
+  deleteButton: {
+    backgroundColor: Colors.primary,
+  },
+  disabledButton: {
+    backgroundColor: Colors.lightGrey,
+    opacity: 0.6,
   },
   deleteButtonText: {
     ...Fonts.SemiBold16white,
   },
   cancelButton: {
-    backgroundColor: Colors.white,
-    paddingVertical: Default.fixPadding,
-    borderRadius: 10,
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: Default.fixPadding * 2,
+    paddingVertical: Default.fixPadding * 1.2,
+    borderRadius: 10,
+    minHeight: 50,
+    width: "100%",
+    marginBottom: Default.fixPadding * 0.5,
+    backgroundColor: Colors.lightGrey,
     borderWidth: 1,
     borderColor: Colors.grey,
-    marginBottom: Default.fixPadding * 0.5,
+    ...Default.shadow,
+    elevation: 2,
   },
   cancelButtonText: {
-    ...Fonts.SemiBold14black,
+    ...Fonts.SemiBold16black,
+    color: Colors.darkGrey,
   },
   backButton: {
-    backgroundColor: Colors.extraLightGrey,
-    paddingVertical: Default.fixPadding,
-    borderRadius: 10,
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: Default.fixPadding * 2,
+    paddingVertical: Default.fixPadding * 1.2,
+    borderRadius: 10,
+    minHeight: 50,
+    width: "100%",
     marginBottom: Default.fixPadding * 0.5,
+    backgroundColor: Colors.lightGrey,
+    borderWidth: 1,
+    borderColor: Colors.grey,
+    ...Default.shadow,
+    elevation: 2,
   },
   backButtonText: {
-    ...Fonts.SemiBold14grey,
+    ...Fonts.SemiBold16black,
+    color: Colors.darkGrey,
+  },
+  
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: Default.fixPadding * 2,
+  },
+  modalContainer: {
+    backgroundColor: Colors.white,
+    borderRadius: 15,
+    padding: Default.fixPadding * 2,
+    maxWidth: '100%',
+    width: '100%',
+    ...Default.shadow,
+    elevation: 10,
+  },
+  modalHeader: {
+    alignItems: 'center',
+    marginBottom: Default.fixPadding * 1.5,
+  },
+  modalTitle: {
+    ...Fonts.SemiBold18black,
+    marginTop: Default.fixPadding,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    ...Fonts.Medium14grey,
+    textAlign: 'left',
+    lineHeight: 22,
+    marginBottom: Default.fixPadding * 2,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: Default.fixPadding,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: Default.fixPadding * 1.2,
+    paddingHorizontal: Default.fixPadding,
+    borderRadius: 10,
+    alignItems: 'center',
+    minHeight: 50,
+  },
+  confirmButton: {
+    flex: 1,
+    backgroundColor: Colors.primary,
+    paddingVertical: Default.fixPadding * 1.2,
+    paddingHorizontal: Default.fixPadding,
+    borderRadius: 10,
+    alignItems: 'center',
+    minHeight: 50,
+    ...Default.shadow,
+    elevation: 3,
+  },
+  confirmButtonText: {
+    ...Fonts.SemiBold16white,
+  },
+  modalCancelButton: {
+    flex: 1,
+    backgroundColor: Colors.lightGrey,
+    paddingVertical: Default.fixPadding * 1.2,
+    paddingHorizontal: Default.fixPadding,
+    borderRadius: 10,
+    alignItems: 'center',
+    minHeight: 50,
+    borderWidth: 1,
+    borderColor: Colors.grey,
+    ...Default.shadow,
+    elevation: 2,
+  },
+  modalCancelButtonText: {
+    ...Fonts.SemiBold16black,
+    color: Colors.darkGrey,
+  },
+  contactOptions: {
+    marginBottom: Default.fixPadding * 1.5,
+  },
+  contactOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: Default.fixPadding * 1.2,
+    backgroundColor: Colors.extraLightGrey,
+    borderRadius: 10,
+    marginBottom: Default.fixPadding,
+    borderWidth: 1,
+    borderColor: Colors.lightGrey,
+  },
+  contactOptionText: {
+    ...Fonts.Medium16black,
+    marginLeft: Default.fixPadding,
   },
 });

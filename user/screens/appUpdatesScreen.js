@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Alert,
   Linking,
+  Modal,
 } from "react-native";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -13,7 +14,6 @@ import { Colors, Default, Fonts } from "../constants/styles";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import MyStatusBar from "../components/myStatusBar";
-import AwesomeButton from "react-native-really-awesome-button";
 
 const AppUpdatesScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
@@ -27,6 +27,16 @@ const AppUpdatesScreen = ({ navigation }) => {
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
+  
+  // Update settings states
+  const [autoUpdatesEnabled, setAutoUpdatesEnabled] = useState(true);
+  const [betaUpdatesEnabled, setBetaUpdatesEnabled] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  
+  // Modal states
+  const [showAutoUpdatesModal, setShowAutoUpdatesModal] = useState(false);
+  const [showBetaUpdatesModal, setShowBetaUpdatesModal] = useState(false);
+  const [showNotificationsModal, setShowNotificationsModal] = useState(false);
 
   const [appInfo] = useState({
     currentVersion: "2.1.4",
@@ -140,6 +150,18 @@ const AppUpdatesScreen = ({ navigation }) => {
     );
   };
 
+  const handleAutoUpdatesToggle = () => {
+    setShowAutoUpdatesModal(true);
+  };
+
+  const handleBetaUpdatesToggle = () => {
+    setShowBetaUpdatesModal(true);
+  };
+
+  const handleNotificationsToggle = () => {
+    setShowNotificationsModal(true);
+  };
+
   const VersionCard = ({ version, isLatest = false }) => (
     <View style={[styles.versionCard, isLatest && styles.latestVersionCard]}>
       <View style={styles.versionHeader}>
@@ -181,6 +203,152 @@ const AppUpdatesScreen = ({ navigation }) => {
         </View>
       )}
     </View>
+  );
+
+  // Auto Updates Toggle Modal
+  const AutoUpdatesModal = () => (
+    <Modal
+      animationType="fade"
+      transparent={true}
+      visible={showAutoUpdatesModal}
+      onRequestClose={() => setShowAutoUpdatesModal(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <MaterialCommunityIcons name="download-circle" size={48} color={Colors.green} />
+            <Text style={styles.modalTitle}>Auto Updates</Text>
+          </View>
+          
+          <Text style={styles.modalMessage}>
+            {autoUpdatesEnabled 
+              ? 'Disable automatic updates? You will need to manually check and install updates.' 
+              : 'Enable automatic updates? Your app will automatically download and install updates when available.'}
+          </Text>
+          
+          <View style={styles.modalButtons}>
+            <TouchableOpacity 
+              style={[styles.modalButton, styles.cancelButton]}
+              onPress={() => setShowAutoUpdatesModal(false)}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.modalButton, styles.confirmButton]}
+              onPress={() => {
+                setAutoUpdatesEnabled(!autoUpdatesEnabled);
+                setShowAutoUpdatesModal(false);
+                Alert.alert("Success", `Auto updates ${!autoUpdatesEnabled ? 'enabled' : 'disabled'} successfully!`);
+              }}
+            >
+              <Text style={styles.confirmButtonText}>
+                {autoUpdatesEnabled ? 'Disable' : 'Enable'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+
+  // Beta Updates Toggle Modal
+  const BetaUpdatesModal = () => (
+    <Modal
+      animationType="fade"
+      transparent={true}
+      visible={showBetaUpdatesModal}
+      onRequestClose={() => setShowBetaUpdatesModal(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <MaterialCommunityIcons name="flask" size={48} color={Colors.orange} />
+            <Text style={styles.modalTitle}>Beta Updates</Text>
+          </View>
+          
+          <Text style={styles.modalMessage}>
+            {betaUpdatesEnabled 
+              ? 'Disable beta updates? You will only receive stable releases.' 
+              : 'Enable beta updates? You will get early access to new features, but they may be unstable.'}
+          </Text>
+          
+          <View style={styles.warningBox}>
+            <MaterialCommunityIcons name="alert" size={20} color={Colors.orange} />
+            <Text style={styles.warningText}>Beta versions may contain bugs!</Text>
+          </View>
+          
+          <View style={styles.modalButtons}>
+            <TouchableOpacity 
+              style={[styles.modalButton, styles.cancelButton]}
+              onPress={() => setShowBetaUpdatesModal(false)}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.modalButton, styles.confirmButton]}
+              onPress={() => {
+                setBetaUpdatesEnabled(!betaUpdatesEnabled);
+                setShowBetaUpdatesModal(false);
+                Alert.alert("Success", `Beta updates ${!betaUpdatesEnabled ? 'enabled' : 'disabled'} successfully!`);
+              }}
+            >
+              <Text style={styles.confirmButtonText}>
+                {betaUpdatesEnabled ? 'Disable' : 'Enable'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+
+  // Update Notifications Toggle Modal
+  const NotificationsModal = () => (
+    <Modal
+      animationType="fade"
+      transparent={true}
+      visible={showNotificationsModal}
+      onRequestClose={() => setShowNotificationsModal(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <MaterialCommunityIcons name="bell" size={48} color={Colors.blue} />
+            <Text style={styles.modalTitle}>Update Notifications</Text>
+          </View>
+          
+          <Text style={styles.modalMessage}>
+            {notificationsEnabled 
+              ? 'Disable update notifications? You won\'t be notified when new updates are available.' 
+              : 'Enable update notifications? You will receive notifications when new updates are available.'}
+          </Text>
+          
+          <View style={styles.modalButtons}>
+            <TouchableOpacity 
+              style={[styles.modalButton, styles.cancelButton]}
+              onPress={() => setShowNotificationsModal(false)}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.modalButton, styles.confirmButton]}
+              onPress={() => {
+                setNotificationsEnabled(!notificationsEnabled);
+                setShowNotificationsModal(false);
+                Alert.alert("Success", `Update notifications ${!notificationsEnabled ? 'enabled' : 'disabled'} successfully!`);
+              }}
+            >
+              <Text style={styles.confirmButtonText}>
+                {notificationsEnabled ? 'Disable' : 'Enable'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
   );
 
   return (
@@ -273,38 +441,28 @@ const AppUpdatesScreen = ({ navigation }) => {
 
         {/* Update Actions */}
         <View style={styles.actionsSection}>
-          <AwesomeButton
-            style={styles.actionButton}
-            height={50}
+          <TouchableOpacity
+            style={[styles.actionButton, styles.checkUpdatesButton]}
             onPress={checkForUpdates}
-            backgroundColor={Colors.primary}
-            borderRadius={10}
             disabled={isCheckingUpdates || isDownloading}
           >
-            <View style={styles.buttonContent}>
-              <MaterialCommunityIcons name="refresh" size={20} color={Colors.white} />
-              <Text style={styles.buttonText}>
-                {isCheckingUpdates ? "Checking..." : "Check for Updates"}
-              </Text>
-            </View>
-          </AwesomeButton>
+            <MaterialCommunityIcons name="refresh" size={20} color={Colors.white} />
+            <Text style={styles.buttonText}>
+              {isCheckingUpdates ? "Checking..." : "Check for Updates"}
+            </Text>
+          </TouchableOpacity>
 
           {updateAvailable && (
-            <AwesomeButton
-              style={styles.actionButton}
-              height={50}
+            <TouchableOpacity
+              style={[styles.actionButton, styles.downloadButton]}
               onPress={downloadUpdate}
-              backgroundColor={Colors.green}
-              borderRadius={10}
               disabled={isDownloading}
             >
-              <View style={styles.buttonContent}>
-                <MaterialCommunityIcons name="download" size={20} color={Colors.white} />
-                <Text style={styles.buttonText}>
-                  {isDownloading ? `Downloading ${downloadProgress}%` : "Download Update"}
-                </Text>
-              </View>
-            </AwesomeButton>
+              <MaterialCommunityIcons name="download" size={20} color={Colors.white} />
+              <Text style={styles.buttonText}>
+                {isDownloading ? `Downloading ${downloadProgress}%` : "Download Update"}
+              </Text>
+            </TouchableOpacity>
           )}
 
           <TouchableOpacity style={styles.storeButton} onPress={openAppStore}>
@@ -320,29 +478,35 @@ const AppUpdatesScreen = ({ navigation }) => {
             <Text style={styles.sectionTitle}>Update Settings</Text>
           </View>
           
-          <TouchableOpacity style={styles.settingRow}>
+          <TouchableOpacity style={styles.settingRow} onPress={handleAutoUpdatesToggle}>
             <MaterialCommunityIcons name="download-circle" size={24} color={Colors.green} />
             <View style={styles.settingInfo}>
               <Text style={styles.settingName}>Auto Updates</Text>
-              <Text style={styles.settingDescription}>Automatically download and install updates</Text>
+              <Text style={styles.settingDescription}>
+                {autoUpdatesEnabled ? 'Enabled - Automatic updates' : 'Disabled - Manual updates only'}
+              </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={Colors.grey} />
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.settingRow}>
+          <TouchableOpacity style={styles.settingRow} onPress={handleBetaUpdatesToggle}>
             <MaterialCommunityIcons name="flask" size={24} color={Colors.orange} />
             <View style={styles.settingInfo}>
               <Text style={styles.settingName}>Beta Updates</Text>
-              <Text style={styles.settingDescription}>Get early access to new features</Text>
+              <Text style={styles.settingDescription}>
+                {betaUpdatesEnabled ? 'Enabled - Early access features' : 'Disabled - Stable releases only'}
+              </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={Colors.grey} />
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.settingRow}>
+          <TouchableOpacity style={styles.settingRow} onPress={handleNotificationsToggle}>
             <MaterialCommunityIcons name="bell" size={24} color={Colors.blue} />
             <View style={styles.settingInfo}>
               <Text style={styles.settingName}>Update Notifications</Text>
-              <Text style={styles.settingDescription}>Notify me when updates are available</Text>
+              <Text style={styles.settingDescription}>
+                {notificationsEnabled ? 'Enabled - You will be notified' : 'Disabled - No notifications'}
+              </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={Colors.grey} />
           </TouchableOpacity>
@@ -364,6 +528,11 @@ const AppUpdatesScreen = ({ navigation }) => {
           ))}
         </View>
       </ScrollView>
+      
+      {/* Custom Modals */}
+      <AutoUpdatesModal />
+      <BetaUpdatesModal />
+      <NotificationsModal />
     </View>
   );
 };
@@ -465,13 +634,23 @@ const styles = StyleSheet.create({
     marginBottom: Default.fixPadding * 2,
   },
   actionButton: {
-    width: "100%",
-    marginBottom: Default.fixPadding,
-  },
-  buttonContent: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    paddingHorizontal: Default.fixPadding * 2,
+    paddingVertical: Default.fixPadding * 1.2,
+    borderRadius: 10,
+    minHeight: 50,
+    width: "100%",
+    marginBottom: Default.fixPadding,
+    ...Default.shadow,
+    elevation: 3,
+  },
+  checkUpdatesButton: {
+    backgroundColor: Colors.primary,
+  },
+  downloadButton: {
+    backgroundColor: Colors.green,
   },
   buttonText: {
     ...Fonts.SemiBold16white,
@@ -571,6 +750,7 @@ const styles = StyleSheet.create({
   },
   latestBadgeText: {
     ...Fonts.Medium10white,
+    color: Colors.white,
   },
   versionSize: {
     ...Fonts.Medium12grey,
@@ -592,5 +772,85 @@ const styles = StyleSheet.create({
     marginLeft: Default.fixPadding * 0.3,
     flex: 1,
     lineHeight: 18,
+  },
+  
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: Default.fixPadding * 2,
+    paddingVertical: Default.fixPadding * 3,
+  },
+  modalContainer: {
+    backgroundColor: Colors.white,
+    borderRadius: 20,
+    paddingTop: Default.fixPadding * 2,
+    paddingHorizontal: Default.fixPadding * 2,
+    paddingBottom: Default.fixPadding * 2.5,
+    width: '100%',
+    maxWidth: 400,
+    maxHeight: '80%',
+    ...Default.shadow,
+    elevation: 10,
+  },
+  modalHeader: {
+    alignItems: 'center',
+    marginBottom: Default.fixPadding * 1.5,
+  },
+  modalTitle: {
+    ...Fonts.SemiBold20black,
+    marginTop: Default.fixPadding,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    ...Fonts.Medium16grey,
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: Default.fixPadding * 1.2,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: Default.fixPadding,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: Default.fixPadding * 1.2,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 48,
+  },
+  cancelButton: {
+    backgroundColor: Colors.lightGrey,
+    borderWidth: 1,
+    borderColor: Colors.grey,
+  },
+  cancelButtonText: {
+    ...Fonts.SemiBold16black,
+    color: Colors.darkGrey,
+  },
+  confirmButton: {
+    backgroundColor: Colors.primary,
+  },
+  confirmButtonText: {
+    ...Fonts.SemiBold16white,
+  },
+  
+  // Warning Box
+  warningBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.orange + '15',
+    padding: Default.fixPadding,
+    borderRadius: 8,
+    marginBottom: Default.fixPadding * 1.5,
+  },
+  warningText: {
+    ...Fonts.Medium14black,
+    marginLeft: Default.fixPadding * 0.5,
+    color: Colors.orange,
+    fontWeight: '600',
   },
 });

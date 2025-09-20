@@ -43,7 +43,7 @@ export const getNoticesForSociety = async ({
   ascending = false
 } = {}) => {
   let query = supabase.from('notices').select('*', { count: 'exact' });
-  if (society_id) query = query.eq('society_id', society_id);
+  if (society_id) query = query.eq('community_id', society_id);
   if (search) query = query.ilike('title', `%${search}%`);
   query = query.order(orderBy, { ascending });
   if (limit) query = query.range((page - 1) * limit, page * limit - 1);

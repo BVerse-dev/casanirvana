@@ -110,7 +110,7 @@ const ChatSettingsScreen = ({ navigation }) => {
       >
         <View style={styles.headerSection}>
           <MaterialCommunityIcons
-            name="chat-settings"
+            name="chat"
             size={50}
             color={Colors.primary}
           />

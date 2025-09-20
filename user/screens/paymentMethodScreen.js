@@ -18,14 +18,19 @@ import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import AwesomeButton from "react-native-really-awesome-button";
 
 const PaymentMethodScreen = ({ navigation, route }) => {
-  const { bookingId, bookingData, paymentData } = route.params || {};
+  const { bookingId, bookingData, paymentData, isAddingPaymentMethod, onPaymentMethodAdded } = route.params || {};
   const { t, i18n } = useTranslation();
+
+  // Determine if this is for adding a payment method or making a payment
+  const isAddingMode = isAddingPaymentMethod === true;
 
   // Debug: Log what we receive from payment screen
   console.log('PaymentMethodScreen - Received params:', { 
     bookingId, 
     bookingData: bookingData ? 'present' : 'null', 
-    paymentData: paymentData ? 'present' : 'null' 
+    paymentData: paymentData ? 'present' : 'null',
+    isAddingPaymentMethod,
+    isAddingMode
   });
   console.log('PaymentMethodScreen - BookingData:', bookingData);
   console.log('PaymentMethodScreen - PaymentData:', paymentData);
@@ -141,34 +146,30 @@ const PaymentMethodScreen = ({ navigation, route }) => {
     );
   };
   const handleContinue = () => {
+    // Prepare parameters based on mode
+    const navigationParams = isAddingMode 
+      ? {
+          isAddingPaymentMethod: true,
+          onPaymentMethodAdded: onPaymentMethodAdded
+        }
+      : {
+          bookingId,
+          bookingData,
+          paymentData
+        };
+
     switch (selectedPaymentMethod) {
       case "Credit Card":
-        navigation.push("creditCardScreen", {
-          bookingId,
-          bookingData,
-          paymentData
-        });
+        navigation.push("creditCardScreen", navigationParams);
         break;
       case "Mobile Money":
-        navigation.push("mobileMoneyScreen", {
-          bookingId,
-          bookingData,
-          paymentData
-        });
+        navigation.push("mobileMoneyScreen", navigationParams);
         break;
       case "PayPal":
-        navigation.push("paypalScreen", {
-          bookingId,
-          bookingData,
-          paymentData
-        });
+        navigation.push("paypalScreen", navigationParams);
         break;
       default:
-        navigation.push("creditCardScreen", {
-          bookingId,
-          bookingData,
-          paymentData
-        });
+        navigation.push("creditCardScreen", navigationParams);
     }
   };
 
@@ -200,7 +201,7 @@ const PaymentMethodScreen = ({ navigation, route }) => {
             marginHorizontal: Default.fixPadding,
           }}
         >
-          {tr("selectPaymentMethod")}
+          {isAddingMode ? "Add Payment Method" : tr("selectPaymentMethod")}
         </Text>
       </View>
 
@@ -208,27 +209,28 @@ const PaymentMethodScreen = ({ navigation, route }) => {
         showsVerticalScrollIndicator={false}
         style={{ flex: 1 }}
       >
-        {/* Summary Card - Dynamic based on payment type */}
-        <View
-          style={{
-            marginHorizontal: Default.fixPadding * 2,
-            marginTop: Default.fixPadding * 2,
-            marginBottom: Default.fixPadding * 2,
-            borderRadius: 10,
-            backgroundColor: Colors.white,
-            ...Default.shadow,
-          }}
-        >
-          <View style={{ padding: Default.fixPadding * 2 }}>
-            <Text
-              style={{
-                ...Fonts.SemiBold16black,
-                textAlign: isRtl ? "right" : "left",
-                marginBottom: Default.fixPadding,
-              }}
-            >
-              {bookingData ? "Booking Summary" : "Payment Summary"}
-            </Text>
+        {/* Summary Card - Dynamic based on payment type or adding mode */}
+        {!isAddingMode && (
+          <View
+            style={{
+              marginHorizontal: Default.fixPadding * 2,
+              marginTop: Default.fixPadding * 2,
+              marginBottom: Default.fixPadding * 2,
+              borderRadius: 10,
+              backgroundColor: Colors.white,
+              ...Default.shadow,
+            }}
+          >
+            <View style={{ padding: Default.fixPadding * 2 }}>
+              <Text
+                style={{
+                  ...Fonts.SemiBold16black,
+                  textAlign: isRtl ? "right" : "left",
+                  marginBottom: Default.fixPadding,
+                }}
+              >
+                {bookingData ? "Booking Summary" : "Payment Summary"}
+              </Text>
             
             {bookingData ? (
               // Booking Summary Content
@@ -546,6 +548,45 @@ const PaymentMethodScreen = ({ navigation, route }) => {
             </View>
           </View>
         </View>
+        )}
+
+        {/* Add Payment Method Info Card - Only show when adding payment method */}
+        {isAddingMode && (
+          <View
+            style={{
+              marginHorizontal: Default.fixPadding * 2,
+              marginTop: Default.fixPadding * 2,
+              marginBottom: Default.fixPadding * 2,
+              borderRadius: 10,
+              backgroundColor: Colors.white,
+              ...Default.shadow,
+            }}
+          >
+            <View style={{ padding: Default.fixPadding * 2 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", marginBottom: Default.fixPadding }}>
+                <MaterialCommunityIcons name="credit-card-plus" size={24} color={Colors.primary} />
+                <Text
+                  style={{
+                    ...Fonts.SemiBold16black,
+                    textAlign: isRtl ? "right" : "left",
+                    marginLeft: Default.fixPadding,
+                  }}
+                >
+                  Add New Payment Method
+                </Text>
+              </View>
+              <Text
+                style={{
+                  ...Fonts.Medium14grey,
+                  textAlign: isRtl ? "right" : "left",
+                  lineHeight: 20,
+                }}
+              >
+                Choose a payment method to add to your account. This will be saved securely for future payments.
+              </Text>
+            </View>
+          </View>
+        )}
 
         {/* Payment Methods */}
         <View>
@@ -585,7 +626,9 @@ const PaymentMethodScreen = ({ navigation, route }) => {
           backgroundDarker={Colors.primary}
           backgroundColor={Colors.primary}
         >
-          <Text style={{ ...Fonts.SemiBold18white }}>{tr("continue")}</Text>
+          <Text style={{ ...Fonts.SemiBold18white }}>
+            {isAddingMode ? "Add Payment Method" : tr("continue")}
+          </Text>
         </AwesomeButton>
       </View>
     </View>

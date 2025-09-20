@@ -68,7 +68,7 @@
         "notification": "अधिसूचना",
         "noNotification": "कोई नई अधिसूचना नहीं"
     },
-    "societyMemberScreen": {
+    "communityMemberScreen": {
         "members": "सदस्यों",
         "member": "सदस्य",
         "admin": "व्यवस्थापक",
@@ -409,7 +409,8 @@
         "getSupport": "समर्थन प्राप्त करें",
         "termsCondition": "नियम व शर्त",
         "privacyPolicy": "गोपनीयता नीति",
-        "logout": "लॉग आउट"
+        "logout": "लॉग आउट",
+        "communityInfo": "समुदाय की जानकारी"
     },
     "logoutModal": {
         "logout": "लॉग आउट",
@@ -472,5 +473,45 @@
         "message": "संदेश",
         "enterYourMessage": "अपना संदेश दर्ज करें",
         "submitMessage": "संदेश जमा करें"
+    },
+    "communityInfoScreen": {
+        "communityInfo": "समुदाय की जानकारी",
+        "basicInformation": "बुनियादी जानकारी",
+        "contactInformation": "संपर्क जानकारी",
+        "amenitiesFeatures": "सुविधाएं और विशेषताएं",
+        "communityName": "समुदाय का नाम",
+        "address": "पता",
+        "description": "विवरण",
+        "establishedYear": "स्थापना वर्ष",
+        "totalUnits": "कुल इकाइयां",
+        "phoneNumber": "फोन नंबर",
+        "emailAddress": "ईमेल पता",
+        "website": "वेबसाइट",
+        "establishedIn": "में स्थापित",
+        "units": "इकाइयां",
+        "swimmingPool": "स्विमिंग पूल",
+        "gymnasium": "व्यायामशाला",
+        "parking": "पार्किंग",
+        "security24x7": "24/7 सुरक्षा",
+        "playground": "खेल का मैदान",
+        "wifiInternet": "WiFi इंटरनेट"
+    },
+    "memberDirectoryScreen": {
+        "memberDirectory": "सदस्य निर्देशिका",
+        "searchMembers": "नाम, ब्लॉक या यूनिट से खोजें...",
+        "all": "सभी",
+        "admins": "प्रबंधक",
+        "committee": "समिति",
+        "members": "सदस्य",
+        "admin": "प्रबंधक",
+        "member": "सदस्य",
+        "showing": "दिखा रहे हैं",
+        "of": "कुल",
+        "totalMembers": "सदस्य",
+        "loadingMembers": "सदस्य लोड हो रहे हैं...",
+        "noMembersFound": "कोई सदस्य नहीं मिला",
+        "noSearchResults": "कोई परिणाम नहीं",
+        "tryDifferentSearch": "अपने खोज शब्दों को समायोजित करने का प्रयास करें",
+        "membersWillAppearHere": "सदस्य शामिल होने के बाद यहाँ दिखाई देंगे"
     }
 }

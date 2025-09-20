@@ -11,12 +11,15 @@ import {
   FlatList,
   Image,
   TouchableWithoutFeedback,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import SnackbarToast from "./snackbarToast";
 import { useFocusEffect } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import SimpleLineIcons from "react-native-vector-icons/SimpleLineIcons";
 import Octicons from "react-native-vector-icons/Octicons";
 import Feather from "react-native-vector-icons/Feather";
@@ -25,6 +28,9 @@ import ChatScreen from "../screens/chatScreen";
 import ServiceScreen from "../screens/serviceScreen";
 import ProfileScreen from "../screens/profileScreen";
 import { Fonts, Colors, Default } from "../constants/styles";
+import { useHasJoinedCommunity } from "../hooks/useCommunityData";
+import emergencyService, { EMERGENCY_TYPES } from "../services/emergencyService";
+import LocationPreview from "./LocationPreview";
 
 const Tab = createBottomTabNavigator();
 
@@ -32,6 +38,7 @@ const { width, height } = Dimensions.get("window");
 
 const BottomTab = ({ navigation }) => {
   const { t, i18n } = useTranslation();
+  const { hasJoinedCommunity, profile } = useHasJoinedCommunity();
 
   const isRtl = i18n.dir() == "rtl";
 
@@ -83,37 +90,207 @@ const BottomTab = ({ navigation }) => {
   };
 
   const [openModal, setOpenModal] = useState(false);
+  const [isProcessingAlert, setIsProcessingAlert] = useState(false);
+  const [showEmergencyModal, setShowEmergencyModal] = useState(false);
+  const [selectedEmergency, setSelectedEmergency] = useState(null);
+  const [emergencyLocationData, setEmergencyLocationData] = useState(null);
 
   const securityAlertList = [
     {
       key: "1",
       image: require("../assets/images/s3.png"),
       title: tr("fireAlert"),
+      emergencyType: "fire_alert"
     },
     {
       key: "2",
       image: require("../assets/images/s4.png"),
       title: tr("stuckLift"),
+      emergencyType: "stuck_lift"
     },
     {
       key: "3",
       image: require("../assets/images/s5.png"),
       title: tr("animalThreat"),
+      emergencyType: "animal_threat"
     },
     {
       key: "4",
       image: require("../assets/images/s6.png"),
       title: tr("visiterThreat"),
+      emergencyType: "visitor_threat"
     },
   ];
 
+  // Handle emergency alert
+  const handleEmergencyAlert = (emergencyType) => {
+    if (!hasJoinedCommunity || !profile?.community_id) {
+      Alert.alert("Error", "You must be part of a community to send emergency alerts.");
+      return;
+    }
+
+    const emergencyInfo = EMERGENCY_TYPES[emergencyType];
+    if (!emergencyInfo) {
+      Alert.alert("Error", "Invalid emergency type selected.");
+      return;
+    }
+
+    console.log('🚨 Setting selectedEmergency:', { type: emergencyType, info: emergencyInfo });
+    console.log('🚨 emergencyInfo:', emergencyInfo);
+    setSelectedEmergency({ type: emergencyType, info: emergencyInfo });
+    setShowEmergencyModal(true);
+    setOpenModal(false);
+  };
+
+  // Send emergency alert
+  const sendEmergencyAlert = async () => {
+    if (!selectedEmergency) return;
+
+    console.log('🚨 Profile data for emergency alert:', profile);
+    console.log('🚨 Profile user_id:', profile?.user_id);
+    console.log('🚨 Profile community_id:', profile?.community_id);
+
+    setIsProcessingAlert(true);
+    setShowEmergencyModal(false);
+    
+            try {
+              const result = await emergencyService.createEmergencyAlert(
+                selectedEmergency.type,
+                null, // Will use user's unit location
+                profile, // Pass the profile data that's already working
+                profile.community_id
+              );
+
+      if (result.success) {
+        // Store location data for the success modal
+        if (result.locationData) {
+          setEmergencyLocationData(result.locationData);
+        }
+        
+        Alert.alert(
+          "Emergency Alert Sent! 🚨",
+          `${result.message}\n\n${result.notifiedCount} people have been notified.${result.locationData ? '\n\n📍 Your location has been shared with responders.' : ''}`,
+          [{ text: "OK" }]
+        );
+      } else {
+        Alert.alert("Error", result.error || "Failed to send emergency alert.");
+      }
+    } catch (error) {
+      console.error("Emergency alert error:", error);
+      Alert.alert("Error", "Failed to send emergency alert. Please try again.");
+    } finally {
+      setIsProcessingAlert(false);
+      setSelectedEmergency(null);
+    }
+  };
+
+  // Handle admin chat - automatically connect to an admin
+  const handleAdminChat = async () => {
+    if (!hasJoinedCommunity || !profile?.community_id) {
+      Alert.alert("Error", "You must be part of a community to contact admin.");
+      return;
+    }
+
+    setOpenModal(false);
+    
+    try {
+      // Get any admin from the community
+      const admins = await emergencyService.getCommunityAdmins(profile.community_id);
+      
+      if (admins && admins.length > 0) {
+        const admin = admins[0]; // Just pick the first admin
+        navigation.push("messageScreen", {
+          image: require("../assets/images/img14.png"), // Default admin image
+          name: `${admin.first_name} ${admin.last_name} (Admin)`,
+          key: admin.id,
+          userId: admin.id,
+          role: admin.role,
+          isAdmin: true
+        });
+      } else {
+        // Create a default admin chat if none found
+        navigation.push("messageScreen", {
+          image: require("../assets/images/img14.png"),
+          name: "Community Admin",
+          key: "admin_default",
+          userId: "admin_default",
+          role: "admin",
+          isAdmin: true
+        });
+      }
+    } catch (error) {
+      console.error("Error getting admin for chat:", error);
+      // Still open chat even if there's an error
+      navigation.push("messageScreen", {
+        image: require("../assets/images/img14.png"),
+        name: "Community Admin",
+        key: "admin_default",
+        userId: "admin_default",
+        role: "admin",
+        isAdmin: true
+      });
+    }
+  };
+
+  // Handle guard chat - automatically connect to a guard
+  const handleGuardChat = async () => {
+    if (!hasJoinedCommunity || !profile?.community_id) {
+      Alert.alert("Error", "You must be part of a community to contact security.");
+      return;
+    }
+
+    setOpenModal(false);
+    
+    try {
+      // Get any guard from the community
+      const guards = await emergencyService.getAllGuards(profile.community_id);
+      
+      if (guards && guards.length > 0) {
+        const guard = guards[0]; // Just pick the first guard
+        navigation.push("messageScreen", {
+          image: require("../assets/images/s2.png"), // Security guard image
+          name: `${guard.first_name} ${guard.last_name} (Security)`,
+          key: guard.id,
+          userId: guard.id,
+          role: "guard",
+          isGuard: true
+        });
+      } else {
+        // Create a default guard chat if none found
+        navigation.push("messageScreen", {
+          image: require("../assets/images/s2.png"),
+          name: "Security Guard",
+          key: "guard_default",
+          userId: "guard_default",
+          role: "guard",
+          isGuard: true
+        });
+      }
+    } catch (error) {
+      console.error("Error getting guard for chat:", error);
+      // Still open chat even if there's an error
+      navigation.push("messageScreen", {
+        image: require("../assets/images/s2.png"),
+        name: "Security Guard",
+        key: "guard_default",
+        userId: "guard_default",
+        role: "guard",
+        isGuard: true
+      });
+    }
+  };
+
   const renderItem = ({ item }) => {
     return (
-      <TouchableWithoutFeedback>
+      <TouchableWithoutFeedback
+        onPress={() => handleEmergencyAlert(item.emergencyType)}
+        disabled={isProcessingAlert}
+      >
         <View
           style={{
             marginBottom: Default.fixPadding * 2,
             ...styles.commonBox,
+            opacity: isProcessingAlert ? 0.6 : 1,
           }}
         >
           <Image 
@@ -332,15 +509,9 @@ const BottomTab = ({ navigation }) => {
                       }}
                     >
                       <TouchableOpacity
-                        style={styles.commonBox}
-                        onPress={() => {
-                          setOpenModal(false);
-                          navigation.push("messageScreen", {
-                            image: require("../assets/images/img14.png"),
-                            name: "Wade warren",
-                            key: "1",
-                          });
-                        }}
+                        style={[styles.commonBox, isProcessingAlert && { opacity: 0.6 }]}
+                        onPress={handleAdminChat}
+                        disabled={isProcessingAlert}
                       >
                         <Image
                           source={require("../assets/images/s1.png")}
@@ -360,15 +531,9 @@ const BottomTab = ({ navigation }) => {
                       </TouchableOpacity>
 
                       <TouchableOpacity
-                        style={styles.commonBox}
-                        onPress={() => {
-                          setOpenModal(false);
-                          navigation.push("messageScreen", {
-                            image: require("../assets/images/img14.png"),
-                            name: "Wade warren",
-                            key: "1",
-                          });
-                        }}
+                        style={[styles.commonBox, isProcessingAlert && { opacity: 0.6 }]}
+                        onPress={handleGuardChat}
+                        disabled={isProcessingAlert}
                       >
                         <Image
                           source={require("../assets/images/s2.png")}
@@ -405,6 +570,111 @@ const BottomTab = ({ navigation }) => {
               />
             </TouchableOpacity>
           </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Emergency Alert Confirmation Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={showEmergencyModal}
+        onRequestClose={() => setShowEmergencyModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.emergencyModalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowEmergencyModal(false)}
+        >
+          <TouchableWithoutFeedback>
+            <View style={styles.emergencyModalContainer}>
+              <View style={styles.emergencyModalHeader}>
+                <MaterialCommunityIcons
+                  name="alert-circle"
+                  size={60}
+                  color={Colors.primary}
+                />
+                <Text style={styles.emergencyModalTitle}>
+                  {selectedEmergency ? EMERGENCY_TYPES[selectedEmergency.type]?.title : 'Emergency Alert'}
+                </Text>
+                <Text style={styles.emergencyModalSubtitle}>
+                  Emergency Alert Confirmation
+                </Text>
+              </View>
+
+              <View style={styles.emergencyModalContent}>
+                <Text style={styles.emergencyModalMessage}>
+                  Are you sure you want to send this emergency alert?
+                </Text>
+                
+                <View style={styles.emergencyWarningBox}>
+                  <MaterialCommunityIcons
+                    name="information"
+                    size={20}
+                    color={Colors.primary}
+                  />
+                  <Text style={styles.emergencyWarningText}>
+                    This will immediately notify ALL community members, admins, and security personnel.
+                  </Text>
+                </View>
+
+                <Text style={styles.emergencyDescriptionLabel}>
+                  Safety Instructions:
+                </Text>
+                <View style={styles.emergencyDescriptionContainer}>
+                  <MaterialCommunityIcons
+                    name="shield-check"
+                    size={16}
+                    color={Colors.primary}
+                    style={styles.emergencyDescriptionIcon}
+                  />
+                  <Text style={styles.emergencyDescription}>
+                    {(() => {
+                      console.log('🚨 Modal render - selectedEmergency:', selectedEmergency);
+                      console.log('🚨 Modal render - selectedEmergency.type:', selectedEmergency?.type);
+                      console.log('🚨 Modal render - EMERGENCY_TYPES[type]:', selectedEmergency ? EMERGENCY_TYPES[selectedEmergency.type] : null);
+                      console.log('🚨 Modal render - userMessage:', selectedEmergency ? EMERGENCY_TYPES[selectedEmergency.type]?.userMessage : null);
+                      return selectedEmergency ? EMERGENCY_TYPES[selectedEmergency.type]?.userMessage || 'No message found' : 'Loading...';
+                    })()}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.emergencyModalButtons}>
+                <TouchableOpacity
+                  style={styles.emergencyCancelButton}
+                  onPress={() => {
+                    setShowEmergencyModal(false);
+                    setSelectedEmergency(null);
+                  }}
+                  disabled={isProcessingAlert}
+                >
+                  <Text style={styles.emergencyCancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.emergencySendButton,
+                    isProcessingAlert && { opacity: 0.6 }
+                  ]}
+                  onPress={sendEmergencyAlert}
+                  disabled={isProcessingAlert}
+                >
+                  {isProcessingAlert ? (
+                    <ActivityIndicator size="small" color={Colors.white} />
+                  ) : (
+                    <>
+                      <MaterialCommunityIcons
+                        name="alert-octagon"
+                        size={18}
+                        color={Colors.white}
+                      />
+                      <Text style={styles.emergencySendButtonText}>Send Alert</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </TouchableWithoutFeedback>
         </TouchableOpacity>
       </Modal>
     </>
@@ -447,5 +717,130 @@ const styles = StyleSheet.create({
     resizeMode: "contain",
     width: 40,
     height: 40,
+  },
+
+  // Emergency Modal Styles
+  emergencyModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: Default.fixPadding * 2,
+  },
+  emergencyModalContainer: {
+    backgroundColor: Colors.white,
+    borderRadius: 20,
+    width: '100%',
+    maxWidth: 400,
+    maxHeight: '80%',
+    ...Default.shadow,
+    elevation: 10,
+  },
+  emergencyModalHeader: {
+    alignItems: 'center',
+    paddingTop: Default.fixPadding * 3,
+    paddingHorizontal: Default.fixPadding * 2,
+    paddingBottom: Default.fixPadding * 2,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.extraLightGrey,
+  },
+  emergencyModalTitle: {
+    ...Fonts.SemiBold20black,
+    textAlign: 'center',
+    marginTop: Default.fixPadding,
+    marginBottom: Default.fixPadding * 0.5,
+  },
+  emergencyModalSubtitle: {
+    ...Fonts.Medium14grey,
+    textAlign: 'center',
+  },
+  emergencyModalContent: {
+    paddingHorizontal: Default.fixPadding * 2,
+    paddingVertical: Default.fixPadding * 2,
+  },
+  emergencyModalMessage: {
+    ...Fonts.Medium16black,
+    textAlign: 'center',
+    marginBottom: Default.fixPadding * 1.5,
+  },
+  emergencyWarningBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: Colors.primary + '10',
+    padding: Default.fixPadding * 1.2,
+    borderRadius: 10,
+    borderLeftWidth: 4,
+    borderLeftColor: Colors.primary,
+    marginBottom: Default.fixPadding * 1.5,
+  },
+  emergencyWarningText: {
+    ...Fonts.Medium14black,
+    marginLeft: Default.fixPadding,
+    flex: 1,
+    lineHeight: 20,
+  },
+  emergencyDescriptionLabel: {
+    ...Fonts.SemiBold14black,
+    marginBottom: Default.fixPadding * 0.8,
+    marginTop: Default.fixPadding * 0.5,
+  },
+  emergencyDescriptionContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: Colors.extraLightGrey,
+    padding: Default.fixPadding * 1.2,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.lightGrey,
+  },
+  emergencyDescriptionIcon: {
+    marginRight: Default.fixPadding * 0.8,
+    marginTop: 2,
+  },
+  emergencyDescription: {
+    ...Fonts.Medium14black,
+    lineHeight: 20,
+    flex: 1,
+    color: Colors.darkGrey,
+  },
+  emergencyModalButtons: {
+    flexDirection: 'row',
+    paddingHorizontal: Default.fixPadding * 2,
+    paddingBottom: Default.fixPadding * 2,
+    paddingTop: Default.fixPadding,
+    borderTopWidth: 1,
+    borderTopColor: Colors.extraLightGrey,
+    gap: Default.fixPadding,
+  },
+  emergencyCancelButton: {
+    flex: 1,
+    paddingVertical: Default.fixPadding * 1.2,
+    paddingHorizontal: Default.fixPadding * 1.5,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.lightGrey,
+    backgroundColor: Colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emergencyCancelButtonText: {
+    ...Fonts.SemiBold16black,
+    color: Colors.darkGrey,
+  },
+  emergencySendButton: {
+    flex: 1,
+    flexDirection: 'row',
+    paddingVertical: Default.fixPadding * 1.2,
+    paddingHorizontal: Default.fixPadding * 1.5,
+    borderRadius: 10,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Default.shadow,
+    elevation: 3,
+  },
+  emergencySendButtonText: {
+    ...Fonts.SemiBold16white,
+    marginLeft: Default.fixPadding * 0.5,
   },
 });

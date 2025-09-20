@@ -8,17 +8,16 @@ import {
   ScrollView,
   Platform,
   TouchableOpacity,
+  Alert,
 } from "react-native";
 import { Colors, Fonts, Default } from "../../constants/styles";
 import { useTranslation } from "react-i18next";
 import MyStatusBar from "../../components/myStatusBar";
 import SnackbarToast from "../../components/snackbarToast";
 import AwesomeButton from "react-native-really-awesome-button";
-import { TextInput } from "react-native";
-import { supabase } from "../../utils/supabase";
+import IntlPhoneInput from "react-native-intl-phone-input";
 import { useFocusEffect } from "@react-navigation/native";
-import Ionicons from "react-native-vector-icons/Ionicons";
-import Feather from "react-native-vector-icons/Feather";
+import { supabase } from "../../utils/supabase";
 
 const LoginScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
@@ -28,11 +27,6 @@ const LoginScreen = ({ navigation }) => {
   function tr(key) {
     return t(`loginScreen:${key}`);
   }
-
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
   const [visibleToast, setVisibleToast] = useState(false);
   const onDismissVisibleToast = () => setVisibleToast(false);
@@ -57,38 +51,36 @@ const LoginScreen = ({ navigation }) => {
             BackHandler.exitApp();
           }
           return true;
-        }      };
-      const subscription = BackHandler.addEventListener("hardwareBackPress", backAction);
-      navigation.addListener("gestureEnd", backAction);
+        }
+      };
+      const backSub = BackHandler.addEventListener("hardwareBackPress", backAction);
+      const unsubscribeGesture = navigation.addListener("gestureEnd", backAction);
       return () => {
-        subscription?.remove();
-        navigation.removeListener("gestureEnd", backAction);
+        backSub.remove();
+        unsubscribeGesture();
       };
     }, [exitApp])
   );
 
+  const [phoneState, setPhoneState] = useState({
+    dialCode: "+233",
+    unmaskedPhoneNumber: "",
+    phoneNumber: "",
+  });
+
+  const handlePhoneChange = ({ dialCode, unmaskedPhoneNumber, phoneNumber }) => {
+    setPhoneState({ dialCode, unmaskedPhoneNumber, phoneNumber });
+  };
+
   return (
     <View style={{ flex: 1 }}>
       <MyStatusBar />
+
       <ImageBackground
         resizeMode="stretch"
         source={require("../../assets/images/login.png")}
         style={{ flex: 1 }}
       >
-        <TouchableOpacity
-          onPress={() => navigation.pop()}
-          style={{
-            alignSelf: isRtl ? "flex-end" : "flex-start",
-            marginHorizontal: Default.fixPadding * 2,
-            marginVertical: Default.fixPadding * 1.2,
-          }}
-        >
-          <Ionicons
-            name={isRtl ? "arrow-forward-outline" : "arrow-back-outline"}
-            size={24}
-            color={Colors.black}
-          />
-        </TouchableOpacity>
         <ScrollView
           showsVerticalScrollIndicator={false}
           automaticallyAdjustKeyboardInsets={true}
@@ -97,8 +89,8 @@ const LoginScreen = ({ navigation }) => {
             style={{
               justifyContent: "center",
               alignItems: "center",
-              marginTop: Default.fixPadding * 0.8,
-              marginBottom: Default.fixPadding * 4,
+              marginTop: Default.fixPadding * 5.6,
+              marginBottom: Default.fixPadding * 4.4,
               marginHorizontal: Default.fixPadding * 2,
             }}
           >
@@ -115,87 +107,43 @@ const LoginScreen = ({ navigation }) => {
             </Text>
           </View>
 
-          {/* Email Input Row */}
-          <View
+          <IntlPhoneInput
+            placeholder={tr("enterMobileNumber")}
+            placeholderTextColor={Colors.grey}
+            defaultCountry="GH"
+            filterText={tr("search")}
+            closeText={tr("close")}
+            onChangeText={handlePhoneChange}
+            flagStyle={{
+              fontSize: 25,
+            }}
+            modalCountryItemCountryNameStyle={{
+              ...Fonts.Medium16black,
+            }}
+            dialCodeTextStyle={{
+              ...Fonts.Medium16black,
+              marginLeft: Default.fixPadding * 0.6,
+              marginRight: Default.fixPadding,
+            }}
+            containerStyle={styles.containerStyle}
+            phoneInputStyle={{
+              ...Fonts.Medium16black,
+              textAlign: isRtl ? "right" : "left",
+              paddingHorizontal: isRtl ? 0 : Default.fixPadding * 1.5,
+              borderLeftWidth: 1,
+              borderLeftColor: Colors.grey,
+            }}
+          />
+
+          <Text
             style={{
-              flexDirection: isRtl ? "row-reverse" : "row",
-              ...styles.textInput,
+              ...Fonts.Medium14primary,
+              textAlign: isRtl ? "right" : "left",
+              marginHorizontal: Default.fixPadding * 2,
             }}
           >
-            <Feather
-              name="mail"
-              size={18}
-              color={Colors.grey}
-              style={{
-                marginRight: isRtl ? 0 : Default.fixPadding * 1.5,
-                marginLeft: isRtl ? Default.fixPadding * 1.5 : 0,
-              }}
-            />
-            <TextInput
-              value={email}
-              onChangeText={setEmail}
-              placeholder="Email Address"
-              keyboardType="email-address"
-              placeholderTextColor={Colors.grey}
-              selectionColor={Colors.primary}
-              style={{
-                ...Fonts.Medium16black,
-                flex: 1,
-                textAlign: isRtl ? "right" : "left",
-                paddingLeft: isRtl ? 0 : Default.fixPadding * 1.5,
-                paddingRight: isRtl ? Default.fixPadding * 1.5 : 0,
-                borderLeftWidth: isRtl ? null : 1,
-                borderLeftColor: isRtl ? null : Colors.grey,
-                borderRightWidth: isRtl ? 1 : null,
-                borderRightColor: isRtl ? Colors.grey : null,
-              }}
-              editable={!loading}
-              autoCapitalize="none"
-            />
-          </View>
-
-          {/* Password Input Row */}
-          <View
-            style={{
-              flexDirection: isRtl ? "row-reverse" : "row",
-              marginTop: Default.fixPadding * 1.5,
-              ...styles.textInput,
-            }}
-          >
-            <Feather
-              name="lock"
-              size={18}
-              color={Colors.grey}
-              style={{
-                marginRight: isRtl ? 0 : Default.fixPadding * 1.5,
-                marginLeft: isRtl ? Default.fixPadding * 1.5 : 0,
-              }}
-            />
-            <TextInput
-              value={password}
-              onChangeText={setPassword}
-              placeholder="Password"
-              placeholderTextColor={Colors.grey}
-              selectionColor={Colors.primary}
-              style={{
-                ...Fonts.Medium16black,
-                flex: 1,
-                textAlign: isRtl ? "right" : "left",
-                paddingLeft: isRtl ? 0 : Default.fixPadding * 1.5,
-                paddingRight: isRtl ? Default.fixPadding * 1.5 : 0,
-                borderLeftWidth: isRtl ? null : 1,
-                borderLeftColor: isRtl ? null : Colors.grey,
-                borderRightWidth: isRtl ? 1 : null,
-                borderRightColor: isRtl ? Colors.grey : null,
-              }}
-              secureTextEntry
-              editable={!loading}
-            />
-          </View>
-
-          {!!error && (
-            <Text style={{ color: Colors.red, marginTop: 10, textAlign: "center" }}>{error}</Text>
-          )}
+            {tr("verification")}
+          </Text>
 
           <View
             style={{
@@ -209,20 +157,45 @@ const LoginScreen = ({ navigation }) => {
               height={50}
               progressLoadingTime={1000}
               onPress={async (next) => {
-                setLoading(true);
-                setError("");
                 try {
-                  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-                  if (error) {
-                    setError(error.message || tr("loginFailed"));
+                  const dial = phoneState?.dialCode || "";
+                  const raw = (phoneState?.unmaskedPhoneNumber || "").replace(/\D/g, "");
+                  const fullPhone = `${dial}${raw}`;
+
+                  if (!dial || !raw || raw.length < 7) {
+                    Alert.alert("Invalid phone number", "Please enter a valid mobile number.");
                     return;
                   }
-                  next();
-                  navigation.replace("bottomTab");
-                } catch (err) {
-                  setError(err.message || tr("loginFailed"));
+
+                  // Attempt to send OTP via Supabase
+                  const { error } = await supabase.auth.signInWithOtp({ phone: fullPhone });
+                  if (error) {
+                    console.log("Phone OTP error:", error);
+                    const msg = (error?.message || '').toLowerCase();
+                    if (msg.includes('unsupported phone provider') || msg.includes('phone provider')) {
+                      Alert.alert(
+                        'Phone sign-in not available',
+                        'Phone OTP is not enabled yet. Please use Email sign-in for now.',
+                        [
+                          { text: 'Cancel', style: 'cancel' },
+                          { text: 'Use Email', onPress: () => navigation.push('emailLoginScreen') },
+                        ]
+                      );
+                    } else {
+                      Alert.alert(
+                        'Could not send OTP',
+                        error.message || "We couldn't send an OTP right now. Please try email login or try again later."
+                      );
+                    }
+                    return;
+                  }
+
+                  navigation.push("verificationScreen", { phone: fullPhone });
+                } catch (e) {
+                  console.log("Phone login error:", e);
+                  Alert.alert("Error", e.message || "Something went wrong. Please try again.");
                 } finally {
-                  setLoading(false);
+                  next();
                 }
               }}
               raiseLevel={1}
@@ -231,27 +204,36 @@ const LoginScreen = ({ navigation }) => {
               backgroundShadow={Colors.primary}
               backgroundDarker={Colors.primary}
               backgroundColor={Colors.primary}
-              disabled={loading}
-              style={{ marginBottom: Default.fixPadding * 2 }}
             >
-              {loading ? (
-                <Text style={{ ...Fonts.SemiBold18white }}>{tr("loading")}</Text>
-              ) : (
-                <Text style={{ ...Fonts.SemiBold18white }}>{tr("Login")}</Text>
-              )}
+              <Text style={{ ...Fonts.SemiBold18white }}>{tr("login")}</Text>
             </AwesomeButton>
-            <AwesomeButton
-              height={50}
-              onPress={() => navigation.push("registerScreen")}
-              raiseLevel={1}
-              stretch={true}
-              borderRadius={10}
-              backgroundShadow={Colors.primary}
-              backgroundDarker={Colors.primary}
-              backgroundColor={Colors.primary}
+          </View>
+
+          <View style={{ 
+            alignItems: 'center', 
+            marginHorizontal: Default.fixPadding * 2,
+            marginBottom: Default.fixPadding * 2 
+          }}>
+            <TouchableOpacity 
+              onPress={() => navigation.push('emailLoginScreen')}
+              style={{ marginBottom: Default.fixPadding }}
             >
-              <Text style={{ ...Fonts.SemiBold18white }}>{tr("Register")}</Text>
-            </AwesomeButton>
+              <Text style={{
+                ...Fonts.SemiBold14primary
+              }}>
+                Sign In with Email
+              </Text>
+            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={{
+                ...Fonts.SemiBold14grey
+              }}>
+                Don't have an account? 
+              </Text>
+              <TouchableOpacity onPress={() => navigation.push('registerScreen')}>
+                <Text style={{...Fonts.SemiBold14primary}}> Sign Up</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </ScrollView>
       </ImageBackground>
@@ -267,10 +249,11 @@ const LoginScreen = ({ navigation }) => {
 export default LoginScreen;
 
 const styles = StyleSheet.create({
-  textInput: {
+  containerStyle: {
+    justifyContent: "center",
     alignItems: "center",
-    paddingVertical: Default.fixPadding,
-    paddingHorizontal: Default.fixPadding * 1.3,
+    paddingVertical: Default.fixPadding * 0.8,
+    marginBottom: Default.fixPadding * 0.5,
     marginHorizontal: Default.fixPadding * 2,
     borderRadius: 10,
     backgroundColor: Colors.white,

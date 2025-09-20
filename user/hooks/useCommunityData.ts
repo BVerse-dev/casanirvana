@@ -38,7 +38,7 @@ export const useSearchUnits = (communityId: string | null, searchText: string) =
       const { data, error } = await supabase
         .from('units')
         .select('id, block, number, unit_type, floor, status')
-        .eq('society_id', communityId)
+        .eq('community_id', communityId)
         .eq('status', 'available')
         .or(`block.ilike.%${searchText}%,number.ilike.%${searchText}%,unit_type.ilike.%${searchText}%`)
         .order('block, number')
@@ -70,7 +70,7 @@ export const useGetAllUnits = (communityId: string | null) => {
       const { data, error } = await supabase
         .from('units')
         .select('id, block, number, unit_type, floor, status')
-        .eq('society_id', communityId)
+        .eq('community_id', communityId)
         .eq('status', 'available')
         .order('block, number');
       
@@ -298,10 +298,10 @@ export const useUserProfile = () => {
           last_name,
           phone,
           role,
-          society_id,
+          community_id,
           unit_id,
           status,
-          society:societies!profiles_society_id_fkey(id, name, address, city, state),
+          community:communities!profiles_society_id_fkey(id, name, address, city, state),
           unit:units!profiles_unit_id_fkey(id, block, number, unit_type, floor)
         `)
         .eq('user_id', user.id)
@@ -352,7 +352,7 @@ export const usePendingJoinRequest = () => {
           community_name,
           manual_unit_info,
           is_manual_entry,
-          community:societies!join_requests_community_id_fkey(name),
+          community:communities!join_requests_community_id_fkey(name),
           unit:units!join_requests_unit_id_fkey(block, number)
         `)
         .eq('user_id', profile.id)
@@ -380,37 +380,38 @@ export const useHasJoinedCommunity = () => {
   // Determine the appropriate message based on user state
   const getUnitDisplay = () => {
     console.log('🔍 getUnitDisplay: Checking profile data:', {
-      society_id: profile?.society_id,
+      community_id: profile?.community_id,
       unit_id: profile?.unit_id,
-      society: profile?.society,
+      community: profile?.community,
       unit: profile?.unit,
       pendingRequest: pendingRequest?.status
     });
     
-    // Phase 3: User has joined a community (has society_id and unit) - HIGHEST PRIORITY
+    // Phase 3: User has joined a community (has community_id and unit) - HIGHEST PRIORITY
     // This means their request was approved and they are now a member
     // If user is approved, we NEVER show pending/rejected messages
-    if (profile?.society_id && profile?.unit_id) {
-      // Try different ways to access the society and unit data
-      const society = profile.society?.[0] || profile.society;
+    if (profile?.community_id && profile?.unit_id) {
+      // Try different ways to access the community and unit data
+      const community = profile.community?.[0] || profile.community;
       const unit = profile.unit?.[0] || profile.unit;
       
-      console.log('✅ User is approved! Society:', society, 'Unit:', unit);
+      console.log('✅ User is approved! Community:', community, 'Unit:', unit);
       
-      if (society && unit) {
-        const result = `${unit.block}-${unit.number} | ${society.name}`;
+      if (community && unit) {
+        const result = `${unit.block}-${unit.number} | ${community.name}`;
         console.log('✅ Returning approved user display:', result);
         return result;
       }
       
-      // Fallback if society/unit data is missing but IDs exist
-      const fallback = `Unit ${profile.unit_id} | Community ${profile.society_id}`;
+      // Fallback if community/unit data is missing but IDs exist
+      const fallback = `Unit ${profile.unit_id} | Community ${profile.community_id}`;
       console.log('✅ Returning fallback display:', fallback);
       return fallback;
     }
     
-    // Only check for rejected/pending requests if user is NOT approved (no society_id)
-    if (!profile?.society_id && pendingRequest) {
+    // Only check for rejected/pending requests if user is NOT approved (no community_id)
+    // OR if the pending request is for a different community than the one they're already in
+    if (!profile?.community_id && pendingRequest) {
       console.log('🔍 Checking pending request status:', pendingRequest.status);
       
       // Check for rejected requests
@@ -446,12 +447,12 @@ export const useHasJoinedCommunity = () => {
   };
   
   return {
-    // Phase 1: user.society_id = null (New User)
+    // Phase 1: user.community_id = null (New User)
     // Phase 2: user has pending request (Request Sent)
-    // Phase 3: user.society_id = exists (Returning User)  
-    hasJoinedCommunity: !isLoading && !!profile?.society_id,
-    hasPendingRequest: !pendingLoading && !!pendingRequest && !profile?.society_id && (pendingRequest.status === 'pending' || pendingRequest.status === 'pending_manual_review'),
-    hasRejectedRequest: !pendingLoading && !!pendingRequest && !profile?.society_id && pendingRequest.status === 'rejected',
+    // Phase 3: user.community_id = exists (Returning User)  
+    hasJoinedCommunity: !isLoading && !!profile?.community_id,
+    hasPendingRequest: !pendingLoading && !!pendingRequest && !profile?.community_id && (pendingRequest.status === 'pending' || pendingRequest.status === 'pending_manual_review'),
+    hasRejectedRequest: !pendingLoading && !!pendingRequest && !profile?.community_id && pendingRequest.status === 'rejected',
     isLoading: isLoading || pendingLoading,
     profile,
     pendingRequest,

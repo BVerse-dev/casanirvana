@@ -5,6 +5,7 @@ import {
   ScrollView,
   TouchableOpacity,
   FlatList,
+  RefreshControl,
 } from "react-native";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -22,6 +23,7 @@ const BookingHistoryScreen = ({ navigation }) => {
   }
 
   const [selectedFilter, setSelectedFilter] = useState("all");
+  const [refreshing, setRefreshing] = useState(false);
 
   const [bookingHistory] = useState([
     {
@@ -144,6 +146,20 @@ const BookingHistoryScreen = ({ navigation }) => {
     ? bookingHistory 
     : bookingHistory.filter(booking => booking.status === selectedFilter);
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      // Simulate API call to refresh booking history data
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      // In a real app, you would fetch fresh data from your API here
+      console.log('Booking history data refreshed');
+    } catch (error) {
+      console.log('Refresh error:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const renderFilter = ({ item }) => (
     <TouchableOpacity
       style={[
@@ -265,7 +281,7 @@ const BookingHistoryScreen = ({ navigation }) => {
   );
 
   return (
-    <View style={{ flex: 1, backgroundColor: Colors.extraLightGrey }}>
+    <View style={{ flex: 1, backgroundColor: Colors.regularGrey }}>
       <MyStatusBar />
       <View
         style={{
@@ -292,7 +308,17 @@ const BookingHistoryScreen = ({ navigation }) => {
         </Text>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[Colors.primary]}
+            tintColor={Colors.primary}
+          />
+        }
+      >
         <View style={styles.headerSection}>
           <MaterialCommunityIcons
             name="history"
@@ -372,16 +398,19 @@ const styles = StyleSheet.create({
   },
   filtersSection: {
     marginBottom: Default.fixPadding * 2,
+    paddingBottom: Default.fixPadding * 0.3,
   },
   filtersList: {
     paddingHorizontal: Default.fixPadding,
+    paddingVertical: Default.fixPadding * 0.5,
   },
   filterButton: {
     backgroundColor: Colors.white,
-    paddingHorizontal: Default.fixPadding,
-    paddingVertical: Default.fixPadding * 0.8,
+    paddingHorizontal: Default.fixPadding * 1.2,
+    paddingVertical: Default.fixPadding,
     borderRadius: 20,
-    marginHorizontal: Default.fixPadding * 0.5,
+    marginHorizontal: Default.fixPadding * 0.7,
+    marginVertical: Default.fixPadding * 0.3,
     ...Default.shadow,
   },
   filterButtonActive: {
@@ -392,9 +421,12 @@ const styles = StyleSheet.create({
   },
   filterTextActive: {
     ...Fonts.Medium12white,
+    color: Colors.white,
   },
   bookingsSection: {
     paddingHorizontal: Default.fixPadding * 2,
+    marginTop: Default.fixPadding * 0.2,
+    paddingBottom: Default.fixPadding * 3,
   },
   sectionTitle: {
     ...Fonts.SemiBold16black,
@@ -486,17 +518,19 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
+    alignItems: "center",
   },
   actionButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: Default.fixPadding * 0.6,
-    paddingHorizontal: Default.fixPadding * 0.8,
-    borderRadius: 6,
+    paddingVertical: Default.fixPadding * 0.8,
+    paddingHorizontal: Default.fixPadding,
+    borderRadius: 8,
     marginRight: Default.fixPadding * 0.5,
     marginBottom: Default.fixPadding * 0.5,
-    minWidth: 90,
+    minWidth: 100,
+    minHeight: 40,
   },
   rateButton: {
     backgroundColor: Colors.orange,
@@ -515,6 +549,7 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     ...Fonts.Medium10white,
+    color: Colors.white,
     marginLeft: Default.fixPadding * 0.3,
   },
   emptyState: {

@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../utils/supabase';
 import { useHasJoinedCommunity } from './useCommunityData';
+import { sampleMembers, sampleAdmins, sampleCommittee } from '../data/sampleMemberData';
 
 // Static imports for member images (React Native requirement)
 const memberImages = {
@@ -117,24 +118,24 @@ export const useSocietyMembers = () => {
   const { profile } = useHasJoinedCommunity();
   
   return useQuery({
-    queryKey: ['societyMembers', profile?.society_id],
+    queryKey: ['societyMembers', profile?.community_id],
     queryFn: async () => {
-      if (!profile?.society_id) {
-        console.log('❌ useSocietyMembers: No society_id found');
+      if (!profile?.community_id) {
+        console.log('❌ useSocietyMembers: No community_id found');
         return [];
       }
+      
+      console.log('🔍 useSocietyMembers: Fetching members for community:', profile.community_id);
 
-      console.log('🔍 useSocietyMembers: Fetching members for society:', profile.society_id);
-
-      // Get society info first
-      const { data: society, error: societyError } = await supabase
-        .from('societies')
+      // Get community info first
+      const { data: community, error: communityError } = await supabase
+        .from('communities')
         .select('name')
-        .eq('id', profile.society_id)
+        .eq('id', profile.community_id)
         .single();
 
-      if (societyError) {
-        console.error('❌ Error fetching society:', societyError);
+      if (communityError) {
+        console.error('❌ Error fetching community:', communityError);
       }
 
       console.log('🔍 useSocietyMembers: About to fetch from profiles table...');
@@ -151,7 +152,7 @@ export const useSocietyMembers = () => {
             unit_type
           )
         `)
-        .eq('society_id', profile.society_id)
+        .eq('community_id', profile.community_id)
         .in('role', ['user', 'management']) // Regular members and management/committee
         .order('first_name');
 
@@ -165,12 +166,19 @@ export const useSocietyMembers = () => {
       console.log('✅ useSocietyMembers: Fetched', data?.length || 0, 'members');
       console.log('🔍 useSocietyMembers: Raw data sample:', data?.[0]);
       
-      const societyName = society?.name || 'Community';
-      const transformedData = data?.map(user => transformUserToMember(user, societyName)) || [];
+      const communityName = community?.name || 'Community';
+      const transformedData = data?.map(user => transformUserToMember(user, communityName)) || [];
       console.log('🔍 useSocietyMembers: Transformed data sample:', transformedData?.[0]);
+      
+      // If no real data, return sample data for development/testing
+      if (transformedData.length === 0) {
+        console.log('📝 useSocietyMembers: No real data found, returning sample data');
+        return sampleMembers;
+      }
+      
       return transformedData;
     },
-    enabled: !!profile?.society_id,
+    enabled: !!profile?.community_id,
     staleTime: 2 * 60 * 1000, // 2 minutes
   });
 };
@@ -180,24 +188,24 @@ export const useSocietyAdmins = () => {
   const { profile } = useHasJoinedCommunity();
   
   return useQuery({
-    queryKey: ['societyAdmins', profile?.society_id],
+    queryKey: ['societyAdmins', profile?.community_id],
     queryFn: async () => {
-      if (!profile?.society_id) {
-        console.log('❌ useSocietyAdmins: No society_id found');
+      if (!profile?.community_id) {
+        console.log('❌ useSocietyAdmins: No community_id found');
         return [];
       }
+      
+      console.log('🔍 useSocietyAdmins: Fetching admins for community:', profile.community_id);
 
-      console.log('🔍 useSocietyAdmins: Fetching admins for society:', profile.society_id);
-
-      // Get society info first
-      const { data: society, error: societyError } = await supabase
-        .from('societies')
+      // Get community info first
+      const { data: community, error: communityError } = await supabase
+        .from('communities')
         .select('name')
-        .eq('id', profile.society_id)
+        .eq('id', profile.community_id)
         .single();
 
-      if (societyError) {
-        console.error('❌ Error fetching society:', societyError);
+      if (communityError) {
+        console.error('❌ Error fetching community:', communityError);
       }
 
       // Fetch users who are admins from profiles table (original working approach)
@@ -212,7 +220,7 @@ export const useSocietyAdmins = () => {
             unit_type
           )
         `)
-        .eq('society_id', profile.society_id)
+        .eq('community_id', profile.community_id)
         .eq('role', 'admin') // Admin role
         .order('first_name');
 
@@ -223,10 +231,18 @@ export const useSocietyAdmins = () => {
 
       console.log('✅ useSocietyAdmins: Fetched', data?.length || 0, 'admins');
       
-      const societyName = society?.name || 'Community';
-      return data?.map(user => transformUserToMember(user, societyName)) || [];
+      const communityName = community?.name || 'Community';
+      const transformedData = data?.map(user => transformUserToMember(user, communityName)) || [];
+      
+      // If no real data, return sample data for development/testing
+      if (transformedData.length === 0) {
+        console.log('📝 useSocietyAdmins: No real data found, returning sample data');
+        return sampleAdmins;
+      }
+      
+      return transformedData;
     },
-    enabled: !!profile?.society_id,
+    enabled: !!profile?.community_id,
     staleTime: 2 * 60 * 1000, // 2 minutes
   });
 };
@@ -238,24 +254,24 @@ export const useSocietyCommittee = () => {
   const { profile } = useHasJoinedCommunity();
   
   return useQuery({
-    queryKey: ['societyCommittee', profile?.society_id],
+    queryKey: ['societyCommittee', profile?.community_id],
     queryFn: async () => {
-      if (!profile?.society_id) {
-        console.log('❌ useSocietyCommittee: No society_id found');
+      if (!profile?.community_id) {
+        console.log('❌ useSocietyCommittee: No community_id found');
         return [];
       }
 
-      console.log('🔍 useSocietyCommittee: Fetching committee for society:', profile.society_id);
+      console.log('🔍 useSocietyCommittee: Fetching committee for community:', profile.community_id);
 
-      // Get society info first
-      const { data: society, error: societyError } = await supabase
-        .from('societies')
+      // Get community info first
+      const { data: community, error: communityError } = await supabase
+        .from('communities')
         .select('name')
-        .eq('id', profile.society_id)
+        .eq('id', profile.community_id)
         .single();
 
-      if (societyError) {
-        console.error('❌ Error fetching society:', societyError);
+      if (communityError) {
+        console.error('❌ Error fetching community:', communityError);
       }
 
       // For committee members, get from profiles table with management role (original working approach)
@@ -270,7 +286,7 @@ export const useSocietyCommittee = () => {
             unit_type
           )
         `)
-        .eq('society_id', profile.society_id)
+        .eq('community_id', profile.community_id)
         .eq('role', 'management') // Management/committee members
         .order('first_name');
 
@@ -282,12 +298,19 @@ export const useSocietyCommittee = () => {
       console.log('✅ useSocietyCommittee: Fetched', data?.length || 0, 'committee members');
       console.log('🔍 useSocietyCommittee: Raw data sample:', data?.[0]);
       
-      const societyName = society?.name || 'Community';
-      const transformedData = data?.map(user => transformUserToMember(user, societyName)) || [];
+      const communityName = community?.name || 'Community';
+      const transformedData = data?.map(user => transformUserToMember(user, communityName)) || [];
       console.log('🔍 useSocietyCommittee: Transformed data sample:', transformedData?.[0]);
+      
+      // If no real data, return sample data for development/testing
+      if (transformedData.length === 0) {
+        console.log('📝 useSocietyCommittee: No real data found, returning sample data');
+        return sampleCommittee;
+      }
+      
       return transformedData;
     },
-    enabled: !!profile?.society_id,
+    enabled: !!profile?.community_id,
     staleTime: 2 * 60 * 1000, // 2 minutes
   });
 };
@@ -298,24 +321,24 @@ export const useSocietyMembersSubscription = () => {
   const queryClient = useQueryClient();
   
   return useQuery({
-    queryKey: ['societyMembersSubscription', profile?.society_id],
+    queryKey: ['societyMembersSubscription', profile?.community_id],
     queryFn: async () => {
-      if (!profile?.society_id) {
+      if (!profile?.community_id) {
         return null;
       }
 
-      console.log('🔔 Setting up society members subscription for:', profile.society_id);
+      console.log('🔔 Setting up community members subscription for:', profile.community_id);
 
       // Set up real-time subscriptions for the profiles table
       const membersChannel = supabase
-        .channel(`society-members-${profile.society_id}`)
+        .channel(`community-members-${profile.community_id}`)
         .on(
           'postgres_changes',
           {
             event: '*',
             schema: 'public',
             table: 'profiles',
-            filter: `society_id=eq.${profile.society_id}`,
+            filter: `community_id=eq.${profile.community_id}`,
           },
           (payload) => {
             console.log('🔔 Real-time profiles update:', payload);
@@ -328,7 +351,7 @@ export const useSocietyMembersSubscription = () => {
 
       return membersChannel;
     },
-    enabled: !!profile?.society_id,
+    enabled: !!profile?.community_id,
     staleTime: Infinity, // Keep the subscription alive
   });
 };
