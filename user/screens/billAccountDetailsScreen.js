@@ -43,11 +43,11 @@ const BillAccountDetailsScreen = ({ navigation, route }) => {
     switch (provider) {
       case "ecg_postpaid":
       case "ecg_prepaid":
-        return require("../assets/images/ecg_logo.png");
+        return require("../assets/images/pay1.png");
       case "ghana_water":
-        return require("../assets/images/ghana_water_logo.png");
+        return require("../assets/images/pay3.png");
       case "zoomlion":
-        return require("../assets/images/zoomlion_logo.png");
+        return require("../assets/images/pay4.png");
       case "dstv":
       case "dstv_boxoffice":
         return require("../assets/images/pay1.png");

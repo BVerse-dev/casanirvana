@@ -30,35 +30,35 @@ const InsuranceScreen = ({ navigation }) => {
     {
       id: "enterprise_life",
       title: "Enterprise Life",
-      logo: require("../assets/images/pay1.png"), // Replace with actual Enterprise Life logo
+      logo: require("../assets/images/pay1.png"),
       screen: "policyDetailsScreen",
       params: { provider: "enterprise_life", providerName: "Enterprise Life" }
     },
     {
       id: "akwantupa",
       title: "AkwantuPa",
-      logo: require("../assets/images/pay2.png"), // Replace with actual AkwantuPa logo
+      logo: require("../assets/images/pay2.png"),
       screen: "policyDetailsScreen",
       params: { provider: "akwantupa", providerName: "AkwantuPa" }
     },
     {
       id: "hollard_life",
       title: "Hollard Life",
-      logo: require("../assets/images/pay3.png"), // Replace with actual Hollard Life logo
+      logo: require("../assets/images/pay3.png"),
       screen: "policyDetailsScreen",
       params: { provider: "hollard_life", providerName: "Hollard Life" }
     },
     {
       id: "metropolitan_life",
       title: "Metropolitan Life Insurance",
-      logo: require("../assets/images/pay4.png"), // Replace with actual Metropolitan Life logo
+      logo: require("../assets/images/pay4.png"),
       screen: "policyDetailsScreen",
       params: { provider: "metropolitan_life", providerName: "Metropolitan Life Insurance" }
     },
     {
       id: "old_mutual",
       title: "Old Mutual",
-      logo: require("../assets/images/pay5.png"), // Replace with actual Old Mutual logo
+      logo: require("../assets/images/pay5.png"),
       screen: "policyDetailsScreen",
       params: { provider: "old_mutual", providerName: "Old Mutual" }
     }

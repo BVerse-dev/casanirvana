@@ -30,28 +30,28 @@ const UtilitiesScreen = ({ navigation }) => {
     {
       id: "ecg_postpaid",
       title: "ECG Postpaid",
-      logo: require("../assets/images/ecg_logo.png"),
+      logo: require("../assets/images/pay1.png"),
       screen: "billAccountDetailsScreen",
       params: { provider: "ecg_postpaid", providerName: "ECG Postpaid" }
     },
     {
       id: "ecg_prepaid",
       title: "ECG Smart Prepaid",
-      logo: require("../assets/images/ecg_logo.png"),
+      logo: require("../assets/images/pay1.png"),
       screen: "billAccountDetailsScreen",
       params: { provider: "ecg_prepaid", providerName: "ECG Smart Prepaid" }
     },
     {
       id: "ghana_water",
       title: "Ghana Water",
-      logo: require("../assets/images/ghana_water_logo.png"),
+      logo: require("../assets/images/pay3.png"),
       screen: "billAccountDetailsScreen",
       params: { provider: "ghana_water", providerName: "Ghana Water" }
     },
     {
       id: "zoomlion",
       title: "Zoomlion Waste Management",
-      logo: require("../assets/images/zoomlion_logo.png"),
+      logo: require("../assets/images/pay4.png"),
       screen: "billAccountDetailsScreen",
       params: { provider: "zoomlion", providerName: "Zoomlion Waste Management" }
     }
