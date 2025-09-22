@@ -133,7 +133,7 @@ const TransferReviewScreen = ({ navigation, route }) => {
         >
           {/* Amount Card */}
           <View style={{ 
-            backgroundColor: Colors.darkBlue, 
+            backgroundColor: "#1E5F8C", // Lighter blue color
             borderRadius: 15,
             padding: Default.fixPadding * 2,
             marginBottom: Default.fixPadding * 2,
@@ -217,7 +217,7 @@ const TransferReviewScreen = ({ navigation, route }) => {
                   <MaterialCommunityIcons
                     name="star-outline"
                     size={22}
-                    color={Colors.orange}
+                    color={Colors.white}
                   />
                 </TouchableOpacity>
               </View>
@@ -257,7 +257,7 @@ const TransferReviewScreen = ({ navigation, route }) => {
                     <MaterialCommunityIcons
                       name="calendar-clock"
                       size={22}
-                      color={Colors.orange}
+                      color={Colors.white}
                     />
                   </View>
                   <View style={{ flex: 1 }}>
@@ -316,7 +316,7 @@ const TransferReviewScreen = ({ navigation, route }) => {
                     <MaterialCommunityIcons
                       name="credit-card-outline"
                       size={22}
-                      color={Colors.blue}
+                      color={Colors.white}
                     />
                   </View>
                   <Text style={{ ...Fonts.SemiBold16white }}>
@@ -324,12 +324,13 @@ const TransferReviewScreen = ({ navigation, route }) => {
                   </Text>
                 </View>
                 <View style={{
-                  backgroundColor: Colors.blue + '30',
-                  paddingHorizontal: Default.fixPadding,
-                  paddingVertical: Default.fixPadding * 0.5,
+                  backgroundColor: "rgba(255, 255, 255, 0.2)",
+                  paddingHorizontal: Default.fixPadding * 0.8,
+                  paddingVertical: Default.fixPadding * 0.3,
                   borderRadius: 5,
+                  marginLeft: Default.fixPadding,
                 }}>
-                  <Text style={{ ...Fonts.Medium12blue }}>
+                  <Text style={{ ...Fonts.Medium12white }}>
                     {tr("Change")}
                   </Text>
                 </View>
@@ -339,7 +340,7 @@ const TransferReviewScreen = ({ navigation, route }) => {
 
           {/* Payment Details Card */}
           <View style={{ 
-            backgroundColor: Colors.darkBlue, 
+            backgroundColor: "#006A4E", // Lighter green color
             borderRadius: 15,
             overflow: "hidden",
             marginBottom: Default.fixPadding * 2,
@@ -413,7 +414,7 @@ const TransferReviewScreen = ({ navigation, route }) => {
                 <Text style={{ ...Fonts.SemiBold16lightGrey }}>
                   {tr("Total")}
                 </Text>
-                <Text style={{ ...Fonts.SemiBold16primary }}>
+                <Text style={{ ...Fonts.SemiBold16white }}>
                   {totalAmountFormatted}
                 </Text>
               </View>
