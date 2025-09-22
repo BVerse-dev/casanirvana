@@ -325,16 +325,21 @@ const TransferAmountScreen = ({ navigation, route }) => {
                       onPress={() => handleFrequencySelect(item)}
                       style={{
                         flex: 1,
-                        paddingVertical: Default.fixPadding,
+                        paddingVertical: Default.fixPadding * 0.8,
+                        paddingHorizontal: Default.fixPadding * 0.2,
                         backgroundColor: frequency === item ? Colors.primary : "transparent",
                         alignItems: "center",
+                        justifyContent: "center",
                       }}
                     >
                       <Text
                       style={{
-                        ...Fonts.SemiBold10black,
+                        ...Fonts.SemiBold9black,
+                        fontSize: 9,
                         color: frequency === item ? Colors.white : Colors.black,
+                        textAlign: "center",
                       }}
+                      numberOfLines={1}
                       >
                         {tr(item)}
                       </Text>
