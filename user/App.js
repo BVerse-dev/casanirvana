@@ -394,6 +394,20 @@ const MainNavigation = () => {
           name="billAmountScreen"
           component={require("./screens/billAmountScreen").default}
         />
+        
+        {/* Insurance Flow */}
+        <Stack.Screen
+          name="insuranceScreen"
+          component={require("./screens/insuranceScreen").default}
+        />
+        <Stack.Screen
+          name="policyDetailsScreen"
+          component={require("./screens/policyDetailsScreen").default}
+        />
+        <Stack.Screen
+          name="insuranceAmountScreen"
+          component={require("./screens/insuranceAmountScreen").default}
+        />
           </Stack.Navigator>
           </NotificationNavigationHandler>
         </NotificationProvider>
