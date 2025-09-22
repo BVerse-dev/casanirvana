@@ -197,8 +197,8 @@ const MobileMoneyScreen = ({ navigation, route }) => {
               phone_number: recipientPhone || '',
               description: description || '',
               package_name: amountTitle || 'Data Bundle',
-              data_amount: description || '1GB',
-              validity_days: 30,
+              data_amount: dataAmount || '1GB',
+              validity_days: validity ? parseInt(validity) : 30,
               amount: amount || 0,
               status: 'pending',
               payment_ref_id: paymentResult.data.id

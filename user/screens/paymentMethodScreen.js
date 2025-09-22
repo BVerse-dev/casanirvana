@@ -548,6 +548,57 @@ const PaymentMethodScreen = ({ navigation, route }) => {
                       </View>
                     )}
 
+                    {/* Data bundle details if applicable */}
+                    {transactionType === 'data' && dataAmount && (
+                      <View
+                        style={{
+                          flexDirection: isRtl ? "row-reverse" : "row",
+                          alignItems: "center",
+                          marginBottom: Default.fixPadding * 0.5,
+                        }}
+                      >
+                        <MaterialCommunityIcons
+                          name="database"
+                          size={16}
+                          color={Colors.primary}
+                          style={{ marginRight: isRtl ? 0 : Default.fixPadding * 0.5, marginLeft: isRtl ? Default.fixPadding * 0.5 : 0 }}
+                        />
+                        <Text
+                          style={{
+                            ...Fonts.Medium14black,
+                            textAlign: isRtl ? "right" : "left",
+                          }}
+                        >
+                          <Text style={{ ...Fonts.SemiBold14black }}>Data:</Text> {dataAmount}
+                        </Text>
+                      </View>
+                    )}
+                    
+                    {transactionType === 'data' && validity && (
+                      <View
+                        style={{
+                          flexDirection: isRtl ? "row-reverse" : "row",
+                          alignItems: "center",
+                          marginBottom: Default.fixPadding * 0.5,
+                        }}
+                      >
+                        <MaterialCommunityIcons
+                          name="calendar-clock"
+                          size={16}
+                          color={Colors.primary}
+                          style={{ marginRight: isRtl ? 0 : Default.fixPadding * 0.5, marginLeft: isRtl ? Default.fixPadding * 0.5 : 0 }}
+                        />
+                        <Text
+                          style={{
+                            ...Fonts.Medium14black,
+                            textAlign: isRtl ? "right" : "left",
+                          }}
+                        >
+                          <Text style={{ ...Fonts.SemiBold14black }}>Validity:</Text> {validity}
+                        </Text>
+                      </View>
+                    )}
+
                     <View
                       style={{
                         flexDirection: isRtl ? "row-reverse" : "row",
@@ -692,18 +743,29 @@ const PaymentMethodScreen = ({ navigation, route }) => {
                   textAlign: isRtl ? "left" : "right",
                 }}
               >
-                GH₵ {(() => {
-                  let amount = 0;
-                  if (bookingData && typeof bookingData.totalAmount === 'number') {
-                    amount = bookingData.totalAmount;
-                  } else if (paymentData && typeof paymentData.amount === 'number') {
-                    amount = paymentData.amount;
-                  } else if (bookingData && bookingData.totalAmount) {
-                    amount = parseFloat(bookingData.totalAmount) || 0;
-                  } else if (paymentData && paymentData.amount) {
-                    amount = parseFloat(paymentData.amount) || 0;
+                {(() => {
+                  // Use amountFormatted if available (from airtime purchase)
+                  if (amountFormatted) {
+                    return amountFormatted;
                   }
-                  return amount.toFixed(2);
+                  
+                  // Otherwise calculate from available data
+                  let calculatedAmount = 0;
+                  
+                  // Check for amount from route params (airtime/personal hub)
+                  if (amount !== undefined && amount !== null) {
+                    calculatedAmount = parseFloat(amount);
+                  } 
+                  // Check booking data
+                  else if (bookingData && bookingData.totalAmount) {
+                    calculatedAmount = parseFloat(bookingData.totalAmount);
+                  } 
+                  // Check payment data
+                  else if (paymentData && paymentData.amount) {
+                    calculatedAmount = parseFloat(paymentData.amount);
+                  }
+                  
+                  return `GHS ${calculatedAmount.toFixed(2)}`;
                 })()}
               </Text>
             </View>

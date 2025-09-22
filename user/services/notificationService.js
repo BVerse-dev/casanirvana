@@ -70,7 +70,7 @@ export const createPaymentNotification = async (payment) => {
       priority = 'normal';
     } else if (payment.transaction_type === 'data') {
       title = 'Data Purchase Successful';
-      body = `Your data purchase of ${payment.amount_formatted || `GHS ${payment.amount?.toFixed(2)}`} was successful.`;
+      body = `Your data purchase of ${payment.data_amount || ''} (${payment.amount_formatted || `GHS ${payment.amount?.toFixed(2)}`}) was successful. Valid for ${payment.validity || '30 days'}.`;
       notificationType = 'payment_success';
       priority = 'normal';
     } else if (payment.transaction_type === 'money_transfer') {

@@ -181,6 +181,24 @@ const MainNavigation = () => {
           name="reviewPayScreen"
           component={require("./screens/reviewPayScreen").default}
         />
+        
+        {/* Data Purchase Flow */}
+        <Stack.Screen
+          name="dataScreen"
+          component={require("./screens/dataScreen").default}
+        />
+        <Stack.Screen
+          name="selectDataPackageScreen"
+          component={require("./screens/selectDataPackageScreen").default}
+        />
+        <Stack.Screen
+          name="dataAmountScreen"
+          component={require("./screens/dataAmountScreen").default}
+        />
+        <Stack.Screen
+          name="dataAccountDetailsScreen"
+          component={require("./screens/dataAccountDetailsScreen").default}
+        />
         <Stack.Screen name="creditCardScreen" component={CreditCardScreen} />
         <Stack.Screen name="mobileMoneyScreen" component={MobileMoneyScreen} />
         <Stack.Screen name="paypalScreen" component={PayPalScreen} />
