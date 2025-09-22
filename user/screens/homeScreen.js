@@ -168,7 +168,7 @@ const HomeScreen = ({ navigation }) => {
       image: require("../assets/images/pay4.png"),
       title: "Pay Bills",
       other: "Utilities & subscriptions",
-      navigateTo: "billsScreen",
+      navigateTo: "payBillsScreen",
     },
     {
       key: "5",
@@ -195,6 +195,7 @@ const HomeScreen = ({ navigation }) => {
           justifyContent: "space-between",
           marginRight: Default.fixPadding * 2,
           marginLeft: index % 2 === 0 ? Default.fixPadding * 2 : 0,
+          marginTop: index < 2 ? Default.fixPadding * 2 : 0, // Add space above first row of cards only
           marginBottom: Default.fixPadding * 1.5,
           borderRadius: 20,
           backgroundColor: Colors.white,
@@ -783,13 +784,13 @@ const HomeScreen = ({ navigation }) => {
             <View
               style={{
                 backgroundColor: Colors.white,
-                paddingBottom: Default.fixPadding * 1.5, // Extended white background
+                paddingBottom: Default.fixPadding * 0.5, // Extended white background
               }}
             >
               <View style={{ 
                 paddingTop: Default.fixPadding * 0.8,
                 paddingHorizontal: Default.fixPadding * 2, 
-                marginBottom: Default.fixPadding * 1.2, // Reduced from 2 to 1.2
+                marginBottom: Default.fixPadding * 0.2, // Reduced from 2 to 1.2
               }}>
                 <NoticeBanner />
               </View>

@@ -372,6 +372,28 @@ const MainNavigation = () => {
           name="lockScreen"
           component={LockScreen}
         />
+        
+        {/* Pay Bills Flow */}
+        <Stack.Screen
+          name="payBillsScreen"
+          component={require("./screens/payBillsScreen").default}
+        />
+        <Stack.Screen
+          name="utilitiesScreen"
+          component={require("./screens/utilitiesScreen").default}
+        />
+        <Stack.Screen
+          name="tvScreen"
+          component={require("./screens/tvScreen").default}
+        />
+        <Stack.Screen
+          name="billAccountDetailsScreen"
+          component={require("./screens/billAccountDetailsScreen").default}
+        />
+        <Stack.Screen
+          name="billAmountScreen"
+          component={require("./screens/billAmountScreen").default}
+        />
           </Stack.Navigator>
           </NotificationNavigationHandler>
         </NotificationProvider>
