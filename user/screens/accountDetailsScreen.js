@@ -12,12 +12,15 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  BackHandler,
 } from "react-native";
 import { Colors, Fonts, Default } from "../constants/styles";
 import { useTranslation } from "react-i18next";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
+import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import { ms } from "react-native-size-matters/extend";
+import MyStatusBar from "../components/myStatusBar";
 
 const AccountDetailsScreen = ({ navigation, route }) => {
   const { t, i18n } = useTranslation();
@@ -30,6 +33,8 @@ const AccountDetailsScreen = ({ navigation, route }) => {
   const { 
     provider, 
     providerName, 
+    providerColor,
+    providerLogo,
     packageType, 
     amountTitle, 
     amount, 
@@ -43,19 +48,16 @@ const AccountDetailsScreen = ({ navigation, route }) => {
     return translated || fallback;
   }
 
-  // Get provider logo based on provider ID
-  const getProviderLogo = () => {
-    switch (provider) {
-      case 'mtn':
-        return require("../assets/images/pay1.png");
-      case 'telecel':
-        return require("../assets/images/pay2.png");
-      case 'airtel':
-        return require("../assets/images/pay3.png");
-      default:
-        return require("../assets/images/pay1.png");
-    }
-  };
+  // Handle back button
+  React.useEffect(() => {
+    const backAction = () => {
+      navigation.goBack();
+      return true;
+    };
+    
+    const backHandler = BackHandler.addEventListener("hardwareBackPress", backAction);
+    return () => backHandler.remove();
+  }, [navigation]);
 
   const handleContinue = () => {
     if (!phoneNumber || phoneNumber.length < 9) {
@@ -67,6 +69,8 @@ const AccountDetailsScreen = ({ navigation, route }) => {
     navigation.navigate("paymentMethodScreen", {
       provider,
       providerName,
+      providerColor,
+      providerLogo,
       packageType,
       amountTitle,
       amount,
@@ -79,20 +83,21 @@ const AccountDetailsScreen = ({ navigation, route }) => {
         phoneNumber,
         name: description || phoneNumber,
         provider: providerName,
-        logo: getProviderLogo()
+        logo: providerLogo
       }
     });
   };
 
   const handleContactPicker = () => {
     // Implement contact picker functionality
-    // For now, just a placeholder
     console.log("Open contact picker");
   };
 
+  const isValidPhoneNumber = phoneNumber && phoneNumber.length >= 9;
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.white }}>
-      <StatusBar backgroundColor={Colors.primary} barStyle="light-content" />
+    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.extraLightGrey }}>
+      <MyStatusBar />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : null}
         style={{ flex: 1 }}
@@ -104,7 +109,8 @@ const AccountDetailsScreen = ({ navigation, route }) => {
             alignItems: "center",
             paddingVertical: Default.fixPadding * 1.2,
             paddingHorizontal: Default.fixPadding * 2,
-            backgroundColor: Colors.primary,
+            backgroundColor: Colors.white,
+            ...Default.shadow,
           }}
         >
           <TouchableOpacity
@@ -117,60 +123,108 @@ const AccountDetailsScreen = ({ navigation, route }) => {
             <Ionicons
               name={isRtl ? "chevron-forward" : "chevron-back"}
               size={25}
-              color={Colors.white}
+              color={Colors.black}
             />
           </TouchableOpacity>
-          <Text style={{ ...Fonts.SemiBold18white }}>
+          <Text style={{ ...Fonts.SemiBold18black }}>
             {tr("Account Details")}
           </Text>
-          <TouchableOpacity
-            onPress={() => navigation.setParams({ editMode: true })}
-            style={{
-              marginLeft: isRtl ? 0 : "auto",
-              marginRight: isRtl ? "auto" : 0,
-            }}
-          >
-            <Text style={{ ...Fonts.SemiBold16white }}>
-              {tr("EDIT")}
-            </Text>
-          </TouchableOpacity>
         </View>
 
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ flexGrow: 1 }}
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: Default.fixPadding * 10 }}
         >
-          {/* Provider Info */}
-          <View style={{ alignItems: "center", padding: Default.fixPadding * 2 }}>
-            <Image
-              source={getProviderLogo()}
-              style={{ width: ms(80), height: ms(80), resizeMode: "contain" }}
-            />
-            <Text style={{ ...Fonts.SemiBold18black, marginTop: Default.fixPadding }}>
-              {providerName}
-            </Text>
+          {/* Provider & Amount Info */}
+          <View style={{ 
+            backgroundColor: Colors.white, 
+            padding: Default.fixPadding * 2,
+            marginBottom: Default.fixPadding,
+            ...Default.shadow,
+          }}>
+            <View style={{ 
+              flexDirection: isRtl ? "row-reverse" : "row",
+              alignItems: "center",
+              marginBottom: Default.fixPadding * 2,
+            }}>
+              <View
+                style={{
+                  width: 50,
+                  height: 50,
+                  borderRadius: 25,
+                  backgroundColor: providerColor ? providerColor + '15' : Colors.blue + '15',
+                  justifyContent: "center",
+                  alignItems: "center",
+                  marginRight: isRtl ? 0 : Default.fixPadding * 1.5,
+                  marginLeft: isRtl ? Default.fixPadding * 1.5 : 0,
+                }}
+              >
+                <Image
+                  source={providerLogo || require("../assets/images/pay1.png")}
+                  style={{
+                    width: ms(30),
+                    height: ms(30),
+                    resizeMode: "contain",
+                  }}
+                />
+              </View>
+              <View>
+                <Text style={{ ...Fonts.SemiBold16black }}>
+                  {providerName || "Airtime Purchase"}
+                </Text>
+                <Text style={{ ...Fonts.Medium14primary, marginTop: 2 }}>
+                  {amountFormatted || `GHS ${amount?.toFixed(2) || '0.00'}`}
+                </Text>
+              </View>
+            </View>
+
+            <View style={{
+              height: 1,
+              backgroundColor: Colors.lightGrey,
+              marginVertical: Default.fixPadding,
+            }} />
+
+            <View style={{
+              flexDirection: isRtl ? "row-reverse" : "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}>
+              <Text style={{ ...Fonts.Medium14grey }}>
+                {tr("Package")}
+              </Text>
+              <Text style={{ ...Fonts.SemiBold14black }}>
+                {amountTitle || "Airtime"}
+              </Text>
+            </View>
           </View>
 
           {/* Phone Number Input */}
-          <View style={{ padding: Default.fixPadding * 2 }}>
-            <Text style={{ ...Fonts.SemiBold14lightGrey, marginBottom: Default.fixPadding * 0.5 }}>
+          <View style={{ 
+            backgroundColor: Colors.white, 
+            padding: Default.fixPadding * 2,
+            marginBottom: Default.fixPadding,
+            ...Default.shadow,
+          }}>
+            <Text style={{ ...Fonts.SemiBold14grey, marginBottom: Default.fixPadding }}>
               {tr("PHONE NUMBER")}
             </Text>
             <View
               style={{
                 flexDirection: isRtl ? "row-reverse" : "row",
                 alignItems: "center",
-                borderBottomWidth: 1,
-                borderBottomColor: Colors.lightGrey,
-                paddingBottom: Default.fixPadding * 0.5,
+                borderWidth: 1,
+                borderColor: Colors.lightGrey,
+                borderRadius: 8,
+                paddingHorizontal: Default.fixPadding,
+                marginBottom: Default.fixPadding * 2,
               }}
             >
               <TextInput
                 style={{
                   flex: 1,
-                  ...Fonts.SemiBold16black,
+                  ...Fonts.Medium16black,
                   textAlign: isRtl ? "right" : "left",
-                  padding: Default.fixPadding * 0.5,
+                  padding: Default.fixPadding,
                 }}
                 value={phoneNumber}
                 onChangeText={setPhoneNumber}
@@ -188,21 +242,18 @@ const AccountDetailsScreen = ({ navigation, route }) => {
             </View>
 
             {/* Description Input */}
-            <Text style={{ 
-              ...Fonts.SemiBold14lightGrey, 
-              marginBottom: Default.fixPadding * 0.5,
-              marginTop: Default.fixPadding * 2 
-            }}>
+            <Text style={{ ...Fonts.SemiBold14grey, marginBottom: Default.fixPadding }}>
               {tr("DESCRIPTION")}
             </Text>
             <TextInput
               style={{
-                ...Fonts.SemiBold16black,
+                ...Fonts.Medium16black,
                 textAlign: isRtl ? "right" : "left",
-                padding: Default.fixPadding * 0.5,
-                borderBottomWidth: 1,
-                borderBottomColor: Colors.lightGrey,
-                paddingBottom: Default.fixPadding * 0.5,
+                padding: Default.fixPadding,
+                borderWidth: 1,
+                borderColor: Colors.lightGrey,
+                borderRadius: 8,
+                marginBottom: Default.fixPadding * 2,
               }}
               value={description}
               onChangeText={setDescription}
@@ -216,38 +267,77 @@ const AccountDetailsScreen = ({ navigation, route }) => {
                 flexDirection: isRtl ? "row-reverse" : "row",
                 alignItems: "center",
                 justifyContent: "space-between",
-                marginTop: Default.fixPadding * 2,
               }}
             >
-              <Text style={{ ...Fonts.SemiBold16black }}>
-                {tr("Save")}
-              </Text>
+              <View>
+                <Text style={{ ...Fonts.SemiBold16black }}>
+                  {tr("Save Account")}
+                </Text>
+                <Text style={{ ...Fonts.Medium14grey, marginTop: 2 }}>
+                  {tr("Save this account for future transactions")}
+                </Text>
+              </View>
               <Switch
                 value={saveAccount}
                 onValueChange={setSaveAccount}
-                trackColor={{ false: Colors.lightGrey, true: Colors.primaryLight }}
+                trackColor={{ false: Colors.lightGrey, true: Colors.primary + '50' }}
                 thumbColor={saveAccount ? Colors.primary : Colors.white}
                 ios_backgroundColor={Colors.lightGrey}
               />
             </View>
           </View>
+
+          {/* Info Card */}
+          <View style={{ 
+            backgroundColor: Colors.lightLinkWater,
+            margin: Default.fixPadding * 2,
+            padding: Default.fixPadding * 1.5,
+            borderRadius: 8,
+            flexDirection: isRtl ? "row-reverse" : "row",
+          }}>
+            <MaterialIcons
+              name="info-outline"
+              size={20}
+              color={Colors.blue}
+              style={{ 
+                marginRight: isRtl ? 0 : Default.fixPadding,
+                marginLeft: isRtl ? Default.fixPadding : 0,
+                marginTop: 2,
+              }}
+            />
+            <Text style={{ ...Fonts.Medium14black, flex: 1 }}>
+              {tr("Enter the phone number you want to top up. You can save this account for future transactions.")}
+            </Text>
+          </View>
         </ScrollView>
 
-        {/* Next Button */}
-        <TouchableOpacity
-          onPress={handleContinue}
+        {/* Continue Button */}
+        <View
           style={{
-            backgroundColor: Colors.green,
-            paddingVertical: Default.fixPadding * 1.5,
-            alignItems: "center",
-            margin: Default.fixPadding * 2,
-            borderRadius: 5,
+            padding: Default.fixPadding * 2,
+            backgroundColor: Colors.white,
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            ...Default.shadow,
           }}
         >
-          <Text style={{ ...Fonts.SemiBold16white }}>
-            {phoneNumber ? tr("NEXT") : tr("DONE")}
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleContinue}
+            disabled={!isValidPhoneNumber}
+            style={{
+              backgroundColor: isValidPhoneNumber ? Colors.primary : Colors.grey,
+              borderRadius: 10,
+              paddingVertical: Default.fixPadding * 1.5,
+              alignItems: "center",
+            }}
+          >
+            <Text style={{ ...Fonts.SemiBold16white }}>
+              {tr("Continue")}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

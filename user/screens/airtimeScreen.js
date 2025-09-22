@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Text,
   View,
@@ -8,38 +8,47 @@ import {
   StatusBar,
   StyleSheet,
   SafeAreaView,
+  BackHandler,
+  useWindowDimensions,
 } from "react-native";
 import { Colors, Fonts, Default } from "../constants/styles";
 import { useTranslation } from "react-i18next";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import { ms } from "react-native-size-matters/extend";
+import MyStatusBar from "../components/myStatusBar";
 
 const AirtimeScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
   const isRtl = i18n.dir() === "rtl";
+  const { width } = useWindowDimensions();
+  const [selectedProvider, setSelectedProvider] = useState(null);
 
   // Network providers data
   const providers = [
     {
       id: "mtn",
       name: "MTN Prepaid Topup",
+      subtitle: "Buy airtime for MTN numbers",
       logo: require("../assets/images/pay1.png"),
-      navigateTo: "selectPackageScreen",
-      params: { provider: "mtn", providerName: "MTN Prepaid Topup" }
+      icon: "phone-android",
+      color: "#FFB900",
     },
     {
       id: "telecel",
       name: "Telecel Prepaid Topup",
+      subtitle: "Buy airtime for Telecel numbers",
       logo: require("../assets/images/pay2.png"),
-      navigateTo: "selectPackageScreen",
-      params: { provider: "telecel", providerName: "Telecel Prepaid Topup" }
+      icon: "phone-android",
+      color: "#E60000",
     },
     {
       id: "airtel",
       name: "AirtelTigo Prepaid Topup",
+      subtitle: "Buy airtime for AirtelTigo numbers",
       logo: require("../assets/images/pay3.png"),
-      navigateTo: "selectPackageScreen",
-      params: { provider: "airtel", providerName: "AirtelTigo Prepaid Topup" }
+      icon: "phone-android",
+      color: "#0057B8",
     }
   ];
 
@@ -50,9 +59,119 @@ const AirtimeScreen = ({ navigation }) => {
     return translated || fallback;
   }
 
+  // Handle back button
+  React.useEffect(() => {
+    const backAction = () => {
+      navigation.goBack();
+      return true;
+    };
+    
+    const backHandler = BackHandler.addEventListener("hardwareBackPress", backAction);
+    return () => backHandler.remove();
+  }, [navigation]);
+
+  const handleContinue = () => {
+    if (selectedProvider) {
+      navigation.navigate("selectPackageScreen", {
+        provider: selectedProvider.id,
+        providerName: selectedProvider.name,
+        providerColor: selectedProvider.color,
+        providerLogo: selectedProvider.logo
+      });
+    }
+  };
+
+  const renderItem = ({ item }) => {
+    const isSelected = selectedProvider && selectedProvider.id === item.id;
+    
+    return (
+      <TouchableOpacity
+        onPress={() => setSelectedProvider(item)}
+        style={{
+          flexDirection: isRtl ? "row-reverse" : "row",
+          alignItems: "center",
+          paddingVertical: Default.fixPadding * 1.5,
+          paddingHorizontal: Default.fixPadding * 2,
+          backgroundColor: Colors.white,
+          marginBottom: Default.fixPadding,
+          borderRadius: 10,
+          ...Default.shadow,
+          borderWidth: isSelected ? 2 : 0,
+          borderColor: isSelected ? Colors.primary : "transparent",
+        }}
+      >
+        <View
+          style={{
+            width: 50,
+            height: 50,
+            borderRadius: 25,
+            backgroundColor: item.color + '15',
+            justifyContent: "center",
+            alignItems: "center",
+            marginRight: isRtl ? 0 : Default.fixPadding,
+            marginLeft: isRtl ? Default.fixPadding : 0,
+          }}
+        >
+          <Image
+            source={item.logo}
+            style={{
+              width: ms(30),
+              height: ms(30),
+              resizeMode: "contain",
+            }}
+          />
+        </View>
+
+        <View
+          style={{
+            flex: 1,
+            alignItems: isRtl ? "flex-end" : "flex-start",
+            marginHorizontal: Default.fixPadding,
+          }}
+        >
+          <Text
+            numberOfLines={1}
+            style={{ ...Fonts.SemiBold16black, overflow: "hidden" }}
+          >
+            {item.name}
+          </Text>
+          <Text
+            numberOfLines={1}
+            style={{ ...Fonts.Medium14grey, overflow: "hidden", marginTop: 2 }}
+          >
+            {item.subtitle}
+          </Text>
+        </View>
+
+        <View
+          style={{
+            width: 24,
+            height: 24,
+            borderRadius: 12,
+            borderWidth: 2,
+            borderColor: isSelected ? Colors.primary : Colors.grey,
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          {isSelected && (
+            <View
+              style={{
+                width: 14,
+                height: 14,
+                borderRadius: 7,
+                backgroundColor: Colors.primary,
+              }}
+            />
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.white }}>
-      <StatusBar backgroundColor={Colors.primary} barStyle="light-content" />
+    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.extraLightGrey }}>
+      <MyStatusBar />
       <View style={{ flex: 1 }}>
         {/* Header */}
         <View
@@ -61,7 +180,8 @@ const AirtimeScreen = ({ navigation }) => {
             alignItems: "center",
             paddingVertical: Default.fixPadding * 1.2,
             paddingHorizontal: Default.fixPadding * 2,
-            backgroundColor: Colors.primary,
+            backgroundColor: Colors.white,
+            ...Default.shadow,
           }}
         >
           <TouchableOpacity
@@ -74,67 +194,66 @@ const AirtimeScreen = ({ navigation }) => {
             <Ionicons
               name={isRtl ? "chevron-forward" : "chevron-back"}
               size={25}
-              color={Colors.white}
+              color={Colors.black}
             />
           </TouchableOpacity>
-          <Text style={{ ...Fonts.SemiBold18white }}>
-            {tr("Airtime")}
+          <Text style={{ ...Fonts.SemiBold18black }}>
+            {tr("Buy Airtime")}
           </Text>
         </View>
 
-        {/* Provider List */}
+        {/* Provider Selection */}
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: Default.fixPadding * 2 }}
+          contentContainerStyle={{
+            flexGrow: 1,
+            padding: Default.fixPadding * 2,
+          }}
         >
-          {providers.map((provider, index) => (
-            <TouchableOpacity
-              key={provider.id}
-              onPress={() => navigation.navigate(provider.navigateTo, provider.params)}
-              style={{
-                flexDirection: isRtl ? "row-reverse" : "row",
-                alignItems: "center",
-                paddingVertical: Default.fixPadding * 1.5,
-                paddingHorizontal: Default.fixPadding * 2,
-                borderBottomWidth: 1,
-                borderBottomColor: Colors.lightGrey,
-                backgroundColor: Colors.white,
-              }}
-            >
-              <View
-                style={{
-                  width: ms(40),
-                  height: ms(40),
-                  borderRadius: ms(20),
-                  justifyContent: "center",
-                  alignItems: "center",
-                  overflow: "hidden",
-                  marginRight: isRtl ? 0 : Default.fixPadding * 1.5,
-                  marginLeft: isRtl ? Default.fixPadding * 1.5 : 0,
-                }}
-              >
-                <Image
-                  source={provider.logo}
-                  style={{
-                    width: ms(40),
-                    height: ms(40),
-                    resizeMode: "contain",
-                  }}
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ ...Fonts.SemiBold16black }}>
-                  {provider.name}
-                </Text>
-              </View>
-              <Ionicons
-                name={isRtl ? "chevron-back" : "chevron-forward"}
-                size={20}
-                color={Colors.grey}
-              />
-            </TouchableOpacity>
-          ))}
+          <Text style={{ ...Fonts.SemiBold16black, marginBottom: Default.fixPadding * 1.5 }}>
+            {tr("Select Provider")}
+          </Text>
+
+          {providers.map((item) => renderItem({ item }))}
+
+          {/* Instructions */}
+          <View
+            style={{
+              backgroundColor: Colors.lightLinkWater,
+              borderRadius: 10,
+              padding: Default.fixPadding * 1.5,
+              marginTop: Default.fixPadding * 2,
+            }}
+          >
+            <Text style={{ ...Fonts.Medium14black }}>
+              {tr("Select your mobile network provider to purchase airtime. You can buy airtime for yourself or send to others.")}
+            </Text>
+          </View>
         </ScrollView>
+
+        {/* Continue Button */}
+        <View
+          style={{
+            padding: Default.fixPadding * 2,
+            backgroundColor: Colors.white,
+            ...Default.shadow,
+          }}
+        >
+          <TouchableOpacity
+            onPress={handleContinue}
+            disabled={!selectedProvider}
+            style={{
+              backgroundColor: selectedProvider ? Colors.primary : Colors.grey,
+              borderRadius: 10,
+              paddingVertical: Default.fixPadding * 1.5,
+              alignItems: "center",
+            }}
+          >
+            <Text style={{ ...Fonts.SemiBold16white }}>
+              {tr("Continue")}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </SafeAreaView>
   );

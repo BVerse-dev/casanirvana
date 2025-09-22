@@ -8,12 +8,16 @@ import {
   Alert,
   StyleSheet,
   SafeAreaView,
+  BackHandler,
+  ScrollView,
 } from "react-native";
 import { Colors, Fonts, Default } from "../constants/styles";
 import { useTranslation } from "react-i18next";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
+import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import { ms } from "react-native-size-matters/extend";
+import MyStatusBar from "../components/myStatusBar";
 
 const ReviewPayScreen = ({ navigation, route }) => {
   const { t, i18n } = useTranslation();
@@ -23,7 +27,9 @@ const ReviewPayScreen = ({ navigation, route }) => {
   // Get data from route params
   const { 
     provider, 
-    providerName, 
+    providerName,
+    providerColor,
+    providerLogo,
     amount, 
     amountFormatted,
     phoneNumber,
@@ -38,6 +44,17 @@ const ReviewPayScreen = ({ navigation, route }) => {
     const translated = t(key);
     return translated || fallback;
   }
+
+  // Handle back button
+  React.useEffect(() => {
+    const backAction = () => {
+      navigation.goBack();
+      return true;
+    };
+    
+    const backHandler = BackHandler.addEventListener("hardwareBackPress", backAction);
+    return () => backHandler.remove();
+  }, [navigation]);
 
   const handlePayment = () => {
     setIsLoading(true);
@@ -61,8 +78,8 @@ const ReviewPayScreen = ({ navigation, route }) => {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.white }}>
-      <StatusBar backgroundColor={Colors.primary} barStyle="light-content" />
+    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.extraLightGrey }}>
+      <MyStatusBar />
       <View style={{ flex: 1 }}>
         {/* Header */}
         <View
@@ -71,7 +88,8 @@ const ReviewPayScreen = ({ navigation, route }) => {
             alignItems: "center",
             paddingVertical: Default.fixPadding * 1.2,
             paddingHorizontal: Default.fixPadding * 2,
-            backgroundColor: Colors.primary,
+            backgroundColor: Colors.white,
+            ...Default.shadow,
           }}
         >
           <TouchableOpacity
@@ -84,63 +102,106 @@ const ReviewPayScreen = ({ navigation, route }) => {
             <Ionicons
               name={isRtl ? "chevron-forward" : "chevron-back"}
               size={25}
-              color={Colors.white}
+              color={Colors.black}
             />
           </TouchableOpacity>
-          <Text style={{ ...Fonts.SemiBold18white }}>
+          <Text style={{ ...Fonts.SemiBold18black }}>
             {tr("Review & Pay")}
           </Text>
         </View>
 
-        {/* Amount Display */}
-        <View style={{ alignItems: "center", padding: Default.fixPadding * 3 }}>
-          <Text style={{ ...Fonts.Bold32black }}>
-            GHS {amount}
-          </Text>
-        </View>
-
-        {/* Transaction Details */}
-        <View style={{ flex: 1, padding: Default.fixPadding * 2 }}>
-          {/* Amount Row */}
-          <View
-            style={{
-              flexDirection: isRtl ? "row-reverse" : "row",
-              justifyContent: "space-between",
-              borderBottomWidth: 1,
-              borderBottomColor: Colors.lightGrey,
-              paddingBottom: Default.fixPadding * 1.5,
-            }}
-          >
-            <Text style={{ ...Fonts.SemiBold16black }}>
-              {tr("Amount")}
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: Default.fixPadding * 10 }}
+        >
+          {/* Amount Display */}
+          <View style={{ 
+            backgroundColor: Colors.white, 
+            alignItems: "center", 
+            padding: Default.fixPadding * 3,
+            ...Default.shadow,
+          }}>
+            <Text style={{ ...Fonts.Medium16grey, marginBottom: Default.fixPadding }}>
+              {tr("Total Amount")}
             </Text>
-            <Text style={{ ...Fonts.SemiBold16black }}>
-              {amountFormatted}
+            <Text style={{ ...Fonts.Bold32primary }}>
+              GHS {amount?.toFixed(2) || '0.00'}
             </Text>
           </View>
 
-          {/* Fee Row */}
-          <View
-            style={{
-              flexDirection: isRtl ? "row-reverse" : "row",
-              justifyContent: "space-between",
-              borderBottomWidth: 1,
-              borderBottomColor: Colors.lightGrey,
-              paddingVertical: Default.fixPadding * 1.5,
-            }}
-          >
-            <Text style={{ ...Fonts.SemiBold16black }}>
-              {tr("Fee")}
+          {/* Transaction Details */}
+          <View style={{ 
+            backgroundColor: Colors.white, 
+            padding: Default.fixPadding * 2,
+            marginTop: Default.fixPadding,
+            ...Default.shadow,
+          }}>
+            <Text style={{ ...Fonts.SemiBold16black, marginBottom: Default.fixPadding * 1.5 }}>
+              {tr("Transaction Details")}
             </Text>
-            <Text style={{ ...Fonts.SemiBold16black }}>
-              GHS 0.00
-            </Text>
+            
+            {/* Amount Row */}
+            <View
+              style={{
+                flexDirection: isRtl ? "row-reverse" : "row",
+                justifyContent: "space-between",
+                borderBottomWidth: 1,
+                borderBottomColor: Colors.lightGrey,
+                paddingBottom: Default.fixPadding * 1.5,
+              }}
+            >
+              <Text style={{ ...Fonts.Medium16grey }}>
+                {tr("Amount")}
+              </Text>
+              <Text style={{ ...Fonts.SemiBold16black }}>
+                {amountFormatted || `GHS ${amount?.toFixed(2) || '0.00'}`}
+              </Text>
+            </View>
+
+            {/* Fee Row */}
+            <View
+              style={{
+                flexDirection: isRtl ? "row-reverse" : "row",
+                justifyContent: "space-between",
+                borderBottomWidth: 1,
+                borderBottomColor: Colors.lightGrey,
+                paddingVertical: Default.fixPadding * 1.5,
+              }}
+            >
+              <Text style={{ ...Fonts.Medium16grey }}>
+                {tr("Fee")}
+              </Text>
+              <Text style={{ ...Fonts.SemiBold16black }}>
+                GHS 0.00
+              </Text>
+            </View>
+
+            {/* Total Row */}
+            <View
+              style={{
+                flexDirection: isRtl ? "row-reverse" : "row",
+                justifyContent: "space-between",
+                paddingTop: Default.fixPadding * 1.5,
+              }}
+            >
+              <Text style={{ ...Fonts.SemiBold16black }}>
+                {tr("Total")}
+              </Text>
+              <Text style={{ ...Fonts.SemiBold16primary }}>
+                {amountFormatted || `GHS ${amount?.toFixed(2) || '0.00'}`}
+              </Text>
+            </View>
           </View>
 
           {/* Account Section */}
-          <View style={{ marginTop: Default.fixPadding * 2 }}>
-            <Text style={{ ...Fonts.SemiBold14grey, marginBottom: Default.fixPadding }}>
-              {tr("ACCOUNT")}
+          <View style={{ 
+            backgroundColor: Colors.white, 
+            padding: Default.fixPadding * 2,
+            marginTop: Default.fixPadding,
+            ...Default.shadow,
+          }}>
+            <Text style={{ ...Fonts.SemiBold16black, marginBottom: Default.fixPadding * 1.5 }}>
+              {tr("Recipient")}
             </Text>
             
             <View
@@ -152,27 +213,40 @@ const ReviewPayScreen = ({ navigation, route }) => {
                 paddingBottom: Default.fixPadding * 1.5,
               }}
             >
-              <Image
-                source={recipientInfo?.logo || require("../assets/images/pay1.png")}
-                style={{ 
-                  width: ms(40), 
-                  height: ms(40), 
-                  resizeMode: "contain",
-                  marginRight: isRtl ? 0 : Default.fixPadding,
-                  marginLeft: isRtl ? Default.fixPadding : 0,
+              <View
+                style={{
+                  width: 50,
+                  height: 50,
+                  borderRadius: 25,
+                  backgroundColor: providerColor ? providerColor + '15' : Colors.blue + '15',
+                  justifyContent: "center",
+                  alignItems: "center",
+                  marginRight: isRtl ? 0 : Default.fixPadding * 1.5,
+                  marginLeft: isRtl ? Default.fixPadding * 1.5 : 0,
                 }}
-              />
+              >
+                <Image
+                  source={providerLogo || require("../assets/images/pay1.png")}
+                  style={{
+                    width: ms(30),
+                    height: ms(30),
+                    resizeMode: "contain",
+                  }}
+                />
+              </View>
+              
               <View style={{ flex: 1 }}>
                 <Text style={{ ...Fonts.SemiBold16black }}>
                   {description || tr("Airtime Purchase")}
                 </Text>
-                <Text style={{ ...Fonts.Medium14grey }}>
-                  {phoneNumber}
+                <Text style={{ ...Fonts.Medium14grey, marginTop: 2 }}>
+                  {phoneNumber || ""}
                 </Text>
-                <Text style={{ ...Fonts.Medium14primary }}>
-                  {providerName}
+                <Text style={{ ...Fonts.Medium14primary, marginTop: 2 }}>
+                  {providerName || ""}
                 </Text>
               </View>
+              
               <TouchableOpacity>
                 <MaterialCommunityIcons
                   name="star-outline"
@@ -184,55 +258,91 @@ const ReviewPayScreen = ({ navigation, route }) => {
           </View>
 
           {/* Payment Method Section */}
-          <View style={{ marginTop: Default.fixPadding * 2 }}>
-            <Text style={{ ...Fonts.SemiBold14grey, marginBottom: Default.fixPadding }}>
-              {tr("PAY WITH")}
+          <View style={{ 
+            backgroundColor: Colors.white, 
+            padding: Default.fixPadding * 2,
+            marginTop: Default.fixPadding,
+            ...Default.shadow,
+          }}>
+            <Text style={{ ...Fonts.SemiBold16black, marginBottom: Default.fixPadding * 1.5 }}>
+              {tr("Payment Method")}
             </Text>
             
             <View
               style={{
                 flexDirection: isRtl ? "row-reverse" : "row",
                 alignItems: "center",
+                justifyContent: "space-between",
               }}
             >
-              <Image
-                source={paymentMethod?.logo || require("../assets/images/pay4.png")}
-                style={{ 
-                  width: ms(40), 
-                  height: ms(24), 
-                  resizeMode: "contain",
-                  marginRight: isRtl ? 0 : Default.fixPadding,
-                  marginLeft: isRtl ? Default.fixPadding : 0,
-                }}
-              />
-              <Text style={{ ...Fonts.SemiBold16black, flex: 1 }}>
-                {paymentMethod?.displayNumber || "****7708"}
-              </Text>
-              <TouchableOpacity onPress={() => navigation.navigate("paymentMethodScreen")}>
+              <View style={{ 
+                flexDirection: isRtl ? "row-reverse" : "row",
+                alignItems: "center",
+              }}>
+                <Image
+                  source={paymentMethod?.logo || require("../assets/images/pay4.png")}
+                  style={{ 
+                    width: ms(40), 
+                    height: ms(24), 
+                    resizeMode: "contain",
+                    marginRight: isRtl ? 0 : Default.fixPadding,
+                    marginLeft: isRtl ? Default.fixPadding : 0,
+                  }}
+                />
+                <Text style={{ ...Fonts.SemiBold16black }}>
+                  {paymentMethod?.displayNumber || "****7708"}
+                </Text>
+              </View>
+              
+              <TouchableOpacity onPress={() => navigation.navigate("paymentMethodScreen", route.params)}>
                 <Text style={{ ...Fonts.SemiBold14primary }}>
                   {tr("Change")}
                 </Text>
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </ScrollView>
 
         {/* Pay Button */}
-        <TouchableOpacity
-          onPress={handlePayment}
-          disabled={isLoading}
+        <View
           style={{
-            backgroundColor: isLoading ? Colors.grey : Colors.green,
-            paddingVertical: Default.fixPadding * 1.5,
-            alignItems: "center",
-            margin: Default.fixPadding * 2,
-            borderRadius: 5,
+            padding: Default.fixPadding * 2,
+            backgroundColor: Colors.white,
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            ...Default.shadow,
           }}
         >
-          <Text style={{ ...Fonts.SemiBold16white }}>
-            {isLoading ? tr("PROCESSING...") : tr("PAY")}
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handlePayment}
+            disabled={isLoading}
+            style={{
+              backgroundColor: isLoading ? Colors.grey : Colors.primary,
+              borderRadius: 10,
+              paddingVertical: Default.fixPadding * 1.5,
+              alignItems: "center",
+              flexDirection: isRtl ? "row-reverse" : "row",
+              justifyContent: "center",
+            }}
+          >
+            {isLoading && (
+              <MaterialIcons
+                name="sync"
+                size={20}
+                color={Colors.white}
+                style={{ 
+                  marginRight: isRtl ? 0 : Default.fixPadding * 0.5,
+                  marginLeft: isRtl ? Default.fixPadding * 0.5 : 0,
+                }}
+              />
+            )}
+            <Text style={{ ...Fonts.SemiBold16white }}>
+              {isLoading ? tr("Processing...") : tr("Pay Now")}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </SafeAreaView>
   );
