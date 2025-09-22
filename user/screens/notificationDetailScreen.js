@@ -131,18 +131,22 @@ const NotificationDetailScreen = ({ navigation, route }) => {
     
     const icons = {
       join_request_approved: { name: 'check-circle', color: Colors.green },
-      join_request_rejected: { name: 'cancel', color: Colors.orange },
-      payment_reminder: { name: 'payment', color: Colors.blue },
-      payment_overdue: { name: 'warning', color: Colors.orange },
-      maintenance_scheduled: { name: 'build', color: Colors.blue },
+      join_request_rejected: { name: 'close-circle', color: Colors.orange },
+      payment_reminder: { name: 'credit-card-outline', color: Colors.blue },
+      payment_overdue: { name: 'alert-circle', color: Colors.orange },
+      payment_confirmed: { name: 'check-circle', color: Colors.green },
+      payment_failed: { name: 'close-circle-outline', color: Colors.red },
+      payment_processing: { name: 'clock-outline', color: Colors.blue },
+      payment_refund: { name: 'cash-refund', color: Colors.green },
+      maintenance_scheduled: { name: 'wrench', color: Colors.blue },
       maintenance_completed: { name: 'check-circle', color: Colors.green },
-      security: { name: 'security', color: Colors.orange },
-      announcement: { name: 'campaign', color: Colors.primary },
-      community_update: { name: 'info', color: Colors.blue },
-      event_reminder: { name: 'event', color: Colors.purple || Colors.primary },
-      visitor_approved: { name: 'person-add', color: Colors.green },
-      visitor_denied: { name: 'person-remove', color: Colors.orange },
-      emergency: { name: 'warning', color: '#FFB74D' },
+      security: { name: 'shield-check', color: Colors.orange },
+      announcement: { name: 'bullhorn', color: Colors.primary },
+      community_update: { name: 'information-outline', color: Colors.blue },
+      event_reminder: { name: 'calendar-clock', color: Colors.purple || Colors.primary },
+      visitor_approved: { name: 'account-plus', color: Colors.green },
+      visitor_denied: { name: 'account-minus', color: Colors.orange },
+      emergency: { name: 'alert', color: '#FFB74D' },
       amenity_booking: { name: 'pool', color: Colors.blue },
       complaint_resolved: { name: 'check-circle-outline', color: Colors.green },
       utility_maintenance: { name: 'water-pump', color: Colors.blue },
@@ -287,6 +291,61 @@ const NotificationDetailScreen = ({ navigation, route }) => {
             'Contact the accounts department to discuss payment arrangements'
           ],
           footer: 'Please settle your account as soon as possible to avoid service interruption.'
+        };
+
+      case 'payment_confirmed':
+        return {
+          header: 'Payment Confirmation',
+          content: 'Your payment has been successfully processed and your account has been updated.',
+          sections: [
+            'Payment amount and date have been recorded',
+            'Receipt has been generated and is available for download',
+            'Your account balance has been updated accordingly',
+            'Thank you for your prompt payment',
+            'Contact us if you have any questions about this transaction'
+          ],
+          footer: 'We appreciate your timely payment and contribution to our community.'
+        };
+
+      case 'payment_failed':
+        return {
+          header: 'Payment Processing Failed',
+          content: 'Unfortunately, your recent payment attempt could not be processed successfully.',
+          sections: [
+            'Please check your payment method details and try again',
+            'Ensure sufficient funds are available in your account',
+            'Contact your bank if the issue persists',
+            'Alternative payment methods are available',
+            'Contact our accounts department for assistance'
+          ],
+          footer: 'Please resolve this issue promptly to avoid any service disruptions.'
+        };
+
+      case 'payment_processing':
+        return {
+          header: 'Payment Processing',
+          content: 'Your payment is currently being processed and will be confirmed shortly.',
+          sections: [
+            'Payment processing typically takes 1-2 business days',
+            'You will receive a confirmation once processing is complete',
+            'No further action is required from your end',
+            'Contact us if payment is not confirmed within 3 business days'
+          ],
+          footer: 'Thank you for your patience while we process your payment.'
+        };
+
+      case 'payment_refund':
+        return {
+          header: 'Payment Refund Processed',
+          content: 'A refund has been processed for your recent payment as requested.',
+          sections: [
+            'Refund amount and reason have been documented',
+            'Funds will be credited back to your original payment method',
+            'Processing time may vary depending on your payment method',
+            'You will receive a refund confirmation receipt',
+            'Contact us if you don\'t see the refund within 7 business days'
+          ],
+          footer: 'Thank you for your understanding and patience with this refund process.'
         };
 
       case 'maintenance_completed':
@@ -541,12 +600,12 @@ const NotificationDetailScreen = ({ navigation, route }) => {
               {/* Icon Container */}
               <View style={[styles.iconContainer, { backgroundColor: iconData.bg }]}>
                 <MaterialCommunityIcons
-                  name={iconData.name}
+                name={iconData.name}
                   size={32}
-                  color={iconData.color}
-                />
-              </View>
-              
+                color={iconData.color}
+              />
+            </View>
+            
               {/* Notification Info */}
               <View style={styles.headerInfo}>
                 <Text style={styles.notificationTitle}>{notification.title}</Text>
@@ -554,7 +613,7 @@ const NotificationDetailScreen = ({ navigation, route }) => {
                   <MaterialCommunityIcons name="clock-outline" size={16} color={Colors.grey} />
                   <Text style={styles.timestamp}>
                     {formatDate(notification.created_at || notification.timestamp)}
-                  </Text>
+              </Text>
                   {!notification.read_at && (
                     <View style={styles.unreadDot} />
                   )}
@@ -616,11 +675,11 @@ const NotificationDetailScreen = ({ navigation, route }) => {
             <View style={styles.sectionHeader}>
               <MaterialCommunityIcons name="tag" size={20} color={Colors.primary} />
               <Text style={styles.sectionTitle}>Category</Text>
-            </View>
-            
+        </View>
+
             <View style={styles.categoryBadgeContainer}>
-              <LinearGradient
-                colors={[iconData.color, iconData.color + '80']}
+          <LinearGradient
+            colors={[iconData.color, iconData.color + '80']}
                 style={styles.categoryBadge}
               >
                 <MaterialCommunityIcons
@@ -632,10 +691,10 @@ const NotificationDetailScreen = ({ navigation, route }) => {
                   {(notification.notification_type || notification.type || 'notification')
                     .replace(/_/g, ' ')
                     .replace(/\b\w/g, l => l.toUpperCase())}
-                </Text>
-              </LinearGradient>
-            </View>
-            
+            </Text>
+          </LinearGradient>
+        </View>
+
             <Text style={styles.categoryDescription}>
               {getDetailedMessage(notification).header}
             </Text>
