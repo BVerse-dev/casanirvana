@@ -278,8 +278,8 @@ const HomeScreen = ({ navigation }) => {
           <View
             style={{
               flex: 1,
-              justifyContent: "space-between",
               alignItems: isRtl ? "flex-start" : "flex-end",
+              position: "relative",
             }}
           >
             {/* Only show NEW badge if there's a new notice */}
@@ -299,6 +299,7 @@ const HomeScreen = ({ navigation }) => {
                   shadowOpacity: 0.1,
                   shadowRadius: 4,
                   elevation: 3,
+                  marginTop: Default.fixPadding,
                 }}
               >
                 <Text
@@ -319,6 +320,10 @@ const HomeScreen = ({ navigation }) => {
                 resizeMode: "contain",
                 width: ms(172),
                 height: ms(79),
+                position: "absolute",
+                bottom: 0,
+                right: isRtl ? undefined : 0,
+                left: isRtl ? 0 : undefined,
               }}
             />
           </View>
