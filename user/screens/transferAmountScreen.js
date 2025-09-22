@@ -27,7 +27,7 @@ const TransferAmountScreen = ({ navigation, route }) => {
   const { t, i18n } = useTranslation();
   const isRtl = i18n.dir() === "rtl";
   const [amount, setAmount] = useState("");
-  const [reference, setReference] = useState("cash");
+  const [reference, setReference] = useState("");
   const [schedulePayment, setSchedulePayment] = useState(false);
   const [frequency, setFrequency] = useState("Monthly");
   const [firstPaymentNow, setFirstPaymentNow] = useState(true);
@@ -199,22 +199,31 @@ const TransferAmountScreen = ({ navigation, route }) => {
             marginBottom: Default.fixPadding,
             ...Default.shadow,
           }}>
+            <Text style={{ ...Fonts.SemiBold14grey, marginBottom: Default.fixPadding }}>
+              {tr("AMOUNT")}
+            </Text>
             <View style={{
               flexDirection: isRtl ? "row-reverse" : "row",
               alignItems: "center",
+              borderWidth: 1,
+              borderColor: Colors.lightGrey,
+              borderRadius: 8,
+              paddingHorizontal: Default.fixPadding,
               marginBottom: Default.fixPadding * 2,
             }}>
-              <Text style={{ ...Fonts.SemiBold24black }}>
+              <Text style={{ 
+                ...Fonts.SemiBold18black,
+                marginRight: isRtl ? 0 : Default.fixPadding,
+                marginLeft: isRtl ? Default.fixPadding : 0,
+              }}>
                 {tr("GHS")}
               </Text>
               <TextInput
                 style={{
                   flex: 1,
-                  ...Fonts.Bold36black,
+                  ...Fonts.Medium18black,
                   textAlign: isRtl ? "right" : "left",
-                  marginLeft: isRtl ? 0 : Default.fixPadding * 2,
-                  marginRight: isRtl ? Default.fixPadding * 2 : 0,
-                  padding: 0,
+                  padding: Default.fixPadding,
                 }}
                 value={amount}
                 onChangeText={setAmount}
@@ -264,23 +273,28 @@ const TransferAmountScreen = ({ navigation, route }) => {
                 marginBottom: Default.fixPadding,
               }}
             >
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <Text style={{ ...Fonts.SemiBold16black }}>
-                  {tr("Schedule Payment")}
-                </Text>
-                <View
-                  style={{
-                    backgroundColor: "#FFB900",
-                    paddingHorizontal: Default.fixPadding * 0.5,
-                    paddingVertical: Default.fixPadding * 0.2,
-                    borderRadius: 4,
-                    marginLeft: Default.fixPadding * 0.5,
-                  }}
-                >
-                  <Text style={{ ...Fonts.SemiBold10white }}>
-                    {tr("NEW")}
+              <View>
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <Text style={{ ...Fonts.SemiBold16black }}>
+                    {tr("Schedule Payment")}
                   </Text>
+                  <View
+                    style={{
+                      backgroundColor: "#FFB900",
+                      paddingHorizontal: Default.fixPadding * 0.5,
+                      paddingVertical: Default.fixPadding * 0.2,
+                      borderRadius: 4,
+                      marginLeft: Default.fixPadding * 0.5,
+                    }}
+                  >
+                    <Text style={{ ...Fonts.SemiBold10white }}>
+                      {tr("NEW")}
+                    </Text>
+                  </View>
                 </View>
+                <Text style={{ ...Fonts.Medium14grey, marginTop: 2 }}>
+                  {tr("Set up recurring payments")}
+                </Text>
               </View>
               <Switch
                 value={schedulePayment}
@@ -317,10 +331,10 @@ const TransferAmountScreen = ({ navigation, route }) => {
                       }}
                     >
                       <Text
-                        style={{
-                          ...Fonts.SemiBold12black,
-                          color: frequency === item ? Colors.white : Colors.black,
-                        }}
+                      style={{
+                        ...Fonts.SemiBold10black,
+                        color: frequency === item ? Colors.white : Colors.black,
+                      }}
                       >
                         {tr(item)}
                       </Text>
