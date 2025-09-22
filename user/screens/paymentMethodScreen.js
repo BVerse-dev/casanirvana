@@ -43,8 +43,21 @@ const PaymentMethodScreen = ({ navigation, route }) => {
   // Determine if this is for adding a payment method or making a payment
   const isAddingMode = isAddingPaymentMethod === true;
   
-  // Determine if this is for airtime purchase
-  const isAirtimePurchase = transactionType === 'airtime';
+  // Determine transaction type for dynamic display
+  const isPersonalHubTransaction = transactionType && ['airtime', 'data', 'money_transfer', 'bill_payment', 'insurance', 'shopping'].includes(transactionType);
+  
+  // Get transaction type display name
+  const getTransactionTypeDisplay = () => {
+    switch(transactionType) {
+      case 'airtime': return 'Airtime Purchase';
+      case 'data': return 'Data Purchase';
+      case 'money_transfer': return 'Money Transfer';
+      case 'bill_payment': return 'Bill Payment';
+      case 'insurance': return 'Insurance Payment';
+      case 'shopping': return 'Shopping Payment';
+      default: return paymentData?.title || 'Payment';
+    }
+  };
 
   // Debug: Log what we receive from payment screen
   console.log('PaymentMethodScreen - Received params:', { 
@@ -171,7 +184,7 @@ const PaymentMethodScreen = ({ navigation, route }) => {
     // Prepare parameters based on mode
     let navigationParams = {};
     
-    if (isAirtimePurchase) {
+    if (isPersonalHubTransaction) {
       // For airtime purchase flow
       navigationParams = {
         provider,
@@ -456,8 +469,8 @@ const PaymentMethodScreen = ({ navigation, route }) => {
             ) : (
               // Payment Summary Content
               <>
-                {isAirtimePurchase ? (
-                  // Airtime Purchase Summary
+                {isPersonalHubTransaction ? (
+                  // Personal Hub Transaction Summary
                   <>
                     <View
                       style={{
@@ -467,7 +480,12 @@ const PaymentMethodScreen = ({ navigation, route }) => {
                       }}
                     >
                       <MaterialCommunityIcons
-                        name="phone"
+                        name={transactionType === 'airtime' ? "phone" : 
+                              transactionType === 'data' ? "wifi" :
+                              transactionType === 'money_transfer' ? "bank-transfer" :
+                              transactionType === 'bill_payment' ? "receipt" :
+                              transactionType === 'insurance' ? "shield-check" :
+                              transactionType === 'shopping' ? "cart" : "credit-card"}
                         size={16}
                         color={Colors.primary}
                         style={{ marginRight: isRtl ? 0 : Default.fixPadding * 0.5, marginLeft: isRtl ? Default.fixPadding * 0.5 : 0 }}
@@ -478,7 +496,7 @@ const PaymentMethodScreen = ({ navigation, route }) => {
                           textAlign: isRtl ? "right" : "left",
                         }}
                       >
-                        <Text style={{ ...Fonts.SemiBold14black }}>Service:</Text> {providerName || 'Airtime Purchase'}
+                        <Text style={{ ...Fonts.SemiBold14black }}>Service:</Text> {providerName || getTransactionTypeDisplay()}
                       </Text>
                     </View>
 
@@ -501,32 +519,34 @@ const PaymentMethodScreen = ({ navigation, route }) => {
                           textAlign: isRtl ? "right" : "left",
                         }}
                       >
-                        <Text style={{ ...Fonts.SemiBold14black }}>Recipient:</Text> {description || phoneNumber || 'N/A'}
+                        <Text style={{ ...Fonts.SemiBold14black }}>Recipient:</Text> {description || phoneNumber || recipientInfo || 'N/A'}
                       </Text>
                     </View>
 
-                    <View
-                      style={{
-                        flexDirection: isRtl ? "row-reverse" : "row",
-                        alignItems: "center",
-                        marginBottom: Default.fixPadding * 0.5,
-                      }}
-                    >
-                      <MaterialCommunityIcons
-                        name="phone-in-talk"
-                        size={16}
-                        color={Colors.primary}
-                        style={{ marginRight: isRtl ? 0 : Default.fixPadding * 0.5, marginLeft: isRtl ? Default.fixPadding * 0.5 : 0 }}
-                      />
-                      <Text
+                    {phoneNumber && (
+                      <View
                         style={{
-                          ...Fonts.Medium14black,
-                          textAlign: isRtl ? "right" : "left",
+                          flexDirection: isRtl ? "row-reverse" : "row",
+                          alignItems: "center",
+                          marginBottom: Default.fixPadding * 0.5,
                         }}
                       >
-                        <Text style={{ ...Fonts.SemiBold14black }}>Phone:</Text> {phoneNumber || 'N/A'}
-                      </Text>
-                    </View>
+                        <MaterialCommunityIcons
+                          name="phone-in-talk"
+                          size={16}
+                          color={Colors.primary}
+                          style={{ marginRight: isRtl ? 0 : Default.fixPadding * 0.5, marginLeft: isRtl ? Default.fixPadding * 0.5 : 0 }}
+                        />
+                        <Text
+                          style={{
+                            ...Fonts.Medium14black,
+                            textAlign: isRtl ? "right" : "left",
+                          }}
+                        >
+                          <Text style={{ ...Fonts.SemiBold14black }}>Phone:</Text> {phoneNumber}
+                        </Text>
+                      </View>
+                    )}
 
                     <View
                       style={{
@@ -547,7 +567,7 @@ const PaymentMethodScreen = ({ navigation, route }) => {
                           textAlign: isRtl ? "right" : "left",
                         }}
                       >
-                        <Text style={{ ...Fonts.SemiBold14black }}>Amount:</Text> {amountFormatted || `GHS ${amount?.toFixed(2) || '0.00'}`}
+                        <Text style={{ ...Fonts.SemiBold14black }}>Amount:</Text> {amountFormatted || (amount ? `GHS ${amount.toFixed(2)}` : 'GHS 0.00')}
                       </Text>
                     </View>
                   </>
@@ -578,8 +598,7 @@ const PaymentMethodScreen = ({ navigation, route }) => {
                 )}
                 
                 {/* Only show due date for regular payments, not for personal hub transactions */}
-                {!isAirtimePurchase && transactionType !== 'data' && transactionType !== 'money_transfer' && 
-                 transactionType !== 'insurance' && transactionType !== 'shopping' && transactionType !== 'bill_payment' && (
+                {!isPersonalHubTransaction && (
                   <View
                     style={{
                       flexDirection: isRtl ? "row-reverse" : "row",

@@ -132,7 +132,7 @@ const MobileMoneyScreen = ({ navigation, route }) => {
     }
 
     // For airtime and personal hub transactions
-    if (transactionType && !bookingId) {
+    if (transactionType) {
       setIsProcessing(true);
       
       try {
