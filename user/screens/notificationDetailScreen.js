@@ -31,6 +31,10 @@ const NotificationDetailScreen = ({ navigation, route }) => {
   const [fadeAnim] = useState(new Animated.Value(0));
   const [slideAnim] = useState(new Animated.Value(50));
   
+  // State for favorite and reminder
+  const [isFavorited, setIsFavorited] = useState(false);
+  const [hasReminder, setHasReminder] = useState(false);
+  
   // Get notification data from route params
   const notification = route?.params?.notification;
 
@@ -165,7 +169,7 @@ const NotificationDetailScreen = ({ navigation, route }) => {
     switch (type) {
       case 'join_request_approved':
         return {
-          header: '🎉 Welcome to the Community!',
+          header: 'Welcome to the Community!',
           content: 'Your membership request has been approved. You can now enjoy all the benefits and services our community has to offer.',
           sections: [
             'Access to all community amenities',
@@ -179,7 +183,7 @@ const NotificationDetailScreen = ({ navigation, route }) => {
         
       case 'join_request_rejected':
         return {
-          header: '📋 Membership Application Update',
+          header: 'Membership Application Update',
           content: 'After careful review, we are unable to approve your membership application at this time.',
           sections: [
             'Please ensure all required documents are submitted',
@@ -274,6 +278,30 @@ const NotificationDetailScreen = ({ navigation, route }) => {
     }
   };
 
+  // Favorite functionality
+  const handleFavorite = () => {
+    setIsFavorited(!isFavorited);
+    Alert.alert(
+      isFavorited ? 'Removed from Favorites' : 'Added to Favorites',
+      isFavorited 
+        ? 'This notification has been removed from your favorites.'
+        : 'This notification has been added to your favorites for quick access.',
+      [{ text: 'OK' }]
+    );
+  };
+
+  // Reminder functionality
+  const handleReminder = () => {
+    setHasReminder(!hasReminder);
+    Alert.alert(
+      hasReminder ? 'Reminder Removed' : 'Reminder Set',
+      hasReminder
+        ? 'You will no longer receive reminders for this notification.'
+        : 'You will receive a reminder about this notification.',
+      [{ text: 'OK' }]
+    );
+  };
+
   // Render detailed message with proper React Native components
   const renderDetailedMessage = (notification) => {
     const messageData = getDetailedMessage(notification);
@@ -354,7 +382,7 @@ const NotificationDetailScreen = ({ navigation, route }) => {
             color={Colors.black}
           />
         </TouchableOpacity>
-        <Text style={{ ...Fonts.SemiBold18black, marginHorizontal: Default.fixPadding }}>
+        <Text style={styles.headerTitle}>
           Notification Details
         </Text>
         <TouchableOpacity onPress={handleShare} style={styles.shareButton}>
@@ -395,16 +423,43 @@ const NotificationDetailScreen = ({ navigation, route }) => {
               </View>
             </View>
 
-            {/* Priority Badge */}
-            <View style={[styles.priorityBadge, { backgroundColor: iconData.color + '20' }]}>
-              <MaterialCommunityIcons 
-                name="flag" 
-                size={16} 
-                color={iconData.color} 
-              />
-              <Text style={[styles.priorityText, { color: iconData.color }]}>
-                {(notification.priority || 'medium').toUpperCase()}
-              </Text>
+            {/* Priority Badge and Action Buttons */}
+            <View style={styles.cardFooter}>
+              <View style={[styles.priorityBadge, { backgroundColor: iconData.color + '20' }]}>
+                <MaterialCommunityIcons 
+                  name="flag" 
+                  size={16} 
+                  color={iconData.color} 
+                />
+                <Text style={[styles.priorityText, { color: iconData.color }]}>
+                  {(notification.priority || 'medium').toUpperCase()}
+                </Text>
+              </View>
+              
+              {/* Action Buttons */}
+              <View style={styles.cardActionButtons}>
+                <TouchableOpacity 
+                  style={styles.cardActionButton} 
+                  onPress={handleFavorite}
+                >
+                  <MaterialCommunityIcons 
+                    name={isFavorited ? "heart" : "heart-outline"} 
+                    size={22} 
+                    color={isFavorited ? Colors.red : Colors.grey} 
+                  />
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.cardActionButton} 
+                  onPress={handleReminder}
+                >
+                  <MaterialCommunityIcons 
+                    name={hasReminder ? "bell" : "bell-outline"} 
+                    size={22} 
+                    color={hasReminder ? Colors.orange : Colors.grey} 
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
 
@@ -483,7 +538,6 @@ const styles = {
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingVertical: Default.fixPadding * 1.2,
     paddingHorizontal: Default.fixPadding * 2,
     backgroundColor: Colors.white,
@@ -491,6 +545,11 @@ const styles = {
   },
   backButton: {
     padding: Default.fixPadding * 0.5,
+  },
+  headerTitle: {
+    ...Fonts.SemiBold18black,
+    flex: 1,
+    marginHorizontal: Default.fixPadding,
   },
   shareButton: {
     padding: Default.fixPadding * 0.5,
@@ -538,10 +597,14 @@ const styles = {
     backgroundColor: Colors.primary,
     marginLeft: Default.fixPadding,
   },
+  cardFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   priorityBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-start',
     paddingHorizontal: Default.fixPadding * 1.2,
     paddingVertical: Default.fixPadding * 0.6,
     borderRadius: 20,
@@ -550,6 +613,16 @@ const styles = {
     ...Fonts.Medium12black,
     fontWeight: '600',
     marginLeft: Default.fixPadding * 0.5,
+  },
+  cardActionButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  cardActionButton: {
+    padding: Default.fixPadding * 0.8,
+    marginLeft: Default.fixPadding * 0.5,
+    borderRadius: 8,
+    backgroundColor: Colors.extraLightGrey,
   },
   messageCard: {
     marginHorizontal: Default.fixPadding * 2,
