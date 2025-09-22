@@ -10,6 +10,8 @@ import {
   Alert,
   Image,
   Modal,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import MyStatusBar from "../components/myStatusBar";
 import { useTranslation } from "react-i18next";
@@ -21,6 +23,8 @@ import AwesomeButton from "react-native-really-awesome-button";
 import { useUpdateAmenityBooking } from "../hooks/useCreateAmenityBooking";
 import { addPayment } from "../services/paymentService";
 import { createPaymentNotification } from "../services/notificationService";
+import { createAirtimePurchase, createDataPurchase, createMoneyTransfer, createBillPayment, createInsurancePayment, createShoppingPayment } from "../services/personalHubService";
+import { useAuth } from "../contexts/AuthContext";
 
 const { width } = Dimensions.get("window");
 
@@ -45,6 +49,7 @@ const MobileMoneyScreen = ({ navigation, route }) => {
   } = route.params || {};
   
   const { t, i18n } = useTranslation();
+  const { profile } = useAuth();
   const updateBookingMutation = useUpdateAmenityBooking();
 
   const isRtl = i18n.dir() == "rtl";
@@ -143,19 +148,133 @@ const MobileMoneyScreen = ({ navigation, route }) => {
         const paymentData = {
           amount: amount || 0,
           payment_method: 'mobile_money',
+          payment_type: transactionType || 'airtime',
           transaction_id: transactionId,
-          mobile_network: selectedNetwork,
-          phone_number: cleanPhone,
-          transaction_type: transactionType,
-          recipient_phone: recipientPhone,
-          recipient_description: description,
+          title: `${transactionType ? transactionType.charAt(0).toUpperCase() + transactionType.slice(1) : 'Airtime'} Purchase`,
+          description: `${providerName || 'Mobile'} ${transactionType || 'airtime'} purchase for ${description || recipientPhone || 'user'}`,
+          payment_gateway: 'mobile_money',
           status: 'pending',
+          // Required field - use the user's unit_id from profile
+          unit_id: profile?.unit_id || '',
+          payer_id: profile?.id || '',
+          // Store mobile network details in metadata
+          metadata: {
+            mobile_network: selectedNetwork,
+            phone_number: cleanPhone,
+            recipient_phone: recipientPhone,
+            recipient_description: description
+          }
         };
         
         const paymentResult = await addPayment(paymentData);
         
         if (!paymentResult.success) {
           throw new Error(paymentResult.error || "Payment failed");
+        }
+        
+        // Create transaction record based on transaction type
+        let transactionResult;
+        
+        switch(transactionType) {
+          case 'airtime':
+            transactionResult = await createAirtimePurchase({
+              user_id: profile?.user_id,
+              profile_id: profile?.id,
+              provider: provider || 'unknown',
+              phone_number: recipientPhone || '',
+              description: description || '',
+              amount: amount || 0,
+              status: 'pending',
+              payment_id: paymentResult.data.id
+            });
+            break;
+            
+          case 'data':
+            transactionResult = await createDataPurchase({
+              user_id: profile?.user_id,
+              profile_id: profile?.id,
+              provider: provider || 'unknown',
+              phone_number: recipientPhone || '',
+              description: description || '',
+              package_name: amountTitle || 'Data Bundle',
+              data_amount: description || '1GB',
+              validity_days: 30,
+              amount: amount || 0,
+              status: 'pending',
+              payment_id: paymentResult.data.id
+            });
+            break;
+            
+          case 'money_transfer':
+            transactionResult = await createMoneyTransfer({
+              user_id: profile?.user_id,
+              profile_id: profile?.id,
+              recipient_name: description || 'Recipient',
+              recipient_phone: recipientPhone || '',
+              amount: amount || 0,
+              fee: 0,
+              total_amount: amount || 0,
+              status: 'pending',
+              payment_id: paymentResult.data.id
+            });
+            break;
+            
+          case 'bill_payment':
+            transactionResult = await createBillPayment({
+              user_id: profile?.user_id,
+              profile_id: profile?.id,
+              bill_type: description || 'Utility',
+              provider: provider || 'unknown',
+              account_number: recipientPhone || '',
+              customer_name: description || '',
+              amount: amount || 0,
+              fee: 0,
+              total_amount: amount || 0,
+              status: 'pending',
+              payment_id: paymentResult.data.id
+            });
+            break;
+            
+          case 'insurance':
+            transactionResult = await createInsurancePayment({
+              user_id: profile?.user_id,
+              profile_id: profile?.id,
+              insurance_type: description || 'General',
+              provider: provider || 'unknown',
+              policy_number: recipientPhone || '',
+              insured_name: description || '',
+              coverage_period: '1 year',
+              amount: amount || 0,
+              fee: 0,
+              total_amount: amount || 0,
+              status: 'pending',
+              payment_id: paymentResult.data.id
+            });
+            break;
+            
+          case 'shopping':
+            transactionResult = await createShoppingPayment({
+              user_id: profile?.user_id,
+              profile_id: profile?.id,
+              merchant: provider || 'unknown',
+              order_number: recipientPhone || '',
+              items: [{ name: description || 'Item', price: amount || 0 }],
+              amount: amount || 0,
+              shipping_fee: 0,
+              tax: 0,
+              total_amount: amount || 0,
+              status: 'pending',
+              payment_id: paymentResult.data.id
+            });
+            break;
+            
+          default:
+            console.log(`No specific handler for transaction type: ${transactionType}`);
+        }
+        
+        if (transactionResult && !transactionResult.success) {
+          console.warn(`Warning: Transaction record creation had an issue: ${transactionResult.error}`);
+          // Continue with the flow even if transaction record creation fails
         }
         
         // Show confirmation modal
@@ -207,10 +326,20 @@ const MobileMoneyScreen = ({ navigation, route }) => {
         booking_id: bookingId,
         amount: bookingData.totalAmount,
         payment_method: 'mobile_money',
+        payment_type: 'booking',
         transaction_id: transactionId,
-        mobile_network: selectedNetwork,
-        phone_number: cleanPhone,
+        title: `Booking Payment`,
+        description: `Payment for booking #${bookingId}`,
+        payment_gateway: 'mobile_money',
         status: 'pending', // Mobile money payments start as pending
+        // Required field - use the user's unit_id from profile
+        unit_id: profile?.unit_id || bookingData?.unit_id || '',
+        payer_id: profile?.id || '',
+        // Store mobile network details in metadata
+        metadata: {
+          mobile_network: selectedNetwork,
+          phone_number: cleanPhone
+        }
       };
 
       const paymentResult = await addPayment(paymentData);
@@ -325,40 +454,46 @@ const MobileMoneyScreen = ({ navigation, route }) => {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: Colors.extraLightGrey }}>
-      <MyStatusBar />
-      <View
-        style={{
-          flexDirection: isRtl ? "row-reverse" : "row",
-          alignItems: "center",
-          paddingVertical: Default.fixPadding * 1.2,
-          paddingHorizontal: Default.fixPadding * 2,
-          backgroundColor: Colors.white,
-          ...Default.shadow,
-        }}
-      >
-        <TouchableOpacity onPress={() => navigation.pop()}>
-          <Ionicons
-            name={isRtl ? "arrow-forward-outline" : "arrow-back-outline"}
-            size={25}
-            color={Colors.black}
-          />
-        </TouchableOpacity>
-        <Text
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={{ flex: 1 }}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
+    >
+      <View style={{ flex: 1, backgroundColor: Colors.extraLightGrey }}>
+        <MyStatusBar />
+        <View
           style={{
-            ...Fonts.SemiBold18black,
-            marginHorizontal: Default.fixPadding,
+            flexDirection: isRtl ? "row-reverse" : "row",
+            alignItems: "center",
+            paddingVertical: Default.fixPadding * 1.2,
+            paddingHorizontal: Default.fixPadding * 2,
+            backgroundColor: Colors.white,
+            ...Default.shadow,
           }}
         >
-          Mobile Money Payment
-        </Text>
-      </View>
+          <TouchableOpacity onPress={() => navigation.pop()}>
+            <Ionicons
+              name={isRtl ? "arrow-forward-outline" : "arrow-back-outline"}
+              size={25}
+              color={Colors.black}
+            />
+          </TouchableOpacity>
+          <Text
+            style={{
+              ...Fonts.SemiBold18black,
+              marginHorizontal: Default.fixPadding,
+            }}
+          >
+            Mobile Money Payment
+          </Text>
+        </View>
 
-      <ScrollView 
-        showsVerticalScrollIndicator={false}
-        style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: Default.fixPadding * 3 }}
-      >
+        <ScrollView 
+          showsVerticalScrollIndicator={false}
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingBottom: Default.fixPadding * 3 }}
+          keyboardShouldPersistTaps="handled"
+        >
         {/* Amount Summary */}
         <View
           style={{
@@ -392,7 +527,7 @@ const MobileMoneyScreen = ({ navigation, route }) => {
                   textAlign: isRtl ? "left" : "right",
                 }}
               >
-                GH₵ {bookingData?.totalAmount?.toFixed(2) || '0.00'}
+                {amountFormatted || (amount ? `GHS ${amount.toFixed(2)}` : bookingData?.totalAmount ? `GHS ${bookingData.totalAmount.toFixed(2)}` : 'GHS 0.00')}
               </Text>
             </View>
           </View>
@@ -655,6 +790,7 @@ const MobileMoneyScreen = ({ navigation, route }) => {
         </View>
       </Modal>
     </View>
+  </KeyboardAvoidingView>
   );
 };
 

@@ -145,6 +145,7 @@ const MainNavigation = () => {
         <Stack.Screen name="noticeDetailScreen" component={NoticeDetailScreen} />
         <Stack.Screen name="paymentScreen" component={PaymentScreen} />
         <Stack.Screen name="paymentHistoryScreen" component={PaymentHistoryScreen} />
+        <Stack.Screen name="paymentReceiptScreen" component={require("./screens/paymentReceiptScreen").default} />
         <Stack.Screen name="billingHistoryScreen" component={BillingHistoryScreen} />
         <Stack.Screen
           name="paymentMethodScreen"
@@ -153,6 +154,32 @@ const MainNavigation = () => {
         <Stack.Screen
           name="myPaymentMethodsScreen"
           component={MyPaymentMethodsScreen}
+        />
+        
+        {/* Airtime Purchase Flow */}
+        <Stack.Screen
+          name="airtimeScreen"
+          component={require("./screens/airtimeScreen").default}
+        />
+        <Stack.Screen
+          name="selectPackageScreen"
+          component={require("./screens/selectPackageScreen").default}
+        />
+        <Stack.Screen
+          name="amountScreen"
+          component={require("./screens/amountScreen").default}
+        />
+        <Stack.Screen
+          name="otherAmountScreen"
+          component={require("./screens/otherAmountScreen").default}
+        />
+        <Stack.Screen
+          name="accountDetailsScreen"
+          component={require("./screens/accountDetailsScreen").default}
+        />
+        <Stack.Screen
+          name="reviewPayScreen"
+          component={require("./screens/reviewPayScreen").default}
         />
         <Stack.Screen name="creditCardScreen" component={CreditCardScreen} />
         <Stack.Screen name="mobileMoneyScreen" component={MobileMoneyScreen} />
