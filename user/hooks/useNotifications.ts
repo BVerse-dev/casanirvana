@@ -246,5 +246,5 @@ export const useNotificationSubscription = () => {
         supabase.removeChannel(channel);
       }
     };
-  }, [queryClient]);
+  }, []); // Empty dependency array since queryClient is stable
 };
