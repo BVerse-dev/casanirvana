@@ -196,55 +196,67 @@ export const useNotificationSubscription = () => {
 
   useEffect(() => {
     let channel: any = null;
+    let mounted = true;
     
     const setupSubscription = async () => {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      
-      if (userError || !user) {
-        return;
-      }
-
-      // Get the profile to get the correct user_id reference
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
+      try {
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
         
-      if (profileError || !profile) {
-        return;
+        if (userError || !user || !mounted) {
+          return;
+        }
+
+        // Get the profile to get the correct user_id reference
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('user_id', user.id)
+          .single();
+          
+        if (profileError || !profile || !mounted) {
+          return;
+        }
+
+        console.log('🔔 Setting up notification subscription for profile:', profile.id);
+
+        // Set up real-time subscription for notifications
+        channel = supabase
+          .channel(`user-notifications-${profile.id}`)
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'notifications',
+              filter: `user_id=eq.${profile.id}`,
+            },
+            (payload) => {
+              if (mounted) {
+                console.log('🔔 Real-time notification update:', payload);
+                
+                // Use a timeout to prevent rapid invalidations
+                setTimeout(() => {
+                  if (mounted) {
+                    queryClient.invalidateQueries({ queryKey: ['notifications'] });
+                    queryClient.invalidateQueries({ queryKey: ['unreadNotificationsCount'] });
+                  }
+                }, 100);
+              }
+            }
+          )
+          .subscribe();
+      } catch (error) {
+        console.error('❌ Error setting up notification subscription:', error);
       }
-
-      console.log('🔔 Setting up notification subscription for profile:', profile.id);
-
-      // Set up real-time subscription for notifications
-      channel = supabase
-        .channel('user-notifications')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'notifications',
-            filter: `user_id=eq.${profile.id}`,
-          },
-          (payload) => {
-            console.log('🔔 Real-time notification update:', payload);
-            
-            // Invalidate and refetch notifications when changes occur
-            queryClient.invalidateQueries({ queryKey: ['notifications'] });
-            queryClient.invalidateQueries({ queryKey: ['unreadNotificationsCount'] });
-          }
-        )
-        .subscribe();
     };
 
     setupSubscription();
 
     return () => {
+      mounted = false;
       if (channel) {
         supabase.removeChannel(channel);
       }
     };
-  }, []); // Empty dependency array since queryClient is stable
+  }, []); // Empty dependency array
 };
