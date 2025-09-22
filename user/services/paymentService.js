@@ -7,9 +7,9 @@ import { supabase } from '../utils/supabase';
  * @returns {Promise}
  */
 export const addPayment = async (payment) => {
-  // Generate a payment ID if not provided
-  if (!payment.payment_id) {
-    payment.payment_id = `PAY-${Date.now().toString().substring(6)}-${Math.floor(Math.random() * 1000)}`;
+  // Generate a transaction ID if not provided
+  if (!payment.transaction_id) {
+    payment.transaction_id = `PAY-${Date.now().toString().substring(6)}-${Math.floor(Math.random() * 1000)}`;
   }
 
   // Set default payment date to now if not provided

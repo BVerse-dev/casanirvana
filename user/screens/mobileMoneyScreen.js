@@ -168,8 +168,8 @@ const MobileMoneyScreen = ({ navigation, route }) => {
         
         const paymentResult = await addPayment(paymentData);
         
-        if (!paymentResult.success) {
-          throw new Error(paymentResult.error || "Payment failed");
+        if (paymentResult.error || !paymentResult.data) {
+          throw new Error(paymentResult.error?.message || "Payment failed");
         }
         
         // Create transaction record based on transaction type
@@ -185,7 +185,7 @@ const MobileMoneyScreen = ({ navigation, route }) => {
               description: description || '',
               amount: amount || 0,
               status: 'pending',
-              payment_id: paymentResult.data.id
+              payment_ref_id: paymentResult.data.id
             });
             break;
             
@@ -201,7 +201,7 @@ const MobileMoneyScreen = ({ navigation, route }) => {
               validity_days: 30,
               amount: amount || 0,
               status: 'pending',
-              payment_id: paymentResult.data.id
+              payment_ref_id: paymentResult.data.id
             });
             break;
             
@@ -215,7 +215,7 @@ const MobileMoneyScreen = ({ navigation, route }) => {
               fee: 0,
               total_amount: amount || 0,
               status: 'pending',
-              payment_id: paymentResult.data.id
+              payment_ref_id: paymentResult.data.id
             });
             break;
             
@@ -231,7 +231,7 @@ const MobileMoneyScreen = ({ navigation, route }) => {
               fee: 0,
               total_amount: amount || 0,
               status: 'pending',
-              payment_id: paymentResult.data.id
+              payment_ref_id: paymentResult.data.id
             });
             break;
             
@@ -248,7 +248,7 @@ const MobileMoneyScreen = ({ navigation, route }) => {
               fee: 0,
               total_amount: amount || 0,
               status: 'pending',
-              payment_id: paymentResult.data.id
+              payment_ref_id: paymentResult.data.id
             });
             break;
             
@@ -264,7 +264,7 @@ const MobileMoneyScreen = ({ navigation, route }) => {
               tax: 0,
               total_amount: amount || 0,
               status: 'pending',
-              payment_id: paymentResult.data.id
+              payment_ref_id: paymentResult.data.id
             });
             break;
             
