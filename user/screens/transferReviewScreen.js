@@ -129,39 +129,44 @@ const TransferReviewScreen = ({ navigation, route }) => {
 
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ flexGrow: 1, padding: Default.fixPadding * 2 }}
+          contentContainerStyle={{ padding: Default.fixPadding * 2 }}
         >
           {/* Amount Card */}
           <View style={{ 
             backgroundColor: Colors.darkBlue, 
-            borderRadius: 10,
+            borderRadius: 15,
             padding: Default.fixPadding * 2,
             marginBottom: Default.fixPadding * 2,
             ...Default.shadow,
           }}>
             {/* Amount */}
             <Text style={{ 
-              ...Fonts.Bold36white, 
+              ...Fonts.Medium14lightGrey, 
               textAlign: "center",
-              marginBottom: Default.fixPadding,
+              marginBottom: Default.fixPadding * 0.5,
+              letterSpacing: 0.5,
             }}>
-              {amountFormatted || `GHS ${amount.toFixed(2)}`}
+              {tr("RECIPIENT GETS")}
             </Text>
             <Text style={{ 
-              ...Fonts.Medium14lightGrey, 
+              ...Fonts.Bold36white, 
               textAlign: "center",
               marginBottom: Default.fixPadding * 2,
             }}>
-              {tr("RECIPIENT GETS")}
+              {amountFormatted || `GHS ${amount.toFixed(2)}`}
             </Text>
 
             {/* Recipient Info */}
             <View style={{ 
               marginBottom: Default.fixPadding * 2,
+              backgroundColor: "rgba(255, 255, 255, 0.05)",
+              borderRadius: 10,
+              padding: Default.fixPadding * 1.5,
             }}>
               <Text style={{ 
-                ...Fonts.Medium14lightGrey, 
+                ...Fonts.Medium12lightGrey, 
                 marginBottom: Default.fixPadding,
+                letterSpacing: 0.5,
               }}>
                 {tr("RECIPIENT")}
               </Text>
@@ -171,9 +176,9 @@ const TransferReviewScreen = ({ navigation, route }) => {
               }}>
                 <View
                   style={{
-                    width: 50,
-                    height: 50,
-                    borderRadius: 25,
+                    width: 46,
+                    height: 46,
+                    borderRadius: 23,
                     backgroundColor: "rgba(255, 255, 255, 0.1)",
                     justifyContent: "center",
                     alignItems: "center",
@@ -184,8 +189,8 @@ const TransferReviewScreen = ({ navigation, route }) => {
                   <Image
                     source={providerLogo || require("../assets/images/pay1.png")}
                     style={{
-                      width: ms(30),
-                      height: ms(30),
+                      width: ms(28),
+                      height: ms(28),
                       resizeMode: "contain",
                     }}
                   />
@@ -194,17 +199,24 @@ const TransferReviewScreen = ({ navigation, route }) => {
                   <Text style={{ ...Fonts.SemiBold16white }}>
                     {phoneNumber || ""}
                   </Text>
-                  <Text style={{ ...Fonts.Medium14lightGrey }}>
+                  <Text style={{ ...Fonts.Medium14lightGrey, marginTop: 2 }}>
                     {description || ""}
                   </Text>
-                  <Text style={{ ...Fonts.Medium14white }}>
+                  <Text style={{ ...Fonts.Medium14white, marginTop: 2 }}>
                     {providerName || "Mobile Money"}
                   </Text>
                 </View>
-                <TouchableOpacity>
+                <TouchableOpacity style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 18,
+                  backgroundColor: "rgba(255, 255, 255, 0.1)",
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}>
                   <MaterialCommunityIcons
                     name="star-outline"
-                    size={24}
+                    size={22}
                     color={Colors.orange}
                   />
                 </TouchableOpacity>
@@ -215,10 +227,14 @@ const TransferReviewScreen = ({ navigation, route }) => {
             {schedulePayment && (
               <View style={{ 
                 marginBottom: Default.fixPadding * 2,
+                backgroundColor: "rgba(255, 255, 255, 0.05)",
+                borderRadius: 10,
+                padding: Default.fixPadding * 1.5,
               }}>
                 <Text style={{ 
-                  ...Fonts.Medium14lightGrey, 
+                  ...Fonts.Medium12lightGrey, 
                   marginBottom: Default.fixPadding,
+                  letterSpacing: 0.5,
                 }}>
                   {tr("SCHEDULE")}
                 </Text>
@@ -228,26 +244,31 @@ const TransferReviewScreen = ({ navigation, route }) => {
                 }}>
                   <View
                     style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: 18,
-                      backgroundColor: Colors.orange,
+                      width: 40,
+                      height: 40,
+                      borderRadius: 20,
+                      backgroundColor: Colors.orange + '30',
                       justifyContent: "center",
                       alignItems: "center",
-                      marginRight: isRtl ? 0 : Default.fixPadding,
-                      marginLeft: isRtl ? Default.fixPadding : 0,
+                      marginRight: isRtl ? 0 : Default.fixPadding * 1.5,
+                      marginLeft: isRtl ? Default.fixPadding * 1.5 : 0,
                     }}
                   >
-                    <Text style={{ ...Fonts.Bold16white }}>
-                      {formattedDate.split(" ")[1]}
-                    </Text>
+                    <MaterialCommunityIcons
+                      name="calendar-clock"
+                      size={22}
+                      color={Colors.orange}
+                    />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={{ ...Fonts.SemiBold16white }}>
                       {tr("Recurring")} {frequency}
                     </Text>
-                    <Text style={{ ...Fonts.Medium14lightGrey }}>
-                      {tr("Pay Now")}
+                    <Text style={{ ...Fonts.Medium14lightGrey, marginTop: 2 }}>
+                      {firstPaymentNow ? tr("First payment today") : tr("First payment scheduled")}
+                    </Text>
+                    <Text style={{ ...Fonts.Medium14white, marginTop: 2 }}>
+                      {formattedDate}
                     </Text>
                   </View>
                 </View>
@@ -256,11 +277,15 @@ const TransferReviewScreen = ({ navigation, route }) => {
 
             {/* Payment Method */}
             <View style={{ 
-              marginBottom: Default.fixPadding * 2,
+              marginBottom: Default.fixPadding,
+              backgroundColor: "rgba(255, 255, 255, 0.05)",
+              borderRadius: 10,
+              padding: Default.fixPadding * 1.5,
             }}>
               <Text style={{ 
-                ...Fonts.Medium14lightGrey, 
+                ...Fonts.Medium12lightGrey, 
                 marginBottom: Default.fixPadding,
+                letterSpacing: 0.5,
               }}>
                 {tr("PAY WITH")}
               </Text>
@@ -272,12 +297,42 @@ const TransferReviewScreen = ({ navigation, route }) => {
                   justifyContent: "space-between",
                 }}
               >
-                <Text style={{ ...Fonts.SemiBold16white }}>
-                  {tr("Select payment method")}
-                </Text>
-                <Text style={{ ...Fonts.Medium14lightBlue }}>
-                  {tr("Change")}
-                </Text>
+                <View style={{
+                  flexDirection: isRtl ? "row-reverse" : "row",
+                  alignItems: "center",
+                }}>
+                  <View
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 20,
+                      backgroundColor: Colors.blue + '30',
+                      justifyContent: "center",
+                      alignItems: "center",
+                      marginRight: isRtl ? 0 : Default.fixPadding * 1.5,
+                      marginLeft: isRtl ? Default.fixPadding * 1.5 : 0,
+                    }}
+                  >
+                    <MaterialCommunityIcons
+                      name="credit-card-outline"
+                      size={22}
+                      color={Colors.blue}
+                    />
+                  </View>
+                  <Text style={{ ...Fonts.SemiBold16white }}>
+                    {tr("Select payment method")}
+                  </Text>
+                </View>
+                <View style={{
+                  backgroundColor: Colors.blue + '30',
+                  paddingHorizontal: Default.fixPadding,
+                  paddingVertical: Default.fixPadding * 0.5,
+                  borderRadius: 5,
+                }}>
+                  <Text style={{ ...Fonts.Medium12blue }}>
+                    {tr("Change")}
+                  </Text>
+                </View>
               </TouchableOpacity>
             </View>
           </View>
@@ -285,81 +340,99 @@ const TransferReviewScreen = ({ navigation, route }) => {
           {/* Payment Details Card */}
           <View style={{ 
             backgroundColor: Colors.darkBlue, 
-            borderRadius: 10,
-            padding: Default.fixPadding * 2,
+            borderRadius: 15,
+            overflow: "hidden",
             marginBottom: Default.fixPadding * 2,
             ...Default.shadow,
           }}>
-            <Text style={{ 
-              ...Fonts.SemiBold18white, 
-              marginBottom: Default.fixPadding * 2,
-              textAlign: "center",
+            {/* Top Section */}
+            <View style={{
+              padding: Default.fixPadding * 2,
+              alignItems: "center",
+              backgroundColor: "rgba(255, 255, 255, 0.03)",
             }}>
-              {tr("YOU PAY")}
-            </Text>
-            <Text style={{ 
-              ...Fonts.Bold36white, 
-              textAlign: "center",
-              marginBottom: Default.fixPadding * 2,
+              <Text style={{ 
+                ...Fonts.Medium14lightGrey, 
+                marginBottom: Default.fixPadding * 0.5,
+                letterSpacing: 0.5,
+              }}>
+                {tr("YOU PAY")}
+              </Text>
+              <Text style={{ 
+                ...Fonts.Bold36white, 
+                textAlign: "center",
+                marginBottom: Default.fixPadding,
+              }}>
+                {totalAmountFormatted}
+              </Text>
+            </View>
+            
+            {/* Details Section */}
+            <View style={{
+              padding: Default.fixPadding * 2,
             }}>
-              {totalAmountFormatted}
-            </Text>
-            <TouchableOpacity
-              style={{
+              <View style={{
                 flexDirection: isRtl ? "row-reverse" : "row",
                 alignItems: "center",
-                justifyContent: "center",
-                marginBottom: Default.fixPadding,
-              }}
-            >
-              <Text style={{ ...Fonts.Medium14lightBlue }}>
-                {tr("DETAILS")}
-              </Text>
-              <MaterialIcons
-                name="keyboard-arrow-down"
-                size={20}
-                color={Colors.lightBlue}
-                style={{
-                  marginLeft: isRtl ? 0 : Default.fixPadding * 0.5,
-                  marginRight: isRtl ? Default.fixPadding * 0.5 : 0,
-                }}
-              />
-            </TouchableOpacity>
-            <View
-              style={{
+                justifyContent: "space-between",
+                marginBottom: Default.fixPadding * 1.5,
+              }}>
+                <Text style={{ ...Fonts.Medium14lightGrey }}>
+                  {tr("Transfer Amount")}
+                </Text>
+                <Text style={{ ...Fonts.SemiBold14white }}>
+                  {amountFormatted || `GHS ${amount.toFixed(2)}`}
+                </Text>
+              </View>
+              
+              <View style={{
+                flexDirection: isRtl ? "row-reverse" : "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: Default.fixPadding * 1.5,
+              }}>
+                <Text style={{ ...Fonts.Medium14lightGrey }}>
+                  {tr("Platform Fee")}
+                </Text>
+                <Text style={{ ...Fonts.SemiBold14white }}>
+                  {platformFeeFormatted}
+                </Text>
+              </View>
+              
+              <View style={{
                 height: 1,
                 backgroundColor: "rgba(255, 255, 255, 0.1)",
                 marginVertical: Default.fixPadding,
-              }}
-            />
-            <View
-              style={{
+              }}/>
+              
+              <View style={{
                 flexDirection: isRtl ? "row-reverse" : "row",
                 alignItems: "center",
                 justifyContent: "space-between",
-                marginBottom: Default.fixPadding,
-              }}
-            >
-              <Text style={{ ...Fonts.Medium14lightGrey }}>
-                {tr("Amount")}
-              </Text>
-              <Text style={{ ...Fonts.SemiBold14white }}>
-                {amountFormatted || `GHS ${amount.toFixed(2)}`}
-              </Text>
-            </View>
-            <View
-              style={{
-                flexDirection: isRtl ? "row-reverse" : "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-              }}
-            >
-              <Text style={{ ...Fonts.Medium14lightGrey }}>
-                {tr("Platform Fee")}
-              </Text>
-              <Text style={{ ...Fonts.SemiBold14white }}>
-                {platformFeeFormatted}
-              </Text>
+              }}>
+                <Text style={{ ...Fonts.SemiBold16lightGrey }}>
+                  {tr("Total")}
+                </Text>
+                <Text style={{ ...Fonts.SemiBold16primary }}>
+                  {totalAmountFormatted}
+                </Text>
+              </View>
+              
+              {reference && (
+                <View style={{
+                  marginTop: Default.fixPadding * 2,
+                  backgroundColor: "rgba(255, 255, 255, 0.05)",
+                  borderRadius: 8,
+                  padding: Default.fixPadding,
+                }}>
+                  <Text style={{ ...Fonts.Medium12lightGrey, marginBottom: 4 }}>
+                    {tr("REFERENCE")}
+                  </Text>
+                  <Text style={{ ...Fonts.Medium14white }}>
+                    {reference}
+                  </Text>
+                </View>
+              )}
             </View>
           </View>
         </ScrollView>
@@ -379,10 +452,21 @@ const TransferReviewScreen = ({ navigation, route }) => {
               borderRadius: 10,
               paddingVertical: Default.fixPadding * 1.5,
               alignItems: "center",
+              flexDirection: isRtl ? "row-reverse" : "row",
+              justifyContent: "center",
             }}
           >
+            <MaterialCommunityIcons
+              name="send"
+              size={20}
+              color={Colors.white}
+              style={{
+                marginRight: isRtl ? 0 : Default.fixPadding,
+                marginLeft: isRtl ? Default.fixPadding : 0,
+              }}
+            />
             <Text style={{ ...Fonts.SemiBold16white }}>
-              {tr("SEND")}
+              {tr("CONTINUE TO PAYMENT")}
             </Text>
           </TouchableOpacity>
         </View>
