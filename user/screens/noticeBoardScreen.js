@@ -5,13 +5,20 @@ import {
   BackHandler,
   FlatList,
   ActivityIndicator,
+  Image,
+  Alert,
+  Share,
 } from "react-native";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Colors, Default, Fonts } from "../constants/styles";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import MyStatusBar from "../components/myStatusBar";
 import DashedLine from "react-native-dashed-line";
+import { ms } from "react-native-size-matters/extend";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
+import MaterialIcons from "react-native-vector-icons/MaterialIcons";
+import Feather from "react-native-vector-icons/Feather";
 import { useAuth } from "../contexts/AuthContext";
 import { useListNotices } from "../hooks/useListNotices";
 import { useQueryClient } from "@tanstack/react-query";
@@ -24,6 +31,9 @@ const NoticeBoardScreen = ({ navigation }) => {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
   const { isGranted, setupNotifications } = useNotificationContext();
+
+  // State for favorites
+  const [favoriteNotices, setFavoriteNotices] = useState(new Set());
 
   function tr(key) {
     return t(`noticeBoardScreen:${key}`);
@@ -90,122 +100,276 @@ const NoticeBoardScreen = ({ navigation }) => {
     return () => supabase.removeChannel(channel);
   }, [profile?.community_id, queryClient]);
 
-  const renderItem = ({ item }) => {
+  // Helper function to handle sharing
+  const handleShare = async (notice) => {
+    try {
+      const shareContent = {
+        title: notice.title,
+        message: `📢 ${notice.title}\n\n${notice.fullNotice || notice.notice}\n\nPosted by: ${notice.postBy}\nDate: ${notice.dateTime}\n\n- Casa Nirvana Community`,
+        url: notice.image_url || undefined,
+      };
+
+      await Share.share(shareContent);
+    } catch (error) {
+      console.error('Error sharing notice:', error);
+      Alert.alert('Error', 'Failed to share notice');
+    }
+  };
+
+  // Helper function to toggle favorite
+  const handleFavorite = (noticeId) => {
+    setFavoriteNotices(prev => {
+      const newFavorites = new Set(prev);
+      if (newFavorites.has(noticeId)) {
+        newFavorites.delete(noticeId);
+      } else {
+        newFavorites.add(noticeId);
+      }
+      return newFavorites;
+    });
+  };
+
+  // Helper function to handle delete
+  const handleDelete = (notice) => {
+    Alert.alert(
+      "Delete Notice",
+      `Are you sure you want to delete "${notice.title}"?`,
+      [
+        {
+          text: "Cancel",
+          style: "cancel"
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => {
+            // TODO: Implement actual delete functionality with Supabase
+            Alert.alert("Info", "Delete functionality will be implemented with proper permissions.");
+          }
+        }
+      ]
+    );
+  };
+
+  // Helper function to get notice image
+  const getNoticeImage = (notice) => {
+    if (notice.image_url) {
+      return { uri: notice.image_url };
+    }
+    // Default notice icon - using existing notice board image
+    return require("../assets/images/notice-board.png");
+  };
+
+  const renderItem = ({ item, index }) => {
+    const lastIndex = noticeList.length - 1 === index;
+    const isFavorited = favoriteNotices.has(item.id);
+
     return (
-      <TouchableOpacity
-        onPress={() => navigation.push("noticeDetailScreen", { notice: item })}
+      <View
         style={{
-          flex: 1,
-          flexDirection: isRtl ? "row-reverse" : "row",
+          marginBottom: lastIndex ? Default.fixPadding : Default.fixPadding * 2,
           marginHorizontal: Default.fixPadding * 2,
-          marginBottom: Default.fixPadding * 2,
           borderRadius: 10,
           backgroundColor: Colors.white,
           ...Default.shadow,
         }}
       >
-        <View
+        <TouchableOpacity
+          onPress={() => navigation.push("noticeDetailScreen", { notice: item })}
           style={{
-            flex: 0.2,
-            backgroundColor: Colors.primary,
-            borderTopLeftRadius: isRtl ? 0 : 10,
-            borderBottomLeftRadius: isRtl ? 0 : 10,
-            borderTopRightRadius: isRtl ? 10 : 0,
-            borderBottomRightRadius: isRtl ? 10 : 0,
+            flex: 1,
+            flexDirection: isRtl ? "row-reverse" : "row",
+            alignItems: "center",
+            padding: Default.fixPadding,
           }}
-        />
-        <View style={{ flex: 9.8 }}>
-          <View
-            style={{
-              flexDirection: isRtl ? "row-reverse" : "row",
-              justifyContent: "space-between",
+        >
+          <Image
+            source={getNoticeImage(item)}
+            style={{ 
+              width: ms(75), 
+              height: ms(75), 
+              borderRadius: 5,
+              backgroundColor: Colors.lightGrey 
             }}
-          >
-            <Text
-              numberOfLines={1}
-              style={{
-                ...Fonts.SemiBold16black,
-                flex: 1,
-                overflow: "hidden",
-                textAlign: isRtl ? "right" : "left",
-                marginTop: Default.fixPadding * 0.9,
-                marginHorizontal: Default.fixPadding * 1.4,
-              }}
-            >
-              {item.title}
-            </Text>
-            {item.new && (
-              <View
-                style={{
-                  justifyContent: "center",
-                  alignItems: "center",
-                  width: 52,
-                  height: 22,
-                  backgroundColor: Colors.primary,
-                  borderTopRightRadius: isRtl ? 0 : 10,
-                  borderTopLeftRadius: isRtl ? 10 : 0,
-                }}
-              >
-                <Text
-                  numberOfLines={1}
-                  style={{
-                    ...Fonts.SemiBold12white,
-                    overflow: "hidden",
-                    paddingHorizontal: Default.fixPadding * 0.5,
-                  }}
-                >
-                  {tr("new")}
-                </Text>
-              </View>
-            )}
-          </View>
-          <Text
-            numberOfLines={3}
-            style={{
-              ...Fonts.Medium14grey,
-              textAlign: isRtl ? "right" : "left",
-              marginTop: Default.fixPadding * 0.6,
-              paddingBottom: Default.fixPadding,
-              paddingHorizontal: Default.fixPadding * 1.4,
-              lineHeight: 20,
-            }}
-          >
-            {item.notice}
-          </Text>
-          <DashedLine
-            dashGap={2.5}
-            dashLength={2.5}
-            dashThickness={1.5}
-            dashColor={Colors.grey}
+            defaultSource={require("../assets/images/notice-board.png")}
           />
+
           <View
             style={{
-              overflow: "hidden",
+              flex: 1,
+              alignItems: isRtl ? "flex-end" : "flex-start",
+              marginHorizontal: Default.fixPadding * 1.6,
             }}
           >
             <View
               style={{
                 flexDirection: isRtl ? "row-reverse" : "row",
-                justifyContent: "flex-start",
+                justifyContent: "space-between",
                 alignItems: "center",
-                padding: Default.fixPadding,
+                width: "100%",
+              }}
+            >
+              <Text
+                numberOfLines={1}
+                style={{ 
+                  ...Fonts.Medium16black, 
+                  overflow: "hidden",
+                  flex: 1,
+                  marginRight: item.new ? Default.fixPadding : 0,
+                }}
+              >
+                {item.title}
+              </Text>
+              {item.new && (
+                <View
+                  style={{
+                    backgroundColor: Colors.primary,
+                    paddingHorizontal: Default.fixPadding * 0.8,
+                    paddingVertical: Default.fixPadding * 0.3,
+                    borderRadius: 12,
+                  }}
+                >
+                  <Text style={{ ...Fonts.SemiBold10white }}>
+                    {tr("new")}
+                  </Text>
+                </View>
+              )}
+            </View>
+            
+            <Text
+              numberOfLines={1}
+              style={{
+                ...Fonts.Medium14grey,
+                overflow: "hidden",
+                marginVertical: Default.fixPadding * 0.2,
+              }}
+            >
+              {item.dateTime}
+            </Text>
+
+            <Text
+              numberOfLines={2}
+              style={{
+                ...Fonts.Medium14grey,
+                overflow: "hidden",
+                lineHeight: 20,
+              }}
+            >
+              {item.notice}
+            </Text>
+
+            <View
+              style={{
+                marginTop: Default.fixPadding * 0.5,
+                borderBottomWidth: 1,
+                borderBottomColor: Colors.primary,
+                alignSelf: isRtl ? "flex-end" : "flex-start",
               }}
             >
               <Text
                 numberOfLines={1}
                 style={{
-                  ...Fonts.Medium14black,
-                  flex: 1,
+                  ...Fonts.Medium12primary,
                   overflow: "hidden",
-                  textAlign: isRtl ? "right" : "left",
                 }}
               >
-                {`Posted by: Admin | ${item.dateTime}`}
+                {`By ${item.postBy}`}
               </Text>
             </View>
           </View>
+        </TouchableOpacity>
+
+        <DashedLine
+          dashGap={2.5}
+          dashLength={2.5}
+          dashThickness={1.5}
+          dashColor={Colors.grey}
+        />
+
+        <View
+          style={{
+            flexDirection: isRtl ? "row-reverse" : "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+            padding: Default.fixPadding,
+          }}
+        >
+          <TouchableOpacity
+            onPress={() => handleShare(item)}
+            style={{
+              flex: 1,
+              flexDirection: isRtl ? "row-reverse" : "row",
+              alignItems: "center",
+            }}
+          >
+            <MaterialCommunityIcons
+              name="share-variant"
+              size={20}
+              color={Colors.grey}
+            />
+            <Text
+              numberOfLines={1}
+              style={{
+                ...Fonts.Medium14grey,
+                overflow: "hidden",
+                marginHorizontal: Default.fixPadding * 0.5,
+              }}
+            >
+              {tr("share")}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => handleFavorite(item.id)}
+            style={{
+              flex: 1,
+              flexDirection: isRtl ? "row-reverse" : "row",
+              justifyContent: "center",
+              alignItems: "center",
+              marginHorizontal: Default.fixPadding * 1.5,
+            }}
+          >
+            <MaterialCommunityIcons
+              name={isFavorited ? "heart" : "heart-outline"}
+              size={20}
+              color={isFavorited ? Colors.red : Colors.grey}
+            />
+            <Text
+              numberOfLines={1}
+              style={{
+                ...Fonts.Medium14grey,
+                overflow: "hidden",
+                marginHorizontal: Default.fixPadding * 0.5,
+                color: isFavorited ? Colors.red : Colors.grey,
+              }}
+            >
+              {tr("favorite")}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => handleDelete(item)}
+            style={{
+              flex: 1,
+              flexDirection: isRtl ? "row-reverse" : "row",
+              justifyContent: "flex-end",
+              alignItems: "center",
+            }}
+          >
+            <Feather name="trash" size={19} color={Colors.grey} />
+            <Text
+              numberOfLines={1}
+              style={{
+                ...Fonts.Medium14grey,
+                overflow: "hidden",
+                marginHorizontal: Default.fixPadding * 0.5,
+              }}
+            >
+              {tr("delete")}
+            </Text>
+          </TouchableOpacity>
         </View>
-      </TouchableOpacity>
+      </View>
     );
   };
 
