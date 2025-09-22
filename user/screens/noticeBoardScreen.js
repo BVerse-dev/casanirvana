@@ -36,8 +36,8 @@ const NoticeBoardScreen = ({ navigation }) => {
     }
   }, [profile, isGranted]);
 
-  // Get notices for user's society
-  const { data: noticesResponse, isLoading, error } = useListNotices(profile?.society_id, 1, 50);
+  // Get notices for user's community
+  const { data: noticesResponse, isLoading, error } = useListNotices(profile?.community_id, 1, 50);
   
   // Transform database notices to match UI format
   const noticeList = noticesResponse?.data?.map(notice => ({
@@ -73,7 +73,7 @@ const NoticeBoardScreen = ({ navigation }) => {
 
   // Set up real-time subscription for notice updates
   useEffect(() => {
-    if (!profile?.society_id) return;
+    if (!profile?.community_id) return;
     
     const channel = supabase
       .channel('public:notices')
@@ -81,14 +81,14 @@ const NoticeBoardScreen = ({ navigation }) => {
         event: '*', 
         schema: 'public', 
         table: 'notices',
-        filter: `society_id=eq.${profile.society_id}`
+        filter: `community_id=eq.${profile.community_id}`
       }, () => {
-        queryClient.invalidateQueries(['notices', profile.society_id]);
+        queryClient.invalidateQueries(['notices', profile.community_id]);
       })
       .subscribe();
 
     return () => supabase.removeChannel(channel);
-  }, [profile?.society_id, queryClient]);
+  }, [profile?.community_id, queryClient]);
 
   const renderItem = ({ item }) => {
     return (
