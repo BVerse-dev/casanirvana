@@ -1,5 +1,7 @@
 import React, { useState } from "react";
-import { Text, View, TouchableOpacity, Image, FlatList } from "react-native";
+import { Text, View, TouchableOpacity, Image, FlatList, PanGestureHandler, State } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, { useSharedValue, useAnimatedStyle, withSpring, runOnJS } from "react-native-reanimated";
 import MyStatusBar from "../components/myStatusBar";
 import { Colors, Fonts, Default } from "../constants/styles";
 import { useTranslation } from "react-i18next";
@@ -43,6 +45,21 @@ const HomeScreen = ({ navigation }) => {
   // State for banner actions
   const [isNoticeFavorited, setIsNoticeFavorited] = useState(false);
   const [hasNoticeReminder, setHasNoticeReminder] = useState(false);
+
+  // State for hub tabs
+  const [activeTab, setActiveTab] = useState('community'); // 'community' or 'personal'
+  
+  // Animation values for swipe
+  const translateX = useSharedValue(0);
+  
+  // Swipe handler function
+  const handleSwipeTab = (direction) => {
+    if (direction === 'left' && activeTab === 'community') {
+      setActiveTab('personal');
+    } else if (direction === 'right' && activeTab === 'personal') {
+      setActiveTab('community');
+    }
+  };
 
   // Safe translation function that ALWAYS returns a string
   function tr(key, fallback = "Missing Translation") {
@@ -124,6 +141,51 @@ const HomeScreen = ({ navigation }) => {
     },
   ];
 
+  const personalList = [
+    {
+      key: "1",
+      image: require("../assets/images/pay1.png"),
+      title: "Buy Airtime",
+      other: "Top-up mobile credit",
+      navigateTo: "airtimeScreen",
+    },
+    {
+      key: "2",
+      image: require("../assets/images/pay2.png"),
+      title: "Buy Data",
+      other: "Internet bundles",
+      navigateTo: "dataScreen",
+    },
+    {
+      key: "3",
+      image: require("../assets/images/pay3.png"),
+      title: "Send Money",
+      other: "Money transfers",
+      navigateTo: "transferScreen",
+    },
+    {
+      key: "4",
+      image: require("../assets/images/pay4.png"),
+      title: "Pay Bills",
+      other: "Utilities & subscriptions",
+      navigateTo: "billsScreen",
+    },
+    {
+      key: "5",
+      image: require("../assets/images/pay5.png"),
+      title: "Insurance",
+      other: "Protect what matters",
+      navigateTo: "insuranceScreen",
+    },
+    {
+      key: "6",
+      image: require("../assets/images/service1.png"),
+      title: "Marketplace",
+      other: "Shopping & services",
+      navigateTo: "marketplaceScreen",
+    },
+  ];
+
   const renderItem = ({ item, index }) => {
     return (
       <TouchableOpacity
@@ -138,6 +200,7 @@ const HomeScreen = ({ navigation }) => {
           backgroundColor: Colors.white,
           ...Default.shadow,
           height: ms(150),
+          overflow: 'hidden', // Ensure content stays within card bounds
         }}
       >
         <View
@@ -145,11 +208,17 @@ const HomeScreen = ({ navigation }) => {
             alignItems: isRtl ? "flex-end" : "flex-start",
             paddingTop: Default.fixPadding * 2,
             paddingHorizontal: Default.fixPadding * 1.4,
+            paddingRight: Default.fixPadding * 4, // Back to original padding
+            flex: 1,
           }}
         >
           <Text
             numberOfLines={1}
-            style={{ ...Fonts.SemiBold16black, overflow: "hidden" }}
+            style={{ 
+              ...Fonts.SemiBold16black, 
+              overflow: "hidden",
+              width: '100%',
+            }}
           >
             {item.title}
           </Text>
@@ -159,6 +228,7 @@ const HomeScreen = ({ navigation }) => {
               ...Fonts.Medium12grey,
               overflow: "hidden",
               marginTop: Default.fixPadding * 0.2,
+              width: '100%',
             }}
           >
             {item.other}
@@ -167,8 +237,14 @@ const HomeScreen = ({ navigation }) => {
         <View
           style={{
             alignSelf: isRtl ? "flex-start" : "flex-end",
-            marginTop: Default.fixPadding * 2,
-            paddingHorizontal: Default.fixPadding,
+            marginTop: (item.title === "Buy Data" || item.title === "Send Money" || item.title === "Pay Bills") 
+              ? Default.fixPadding * 2.2 // Increased marginTop for specific cards
+              : Default.fixPadding * 1.5, // Original marginTop for other cards
+            marginRight: Default.fixPadding,
+            marginLeft: Default.fixPadding,
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden', // Clipping mask effect
           }}
         >
           <Image
@@ -181,8 +257,10 @@ const HomeScreen = ({ navigation }) => {
             }
             style={{
               resizeMode: "contain",
-              width: ms(60),
-              height: ms(60),
+              width: ms(50),
+              height: ms(50),
+              maxWidth: ms(50),
+              maxHeight: ms(50),
             }}
           />
         </View>
@@ -199,6 +277,78 @@ const HomeScreen = ({ navigation }) => {
   const handleReminder = () => {
     setHasNoticeReminder(!hasNoticeReminder);
     // TODO: Implement actual reminder functionality with backend
+  };
+
+  // Create swipe gesture
+  const swipeGesture = Gesture.Pan()
+    .onEnd((event) => {
+      const { velocityX, translationX } = event;
+      
+      // Determine swipe direction based on velocity and translation
+      if (Math.abs(translationX) > 50 || Math.abs(velocityX) > 500) {
+        if (translationX > 0 || velocityX > 0) {
+          // Swiping right
+          runOnJS(handleSwipeTab)('right');
+        } else {
+          // Swiping left  
+          runOnJS(handleSwipeTab)('left');
+        }
+      }
+    });
+
+  // Hub Tab Component
+  const HubTabs = () => {
+    return (
+      <GestureDetector gesture={swipeGesture}>
+        <View style={{
+          flexDirection: 'row',
+          marginHorizontal: Default.fixPadding * 2,
+          marginBottom: Default.fixPadding * 1.8, // Reduced spacing
+          backgroundColor: Colors.white,
+          borderRadius: 25,
+          padding: Default.fixPadding * 0.3,
+          ...Default.shadow,
+        }}>
+          <TouchableOpacity
+            onPress={() => setActiveTab('community')}
+            style={{
+              flex: 1,
+              paddingVertical: Default.fixPadding * 0.8,
+              paddingHorizontal: Default.fixPadding * 1.2,
+              borderRadius: 20,
+              backgroundColor: activeTab === 'community' ? Colors.primary : 'transparent',
+            }}
+          >
+            <Text style={{
+              ...Fonts.SemiBold14black,
+              color: activeTab === 'community' ? Colors.white : Colors.grey,
+              textAlign: 'center',
+            }}>
+              Community Hub
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            onPress={() => setActiveTab('personal')}
+            style={{
+              flex: 1,
+              paddingVertical: Default.fixPadding * 0.8,
+              paddingHorizontal: Default.fixPadding * 1.2,
+              borderRadius: 20,
+              backgroundColor: activeTab === 'personal' ? Colors.primary : 'transparent',
+            }}
+          >
+            <Text style={{
+              ...Fonts.SemiBold14black,
+              color: activeTab === 'personal' ? Colors.white : Colors.grey,
+              textAlign: 'center',
+            }}>
+              Personal Hub
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </GestureDetector>
+    );
   };
 
   const NoticeBanner = () => {
@@ -624,7 +774,7 @@ const HomeScreen = ({ navigation }) => {
       {hasJoinedCommunity ? (
         <FlatList
           numColumns={2}
-          data={communityList}
+          data={activeTab === 'community' ? communityList : personalList}
           renderItem={renderItem}
           keyExtractor={(item) => item.key}
           showsVerticalScrollIndicator={false}
@@ -632,24 +782,18 @@ const HomeScreen = ({ navigation }) => {
           ListHeaderComponent={() => (
             <View
               style={{
-                paddingTop: Default.fixPadding * 0.8,
-                paddingHorizontal: Default.fixPadding * 2,
-                marginBottom: Default.fixPadding * 2,
                 backgroundColor: Colors.white,
+                paddingBottom: Default.fixPadding * 1.5, // Extended white background
               }}
             >
-              <NoticeBanner />
-              <Text
-                numberOfLines={1}
-                style={{
-                  ...Fonts.SemiBold16primary,
-                  overflow: "hidden",
-                  textAlign: isRtl ? "right" : "left",
-                  marginBottom: Default.fixPadding * 2,
-                }}
-              >
-                {tr("community")}
-              </Text>
+              <View style={{ 
+                paddingTop: Default.fixPadding * 0.8,
+                paddingHorizontal: Default.fixPadding * 2, 
+                marginBottom: Default.fixPadding * 1.2, // Reduced from 2 to 1.2
+              }}>
+                <NoticeBanner />
+              </View>
+              <HubTabs />
             </View>
           )}
         />
