@@ -9,6 +9,7 @@ import {
   ScrollView,
   Alert,
   Image,
+  Modal,
 } from "react-native";
 import MyStatusBar from "../components/myStatusBar";
 import { useTranslation } from "react-i18next";
@@ -19,11 +20,30 @@ import { Colors, Default, Fonts } from "../constants/styles";
 import AwesomeButton from "react-native-really-awesome-button";
 import { useUpdateAmenityBooking } from "../hooks/useCreateAmenityBooking";
 import { addPayment } from "../services/paymentService";
+import { createPaymentNotification } from "../services/notificationService";
 
 const { width } = Dimensions.get("window");
 
 const MobileMoneyScreen = ({ navigation, route }) => {
-  const { bookingId, bookingData } = route.params || {};
+  const { 
+    bookingId, 
+    bookingData,
+    // Airtime purchase params
+    provider,
+    providerName,
+    providerColor,
+    providerLogo,
+    packageType,
+    amountTitle,
+    amount,
+    amountFormatted,
+    phoneNumber: recipientPhone,
+    description,
+    saveAccount,
+    transactionType,
+    recipientInfo
+  } = route.params || {};
+  
   const { t, i18n } = useTranslation();
   const updateBookingMutation = useUpdateAmenityBooking();
 
@@ -51,6 +71,8 @@ const MobileMoneyScreen = ({ navigation, route }) => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [isValidPhone, setIsValidPhone] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
 
   const mobileNetworks = [
     {
@@ -109,6 +131,66 @@ const MobileMoneyScreen = ({ navigation, route }) => {
       return;
     }
 
+    // For airtime and personal hub transactions
+    if (transactionType && !bookingId) {
+      setIsProcessing(true);
+      
+      try {
+        const cleanPhone = phoneNumber.replace(/\s+/g, "");
+        const transactionId = `MM_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        
+        // Create payment record
+        const paymentData = {
+          amount: amount || 0,
+          payment_method: 'mobile_money',
+          transaction_id: transactionId,
+          mobile_network: selectedNetwork,
+          phone_number: cleanPhone,
+          transaction_type: transactionType,
+          recipient_phone: recipientPhone,
+          recipient_description: description,
+          status: 'pending',
+        };
+        
+        const paymentResult = await addPayment(paymentData);
+        
+        if (!paymentResult.success) {
+          throw new Error(paymentResult.error || "Payment failed");
+        }
+        
+        // Show confirmation modal
+        setIsProcessing(false);
+        setShowConfirmationModal(true);
+        
+        // Simulate payment processing and success after 3 seconds
+        setTimeout(async () => {
+          setPaymentSuccess(true);
+          
+          // Create notification for successful payment
+          try {
+            const notificationResult = await createPaymentNotification({
+              ...paymentData,
+              amount_formatted: amountFormatted
+            });
+            
+            if (!notificationResult.success) {
+              console.error('Failed to create payment notification:', notificationResult.error);
+            }
+          } catch (notificationError) {
+            console.error('Error creating payment notification:', notificationError);
+          }
+        }, 3000);
+        
+      } catch (error) {
+        console.error("Mobile Money payment error:", error);
+        Alert.alert("Payment Failed", "There was an error processing your payment. Please try again.");
+        setIsProcessing(false);
+      }
+      
+      return;
+    }
+    
+    // For booking payments (original flow)
     if (!bookingId) {
       Alert.alert("Error", "Booking information is missing.");
       return;
@@ -143,24 +225,34 @@ const MobileMoneyScreen = ({ navigation, route }) => {
           }
         });
 
-        // Navigate to success screen
-        navigation.push("successScreen", {
-          bookingId,
-          paymentData: {
-            ...paymentData,
-            id: paymentResult.data.id,
-          },
-          bookingData,
-          paymentMethod: "Mobile Money",
-          transactionId,
-        });
+        // Show confirmation modal instead of navigating directly
+        setIsProcessing(false);
+        setShowConfirmationModal(true);
+        
+        // Simulate payment processing and success after 3 seconds
+        setTimeout(async () => {
+          setPaymentSuccess(true);
+          
+          // Create notification for successful payment
+          try {
+            const notificationResult = await createPaymentNotification({
+              ...paymentData,
+              amount_formatted: `GHS ${bookingData.totalAmount?.toFixed(2)}`
+            });
+            
+            if (!notificationResult.success) {
+              console.error('Failed to create payment notification:', notificationResult.error);
+            }
+          } catch (notificationError) {
+            console.error('Error creating payment notification:', notificationError);
+          }
+        }, 3000);
       } else {
         throw new Error(paymentResult.error || "Payment failed");
       }
     } catch (error) {
       console.error("Mobile Money payment error:", error);
       Alert.alert("Payment Failed", "There was an error processing your payment. Please try again.");
-    } finally {
       setIsProcessing(false);
     }
   };
@@ -261,6 +353,49 @@ const MobileMoneyScreen = ({ navigation, route }) => {
           Mobile Money Payment
         </Text>
       </View>
+
+      {/* Payment Amount */}
+      {(amount || bookingData?.totalAmount) && (
+        <View style={{
+          backgroundColor: Colors.white,
+          paddingVertical: Default.fixPadding * 2,
+          paddingHorizontal: Default.fixPadding * 2,
+          marginVertical: Default.fixPadding,
+          alignItems: 'center',
+          ...Default.shadow,
+        }}>
+          <Text style={{ ...Fonts.Medium14grey, marginBottom: Default.fixPadding }}>
+            {tr("Amount to Pay")}
+          </Text>
+          <Text style={{ ...Fonts.Bold24primary }}>
+            {amountFormatted || `GHS ${amount?.toFixed(2)}` || `GHS ${bookingData?.totalAmount?.toFixed(2)}` || 'GHS 0.00'}
+          </Text>
+          
+          {transactionType === 'airtime' && (
+            <View style={{
+              flexDirection: isRtl ? "row-reverse" : "row",
+              alignItems: "center",
+              marginTop: Default.fixPadding,
+            }}>
+              {providerLogo && (
+                <Image
+                  source={providerLogo}
+                  style={{
+                    width: 24,
+                    height: 24,
+                    marginRight: isRtl ? 0 : Default.fixPadding * 0.5,
+                    marginLeft: isRtl ? Default.fixPadding * 0.5 : 0,
+                    resizeMode: "contain",
+                  }}
+                />
+              )}
+              <Text style={{ ...Fonts.Medium14grey }}>
+                {providerName || ''} {description ? `- ${description}` : ''}
+              </Text>
+            </View>
+          )}
+        </View>
+      )}
 
       <ScrollView 
         showsVerticalScrollIndicator={false}
@@ -428,6 +563,140 @@ const MobileMoneyScreen = ({ navigation, route }) => {
           </Text>
         </AwesomeButton>
       </View>
+
+      {/* Payment Confirmation Modal */}
+      <Modal
+        visible={showConfirmationModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => {
+          if (paymentSuccess) {
+            // If payment is successful, navigate to home screen personal tab
+            navigation.navigate("homeScreen", { activeTab: 'personal' });
+          } else {
+            setShowConfirmationModal(false);
+          }
+        }}
+      >
+        <View style={{
+          flex: 1,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: Default.fixPadding * 2,
+        }}>
+          <View style={{
+            width: '90%',
+            backgroundColor: Colors.white,
+            borderRadius: 15,
+            padding: Default.fixPadding * 2,
+            ...Default.shadow,
+          }}>
+            {paymentSuccess ? (
+              // Success state
+              <>
+                <View style={{
+                  alignItems: 'center',
+                  marginBottom: Default.fixPadding * 2,
+                }}>
+                  <View style={{
+                    width: 80,
+                    height: 80,
+                    borderRadius: 40,
+                    backgroundColor: Colors.green + '20',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    marginBottom: Default.fixPadding * 1.5,
+                  }}>
+                    <MaterialIcons
+                      name="check-circle"
+                      size={50}
+                      color={Colors.green}
+                    />
+                  </View>
+                  <Text style={{ ...Fonts.SemiBold18black, textAlign: 'center' }}>
+                    Payment Successful
+                  </Text>
+                  <Text style={{ 
+                    ...Fonts.Medium14grey, 
+                    textAlign: 'center',
+                    marginTop: Default.fixPadding,
+                    marginHorizontal: Default.fixPadding,
+                  }}>
+                    Your payment has been processed successfully.
+                  </Text>
+                </View>
+                
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: Colors.primary,
+                    paddingVertical: Default.fixPadding * 1.2,
+                    borderRadius: 10,
+                    alignItems: 'center',
+                  }}
+                  onPress={() => {
+                    setShowConfirmationModal(false);
+                    navigation.navigate("homeScreen", { activeTab: 'personal' });
+                  }}
+                >
+                  <Text style={{ ...Fonts.SemiBold16white }}>
+                    Done
+                  </Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              // Processing state
+              <>
+                <View style={{
+                  alignItems: 'center',
+                  marginBottom: Default.fixPadding * 2,
+                }}>
+                  <View style={{
+                    width: 80,
+                    height: 80,
+                    borderRadius: 40,
+                    backgroundColor: Colors.primary + '20',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    marginBottom: Default.fixPadding * 1.5,
+                  }}>
+                    <MaterialCommunityIcons
+                      name="cellphone-check"
+                      size={50}
+                      color={Colors.primary}
+                    />
+                  </View>
+                  <Text style={{ ...Fonts.SemiBold18black, textAlign: 'center' }}>
+                    Payment Processing
+                  </Text>
+                  <Text style={{ 
+                    ...Fonts.Medium14grey, 
+                    textAlign: 'center',
+                    marginTop: Default.fixPadding,
+                    marginHorizontal: Default.fixPadding,
+                  }}>
+                    You will receive a prompt on your phone to enter your mobile money PIN to approve this payment.
+                  </Text>
+                </View>
+                
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: Colors.grey,
+                    paddingVertical: Default.fixPadding * 1.2,
+                    borderRadius: 10,
+                    alignItems: 'center',
+                  }}
+                  onPress={() => setShowConfirmationModal(false)}
+                >
+                  <Text style={{ ...Fonts.SemiBold16white }}>
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
