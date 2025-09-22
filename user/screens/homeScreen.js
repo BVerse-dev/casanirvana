@@ -218,19 +218,21 @@ const HomeScreen = ({ navigation }) => {
           end={[1, 1]}
           locations={[0, 0.4, 1]}
           style={{
-            flexDirection: isRtl ? "row-reverse" : "row",
             minHeight: 120,
+            position: 'relative',
           }}
         >
-          <View style={{ flex: 1, flexDirection: isRtl ? "row-reverse" : "row" }}>
+          <View style={{ flexDirection: isRtl ? "row-reverse" : "row", flex: 1 }}>
             <View style={{ width: 6, backgroundColor: Colors.primary }} />
             <View
               style={{
+                flex: 1,
                 justifyContent: "center",
                 alignItems: isRtl ? "flex-end" : "flex-start",
                 paddingTop: Default.fixPadding * 1.8,
                 paddingBottom: Default.fixPadding * 2.7,
-                marginHorizontal: Default.fixPadding * 0.9,
+                paddingRight: isRtl ? Default.fixPadding * 0.9 : ms(180), // Reserve space for family image
+                paddingLeft: isRtl ? ms(180) : Default.fixPadding * 0.9, // Reserve space for family image
               }}
             >
               <Text
@@ -243,6 +245,7 @@ const HomeScreen = ({ navigation }) => {
                   textShadowRadius: 2,
                   fontSize: 16,
                   fontWeight: '600',
+                  width: '100%',
                 }}
               >
                 {tr("notice")}
@@ -269,6 +272,7 @@ const HomeScreen = ({ navigation }) => {
                   lineHeight: 22,
                   fontSize: 13,
                   fontWeight: '400',
+                  width: '100%',
                 }}
               >
                 {noticePreview}
@@ -277,9 +281,16 @@ const HomeScreen = ({ navigation }) => {
           </View>
           <View
             style={{
-              flex: 1,
+              position: "absolute",
+              top: 0,
+              bottom: 0,
+              right: isRtl ? undefined : 0,
+              left: isRtl ? 0 : undefined,
+              width: ms(180),
               alignItems: isRtl ? "flex-start" : "flex-end",
-              position: "relative",
+              justifyContent: "space-between",
+              paddingTop: Default.fixPadding,
+              paddingBottom: Default.fixPadding,
             }}
           >
             {/* Only show NEW badge if there's a new notice */}
@@ -299,7 +310,6 @@ const HomeScreen = ({ navigation }) => {
                   shadowOpacity: 0.1,
                   shadowRadius: 4,
                   elevation: 3,
-                  marginTop: Default.fixPadding,
                 }}
               >
                 <Text
@@ -320,10 +330,6 @@ const HomeScreen = ({ navigation }) => {
                 resizeMode: "contain",
                 width: ms(172),
                 height: ms(79),
-                position: "absolute",
-                bottom: 0,
-                right: isRtl ? undefined : 0,
-                left: isRtl ? 0 : undefined,
               }}
             />
           </View>
