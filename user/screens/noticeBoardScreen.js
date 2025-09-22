@@ -262,11 +262,10 @@ const NoticeBoardScreen = ({ navigation }) => {
             </Text>
 
             <Text
-              numberOfLines={2}
+              numberOfLines={1}
               style={{
                 ...Fonts.Medium14grey,
                 overflow: "hidden",
-                lineHeight: 20,
                 marginTop: Default.fixPadding * 0.3,
               }}
             >
