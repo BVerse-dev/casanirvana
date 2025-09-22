@@ -66,6 +66,10 @@ database-backups/
 .vscode/
 .vscode/*
 
+# Cursor IDE
+.cursor/
+.cursor/*
+
 # IntelliJ / WebStorm
 .idea/
 *.iml
