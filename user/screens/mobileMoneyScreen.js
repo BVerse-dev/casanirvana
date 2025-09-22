@@ -354,49 +354,6 @@ const MobileMoneyScreen = ({ navigation, route }) => {
         </Text>
       </View>
 
-      {/* Payment Amount */}
-      {(amount || bookingData?.totalAmount) && (
-        <View style={{
-          backgroundColor: Colors.white,
-          paddingVertical: Default.fixPadding * 2,
-          paddingHorizontal: Default.fixPadding * 2,
-          marginVertical: Default.fixPadding,
-          alignItems: 'center',
-          ...Default.shadow,
-        }}>
-          <Text style={{ ...Fonts.Medium14grey, marginBottom: Default.fixPadding }}>
-            {tr("Amount to Pay")}
-          </Text>
-          <Text style={{ ...Fonts.Bold24primary }}>
-            {amountFormatted || `GHS ${amount?.toFixed(2)}` || `GHS ${bookingData?.totalAmount?.toFixed(2)}` || 'GHS 0.00'}
-          </Text>
-          
-          {transactionType === 'airtime' && (
-            <View style={{
-              flexDirection: isRtl ? "row-reverse" : "row",
-              alignItems: "center",
-              marginTop: Default.fixPadding,
-            }}>
-              {providerLogo && (
-                <Image
-                  source={providerLogo}
-                  style={{
-                    width: 24,
-                    height: 24,
-                    marginRight: isRtl ? 0 : Default.fixPadding * 0.5,
-                    marginLeft: isRtl ? Default.fixPadding * 0.5 : 0,
-                    resizeMode: "contain",
-                  }}
-                />
-              )}
-              <Text style={{ ...Fonts.Medium14grey }}>
-                {providerName || ''} {description ? `- ${description}` : ''}
-              </Text>
-            </View>
-          )}
-        </View>
-      )}
-
       <ScrollView 
         showsVerticalScrollIndicator={false}
         style={{ flex: 1 }}
