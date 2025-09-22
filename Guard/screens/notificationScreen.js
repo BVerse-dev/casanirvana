@@ -48,6 +48,33 @@ const NotificationScreen = ({ navigation }) => {
       notification_type: "maintenance",
       priority: "normal",
     },
+    {
+      id: "mock-3",
+      title: "Payment Reminder",
+      body: "Monthly dues payment is due in 3 days.",
+      created_at: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+      read_at: null,
+      notification_type: "payment_reminder",
+      priority: "high",
+    },
+    {
+      id: "mock-4",
+      title: "Security Alert",
+      body: "Unauthorized access attempt detected.",
+      created_at: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
+      read_at: null,
+      notification_type: "security",
+      priority: "high",
+    },
+    {
+      id: "mock-5",
+      title: "Community Announcement",
+      body: "Annual community meeting scheduled for next week.",
+      created_at: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
+      read_at: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+      notification_type: "announcement",
+      priority: "normal",
+    },
   ]);
   const [removeNotificationToast, setRemoveNotificationToast] = useState(false);
   const onDismissRemoveNotificationToast = () => setRemoveNotificationToast(false);

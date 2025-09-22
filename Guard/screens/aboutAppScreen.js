@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import MyStatusBar from '../components/myStatusBar';
-import AwesomeButton from 'react-native-really-awesome-button';
 import { Colors, Default, Fonts } from '../constants/styles';
 
 const AboutAppScreen = ({ navigation }) => {
@@ -16,7 +15,7 @@ const AboutAppScreen = ({ navigation }) => {
     version: '2.1.4',
     buildNumber: '214',
     releaseDate: 'July 28, 2024',
-    developer: 'Casa Nirvana Technologies',
+    developer: 'BVerse',
     description: 'Your complete community management solution for modern residential living.',
     features: [
       'Community member directory and communication',
@@ -49,10 +48,34 @@ const AboutAppScreen = ({ navigation }) => {
   });
 
   const [legalInfo] = useState([
-    { title: 'Privacy Policy', description: 'How we collect, use, and protect your data', screen: 'privacyPolicyScreen' },
-    { title: 'Terms of Service', description: 'Terms and conditions for using our app', screen: 'termsConditionScreen' },
-    { title: 'License Agreement', description: 'End User License Agreement (EULA)', action: 'external' },
-    { title: 'Open Source Licenses', description: 'Third-party libraries and their licenses', action: 'external' },
+    { 
+      title: 'Privacy Policy', 
+      description: 'How we collect, use, and protect your data', 
+      screen: 'privacyPolicyScreen',
+      icon: 'shield-account',
+      color: Colors.blue
+    },
+    { 
+      title: 'Terms of Service', 
+      description: 'Terms and conditions for using our app', 
+      screen: 'termsOfServiceScreen',
+      icon: 'file-document-outline',
+      color: Colors.green
+    },
+    { 
+      title: 'License Agreement', 
+      description: 'End User License Agreement (EULA)', 
+      screen: 'licenseAgreementScreen',
+      icon: 'certificate',
+      color: Colors.orange
+    },
+    { 
+      title: 'Open Source Licenses', 
+      description: 'Third-party libraries and their licenses', 
+      screen: 'openSourceLicensesScreen',
+      icon: 'open-source-initiative',
+      color: Colors.purple || '#9C27B0'
+    },
   ]);
 
   const openWebsite = () => {
@@ -207,19 +230,24 @@ const AboutAppScreen = ({ navigation }) => {
         </View>
 
         <View style={styles.legalSection}>
-          <View style={styles.sectionHeader}>
-            <MaterialCommunityIcons name="shield-check" size={20} color={Colors.primary} />
-            <Text style={styles.sectionTitle}>Legal & Compliance</Text>
+          <View style={[styles.sectionHeader, styles.legalSectionHeader]}>
+            <View style={styles.legalHeaderIconContainer}>
+              <MaterialCommunityIcons name="shield-check" size={22} color={Colors.primary} />
+            </View>
+            <View style={styles.legalHeaderTextContainer}>
+              <Text style={styles.sectionTitle}>Legal & Compliance</Text>
+              <Text style={styles.legalSectionSubtitle}>Important documents and policies</Text>
+            </View>
           </View>
           {legalInfo.map((item, idx) => (
             <TouchableOpacity
               key={idx}
               style={styles.legalItem}
-              onPress={() => {
-                if (item.screen) navigation.push(item.screen);
-                else Alert.alert(item.title, 'This document will open in your browser.');
-              }}
+              onPress={() => navigation.push(item.screen)}
             >
+              <View style={[styles.legalIconContainer, { backgroundColor: item.color + '20' }]}>
+                <MaterialCommunityIcons name={item.icon} size={22} color={item.color} />
+              </View>
               <View style={styles.legalInfo}>
                 <Text style={styles.legalTitle}>{item.title}</Text>
                 <Text style={styles.legalDescription}>{item.description}</Text>
@@ -231,7 +259,7 @@ const AboutAppScreen = ({ navigation }) => {
 
         <View style={styles.contactSection}>
           <View style={styles.sectionHeader}>
-            <MaterialCommunityIcons name="contact-mail" size={20} color={Colors.primary} />
+            <MaterialCommunityIcons name="phone-message" size={20} color={Colors.primary} />
             <Text style={styles.sectionTitle}>Get in Touch</Text>
           </View>
           <TouchableOpacity style={styles.contactItem} onPress={contactSupport}>
@@ -261,22 +289,18 @@ const AboutAppScreen = ({ navigation }) => {
         </View>
 
         <View style={styles.actionsSection}>
-          <AwesomeButton style={styles.actionButton} height={50} onPress={rateApp} backgroundColor={Colors.primary} borderRadius={10} stretch>
-            <View style={styles.buttonContent}>
-              <MaterialCommunityIcons name="star" size={20} color={Colors.white} />
-              <Text style={styles.buttonText}>Rate Our App</Text>
-            </View>
-          </AwesomeButton>
-          <AwesomeButton style={styles.actionButton} height={50} onPress={shareApp} backgroundColor={Colors.primary} borderRadius={10} stretch>
-            <View style={styles.buttonContent}>
-              <MaterialCommunityIcons name="share" size={20} color={Colors.white} />
-              <Text style={styles.buttonText}>Share with Friends</Text>
-            </View>
-          </AwesomeButton>
+          <TouchableOpacity style={[styles.actionButton, styles.rateButton]} onPress={rateApp}>
+            <MaterialCommunityIcons name="star" size={20} color={Colors.white} />
+            <Text style={styles.buttonText}>Rate Our App</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.actionButton, styles.shareButton]} onPress={shareApp}>
+            <MaterialCommunityIcons name="share" size={20} color={Colors.white} />
+            <Text style={styles.buttonText}>Share with Friends</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.copyrightSection}>
-          <Text style={styles.copyrightText}>© 2024 Casa Nirvana Technologies</Text>
+          <Text style={styles.copyrightText}>© 2024 BVerse</Text>
           <Text style={styles.copyrightSubtext}>All rights reserved</Text>
           <Text style={styles.versionFooter}>Built with ❤️ for modern communities</Text>
         </View>
@@ -343,7 +367,44 @@ const styles = StyleSheet.create({
   memberName: { ...Fonts.Medium15black, marginBottom: 2 },
   memberRole: { ...Fonts.Medium12grey },
   legalSection: { backgroundColor: Colors.white, marginHorizontal: Default.fixPadding * 2, marginBottom: Default.fixPadding * 2, borderRadius: 10, ...Default.shadow },
-  legalItem: { flexDirection: 'row', alignItems: 'center', padding: Default.fixPadding * 1.5, borderBottomWidth: 1, borderBottomColor: Colors.extraLightGrey },
+  legalSectionHeader: {
+    backgroundColor: Colors.primary + '08',
+    paddingVertical: Default.fixPadding * 1.8,
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10,
+  },
+  legalHeaderIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.primary + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: Default.fixPadding,
+  },
+  legalHeaderTextContainer: {
+    flex: 1,
+  },
+  legalSectionSubtitle: {
+    ...Fonts.Medium12grey,
+    marginTop: 2,
+    opacity: 0.8,
+  },
+  legalItem: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    padding: Default.fixPadding * 1.5, 
+    borderBottomWidth: 1, 
+    borderBottomColor: Colors.extraLightGrey,
+  },
+  legalIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: Default.fixPadding * 1.2,
+  },
   legalInfo: { flex: 1 },
   legalTitle: { ...Fonts.Medium15black, marginBottom: 2 },
   legalDescription: { ...Fonts.Medium12grey },
@@ -353,9 +414,31 @@ const styles = StyleSheet.create({
   contactTitle: { ...Fonts.Medium15black, marginBottom: 2 },
   contactValue: { ...Fonts.Medium12primary },
   actionsSection: { paddingHorizontal: Default.fixPadding * 2, marginBottom: Default.fixPadding * 2 },
-  actionButton: { width: '100%', marginBottom: Default.fixPadding },
-  buttonContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
-  buttonText: { ...Fonts.SemiBold14white, fontSize: 16, marginLeft: Default.fixPadding * 0.5 },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Default.fixPadding * 2,
+    paddingVertical: Default.fixPadding * 1.2,
+    borderRadius: 10,
+    minHeight: 50,
+    width: '100%',
+    marginBottom: Default.fixPadding,
+    ...Default.shadow,
+    elevation: 3,
+  },
+  rateButton: {
+    backgroundColor: Colors.primary,
+  },
+  shareButton: {
+    backgroundColor: Colors.primary,
+  },
+  buttonText: { 
+    ...Fonts.SemiBold16white, 
+    marginLeft: Default.fixPadding * 0.5,
+    color: Colors.white,
+  },
   copyrightSection: { alignItems: 'center', paddingVertical: Default.fixPadding * 2, paddingHorizontal: Default.fixPadding * 2 },
   copyrightText: { ...Fonts.Medium14grey, marginBottom: Default.fixPadding * 0.5 },
   copyrightSubtext: { ...Fonts.Medium12grey, marginBottom: Default.fixPadding },

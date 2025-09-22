@@ -12,7 +12,7 @@ export const useUserStatus = (userId) => {
   const { user, guard } = useGuardAuth();
 
   useEffect(() => {
-    if (!userId || !guard?.society_id) {
+    if (!userId || !guard?.community_id) {
       setIsLoading(false);
       return;
     }
@@ -22,9 +22,9 @@ export const useUserStatus = (userId) => {
         // Get user's profile from profiles table which has last_login info
         const { data: userProfile, error: profileError } = await supabase
           .from('profiles')
-          .select('id, first_name, last_name, society_id, last_login, is_active')
+          .select('id, first_name, last_name, community_id, last_login, is_active')
           .eq('id', userId)
-          .eq('society_id', guard.society_id)
+          .eq('community_id', guard.community_id)
           .single();
 
         if (profileError || !userProfile) {
@@ -114,7 +114,7 @@ export const useUserStatus = (userId) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [userId, guard?.society_id]);
+  }, [userId, guard?.community_id]);
 
   return {
     ...userStatus,

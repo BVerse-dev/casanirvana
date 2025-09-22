@@ -356,22 +356,22 @@ const RingingScreen = ({ navigation, route }) => {
   };
 
   const getUnitIdFromFlat = async (flatNo) => {
-    console.log('Guard context:', { guard: guard?.id, society: guard?.society_id, isAuthenticated });
+    console.log('Guard context:', { guard: guard?.id, society: guard?.community_id, isAuthenticated });
     
-    if (!guard?.society_id) {
+    if (!guard?.community_id) {
       console.error('Guard society ID not available');
       return null;
     }
 
     try {
-      console.log('Looking for unit:', flatNo, 'in society:', guard.society_id);
+      console.log('Looking for unit:', flatNo, 'in society:', guard.community_id);
       
       // First try to find unit by unit_number (exact match) in guard's society
       const { data: exactMatches, error: exactError } = await supabase
         .from('units')
         .select('id')
         .eq('unit_number', flatNo)
-        .eq('society_id', guard.society_id) // Filter by guard's society
+        .eq('community_id', guard.community_id) // Filter by guard's society
         .limit(1);
 
       if (exactMatches && exactMatches.length > 0 && !exactError) {
@@ -391,7 +391,7 @@ const RingingScreen = ({ navigation, route }) => {
           .select('id')
           .eq('block', block)
           .eq('number', number)
-          .eq('society_id', guard.society_id) // Filter by guard's society
+          .eq('community_id', guard.community_id) // Filter by guard's society
           .limit(1);
 
         if (parsedMatches && parsedMatches.length > 0 && !parsedError) {
@@ -400,7 +400,7 @@ const RingingScreen = ({ navigation, route }) => {
         }
       }
 
-      console.warn('Unit not found for flat:', flatNo, 'in society:', guard.society_id);
+      console.warn('Unit not found for flat:', flatNo, 'in society:', guard.community_id);
       return null;
     } catch (error) {
       console.error('Error getting unit ID:', error);

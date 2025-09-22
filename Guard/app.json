@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Casa Nirvana Society Guard App",
-    "slug": "CC-Casa-Nirvana-Guard",
+    "slug": "casa-nirvana-guard",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -21,15 +21,17 @@
       }
     },
     "android": {
+      "package": "com.cc.casanirvana.society.guard",
+      "versionCode": 1,
       "adaptiveIcon": {
-        "package": "com.cc.casanirvana.society.guard",
-        "versionCode": 1,
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.cc.casanirvana.society.guard",
       "permissions": [
-        "android.permission.CAMERA"
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
       ]
     },
     "web": {
@@ -38,16 +40,31 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      "expo-dev-client",
       "expo-web-browser",
-      "expo-barcode-scanner"
+      "expo-barcode-scanner",
+      "expo-camera",
+      "expo-image-picker",
+      "expo-document-picker",
+      "expo-contacts",
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone."
+        }
+      ]
     ],
+    "cli": {
+      "appVersionSource": "remote"
+    },
     "extra": {
       "EXPO_PUBLIC_SUPABASE_URL": "https://pswnlowvmdgeifhxilao.supabase.co",
       "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzd25sb3d2bWRnZWlmaHhpbGFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3ODE5MTYsImV4cCI6MjA2MzM1NzkxNn0.QOqSJr0qxefrIwM087IKlJJYWwMLCHV_v5iEb-SI7S0",
       "API_BASE_URL": "http://localhost:8080",
       "eas": {
-        "projectId": "6656f73b-d7e1-4694-a873-3908bc765c40"
+        "projectId": "6ef2ef14-3743-4397-9531-d7570918523a"
       }
-    }
+    },
+    "owner": "starseedlabs"
   }
 }

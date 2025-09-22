@@ -1,13 +1,32 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, BackHandler, ScrollView, StyleSheet } from 'react-native';
-import { useTranslation } from 'react-i18next';
-import Ionicons from 'react-native-vector-icons/Ionicons';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import MyStatusBar from '../components/myStatusBar';
-import { Colors, Default, Fonts } from '../constants/styles';
+import React, { useState, useEffect } from "react";
+import {
+  Text,
+  View,
+  TouchableOpacity,
+  BackHandler,
+  ScrollView,
+  StyleSheet,
+  Dimensions,
+  Alert,
+} from "react-native";
+import MyStatusBar from "../components/myStatusBar";
+import { useTranslation } from "react-i18next";
+import { Colors, Default, Fonts } from "../constants/styles";
+import Ionicons from "react-native-vector-icons/Ionicons";
+import MaterialIcons from "react-native-vector-icons/MaterialIcons";
+import { LinearGradient } from "expo-linear-gradient";
+
+const { width } = Dimensions.get("window");
 
 const UserGuideScreen = ({ navigation }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isRtl = i18n.dir() == "rtl";
+  const [selectedSection, setSelectedSection] = useState(null);
+  const [currentStep, setCurrentStep] = useState(0);
+
+  function tr(key) {
+    return t(`userGuideScreen:${key}`) || key;
+  }
 
   const backAction = () => {
     navigation.goBack();
@@ -15,12 +34,9 @@ const UserGuideScreen = ({ navigation }) => {
   };
 
   useEffect(() => {
-    const sub = BackHandler.addEventListener('hardwareBackPress', backAction);
-    return () => sub.remove();
+    const backHandler = BackHandler.addEventListener("hardwareBackPress", backAction);
+    return () => backHandler.remove();
   }, []);
-
-  const [selectedSection, setSelectedSection] = useState(null);
-  const [currentStep, setCurrentStep] = useState(0);
 
   // Guard-specific User Guide content (UI unchanged)
   const guideData = [
@@ -293,10 +309,7 @@ const UserGuideScreen = ({ navigation }) => {
     <TouchableOpacity
       key={index}
       style={[styles.sectionCard, { borderLeftColor: section.color }]}
-      onPress={() => {
-        setSelectedSection(section);
-        setCurrentStep(0);
-      }}
+      onPress={() => setSelectedSection(section)}
     >
       <View style={styles.sectionHeader}>
         <View style={[styles.iconContainer, { backgroundColor: section.color + '20' }]}>
@@ -315,29 +328,25 @@ const UserGuideScreen = ({ navigation }) => {
 
   const renderDetailedView = () => {
     if (!selectedSection) return null;
+
     const section = selectedSection.sections[currentStep];
+    
     return (
       <ScrollView style={styles.detailContainer}>
-        <View style={styles.detailHeader}>
-          <TouchableOpacity onPress={() => setSelectedSection(null)} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={Colors.primary} />
-          </TouchableOpacity>
-          <Text style={styles.detailTitle}>{selectedSection.title}</Text>
-        </View>
 
         <View style={styles.progressContainer}>
           <Text style={styles.progressText}>
             Step {currentStep + 1} of {selectedSection.sections.length}
           </Text>
           <View style={styles.progressBar}>
-            <View
+            <View 
               style={[
-                styles.progressFill,
-                {
+                styles.progressFill, 
+                { 
                   width: `${((currentStep + 1) / selectedSection.sections.length) * 100}%`,
-                  backgroundColor: selectedSection.color,
-                },
-              ]}
+                  backgroundColor: selectedSection.color
+                }
+              ]} 
             />
           </View>
         </View>
@@ -349,10 +358,10 @@ const UserGuideScreen = ({ navigation }) => {
           {section.steps && (
             <View style={styles.stepsContainer}>
               <Text style={styles.stepsTitle}>Step-by-Step Guide:</Text>
-              {section.steps.map((step, idx) => (
-                <View key={idx} style={styles.stepItem}>
+              {section.steps.map((step, index) => (
+                <View key={index} style={styles.stepItem}>
                   <View style={[styles.stepNumber, { backgroundColor: selectedSection.color }]}>
-                    <Text style={styles.stepNumberText}>{idx + 1}</Text>
+                    <Text style={styles.stepNumberText}>{index + 1}</Text>
                   </View>
                   <Text style={styles.stepText}>{step}</Text>
                 </View>
@@ -368,7 +377,9 @@ const UserGuideScreen = ({ navigation }) => {
             disabled={currentStep === 0}
           >
             <Ionicons name="chevron-back" size={20} color={currentStep === 0 ? Colors.grey : Colors.primary} />
-            <Text style={[styles.navButtonText, currentStep === 0 && styles.navButtonTextDisabled]}>Previous</Text>
+            <Text style={[styles.navButtonText, currentStep === 0 && styles.navButtonTextDisabled]}>
+              Previous
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -376,7 +387,9 @@ const UserGuideScreen = ({ navigation }) => {
             onPress={() => setCurrentStep(Math.min(selectedSection.sections.length - 1, currentStep + 1))}
             disabled={currentStep === selectedSection.sections.length - 1}
           >
-            <Text style={[styles.navButtonText, currentStep === selectedSection.sections.length - 1 && styles.navButtonTextDisabled]}>Next</Text>
+            <Text style={[styles.navButtonText, currentStep === selectedSection.sections.length - 1 && styles.navButtonTextDisabled]}>
+              Next
+            </Text>
             <Ionicons name="chevron-forward" size={20} color={currentStep === selectedSection.sections.length - 1 ? Colors.grey : Colors.primary} />
           </TouchableOpacity>
         </View>
@@ -422,19 +435,34 @@ const UserGuideScreen = ({ navigation }) => {
     <View style={styles.screen}>
       <MyStatusBar />
       <View style={styles.headerRow}>
-        <TouchableOpacity onPress={backAction} style={styles.headerBackBtn}>
+        <TouchableOpacity 
+          onPress={selectedSection ? () => setSelectedSection(null) : backAction} 
+          style={styles.headerBackBtn}
+        >
           <Ionicons name="arrow-back-outline" size={25} color={Colors.black} />
         </TouchableOpacity>
-        <Text style={styles.headerTitleText}>{selectedSection ? selectedSection.title : 'User Guide'}</Text>
+        <View style={styles.headerTitleContainer}>
+          <Text style={styles.headerTitleText}>
+            {selectedSection ? selectedSection.title : "User Guide"}
+          </Text>
+        </View>
+        {selectedSection && (
+          <TouchableOpacity onPress={backAction} style={styles.settingsBackBtn}>
+            <Ionicons name="close-outline" size={25} color={Colors.grey} />
+          </TouchableOpacity>
+        )}
       </View>
-
+      
       {selectedSection ? renderDetailedView() : renderMainView()}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.extraLightGrey },
+  screen: {
+    flex: 1,
+    backgroundColor: Colors.extraLightGrey,
+  },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -444,6 +472,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderBottomWidth: 1,
     borderBottomColor: Colors.lightGrey,
+    minHeight: 60,
   },
   headerBackBtn: {
     width: 44,
@@ -452,62 +481,233 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.16)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 2,
+  },
+  headerTitleContainer: {
+    flex: 1,
+    marginLeft: Default.fixPadding,
+    justifyContent: 'center',
   },
   headerTitleText: {
     ...Fonts.SemiBold18black,
     letterSpacing: 0.2,
     color: Colors.black,
-    marginLeft: Default.fixPadding,
-    marginBottom: 2,
   },
-  container: { flex: 1 },
+  settingsBackBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: Default.fixPadding,
+  },
+  container: {
+    flex: 1,
+  },
   headerSection: {
     backgroundColor: Colors.primary,
     paddingHorizontal: Default.fixPadding * 2,
     paddingVertical: Default.fixPadding * 3,
     alignItems: 'center',
   },
-  headerTitle: { ...Fonts.SemiBold24black, marginBottom: Default.fixPadding * 0.5, color: Colors.white },
-  headerSubtitle: { ...Fonts.Medium16white, opacity: 0.9, textAlign: 'center', color: Colors.white },
-  content: { flex: 1, paddingHorizontal: Default.fixPadding * 2, paddingTop: Default.fixPadding * 2 },
-  welcomeCard: { backgroundColor: Colors.white, padding: Default.fixPadding * 2, borderRadius: 16, marginBottom: Default.fixPadding * 2, ...Default.shadow },
-  welcomeTitle: { ...Fonts.SemiBold18black, marginBottom: Default.fixPadding },
-  welcomeText: { ...Fonts.Medium14grey, lineHeight: 22 },
-  sectionsContainer: { marginBottom: Default.fixPadding * 2 },
-  sectionCard: { backgroundColor: Colors.white, padding: Default.fixPadding * 2, marginBottom: Default.fixPadding * 1.5, borderRadius: 16, borderLeftWidth: 5, ...Default.shadow },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center' },
-  iconContainer: { width: 48, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center', marginRight: Default.fixPadding * 1.5 },
-  sectionInfo: { flex: 1 },
-  sectionTitle: { ...Fonts.SemiBold16black, marginBottom: Default.fixPadding * 0.3 },
-  sectionSubtitle: { ...Fonts.Medium12grey },
-  detailContainer: { flex: 1 },
-  detailHeader: { flexDirection: 'row', alignItems: 'center', padding: Default.fixPadding * 2, backgroundColor: Colors.white, borderBottomWidth: 1, borderBottomColor: Colors.lightGrey },
-  backButton: { marginRight: Default.fixPadding * 1.5, padding: Default.fixPadding * 0.5 },
-  detailTitle: { ...Fonts.SemiBold18black, flex: 1 },
-  progressContainer: { padding: Default.fixPadding * 2, backgroundColor: Colors.white, borderBottomWidth: 1, borderBottomColor: Colors.lightGrey },
-  progressText: { ...Fonts.Medium14grey, textAlign: 'center', marginBottom: Default.fixPadding },
-  progressBar: { height: 6, backgroundColor: Colors.lightGrey, borderRadius: 3, overflow: 'hidden' },
-  progressFill: { height: '100%', borderRadius: 3 },
-  contentCard: { backgroundColor: Colors.white, margin: Default.fixPadding * 2, padding: Default.fixPadding * 2, borderRadius: 16, ...Default.shadow },
-  contentTitle: { ...Fonts.SemiBold18black, marginBottom: Default.fixPadding * 1.5 },
-  contentDescription: { ...Fonts.Medium14grey, lineHeight: 22, marginBottom: Default.fixPadding * 2 },
-  stepsContainer: { marginTop: Default.fixPadding },
-  stepsTitle: { ...Fonts.SemiBold16black, marginBottom: Default.fixPadding * 1.5 },
-  stepItem: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: Default.fixPadding * 1.2 },
-  stepNumber: { width: 28, height: 28, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginRight: Default.fixPadding * 1.2, marginTop: 2 },
-  stepNumberText: { ...Fonts.SemiBold14white, fontSize: 12 },
-  stepText: { ...Fonts.Medium14black, flex: 1, lineHeight: 20 },
-  navigationButtons: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: Default.fixPadding * 2, paddingVertical: Default.fixPadding * 1.5, backgroundColor: Colors.white, borderTopWidth: 1, borderTopColor: Colors.lightGrey },
-  navButton: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Default.fixPadding * 2, paddingVertical: Default.fixPadding * 1.2, borderRadius: 12, backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.primary, minWidth: 120, justifyContent: 'center' },
-  navButtonDisabled: { backgroundColor: Colors.lightGrey, borderColor: Colors.grey },
-  navButtonText: { ...Fonts.Medium14primary, marginHorizontal: Default.fixPadding * 0.5 },
-  navButtonTextDisabled: { color: Colors.grey },
-  supportCard: { backgroundColor: Colors.white, padding: Default.fixPadding * 2.5, borderRadius: 16, alignItems: 'center', marginBottom: Default.fixPadding * 2, ...Default.shadow },
-  supportTitle: { ...Fonts.SemiBold18black, marginTop: Default.fixPadding, marginBottom: Default.fixPadding },
-  supportText: { ...Fonts.Medium14grey, textAlign: 'center', lineHeight: 22, marginBottom: Default.fixPadding * 2 },
-  supportButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.primary, paddingHorizontal: Default.fixPadding * 2, paddingVertical: Default.fixPadding * 1.2, borderRadius: 12, ...Default.shadow },
-  supportButtonText: { ...Fonts.Medium14white, fontSize: 16, marginRight: Default.fixPadding * 0.8, color: Colors.white },
+  headerTitle: {
+    ...Fonts.Bold24white,
+    marginBottom: Default.fixPadding * 0.5,
+    color: Colors.white,
+  },
+  headerSubtitle: {
+    ...Fonts.Medium16white,
+    opacity: 0.9,
+    textAlign: 'center',
+    color: Colors.white,
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: Default.fixPadding * 2,
+    paddingTop: Default.fixPadding * 2,
+  },
+  welcomeCard: {
+    backgroundColor: Colors.white,
+    padding: Default.fixPadding * 2,
+    borderRadius: 16,
+    marginBottom: Default.fixPadding * 2,
+    ...Default.shadow,
+  },
+  welcomeTitle: {
+    ...Fonts.SemiBold18black,
+    marginBottom: Default.fixPadding,
+  },
+  welcomeText: {
+    ...Fonts.Medium14grey,
+    lineHeight: 22,
+  },
+  sectionsContainer: {
+    marginBottom: Default.fixPadding * 2,
+  },
+  sectionCard: {
+    backgroundColor: Colors.white,
+    padding: Default.fixPadding * 2,
+    marginBottom: Default.fixPadding * 1.5,
+    borderRadius: 16,
+    borderLeftWidth: 5,
+    ...Default.shadow,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: Default.fixPadding * 1.5,
+  },
+  sectionInfo: {
+    flex: 1,
+  },
+  sectionTitle: {
+    ...Fonts.SemiBold16black,
+    marginBottom: Default.fixPadding * 0.3,
+  },
+  sectionSubtitle: {
+    ...Fonts.Medium12grey,
+  },
+  detailContainer: {
+    flex: 1,
+  },
+  progressContainer: {
+    padding: Default.fixPadding * 2,
+    backgroundColor: Colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.lightGrey,
+  },
+  progressText: {
+    ...Fonts.Medium14grey,
+    textAlign: 'center',
+    marginBottom: Default.fixPadding,
+  },
+  progressBar: {
+    height: 6,
+    backgroundColor: Colors.lightGrey,
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  contentCard: {
+    backgroundColor: Colors.white,
+    margin: Default.fixPadding * 2,
+    padding: Default.fixPadding * 2,
+    borderRadius: 16,
+    ...Default.shadow,
+  },
+  contentTitle: {
+    ...Fonts.SemiBold18black,
+    marginBottom: Default.fixPadding * 1.5,
+  },
+  contentDescription: {
+    ...Fonts.Medium14grey,
+    lineHeight: 22,
+    marginBottom: Default.fixPadding * 2,
+  },
+  stepsContainer: {
+    marginTop: Default.fixPadding,
+  },
+  stepsTitle: {
+    ...Fonts.SemiBold16black,
+    marginBottom: Default.fixPadding * 1.5,
+  },
+  stepItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: Default.fixPadding * 1.2,
+  },
+  stepNumber: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: Default.fixPadding * 1.2,
+    marginTop: 2,
+  },
+  stepNumberText: {
+    ...Fonts.Bold12white,
+  },
+  stepText: {
+    ...Fonts.Medium14black,
+    flex: 1,
+    lineHeight: 20,
+  },
+  navigationButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: Default.fixPadding * 2,
+    paddingVertical: Default.fixPadding * 1.5,
+    backgroundColor: Colors.white,
+    borderTopWidth: 1,
+    borderTopColor: Colors.lightGrey,
+  },
+  navButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Default.fixPadding * 2,
+    paddingVertical: Default.fixPadding * 1.2,
+    borderRadius: 12,
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    minWidth: 120,
+    justifyContent: 'center',
+  },
+  navButtonDisabled: {
+    backgroundColor: Colors.lightGrey,
+    borderColor: Colors.grey,
+  },
+  navButtonText: {
+    ...Fonts.Medium14primary,
+    marginHorizontal: Default.fixPadding * 0.5,
+  },
+  navButtonTextDisabled: {
+    color: Colors.grey,
+  },
+  supportCard: {
+    backgroundColor: Colors.white,
+    padding: Default.fixPadding * 2.5,
+    borderRadius: 16,
+    alignItems: 'center',
+    marginBottom: Default.fixPadding * 2,
+    ...Default.shadow,
+  },
+  supportTitle: {
+    ...Fonts.SemiBold18black,
+    marginTop: Default.fixPadding,
+    marginBottom: Default.fixPadding,
+  },
+  supportText: {
+    ...Fonts.Medium14grey,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: Default.fixPadding * 2,
+  },
+  supportButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Default.fixPadding * 2,
+    paddingVertical: Default.fixPadding * 1.2,
+    borderRadius: 12,
+    ...Default.shadow,
+  },
+  supportButtonText: {
+    ...Fonts.Medium16white,
+    marginRight: Default.fixPadding * 0.8,
+    color: Colors.white,
+  },
 });
 
 export default UserGuideScreen;

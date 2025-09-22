@@ -10,7 +10,7 @@ export const useCabEntries = (status = null) => {
 
   // Fetch cab entries for the current authenticated guard
   const fetchCabEntries = useCallback(async () => {
-    if (!isAuthenticated || !guard?.society_id || !user?.id) {
+    if (!isAuthenticated || !guard?.community_id || !user?.id) {
       setError('Guard authentication required');
       return;
     }
@@ -22,7 +22,7 @@ export const useCabEntries = (status = null) => {
         .from('visitor_passes')
         .select('*')
         .eq('visitor_type', 'cab')
-        .eq('society_id', guard.society_id); // Security: Only guard's assigned society
+        .eq('community_id', guard.community_id); // Security: Only guard's assigned society
       
       if (status) query = query.eq('status', status);
       
@@ -35,11 +35,11 @@ export const useCabEntries = (status = null) => {
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated, guard?.society_id, user?.id, status]);
+  }, [isAuthenticated, guard?.community_id, user?.id, status]);
 
   // Update cab entry status (check-in/out, approve/reject)
   const updateCabStatus = async (entryId, newStatus, guardNotes = null) => {
-    if (!isAuthenticated || !guard?.society_id || !user?.id) {
+    if (!isAuthenticated || !guard?.community_id || !user?.id) {
       setError('Guard authentication required');
       return;
     }
@@ -65,7 +65,7 @@ export const useCabEntries = (status = null) => {
         .from('visitor_passes')
         .update(updateData)
         .eq('id', entryId)
-        .eq('society_id', guard.society_id); // Security: Only guard's society
+        .eq('community_id', guard.community_id); // Security: Only guard's society
         
       if (error) throw error;
       fetchCabEntries();
@@ -105,7 +105,7 @@ export const useCabEntries = (status = null) => {
         // Auth context fields (LESSON: Always include these)
         created_by: user.id,
         approved_by: user.id,
-        society_id: guard.society_id,
+        community_id: guard.community_id,
         entry_method: 'walk_in',
         status: 'pending',
         created_at: new Date().toISOString(),
@@ -175,13 +175,13 @@ export const useCabEntries = (status = null) => {
 
   // Real-time subscription for cab entries (scoped to guard's society)
   useEffect(() => {
-    if (!isAuthenticated || !guard?.society_id || !user?.id) return;
+    if (!isAuthenticated || !guard?.community_id || !user?.id) return;
     
     fetchCabEntries();
     
     // LESSON LEARNED: Create unique channel name to avoid conflicts
     const timestamp = Date.now();
-    const channelName = `cab_entries_${guard.society_id}_${user.id}_${status || 'all'}_${timestamp}`;
+    const channelName = `cab_entries_${guard.community_id}_${user.id}_${status || 'all'}_${timestamp}`;
     
     let subscription;
     try {
@@ -191,7 +191,7 @@ export const useCabEntries = (status = null) => {
           event: '*',
           schema: 'public',
           table: 'visitor_passes',
-          filter: `society_id=eq.${guard.society_id}`,
+          filter: `community_id=eq.${guard.community_id}`,
         }, (payload) => {
                     // Only update if it's a cab entry
           if (payload.new?.visitor_type === 'cab' || payload.old?.visitor_type === 'cab') {
@@ -212,7 +212,7 @@ export const useCabEntries = (status = null) => {
         }
       }
     };
-  }, [isAuthenticated, guard?.society_id, user?.id, status, handleRealtimeUpdate]);
+  }, [isAuthenticated, guard?.community_id, user?.id, status, handleRealtimeUpdate]);
 
   return {
     cabEntries,

@@ -46,9 +46,9 @@ export const useAuthGuard = () => {
       const { data: guardData, error: guardError } = await supabase
         .from('guards')
         .select(`
-          id, employee_id, full_name, shift_type, society_id, status, 
+          id, employee_id, full_name, shift_type, community_id, status, 
           phone, emergency_contact_phone, rating, total_shifts, 
-          completed_shifts, last_login, gate_assignment, society_assignment
+          completed_shifts, last_login, gate_assignment
         `)
         .eq('user_id', userData.id)
         .single();
@@ -132,9 +132,9 @@ export const useAuthGuard = () => {
       const { data: guardData, error: guardError } = await supabase
         .from('guards')
         .select(`
-          id, employee_id, full_name, shift_type, society_id, status, 
+          id, employee_id, full_name, shift_type, community_id, status, 
           phone, emergency_contact_phone, rating, total_shifts, 
-          completed_shifts, gate_assignment, society_assignment
+          completed_shifts, gate_assignment
         `)
         .eq('user_id', userData.id)
         .single();
@@ -169,7 +169,7 @@ export const useAuthGuard = () => {
       // Get guard profile
       const { data: guardProfile, error: guardError } = await supabase
         .from('guards')
-        .select('id, full_name, avatar_url, society_id')
+        .select('id, full_name, avatar_url, community_id')
         .eq('user_id', userData.id)
         .single();
       if (guardError || !guardProfile) return null;
@@ -177,16 +177,16 @@ export const useAuthGuard = () => {
       // Get assignment details
       const { data: assignment, error: assignmentError } = await supabase
         .from('guard_assignments')
-        .select('assignment_name, society_id')
+        .select('assignment_name, community_id')
         .eq('guard_id', guardProfile.id)
         .eq('current_status', 'active')
         .single();
 
-      // Get society name
+      // Get community name
       const { data: society, error: societyError } = await supabase
-        .from('societies')
+        .from('communities')
         .select('name')
-        .eq('id', guardProfile.society_id)
+        .eq('id', guardProfile.community_id)
         .single();
 
       // Get unread notification count

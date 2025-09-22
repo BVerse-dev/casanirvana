@@ -25,7 +25,7 @@ export const testGuardAuth = {
         if (profile.guard) {
           console.log(`  - Employee ID: ${profile.guard.employee_id}`);
           console.log(`  - Shift Type: ${profile.guard.shift_type}`);
-          console.log(`  - Society ID: ${profile.guard.society_id}`);
+          console.log(`  - Society ID: ${profile.guard.community_id}`);
           console.log(`  - Status: ${profile.guard.status}`);
         }
       } else {

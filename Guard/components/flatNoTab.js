@@ -96,14 +96,14 @@ const FlatNoTab = ({ navigation, route }) => {
 
   // Load units from database for guard's assigned society
   const loadUnitsFromDatabase = async () => {
-    if (!isAuthenticated || !guard?.society_id) {
+    if (!isAuthenticated || !guard?.community_id) {
       Alert.alert("Error", "Guard authentication required");
       return;
     }
 
     try {
       setLoading(true);
-      const validUnits = await getValidUnitsForGuard(guard.society_id);
+      const validUnits = await getValidUnitsForGuard(guard.community_id);
       
       // Filter by current block if specified
       let filteredUnits = validUnits;
@@ -168,10 +168,10 @@ const FlatNoTab = ({ navigation, route }) => {
 
   // Load units on component mount and when guard context or block filter changes
   useEffect(() => {
-    if (isAuthenticated && guard?.society_id) {
+    if (isAuthenticated && guard?.community_id) {
       loadUnitsFromDatabase();
     }
-  }, [isAuthenticated, guard?.society_id, currentBlockFilter]);
+  }, [isAuthenticated, guard?.community_id, currentBlockFilter]);
 
   // Pull to refresh functionality
   const onRefresh = async () => {

@@ -102,7 +102,7 @@ export const guardsApiService = {
 
   // Get guards by society
   async getGuardsBySociety(societyId) {
-    return apiClient.get('/api/guards', { society_id: societyId });
+    return apiClient.get('/api/guards', { community_id: societyId });
   },
 
   // Update guard profile including phone fields
@@ -261,7 +261,7 @@ export const visitorPassesApiService = {
 export const unitsApiService = {
   // Get units by society for guard
   async getUnitsBySociety(societyId) {
-    return apiClient.get('/api/units-enhanced', { society_id: societyId });
+    return apiClient.get('/api/units-enhanced', { community_id: societyId });
   },
 
   // Search units by owner/tenant phone

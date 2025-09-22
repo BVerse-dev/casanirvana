@@ -38,9 +38,9 @@ export const GuardAuthProvider = ({ children }) => {
         .from('guards')
         .select(`
           id, employee_id, full_name, first_name, last_name, shift_type, 
-          society_id, status, phone, mobile, emergency_contact_phone, 
+          community_id, status, phone, mobile, emergency_contact_phone, 
           rating, total_shifts, completed_shifts, gate_assignment, 
-          society_assignment, experience_years, is_active, last_login
+          experience_years, is_active, last_login
         `)
         .eq('user_id', userData.id)
         .single();
@@ -49,6 +49,14 @@ export const GuardAuthProvider = ({ children }) => {
         console.warn('Guard profile not found:', guardError);
         return { user: userData, guard: null };
       }
+
+      console.log('✅ Guard profile loaded successfully:', {
+        guardId: guardData?.id,
+        community_id: guardData?.community_id,
+        full_name: guardData?.full_name,
+        status: guardData?.status,
+        allKeys: Object.keys(guardData || {})
+      });
 
       return { user: userData, guard: guardData };
     } catch (err) {

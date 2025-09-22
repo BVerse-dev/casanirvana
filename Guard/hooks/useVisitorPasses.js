@@ -10,8 +10,26 @@ export const useVisitorPasses = (status = null) => {
 
   // Fetch visitor passes for the current authenticated guard
   const fetchPasses = useCallback(async () => {
-    if (!isAuthenticated || !guard?.society_id) {
-      setError('Guard authentication required');
+    console.log('🔍 useVisitorPasses fetchPasses called with:', {
+      isAuthenticated,
+      guard: guard ? {
+        id: guard.id,
+        community_id: guard.community_id,
+        full_name: guard.full_name,
+        status: guard.status
+      } : null,
+      user: user ? { id: user.id, email: user.email } : null
+    });
+    
+    if (!isAuthenticated || !guard?.community_id) {
+      const errorMsg = 'Guard authentication required';
+      console.error('❌ Authentication check failed:', {
+        isAuthenticated,
+        hasGuard: !!guard,
+        guardCommunityId: guard?.community_id,
+        guardKeys: guard ? Object.keys(guard) : null
+      });
+      setError(errorMsg);
       return;
     }
 
@@ -36,7 +54,7 @@ export const useVisitorPasses = (status = null) => {
             )
           )
         `)
-        .eq('society_id', guard.society_id); // Show all passes for the society, not just guard's
+        .eq('community_id', guard.community_id); // Show all passes for the community, not just guard's
       
       if (status) query = query.eq('status', status);
       
@@ -84,11 +102,11 @@ export const useVisitorPasses = (status = null) => {
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated, guard?.society_id, status]);
+  }, [isAuthenticated, guard?.community_id, status]);
 
   // Update visitor pass status (check-in/out, approve/reject)
   const updatePassStatus = async (passId, newStatus, guardNotes = null) => {
-    if (!isAuthenticated || !guard?.society_id || !user?.id) {
+    if (!isAuthenticated || !guard?.community_id || !user?.id) {
       setError('Guard authentication required');
       return;
     }
@@ -114,7 +132,7 @@ export const useVisitorPasses = (status = null) => {
         .from('visitor_passes')
         .update(updateData)
         .eq('id', passId)
-        .eq('society_id', guard.society_id); // Security: Only guard's society
+        .eq('community_id', guard.community_id); // Security: Only guard's community
         
       if (error) throw error;
       fetchPasses();
@@ -137,7 +155,7 @@ export const useVisitorPasses = (status = null) => {
         ...entryData,
         created_by: user.id,           // Auth context: user ID
         approved_by: user.id,          // Auth context: user ID (fixed to use user.id)
-        society_id: guard.society_id,  // Auth context: guard's society
+        community_id: guard.community_id,  // Auth context: guard's community
         entry_method: 'walk_in',
         status: 'pending',
         created_at: new Date().toISOString()
@@ -191,13 +209,13 @@ export const useVisitorPasses = (status = null) => {
 
   // Real-time subscription for passes (scoped to guard's society)
   useEffect(() => {
-    if (!isAuthenticated || !guard?.society_id || !user?.id) return;
+    if (!isAuthenticated || !guard?.community_id || !user?.id) return;
     
     fetchPasses();
     
     // Create unique channel name including status and timestamp to avoid conflicts
     const timestamp = Date.now();
-    const channelName = `visitor_passes_${guard.society_id}_${user.id}_${status || 'all'}_${timestamp}`;
+    const channelName = `visitor_passes_${guard.community_id}_${user.id}_${status || 'all'}_${timestamp}`;
     
     let subscription;
     try {
@@ -207,7 +225,7 @@ export const useVisitorPasses = (status = null) => {
           event: '*',
           schema: 'public',
           table: 'visitor_passes',
-          filter: `society_id=eq.${guard.society_id}`,
+          filter: `community_id=eq.${guard.community_id}`,
         }, (payload) => {
           console.log('Real-time update:', payload);
           fetchPasses();
@@ -226,7 +244,7 @@ export const useVisitorPasses = (status = null) => {
         }
       }
     };
-  }, [isAuthenticated, guard?.society_id, user?.id, status]); // Removed fetchPasses dependency
+  }, [isAuthenticated, guard?.community_id, user?.id, status]); // Removed fetchPasses dependency
 
   return {
     passes,

@@ -5,7 +5,6 @@ import { Colors, Default, Fonts } from '../constants/styles';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import MyStatusBar from '../components/myStatusBar';
-import AwesomeButton from 'react-native-really-awesome-button';
 
 const PinCodeScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
@@ -113,17 +112,13 @@ const PinCodeScreen = ({ navigation }) => {
             </View>
           </View>
 
-          <AwesomeButton
-            height={50}
-            stretch
-            borderRadius={10}
-            backgroundColor={Colors.primary}
-            backgroundDarker={Colors.primary}
-            backgroundShadow={Colors.primary}
+          <TouchableOpacity
+            style={styles.saveButton}
             onPress={handleSavePin}
           >
-            <Text style={{ ...Fonts.SemiBold18white }}>Update PIN</Text>
-          </AwesomeButton>
+            <MaterialCommunityIcons name="lock-check" size={20} color={Colors.white} />
+            <Text style={styles.saveButtonText}>Update PIN</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </View>
@@ -205,5 +200,21 @@ const styles = StyleSheet.create({
     marginLeft: Default.fixPadding * 0.5,
     flex: 1,
   },
-  // Button styling now uses AwesomeButton to match app-wide primary button look
+  saveButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Default.fixPadding * 2,
+    paddingVertical: Default.fixPadding * 1.2,
+    borderRadius: 10,
+    minHeight: 50,
+    width: "100%",
+    ...Default.shadow,
+    elevation: 3,
+  },
+  saveButtonText: {
+    ...Fonts.SemiBold16white,
+    marginLeft: Default.fixPadding * 0.5,
+  },
 });

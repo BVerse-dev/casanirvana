@@ -109,14 +109,14 @@ const CabEntryScreen = ({ navigation, route }) => {
   // LESSON LEARNED: Replace hardcoded mapping with database lookup
   // Load host name from database for the selected flat
   const loadHostName = async (flatNumber) => {
-    if (!flatNumber || !guard?.society_id) {
+    if (!flatNumber || !guard?.community_id) {
       setHostName("");
       setUnitId(null);
       return;
     }
 
     try {
-      const unitInfo = await validateAndGetUnitId(flatNumber, guard.society_id);
+      const unitInfo = await validateAndGetUnitId(flatNumber, guard.community_id);
       const resident = await getUnitResident(unitInfo.unitId);
       setHostName(resident ? resident.name : "Unknown Resident");
       setUnitId(unitInfo.unitId);

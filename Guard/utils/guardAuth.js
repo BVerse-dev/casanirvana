@@ -54,9 +54,9 @@ export const guardAuthUtils = {
       const { data: guardData, error: guardError } = await supabase
         .from('guards')
         .select(`
-          id, employee_id, full_name, shift_type, society_id, status,
+          id, employee_id, full_name, shift_type, community_id, status,
           phone, mobile, emergency_contact_phone, rating, total_shifts,
-          completed_shifts, gate_assignment, society_assignment, last_login
+          completed_shifts, gate_assignment, last_login
         `)
         .eq('user_id', userData.id)
         .single();
@@ -106,7 +106,7 @@ export const guardAuthUtils = {
   getAssignedSocietyId: async () => {
     try {
       const profile = await guardAuthUtils.getGuardProfile();
-      return profile?.user?.community_id || profile?.guard?.society_id || null;
+      return profile?.user?.community_id || profile?.guard?.community_id || null;
     } catch (err) {
       console.error('Error getting assigned society:', err);
       return null;

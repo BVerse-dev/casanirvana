@@ -177,8 +177,8 @@ const SettingScreen = ({ navigation }) => {
           key: "22",
           icon: MaterialIcons,
           iconName: "list-alt",
-          title: tr("termsCondition"),
-          navigateTo: "termsConditionScreen",
+          title: "Terms of Service",
+          navigateTo: "termsOfServiceScreen",
         },
         {
           key: "23",
@@ -187,13 +187,27 @@ const SettingScreen = ({ navigation }) => {
           title: tr("privacyPolicy"),
           navigateTo: "privacyPolicyScreen",
         },
+        {
+          key: "25",
+          icon: MaterialCommunityIcons,
+          iconName: "file-document-outline",
+          title: "License Agreement",
+          navigateTo: "licenseAgreementScreen",
+        },
+        {
+          key: "26",
+          icon: MaterialCommunityIcons,
+          iconName: "code-braces",
+          title: "Open Source Licenses",
+          navigateTo: "openSourceLicensesScreen",
+        },
       ],
     },
     {
       title: "",
       data: [
         {
-          key: "24",
+          key: "27",
           icon: Feather,
           iconName: "log-out",
           title: tr("logout"),
@@ -207,7 +221,7 @@ const SettingScreen = ({ navigation }) => {
     return (
       <TouchableOpacity
         onPress={() => {
-          if (item.key === "24") {
+          if (item.key === "27") {
             setOpenLogoutModal(true);
           } else if (item.hasToggle) {
             if (item.key === "4") {

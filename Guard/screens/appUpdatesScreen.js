@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, Modal, Switch } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import MyStatusBar from '../components/myStatusBar';
 import { Colors, Default, Fonts } from '../constants/styles';
-import AwesomeButton from 'react-native-really-awesome-button';
 
 const AppUpdatesScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
@@ -18,6 +17,39 @@ const AppUpdatesScreen = ({ navigation }) => {
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
+
+  // Modal states
+  const [showAutoUpdatesModal, setShowAutoUpdatesModal] = useState(false);
+  const [showBetaUpdatesModal, setShowBetaUpdatesModal] = useState(false);
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
+
+  // Update settings
+  const [updateSettings, setUpdateSettings] = useState({
+    autoUpdates: true,
+    autoDownload: true,
+    wifiOnly: true,
+    installImmediately: false,
+    updateSchedule: 'night', // night, immediate, scheduled
+    scheduledTime: '02:00',
+  });
+
+  const [betaSettings, setBetaSettings] = useState({
+    enabled: false,
+    earlyAccess: false,
+    feedbackOptIn: true,
+    crashReporting: true,
+  });
+
+  const [notificationSettings, setNotificationSettings] = useState({
+    enabled: true,
+    updateAvailable: true,
+    downloadComplete: true,
+    installReady: true,
+    betaReleases: false,
+    securityUpdates: true,
+    pushNotifications: true,
+    emailNotifications: false,
+  });
 
   const [appInfo] = useState({
     currentVersion: '2.1.4',
@@ -126,6 +158,48 @@ const AppUpdatesScreen = ({ navigation }) => {
       [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Open', onPress: () => console.log('Opening app store...') },
+      ]
+    );
+  };
+
+  // Modal handlers
+  const handleAutoUpdatesSave = () => {
+    setShowAutoUpdatesModal(false);
+    Alert.alert('Settings Saved', 'Auto update preferences have been updated successfully.');
+  };
+
+  const handleBetaSettingsSave = () => {
+    setShowBetaUpdatesModal(false);
+    const message = betaSettings.enabled 
+      ? 'You are now enrolled in the beta program. You\'ll receive early access to new features.'
+      : 'You have been removed from the beta program. You\'ll only receive stable releases.';
+    Alert.alert('Beta Settings Updated', message);
+  };
+
+  const handleNotificationSave = () => {
+    setShowNotificationModal(false);
+    Alert.alert('Notification Settings Saved', 'Update notification preferences have been updated.');
+  };
+
+  const handleScheduleSelect = (schedule) => {
+    const scheduleOptions = [
+      { id: 'immediate', label: 'Install Immediately', description: 'Install as soon as download completes' },
+      { id: 'night', label: 'Install at Night', description: 'Install during nighttime hours (2:00 AM)' },
+      { id: 'scheduled', label: 'Custom Schedule', description: 'Choose a specific time to install' },
+    ];
+
+    Alert.alert(
+      'Install Schedule',
+      'When should updates be installed?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        ...scheduleOptions.map(option => ({
+          text: `${option.label} - ${option.description}`,
+          onPress: () => {
+            setUpdateSettings(prev => ({ ...prev, updateSchedule: option.id }));
+            Alert.alert('Schedule Updated', `Updates will ${option.label.toLowerCase()}`);
+          }
+        }))
       ]
     );
   };
@@ -242,36 +316,24 @@ const AppUpdatesScreen = ({ navigation }) => {
 
         {/* Update Actions */}
         <View style={styles.actionsSection}>
-          <AwesomeButton
-            style={styles.actionButton}
-            height={50}
+          <TouchableOpacity
+            style={[styles.actionButton, { opacity: (isCheckingUpdates || isDownloading) ? 0.6 : 1 }]}
             onPress={checkForUpdates}
-            backgroundColor={Colors.primary}
-            borderRadius={10}
             disabled={isCheckingUpdates || isDownloading}
-            stretch
           >
-            <View style={styles.buttonContent}>
-              <MaterialCommunityIcons name="refresh" size={20} color={Colors.white} />
-              <Text style={styles.buttonText}>{isCheckingUpdates ? 'Checking...' : 'Check for Updates'}</Text>
-            </View>
-          </AwesomeButton>
+            <MaterialCommunityIcons name="refresh" size={20} color={Colors.white} />
+            <Text style={styles.buttonText}>{isCheckingUpdates ? 'Checking...' : 'Check for Updates'}</Text>
+          </TouchableOpacity>
 
           {updateAvailable && (
-            <AwesomeButton
-              style={styles.actionButton}
-              height={50}
+            <TouchableOpacity
+              style={[styles.actionButton, { opacity: isDownloading ? 0.6 : 1 }]}
               onPress={downloadUpdate}
-              backgroundColor={Colors.primary}
-              borderRadius={10}
               disabled={isDownloading}
-              stretch
             >
-              <View style={styles.buttonContent}>
-                <MaterialCommunityIcons name="download" size={20} color={Colors.white} />
-                <Text style={styles.buttonText}>{isDownloading ? `Downloading ${downloadProgress}%` : 'Download Update'}</Text>
-              </View>
-            </AwesomeButton>
+              <MaterialCommunityIcons name="download" size={20} color={Colors.white} />
+              <Text style={styles.buttonText}>{isDownloading ? `Downloading ${downloadProgress}%` : 'Download Update'}</Text>
+            </TouchableOpacity>
           )}
 
           <TouchableOpacity style={styles.storeButton} onPress={openAppStore}>
@@ -286,27 +348,51 @@ const AppUpdatesScreen = ({ navigation }) => {
             <MaterialCommunityIcons name="cog" size={20} color={Colors.primary} />
             <Text style={styles.sectionTitle}>Update Settings</Text>
           </View>
-          <TouchableOpacity style={styles.settingRow}>
+          <TouchableOpacity 
+            style={styles.settingRow}
+            onPress={() => setShowAutoUpdatesModal(true)}
+          >
             <MaterialCommunityIcons name="download-circle" size={24} color={Colors.green} />
             <View style={styles.settingInfo}>
               <Text style={styles.settingName}>Auto Updates</Text>
-              <Text style={styles.settingDescription}>Automatically download and install updates</Text>
+              <Text style={styles.settingDescription}>
+                {updateSettings.autoUpdates 
+                  ? `Enabled - ${updateSettings.wifiOnly ? 'WiFi only' : 'Any connection'}`
+                  : 'Disabled - Manual updates only'
+                }
+              </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={Colors.grey} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.settingRow}>
+          <TouchableOpacity 
+            style={styles.settingRow}
+            onPress={() => setShowBetaUpdatesModal(true)}
+          >
             <MaterialCommunityIcons name="flask" size={24} color={Colors.orange} />
             <View style={styles.settingInfo}>
               <Text style={styles.settingName}>Beta Updates</Text>
-              <Text style={styles.settingDescription}>Get early access to new features</Text>
+              <Text style={styles.settingDescription}>
+                {betaSettings.enabled 
+                  ? `Enrolled - ${betaSettings.earlyAccess ? 'Early access enabled' : 'Standard beta'}`
+                  : 'Not enrolled - Stable releases only'
+                }
+              </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={Colors.grey} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.settingRow}>
+          <TouchableOpacity 
+            style={styles.settingRow}
+            onPress={() => setShowNotificationModal(true)}
+          >
             <MaterialCommunityIcons name="bell" size={24} color={Colors.blue} />
             <View style={styles.settingInfo}>
               <Text style={styles.settingName}>Update Notifications</Text>
-              <Text style={styles.settingDescription}>Notify me when updates are available</Text>
+              <Text style={styles.settingDescription}>
+                {notificationSettings.enabled 
+                  ? `Enabled - ${notificationSettings.pushNotifications ? 'Push & in-app' : 'In-app only'}`
+                  : 'Disabled - No notifications'
+                }
+              </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={Colors.grey} />
           </TouchableOpacity>
@@ -323,6 +409,425 @@ const AppUpdatesScreen = ({ navigation }) => {
           ))}
         </View>
       </ScrollView>
+
+      {/* Auto Updates Settings Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={showAutoUpdatesModal}
+        onRequestClose={() => setShowAutoUpdatesModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <MaterialCommunityIcons name="download-circle" size={30} color={Colors.green} />
+              <Text style={styles.modalTitle}>Auto Update Settings</Text>
+              <TouchableOpacity 
+                onPress={() => setShowAutoUpdatesModal(false)}
+                style={styles.modalCloseButton}
+              >
+                <Ionicons name="close" size={24} color={Colors.grey} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalContent}>
+              <Text style={styles.modalDescription}>
+                Configure how the app handles automatic updates to keep your Guard app current with the latest features and security fixes.
+              </Text>
+
+              <View style={styles.settingSection}>
+                <View style={styles.settingItem}>
+                  <View style={styles.settingLeft}>
+                    <MaterialCommunityIcons name="download-circle" size={24} color={Colors.green} />
+                    <View style={styles.settingTextInfo}>
+                      <Text style={styles.settingTitle}>Enable Auto Updates</Text>
+                      <Text style={styles.settingSubtitle}>Automatically download and install updates</Text>
+                    </View>
+                  </View>
+                  <Switch
+                    value={updateSettings.autoUpdates}
+                    onValueChange={(value) => setUpdateSettings(prev => ({ ...prev, autoUpdates: value }))}
+                    trackColor={{ false: Colors.lightGrey, true: Colors.primary }}
+                    thumbColor={Colors.white}
+                  />
+                </View>
+
+                <View style={styles.settingItem}>
+                  <View style={styles.settingLeft}>
+                    <MaterialCommunityIcons name="cloud-download" size={24} color={Colors.blue} />
+                    <View style={styles.settingTextInfo}>
+                      <Text style={styles.settingTitle}>Auto Download</Text>
+                      <Text style={styles.settingSubtitle}>Download updates automatically when available</Text>
+                    </View>
+                  </View>
+                  <Switch
+                    value={updateSettings.autoDownload}
+                    onValueChange={(value) => setUpdateSettings(prev => ({ ...prev, autoDownload: value }))}
+                    trackColor={{ false: Colors.lightGrey, true: Colors.primary }}
+                    thumbColor={Colors.white}
+                  />
+                </View>
+
+                <View style={styles.settingItem}>
+                  <View style={styles.settingLeft}>
+                    <MaterialCommunityIcons name="wifi" size={24} color={Colors.purple} />
+                    <View style={styles.settingTextInfo}>
+                      <Text style={styles.settingTitle}>WiFi Only</Text>
+                      <Text style={styles.settingSubtitle}>Only download updates when connected to WiFi</Text>
+                    </View>
+                  </View>
+                  <Switch
+                    value={updateSettings.wifiOnly}
+                    onValueChange={(value) => setUpdateSettings(prev => ({ ...prev, wifiOnly: value }))}
+                    trackColor={{ false: Colors.lightGrey, true: Colors.primary }}
+                    thumbColor={Colors.white}
+                  />
+                </View>
+
+                <TouchableOpacity 
+                  style={styles.settingItem}
+                  onPress={() => handleScheduleSelect()}
+                >
+                  <View style={styles.settingLeft}>
+                    <MaterialCommunityIcons name="clock-outline" size={24} color={Colors.orange} />
+                    <View style={styles.settingTextInfo}>
+                      <Text style={styles.settingTitle}>Install Schedule</Text>
+                      <Text style={styles.settingSubtitle}>
+                        {updateSettings.updateSchedule === 'immediate' ? 'Install immediately' :
+                         updateSettings.updateSchedule === 'night' ? 'Install at night (2:00 AM)' :
+                         'Custom schedule'}
+                      </Text>
+                    </View>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color={Colors.grey} />
+                </TouchableOpacity>
+
+                <View style={styles.settingItem}>
+                  <View style={styles.settingLeft}>
+                    <MaterialCommunityIcons name="lightning-bolt" size={24} color={Colors.red} />
+                    <View style={styles.settingTextInfo}>
+                      <Text style={styles.settingTitle}>Install Immediately</Text>
+                      <Text style={styles.settingSubtitle}>Install updates as soon as they're downloaded</Text>
+                    </View>
+                  </View>
+                  <Switch
+                    value={updateSettings.installImmediately}
+                    onValueChange={(value) => setUpdateSettings(prev => ({ ...prev, installImmediately: value }))}
+                    trackColor={{ false: Colors.lightGrey, true: Colors.primary }}
+                    thumbColor={Colors.white}
+                  />
+                </View>
+              </View>
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity 
+                style={styles.modalSaveButton}
+                onPress={handleAutoUpdatesSave}
+              >
+                <MaterialCommunityIcons name="check" size={18} color={Colors.white} />
+                <Text style={styles.modalSaveText}>Save Settings</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Beta Updates Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={showBetaUpdatesModal}
+        onRequestClose={() => setShowBetaUpdatesModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <MaterialCommunityIcons name="flask" size={30} color={Colors.orange} />
+              <Text style={styles.modalTitle}>Beta Program</Text>
+              <TouchableOpacity 
+                onPress={() => setShowBetaUpdatesModal(false)}
+                style={styles.modalCloseButton}
+              >
+                <Ionicons name="close" size={24} color={Colors.grey} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalContent}>
+              <Text style={styles.modalDescription}>
+                Join our beta program to get early access to new features and help us improve the Guard app with your feedback.
+              </Text>
+
+              <View style={styles.betaWarningCard}>
+                <MaterialCommunityIcons name="alert" size={20} color={Colors.orange} />
+                <Text style={styles.warningText}>
+                  Beta versions may contain bugs and are not recommended for production use. Your feedback helps us improve the app.
+                </Text>
+              </View>
+
+              <View style={styles.settingSection}>
+                <View style={styles.settingItem}>
+                  <View style={styles.settingLeft}>
+                    <MaterialCommunityIcons name="flask" size={24} color={Colors.orange} />
+                    <View style={styles.settingTextInfo}>
+                      <Text style={styles.settingTitle}>Join Beta Program</Text>
+                      <Text style={styles.settingSubtitle}>Receive beta versions with new features</Text>
+                    </View>
+                  </View>
+                  <Switch
+                    value={betaSettings.enabled}
+                    onValueChange={(value) => setBetaSettings(prev => ({ ...prev, enabled: value }))}
+                    trackColor={{ false: Colors.lightGrey, true: Colors.primary }}
+                    thumbColor={Colors.white}
+                  />
+                </View>
+
+                <View style={styles.settingItem}>
+                  <View style={styles.settingLeft}>
+                    <MaterialCommunityIcons name="rocket-launch" size={24} color={Colors.red} />
+                    <View style={styles.settingTextInfo}>
+                      <Text style={styles.settingTitle}>Early Access</Text>
+                      <Text style={styles.settingSubtitle}>Get the very latest features first</Text>
+                    </View>
+                  </View>
+                  <Switch
+                    value={betaSettings.earlyAccess}
+                    onValueChange={(value) => setBetaSettings(prev => ({ ...prev, earlyAccess: value }))}
+                    trackColor={{ false: Colors.lightGrey, true: Colors.primary }}
+                    thumbColor={Colors.white}
+                    disabled={!betaSettings.enabled}
+                  />
+                </View>
+
+                <View style={styles.settingItem}>
+                  <View style={styles.settingLeft}>
+                    <MaterialCommunityIcons name="message-text" size={24} color={Colors.blue} />
+                    <View style={styles.settingTextInfo}>
+                      <Text style={styles.settingTitle}>Feedback Opt-in</Text>
+                      <Text style={styles.settingSubtitle}>Allow us to collect feedback and usage data</Text>
+                    </View>
+                  </View>
+                  <Switch
+                    value={betaSettings.feedbackOptIn}
+                    onValueChange={(value) => setBetaSettings(prev => ({ ...prev, feedbackOptIn: value }))}
+                    trackColor={{ false: Colors.lightGrey, true: Colors.primary }}
+                    thumbColor={Colors.white}
+                    disabled={!betaSettings.enabled}
+                  />
+                </View>
+
+                <View style={styles.settingItem}>
+                  <View style={styles.settingLeft}>
+                    <MaterialCommunityIcons name="bug" size={24} color={Colors.purple} />
+                    <View style={styles.settingTextInfo}>
+                      <Text style={styles.settingTitle}>Crash Reporting</Text>
+                      <Text style={styles.settingSubtitle}>Automatically send crash reports to help fix bugs</Text>
+                    </View>
+                  </View>
+                  <Switch
+                    value={betaSettings.crashReporting}
+                    onValueChange={(value) => setBetaSettings(prev => ({ ...prev, crashReporting: value }))}
+                    trackColor={{ false: Colors.lightGrey, true: Colors.primary }}
+                    thumbColor={Colors.white}
+                    disabled={!betaSettings.enabled}
+                  />
+                </View>
+              </View>
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity 
+                style={styles.modalSaveButton}
+                onPress={handleBetaSettingsSave}
+              >
+                <MaterialCommunityIcons name="flask" size={18} color={Colors.white} />
+                <Text style={styles.modalSaveText}>
+                  {betaSettings.enabled ? 'Join Beta Program' : 'Save Settings'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Update Notifications Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={showNotificationModal}
+        onRequestClose={() => setShowNotificationModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <MaterialCommunityIcons name="bell" size={30} color={Colors.blue} />
+              <Text style={styles.modalTitle}>Update Notifications</Text>
+              <TouchableOpacity 
+                onPress={() => setShowNotificationModal(false)}
+                style={styles.modalCloseButton}
+              >
+                <Ionicons name="close" size={24} color={Colors.grey} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalContent}>
+              <Text style={styles.modalDescription}>
+                Choose how you want to be notified about app updates, new features, and security patches.
+              </Text>
+
+              <View style={styles.settingSection}>
+                <View style={styles.settingItem}>
+                  <View style={styles.settingLeft}>
+                    <MaterialCommunityIcons name="bell" size={24} color={Colors.blue} />
+                    <View style={styles.settingTextInfo}>
+                      <Text style={styles.settingTitle}>Enable Notifications</Text>
+                      <Text style={styles.settingSubtitle}>Receive update notifications</Text>
+                    </View>
+                  </View>
+                  <Switch
+                    value={notificationSettings.enabled}
+                    onValueChange={(value) => setNotificationSettings(prev => ({ ...prev, enabled: value }))}
+                    trackColor={{ false: Colors.lightGrey, true: Colors.primary }}
+                    thumbColor={Colors.white}
+                  />
+                </View>
+
+                <View style={styles.settingItem}>
+                  <View style={styles.settingLeft}>
+                    <MaterialCommunityIcons name="download" size={24} color={Colors.green} />
+                    <View style={styles.settingTextInfo}>
+                      <Text style={styles.settingTitle}>Update Available</Text>
+                      <Text style={styles.settingSubtitle}>When a new update is available to download</Text>
+                    </View>
+                  </View>
+                  <Switch
+                    value={notificationSettings.updateAvailable}
+                    onValueChange={(value) => setNotificationSettings(prev => ({ ...prev, updateAvailable: value }))}
+                    trackColor={{ false: Colors.lightGrey, true: Colors.primary }}
+                    thumbColor={Colors.white}
+                    disabled={!notificationSettings.enabled}
+                  />
+                </View>
+
+                <View style={styles.settingItem}>
+                  <View style={styles.settingLeft}>
+                    <MaterialCommunityIcons name="check-circle" size={24} color={Colors.purple} />
+                    <View style={styles.settingTextInfo}>
+                      <Text style={styles.settingTitle}>Download Complete</Text>
+                      <Text style={styles.settingSubtitle}>When update download finishes</Text>
+                    </View>
+                  </View>
+                  <Switch
+                    value={notificationSettings.downloadComplete}
+                    onValueChange={(value) => setNotificationSettings(prev => ({ ...prev, downloadComplete: value }))}
+                    trackColor={{ false: Colors.lightGrey, true: Colors.primary }}
+                    thumbColor={Colors.white}
+                    disabled={!notificationSettings.enabled}
+                  />
+                </View>
+
+                <View style={styles.settingItem}>
+                  <View style={styles.settingLeft}>
+                    <MaterialCommunityIcons name="rocket-launch" size={24} color={Colors.red} />
+                    <View style={styles.settingTextInfo}>
+                      <Text style={styles.settingTitle}>Install Ready</Text>
+                      <Text style={styles.settingSubtitle}>When update is ready to install</Text>
+                    </View>
+                  </View>
+                  <Switch
+                    value={notificationSettings.installReady}
+                    onValueChange={(value) => setNotificationSettings(prev => ({ ...prev, installReady: value }))}
+                    trackColor={{ false: Colors.lightGrey, true: Colors.primary }}
+                    thumbColor={Colors.white}
+                    disabled={!notificationSettings.enabled}
+                  />
+                </View>
+
+                <View style={styles.settingItem}>
+                  <View style={styles.settingLeft}>
+                    <MaterialCommunityIcons name="flask" size={24} color={Colors.orange} />
+                    <View style={styles.settingTextInfo}>
+                      <Text style={styles.settingTitle}>Beta Releases</Text>
+                      <Text style={styles.settingSubtitle}>Notifications for beta version updates</Text>
+                    </View>
+                  </View>
+                  <Switch
+                    value={notificationSettings.betaReleases}
+                    onValueChange={(value) => setNotificationSettings(prev => ({ ...prev, betaReleases: value }))}
+                    trackColor={{ false: Colors.lightGrey, true: Colors.primary }}
+                    thumbColor={Colors.white}
+                    disabled={!notificationSettings.enabled}
+                  />
+                </View>
+
+                <View style={styles.settingItem}>
+                  <View style={styles.settingLeft}>
+                    <MaterialCommunityIcons name="shield-check" size={24} color={Colors.green} />
+                    <View style={styles.settingTextInfo}>
+                      <Text style={styles.settingTitle}>Security Updates</Text>
+                      <Text style={styles.settingSubtitle}>Critical security patches (always enabled)</Text>
+                    </View>
+                  </View>
+                  <Switch
+                    value={notificationSettings.securityUpdates}
+                    onValueChange={(value) => setNotificationSettings(prev => ({ ...prev, securityUpdates: value }))}
+                    trackColor={{ false: Colors.lightGrey, true: Colors.primary }}
+                    thumbColor={Colors.white}
+                    disabled={true} // Always enabled for security
+                  />
+                </View>
+              </View>
+
+              <View style={styles.notificationTypes}>
+                <Text style={styles.notificationTypesTitle}>Notification Methods</Text>
+                <View style={styles.settingItem}>
+                  <View style={styles.settingLeft}>
+                    <MaterialCommunityIcons name="cellphone" size={24} color={Colors.blue} />
+                    <View style={styles.settingTextInfo}>
+                      <Text style={styles.settingTitle}>Push Notifications</Text>
+                      <Text style={styles.settingSubtitle}>Receive notifications on your device</Text>
+                    </View>
+                  </View>
+                  <Switch
+                    value={notificationSettings.pushNotifications}
+                    onValueChange={(value) => setNotificationSettings(prev => ({ ...prev, pushNotifications: value }))}
+                    trackColor={{ false: Colors.lightGrey, true: Colors.primary }}
+                    thumbColor={Colors.white}
+                    disabled={!notificationSettings.enabled}
+                  />
+                </View>
+
+                <View style={styles.settingItem}>
+                  <View style={styles.settingLeft}>
+                    <MaterialCommunityIcons name="email" size={24} color={Colors.purple} />
+                    <View style={styles.settingTextInfo}>
+                      <Text style={styles.settingTitle}>Email Notifications</Text>
+                      <Text style={styles.settingSubtitle}>Receive update notifications via email</Text>
+                    </View>
+                  </View>
+                  <Switch
+                    value={notificationSettings.emailNotifications}
+                    onValueChange={(value) => setNotificationSettings(prev => ({ ...prev, emailNotifications: value }))}
+                    trackColor={{ false: Colors.lightGrey, true: Colors.primary }}
+                    thumbColor={Colors.white}
+                    disabled={!notificationSettings.enabled}
+                  />
+                </View>
+              </View>
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity 
+                style={styles.modalSaveButton}
+                onPress={handleNotificationSave}
+              >
+                <MaterialCommunityIcons name="bell-check" size={18} color={Colors.white} />
+                <Text style={styles.modalSaveText}>Save Notification Settings</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -425,13 +930,18 @@ const styles = StyleSheet.create({
     marginBottom: Default.fixPadding * 2,
   },
   actionButton: {
-  width: '100%',
-    marginBottom: Default.fixPadding,
-  },
-  buttonContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Default.fixPadding * 2,
+    paddingVertical: Default.fixPadding * 1.2,
+    borderRadius: 10,
+    minHeight: 50,
+    width: '100%',
+    marginBottom: Default.fixPadding,
+    ...Default.shadow,
+    elevation: 3,
   },
   buttonText: {
     ...Fonts.SemiBold14white,
@@ -552,5 +1062,122 @@ const styles = StyleSheet.create({
     marginLeft: Default.fixPadding * 0.3,
     flex: 1,
     lineHeight: 18,
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    backgroundColor: Colors.white,
+    borderRadius: 15,
+    width: '90%',
+    maxHeight: '85%',
+    ...Default.shadow,
+    elevation: 10,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: Default.fixPadding * 2,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.extraLightGrey,
+  },
+  modalTitle: {
+    ...Fonts.SemiBold18primary,
+    flex: 1,
+    textAlign: 'center',
+    marginHorizontal: Default.fixPadding,
+  },
+  modalCloseButton: {
+    padding: Default.fixPadding * 0.5,
+  },
+  modalContent: {
+    flexGrow: 1,
+    padding: Default.fixPadding * 2,
+  },
+  modalDescription: {
+    ...Fonts.Medium14grey,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: Default.fixPadding * 2,
+  },
+  modalFooter: {
+    padding: Default.fixPadding * 2,
+    borderTopWidth: 1,
+    borderTopColor: Colors.extraLightGrey,
+  },
+  modalSaveButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.primary,
+    paddingVertical: Default.fixPadding * 1.2,
+    borderRadius: 10,
+    ...Default.shadow,
+    elevation: 2,
+  },
+  modalSaveText: {
+    ...Fonts.SemiBold16white,
+    marginLeft: Default.fixPadding * 0.5,
+  },
+  settingSection: {
+    backgroundColor: Colors.extraLightGrey + '50',
+    borderRadius: 10,
+    marginBottom: Default.fixPadding * 1.5,
+  },
+  settingItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Default.fixPadding * 1.5,
+    paddingVertical: Default.fixPadding * 1.2,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.extraLightGrey,
+  },
+  settingLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  settingTextInfo: {
+    marginLeft: Default.fixPadding,
+    flex: 1,
+  },
+  settingTitle: {
+    ...Fonts.Medium15black,
+    marginBottom: 2,
+  },
+  settingSubtitle: {
+    ...Fonts.Medium12grey,
+    lineHeight: 18,
+  },
+  betaWarningCard: {
+    backgroundColor: Colors.orange + '15',
+    padding: Default.fixPadding * 1.5,
+    borderRadius: 10,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: Default.fixPadding * 2,
+    borderLeftWidth: 4,
+    borderLeftColor: Colors.orange,
+  },
+  warningText: {
+    ...Fonts.Medium13grey,
+    color: Colors.orange,
+    marginLeft: Default.fixPadding,
+    flex: 1,
+    lineHeight: 20,
+  },
+  notificationTypes: {
+    marginTop: Default.fixPadding * 1.5,
+  },
+  notificationTypesTitle: {
+    ...Fonts.SemiBold16primary,
+    marginBottom: Default.fixPadding,
+    textAlign: 'center',
   },
 });

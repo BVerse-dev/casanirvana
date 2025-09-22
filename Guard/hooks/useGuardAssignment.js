@@ -54,7 +54,7 @@ const useGuardAssignment = () => {
         .from('guard_assignments')
         .select(`
           *,
-          societies:society_id (
+          communities:community_id (
             name,
             address,
             phone,
@@ -75,7 +75,7 @@ const useGuardAssignment = () => {
       if (assignments && assignments.length > 0) {
         const currentAssignment = assignments[0];
         setAssignment(currentAssignment);
-        setSociety(currentAssignment.societies);
+        setSociety(currentAssignment.communities);
       } else {
         setAssignment(null);
         setSociety(null);

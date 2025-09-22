@@ -32,7 +32,7 @@ import SearchScreen from "./screens/searchScreen";
 import EditProfileScreen from "./screens/editProfileScreen";
 import LanguageScreen from "./screens/languageScreen";
 import GetSupportScreen from "./screens/getSupportScreen";
-import TermsConditionScreen from "./screens/termsConditionScreen";
+import TermsOfServiceScreen from "./screens/termsOfServiceScreen";
 import PrivacyPolicyScreen from "./screens/privacyPolicyScreen";
 import CallScreen from "./screens/callScreen";
 import NotificationScreen from "./screens/notificationScreen";
@@ -48,6 +48,8 @@ import AppUpdatesScreen from "./screens/appUpdatesScreen";
 import DeleteAccountScreen from "./screens/deleteAccountScreen";
 import UserGuideScreen from "./screens/userGuideScreen";
 import AboutAppScreen from "./screens/aboutAppScreen";
+import LicenseAgreementScreen from "./screens/licenseAgreementScreen";
+import OpenSourceLicensesScreen from "./screens/openSourceLicensesScreen";
 import QRScanner from "./screens/qrScanner";
 import AssignmentScreen from "./screens/assignmentScreen";
 import i18n from "./languages/index"; //don't remove this line
@@ -112,8 +114,8 @@ const MainNavigation = () => {
           <Stack.Screen name="languageScreen" component={LanguageScreen} />
           <Stack.Screen name="getSupportScreen" component={GetSupportScreen} />
           <Stack.Screen
-            name="termsConditionScreen"
-            component={TermsConditionScreen}
+            name="termsOfServiceScreen"
+            component={TermsOfServiceScreen}
           />
           <Stack.Screen
             name="privacyPolicyScreen"
@@ -133,6 +135,8 @@ const MainNavigation = () => {
     <Stack.Screen name="deleteAccountScreen" component={DeleteAccountScreen} />
     <Stack.Screen name="userGuideScreen" component={UserGuideScreen} />
     <Stack.Screen name="aboutAppScreen" component={AboutAppScreen} />
+    <Stack.Screen name="licenseAgreementScreen" component={LicenseAgreementScreen} />
+    <Stack.Screen name="openSourceLicensesScreen" component={OpenSourceLicensesScreen} />
     <Stack.Screen name="qrScanner" component={QRScanner} />
     <Stack.Screen name="assignmentScreen" component={AssignmentScreen} />
         </Stack.Navigator>

@@ -24,7 +24,7 @@ export const validateAndGetUnitId = async (flatNumber, guardSocietyId) => {
     const { data, error } = await supabase
       .from('units')
       .select('id, block, number, unit_type, floor')
-      .eq('society_id', guardSocietyId)
+      .eq('community_id', guardSocietyId)
       .eq('block', block)
       .eq('number', number);
 
@@ -62,7 +62,7 @@ export const getValidUnitsForGuard = async (guardSocietyId) => {
     const { data, error } = await supabase
       .from('units')
       .select('id, block, number, unit_type, floor')
-      .eq('society_id', guardSocietyId)
+      .eq('community_id', guardSocietyId)
       .order('block')
       .order('number');
 

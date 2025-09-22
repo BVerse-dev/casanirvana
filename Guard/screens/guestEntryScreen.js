@@ -72,13 +72,13 @@ const GuestEntryScreen = ({ navigation, route }) => {
 
   // Load host name from database for the selected flat
   const loadHostName = async (flatNumber) => {
-    if (!flatNumber || !guard?.society_id) {
+    if (!flatNumber || !guard?.community_id) {
       setHostName("");
       return;
     }
 
     try {
-      const unitInfo = await validateAndGetUnitId(flatNumber, guard.society_id);
+      const unitInfo = await validateAndGetUnitId(flatNumber, guard.community_id);
       const resident = await getUnitResident(unitInfo.unitId);
       setHostName(resident ? resident.name : "Unknown Resident");
     } catch (err) {
@@ -94,14 +94,14 @@ const GuestEntryScreen = ({ navigation, route }) => {
     } else {
       setHostName("");
     }
-  }, [selectedFlatNo, guard?.society_id]);
+  }, [selectedFlatNo, guard?.community_id]);
 
   // Load resident information for selected flat (secure database lookup)
   const loadResidentInfo = async (flatNo) => {
-    if (!flatNo || !guard?.society_id) return;
+    if (!flatNo || !guard?.community_id) return;
     
     try {
-      const unitInfo = await validateAndGetUnitId(flatNo, guard.society_id);
+      const unitInfo = await validateAndGetUnitId(flatNo, guard.community_id);
       const resident = await getUnitResident(unitInfo.unitId);
       setHostName(resident ? resident.name : "Unknown Resident");
     } catch (err) {
@@ -117,7 +117,7 @@ const GuestEntryScreen = ({ navigation, route }) => {
     } else {
       setHostName("");
     }
-  }, [selectedFlatNo, guard?.society_id]);
+  }, [selectedFlatNo, guard?.community_id]);
 
   // Direct visitor pass creation without subscription
   const createVisitorPassDirect = async (visitorPassData) => {

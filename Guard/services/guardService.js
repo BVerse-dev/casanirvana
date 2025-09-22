@@ -120,7 +120,7 @@ export const getActiveEmergencyAlerts = async (societyId) => {
     const { data, error } = await supabase
       .from('emergency_alerts')
       .select('*')
-      .eq('society_id', societyId)
+      .eq('community_id', societyId)
       .eq('status', 'active')
       .order('created_at', { ascending: false });
 
@@ -142,7 +142,7 @@ export const getTodaysEntries = async (societyId) => {
         *,
         visitor_passes:visitor_pass_id(visitor_name, visitor_phone, host_phone)
       `)
-      .eq('society_id', societyId)
+      .eq('community_id', societyId)
       .gte('entry_time', `${today}T00:00:00.000Z`)
       .lt('entry_time', `${today}T23:59:59.999Z`)
       .order('entry_time', { ascending: false });
@@ -161,7 +161,7 @@ export const searchVisitorByPhone = async (phoneNumber) => {
       .from('visitor_passes')
       .select(`
         *,
-        units:unit_id(block, number, society_id)
+        units:unit_id(block, number, community_id)
       `)
       .ilike('visitor_phone', `%${phoneNumber}%`)
       .order('created_at', { ascending: false })
@@ -182,7 +182,7 @@ export const searchResidentByPhone = async (phoneNumber, societyId) => {
         *,
         units:units!units_owner_id_fkey(block, number)
       `)
-      .eq('society_id', societyId)
+      .eq('community_id', societyId)
       .or(`phone.ilike.%${phoneNumber}%,mobile.ilike.%${phoneNumber}%,emergency_contact_phone.ilike.%${phoneNumber}%`)
       .limit(10);
 
