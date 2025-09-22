@@ -190,7 +190,7 @@ const SelectPackageScreen = ({ navigation, route }) => {
             }}
           >
             <Ionicons
-              name={isRtl ? "chevron-forward" : "chevron-back"}
+              name={isRtl ? "arrow-forward-outline" : "arrow-back-outline"}
               size={25}
               color={Colors.black}
             />
@@ -243,7 +243,11 @@ const SelectPackageScreen = ({ navigation, route }) => {
             {tr("Choose Package Type")}
           </Text>
 
-          {packageOptions.map((item) => renderItem({ item }))}
+          {packageOptions.map((item) => (
+            <React.Fragment key={item.id}>
+              {renderItem({ item })}
+            </React.Fragment>
+          ))}
         </View>
 
         {/* Continue Button */}

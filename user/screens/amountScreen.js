@@ -170,7 +170,7 @@ const AmountScreen = ({ navigation, route }) => {
             }}
           >
             <Ionicons
-              name={isRtl ? "chevron-forward" : "chevron-back"}
+              name={isRtl ? "arrow-forward-outline" : "arrow-back-outline"}
               size={25}
               color={Colors.black}
             />

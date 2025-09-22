@@ -13,6 +13,7 @@ import {
   Platform,
   ScrollView,
   BackHandler,
+  Alert,
 } from "react-native";
 import { Colors, Fonts, Default } from "../constants/styles";
 import { useTranslation } from "react-i18next";
@@ -89,8 +90,12 @@ const AccountDetailsScreen = ({ navigation, route }) => {
   };
 
   const handleContactPicker = () => {
-    // Implement contact picker functionality
-    console.log("Open contact picker");
+    // Just show an alert for now since we don't have actual contact picker implementation
+    Alert.alert(
+      tr("Contact Access"),
+      tr("Contact picker functionality will be implemented in a future update."),
+      [{ text: tr("OK") }]
+    );
   };
 
   const isValidPhoneNumber = phoneNumber && phoneNumber.length >= 9;
@@ -121,7 +126,7 @@ const AccountDetailsScreen = ({ navigation, route }) => {
             }}
           >
             <Ionicons
-              name={isRtl ? "chevron-forward" : "chevron-back"}
+              name={isRtl ? "arrow-forward-outline" : "arrow-back-outline"}
               size={25}
               color={Colors.black}
             />
@@ -229,7 +234,7 @@ const AccountDetailsScreen = ({ navigation, route }) => {
                 value={phoneNumber}
                 onChangeText={setPhoneNumber}
                 keyboardType="phone-pad"
-                placeholder={tr("Enter phone number to topup")}
+                placeholder={tr("Phone number")}
                 placeholderTextColor={Colors.grey}
               />
               <TouchableOpacity onPress={handleContactPicker}>
@@ -257,7 +262,7 @@ const AccountDetailsScreen = ({ navigation, route }) => {
               }}
               value={description}
               onChangeText={setDescription}
-              placeholder={tr("Enter account description (e.g My mum)")}
+              placeholder={tr("Description (e.g. My mum)")}
               placeholderTextColor={Colors.grey}
             />
 

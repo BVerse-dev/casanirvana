@@ -192,7 +192,7 @@ const AirtimeScreen = ({ navigation }) => {
             }}
           >
             <Ionicons
-              name={isRtl ? "chevron-forward" : "chevron-back"}
+              name={isRtl ? "arrow-forward-outline" : "arrow-back-outline"}
               size={25}
               color={Colors.black}
             />
@@ -214,7 +214,11 @@ const AirtimeScreen = ({ navigation }) => {
             {tr("Select Provider")}
           </Text>
 
-          {providers.map((item) => renderItem({ item }))}
+          {providers.map((item) => (
+            <React.Fragment key={item.id}>
+              {renderItem({ item })}
+            </React.Fragment>
+          ))}
 
           {/* Instructions */}
           <View
