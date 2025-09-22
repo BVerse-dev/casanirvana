@@ -19,9 +19,9 @@ const scalingUtilsPath = resolveScalingUtilsPath();
 // Our patched content - simplified version that doesn't use @env
 const patchedContent = `import { Dimensions } from 'react-native';
 
-// Define base width and height directly from environment variables or fallback to defaults
-const BASE_WIDTH = ${process.env.SIZE_MATTERS_BASE_WIDTH || 414};
-const BASE_HEIGHT = ${process.env.SIZE_MATTERS_BASE_HEIGHT || 896};
+// Define base width and height with fixed defaults
+const BASE_WIDTH = 414;
+const BASE_HEIGHT = 896;
 
 const { width, height } = Dimensions.get('window');
 const [shortDimension, longDimension] = width < height ? [width, height] : [height, width];
