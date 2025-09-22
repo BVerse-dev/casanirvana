@@ -196,7 +196,7 @@ const NotificationDetailScreen = ({ navigation, route }) => {
         
       case 'payment_reminder':
         return {
-          header: '💳 Payment Due Reminder',
+          header: 'Payment Due Reminder',
           content: 'This is a friendly reminder that your monthly maintenance fee is due soon.',
           sections: [
             'Payment due date: Within the next 7 days',
@@ -209,7 +209,7 @@ const NotificationDetailScreen = ({ navigation, route }) => {
         
       case 'maintenance_scheduled':
         return {
-          header: '🔧 Scheduled Maintenance Notice',
+          header: 'Scheduled Maintenance Notice',
           content: 'Maintenance work has been scheduled in your area to improve our facilities and services.',
           sections: [
             'Please plan accordingly for any temporary inconveniences',
@@ -222,7 +222,7 @@ const NotificationDetailScreen = ({ navigation, route }) => {
         
       case 'security':
         return {
-          header: '🛡️ Security Alert',
+          header: 'Security Alert',
           content: 'This is an important security notification for your safety and awareness.',
           sections: [
             'Please remain vigilant and report any suspicious activities',
@@ -236,7 +236,7 @@ const NotificationDetailScreen = ({ navigation, route }) => {
         
       case 'announcement':
         return {
-          header: '📢 Community Announcement',
+          header: 'Community Announcement',
           content: 'We have an important update to share with all community members.',
           sections: [
             'This announcement affects all residents and stakeholders',
@@ -249,7 +249,7 @@ const NotificationDetailScreen = ({ navigation, route }) => {
         
       default:
         return {
-          header: '📋 Notification Details',
+          header: 'Notification Details',
           content: notification.message || 'You have received a new notification from the community management.',
           sections: [
             'Please review the notification details above',
