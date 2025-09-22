@@ -131,18 +131,21 @@ const NotificationDetailScreen = ({ navigation, route }) => {
     
     const icons = {
       join_request_approved: { name: 'check-circle', color: Colors.green },
-      join_request_rejected: { name: 'cancel', color: Colors.orange }, // Changed from red
+      join_request_rejected: { name: 'cancel', color: Colors.orange },
       payment_reminder: { name: 'payment', color: Colors.blue },
       payment_overdue: { name: 'warning', color: Colors.orange },
       maintenance_scheduled: { name: 'build', color: Colors.blue },
       maintenance_completed: { name: 'check-circle', color: Colors.green },
-      security: { name: 'security', color: Colors.orange }, // Changed from red
+      security: { name: 'security', color: Colors.orange },
       announcement: { name: 'campaign', color: Colors.primary },
       community_update: { name: 'info', color: Colors.blue },
       event_reminder: { name: 'event', color: Colors.purple || Colors.primary },
       visitor_approved: { name: 'person-add', color: Colors.green },
-      visitor_denied: { name: 'person-remove', color: Colors.orange }, // Changed from red
-      emergency: { name: 'warning', color: '#FFB74D' }, // Changed from red to orange
+      visitor_denied: { name: 'person-remove', color: Colors.orange },
+      emergency: { name: 'warning', color: '#FFB74D' },
+      amenity_booking: { name: 'pool', color: Colors.blue },
+      complaint_resolved: { name: 'check-circle-outline', color: Colors.green },
+      utility_maintenance: { name: 'water-pump', color: Colors.blue },
     };
 
     const priorityColors = {
@@ -245,6 +248,142 @@ const NotificationDetailScreen = ({ navigation, route }) => {
             'Contact the management office if you have any questions'
           ],
           footer: 'Thank you for staying informed and engaged with our community.'
+        };
+
+      case 'visitor_approved':
+        return {
+          header: 'Visitor Access Approved',
+          content: 'Your visitor request has been approved and access has been granted.',
+          sections: [
+            'Visitor can now enter the community premises',
+            'Access is valid for the specified time period',
+            'Please ensure your visitor follows all community guidelines',
+            'Contact security if there are any issues with entry'
+          ],
+          footer: 'Thank you for using our visitor management system responsibly.'
+        };
+
+      case 'visitor_denied':
+        return {
+          header: 'Visitor Access Request Denied',
+          content: 'Your visitor request could not be approved at this time.',
+          sections: [
+            'Please review the visitor information provided',
+            'Ensure all required details are complete and accurate',
+            'Check if the visitor meets community entry requirements',
+            'You may submit a new request with updated information'
+          ],
+          footer: 'Contact the front desk for assistance with visitor requests.'
+        };
+
+      case 'payment_overdue':
+        return {
+          header: 'Payment Overdue Notice',
+          content: 'Your monthly maintenance payment is now overdue and requires immediate attention.',
+          sections: [
+            'Payment was due more than 7 days ago',
+            'Late fees may apply as per community policies',
+            'Multiple payment options are available for your convenience',
+            'Contact the accounts department to discuss payment arrangements'
+          ],
+          footer: 'Please settle your account as soon as possible to avoid service interruption.'
+        };
+
+      case 'maintenance_completed':
+        return {
+          header: 'Maintenance Work Completed',
+          content: 'The scheduled maintenance work in your area has been successfully completed.',
+          sections: [
+            'All maintenance activities have been finished on schedule',
+            'Systems and facilities are now fully operational',
+            'Please report any issues you may notice',
+            'Thank you for your patience during the maintenance period'
+          ],
+          footer: 'We appreciate your cooperation in helping us maintain our community standards.'
+        };
+
+      case 'emergency':
+        return {
+          header: 'Emergency Alert',
+          content: 'This is an urgent notification regarding an emergency situation in the community.',
+          sections: [
+            'Please follow all emergency procedures immediately',
+            'Stay calm and follow instructions from authorized personnel',
+            'Do not use elevators unless specifically instructed',
+            'Emergency contact numbers are available at the front desk',
+            'Updates will be provided as the situation develops'
+          ],
+          footer: 'Your safety is our highest priority. Please take all precautions seriously.'
+        };
+
+      case 'event_reminder':
+        return {
+          header: 'Community Event Reminder',
+          content: 'This is a reminder about an upcoming community event you registered for.',
+          sections: [
+            'Event details and timing are confirmed as scheduled',
+            'Please arrive 15 minutes before the start time',
+            'Bring any required materials or documentation',
+            'Contact the event organizer if you need to make changes',
+            'Refreshments and activities will be provided as planned'
+          ],
+          footer: 'We look forward to seeing you at this community gathering.'
+        };
+
+      case 'amenity_booking':
+        return {
+          header: 'Amenity Booking Confirmation',
+          content: 'Your amenity booking request has been confirmed and reserved.',
+          sections: [
+            'Your reservation is confirmed for the requested date and time',
+            'Please arrive on time to maximize your booking period',
+            'Follow all amenity rules and guidelines during use',
+            'Clean up after use and report any damages immediately',
+            'Contact management if you need to modify your booking'
+          ],
+          footer: 'Enjoy your reserved amenity time and please be considerate of other residents.'
+        };
+
+      case 'community_update':
+        return {
+          header: 'Community Update',
+          content: 'Important updates about ongoing developments and improvements in our community.',
+          sections: [
+            'New policies or procedures may be outlined below',
+            'Infrastructure improvements and their timelines',
+            'Changes to community services or operating hours',
+            'Upcoming community meetings or important dates',
+            'Feedback opportunities for resident input'
+          ],
+          footer: 'Stay engaged with your community by participating in these updates.'
+        };
+
+      case 'complaint_resolved':
+        return {
+          header: 'Complaint Resolution Update',
+          content: 'Your complaint has been reviewed and resolved by our management team.',
+          sections: [
+            'Investigation of your complaint has been completed',
+            'Appropriate actions have been taken to address the issue',
+            'Preventive measures are being implemented where necessary',
+            'You may receive a follow-up contact for feedback',
+            'Please report any recurring issues immediately'
+          ],
+          footer: 'Thank you for bringing this matter to our attention and helping improve our community.'
+        };
+
+      case 'utility_maintenance':
+        return {
+          header: 'Utility Maintenance Notice',
+          content: 'Scheduled utility maintenance will affect services in your area.',
+          sections: [
+            'Water, electricity, or other utilities may be temporarily interrupted',
+            'Maintenance is scheduled during off-peak hours when possible',
+            'Please plan accordingly and store water if needed',
+            'Emergency services will remain available during maintenance',
+            'Updates will be provided if schedules change'
+          ],
+          footer: 'We apologize for any inconvenience and appreciate your understanding.'
         };
         
       default:
