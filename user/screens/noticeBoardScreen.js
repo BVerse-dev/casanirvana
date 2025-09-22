@@ -8,6 +8,7 @@ import {
   Image,
   Alert,
   Share,
+  RefreshControl,
 } from "react-native";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -32,8 +33,9 @@ const NoticeBoardScreen = ({ navigation }) => {
   const queryClient = useQueryClient();
   const { isGranted, setupNotifications } = useNotificationContext();
 
-  // State for favorites
+  // State for favorites and refresh
   const [favoriteNotices, setFavoriteNotices] = useState(new Set());
+  const [refreshing, setRefreshing] = useState(false);
 
   function tr(key) {
     return t(`noticeBoardScreen:${key}`);
@@ -47,7 +49,7 @@ const NoticeBoardScreen = ({ navigation }) => {
   }, [profile, isGranted]);
 
   // Get notices for user's community
-  const { data: noticesResponse, isLoading, error } = useListNotices(profile?.community_id, 1, 50);
+  const { data: noticesResponse, isLoading, error, refetch } = useListNotices(profile?.community_id, 1, 50);
   
   // Transform database notices to match UI format
   const noticeList = noticesResponse?.data?.map(notice => ({
@@ -160,6 +162,18 @@ const NoticeBoardScreen = ({ navigation }) => {
     return require("../assets/images/notification.png");
   };
 
+  // Handle pull to refresh
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refetch();
+    } catch (error) {
+      console.error('Error refreshing notices:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const renderItem = ({ item, index }) => {
     const lastIndex = noticeList.length - 1 === index;
     const isFavorited = favoriteNotices.has(item.id);
@@ -247,24 +261,17 @@ const NoticeBoardScreen = ({ navigation }) => {
               {item.dateTime}
             </Text>
 
-            <View
+            <Text
+              numberOfLines={2}
               style={{
+                ...Fonts.Medium14grey,
+                overflow: "hidden",
+                lineHeight: 20,
                 marginTop: Default.fixPadding * 0.3,
-                borderBottomWidth: 1,
-                borderBottomColor: Colors.primary,
-                alignSelf: isRtl ? "flex-end" : "flex-start",
               }}
             >
-              <Text
-                numberOfLines={1}
-                style={{
-                  ...Fonts.Medium12primary,
-                  overflow: "hidden",
-                }}
-              >
-                {`By ${item.postBy}`}
-              </Text>
-            </View>
+              {item.notice}
+            </Text>
           </View>
         </TouchableOpacity>
 
@@ -424,6 +431,16 @@ const NoticeBoardScreen = ({ navigation }) => {
           keyExtractor={(item) => item.key}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingTop: Default.fixPadding * 0.8 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[Colors.primary]}
+              tintColor={Colors.primary}
+              title="Pull to refresh notices..."
+              titleColor={Colors.grey}
+            />
+          }
         />
       )}
     </View>
