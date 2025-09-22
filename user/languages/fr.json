@@ -150,7 +150,10 @@
         "noticeBoard": "Tableau d'affichage",
         "noticeDetails": "Détails de l'avis",
         "new": "Nouvelle",
-        "postBy": "Poster"
+        "postBy": "Poster",
+        "share": "Partager",
+        "favorite": "Favori",
+        "delete": "Supprimer"
     },
     "paymentScreen": {
         "payment": "Paiement",

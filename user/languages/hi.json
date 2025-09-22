@@ -150,7 +150,10 @@
         "noticeBoard": "सूचना पट्ट",
         "noticeDetails": "सूचना विवरण",
         "new": "नया",
-        "postBy": "द्वारा पोस्ट करना"
+        "postBy": "द्वारा पोस्ट करना",
+        "share": "साझा करें",
+        "favorite": "पसंदीदा",
+        "delete": "हटाएं"
     },
     "paymentScreen": {
         "payment": "भुगतान",

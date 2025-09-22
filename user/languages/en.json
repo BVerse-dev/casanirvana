@@ -191,7 +191,10 @@
         "noticeBoard": "Notice Board",
         "noticeDetails": "Notice Details",
         "new": "New",
-        "postBy": "Post by"
+        "postBy": "Post by",
+        "share": "Share",
+        "favorite": "Favorite",
+        "delete": "Delete"
     },
     "paymentMethodScreen": {
         "selectPaymentMethod": "Select payment method",

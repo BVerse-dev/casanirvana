@@ -105,7 +105,7 @@ const NoticeBoardScreen = ({ navigation }) => {
     try {
       const shareContent = {
         title: notice.title,
-        message: `📢 ${notice.title}\n\n${notice.fullNotice || notice.notice}\n\nPosted by: ${notice.postBy}\nDate: ${notice.dateTime}\n\n- Casa Nirvana Community`,
+        message: `${notice.title}\n\n${notice.fullNotice || notice.notice}\n\nPosted by: ${notice.postBy}\nDate: ${notice.dateTime}\n\n- Casa Nirvana Community`,
         url: notice.image_url || undefined,
       };
 
@@ -247,20 +247,9 @@ const NoticeBoardScreen = ({ navigation }) => {
               {item.dateTime}
             </Text>
 
-            <Text
-              numberOfLines={2}
-              style={{
-                ...Fonts.Medium14grey,
-                overflow: "hidden",
-                lineHeight: 20,
-              }}
-            >
-              {item.notice}
-            </Text>
-
             <View
               style={{
-                marginTop: Default.fixPadding * 0.5,
+                marginTop: Default.fixPadding * 0.3,
                 borderBottomWidth: 1,
                 borderBottomColor: Colors.primary,
                 alignSelf: isRtl ? "flex-end" : "flex-start",

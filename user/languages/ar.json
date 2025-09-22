@@ -150,7 +150,10 @@
         "noticeBoard": "لوح الإعلانات",
         "noticeDetails": "تفاصيل الإشعار",
         "new": "جديد",
-        "postBy": "نشر بواسطة"
+        "postBy": "نشر بواسطة",
+        "share": "مشاركة",
+        "favorite": "المفضلة",
+        "delete": "حذف"
     },
     "paymentScreen": {
         "payment": "قسط",
