@@ -324,10 +324,11 @@ const TransferReviewScreen = ({ navigation, route }) => {
                     />
                   </View>
                   <Text style={{ 
-                    ...Fonts.SemiBold14white,
+                    ...Fonts.SemiBold12white,
                     flexShrink: 1,
                     marginRight: isRtl ? 0 : Default.fixPadding,
                     marginLeft: isRtl ? Default.fixPadding : 0,
+                    numberOfLines: 1,
                   }}>
                     {tr("Select payment method")}
                   </Text>
