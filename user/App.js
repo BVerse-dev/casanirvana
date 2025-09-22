@@ -199,6 +199,24 @@ const MainNavigation = () => {
           name="dataAccountDetailsScreen"
           component={require("./screens/dataAccountDetailsScreen").default}
         />
+        
+        {/* Money Transfer Flow */}
+        <Stack.Screen
+          name="transferScreen"
+          component={require("./screens/transferScreen").default}
+        />
+        <Stack.Screen
+          name="transferRecipientScreen"
+          component={require("./screens/transferRecipientScreen").default}
+        />
+        <Stack.Screen
+          name="transferAmountScreen"
+          component={require("./screens/transferAmountScreen").default}
+        />
+        <Stack.Screen
+          name="transferReviewScreen"
+          component={require("./screens/transferReviewScreen").default}
+        />
         <Stack.Screen name="creditCardScreen" component={CreditCardScreen} />
         <Stack.Screen name="mobileMoneyScreen" component={MobileMoneyScreen} />
         <Stack.Screen name="paypalScreen" component={PayPalScreen} />
