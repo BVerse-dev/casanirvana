@@ -18,11 +18,33 @@ import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import AwesomeButton from "react-native-really-awesome-button";
 
 const PaymentMethodScreen = ({ navigation, route }) => {
-  const { bookingId, bookingData, paymentData, isAddingPaymentMethod, onPaymentMethodAdded } = route.params || {};
+  const { 
+    bookingId, 
+    bookingData, 
+    paymentData, 
+    isAddingPaymentMethod, 
+    onPaymentMethodAdded,
+    // Airtime purchase params
+    provider,
+    providerName,
+    packageType,
+    amountTitle,
+    amount,
+    amountFormatted,
+    phoneNumber,
+    description,
+    saveAccount,
+    transactionType,
+    recipientInfo
+  } = route.params || {};
+  
   const { t, i18n } = useTranslation();
 
   // Determine if this is for adding a payment method or making a payment
   const isAddingMode = isAddingPaymentMethod === true;
+  
+  // Determine if this is for airtime purchase
+  const isAirtimePurchase = transactionType === 'airtime';
 
   // Debug: Log what we receive from payment screen
   console.log('PaymentMethodScreen - Received params:', { 
@@ -147,16 +169,34 @@ const PaymentMethodScreen = ({ navigation, route }) => {
   };
   const handleContinue = () => {
     // Prepare parameters based on mode
-    const navigationParams = isAddingMode 
-      ? {
-          isAddingPaymentMethod: true,
-          onPaymentMethodAdded: onPaymentMethodAdded
-        }
-      : {
-          bookingId,
-          bookingData,
-          paymentData
-        };
+    let navigationParams = {};
+    
+    if (isAirtimePurchase) {
+      // For airtime purchase flow
+      navigationParams = {
+        provider,
+        providerName,
+        amount,
+        amountFormatted,
+        phoneNumber,
+        description,
+        recipientInfo,
+        transactionType: 'airtime'
+      };
+    } else if (isAddingMode) {
+      // For adding payment method
+      navigationParams = {
+        isAddingPaymentMethod: true,
+        onPaymentMethodAdded: onPaymentMethodAdded
+      };
+    } else {
+      // For regular booking payment
+      navigationParams = {
+        bookingId,
+        bookingData,
+        paymentData
+      };
+    }
 
     switch (selectedPaymentMethod) {
       case "Credit Card":
@@ -416,28 +456,126 @@ const PaymentMethodScreen = ({ navigation, route }) => {
             ) : (
               // Payment Summary Content
               <>
-                <View
-                  style={{
-                    flexDirection: isRtl ? "row-reverse" : "row",
-                    alignItems: "center",
-                    marginBottom: Default.fixPadding * 0.5,
-                  }}
-                >
-                  <MaterialCommunityIcons
-                    name="file-document-outline"
-                    size={16}
-                    color={Colors.primary}
-                    style={{ marginRight: isRtl ? 0 : Default.fixPadding * 0.5, marginLeft: isRtl ? Default.fixPadding * 0.5 : 0 }}
-                  />
-                  <Text
+                {isAirtimePurchase ? (
+                  // Airtime Purchase Summary
+                  <>
+                    <View
+                      style={{
+                        flexDirection: isRtl ? "row-reverse" : "row",
+                        alignItems: "center",
+                        marginBottom: Default.fixPadding * 0.5,
+                      }}
+                    >
+                      <MaterialCommunityIcons
+                        name="phone"
+                        size={16}
+                        color={Colors.primary}
+                        style={{ marginRight: isRtl ? 0 : Default.fixPadding * 0.5, marginLeft: isRtl ? Default.fixPadding * 0.5 : 0 }}
+                      />
+                      <Text
+                        style={{
+                          ...Fonts.Medium14black,
+                          textAlign: isRtl ? "right" : "left",
+                        }}
+                      >
+                        <Text style={{ ...Fonts.SemiBold14black }}>Service:</Text> {providerName || 'Airtime Purchase'}
+                      </Text>
+                    </View>
+
+                    <View
+                      style={{
+                        flexDirection: isRtl ? "row-reverse" : "row",
+                        alignItems: "center",
+                        marginBottom: Default.fixPadding * 0.5,
+                      }}
+                    >
+                      <MaterialCommunityIcons
+                        name="account"
+                        size={16}
+                        color={Colors.primary}
+                        style={{ marginRight: isRtl ? 0 : Default.fixPadding * 0.5, marginLeft: isRtl ? Default.fixPadding * 0.5 : 0 }}
+                      />
+                      <Text
+                        style={{
+                          ...Fonts.Medium14black,
+                          textAlign: isRtl ? "right" : "left",
+                        }}
+                      >
+                        <Text style={{ ...Fonts.SemiBold14black }}>Recipient:</Text> {description || phoneNumber || 'N/A'}
+                      </Text>
+                    </View>
+
+                    <View
+                      style={{
+                        flexDirection: isRtl ? "row-reverse" : "row",
+                        alignItems: "center",
+                        marginBottom: Default.fixPadding * 0.5,
+                      }}
+                    >
+                      <MaterialCommunityIcons
+                        name="phone-in-talk"
+                        size={16}
+                        color={Colors.primary}
+                        style={{ marginRight: isRtl ? 0 : Default.fixPadding * 0.5, marginLeft: isRtl ? Default.fixPadding * 0.5 : 0 }}
+                      />
+                      <Text
+                        style={{
+                          ...Fonts.Medium14black,
+                          textAlign: isRtl ? "right" : "left",
+                        }}
+                      >
+                        <Text style={{ ...Fonts.SemiBold14black }}>Phone:</Text> {phoneNumber || 'N/A'}
+                      </Text>
+                    </View>
+
+                    <View
+                      style={{
+                        flexDirection: isRtl ? "row-reverse" : "row",
+                        alignItems: "center",
+                        marginBottom: Default.fixPadding * 0.5,
+                      }}
+                    >
+                      <MaterialCommunityIcons
+                        name="cash"
+                        size={16}
+                        color={Colors.primary}
+                        style={{ marginRight: isRtl ? 0 : Default.fixPadding * 0.5, marginLeft: isRtl ? Default.fixPadding * 0.5 : 0 }}
+                      />
+                      <Text
+                        style={{
+                          ...Fonts.Medium14black,
+                          textAlign: isRtl ? "right" : "left",
+                        }}
+                      >
+                        <Text style={{ ...Fonts.SemiBold14black }}>Amount:</Text> {amountFormatted || `GHS ${amount?.toFixed(2) || '0.00'}`}
+                      </Text>
+                    </View>
+                  </>
+                ) : (
+                  // Regular Payment Summary
+                  <View
                     style={{
-                      ...Fonts.Medium14black,
-                      textAlign: isRtl ? "right" : "left",
+                      flexDirection: isRtl ? "row-reverse" : "row",
+                      alignItems: "center",
+                      marginBottom: Default.fixPadding * 0.5,
                     }}
                   >
-                    <Text style={{ ...Fonts.SemiBold14black }}>Payment:</Text> {paymentData?.title || 'N/A'}
-                  </Text>
-                </View>
+                    <MaterialCommunityIcons
+                      name="file-document-outline"
+                      size={16}
+                      color={Colors.primary}
+                      style={{ marginRight: isRtl ? 0 : Default.fixPadding * 0.5, marginLeft: isRtl ? Default.fixPadding * 0.5 : 0 }}
+                    />
+                    <Text
+                      style={{
+                        ...Fonts.Medium14black,
+                        textAlign: isRtl ? "right" : "left",
+                      }}
+                    >
+                      <Text style={{ ...Fonts.SemiBold14black }}>Payment:</Text> {paymentData?.title || 'N/A'}
+                    </Text>
+                  </View>
+                )}
                 
                 <View
                   style={{

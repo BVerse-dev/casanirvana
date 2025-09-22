@@ -14,6 +14,8 @@ import {
   ScrollView,
   BackHandler,
   Alert,
+  Modal,
+  FlatList,
 } from "react-native";
 import { Colors, Fonts, Default } from "../constants/styles";
 import { useTranslation } from "react-i18next";
@@ -22,6 +24,7 @@ import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityI
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import { ms } from "react-native-size-matters/extend";
 import MyStatusBar from "../components/myStatusBar";
+import * as Contacts from "expo-contacts";
 
 const AccountDetailsScreen = ({ navigation, route }) => {
   const { t, i18n } = useTranslation();
@@ -29,6 +32,11 @@ const AccountDetailsScreen = ({ navigation, route }) => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [description, setDescription] = useState("");
   const [saveAccount, setSaveAccount] = useState(true);
+  
+  // Contact picker states
+  const [contacts, setContacts] = useState([]);
+  const [showContactPicker, setShowContactPicker] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   
   // Get data from route params
   const { 
@@ -89,13 +97,69 @@ const AccountDetailsScreen = ({ navigation, route }) => {
     });
   };
 
+  // Contact permission and loading functions
+  const requestContactsPermission = async () => {
+    try {
+      const { status } = await Contacts.requestPermissionsAsync();
+      return status === 'granted';
+    } catch (error) {
+      console.log('Permission error:', error);
+      return false;
+    }
+  };
+
+  const loadContacts = async () => {
+    try {
+      const hasPermission = await requestContactsPermission();
+      if (!hasPermission) {
+        Alert.alert(
+          tr("Permission Required"), 
+          tr("Please grant contacts permission to select from your contacts.")
+        );
+        return;
+      }
+
+      const { data } = await Contacts.getContactsAsync({
+        fields: [Contacts.Fields.Name, Contacts.Fields.PhoneNumbers],
+      });
+
+      if (data.length > 0) {
+        // Filter contacts that have phone numbers and names
+        const validContacts = data.filter(contact => 
+          contact.name && 
+          contact.phoneNumbers && 
+          contact.phoneNumbers.length > 0
+        ).map(contact => ({
+          id: contact.id,
+          name: contact.name,
+          phoneNumber: contact.phoneNumbers[0].number
+        }));
+        
+        setContacts(validContacts);
+        setShowContactPicker(true);
+      } else {
+        Alert.alert(tr("No Contacts"), tr("No contacts found on your device."));
+      }
+    } catch (error) {
+      Alert.alert(tr("Error"), tr("Failed to load contacts. Please try again."));
+    }
+  };
+
+  const selectContact = (contact) => {
+    if (!contact) return;
+    
+    const safeName = contact.name || "";
+    const safePhone = contact.phoneNumber || "";
+    
+    setPhoneNumber(safePhone);
+    if (!description && safeName) {
+      setDescription(safeName);
+    }
+    setShowContactPicker(false);
+  };
+
   const handleContactPicker = () => {
-    // Just show an alert for now since we don't have actual contact picker implementation
-    Alert.alert(
-      tr("Contact Access"),
-      tr("Contact picker functionality will be implemented in a future update."),
-      [{ text: tr("OK") }]
-    );
+    loadContacts();
   };
 
   const isValidPhoneNumber = phoneNumber && phoneNumber.length >= 9;
@@ -238,8 +302,8 @@ const AccountDetailsScreen = ({ navigation, route }) => {
                 placeholderTextColor={Colors.grey}
               />
               <TouchableOpacity onPress={handleContactPicker}>
-                <MaterialCommunityIcons
-                  name="contacts"
+                <Ionicons
+                  name="person-circle-outline"
                   size={24}
                   color={Colors.primary}
                 />
@@ -344,6 +408,116 @@ const AccountDetailsScreen = ({ navigation, route }) => {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Contact Picker Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={showContactPicker}
+        onRequestClose={() => setShowContactPicker(false)}
+      >
+        <View style={{
+          flex: 1,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          justifyContent: 'flex-end',
+        }}>
+          <View style={{
+            backgroundColor: Colors.white,
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+            height: '80%',
+            padding: Default.fixPadding * 2,
+          }}>
+            {/* Header */}
+            <View style={{
+              flexDirection: isRtl ? 'row-reverse' : 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: Default.fixPadding * 2,
+            }}>
+              <Text style={{ ...Fonts.SemiBold18black }}>
+                {tr("Select Contact")}
+              </Text>
+              <TouchableOpacity onPress={() => setShowContactPicker(false)}>
+                <Ionicons name="close" size={22} color={Colors.grey} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Search Bar */}
+            <View style={{
+              flexDirection: isRtl ? 'row-reverse' : 'row',
+              alignItems: 'center',
+              backgroundColor: Colors.extraLightGrey,
+              borderRadius: 8,
+              paddingHorizontal: Default.fixPadding,
+              marginBottom: Default.fixPadding * 2,
+            }}>
+              <Ionicons name="search" size={20} color={Colors.grey} />
+              <TextInput
+                style={{
+                  flex: 1,
+                  ...Fonts.Medium14black,
+                  padding: Default.fixPadding,
+                  textAlign: isRtl ? 'right' : 'left',
+                }}
+                placeholder={tr("Search contacts")}
+                placeholderTextColor={Colors.grey}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+            </View>
+
+            {/* Contacts List */}
+            <FlatList
+              data={contacts.filter(contact => 
+                contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                contact.phoneNumber.includes(searchQuery)
+              )}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={{
+                    flexDirection: isRtl ? 'row-reverse' : 'row',
+                    alignItems: 'center',
+                    paddingVertical: Default.fixPadding,
+                    borderBottomWidth: 1,
+                    borderBottomColor: Colors.lightGrey,
+                  }}
+                  onPress={() => selectContact(item)}
+                >
+                  <View style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 20,
+                    backgroundColor: Colors.primary + '20',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    marginRight: isRtl ? 0 : Default.fixPadding,
+                    marginLeft: isRtl ? Default.fixPadding : 0,
+                  }}>
+                    <Ionicons name="person" size={20} color={Colors.primary} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ ...Fonts.SemiBold16black }}>{item.name}</Text>
+                    <Text style={{ ...Fonts.Medium14grey }}>{item.phoneNumber}</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+              showsVerticalScrollIndicator={false}
+              ListEmptyComponent={
+                <View style={{
+                  alignItems: 'center',
+                  paddingVertical: Default.fixPadding * 2,
+                }}>
+                  <Text style={{ ...Fonts.Medium14grey }}>
+                    {searchQuery ? tr("No matching contacts found") : tr("No contacts available")}
+                  </Text>
+                </View>
+              }
+            />
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
