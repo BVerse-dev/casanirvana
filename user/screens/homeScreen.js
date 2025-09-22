@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
 import { Text, View, TouchableOpacity, Image, FlatList } from "react-native";
 import MyStatusBar from "../components/myStatusBar";
 import { Colors, Fonts, Default } from "../constants/styles";
 import { useTranslation } from "react-i18next";
 import { ms } from "react-native-size-matters/extend";
 import { LinearGradient } from "expo-linear-gradient";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { useHasJoinedCommunity, useProfileSubscription } from "../hooks/useCommunityData";
 import { useUnreadNotificationsCount, useNotificationSubscription } from "../hooks/useNotifications";
 import { useListNotices } from "../hooks/useListNotices";
@@ -38,6 +39,10 @@ const HomeScreen = ({ navigation }) => {
   // Set up real-time subscriptions
   useNotificationSubscription();
   useProfileSubscription();
+
+  // State for banner actions
+  const [isNoticeFavorited, setIsNoticeFavorited] = useState(false);
+  const [hasNoticeReminder, setHasNoticeReminder] = useState(false);
 
   // Safe translation function that ALWAYS returns a string
   function tr(key, fallback = "Missing Translation") {
@@ -185,6 +190,17 @@ const HomeScreen = ({ navigation }) => {
     );
   };
 
+  // Handler functions for banner actions
+  const handleFavoriteNotice = () => {
+    setIsNoticeFavorited(!isNoticeFavorited);
+    // TODO: Implement actual favorite functionality with backend
+  };
+
+  const handleReminder = () => {
+    setHasNoticeReminder(!hasNoticeReminder);
+    // TODO: Implement actual reminder functionality with backend
+  };
+
   const NoticeBanner = () => {
     // Determine if the latest notice is "new" (posted within last 7 days)
     const isNewNotice = latestNotice && new Date(latestNotice.posted_at) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
@@ -223,111 +239,154 @@ const HomeScreen = ({ navigation }) => {
           }}
         >
           {/* Main content container - full width */}
-          <View style={{ flexDirection: isRtl ? "row-reverse" : "row", flex: 1 }}>
-            <View style={{ width: 6, backgroundColor: Colors.primary }} />
-            <View
+          <View
+            style={{
+              flex: 1,
+              justifyContent: "center",
+              alignItems: isRtl ? "flex-end" : "flex-start",
+              paddingTop: Default.fixPadding * 1.8,
+              paddingBottom: Default.fixPadding * 2.7,
+              paddingHorizontal: Default.fixPadding * 1.2,
+            }}
+            >
+            <Text
+              numberOfLines={1}
               style={{
-                flex: 1,
-                justifyContent: "center",
-                alignItems: isRtl ? "flex-end" : "flex-start",
-                paddingTop: Default.fixPadding * 1.8,
-                paddingBottom: Default.fixPadding * 2.7,
-                paddingHorizontal: Default.fixPadding * 0.9,
+                ...Fonts.SemiBold14white,
+                overflow: "hidden",
+                textShadowColor: 'rgba(0, 0, 0, 0.3)',
+                textShadowOffset: {width: 0, height: 1},
+                textShadowRadius: 2,
+                fontSize: 16,
+                fontWeight: '600',
+                width: '100%',
               }}
             >
+              {tr("notice")}
+            </Text>
+            <View
+              style={{
+                width: 53,
+                borderBottomWidth: 1.5,
+                borderBottomColor: 'rgba(255, 255, 255, 0.8)',
+                marginBottom: Default.fixPadding,
+                marginTop: Default.fixPadding * 0.3,
+              }}
+            />
+            <View style={{ width: '100%' }}>
               <Text
-                numberOfLines={1}
+                numberOfLines={3}
                 style={{
-                  ...Fonts.SemiBold14white,
-                  overflow: "hidden",
-                  textShadowColor: 'rgba(0, 0, 0, 0.3)',
+                  ...Fonts.Medium14extraLightGrey,
+                  textAlign: isRtl ? "right" : "left",
+                  color: 'rgba(255, 255, 255, 0.95)',
+                  textShadowColor: 'rgba(0, 0, 0, 0.2)',
                   textShadowOffset: {width: 0, height: 1},
-                  textShadowRadius: 2,
-                  fontSize: 16,
-                  fontWeight: '600',
-                  width: '100%',
+                  textShadowRadius: 1,
+                  lineHeight: 22,
+                  fontSize: 13,
+                  fontWeight: '400',
                 }}
               >
-                {tr("notice")}
+                {noticePreview}
+                {latestNotice?.body && latestNotice.body.length > 180 && (
+                  <Text
+                    style={{
+                      ...Fonts.Medium13white,
+                      textDecorationLine: 'underline',
+                      opacity: 0.9,
+                      fontWeight: '500',
+                    }}
+                  >
+                    {' '}read more...
+                  </Text>
+                )}
               </Text>
-              <View
-                style={{
-                  width: 53,
-                  borderBottomWidth: 1.5,
-                  borderBottomColor: 'rgba(255, 255, 255, 0.8)',
-                  marginBottom: Default.fixPadding,
-                  marginTop: Default.fixPadding * 0.3,
-                }}
-              />
-              <View style={{ width: '100%' }}>
-                <Text
-                  numberOfLines={3}
-                  style={{
-                    ...Fonts.Medium14extraLightGrey,
-                    textAlign: isRtl ? "right" : "left",
-                    color: 'rgba(255, 255, 255, 0.95)',
-                    textShadowColor: 'rgba(0, 0, 0, 0.2)',
-                    textShadowOffset: {width: 0, height: 1},
-                    textShadowRadius: 1,
-                    lineHeight: 22,
-                    fontSize: 13,
-                    fontWeight: '400',
-                  }}
-                >
-                  {noticePreview}
-                  {latestNotice?.body && latestNotice.body.length > 180 && (
-                    <Text
-                      style={{
-                        ...Fonts.Medium13white,
-                        textDecorationLine: 'underline',
-                        opacity: 0.9,
-                        fontWeight: '500',
-                      }}
-                    >
-                      {' '}read more...
-                    </Text>
-                  )}
-                </Text>
-              </View>
             </View>
           </View>
 
-          {/* NEW badge overlay - top right */}
-          {isNewNotice && (
-            <View
-              style={{
-                position: "absolute",
-                top: Default.fixPadding,
-                right: isRtl ? undefined : Default.fixPadding,
-                left: isRtl ? Default.fixPadding : undefined,
-                justifyContent: "center",
-                alignItems: "center",
-                paddingHorizontal: Default.fixPadding * 0.8,
-                paddingVertical: Default.fixPadding * 0.4,
-                borderRadius: 12,
-                backgroundColor: 'rgba(255, 255, 255, 0.25)',
-                borderWidth: 1,
-                borderColor: 'rgba(255, 255, 255, 0.3)',
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.1,
-                shadowRadius: 4,
-                elevation: 3,
-                zIndex: 2,
-              }}
-            >
-              <Text
-                numberOfLines={1}
+          {/* Action icons overlay - top right */}
+          <View
+            style={{
+              position: "absolute",
+              top: Default.fixPadding,
+              right: isRtl ? undefined : Default.fixPadding,
+              left: isRtl ? Default.fixPadding : undefined,
+              flexDirection: isRtl ? "row-reverse" : "row",
+              alignItems: "center",
+              zIndex: 2,
+            }}
+          >
+            {/* NEW badge */}
+            {isNewNotice && (
+              <View
                 style={{
-                  ...Fonts.SemiBold12white,
-                  overflow: "hidden",
-                  paddingHorizontal: Default.fixPadding * 0.2,
+                  justifyContent: "center",
+                  alignItems: "center",
+                  paddingHorizontal: Default.fixPadding * 0.6,
+                  paddingVertical: Default.fixPadding * 0.3,
+                  borderRadius: 10,
+                  backgroundColor: 'rgba(255, 255, 255, 0.25)',
+                  borderWidth: 1,
+                  borderColor: 'rgba(255, 255, 255, 0.3)',
+                  marginRight: isRtl ? 0 : Default.fixPadding * 0.5,
+                  marginLeft: isRtl ? Default.fixPadding * 0.5 : 0,
                 }}
               >
-                {tr("new")}
-              </Text>
-            </View>
-          )}
+                <Text
+                  numberOfLines={1}
+                  style={{
+                    ...Fonts.SemiBold10white,
+                    overflow: "hidden",
+                  }}
+                >
+                  {tr("new")}
+                </Text>
+              </View>
+            )}
+            
+            {/* Favorite icon */}
+            <TouchableOpacity
+              onPress={handleFavoriteNotice}
+              style={{
+                padding: Default.fixPadding * 0.6,
+                borderRadius: 8,
+                backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                marginRight: isRtl ? 0 : Default.fixPadding * 0.8,
+                marginLeft: isRtl ? Default.fixPadding * 0.8 : 0,
+                minWidth: 36,
+                minHeight: 36,
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
+            >
+              <MaterialCommunityIcons
+                name={isNoticeFavorited ? "heart" : "heart-outline"}
+                size={18}
+                color={isNoticeFavorited ? "#FF6B6B" : "rgba(255, 255, 255, 0.9)"}
+              />
+            </TouchableOpacity>
+
+            {/* Reminder icon */}
+            <TouchableOpacity
+              onPress={handleReminder}
+              style={{
+                padding: Default.fixPadding * 0.6,
+                borderRadius: 8,
+                backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                minWidth: 36,
+                minHeight: 36,
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
+            >
+              <MaterialCommunityIcons
+                name={hasNoticeReminder ? "bell" : "bell-outline"}
+                size={18}
+                color={hasNoticeReminder ? "#FFD93D" : "rgba(255, 255, 255, 0.9)"}
+              />
+            </TouchableOpacity>
+          </View>
 
           {/* Family image overlay - bottom right */}
           <Image
