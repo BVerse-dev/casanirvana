@@ -156,8 +156,8 @@ const NoticeBoardScreen = ({ navigation }) => {
     if (notice.image_url) {
       return { uri: notice.image_url };
     }
-    // Default notice icon - using existing notice board image
-    return require("../assets/images/notice-board.png");
+    // Default notice icon - using notification image
+    return require("../assets/images/notification.png");
   };
 
   const renderItem = ({ item, index }) => {
@@ -191,7 +191,7 @@ const NoticeBoardScreen = ({ navigation }) => {
               borderRadius: 5,
               backgroundColor: Colors.lightGrey 
             }}
-            defaultSource={require("../assets/images/notice-board.png")}
+            defaultSource={require("../assets/images/notification.png")}
           />
 
           <View
