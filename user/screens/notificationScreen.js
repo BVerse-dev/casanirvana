@@ -6,6 +6,7 @@ import {
   Dimensions,
   Animated,
   Image,
+  RefreshControl,
 } from "react-native";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -31,12 +32,15 @@ const NotificationScreen = ({ navigation }) => {
   }
 
   // Real notification hooks
-  const { data: notificationList = [], isLoading } = useNotifications();
+  const { data: notificationList = [], isLoading, refetch } = useNotifications();
   const markAsRead = useMarkNotificationAsRead();
   const deleteNotification = useDeleteNotification();
   
   // Set up real-time subscription
   useNotificationSubscription();
+
+  // Pull to refresh state
+  const [refreshing, setRefreshing] = useState(false);
 
   const backAction = () => {
     navigation.pop();
@@ -54,6 +58,19 @@ const NotificationScreen = ({ navigation }) => {
   const [removeNotificationToast, setRemoveNotificationToast] = useState(false);
   const onDismissRemoveNotificationToast = () =>
     setRemoveNotificationToast(false);
+
+  // Pull to refresh function
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refetch();
+      console.log('🔄 Notifications refreshed successfully');
+    } catch (error) {
+      console.error('❌ Error refreshing notifications:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   // Convert real notifications to display format
   const getDisplayNotifications = () => {
@@ -330,6 +347,16 @@ const NotificationScreen = ({ navigation }) => {
           rightOpenValue={-Dimensions.get("window").width}
           leftOpenValue={Dimensions.get("window").width}
           contentContainerStyle={{ paddingTop: Default.fixPadding * 0.8 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[Colors.primary]}
+              tintColor={Colors.primary}
+              title="Pull to refresh notifications..."
+              titleColor={Colors.grey}
+            />
+          }
         />
       )}
 
