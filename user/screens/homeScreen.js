@@ -222,6 +222,7 @@ const HomeScreen = ({ navigation }) => {
             position: 'relative',
           }}
         >
+          {/* Main content container - full width */}
           <View style={{ flexDirection: isRtl ? "row-reverse" : "row", flex: 1 }}>
             <View style={{ width: 6, backgroundColor: Colors.primary }} />
             <View
@@ -231,8 +232,7 @@ const HomeScreen = ({ navigation }) => {
                 alignItems: isRtl ? "flex-end" : "flex-start",
                 paddingTop: Default.fixPadding * 1.8,
                 paddingBottom: Default.fixPadding * 2.7,
-                paddingRight: isRtl ? Default.fixPadding * 0.9 : ms(180), // Reserve space for family image
-                paddingLeft: isRtl ? ms(180) : Default.fixPadding * 0.9, // Reserve space for family image
+                paddingHorizontal: Default.fixPadding * 0.9,
               }}
             >
               <Text
@@ -259,82 +259,91 @@ const HomeScreen = ({ navigation }) => {
                   marginTop: Default.fixPadding * 0.3,
                 }}
               />
-              <Text
-                numberOfLines={3}
-                style={{
-                  ...Fonts.Medium14extraLightGrey,
-                  overflow: "hidden",
-                  textAlign: isRtl ? "right" : "left",
-                  color: 'rgba(255, 255, 255, 0.95)',
-                  textShadowColor: 'rgba(0, 0, 0, 0.2)',
-                  textShadowOffset: {width: 0, height: 1},
-                  textShadowRadius: 1,
-                  lineHeight: 22,
-                  fontSize: 13,
-                  fontWeight: '400',
-                  width: '100%',
-                }}
-              >
-                {noticePreview}
-              </Text>
+              <View style={{ width: '100%' }}>
+                <Text
+                  numberOfLines={3}
+                  style={{
+                    ...Fonts.Medium14extraLightGrey,
+                    textAlign: isRtl ? "right" : "left",
+                    color: 'rgba(255, 255, 255, 0.95)',
+                    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+                    textShadowOffset: {width: 0, height: 1},
+                    textShadowRadius: 1,
+                    lineHeight: 22,
+                    fontSize: 13,
+                    fontWeight: '400',
+                  }}
+                >
+                  {noticePreview}
+                  {latestNotice?.body && latestNotice.body.length > 180 && (
+                    <Text
+                      style={{
+                        ...Fonts.Medium13white,
+                        textDecorationLine: 'underline',
+                        opacity: 0.9,
+                        fontWeight: '500',
+                      }}
+                    >
+                      {' '}read more...
+                    </Text>
+                  )}
+                </Text>
+              </View>
             </View>
           </View>
-          <View
+
+          {/* NEW badge overlay - top right */}
+          {isNewNotice && (
+            <View
+              style={{
+                position: "absolute",
+                top: Default.fixPadding,
+                right: isRtl ? undefined : Default.fixPadding,
+                left: isRtl ? Default.fixPadding : undefined,
+                justifyContent: "center",
+                alignItems: "center",
+                paddingHorizontal: Default.fixPadding * 0.8,
+                paddingVertical: Default.fixPadding * 0.4,
+                borderRadius: 12,
+                backgroundColor: 'rgba(255, 255, 255, 0.25)',
+                borderWidth: 1,
+                borderColor: 'rgba(255, 255, 255, 0.3)',
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+                elevation: 3,
+                zIndex: 2,
+              }}
+            >
+              <Text
+                numberOfLines={1}
+                style={{
+                  ...Fonts.SemiBold12white,
+                  overflow: "hidden",
+                  paddingHorizontal: Default.fixPadding * 0.2,
+                }}
+              >
+                {tr("new")}
+              </Text>
+            </View>
+          )}
+
+          {/* Family image overlay - bottom right */}
+          <Image
+            source={require("../assets/images/group.png")}
             style={{
               position: "absolute",
-              top: 0,
               bottom: 0,
               right: isRtl ? undefined : 0,
               left: isRtl ? 0 : undefined,
-              width: ms(180),
-              alignItems: isRtl ? "flex-start" : "flex-end",
-              paddingTop: Default.fixPadding,
+              resizeMode: "contain",
+              width: ms(140),
+              height: ms(65),
+              opacity: 0.15,
+              zIndex: 1,
             }}
-          >
-            {/* Only show NEW badge if there's a new notice */}
-            {isNewNotice && (
-              <View
-                style={{
-                  justifyContent: "center",
-                  alignItems: "center",
-                  paddingHorizontal: Default.fixPadding * 0.8,
-                  paddingVertical: Default.fixPadding * 0.4,
-                  borderRadius: 12,
-                  backgroundColor: 'rgba(255, 255, 255, 0.25)',
-                  borderWidth: 1,
-                  borderColor: 'rgba(255, 255, 255, 0.3)',
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 4,
-                  elevation: 3,
-                }}
-              >
-                <Text
-                  numberOfLines={1}
-                  style={{
-                    ...Fonts.SemiBold12white,
-                    overflow: "hidden",
-                    paddingHorizontal: Default.fixPadding * 0.2,
-                  }}
-                >
-                  {tr("new")}
-                </Text>
-              </View>
-            )}
-            <Image
-              source={require("../assets/images/group.png")}
-              style={{
-                resizeMode: "contain",
-                width: ms(172),
-                height: ms(79),
-                position: "absolute",
-                bottom: 0,
-                right: isRtl ? undefined : 0,
-                left: isRtl ? 0 : undefined,
-              }}
-            />
-          </View>
+          />
         </LinearGradient>
       </TouchableOpacity>
     );
