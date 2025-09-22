@@ -54,7 +54,7 @@ const TransferScreen = ({ navigation }) => {
       id: "bank",
       name: "Bank Transfer",
       subtitle: "Send money to any bank account",
-      logo: require("../assets/images/bank.png"),
+      logo: require("../assets/images/pay4.png"),
       icon: "bank",
       color: "#00A651",
     }
