@@ -577,28 +577,32 @@ const PaymentMethodScreen = ({ navigation, route }) => {
                   </View>
                 )}
                 
-                <View
-                  style={{
-                    flexDirection: isRtl ? "row-reverse" : "row",
-                    alignItems: "center",
-                    marginBottom: Default.fixPadding * 0.5,
-                  }}
-                >
-                  <MaterialCommunityIcons
-                    name="calendar-clock"
-                    size={16}
-                    color={Colors.primary}
-                    style={{ marginRight: isRtl ? 0 : Default.fixPadding * 0.5, marginLeft: isRtl ? Default.fixPadding * 0.5 : 0 }}
-                  />
-                  <Text
+                {/* Only show due date for regular payments, not for personal hub transactions */}
+                {!isAirtimePurchase && transactionType !== 'data' && transactionType !== 'money_transfer' && 
+                 transactionType !== 'insurance' && transactionType !== 'shopping' && transactionType !== 'bill_payment' && (
+                  <View
                     style={{
-                      ...Fonts.Medium14black,
-                      textAlign: isRtl ? "right" : "left",
+                      flexDirection: isRtl ? "row-reverse" : "row",
+                      alignItems: "center",
+                      marginBottom: Default.fixPadding * 0.5,
                     }}
                   >
-                    <Text style={{ ...Fonts.SemiBold14black }}>Due Date:</Text> {paymentData?.dueDate || 'N/A'}
-                  </Text>
-                </View>
+                    <MaterialCommunityIcons
+                      name="calendar-clock"
+                      size={16}
+                      color={Colors.primary}
+                      style={{ marginRight: isRtl ? 0 : Default.fixPadding * 0.5, marginLeft: isRtl ? Default.fixPadding * 0.5 : 0 }}
+                    />
+                    <Text
+                      style={{
+                        ...Fonts.Medium14black,
+                        textAlign: isRtl ? "right" : "left",
+                      }}
+                    >
+                      <Text style={{ ...Fonts.SemiBold14black }}>Due Date:</Text> {paymentData?.dueDate || 'N/A'}
+                    </Text>
+                  </View>
+                )}
                 
                 {paymentData?.description && (
                   <View
