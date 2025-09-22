@@ -140,12 +140,12 @@ const TransferReviewScreen = ({ navigation, route }) => {
             ...Default.shadow,
           }}>
             {/* Amount */}
-            <Text style={{ 
-              ...Fonts.Medium14lightGrey, 
-              textAlign: "center",
-              marginBottom: Default.fixPadding * 0.5,
-              letterSpacing: 0.5,
-            }}>
+              <Text style={{ 
+                ...Fonts.Medium14white, 
+                textAlign: "center",
+                marginBottom: Default.fixPadding * 0.5,
+                letterSpacing: 0.5,
+              }}>
               {tr("RECIPIENT GETS")}
             </Text>
             <Text style={{ 
@@ -164,7 +164,7 @@ const TransferReviewScreen = ({ navigation, route }) => {
               padding: Default.fixPadding * 1.5,
             }}>
               <Text style={{ 
-                ...Fonts.Medium12lightGrey, 
+                ...Fonts.Medium12white, 
                 marginBottom: Default.fixPadding,
                 letterSpacing: 0.5,
               }}>
@@ -199,7 +199,7 @@ const TransferReviewScreen = ({ navigation, route }) => {
                   <Text style={{ ...Fonts.SemiBold16white }}>
                     {phoneNumber || ""}
                   </Text>
-                  <Text style={{ ...Fonts.Medium14lightGrey, marginTop: 2 }}>
+                  <Text style={{ ...Fonts.Medium14white, marginTop: 2 }}>
                     {description || ""}
                   </Text>
                   <Text style={{ ...Fonts.Medium14white, marginTop: 2 }}>
@@ -232,7 +232,7 @@ const TransferReviewScreen = ({ navigation, route }) => {
                 padding: Default.fixPadding * 1.5,
               }}>
                 <Text style={{ 
-                  ...Fonts.Medium12lightGrey, 
+                  ...Fonts.Medium12white, 
                   marginBottom: Default.fixPadding,
                   letterSpacing: 0.5,
                 }}>
@@ -264,7 +264,7 @@ const TransferReviewScreen = ({ navigation, route }) => {
                     <Text style={{ ...Fonts.SemiBold16white }}>
                       {tr("Recurring")} {frequency}
                     </Text>
-                    <Text style={{ ...Fonts.Medium14lightGrey, marginTop: 2 }}>
+                    <Text style={{ ...Fonts.Medium14white, marginTop: 2 }}>
                       {firstPaymentNow ? tr("First payment today") : tr("First payment scheduled")}
                     </Text>
                     <Text style={{ ...Fonts.Medium14white, marginTop: 2 }}>
@@ -283,7 +283,7 @@ const TransferReviewScreen = ({ navigation, route }) => {
               padding: Default.fixPadding * 1.5,
             }}>
               <Text style={{ 
-                ...Fonts.Medium12lightGrey, 
+                ...Fonts.Medium12white, 
                 marginBottom: Default.fixPadding,
                 letterSpacing: 0.5,
               }}>
@@ -295,11 +295,14 @@ const TransferReviewScreen = ({ navigation, route }) => {
                   flexDirection: isRtl ? "row-reverse" : "row",
                   alignItems: "center",
                   justifyContent: "space-between",
+                  flexWrap: "nowrap",
+                  paddingRight: Default.fixPadding,
                 }}
               >
                 <View style={{
                   flexDirection: isRtl ? "row-reverse" : "row",
                   alignItems: "center",
+                  flex: 1,
                 }}>
                   <View
                     style={{
@@ -311,6 +314,7 @@ const TransferReviewScreen = ({ navigation, route }) => {
                       alignItems: "center",
                       marginRight: isRtl ? 0 : Default.fixPadding * 1.5,
                       marginLeft: isRtl ? Default.fixPadding * 1.5 : 0,
+                      flexShrink: 0,
                     }}
                   >
                     <MaterialCommunityIcons
@@ -319,18 +323,24 @@ const TransferReviewScreen = ({ navigation, route }) => {
                       color={Colors.white}
                     />
                   </View>
-                  <Text style={{ ...Fonts.SemiBold16white }}>
+                  <Text style={{ 
+                    ...Fonts.SemiBold14white,
+                    flexShrink: 1,
+                    marginRight: isRtl ? 0 : Default.fixPadding,
+                    marginLeft: isRtl ? Default.fixPadding : 0,
+                  }}>
                     {tr("Select payment method")}
                   </Text>
                 </View>
                 <View style={{
                   backgroundColor: "rgba(255, 255, 255, 0.2)",
-                  paddingHorizontal: Default.fixPadding * 0.8,
-                  paddingVertical: Default.fixPadding * 0.3,
+                  paddingHorizontal: Default.fixPadding * 0.6,
+                  paddingVertical: Default.fixPadding * 0.2,
                   borderRadius: 5,
-                  marginLeft: Default.fixPadding,
+                  flexShrink: 0,
+                  marginLeft: Default.fixPadding * 0.5,
                 }}>
-                  <Text style={{ ...Fonts.Medium12white }}>
+                  <Text style={{ ...Fonts.Medium10white }}>
                     {tr("Change")}
                   </Text>
                 </View>
@@ -353,7 +363,7 @@ const TransferReviewScreen = ({ navigation, route }) => {
               backgroundColor: "rgba(255, 255, 255, 0.03)",
             }}>
               <Text style={{ 
-                ...Fonts.Medium14lightGrey, 
+                ...Fonts.Medium14white, 
                 marginBottom: Default.fixPadding * 0.5,
                 letterSpacing: 0.5,
               }}>
@@ -378,7 +388,7 @@ const TransferReviewScreen = ({ navigation, route }) => {
                 justifyContent: "space-between",
                 marginBottom: Default.fixPadding * 1.5,
               }}>
-                <Text style={{ ...Fonts.Medium14lightGrey }}>
+                <Text style={{ ...Fonts.Medium14white }}>
                   {tr("Transfer Amount")}
                 </Text>
                 <Text style={{ ...Fonts.SemiBold14white }}>
@@ -392,7 +402,7 @@ const TransferReviewScreen = ({ navigation, route }) => {
                 justifyContent: "space-between",
                 marginBottom: Default.fixPadding * 1.5,
               }}>
-                <Text style={{ ...Fonts.Medium14lightGrey }}>
+                <Text style={{ ...Fonts.Medium14white }}>
                   {tr("Platform Fee")}
                 </Text>
                 <Text style={{ ...Fonts.SemiBold14white }}>
@@ -411,7 +421,7 @@ const TransferReviewScreen = ({ navigation, route }) => {
                 alignItems: "center",
                 justifyContent: "space-between",
               }}>
-                <Text style={{ ...Fonts.SemiBold16lightGrey }}>
+                <Text style={{ ...Fonts.SemiBold16white }}>
                   {tr("Total")}
                 </Text>
                 <Text style={{ ...Fonts.SemiBold16white }}>
@@ -426,7 +436,7 @@ const TransferReviewScreen = ({ navigation, route }) => {
                   borderRadius: 8,
                   padding: Default.fixPadding,
                 }}>
-                  <Text style={{ ...Fonts.Medium12lightGrey, marginBottom: 4 }}>
+                  <Text style={{ ...Fonts.Medium12white, marginBottom: 4 }}>
                     {tr("REFERENCE")}
                   </Text>
                   <Text style={{ ...Fonts.Medium14white }}>
