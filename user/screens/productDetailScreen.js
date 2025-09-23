@@ -58,6 +58,11 @@ const ProductDetailScreen = ({ navigation, route }) => {
     productData.images = [require("../assets/images/img1.png")];
   }
 
+  // Ensure all price values are numbers
+  productData.price = Number(productData.price) || 0;
+  productData.originalPrice = Number(productData.originalPrice) || 0;
+  productData.subscribePrice = Number(productData.subscribePrice) || 0;
+
   const relatedProducts = [
     {
       id: 2,
@@ -75,7 +80,11 @@ const ProductDetailScreen = ({ navigation, route }) => {
       discount: "75% off",
       image: require("../assets/images/img5.png"),
     },
-  ];
+  ].map(p => ({
+    ...p,
+    price: Number(p.price) || 0,
+    originalPrice: Number(p.originalPrice) || 0
+  }));
 
   const reviews = [
     {
@@ -143,10 +152,10 @@ const ProductDetailScreen = ({ navigation, route }) => {
         </Text>
         <View style={styles.priceContainer}>
           <Text style={styles.relatedProductPrice}>
-            US${item.price.toFixed(2)}
+            US${(Number(item.price) || 0).toFixed(2)}
           </Text>
           <Text style={styles.originalPrice}>
-            US${item.originalPrice.toFixed(2)}
+            US${(Number(item.originalPrice) || 0).toFixed(2)}
           </Text>
         </View>
       </View>
@@ -286,10 +295,12 @@ const ProductDetailScreen = ({ navigation, route }) => {
           {/* Price */}
           <View style={styles.priceSection}>
             <Text style={styles.currentPrice}>
-              ${purchaseType === "subscribe" ? productData.subscribePrice.toFixed(2) : productData.price.toFixed(2)}
+              ${purchaseType === "subscribe" ? 
+                (Number(productData.subscribePrice) || 0).toFixed(2) : 
+                (Number(productData.price) || 0).toFixed(2)}
             </Text>
             <Text style={styles.originalPriceDetail}>
-              ${productData.originalPrice.toFixed(2)}
+              ${(Number(productData.originalPrice) || 0).toFixed(2)}
             </Text>
           </View>
 
@@ -360,7 +371,7 @@ const ProductDetailScreen = ({ navigation, route }) => {
               <View style={styles.purchaseOptionText}>
                 <Text style={styles.purchaseOptionTitle}>One time purchase</Text>
                 <Text style={styles.purchaseOptionPrice}>
-                  ${productData.price.toFixed(2)}
+                  ${(Number(productData.price) || 0).toFixed(2)}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -380,9 +391,9 @@ const ProductDetailScreen = ({ navigation, route }) => {
                   <Text style={styles.saveBadge}>Save 20%</Text>
                 </Text>
                 <Text style={styles.purchaseOptionPrice}>
-                  ${productData.subscribePrice.toFixed(2)}{" "}
+                  ${(Number(productData.subscribePrice) || 0).toFixed(2)}{" "}
                   <Text style={styles.originalSubscribePrice}>
-                    ${productData.price.toFixed(2)}
+                    ${(Number(productData.price) || 0).toFixed(2)}
                   </Text>
                 </Text>
               </View>

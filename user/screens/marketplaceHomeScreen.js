@@ -285,22 +285,23 @@ const MarketplaceHomeScreen = ({ navigation }) => {
         {/* Main Categories Grid */}
         <View style={styles.categoriesGrid}>
           {categories.slice(0, 4).map((category, index) => (
-            <TouchableOpacity
-              key={category.id}
-              style={styles.categoryCard}
-              onPress={() => handleCategoryPress(category)}
-              activeOpacity={0.9}
-            >
-              <LinearGradient
-                colors={category.bgColor}
-                style={styles.categoryGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
+            <View key={category.id} style={styles.categoryCard}>
+              <TouchableOpacity
+                style={styles.categoryTouchable}
+                onPress={() => handleCategoryPress(category)}
+                activeOpacity={0.9}
               >
-                <Text style={styles.categoryName}>{category.name}</Text>
-                <View />
-              </LinearGradient>
-            </TouchableOpacity>
+                <LinearGradient
+                  colors={category.bgColor}
+                  style={styles.categoryGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <Text style={styles.categoryName}>{category.name}</Text>
+                  <View />
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
           ))}
         </View>
 
@@ -377,44 +378,46 @@ const MarketplaceHomeScreen = ({ navigation }) => {
         {/* More Categories */}
         <View style={styles.categoriesGrid}>
           {categories.slice(4, 8).map((category, index) => (
-            <TouchableOpacity
-              key={category.id}
-              style={styles.categoryCard}
-              onPress={() => handleCategoryPress(category)}
-              activeOpacity={0.9}
-            >
-              <LinearGradient
-                colors={category.bgColor}
-                style={styles.categoryGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
+            <View key={category.id} style={styles.categoryCard}>
+              <TouchableOpacity
+                style={styles.categoryTouchable}
+                onPress={() => handleCategoryPress(category)}
+                activeOpacity={0.9}
               >
-                <Text style={styles.categoryName}>{category.name}</Text>
-                <View />
-              </LinearGradient>
-            </TouchableOpacity>
+                <LinearGradient
+                  colors={category.bgColor}
+                  style={styles.categoryGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <Text style={styles.categoryName}>{category.name}</Text>
+                  <View />
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
           ))}
         </View>
 
         {/* Additional Categories */}
         <View style={styles.categoriesGrid}>
           {moreCategories.map((category, index) => (
-            <TouchableOpacity
-              key={category.id}
-              style={styles.categoryCard}
-              onPress={() => handleCategoryPress(category)}
-              activeOpacity={0.9}
-            >
-              <LinearGradient
-                colors={category.bgColor}
-                style={styles.categoryGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
+            <View key={category.id} style={styles.categoryCard}>
+              <TouchableOpacity
+                style={styles.categoryTouchable}
+                onPress={() => handleCategoryPress(category)}
+                activeOpacity={0.9}
               >
-                <Text style={styles.categoryName}>{category.name}</Text>
-                <View />
-              </LinearGradient>
-            </TouchableOpacity>
+                <LinearGradient
+                  colors={category.bgColor}
+                  style={styles.categoryGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <Text style={styles.categoryName}>{category.name}</Text>
+                  <View />
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
           ))}
         </View>
 
@@ -476,13 +479,17 @@ const styles = StyleSheet.create({
   categoriesGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    paddingHorizontal: Default.fixPadding,
+    paddingHorizontal: Default.fixPadding * 0.5,
     marginTop: Default.fixPadding,
   },
   categoryCard: {
-    width: (width - Default.fixPadding * 3) / 2,
-    height: (width - Default.fixPadding * 3) / 2 * 0.55,
-    margin: Default.fixPadding * 0.5,
+    width: (width - Default.fixPadding * 2) / 2,
+    height: (width - Default.fixPadding * 2) / 2 * 0.55,
+    paddingHorizontal: Default.fixPadding * 0.5,
+    paddingBottom: Default.fixPadding,
+  },
+  categoryTouchable: {
+    flex: 1,
     borderRadius: 15,
     overflow: "hidden",
   },
@@ -490,6 +497,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: Default.fixPadding * 1.2,
     justifyContent: "space-between",
+    borderRadius: 15,
   },
   categoryName: {
     ...Fonts.Bold16white,
