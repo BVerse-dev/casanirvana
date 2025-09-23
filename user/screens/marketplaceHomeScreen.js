@@ -179,22 +179,30 @@ const MarketplaceHomeScreen = ({ navigation }) => {
     },
   ];
 
-  const featuredProducts = [
+  const freshFoodsProducts = [
     {
       id: 1,
-      name: "Summer Collection",
-      price: "$29.99",
-      originalPrice: "$49.99",
-      discount: "Save $20",
+      name: "Organic Vegetables",
+      price: "$12.99",
+      originalPrice: "$16.99",
+      discount: "Save $4",
       image: require("../assets/images/img1.png"),
     },
     {
       id: 2,
-      name: "Trendy Outfits",
-      price: "$39.99",
-      originalPrice: "$59.99",
-      discount: "Save $20",
+      name: "Fresh Fruits Bundle",
+      price: "$18.99",
+      originalPrice: "$24.99",
+      discount: "Save $6",
       image: require("../assets/images/img2.png"),
+    },
+    {
+      id: 3,
+      name: "Local Farm Produce",
+      price: "$22.99",
+      originalPrice: "$29.99",
+      discount: "Save $7",
+      image: require("../assets/images/img3.png"),
     },
   ];
 
@@ -222,6 +230,33 @@ const MarketplaceHomeScreen = ({ navigation }) => {
       originalPrice: "$89.99",
       discount: "Save $30",
       image: require("../assets/images/img2.png"),
+    },
+  ];
+
+  const groceriesProducts = [
+    {
+      id: 1,
+      name: "Pantry Essentials Pack",
+      price: "$34.99",
+      originalPrice: "$44.99",
+      discount: "Save $10",
+      image: require("../assets/images/img1.png"),
+    },
+    {
+      id: 2,
+      name: "Snacks & Beverages",
+      price: "$24.99",
+      originalPrice: "$32.99",
+      discount: "Save $8",
+      image: require("../assets/images/img2.png"),
+    },
+    {
+      id: 3,
+      name: "Household Supplies",
+      price: "$19.99",
+      originalPrice: "$26.99",
+      discount: "Save $7",
+      image: require("../assets/images/img3.png"),
     },
   ];
 
@@ -518,16 +553,16 @@ const MarketplaceHomeScreen = ({ navigation }) => {
           </View>
         </View>
 
-        {/* Women Section */}
+        {/* Fresh Foods Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Women</Text>
+            <Text style={styles.sectionTitle}>Fresh Foods</Text>
             <Ionicons name="chevron-forward" size={20} color={Colors.black} />
           </View>
           <FlatList
             horizontal
             showsHorizontalScrollIndicator={false}
-            data={featuredProducts}
+            data={freshFoodsProducts}
             renderItem={renderProduct}
             keyExtractor={(item) => item.id.toString()}
             contentContainerStyle={styles.horizontalList}
@@ -544,6 +579,22 @@ const MarketplaceHomeScreen = ({ navigation }) => {
             horizontal
             showsHorizontalScrollIndicator={false}
             data={homeProducts}
+            renderItem={renderProduct}
+            keyExtractor={(item) => item.id.toString()}
+            contentContainerStyle={styles.horizontalList}
+          />
+        </View>
+
+        {/* Groceries Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Groceries</Text>
+            <Ionicons name="chevron-forward" size={20} color={Colors.black} />
+          </View>
+          <FlatList
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            data={groceriesProducts}
             renderItem={renderProduct}
             keyExtractor={(item) => item.id.toString()}
             contentContainerStyle={styles.horizontalList}
