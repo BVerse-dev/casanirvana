@@ -53,6 +53,11 @@ const ProductDetailScreen = ({ navigation, route }) => {
     ],
   };
 
+  // Ensure images array exists
+  if (!productData.images || !Array.isArray(productData.images)) {
+    productData.images = [require("../assets/images/img1.png")];
+  }
+
   const relatedProducts = [
     {
       id: 2,
@@ -220,7 +225,7 @@ const ProductDetailScreen = ({ navigation, route }) => {
 
         {/* Image Indicators */}
         <View style={styles.imageIndicators}>
-          {productData.images.map((_, index) => (
+          {productData.images && productData.images.map((_, index) => (
             <View
               key={index}
               style={[

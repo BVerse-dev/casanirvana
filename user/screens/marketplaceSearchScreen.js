@@ -76,7 +76,7 @@ const MarketplaceSearchScreen = ({ navigation, route }) => {
   ];
 
   const categories = [
-    { id: 1, name: "Coffee", icon: "coffee" },
+    { id: 1, name: "Coffee", icon: "cafe" },
     { id: 2, name: "Pantry", icon: "restaurant" },
     { id: 3, name: "Snacks", icon: "fast-food" },
     { id: 4, name: "Tea", icon: "leaf" },

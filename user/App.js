@@ -430,6 +430,10 @@ const MainNavigation = () => {
           name="ordersScreen"
           component={require("./screens/ordersScreen").default}
         />
+        <Stack.Screen
+          name="orderDetailScreen"
+          component={require("./screens/orderDetailScreen").default}
+        />
           </Stack.Navigator>
           </NotificationNavigationHandler>
         </NotificationProvider>
