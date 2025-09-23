@@ -155,9 +155,10 @@ const MarketplaceHomeScreen = ({ navigation }) => {
   const tryNewFeatures = [
     {
       id: 1,
-      title: "Rate My Fit",
-      icon: "tshirt",
-      iconType: "FontAwesome5",
+      title: "Community Picks",
+      subtitle: "Top-rated by neighbors",
+      icon: "people",
+      iconType: "Ionicons",
       bgColor: "#FFD700",
     },
     {
@@ -193,6 +194,33 @@ const MarketplaceHomeScreen = ({ navigation }) => {
       price: "$39.99",
       originalPrice: "$59.99",
       discount: "Save $20",
+      image: require("../assets/images/img2.png"),
+    },
+  ];
+
+  const homeProducts = [
+    {
+      id: 1,
+      name: "Modern Furniture Set",
+      price: "$149.99",
+      originalPrice: "$199.99",
+      discount: "Save $50",
+      image: require("../assets/images/img3.png"),
+    },
+    {
+      id: 2,
+      name: "Kitchen Essentials",
+      price: "$79.99",
+      originalPrice: "$99.99",
+      discount: "Save $20",
+      image: require("../assets/images/img1.png"),
+    },
+    {
+      id: 3,
+      name: "Home Decor Bundle",
+      price: "$59.99",
+      originalPrice: "$89.99",
+      discount: "Save $30",
       image: require("../assets/images/img2.png"),
     },
   ];
@@ -443,7 +471,7 @@ const MarketplaceHomeScreen = ({ navigation }) => {
             <Ionicons name="chevron-forward" size={20} color={Colors.black} />
           </View>
           <Text style={styles.sectionSubtitle}>
-            Discover more ways to shop with Minis
+            Discover more ways to shop with Casa Nirvana
           </Text>
           <View style={styles.featuresContainer}>
             {tryNewFeatures.map((feature) => (
@@ -500,6 +528,22 @@ const MarketplaceHomeScreen = ({ navigation }) => {
             horizontal
             showsHorizontalScrollIndicator={false}
             data={featuredProducts}
+            renderItem={renderProduct}
+            keyExtractor={(item) => item.id.toString()}
+            contentContainerStyle={styles.horizontalList}
+          />
+        </View>
+
+        {/* Home & Living Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Home & Living</Text>
+            <Ionicons name="chevron-forward" size={20} color={Colors.black} />
+          </View>
+          <FlatList
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            data={homeProducts}
             renderItem={renderProduct}
             keyExtractor={(item) => item.id.toString()}
             contentContainerStyle={styles.horizontalList}
