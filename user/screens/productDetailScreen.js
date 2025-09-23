@@ -14,6 +14,7 @@ import {
 import { Ionicons, MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
 import { Colors, Fonts, Default } from "../constants/styles";
 import { useTranslation } from "react-i18next";
+import { useProduct } from "../hooks/useMarketplace";
 import AwesomeButton from "react-native-really-awesome-button";
 
 const { width, height } = Dimensions.get("window");
@@ -21,6 +22,9 @@ const { width, height } = Dimensions.get("window");
 const ProductDetailScreen = ({ navigation, route }) => {
   const { t } = useTranslation();
   const { productId, product } = route.params || {};
+
+  // Fetch product details from database
+  const { data: productData, isLoading, error } = useProduct(productId);
   const scrollViewRef = useRef(null);
 
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);

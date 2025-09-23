@@ -15,6 +15,7 @@ import {
 import { Ionicons, MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
 import { Colors, Fonts, Default } from "../constants/styles";
 import { useTranslation } from "react-i18next";
+import { useCategories, useProducts } from "../hooks/useMarketplace";
 import { LinearGradient } from "expo-linear-gradient";
 
 const { width, height } = Dimensions.get("window");
@@ -27,7 +28,12 @@ const MarketplaceHomeScreen = ({ navigation }) => {
   const slideRef = useRef(null);
   const slideInterval = useRef(null);
 
-  const categories = [
+  // Fetch data from hooks
+  const { data: categoriesData, isLoading: categoriesLoading, error: categoriesError, refetch: refetchCategories } = useCategories();
+  const { data: productsData, isLoading: productsLoading, error: productsError, refetch: refetchProducts } = useProducts();
+
+  // Use dynamic categories from database or fallback to static
+  const fallbackCategories = [
     {
       id: 1,
       name: "Baby & toddler",
@@ -124,6 +130,15 @@ const MarketplaceHomeScreen = ({ navigation }) => {
       bgColor: ["#6B9BD1", "#8BB3E0"],
     },
   ];
+
+  // Use database categories if available, otherwise fallback
+  const categories = categoriesData && categoriesData.length > 0 ? categoriesData.map(cat => ({
+    id: cat.id,
+    name: cat.name,
+    icon: cat.icon_name || "grid",
+    iconType: cat.icon_type || "Ionicons",
+    bgColor: cat.background_colors ? JSON.parse(cat.background_colors) : ["#FF6B6B", "#FF8E8E"]
+  })) : fallbackCategories;
 
   const heroSlides = [
     {
@@ -283,18 +298,22 @@ const MarketplaceHomeScreen = ({ navigation }) => {
     }
   }, [currentSlide]);
 
-  const onRefresh = () => {
+  const onRefresh = async () => {
     setRefreshing(true);
-    // Simulate refresh
-    setTimeout(() => {
+    try {
+      await Promise.all([refetchCategories(), refetchProducts()]);
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+    } finally {
       setRefreshing(false);
-    }, 2000);
+    }
   };
 
   const handleCategoryPress = (category) => {
     navigation.navigate("categoryListingScreen", {
       category: category.name,
       categoryId: category.id,
+      categoryData: category
     });
   };
 
@@ -381,7 +400,10 @@ const MarketplaceHomeScreen = ({ navigation }) => {
     <TouchableOpacity
       style={styles.productCard}
       onPress={() =>
-        navigation.navigate("productDetailScreen", { productId: item.id })
+        navigation.navigate("productDetailScreen", { 
+          productId: item.id,
+          product: item 
+        })
       }
       activeOpacity={0.8}
     >
@@ -402,6 +424,16 @@ const MarketplaceHomeScreen = ({ navigation }) => {
       </View>
     </TouchableOpacity>
   );
+
+  // Loading state
+  if (categoriesLoading && !categoriesData) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <StatusBar backgroundColor={Colors.white} barStyle="dark-content" />
+        <Text style={styles.loadingText}>Loading marketplace...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -464,7 +496,9 @@ const MarketplaceHomeScreen = ({ navigation }) => {
         {/* Search Box */}
         <View style={styles.searchContainer}>
           <View style={styles.searchBox}>
-            <Ionicons name="search" size={20} color={Colors.lightGrey} />
+            <TouchableOpacity onPress={handleSearch}>
+              <Ionicons name="search" size={20} color={Colors.lightGrey} />
+            </TouchableOpacity>
             <TextInput
               style={styles.searchInput}
               placeholder="Search"
@@ -501,10 +535,18 @@ const MarketplaceHomeScreen = ({ navigation }) => {
 
         {/* Try Something New Section */}
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
+          <TouchableOpacity 
+            style={styles.sectionHeader}
+            onPress={() => navigation.navigate("categoryListingScreen", {
+              category: "Try something new",
+              categoryId: "featured",
+              categoryData: { name: "Try something new", id: "featured" }
+            })}
+            activeOpacity={0.8}
+          >
             <Text style={styles.sectionTitle}>Try something new</Text>
             <Ionicons name="chevron-forward" size={20} color={Colors.black} />
-          </View>
+          </TouchableOpacity>
           <Text style={styles.sectionSubtitle}>
             Discover more ways to shop with Casa Nirvana
           </Text>
@@ -555,10 +597,18 @@ const MarketplaceHomeScreen = ({ navigation }) => {
 
         {/* Fresh Foods Section */}
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
+          <TouchableOpacity 
+            style={styles.sectionHeader}
+            onPress={() => navigation.navigate("categoryListingScreen", {
+              category: "Fresh Foods",
+              categoryId: "fresh-foods",
+              categoryData: { name: "Fresh Foods", id: "fresh-foods" }
+            })}
+            activeOpacity={0.8}
+          >
             <Text style={styles.sectionTitle}>Fresh Foods</Text>
             <Ionicons name="chevron-forward" size={20} color={Colors.black} />
-          </View>
+          </TouchableOpacity>
           <FlatList
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -571,10 +621,18 @@ const MarketplaceHomeScreen = ({ navigation }) => {
 
         {/* Home & Living Section */}
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
+          <TouchableOpacity 
+            style={styles.sectionHeader}
+            onPress={() => navigation.navigate("categoryListingScreen", {
+              category: "Home & Living",
+              categoryId: "home-living",
+              categoryData: { name: "Home & Living", id: "home-living" }
+            })}
+            activeOpacity={0.8}
+          >
             <Text style={styles.sectionTitle}>Home & Living</Text>
             <Ionicons name="chevron-forward" size={20} color={Colors.black} />
-          </View>
+          </TouchableOpacity>
           <FlatList
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -587,10 +645,18 @@ const MarketplaceHomeScreen = ({ navigation }) => {
 
         {/* Groceries Section */}
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
+          <TouchableOpacity 
+            style={styles.sectionHeader}
+            onPress={() => navigation.navigate("categoryListingScreen", {
+              category: "Groceries",
+              categoryId: "groceries",
+              categoryData: { name: "Groceries", id: "groceries" }
+            })}
+            activeOpacity={0.8}
+          >
             <Text style={styles.sectionTitle}>Groceries</Text>
             <Ionicons name="chevron-forward" size={20} color={Colors.black} />
-          </View>
+          </TouchableOpacity>
           <FlatList
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -976,6 +1042,10 @@ const styles = StyleSheet.create({
   },
   tabButton: {
     padding: Default.fixPadding * 0.5,
+  },
+  loadingText: {
+    ...Fonts.SemiBold16black,
+    color: Colors.grey,
   },
 });
 

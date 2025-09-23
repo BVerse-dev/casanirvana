@@ -14,6 +14,7 @@ import {
 import { Ionicons, MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
 import { Colors, Fonts, Default } from "../constants/styles";
 import { useTranslation } from "react-i18next";
+import { useProducts } from "../hooks/useMarketplace";
 
 const { width } = Dimensions.get("window");
 
@@ -24,8 +25,12 @@ const CategoryListingScreen = ({ navigation, route }) => {
   const [selectedSort, setSelectedSort] = useState("relevance");
   const [showFilters, setShowFilters] = useState(false);
 
-  // Mock products data
-  const [products, setProducts] = useState([
+  // Fetch products for this category
+  const filters = categoryId ? { categoryId, sort: selectedSort } : { sort: selectedSort };
+  const { data: productsData, isLoading, error, refetch } = useProducts(filters);
+
+  // Use dynamic products or fallback to mock data
+  const mockProducts = [
     {
       id: 1,
       name: "Honey Bee Balm",
@@ -92,7 +97,20 @@ const CategoryListingScreen = ({ navigation, route }) => {
       discount: "65% off",
       image: require("../assets/images/img6.png"),
     },
-  ]);
+  ];
+
+  // Use database products if available, otherwise fallback to mock data
+  const products = productsData && productsData.length > 0 ? productsData.map(product => ({
+    id: product.id,
+    name: product.name,
+    vendor: product.vendor?.store_name || "Casa Nirvana",
+    rating: product.rating || 4.5,
+    reviews: product.review_count || 100,
+    price: parseFloat(product.price),
+    originalPrice: product.original_price ? parseFloat(product.original_price) : parseFloat(product.price) * 1.3,
+    discount: product.discount_percentage ? `${product.discount_percentage}% off` : null,
+    image: product.images && product.images.length > 0 ? { uri: product.images[0] } : require("../assets/images/img1.png"),
+  })) : mockProducts;
 
   const sortOptions = [
     { id: "relevance", label: "Relevance" },
@@ -102,12 +120,15 @@ const CategoryListingScreen = ({ navigation, route }) => {
     { id: "newest", label: "Newest" },
   ];
 
-  const onRefresh = () => {
+  const onRefresh = async () => {
     setRefreshing(true);
-    // Simulate refresh
-    setTimeout(() => {
+    try {
+      await refetch();
+    } catch (error) {
+      console.error('Error refreshing products:', error);
+    } finally {
       setRefreshing(false);
-    }, 2000);
+    }
   };
 
   const handleSort = (sortId) => {
