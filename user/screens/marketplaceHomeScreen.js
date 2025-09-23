@@ -961,6 +961,10 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 18,
     lineHeight: 22,
+    fontWeight: 'bold',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
   categoryImage: {
     position: "absolute",
@@ -983,6 +987,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     ...Fonts.Bold18black,
     color: Colors.black,
+    fontWeight: 'bold',
   },
   sectionSubtitle: {
     ...Fonts.Regular14grey,
@@ -1014,8 +1019,9 @@ const styles = StyleSheet.create({
     marginLeft: Default.fixPadding,
   },
   featureTitle: {
-    ...Fonts.SemiBold16black,
+    ...Fonts.Bold16black,
     color: Colors.black,
+    fontWeight: 'bold',
   },
   featureSubtitle: {
     ...Fonts.Regular12grey,
@@ -1057,9 +1063,10 @@ const styles = StyleSheet.create({
     padding: Default.fixPadding,
   },
   productName: {
-    ...Fonts.SemiBold14black,
+    ...Fonts.Bold14black,
     color: Colors.black,
     marginBottom: Default.fixPadding * 0.5,
+    fontWeight: 'bold',
   },
   priceContainer: {
     flexDirection: "row",
@@ -1119,15 +1126,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   importedCategoryText: {
-    ...Fonts.Bold14white,
+    ...Fonts.Bold16white,
     marginTop: 8,
     textAlign: "center",
+    fontWeight: 'bold',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
   importedCategoryDesc: {
-    ...Fonts.Regular10white,
+    ...Fonts.Regular12white,
     marginTop: 4,
     textAlign: "center",
-    opacity: 0.9,
+    opacity: 0.95,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 1,
   },
   cartBadge: {
     position: "absolute",
