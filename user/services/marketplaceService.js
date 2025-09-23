@@ -1,4 +1,4 @@
-import { supabase } from "../config/supabase";
+import { supabase } from "../lib/supabase";
 
 // Categories
 export const getCategories = async (filters = {}) => {
