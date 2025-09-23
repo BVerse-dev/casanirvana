@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -23,6 +23,9 @@ const MarketplaceHomeScreen = ({ navigation }) => {
   const { t } = useTranslation();
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const slideRef = useRef(null);
+  const slideInterval = useRef(null);
 
   const categories = [
     {
@@ -122,6 +125,33 @@ const MarketplaceHomeScreen = ({ navigation }) => {
     },
   ];
 
+  const heroSlides = [
+    {
+      id: 1,
+      title: "Up your glow game",
+      subtitle: "Explore offers on self-care essentials",
+      gradient: ["#8B0000", "#DC143C"],
+      image: require("../assets/images/img1.png"),
+      badge: "Ends Sunday",
+    },
+    {
+      id: 2,
+      title: "Summer Collection",
+      subtitle: "Get ready for the season",
+      gradient: ["#1B4F72", "#2E86C1"],
+      image: require("../assets/images/img2.png"),
+      badge: "New Arrival",
+    },
+    {
+      id: 3,
+      title: "Wellness Week",
+      subtitle: "Health and beauty essentials",
+      gradient: ["#0B5345", "#239B56"],
+      image: require("../assets/images/img3.png"),
+      badge: "Limited Time",
+    },
+  ];
+
   const tryNewFeatures = [
     {
       id: 1,
@@ -167,6 +197,29 @@ const MarketplaceHomeScreen = ({ navigation }) => {
     },
   ];
 
+  useEffect(() => {
+    // Auto-slide hero images
+    slideInterval.current = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
+    }, 4000);
+
+    return () => {
+      if (slideInterval.current) {
+        clearInterval(slideInterval.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    // Scroll to current slide
+    if (slideRef.current) {
+      slideRef.current.scrollToOffset({
+        offset: currentSlide * width,
+        animated: true,
+      });
+    }
+  }, [currentSlide]);
+
   const onRefresh = () => {
     setRefreshing(true);
     // Simulate refresh
@@ -187,6 +240,36 @@ const MarketplaceHomeScreen = ({ navigation }) => {
       navigation.navigate("marketplaceSearchScreen", { query: searchQuery });
     }
   };
+
+  const renderHeroSlide = ({ item }) => (
+    <TouchableOpacity
+      style={styles.heroSlide}
+      activeOpacity={0.9}
+      onPress={() => console.log("Hero slide pressed:", item.title)}
+    >
+      <LinearGradient
+        colors={item.gradient}
+        style={styles.heroGradient}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        {item.badge && (
+          <View style={styles.heroBadge}>
+            <Ionicons name="time-outline" size={16} color={Colors.white} />
+            <Text style={styles.heroBadgeText}>{item.badge}</Text>
+          </View>
+        )}
+        <View style={styles.heroContent}>
+          <Text style={styles.heroTitle}>{item.title}</Text>
+          <View style={styles.heroSubtitleContainer}>
+            <Text style={styles.heroSubtitle}>{item.subtitle}</Text>
+            <Ionicons name="chevron-forward" size={20} color={Colors.white} />
+          </View>
+        </View>
+        <Image source={item.image} style={styles.heroImage} />
+      </LinearGradient>
+    </TouchableOpacity>
+  );
 
   const renderCategory = ({ item, index }) => (
     <TouchableOpacity
@@ -261,7 +344,23 @@ const MarketplaceHomeScreen = ({ navigation }) => {
     <View style={styles.container}>
       <StatusBar backgroundColor={Colors.white} barStyle="dark-content" />
       
-      {/* Search Header */}
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        >
+          <Ionicons name="arrow-back" size={24} color={Colors.black} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Marketplace</Text>
+        <View style={styles.headerRight}>
+          <TouchableOpacity style={styles.headerButton}>
+            <Ionicons name="cart-outline" size={24} color={Colors.black} />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Search Box */}
       <View style={styles.searchContainer}>
         <View style={styles.searchBox}>
           <Ionicons name="search" size={20} color={Colors.lightGrey} />
@@ -282,6 +381,37 @@ const MarketplaceHomeScreen = ({ navigation }) => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
+        {/* Hero Slider */}
+        <View style={styles.heroContainer}>
+          <FlatList
+            ref={slideRef}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            data={heroSlides}
+            renderItem={renderHeroSlide}
+            keyExtractor={(item) => item.id.toString()}
+            onMomentumScrollEnd={(event) => {
+              const newIndex = Math.round(
+                event.nativeEvent.contentOffset.x / width
+              );
+              setCurrentSlide(newIndex);
+            }}
+          />
+          {/* Slide Indicators */}
+          <View style={styles.slideIndicators}>
+            {heroSlides.map((_, index) => (
+              <TouchableOpacity
+                key={index}
+                onPress={() => setCurrentSlide(index)}
+                style={[
+                  styles.indicator,
+                  index === currentSlide && styles.activeIndicator,
+                ]}
+              />
+            ))}
+          </View>
+        </View>
         {/* Main Categories Grid */}
         <View style={styles.categoriesGrid}>
           {categories.slice(0, 4).map((category, index) => (
@@ -456,10 +586,34 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.white,
   },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: Default.fixPadding * 1.2,
+    paddingTop: Default.fixPadding * 3,
+    paddingBottom: Default.fixPadding,
+    backgroundColor: Colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
+  backButton: {
+    padding: Default.fixPadding * 0.5,
+  },
+  headerTitle: {
+    ...Fonts.Bold18black,
+    color: Colors.black,
+    flex: 1,
+    marginLeft: Default.fixPadding,
+  },
+  headerRight: {
+    flexDirection: "row",
+  },
+  headerButton: {
+    padding: Default.fixPadding * 0.5,
+  },
   searchContainer: {
     paddingHorizontal: Default.fixPadding * 1.2,
-    paddingTop: Default.fixPadding * 4,
-    paddingBottom: Default.fixPadding,
+    paddingVertical: Default.fixPadding,
     backgroundColor: Colors.white,
   },
   searchBox: {
@@ -475,6 +629,85 @@ const styles = StyleSheet.create({
     marginLeft: Default.fixPadding * 0.5,
     ...Fonts.SemiBold14black,
     color: Colors.black,
+  },
+  heroContainer: {
+    height: width * 0.5,
+    marginBottom: Default.fixPadding,
+  },
+  heroSlide: {
+    width: width,
+    height: width * 0.5,
+  },
+  heroGradient: {
+    flex: 1,
+    position: "relative",
+    overflow: "hidden",
+  },
+  heroBadge: {
+    position: "absolute",
+    top: Default.fixPadding,
+    left: Default.fixPadding * 1.2,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.3)",
+    paddingHorizontal: Default.fixPadding,
+    paddingVertical: Default.fixPadding * 0.5,
+    borderRadius: 20,
+    zIndex: 2,
+  },
+  heroBadgeText: {
+    ...Fonts.SemiBold12white,
+    color: Colors.white,
+    marginLeft: Default.fixPadding * 0.3,
+  },
+  heroContent: {
+    position: "absolute",
+    bottom: Default.fixPadding * 2,
+    left: Default.fixPadding * 1.5,
+    right: Default.fixPadding * 1.5,
+    zIndex: 2,
+  },
+  heroTitle: {
+    ...Fonts.Bold24white,
+    color: Colors.white,
+    fontSize: 28,
+    marginBottom: Default.fixPadding * 0.5,
+  },
+  heroSubtitleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  heroSubtitle: {
+    ...Fonts.Regular16white,
+    color: Colors.white,
+    opacity: 0.9,
+  },
+  heroImage: {
+    position: "absolute",
+    right: -50,
+    bottom: -50,
+    width: width * 0.6,
+    height: width * 0.6,
+    opacity: 0.3,
+    transform: [{ rotate: "15deg" }],
+  },
+  slideIndicators: {
+    position: "absolute",
+    bottom: Default.fixPadding,
+    alignSelf: "center",
+    flexDirection: "row",
+  },
+  indicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "rgba(255, 255, 255, 0.5)",
+    marginHorizontal: 4,
+  },
+  activeIndicator: {
+    backgroundColor: Colors.white,
+    width: 20,
   },
   categoriesGrid: {
     flexDirection: "row",
