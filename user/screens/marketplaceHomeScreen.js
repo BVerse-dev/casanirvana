@@ -214,7 +214,7 @@ const MarketplaceHomeScreen = ({ navigation }) => {
     // Scroll to current slide
     if (slideRef.current) {
       slideRef.current.scrollToOffset({
-        offset: currentSlide * width,
+        offset: currentSlide * (width - Default.fixPadding * 2.4),
         animated: true,
       });
     }
@@ -360,21 +360,6 @@ const MarketplaceHomeScreen = ({ navigation }) => {
         </View>
       </View>
 
-      {/* Search Box */}
-      <View style={styles.searchContainer}>
-        <View style={styles.searchBox}>
-          <Ionicons name="search" size={20} color={Colors.lightGrey} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search"
-            placeholderTextColor={Colors.lightGrey}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            onSubmitEditing={handleSearch}
-          />
-        </View>
-      </View>
-
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -393,7 +378,7 @@ const MarketplaceHomeScreen = ({ navigation }) => {
             keyExtractor={(item) => item.id.toString()}
             onMomentumScrollEnd={(event) => {
               const newIndex = Math.round(
-                event.nativeEvent.contentOffset.x / width
+                event.nativeEvent.contentOffset.x / (width - Default.fixPadding * 2.4)
               );
               setCurrentSlide(newIndex);
             }}
@@ -412,6 +397,22 @@ const MarketplaceHomeScreen = ({ navigation }) => {
             ))}
           </View>
         </View>
+
+        {/* Search Box */}
+        <View style={styles.searchContainer}>
+          <View style={styles.searchBox}>
+            <Ionicons name="search" size={20} color={Colors.lightGrey} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search"
+              placeholderTextColor={Colors.lightGrey}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              onSubmitEditing={handleSearch}
+            />
+          </View>
+        </View>
+
         {/* Main Categories Grid */}
         <View style={styles.categoriesGrid}>
           {categories.slice(0, 4).map((category, index) => (
@@ -600,7 +601,7 @@ const styles = StyleSheet.create({
     padding: Default.fixPadding * 0.5,
   },
   headerTitle: {
-    ...Fonts.Bold18black,
+    ...Fonts.SemiBold18black,
     color: Colors.black,
     flex: 1,
     marginLeft: Default.fixPadding,
@@ -633,15 +634,19 @@ const styles = StyleSheet.create({
   heroContainer: {
     height: width * 0.5,
     marginBottom: Default.fixPadding,
+    marginHorizontal: Default.fixPadding * 1.2,
+    borderRadius: 15,
+    overflow: "hidden",
   },
   heroSlide: {
-    width: width,
+    width: width - Default.fixPadding * 2.4,
     height: width * 0.5,
   },
   heroGradient: {
     flex: 1,
     position: "relative",
     overflow: "hidden",
+    borderRadius: 15,
   },
   heroBadge: {
     position: "absolute",
