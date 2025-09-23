@@ -3,11 +3,11 @@ import * as marketplaceService from "../services/marketplaceService";
 import { useAuth } from "../contexts/AuthContext";
 
 // Categories Hook
-export const useCategories = () => {
+export const useCategories = (filters = {}) => {
   return useQuery({
-    queryKey: ["marketplace-categories"],
+    queryKey: ["marketplace-categories", filters],
     queryFn: async () => {
-      const { data, error } = await marketplaceService.getCategories();
+      const { data, error } = await marketplaceService.getCategories(filters);
       if (error) throw error;
       return data;
     },
@@ -342,11 +342,11 @@ export const useToggleFollowVendor = () => {
 };
 
 // Search Hooks
-export const useSearchProducts = (query: string) => {
+export const useSearchProducts = (query: string, filters = {}) => {
   return useQuery({
-    queryKey: ["marketplace-search", query],
+    queryKey: ["marketplace-search", query, filters],
     queryFn: async () => {
-      const { data, error } = await marketplaceService.searchProducts(query);
+      const { data, error } = await marketplaceService.searchProducts(query, filters);
       if (error) throw error;
       return data;
     },

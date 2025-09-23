@@ -30,6 +30,7 @@ const MarketplaceHomeScreen = ({ navigation }) => {
 
   // Fetch data from hooks
   const { data: categoriesData, isLoading: categoriesLoading, error: categoriesError, refetch: refetchCategories } = useCategories();
+  const { data: importedCategoriesData, refetch: refetchImportedCategories } = useCategories({ categoryType: 'imported' });
   const { data: productsData, isLoading: productsLoading, error: productsError, refetch: refetchProducts } = useProducts();
   const { data: cartData } = useCart();
 
@@ -302,7 +303,7 @@ const MarketplaceHomeScreen = ({ navigation }) => {
   const onRefresh = async () => {
     setRefreshing(true);
     try {
-      await Promise.all([refetchCategories(), refetchProducts()]);
+      await Promise.all([refetchCategories(), refetchImportedCategories(), refetchProducts()]);
     } catch (error) {
       console.error('Error refreshing data:', error);
     } finally {
@@ -673,6 +674,52 @@ const MarketplaceHomeScreen = ({ navigation }) => {
             showsHorizontalScrollIndicator={false}
             data={groceriesProducts}
             renderItem={renderProduct}
+            keyExtractor={(item) => item.id.toString()}
+            contentContainerStyle={styles.horizontalList}
+          />
+        </View>
+
+        {/* Imported Products Section */}
+        <View style={styles.section}>
+          <TouchableOpacity 
+            style={styles.sectionHeader}
+            onPress={() => navigation.navigate("categoryListingScreen", {
+              category: "Imported Products",
+              categoryId: "imported",
+              categoryData: { name: "Imported Products", id: "imported", category_type: "imported" }
+            })}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.sectionTitle}>Imported Products</Text>
+            <Ionicons name="chevron-forward" size={20} color={Colors.black} />
+          </TouchableOpacity>
+          <FlatList
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            data={importedCategoriesData || []}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={styles.importedCategoryCard}
+                onPress={() => navigation.navigate("categoryListingScreen", {
+                  category: item.name,
+                  categoryId: item.id,
+                  categoryData: item
+                })}
+              >
+                <LinearGradient
+                  colors={JSON.parse(item.background_colors || '["#6B3AA0", "#8B5FBF"]')}
+                  style={styles.importedCategoryGradient}
+                >
+                  <Ionicons 
+                    name={item.icon_name || "globe-outline"} 
+                    size={24} 
+                    color={Colors.white} 
+                  />
+                  <Text style={styles.importedCategoryText}>{item.name}</Text>
+                  <Text style={styles.importedCategoryDesc}>{item.description}</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            )}
             keyExtractor={(item) => item.id.toString()}
             contentContainerStyle={styles.horizontalList}
           />
@@ -1057,6 +1104,30 @@ const styles = StyleSheet.create({
   loadingText: {
     ...Fonts.SemiBold16black,
     color: Colors.grey,
+  },
+  importedCategoryCard: {
+    width: 200,
+    height: 120,
+    marginRight: Default.fixPadding,
+    borderRadius: 15,
+    overflow: "hidden",
+  },
+  importedCategoryGradient: {
+    flex: 1,
+    padding: Default.fixPadding,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  importedCategoryText: {
+    ...Fonts.Bold14white,
+    marginTop: 8,
+    textAlign: "center",
+  },
+  importedCategoryDesc: {
+    ...Fonts.Regular10white,
+    marginTop: 4,
+    textAlign: "center",
+    opacity: 0.9,
   },
   cartBadge: {
     position: "absolute",

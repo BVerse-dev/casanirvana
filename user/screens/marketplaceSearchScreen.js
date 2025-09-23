@@ -14,6 +14,7 @@ import {
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { Colors, Fonts, Default } from "../constants/styles";
 import { useTranslation } from "react-i18next";
+import { useSearchProducts } from "../hooks/useMarketplace";
 
 const { width } = Dimensions.get("window");
 
@@ -30,6 +31,37 @@ const MarketplaceSearchScreen = ({ navigation, route }) => {
   ]);
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState("all");
+  const [showFilters, setShowFilters] = useState(false);
+
+  // Build search filters
+  const buildSearchFilters = () => {
+    const filters = {};
+    
+    if (selectedCountry !== "all") {
+      filters.countryOfOrigin = selectedCountry;
+    }
+    
+    return filters;
+  };
+
+  // Use search hook with filters
+  const { data: searchData, isLoading: isSearchLoading, error: searchError } = useSearchProducts(
+    searchQuery,
+    buildSearchFilters()
+  );
+
+  // Country filter options
+  const countryOptions = [
+    { id: "all", label: "All Countries" },
+    { id: "Local", label: "Local" },
+    { id: "UK", label: "UK Products" },
+    { id: "USA", label: "USA Products" },
+  ];
+
+  const handleCountryFilter = (countryId) => {
+    setSelectedCountry(countryId);
+  };
 
   // Mock search results
   const mockResults = [
@@ -87,19 +119,35 @@ const MarketplaceSearchScreen = ({ navigation, route }) => {
     if (searchQuery.length > 0) {
       performSearch();
     }
-  }, [searchQuery]);
+  }, [searchQuery, searchData]);
 
   const performSearch = () => {
     setIsSearching(true);
-    // Simulate search delay
-    setTimeout(() => {
+    
+    // Use real data from hook or fallback to mock data
+    if (searchData && searchData.length > 0) {
+      const formattedResults = searchData.map(product => ({
+        id: product.id,
+        name: product.name,
+        vendor: product.vendor?.store_name || "Casa Nirvana",
+        rating: product.rating || 4.5,
+        reviews: product.review_count || 100,
+        price: parseFloat(product.price),
+        originalPrice: product.original_price ? parseFloat(product.original_price) : parseFloat(product.price) * 1.3,
+        discount: product.discount_percentage ? `${product.discount_percentage}% off` : null,
+        image: product.images && product.images.length > 0 ? { uri: product.images[0] } : require("../assets/images/img1.png"),
+      }));
+      setSearchResults(formattedResults);
+    } else {
+      // Fallback to mock results
       setSearchResults(mockResults);
-      setIsSearching(false);
-      // Add to recent searches
-      if (!recentSearches.includes(searchQuery)) {
-        setRecentSearches([searchQuery, ...recentSearches.slice(0, 4)]);
-      }
-    }, 500);
+    }
+    setIsSearching(false);
+    
+    // Add to recent searches
+    if (!recentSearches.includes(searchQuery)) {
+      setRecentSearches([searchQuery, ...recentSearches.slice(0, 4)]);
+    }
   };
 
   const handleSearch = () => {
@@ -213,6 +261,33 @@ const MarketplaceSearchScreen = ({ navigation, route }) => {
           )}
         </View>
       </View>
+
+      {/* Country Filters */}
+      {searchQuery.length > 0 && (
+        <View style={styles.filtersContainer}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {countryOptions.map((option) => (
+              <TouchableOpacity
+                key={option.id}
+                style={[
+                  styles.countryButton,
+                  selectedCountry === option.id && styles.selectedCountryButton,
+                ]}
+                onPress={() => handleCountryFilter(option.id)}
+              >
+                <Text
+                  style={[
+                    styles.countryText,
+                    selectedCountry === option.id && styles.selectedCountryText,
+                  ]}
+                >
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      )}
 
       <ScrollView showsVerticalScrollIndicator={false}>
         {searchResults.length === 0 && !isSearching ? (
@@ -337,6 +412,33 @@ const styles = StyleSheet.create({
     marginRight: Default.fixPadding * 0.5,
     ...Fonts.SemiBold14black,
     color: Colors.black,
+  },
+  filtersContainer: {
+    paddingHorizontal: Default.fixPadding * 1.2,
+    paddingVertical: Default.fixPadding * 0.5,
+    backgroundColor: Colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
+  countryButton: {
+    paddingHorizontal: Default.fixPadding,
+    paddingVertical: Default.fixPadding * 0.5,
+    backgroundColor: "#F0F8FF",
+    borderRadius: 20,
+    marginRight: Default.fixPadding * 0.5,
+    borderWidth: 1,
+    borderColor: "#4ECDC4",
+  },
+  selectedCountryButton: {
+    backgroundColor: "#4ECDC4",
+    borderColor: "#4ECDC4",
+  },
+  countryText: {
+    ...Fonts.Regular14black,
+    color: "#4ECDC4",
+  },
+  selectedCountryText: {
+    color: Colors.white,
   },
   section: {
     padding: Default.fixPadding * 1.2,

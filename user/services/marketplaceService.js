@@ -1,13 +1,19 @@
 import { supabase } from "../config/supabase";
 
 // Categories
-export const getCategories = async () => {
-  const { data, error } = await supabase
+export const getCategories = async (filters = {}) => {
+  let query = supabase
     .from("marketplace_categories")
     .select("*")
-    .eq("is_active", true)
-    .order("display_order");
+    .eq("is_active", true);
 
+  if (filters.categoryType) {
+    query = query.eq("category_type", filters.categoryType);
+  }
+
+  query = query.order("display_order");
+
+  const { data, error } = await query;
   return { data, error };
 };
 
@@ -41,6 +47,15 @@ export const getProducts = async (filters = {}) => {
     query = query.ilike("name", `%${filters.search}%`);
   }
 
+  // Country/origin filtering
+  if (filters.countryOfOrigin) {
+    query = query.eq("country_of_origin", filters.countryOfOrigin);
+  }
+
+  if (filters.isImported !== undefined) {
+    query = query.eq("is_imported", filters.isImported);
+  }
+
   // Sorting
   switch (filters.sort) {
     case "price_low":
@@ -54,6 +69,9 @@ export const getProducts = async (filters = {}) => {
       break;
     case "newest":
       query = query.order("created_at", { ascending: false });
+      break;
+    case "country":
+      query = query.order("country_of_origin", { ascending: true });
       break;
     default:
       query = query.order("created_at", { ascending: false });
@@ -348,18 +366,44 @@ export const unfollowVendor = async (userId, vendorId) => {
 };
 
 // Search
-export const searchProducts = async (query) => {
-  const { data, error } = await supabase
+export const searchProducts = async (query, filters = {}) => {
+  let searchQuery = supabase
     .from("marketplace_products")
     .select(`
       *,
       vendor:marketplace_vendors(id, store_name, rating)
     `)
     .eq("is_active", true)
-    .or(`name.ilike.%${query}%,description.ilike.%${query}%`)
+    .or(`name.ilike.%${query}%,description.ilike.%${query}%`);
+
+  // Apply country filters to search
+  if (filters.countryOfOrigin) {
+    searchQuery = searchQuery.eq("country_of_origin", filters.countryOfOrigin);
+  }
+
+  if (filters.isImported !== undefined) {
+    searchQuery = searchQuery.eq("is_imported", filters.isImported);
+  }
+
+  if (filters.categoryType) {
+    // Join with categories to filter by type
+    searchQuery = supabase
+      .from("marketplace_products")
+      .select(`
+        *,
+        vendor:marketplace_vendors(id, store_name, rating),
+        category:marketplace_categories!inner(*)
+      `)
+      .eq("is_active", true)
+      .eq("category.category_type", filters.categoryType)
+      .or(`name.ilike.%${query}%,description.ilike.%${query}%`);
+  }
+
+  searchQuery = searchQuery
     .order("rating", { ascending: false })
     .limit(20);
 
+  const { data, error } = await searchQuery;
   return { data, error };
 };
 

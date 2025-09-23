@@ -20,14 +20,41 @@ const { width } = Dimensions.get("window");
 
 const CategoryListingScreen = ({ navigation, route }) => {
   const { t } = useTranslation();
-  const { category, categoryId } = route.params;
+  const { category, categoryId, categoryData } = route.params;
   const [refreshing, setRefreshing] = useState(false);
   const [selectedSort, setSelectedSort] = useState("relevance");
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState("all");
+
+  // Build filters based on category data and user selections
+  const buildFilters = () => {
+    const filters = { sort: selectedSort };
+    
+    if (categoryId && categoryId !== "imported") {
+      filters.categoryId = categoryId;
+    }
+    
+    // Handle imported products filtering
+    if (categoryData?.category_type === "imported") {
+      filters.isImported = true;
+      
+      if (categoryData?.name === "UK Products") {
+        filters.countryOfOrigin = "UK";
+      } else if (categoryData?.name === "USA Products") {
+        filters.countryOfOrigin = "USA";
+      }
+    }
+    
+    // Apply country filter if selected
+    if (selectedCountry !== "all") {
+      filters.countryOfOrigin = selectedCountry;
+    }
+    
+    return filters;
+  };
 
   // Fetch products for this category
-  const filters = categoryId ? { categoryId, sort: selectedSort } : { sort: selectedSort };
-  const { data: productsData, isLoading, error, refetch } = useProducts(filters);
+  const { data: productsData, isLoading, error, refetch } = useProducts(buildFilters());
 
   // Use dynamic products or fallback to mock data
   const mockProducts = [
@@ -118,6 +145,14 @@ const CategoryListingScreen = ({ navigation, route }) => {
     { id: "price_high", label: "Price: High to Low" },
     { id: "rating", label: "Rating" },
     { id: "newest", label: "Newest" },
+    { id: "country", label: "Country" },
+  ];
+
+  const countryOptions = [
+    { id: "all", label: "All Countries" },
+    { id: "Local", label: "Local" },
+    { id: "UK", label: "UK Products" },
+    { id: "USA", label: "USA Products" },
   ];
 
   const onRefresh = async () => {
@@ -133,22 +168,10 @@ const CategoryListingScreen = ({ navigation, route }) => {
 
   const handleSort = (sortId) => {
     setSelectedSort(sortId);
-    // Implement sorting logic
-    let sortedProducts = [...products];
-    switch (sortId) {
-      case "price_low":
-        sortedProducts.sort((a, b) => a.price - b.price);
-        break;
-      case "price_high":
-        sortedProducts.sort((a, b) => b.price - a.price);
-        break;
-      case "rating":
-        sortedProducts.sort((a, b) => b.rating - a.rating);
-        break;
-      default:
-        break;
-    }
-    setProducts(sortedProducts);
+  };
+
+  const handleCountryFilter = (countryId) => {
+    setSelectedCountry(countryId);
   };
 
   const formatReviews = (count) => {
@@ -261,6 +284,32 @@ const CategoryListingScreen = ({ navigation, route }) => {
               </Text>
             </TouchableOpacity>
           ))}
+          
+          {/* Country Filter Buttons */}
+          {(categoryData?.category_type === "imported" || selectedCountry !== "all") && (
+            <>
+              <View style={styles.filterDivider} />
+              {countryOptions.map((option) => (
+                <TouchableOpacity
+                  key={option.id}
+                  style={[
+                    styles.countryButton,
+                    selectedCountry === option.id && styles.selectedCountryButton,
+                  ]}
+                  onPress={() => handleCountryFilter(option.id)}
+                >
+                  <Text
+                    style={[
+                      styles.countryText,
+                      selectedCountry === option.id && styles.selectedCountryText,
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </>
+          )}
         </ScrollView>
       </View>
 
@@ -376,6 +425,32 @@ const styles = StyleSheet.create({
     color: Colors.black,
   },
   selectedSortText: {
+    color: Colors.white,
+  },
+  filterDivider: {
+    width: 1,
+    height: 20,
+    backgroundColor: "#E0E0E0",
+    marginHorizontal: Default.fixPadding * 0.5,
+  },
+  countryButton: {
+    paddingHorizontal: Default.fixPadding,
+    paddingVertical: Default.fixPadding * 0.5,
+    backgroundColor: "#F0F8FF",
+    borderRadius: 20,
+    marginRight: Default.fixPadding * 0.5,
+    borderWidth: 1,
+    borderColor: "#4ECDC4",
+  },
+  selectedCountryButton: {
+    backgroundColor: "#4ECDC4",
+    borderColor: "#4ECDC4",
+  },
+  countryText: {
+    ...Fonts.Regular14black,
+    color: "#4ECDC4",
+  },
+  selectedCountryText: {
     color: Colors.white,
   },
   productsList: {
