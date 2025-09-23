@@ -710,11 +710,6 @@ const MarketplaceHomeScreen = ({ navigation }) => {
                   colors={JSON.parse(item.background_colors || '["#6B3AA0", "#8B5FBF"]')}
                   style={styles.importedCategoryGradient}
                 >
-                  <Ionicons 
-                    name={item.icon_name || "globe-outline"} 
-                    size={24} 
-                    color={Colors.white} 
-                  />
                   <Text style={styles.importedCategoryText}>{item.name}</Text>
                   <Text style={styles.importedCategoryDesc}>{item.description}</Text>
                 </LinearGradient>
@@ -1019,7 +1014,7 @@ const styles = StyleSheet.create({
     marginLeft: Default.fixPadding,
   },
   featureTitle: {
-    ...Fonts.Bold16black,
+    ...Fonts.SemiBold16black,
     color: Colors.black,
     fontWeight: 'bold',
   },
@@ -1063,7 +1058,7 @@ const styles = StyleSheet.create({
     padding: Default.fixPadding,
   },
   productName: {
-    ...Fonts.Bold14black,
+    ...Fonts.SemiBold14black,
     color: Colors.black,
     marginBottom: Default.fixPadding * 0.5,
     fontWeight: 'bold',
@@ -1126,7 +1121,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   importedCategoryText: {
-    ...Fonts.Bold16white,
+    ...Fonts.Bold14white,
+    color: Colors.white,
     marginTop: 8,
     textAlign: "center",
     fontWeight: 'bold',
@@ -1135,7 +1131,8 @@ const styles = StyleSheet.create({
     textShadowRadius: 2,
   },
   importedCategoryDesc: {
-    ...Fonts.Regular12white,
+    ...Fonts.Regular10white,
+    color: Colors.white,
     marginTop: 4,
     textAlign: "center",
     opacity: 0.95,
