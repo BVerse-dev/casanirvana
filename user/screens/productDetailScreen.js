@@ -14,7 +14,7 @@ import {
 import { Ionicons, MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
 import { Colors, Fonts, Default } from "../constants/styles";
 import { useTranslation } from "react-i18next";
-import { useProduct } from "../hooks/useMarketplace";
+import { useProduct, useAddToCart } from "../hooks/useMarketplace";
 import AwesomeButton from "react-native-really-awesome-button";
 
 const { width, height } = Dimensions.get("window");
@@ -24,7 +24,8 @@ const ProductDetailScreen = ({ navigation, route }) => {
   const { productId, product } = route.params || {};
 
   // Fetch product details from database
-  const { data: productData, isLoading, error } = useProduct(productId);
+  const { data: fetchedProductData, isLoading, error } = useProduct(productId);
+  const addToCartMutation = useAddToCart();
   const scrollViewRef = useRef(null);
 
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -107,9 +108,20 @@ const ProductDetailScreen = ({ navigation, route }) => {
     },
   ];
 
-  const handleAddToCart = () => {
-    // Add to cart logic
-    navigation.navigate("shoppingCartScreen");
+  const handleAddToCart = async () => {
+    try {
+      await addToCartMutation.mutateAsync({
+        productId: productData.id,
+        quantity: quantity,
+        variantOptions: selectedVariant,
+      });
+      
+      // Show success message or navigate to cart
+      alert("Product added to cart successfully!");
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+      alert("Failed to add product to cart. Please try again.");
+    }
   };
 
   const handleBuyNow = () => {
@@ -418,7 +430,9 @@ const ProductDetailScreen = ({ navigation, route }) => {
               backgroundDarker="#5A2E8A"
               borderRadius={25}
             >
-              <Text style={styles.buttonText}>Add to cart</Text>
+              <Text style={styles.buttonText}>
+                {addToCartMutation.isPending ? "Adding..." : "Add to cart"}
+              </Text>
             </AwesomeButton>
 
             <View style={{ height: Default.fixPadding }} />

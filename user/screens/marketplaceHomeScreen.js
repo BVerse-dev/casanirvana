@@ -15,7 +15,7 @@ import {
 import { Ionicons, MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
 import { Colors, Fonts, Default } from "../constants/styles";
 import { useTranslation } from "react-i18next";
-import { useCategories, useProducts } from "../hooks/useMarketplace";
+import { useCategories, useProducts, useCart } from "../hooks/useMarketplace";
 import { LinearGradient } from "expo-linear-gradient";
 
 const { width, height } = Dimensions.get("window");
@@ -31,6 +31,7 @@ const MarketplaceHomeScreen = ({ navigation }) => {
   // Fetch data from hooks
   const { data: categoriesData, isLoading: categoriesLoading, error: categoriesError, refetch: refetchCategories } = useCategories();
   const { data: productsData, isLoading: productsLoading, error: productsError, refetch: refetchProducts } = useProducts();
+  const { data: cartData } = useCart();
 
   // Use dynamic categories from database or fallback to static
   const fallbackCategories = [
@@ -449,8 +450,18 @@ const MarketplaceHomeScreen = ({ navigation }) => {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Marketplace</Text>
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.headerButton}>
+          <TouchableOpacity 
+            style={styles.headerButton}
+            onPress={() => navigation.navigate("shoppingCartScreen")}
+          >
             <Ionicons name="cart-outline" size={24} color={Colors.black} />
+            {cartData && cartData.length > 0 && (
+              <View style={styles.cartBadge}>
+                <Text style={styles.cartBadgeText}>
+                  {cartData.reduce((sum, item) => sum + item.quantity, 0)}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -1046,6 +1057,22 @@ const styles = StyleSheet.create({
   loadingText: {
     ...Fonts.SemiBold16black,
     color: Colors.grey,
+  },
+  cartBadge: {
+    position: "absolute",
+    top: -8,
+    right: -8,
+    backgroundColor: Colors.primary,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  cartBadgeText: {
+    ...Fonts.Bold10white,
+    fontSize: 10,
+    color: Colors.white,
   },
 });
 
