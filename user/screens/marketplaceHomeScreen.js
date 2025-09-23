@@ -30,7 +30,7 @@ const MarketplaceHomeScreen = ({ navigation }) => {
       name: "Baby & toddler",
       icon: "baby-carriage",
       iconType: "FontAwesome5",
-      bgColor: ["#FFB6C1", "#FFC0CB"],
+      bgColor: ["#FFB3D9", "#FFC4E1"],
       image: require("../assets/images/community1.png"),
     },
     {
@@ -38,7 +38,7 @@ const MarketplaceHomeScreen = ({ navigation }) => {
       name: "Home",
       icon: "home",
       iconType: "Ionicons",
-      bgColor: ["#8FBC8F", "#90EE90"],
+      bgColor: ["#A4C4A4", "#B8D4B8"],
       image: require("../assets/images/community2.png"),
     },
     {
@@ -46,7 +46,7 @@ const MarketplaceHomeScreen = ({ navigation }) => {
       name: "Fitness & nutrition",
       icon: "fitness-center",
       iconType: "MaterialIcons",
-      bgColor: ["#87CEEB", "#B0E0E6"],
+      bgColor: ["#9FC5E8", "#B4D4EC"],
       image: require("../assets/images/community3.png"),
     },
     {
@@ -54,7 +54,7 @@ const MarketplaceHomeScreen = ({ navigation }) => {
       name: "Accessories",
       icon: "glasses",
       iconType: "FontAwesome5",
-      bgColor: ["#8B8C0A", "#9ACD32"],
+      bgColor: ["#8B9A46", "#A3B85C"],
       image: require("../assets/images/community4.png"),
     },
     {
@@ -62,7 +62,7 @@ const MarketplaceHomeScreen = ({ navigation }) => {
       name: "Beauty",
       icon: "spa",
       iconType: "MaterialIcons",
-      bgColor: ["#CD853F", "#DEB887"],
+      bgColor: ["#8B6B47", "#A0826D"],
       image: require("../assets/images/community5.png"),
     },
     {
@@ -70,7 +70,7 @@ const MarketplaceHomeScreen = ({ navigation }) => {
       name: "Food & drinks",
       icon: "restaurant",
       iconType: "Ionicons",
-      bgColor: ["#BC8F8F", "#F4A460"],
+      bgColor: ["#C8A2C8", "#D4B5D4"],
       image: require("../assets/images/community6.png"),
     },
     {
@@ -78,7 +78,7 @@ const MarketplaceHomeScreen = ({ navigation }) => {
       name: "Pet supplies",
       icon: "paw",
       iconType: "FontAwesome5",
-      bgColor: ["#D2B48C", "#F5DEB3"],
+      bgColor: ["#D4C5B9", "#E0D5C7"],
       image: require("../assets/images/community7.png"),
     },
     {
@@ -86,7 +86,7 @@ const MarketplaceHomeScreen = ({ navigation }) => {
       name: "Toys & games",
       icon: "game-controller",
       iconType: "Ionicons",
-      bgColor: ["#9370DB", "#BA55D3"],
+      bgColor: ["#7B68EE", "#9370DB"],
       image: require("../assets/images/community8.png"),
     },
   ];
@@ -97,28 +97,28 @@ const MarketplaceHomeScreen = ({ navigation }) => {
       name: "Electronics",
       icon: "laptop",
       iconType: "FontAwesome5",
-      bgColor: ["#2F4F4F", "#696969"],
+      bgColor: ["#4A4A4A", "#6B6B6B"],
     },
     {
       id: 10,
       name: "Arts & crafts",
       icon: "palette",
       iconType: "MaterialIcons",
-      bgColor: ["#808080", "#A9A9A9"],
+      bgColor: ["#9B9B9B", "#B5B5B5"],
     },
     {
       id: 11,
       name: "Luggage & bags",
       icon: "briefcase",
       iconType: "FontAwesome5",
-      bgColor: ["#C0C0C0", "#D3D3D3"],
+      bgColor: ["#C8B88B", "#D4C4A0"],
     },
     {
       id: 12,
       name: "Sporting goods",
       icon: "football",
       iconType: "Ionicons",
-      bgColor: ["#4682B4", "#87CEEB"],
+      bgColor: ["#6B9BD1", "#8BB3E0"],
     },
   ];
 
@@ -289,7 +289,7 @@ const MarketplaceHomeScreen = ({ navigation }) => {
               key={category.id}
               style={styles.categoryCard}
               onPress={() => handleCategoryPress(category)}
-              activeOpacity={0.8}
+              activeOpacity={0.9}
             >
               <LinearGradient
                 colors={category.bgColor}
@@ -298,6 +298,7 @@ const MarketplaceHomeScreen = ({ navigation }) => {
                 end={{ x: 1, y: 1 }}
               >
                 <Text style={styles.categoryName}>{category.name}</Text>
+                <View />
               </LinearGradient>
             </TouchableOpacity>
           ))}
@@ -380,7 +381,7 @@ const MarketplaceHomeScreen = ({ navigation }) => {
               key={category.id}
               style={styles.categoryCard}
               onPress={() => handleCategoryPress(category)}
-              activeOpacity={0.8}
+              activeOpacity={0.9}
             >
               <LinearGradient
                 colors={category.bgColor}
@@ -389,6 +390,7 @@ const MarketplaceHomeScreen = ({ navigation }) => {
                 end={{ x: 1, y: 1 }}
               >
                 <Text style={styles.categoryName}>{category.name}</Text>
+                <View />
               </LinearGradient>
             </TouchableOpacity>
           ))}
@@ -401,7 +403,7 @@ const MarketplaceHomeScreen = ({ navigation }) => {
               key={category.id}
               style={styles.categoryCard}
               onPress={() => handleCategoryPress(category)}
-              activeOpacity={0.8}
+              activeOpacity={0.9}
             >
               <LinearGradient
                 colors={category.bgColor}
@@ -410,6 +412,7 @@ const MarketplaceHomeScreen = ({ navigation }) => {
                 end={{ x: 1, y: 1 }}
               >
                 <Text style={styles.categoryName}>{category.name}</Text>
+                <View />
               </LinearGradient>
             </TouchableOpacity>
           ))}
@@ -452,7 +455,7 @@ const styles = StyleSheet.create({
   },
   searchContainer: {
     paddingHorizontal: Default.fixPadding * 1.2,
-    paddingTop: Default.fixPadding * 3,
+    paddingTop: Default.fixPadding * 4,
     paddingBottom: Default.fixPadding,
     backgroundColor: Colors.white,
   },
@@ -478,19 +481,21 @@ const styles = StyleSheet.create({
   },
   categoryCard: {
     width: (width - Default.fixPadding * 3) / 2,
-    height: (width - Default.fixPadding * 3) / 2 * 0.6,
+    height: (width - Default.fixPadding * 3) / 2 * 0.55,
     margin: Default.fixPadding * 0.5,
-    borderRadius: 12,
+    borderRadius: 15,
     overflow: "hidden",
   },
   categoryGradient: {
     flex: 1,
-    padding: Default.fixPadding,
-    justifyContent: "flex-end",
+    padding: Default.fixPadding * 1.2,
+    justifyContent: "space-between",
   },
   categoryName: {
-    ...Fonts.SemiBold16white,
+    ...Fonts.Bold16white,
     color: Colors.white,
+    fontSize: 18,
+    lineHeight: 22,
   },
   categoryImage: {
     position: "absolute",
