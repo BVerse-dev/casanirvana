@@ -197,7 +197,7 @@
         "delete": "Delete"
     },
     "paymentMethodScreen": {
-        "selectPaymentMethod": "Select payment method",
+        "selectPaymentMethod": "Select Payment Method",
         "securityDeposit": "Security Deposit",
         "continue": "Continue"
     },

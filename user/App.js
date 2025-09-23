@@ -408,6 +408,28 @@ const MainNavigation = () => {
           name="insuranceAmountScreen"
           component={require("./screens/insuranceAmountScreen").default}
         />
+
+        {/* Marketplace Screens */}
+        <Stack.Screen
+          name="marketplaceHomeScreen"
+          component={require("./screens/marketplaceHomeScreen").default}
+        />
+        <Stack.Screen
+          name="categoryListingScreen"
+          component={require("./screens/categoryListingScreen").default}
+        />
+        <Stack.Screen
+          name="productDetailScreen"
+          component={require("./screens/productDetailScreen").default}
+        />
+        <Stack.Screen
+          name="marketplaceSearchScreen"
+          component={require("./screens/marketplaceSearchScreen").default}
+        />
+        <Stack.Screen
+          name="ordersScreen"
+          component={require("./screens/ordersScreen").default}
+        />
           </Stack.Navigator>
           </NotificationNavigationHandler>
         </NotificationProvider>

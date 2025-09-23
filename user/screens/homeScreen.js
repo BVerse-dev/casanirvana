@@ -182,7 +182,7 @@ const HomeScreen = ({ navigation }) => {
       image: require("../assets/images/service1.png"),
       title: "Marketplace",
       other: "Shopping & services",
-      navigateTo: "marketplaceScreen",
+      navigateTo: "marketplaceHomeScreen",
     },
   ];
 

@@ -226,7 +226,11 @@ const AmountScreen = ({ navigation, route }) => {
             {tr("Choose Amount")}
           </Text>
 
-          {amountOptions.map((item) => renderItem({ item }))}
+          {amountOptions.map((item) => (
+            <React.Fragment key={item.id}>
+              {renderItem({ item })}
+            </React.Fragment>
+          ))}
         </ScrollView>
 
         {/* Continue Button */}
