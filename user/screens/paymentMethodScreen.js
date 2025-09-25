@@ -184,7 +184,20 @@ const PaymentMethodScreen = ({ navigation, route }) => {
     // Prepare parameters based on mode
     let navigationParams = {};
     
-    if (isPersonalHubTransaction) {
+    if (transactionType === 'shopping') {
+      // For marketplace checkout flow
+      navigationParams = {
+        transactionType: 'shopping',
+        cartItems: route.params.cartItems,
+        subtotal: route.params.subtotal,
+        deliveryFee: route.params.deliveryFee,
+        totalAmount: route.params.totalAmount,
+        deliveryOption: route.params.deliveryOption,
+        deliveryAddress: route.params.deliveryAddress,
+        orderSummary: route.params.orderSummary,
+        paymentMethod: selectedPaymentMethod
+      };
+    } else if (isPersonalHubTransaction) {
       // For airtime purchase flow
       navigationParams = {
         provider,
@@ -211,18 +224,24 @@ const PaymentMethodScreen = ({ navigation, route }) => {
       };
     }
 
-    switch (selectedPaymentMethod) {
-      case "Credit Card":
-        navigation.push("creditCardScreen", navigationParams);
-        break;
-      case "Mobile Money":
-        navigation.push("mobileMoneyScreen", navigationParams);
-        break;
-      case "PayPal":
-        navigation.push("paypalScreen", navigationParams);
-        break;
-      default:
-        navigation.push("creditCardScreen", navigationParams);
+    if (transactionType === 'shopping') {
+      // For marketplace checkout, go directly to order review
+      navigation.navigate("orderReviewScreen", navigationParams);
+    } else {
+      // For other transactions, go to payment processing screens
+      switch (selectedPaymentMethod) {
+        case "Credit Card":
+          navigation.push("creditCardScreen", navigationParams);
+          break;
+        case "Mobile Money":
+          navigation.push("mobileMoneyScreen", navigationParams);
+          break;
+        case "PayPal":
+          navigation.push("paypalScreen", navigationParams);
+          break;
+        default:
+          navigation.push("creditCardScreen", navigationParams);
+      }
     }
   };
 

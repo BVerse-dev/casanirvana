@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -34,29 +34,70 @@ const ProductDetailScreen = ({ navigation, route }) => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [showReviews, setShowReviews] = useState(false);
   const [purchaseType, setPurchaseType] = useState("onetime");
+  const slideRef = useRef(null);
+  const slideInterval = useRef(null);
 
-  // Mock product data
-  const productData = product || {
-    id: productId || 1,
-    name: "Lip Mask Duo Set - Special Offer!",
-    vendor: "My Bee Balm",
-    vendorRating: 4.7,
-    vendorReviews: 83100,
-    rating: 4.7,
-    reviews: 32,
-    price: 10.00,
-    originalPrice: 39.99,
-    subscribePrice: 8.00,
-    description: "Experience the healing and moisturizing power of honey bee propolis and cherry extract 🍒 🍯 This lip mask is the ultimate solution for dry, chapped lips. Plus, it adds a natural tint for a healthy glow.",
-    images: [
-      require("../assets/images/img1.png"),
-      require("../assets/images/img2.png"),
-      require("../assets/images/img3.png"),
-    ],
-    variants: [
-      { id: 1, type: "Tea Type", options: ["18 Tea Bags", "Loose-Leaf - 30g"] },
-    ],
-  };
+  // Show loading state while fetching data
+  if (isLoading && !product) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={styles.loadingText}>Loading product...</Text>
+      </View>
+    );
+  }
+
+  // Debug logging
+  useEffect(() => {
+    console.log("Product Detail - productId:", productId);
+    console.log("Product Detail - fetchedProductData:", fetchedProductData);
+    console.log("Product Detail - product:", product);
+    console.log("Product Detail - isLoading:", isLoading);
+    console.log("Product Detail - error:", error);
+  }, [productId, fetchedProductData, product, isLoading, error]);
+
+  // Use fetched data first, then route params, then mock data as fallback
+  let productData;
+  
+  if (fetchedProductData) {
+    // Database data - format it properly
+    productData = {
+      id: fetchedProductData.id,
+      name: fetchedProductData.name || "Product",
+      vendor: fetchedProductData.vendor?.store_name || "Casa Nirvana",
+      rating: fetchedProductData.rating || 4.5,
+      reviews: fetchedProductData.review_count || 0,
+      price: parseFloat(fetchedProductData.price) || 0,
+      originalPrice: fetchedProductData.original_price ? parseFloat(fetchedProductData.original_price) : null,
+      subscribePrice: fetchedProductData.price ? parseFloat(fetchedProductData.price) * 0.8 : 0,
+      description: fetchedProductData.description || "No description available.",
+      images: fetchedProductData.images && fetchedProductData.images.length > 0 
+        ? fetchedProductData.images.map(img => ({ uri: img }))
+        : [require("../assets/images/img1.png")],
+      variants: [],
+    };
+  } else if (product) {
+    // Route params data
+    productData = product;
+  } else {
+    // Mock data fallback
+    productData = {
+      id: productId || "mock-1",
+      name: "Demo Product",
+      vendor: "Casa Nirvana",
+      rating: 4.7,
+      reviews: 32,
+      price: 10.00,
+      originalPrice: 39.99,
+      subscribePrice: 8.00,
+      description: "This is a demo product. Please browse the marketplace to see real products with detailed descriptions.",
+      images: [
+        require("../assets/images/img1.png"),
+        require("../assets/images/img2.png"),
+        require("../assets/images/img3.png"),
+      ],
+      variants: [],
+    };
+  }
 
   // Ensure images array exists
   if (!productData.images || !Array.isArray(productData.images)) {
@@ -67,6 +108,40 @@ const ProductDetailScreen = ({ navigation, route }) => {
   productData.price = Number(productData.price) || 0;
   productData.originalPrice = Number(productData.originalPrice) || 0;
   productData.subscribePrice = Number(productData.subscribePrice) || 0;
+
+  // Auto-slide functionality
+  useEffect(() => {
+    if (productData.images && productData.images.length > 1) {
+      slideInterval.current = setInterval(() => {
+        setSelectedImageIndex(prevIndex => {
+          const nextIndex = (prevIndex + 1) % productData.images.length;
+          if (slideRef.current) {
+            slideRef.current.scrollToIndex({
+              index: nextIndex,
+              animated: true,
+            });
+          }
+          return nextIndex;
+        });
+      }, 3000); // Change slide every 3 seconds
+    }
+
+    return () => {
+      if (slideInterval.current) {
+        clearInterval(slideInterval.current);
+      }
+    };
+  }, [productData.images]);
+
+  // Scroll to current slide
+  useEffect(() => {
+    if (slideRef.current && selectedImageIndex >= 0) {
+      slideRef.current.scrollToIndex({
+        index: selectedImageIndex,
+        animated: true,
+      });
+    }
+  }, [selectedImageIndex]);
 
   const relatedProducts = [
     {
@@ -110,29 +185,44 @@ const ProductDetailScreen = ({ navigation, route }) => {
 
   const handleAddToCart = async () => {
     try {
+      // Ensure we have a valid product ID
+      const validProductId = productData.id;
+      
+      if (!validProductId) {
+        alert("Product ID not found. Please try again.");
+        return;
+      }
+
+      // Check if it's a valid UUID format (contains dashes and is not a mock ID)
+      if (typeof validProductId === 'number' || 
+          (typeof validProductId === 'string' && 
+           (!validProductId.includes('-') || validProductId.startsWith('mock-')))) {
+        alert("This is a demo product. Please browse the marketplace and select a real product to add to cart.");
+        return;
+      }
+
+      console.log("Adding to cart:", { productId: validProductId, quantity });
+
       await addToCartMutation.mutateAsync({
-        productId: productData.id,
+        productId: validProductId,
         quantity: quantity,
-        variantOptions: selectedVariant,
       });
       
-      // Show success message or navigate to cart
+      // Show success message
       alert("Product added to cart successfully!");
     } catch (error) {
       console.error("Error adding to cart:", error);
-      alert("Failed to add product to cart. Please try again.");
+      alert(`Failed to add product to cart: ${error.message}`);
     }
   };
 
   const handleBuyNow = () => {
-    // Buy now logic - go directly to checkout
-    navigation.navigate("deliveryAddressScreen", {
-      items: [{
-        ...productData,
-        quantity,
-        selectedVariant,
-      }],
-      totalAmount: productData.price * quantity,
+    // Buy now logic - add to cart and go to shopping cart
+    handleAddToCart().then(() => {
+      navigation.navigate("shoppingCartScreen");
+    }).catch((error) => {
+      console.error("Error adding to cart:", error);
+      alert("Failed to add product to cart. Please try again.");
     });
   };
 
@@ -232,63 +322,42 @@ const ProductDetailScreen = ({ navigation, route }) => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Product Images */}
-        <FlatList
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          data={productData.images}
-          renderItem={renderImage}
-          keyExtractor={(item, index) => index.toString()}
-          onMomentumScrollEnd={(event) => {
-            const index = Math.round(
-              event.nativeEvent.contentOffset.x / width
-            );
-            setSelectedImageIndex(index);
-          }}
-        />
-
-        {/* Image Indicators */}
-        <View style={styles.imageIndicators}>
-          {productData.images && productData.images.map((_, index) => (
-            <View
-              key={index}
-              style={[
-                styles.indicator,
-                index === selectedImageIndex && styles.activeIndicator,
-              ]}
-            />
-          ))}
+        {/* Product Images - Hero Slider Style */}
+        <View style={styles.heroContainer}>
+          <FlatList
+            ref={slideRef}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            data={productData.images}
+            renderItem={({ item, index }) => (
+              <View style={styles.heroSlide}>
+                <Image source={item} style={styles.heroImage} />
+              </View>
+            )}
+            keyExtractor={(item, index) => index.toString()}
+            onMomentumScrollEnd={(event) => {
+              const index = Math.round(
+                event.nativeEvent.contentOffset.x / (width - Default.fixPadding * 2.4)
+              );
+              setSelectedImageIndex(index);
+            }}
+          />
+          
+          {/* Image Indicators */}
+          <View style={styles.slideIndicators}>
+            {productData.images && productData.images.map((_, index) => (
+              <View
+                key={index}
+                style={[
+                  styles.indicator,
+                  index === selectedImageIndex && styles.activeIndicator,
+                ]}
+              />
+            ))}
+          </View>
         </View>
 
-        {/* Vendor Info */}
-        <TouchableOpacity
-          style={styles.vendorSection}
-          onPress={() =>
-            navigation.navigate("vendorStoreScreen", {
-              vendorId: productData.vendor,
-            })
-          }
-          activeOpacity={0.8}
-        >
-          <View style={styles.vendorLogo}>
-            <Text style={styles.vendorInitial}>
-              {productData.vendor.charAt(0)}
-            </Text>
-          </View>
-          <View style={styles.vendorInfo}>
-            <Text style={styles.vendorName}>{productData.vendor}</Text>
-            <View style={styles.vendorRating}>
-              <Ionicons name="star" size={14} color="#FFD700" />
-              <Text style={styles.vendorRatingText}>
-                {productData.vendorRating} ({(productData.vendorReviews / 1000).toFixed(1)}K)
-              </Text>
-            </View>
-          </View>
-          <TouchableOpacity style={styles.followButton}>
-            <Text style={styles.followButtonText}>Follow</Text>
-          </TouchableOpacity>
-        </TouchableOpacity>
 
         {/* Product Info */}
         <View style={styles.productSection}>
@@ -474,20 +543,6 @@ const ProductDetailScreen = ({ navigation, route }) => {
             </TouchableOpacity>
           </View>
 
-          {/* Visit Store */}
-          <TouchableOpacity
-            style={styles.visitStoreButton}
-            onPress={() =>
-              navigation.navigate("vendorStoreScreen", {
-                vendorId: productData.vendor,
-              })
-            }
-          >
-            <Ionicons name="link" size={20} color={Colors.black} />
-            <Text style={styles.visitStoreText}>
-              Visit {productData.vendor}
-            </Text>
-          </TouchableOpacity>
         </View>
 
         {/* Ratings and Reviews */}
@@ -546,11 +601,11 @@ const ProductDetailScreen = ({ navigation, route }) => {
           </TouchableOpacity>
         </View>
 
-        {/* More from Vendor */}
+        {/* More Products */}
         <View style={styles.moreSection}>
           <View style={styles.moreSectionHeader}>
             <Text style={styles.sectionTitle}>
-              More from {productData.vendor}
+              More Products
             </Text>
             <TouchableOpacity>
               <Ionicons name="chevron-forward" size={20} color={Colors.black} />
@@ -605,6 +660,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.white,
   },
+  loadingText: {
+    ...Fonts.SemiBold16black,
+    color: Colors.grey,
+  },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -628,80 +687,50 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingTop: Default.fixPadding * 5,
   },
-  productImage: {
-    width: width,
-    height: width,
+  heroContainer: {
+    marginHorizontal: Default.fixPadding * 1.2,
+    borderRadius: 15,
+    overflow: "hidden",
+    marginBottom: Default.fixPadding,
+  },
+  heroSlide: {
+    width: width - Default.fixPadding * 2.4,
+    height: (width - Default.fixPadding * 2.4) * 0.9,
+    borderRadius: 15,
+    overflow: "hidden",
+  },
+  heroImage: {
+    width: "100%",
+    height: "100%",
     resizeMode: "cover",
   },
-  imageIndicators: {
+  slideIndicators: {
     flexDirection: "row",
     justifyContent: "center",
     paddingVertical: Default.fixPadding,
+    position: "absolute",
+    bottom: 20,
+    left: 0,
+    right: 0,
   },
   indicator: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#E0E0E0",
+    backgroundColor: "rgba(255, 255, 255, 0.5)",
     marginHorizontal: 4,
   },
   activeIndicator: {
-    backgroundColor: Colors.black,
-  },
-  vendorSection: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: Default.fixPadding * 1.2,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
-  },
-  vendorLogo: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: "#FFD700",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  vendorInitial: {
-    ...Fonts.Bold18white,
-    color: Colors.white,
-  },
-  vendorInfo: {
-    flex: 1,
-    marginLeft: Default.fixPadding,
-  },
-  vendorName: {
-    ...Fonts.SemiBold16black,
-    color: Colors.black,
-  },
-  vendorRating: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 2,
-  },
-  vendorRatingText: {
-    ...Fonts.Regular12grey,
-    color: Colors.grey,
-    marginLeft: 4,
-  },
-  followButton: {
-    paddingHorizontal: Default.fixPadding * 1.5,
-    paddingVertical: Default.fixPadding * 0.5,
-    borderRadius: 20,
-    backgroundColor: "#F0F0F0",
-  },
-  followButtonText: {
-    ...Fonts.SemiBold14black,
-    color: Colors.black,
+    backgroundColor: Colors.white,
   },
   productSection: {
     padding: Default.fixPadding * 1.2,
   },
   productName: {
-    ...Fonts.Bold18black,
+    ...Fonts.Bold20black,
     color: Colors.black,
     marginBottom: Default.fixPadding * 0.5,
+    fontWeight: 'bold',
   },
   productRating: {
     flexDirection: "row",
@@ -846,6 +875,7 @@ const styles = StyleSheet.create({
     ...Fonts.Bold16black,
     color: Colors.black,
     marginBottom: Default.fixPadding * 0.5,
+    fontWeight: 'bold',
   },
   descriptionText: {
     ...Fonts.Regular14black,
@@ -868,18 +898,6 @@ const styles = StyleSheet.create({
   policyText: {
     ...Fonts.SemiBold14black,
     color: Colors.black,
-  },
-  visitStoreButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: Default.fixPadding,
-    marginBottom: Default.fixPadding * 2,
-  },
-  visitStoreText: {
-    ...Fonts.SemiBold14black,
-    color: Colors.black,
-    marginLeft: Default.fixPadding * 0.5,
   },
   reviewsSection: {
     padding: Default.fixPadding * 1.2,

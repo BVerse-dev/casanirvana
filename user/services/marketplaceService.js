@@ -19,6 +19,8 @@ export const getCategories = async (filters = {}) => {
 
 // Products
 export const getProducts = async (filters = {}) => {
+  console.log("MarketplaceService - getProducts called with filters:", filters);
+  
   let query = supabase
     .from("marketplace_products")
     .select(`
@@ -83,6 +85,13 @@ export const getProducts = async (filters = {}) => {
   query = query.range(offset, offset + limit - 1);
 
   const { data, error } = await query;
+  
+  console.log("MarketplaceService - getProducts result:", {
+    dataCount: data ? data.length : 0,
+    error: error,
+    firstProduct: data && data.length > 0 ? data[0].name : null
+  });
+  
   return { data, error };
 };
 
@@ -115,21 +124,20 @@ export const getCartItems = async (userId) => {
       )
     `)
     .eq("user_id", userId)
-    .order("added_at", { ascending: false });
+    .order("created_at", { ascending: false });
 
   return { data, error };
 };
 
-export const addToCart = async (userId, productId, quantity = 1, variantOptions = null) => {
+export const addToCart = async (userId, productId, quantity = 1) => {
   const { data, error } = await supabase
     .from("marketplace_cart_items")
     .upsert({
       user_id: userId,
       product_id: productId,
       quantity,
-      variant_options: variantOptions,
     }, {
-      onConflict: "user_id,product_id,variant_options",
+      onConflict: "user_id,product_id",
     })
     .select()
     .single();

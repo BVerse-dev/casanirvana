@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   View,
   Text,
@@ -10,12 +10,13 @@ import {
   StatusBar,
   FlatList,
   Alert,
+  SafeAreaView,
 } from "react-native";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { Colors, Fonts, Default } from "../constants/styles";
 import { useTranslation } from "react-i18next";
 import { useCart, useUpdateCartItem, useRemoveFromCart, useClearCart } from "../hooks/useMarketplace";
-import AwesomeButton from "react-native-really-awesome-button";
+import MyStatusBar from "../components/myStatusBar";
 
 const { width, height } = Dimensions.get("window");
 
@@ -27,6 +28,13 @@ const ShoppingCartScreen = ({ navigation }) => {
   const updateCartItemMutation = useUpdateCartItem();
   const removeFromCartMutation = useRemoveFromCart();
   const clearCartMutation = useClearCart();
+
+  // Debug logging
+  useEffect(() => {
+    console.log("Cart Screen - cartItems:", cartItems);
+    console.log("Cart Screen - isLoading:", isLoading);
+    console.log("Cart Screen - error:", error);
+  }, [cartItems, isLoading, error]);
 
   const handleQuantityChange = async (itemId, newQuantity) => {
     if (newQuantity <= 0) {
@@ -168,20 +176,30 @@ const ShoppingCartScreen = ({ navigation }) => {
 
   if (!cartItems || cartItems.length === 0) {
     return (
-      <View style={styles.container}>
-        <StatusBar backgroundColor={Colors.white} barStyle="dark-content" />
-        
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.backButton}
-          >
-            <Ionicons name="arrow-back" size={24} color={Colors.black} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Shopping Cart</Text>
-          <View style={styles.headerRight} />
-        </View>
+      <SafeAreaView style={{ flex: 1, backgroundColor: Colors.white }}>
+        <MyStatusBar />
+        <View style={{ flex: 1 }}>
+          {/* Header */}
+          <View style={{
+            flexDirection: "row",
+            alignItems: "center",
+            paddingVertical: Default.fixPadding * 1.2,
+            paddingHorizontal: Default.fixPadding * 2,
+            backgroundColor: Colors.white,
+            ...Default.shadow,
+          }}>
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={{ marginRight: Default.fixPadding }}
+            >
+              <Ionicons name="arrow-back" size={24} color={Colors.black} />
+            </TouchableOpacity>
+            <Text style={{
+              flex: 1,
+              ...Fonts.SemiBold18black,
+              color: Colors.black,
+            }}>Shopping Cart</Text>
+          </View>
         
         {/* Empty Cart */}
         <View style={styles.emptyContainer}>
@@ -191,42 +209,61 @@ const ShoppingCartScreen = ({ navigation }) => {
             Add some items to get started
           </Text>
           
-          <AwesomeButton
+          <TouchableOpacity
             style={styles.continueButton}
             onPress={() => navigation.navigate("marketplaceHomeScreen")}
-            height={50}
-            backgroundColor={Colors.primary}
-            backgroundDarker={Colors.primaryDark}
-            borderRadius={25}
+            activeOpacity={0.8}
           >
             <Text style={styles.buttonText}>Continue Shopping</Text>
-          </AwesomeButton>
+          </TouchableOpacity>
         </View>
-      </View>
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <StatusBar backgroundColor={Colors.white} barStyle="dark-content" />
-      
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-        >
-          <Ionicons name="arrow-back" size={24} color={Colors.black} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Shopping Cart ({cartItems.length})</Text>
-        <TouchableOpacity
-          style={styles.clearButton}
-          onPress={handleClearCart}
-          disabled={clearCartMutation.isPending}
-        >
-          <Text style={styles.clearButtonText}>Clear</Text>
-        </TouchableOpacity>
-      </View>
+    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.white }}>
+      <MyStatusBar />
+      <View style={{ flex: 1 }}>
+        {/* Header */}
+        <View style={{
+          flexDirection: "row",
+          alignItems: "center",
+          paddingVertical: Default.fixPadding * 1.2,
+          paddingHorizontal: Default.fixPadding * 2,
+          backgroundColor: Colors.white,
+          ...Default.shadow,
+        }}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={{ marginRight: Default.fixPadding }}
+          >
+            <Ionicons name="arrow-back" size={24} color={Colors.black} />
+          </TouchableOpacity>
+          <Text style={{
+            flex: 1,
+            ...Fonts.SemiBold18black,
+            color: Colors.black,
+          }}>Shopping Cart ({cartItems.length})</Text>
+          
+          <TouchableOpacity
+            onPress={() => navigation.navigate("ordersScreen")}
+            style={{ marginRight: Default.fixPadding }}
+          >
+            <Ionicons name="receipt-outline" size={22} color={Colors.primary} />
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            onPress={handleClearCart}
+            disabled={clearCartMutation.isPending}
+          >
+            <Text style={{
+              ...Fonts.SemiBold14primary,
+              color: Colors.red,
+            }}>Clear</Text>
+          </TouchableOpacity>
+        </View>
       
       {/* Cart Items */}
       <FlatList
@@ -267,18 +304,16 @@ const ShoppingCartScreen = ({ navigation }) => {
           </Text>
         )}
         
-        <AwesomeButton
+        <TouchableOpacity
           style={styles.checkoutButton}
           onPress={() => navigation.navigate("deliveryAddressScreen", { cartItems, total })}
-          height={50}
-          backgroundColor={Colors.primary}
-          backgroundDarker={Colors.primaryDark}
-          borderRadius={25}
+          activeOpacity={0.8}
         >
           <Text style={styles.buttonText}>Proceed to Checkout</Text>
-        </AwesomeButton>
+        </TouchableOpacity>
       </View>
-    </View>
+      </View>
+    </SafeAreaView>
   );
 };
 
@@ -292,17 +327,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: Default.fixPadding,
     paddingVertical: Default.fixPadding,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.lightGrey,
+    backgroundColor: Colors.white,
   },
   backButton: {
     padding: 8,
+    marginRight: Default.fixPadding,
   },
   headerTitle: {
-    flex: 1,
-    textAlign: "center",
     ...Fonts.SemiBold18black,
-    marginHorizontal: Default.fixPadding,
+    color: Colors.black,
+    flex: 1,
   },
   headerRight: {
     width: 40,
@@ -335,7 +369,15 @@ const styles = StyleSheet.create({
     marginBottom: Default.fixPadding * 2,
   },
   continueButton: {
-    width: width * 0.6,
+    backgroundColor: Colors.primary,
+    paddingVertical: Default.fixPadding * 1.2,
+    paddingHorizontal: Default.fixPadding * 2,
+    borderRadius: 25,
+    marginTop: Default.fixPadding * 2,
+    width: "80%",
+    alignSelf: "center",
+    alignItems: "center",
+    justifyContent: "center",
   },
   cartList: {
     paddingHorizontal: Default.fixPadding,
@@ -451,7 +493,13 @@ const styles = StyleSheet.create({
     marginBottom: Default.fixPadding,
   },
   checkoutButton: {
+    backgroundColor: Colors.primary,
+    paddingVertical: Default.fixPadding * 1.2,
+    borderRadius: 25,
     width: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: Default.fixPadding,
   },
   buttonText: {
     ...Fonts.SemiBold16white,

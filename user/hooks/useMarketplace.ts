@@ -16,13 +16,22 @@ export const useCategories = (filters = {}) => {
 
 // Products Hooks
 export const useProducts = (filters = {}) => {
+  console.log("useProducts hook called with filters:", filters);
+  
   return useQuery({
-    queryKey: ["marketplace-products", filters],
+    queryKey: ["marketplace-products", JSON.stringify(filters)], // Serialize filters for better caching
     queryFn: async () => {
+      console.log("useProducts queryFn executing with filters:", filters);
       const { data, error } = await marketplaceService.getProducts(filters);
-      if (error) throw error;
+      if (error) {
+        console.error("useProducts queryFn error:", error);
+        throw error;
+      }
+      console.log("useProducts queryFn success, data count:", data ? data.length : 0);
       return data;
     },
+    staleTime: 0, // Always refetch to ensure fresh data
+    cacheTime: 0, // Don't cache to avoid stale data issues
   });
 };
 
@@ -75,8 +84,7 @@ export const useAddToCart = () => {
       const { data, error } = await marketplaceService.addToCart(
         userId,
         productId,
-        quantity,
-        variantOptions
+        quantity
       );
       if (error) throw error;
       return data;

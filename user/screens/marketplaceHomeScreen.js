@@ -319,6 +319,22 @@ const MarketplaceHomeScreen = ({ navigation }) => {
     });
   };
 
+  const handleFeaturePress = (feature) => {
+    switch (feature.id) {
+      case 1: // Community Picks
+        navigation.navigate("communityPicksScreen");
+        break;
+      case 2: // Radiance Routine
+        navigation.navigate("radianceRoutineScreen");
+        break;
+      case 3: // Image Search
+        navigation.navigate("imageSearchScreen");
+        break;
+      default:
+        console.log("Unknown feature pressed:", feature.title);
+    }
+  };
+
   const handleSearch = () => {
     if (searchQuery.trim()) {
       navigation.navigate("marketplaceSearchScreen", { query: searchQuery });
@@ -547,18 +563,9 @@ const MarketplaceHomeScreen = ({ navigation }) => {
 
         {/* Try Something New Section */}
         <View style={styles.section}>
-          <TouchableOpacity 
-            style={styles.sectionHeader}
-            onPress={() => navigation.navigate("categoryListingScreen", {
-              category: "Try something new",
-              categoryId: "featured",
-              categoryData: { name: "Try something new", id: "featured" }
-            })}
-            activeOpacity={0.8}
-          >
+          <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Try something new</Text>
-            <Ionicons name="chevron-forward" size={20} color={Colors.black} />
-          </TouchableOpacity>
+          </View>
           <Text style={styles.sectionSubtitle}>
             Discover more ways to shop with Casa Nirvana
           </Text>
@@ -567,6 +574,7 @@ const MarketplaceHomeScreen = ({ navigation }) => {
               <TouchableOpacity
                 key={feature.id}
                 style={styles.featureCard}
+                onPress={() => handleFeaturePress(feature)}
                 activeOpacity={0.8}
               >
                 <View
@@ -980,7 +988,7 @@ const styles = StyleSheet.create({
     marginBottom: Default.fixPadding * 0.5,
   },
   sectionTitle: {
-    ...Fonts.Bold18black,
+    ...Fonts.SemiBold16black,
     color: Colors.black,
     fontWeight: 'bold',
   },
@@ -1131,7 +1139,7 @@ const styles = StyleSheet.create({
     textShadowRadius: 2,
   },
   importedCategoryDesc: {
-    ...Fonts.Regular10white,
+    fontSize: 11,
     color: Colors.white,
     marginTop: 4,
     textAlign: "center",

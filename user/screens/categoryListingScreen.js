@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -26,35 +26,71 @@ const CategoryListingScreen = ({ navigation, route }) => {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState("all");
 
-  // Build filters based on category data and user selections
-  const buildFilters = () => {
-    const filters = { sort: selectedSort };
+  // Build filters based on category data and user selections using useMemo for stability
+  const filters = useMemo(() => {
+    const baseFilters = { sort: selectedSort };
     
-    if (categoryId && categoryId !== "imported") {
-      filters.categoryId = categoryId;
+    console.log("CategoryListing - Building filters for:", {
+      category,
+      categoryId,
+      categoryData,
+      selectedSort,
+      selectedCountry
+    });
+    
+    // Handle regular categories
+    if (categoryId && categoryData?.category_type !== "imported") {
+      baseFilters.categoryId = categoryId;
     }
     
     // Handle imported products filtering
     if (categoryData?.category_type === "imported") {
-      filters.isImported = true;
+      baseFilters.isImported = true;
       
       if (categoryData?.name === "UK Products") {
-        filters.countryOfOrigin = "UK";
+        baseFilters.countryOfOrigin = "UK";
       } else if (categoryData?.name === "USA Products") {
-        filters.countryOfOrigin = "USA";
+        baseFilters.countryOfOrigin = "USA";
+      } else if (categoryData?.name === "Imported Products") {
+        // Show all imported products
+        // baseFilters.isImported = true is already set above
       }
     }
     
-    // Apply country filter if selected
+    // Apply country filter if selected (overrides category-based country filter)
     if (selectedCountry !== "all") {
-      filters.countryOfOrigin = selectedCountry;
+      baseFilters.countryOfOrigin = selectedCountry;
+      if (selectedCountry !== "Local") {
+        baseFilters.isImported = true;
+      }
     }
     
-    return filters;
-  };
+    console.log("CategoryListing - Final filters:", baseFilters);
+    return baseFilters;
+  }, [categoryId, categoryData, selectedSort, selectedCountry, category]);
 
   // Fetch products for this category
-  const { data: productsData, isLoading, error, refetch } = useProducts(buildFilters());
+  const { data: productsData, isLoading, error, refetch } = useProducts(filters);
+
+  // Debug logging and force refresh on mount
+  useEffect(() => {
+    console.log("CategoryListing - productsData:", productsData);
+    console.log("CategoryListing - isLoading:", isLoading);
+    console.log("CategoryListing - error:", error);
+    console.log("CategoryListing - Current filters:", filters);
+    
+    // Force a refresh when the screen first loads
+    if (!productsData && !isLoading) {
+      console.log("CategoryListing - Force refreshing data");
+      refetch();
+    }
+  }, [productsData, isLoading, error, filters]);
+
+  // Force refresh when category changes
+  useEffect(() => {
+    console.log("CategoryListing - Category changed, refreshing data");
+    refetch();
+  }, [categoryId, categoryData?.name]);
 
   // Use dynamic products or fallback to mock data
   const mockProducts = [
@@ -126,18 +162,35 @@ const CategoryListingScreen = ({ navigation, route }) => {
     },
   ];
 
-  // Use database products if available, otherwise fallback to mock data
-  const products = productsData && productsData.length > 0 ? productsData.map(product => ({
-    id: product.id,
-    name: product.name,
-    vendor: product.vendor?.store_name || "Casa Nirvana",
-    rating: product.rating || 4.5,
-    reviews: product.review_count || 100,
-    price: parseFloat(product.price),
-    originalPrice: product.original_price ? parseFloat(product.original_price) : parseFloat(product.price) * 1.3,
-    discount: product.discount_percentage ? `${product.discount_percentage}% off` : null,
-    image: product.images && product.images.length > 0 ? { uri: product.images[0] } : require("../assets/images/img1.png"),
-  })) : mockProducts;
+  // Use database products if available, otherwise show empty state or mock data
+  let products = [];
+  let showEmptyState = false;
+
+  if (productsData) {
+    if (productsData.length > 0) {
+      products = productsData.map(product => ({
+        id: product.id,
+        name: product.name,
+        vendor: product.vendor?.store_name || "Casa Nirvana",
+        rating: product.rating || 4.5,
+        reviews: product.review_count || 100,
+        price: parseFloat(product.price),
+        originalPrice: product.original_price ? parseFloat(product.original_price) : parseFloat(product.price) * 1.3,
+        discount: product.discount_percentage ? `${product.discount_percentage}% off` : null,
+        image: product.images && product.images.length > 0 ? { uri: product.images[0] } : require("../assets/images/img1.png"),
+        countryOfOrigin: product.country_of_origin,
+        isImported: product.is_imported,
+      }));
+    } else {
+      // No products found for this category
+      showEmptyState = true;
+    }
+  } else if (!isLoading) {
+    // Fallback to mock data if no database connection
+    products = mockProducts;
+  }
+
+  console.log("CategoryListing - Final products count:", products.length);
 
   const sortOptions = [
     { id: "relevance", label: "Relevance" },
@@ -158,6 +211,7 @@ const CategoryListingScreen = ({ navigation, route }) => {
   const onRefresh = async () => {
     setRefreshing(true);
     try {
+      console.log("CategoryListing - Manual refresh triggered");
       await refetch();
     } catch (error) {
       console.error('Error refreshing products:', error);
@@ -245,7 +299,12 @@ const CategoryListingScreen = ({ navigation, route }) => {
         >
           <Ionicons name="arrow-back" size={24} color={Colors.black} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{category}</Text>
+        <Text style={styles.headerTitle}>
+          {category}
+          {categoryData?.category_type === "imported" && (
+            <Text style={styles.headerSubtitle}> (Imported)</Text>
+          )}
+        </Text>
         <TouchableOpacity style={styles.searchButton}>
           <Ionicons name="search" size={24} color={Colors.black} />
         </TouchableOpacity>
@@ -324,6 +383,24 @@ const CategoryListingScreen = ({ navigation, route }) => {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
+        ListEmptyComponent={() => (
+          <View style={styles.emptyContainer}>
+            {isLoading ? (
+              <>
+                <Text style={styles.loadingText}>Loading products...</Text>
+              </>
+            ) : (
+              <>
+                <Ionicons name="bag-outline" size={64} color={Colors.lightGrey} />
+                <Text style={styles.emptyTitle}>No products found</Text>
+                <Text style={styles.emptyMessage}>
+                  No products available in {category} yet.{'\n'}
+                  Try checking other categories or refresh the page.
+                </Text>
+              </>
+            )}
+          </View>
+        )}
         ListFooterComponent={<View style={{ height: 100 }} />}
       />
 
@@ -381,6 +458,10 @@ const styles = StyleSheet.create({
     color: Colors.black,
     flex: 1,
     textAlign: "center",
+  },
+  headerSubtitle: {
+    ...Fonts.Regular12grey,
+    color: Colors.grey,
   },
   searchButton: {
     padding: Default.fixPadding * 0.5,
@@ -570,6 +651,31 @@ const styles = StyleSheet.create({
   },
   tabButton: {
     padding: Default.fixPadding * 0.5,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: Default.fixPadding * 4,
+    paddingHorizontal: Default.fixPadding * 2,
+  },
+  loadingText: {
+    ...Fonts.SemiBold16black,
+    color: Colors.grey,
+    textAlign: "center",
+  },
+  emptyTitle: {
+    ...Fonts.Bold18black,
+    color: Colors.black,
+    marginTop: Default.fixPadding,
+    textAlign: "center",
+  },
+  emptyMessage: {
+    ...Fonts.Regular14grey,
+    color: Colors.grey,
+    marginTop: Default.fixPadding * 0.5,
+    textAlign: "center",
+    lineHeight: 20,
   },
 });
 

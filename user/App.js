@@ -438,6 +438,38 @@ const MainNavigation = () => {
           name="shoppingCartScreen"
           component={require("./screens/shoppingCartScreen").default}
         />
+        <Stack.Screen
+          name="communityPicksScreen"
+          component={require("./screens/communityPicksScreen").default}
+        />
+        <Stack.Screen
+          name="radianceRoutineScreen"
+          component={require("./screens/radianceRoutineScreen").default}
+        />
+        <Stack.Screen
+          name="imageSearchScreen"
+          component={require("./screens/imageSearchScreen").default}
+        />
+        <Stack.Screen
+          name="deliveryAddressScreen"
+          component={require("./screens/deliveryAddressScreen").default}
+        />
+        <Stack.Screen
+          name="orderReviewScreen"
+          component={require("./screens/orderReviewScreen").default}
+        />
+        <Stack.Screen
+          name="orderConfirmationScreen"
+          component={require("./screens/orderConfirmationScreen").default}
+        />
+        <Stack.Screen
+          name="orderTrackingScreen"
+          component={require("./screens/orderTrackingScreen").default}
+        />
+        <Stack.Screen
+          name="ordersScreen"
+          component={require("./screens/ordersScreen").default}
+        />
           </Stack.Navigator>
           </NotificationNavigationHandler>
         </NotificationProvider>

@@ -12,6 +12,7 @@ import {
   StatusBar,
 } from "react-native";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { Colors, Fonts, Default } from "../constants/styles";
 import { useTranslation } from "react-i18next";
 import { useSearchProducts } from "../hooks/useMarketplace";
@@ -108,11 +109,12 @@ const MarketplaceSearchScreen = ({ navigation, route }) => {
   ];
 
   const categories = [
-    { id: 1, name: "Coffee", icon: "cafe" },
-    { id: 2, name: "Pantry", icon: "restaurant" },
-    { id: 3, name: "Snacks", icon: "fast-food" },
-    { id: 4, name: "Tea", icon: "leaf" },
-    { id: 5, name: "Candy & chocolate", icon: "ice-cream" },
+    { id: 1, name: "Coffee", icon: "cafe", colors: ["#6B3AA0", "#8B5FBF"] },
+    { id: 2, name: "Pantry", icon: "restaurant", colors: ["#4ECDC4", "#44A08D"] },
+    { id: 3, name: "Snacks", icon: "fast-food", colors: ["#FF6B6B", "#FF8E53"] },
+    { id: 4, name: "Tea", icon: "leaf", colors: ["#4ECDC4", "#44A08D"] },
+    { id: 5, name: "Candy & chocolate", icon: "ice-cream", colors: ["#FFD93D", "#FF6B6B"] },
+    { id: 6, name: "Fresh Foods", icon: "nutrition", colors: ["#56AB2F", "#A8E6CF"] },
   ];
 
   useEffect(() => {
@@ -224,10 +226,14 @@ const MarketplaceSearchScreen = ({ navigation, route }) => {
       onPress={() => handleCategoryPress(item)}
       activeOpacity={0.8}
     >
-      <View style={styles.categoryIcon}>
-        <Ionicons name={item.icon} size={24} color={Colors.white} />
-      </View>
-      <Text style={styles.categoryName}>{item.name}</Text>
+      <LinearGradient
+        colors={item.colors}
+        style={styles.categoryGradient}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <Text style={styles.categoryName}>{item.name}</Text>
+      </LinearGradient>
     </TouchableOpacity>
   );
 
@@ -465,27 +471,26 @@ const styles = StyleSheet.create({
     marginTop: Default.fixPadding * 0.5,
   },
   categoryCard: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F5F5F5",
-    borderRadius: 12,
-    padding: Default.fixPadding,
-    margin: Default.fixPadding * 0.3,
+    width: (width - Default.fixPadding * 2) / 2,
+    height: 100,
+    marginBottom: Default.fixPadding,
+    paddingHorizontal: Default.fixPadding * 0.5,
   },
-  categoryIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#8B4513",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: Default.fixPadding,
+  categoryGradient: {
+    flex: 1,
+    padding: Default.fixPadding * 1.2,
+    justifyContent: "space-between",
+    borderRadius: 15,
   },
   categoryName: {
-    ...Fonts.SemiBold14black,
-    color: Colors.black,
-    flex: 1,
+    ...Fonts.Bold16white,
+    color: Colors.white,
+    fontSize: 18,
+    lineHeight: 22,
+    fontWeight: 'bold',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
   loadingContainer: {
     padding: Default.fixPadding * 3,
