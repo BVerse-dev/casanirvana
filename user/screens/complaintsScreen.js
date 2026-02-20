@@ -18,8 +18,19 @@ const ComplaintsScreen = ({ navigation }) => {
   function tr(key) {
     return t(`complaintsScreen:${key}`);
   }
+  const goBackToPreviousScreen = React.useCallback(() => {
+    const parentNavigation = navigation.getParent?.();
+    if (parentNavigation?.canGoBack?.()) {
+      parentNavigation.goBack();
+      return;
+    }
+    if (navigation.canGoBack?.()) {
+      navigation.goBack();
+    }
+  }, [navigation]);
+
   const backAction = () => {
-    navigation.goBack();
+    goBackToPreviousScreen();
     return true;
   };
   
@@ -28,7 +39,7 @@ const ComplaintsScreen = ({ navigation }) => {
     return () => subscription?.remove();
   }, []);
 
-  const CustomTabBar = ({ state, descriptors, navigation }) => {
+  const CustomTabBar = ({ state, descriptors, navigation: tabNavigation }) => {
     return (
       <View>
         <View
@@ -39,7 +50,7 @@ const ComplaintsScreen = ({ navigation }) => {
             paddingHorizontal: Default.fixPadding * 2,
           }}
         >
-        <TouchableOpacity onPress={() => navigation.goBack()}> 
+        <TouchableOpacity onPress={goBackToPreviousScreen}> 
             <Ionicons
               name={isRtl ? "arrow-forward-outline" : "arrow-back-outline"}
               size={25}
@@ -74,19 +85,19 @@ const ComplaintsScreen = ({ navigation }) => {
 
             const isFocused = state.index === index;
 
-            const onPress = () => {
-              const event = navigation.emit({
+              const onPress = () => {
+              const event = tabNavigation.emit({
                 type: "tabPress",
                 target: route.key,
               });
 
               if (!isFocused && !event.defaultPrevented) {
-                navigation.navigate(route.name);
+                tabNavigation.navigate(route.name);
               }
             };
 
             const onLongPress = () => {
-              navigation.emit({
+              tabNavigation.emit({
                 type: "tabLongPress",
                 target: route.key,
               });
@@ -137,6 +148,7 @@ const ComplaintsScreen = ({ navigation }) => {
 
       <Tab.Navigator
         initialRouteName="complaintsPersonalTab"
+        backBehavior="none"
         tabBar={(props) => <CustomTabBar {...props} />}
       >
         <Tab.Screen

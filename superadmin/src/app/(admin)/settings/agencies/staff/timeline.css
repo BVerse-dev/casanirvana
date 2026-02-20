@@ -1,0 +1,288 @@
+/* Advanced Alternating Timeline Styles */
+.advanced-timeline {
+  position: relative;
+  padding: 2rem 0;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Central Timeline Line */
+.advanced-timeline::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: linear-gradient(to bottom, #007bff, #6c757d, #007bff);
+  transform: translateX(-50%);
+  z-index: 1;
+}
+
+.timeline-item {
+  position: relative;
+  width: 100%;
+  margin-bottom: 3rem;
+  display: flex;
+  align-items: center;
+}
+
+/* Left Side Items (odd items) */
+.timeline-item:nth-child(odd) {
+  justify-content: flex-start;
+  padding-left: 0;
+  padding-right: calc(50% + 2.5rem);
+}
+
+.timeline-item:nth-child(odd) .timeline-content {
+  text-align: left;
+}
+
+.timeline-item:nth-child(odd) .timeline-panel::before {
+  content: '';
+  position: absolute;
+  right: -8px;
+  top: 1.5rem;
+  width: 0;
+  height: 0;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-left: 8px solid #e9ecef;
+}
+
+.timeline-item:nth-child(odd) .timeline-panel::after {
+  content: '';
+  position: absolute;
+  right: -7px;
+  top: 1.5rem;
+  width: 0;
+  height: 0;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-left: 8px solid #fff;
+}
+
+/* Right Side Items (even items) */
+.timeline-item:nth-child(even) {
+  justify-content: flex-end;
+  padding-left: calc(20% + 2.5rem);
+  padding-right: 0;
+}
+
+.timeline-item:nth-child(even) .timeline-content {
+  text-align: right;
+}
+
+.timeline-item:nth-child(even) .timeline-panel::before {
+  content: '';
+  position: absolute;
+  left: -8px;
+  top: 1.5rem;
+  width: 0;
+  height: 0;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-right: 8px solid #e9ecef;
+}
+
+.timeline-item:nth-child(even) .timeline-panel::after {
+  content: '';
+  position: absolute;
+  left: -7px;
+  top: 1.5rem;
+  width: 0;
+  height: 0;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-right: 8px solid #fff;
+}
+
+/* Timeline Badge (Icon Circle) */
+.timeline-badge {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 4px solid #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+}
+
+/* Timeline Panel (Content Box) */
+.timeline-panel {
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  position: relative;
+  max-width: 550px;
+  width: 100%;
+}
+
+.timeline-panel:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+}
+
+/* Timeline Content */
+.timeline-content {
+  width: 100%;
+}
+
+.timeline-title {
+  color: #495057;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  font-size: 1.1rem;
+}
+
+.timeline-body {
+  color: #6c757d;
+  margin: 0.75rem 0;
+  line-height: 1.6;
+}
+
+.timeline-footer {
+  border-top: 1px solid #f1f3f4;
+  padding-top: 0.75rem;
+  margin-top: 1rem;
+}
+
+/* Activity Type Specific Styling */
+.timeline-activity {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+}
+
+.timeline-marker {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+  margin-right: 1rem;
+}
+
+.timeline-content-card {
+  flex: 1;
+  max-width: 380px;
+}
+
+.timeline-content-card .card {
+  transition: all 0.3s ease;
+  border-radius: 10px;
+}
+
+.timeline-content-card .card:hover {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+/* Responsive Design */
+@media (max-width: 992px) {
+  .advanced-timeline {
+    padding: 1rem 0;
+  }
+  
+  .advanced-timeline::before {
+    left: 2rem;
+    transform: none;
+  }
+  
+  .timeline-item:nth-child(odd),
+  .timeline-item:nth-child(even) {
+    justify-content: flex-start;
+    padding-left: 4.5rem;
+    padding-right: 1rem;
+  }
+  
+  .timeline-item:nth-child(odd) .timeline-content,
+  .timeline-item:nth-child(even) .timeline-content {
+    text-align: left;
+  }
+  
+  .timeline-badge {
+    left: 2rem;
+    transform: translate(-50%, -50%);
+  }
+  
+  .timeline-item:nth-child(odd) .timeline-panel::before,
+  .timeline-item:nth-child(odd) .timeline-panel::after {
+    right: auto;
+    left: -8px;
+    border-left: none;
+    border-right: 8px solid #e9ecef;
+  }
+  
+  .timeline-item:nth-child(odd) .timeline-panel::after {
+    left: -7px;
+    border-right: 8px solid #fff;
+  }
+  
+  .timeline-panel {
+    max-width: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .advanced-timeline {
+    padding: 0.5rem 0;
+  }
+  
+  .advanced-timeline::before {
+    left: 1.5rem;
+  }
+  
+  .timeline-item:nth-child(odd),
+  .timeline-item:nth-child(even) {
+    padding-left: 3.5rem;
+    padding-right: 0.5rem;
+    margin-bottom: 2rem;
+  }
+  
+  .timeline-badge {
+    left: 1.5rem;
+    width: 3rem;
+    height: 3rem;
+  }
+  
+  .timeline-panel {
+    padding: 1rem;
+    border-radius: 8px;
+  }
+  
+  .timeline-title {
+    font-size: 1rem;
+  }
+  
+  .timeline-activity {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .timeline-marker {
+    width: 2.5rem;
+    height: 2.5rem;
+    margin-right: 0;
+    margin-bottom: 1rem;
+  }
+  
+  .timeline-content-card {
+    max-width: none;
+    width: 100%;
+  }
+}

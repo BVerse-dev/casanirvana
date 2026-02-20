@@ -495,18 +495,18 @@ const GatePassModal = (props) => {
                               }
                               let displayText = '';
                               let label = '';
-                              let societyName = '';
+                              let communityName = '';
                               let unitBlock = '';
                               let unitNumber = '';
                               
                               if (qrData.type === 'user_gate_pass') {
-                                // Get society and unit information from QR data
-                                societyName = qrData.society_name || '';
+                                // Get community and unit information from QR data
+                                communityName = qrData.community_name || '';
                                 unitBlock = qrData.unit_block || '';
                                 unitNumber = qrData.unit_number || '';
                                 
-                                if (societyName && unitBlock && unitNumber) {
-                                  displayText = societyName;
+                                if (communityName && unitBlock && unitNumber) {
+                                  displayText = communityName;
                                   label = `Unit: ${unitBlock}-${unitNumber}`;
                                 } else if (unitBlock && unitNumber) {
                                   displayText = `Unit: ${unitBlock}-${unitNumber}`;
@@ -533,12 +533,12 @@ const GatePassModal = (props) => {
                              }
                              
                              if (displayText) {
-                               if (qrData.type === 'user_gate_pass' && societyName && unitBlock && unitNumber) {
-                                 // Special display for user gate pass with society and unit
+                               if (qrData.type === 'user_gate_pass' && communityName && unitBlock && unitNumber) {
+                                 // Special display for user gate pass with community and unit
                                  return (
                                    <View style={{ marginTop: Default.fixPadding * 0.2 }}>
                                      <Text style={{ ...Fonts.SemiBold14grey }}>
-                                       {societyName}
+                                       {communityName}
                                      </Text>
                                      <Text style={{ ...Fonts.Regular14grey, marginTop: Default.fixPadding * 0.1 }}>
                                        Unit: {unitBlock}-{unitNumber}

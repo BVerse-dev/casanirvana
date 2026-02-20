@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, FlatList, TextInput, ActivityIndicator, Alert, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import AwesomeButton from "react-native-really-awesome-button";
 import MyStatusBar from '../components/myStatusBar';
 import { Colors, Fonts, Default } from '../constants/styles';
 import { useListMaintenanceRequests, useCreateMaintenanceRequest, useGetUserUnit } from '../hooks/useSupabaseData';
@@ -38,7 +37,7 @@ const MaintenanceRequestsScreen = ({ navigation }) => {
     profileId: profile?.id,
     profileUserId: profile?.user_id,
     profileUnitId: profile?.unit_id,
-    profileSocietyId: profile?.society_id,
+    profileCommunityId: profile?.community_id,
     firstName: profile?.first_name,
     lastName: profile?.last_name
   });
@@ -416,22 +415,17 @@ const MaintenanceRequestsScreen = ({ navigation }) => {
 
       {/* Request New Maintenance Button */}
       <View style={{ margin: Default.fixPadding * 2 }}>
-        <AwesomeButton
-          height={50}
+        <TouchableOpacity
           onPress={() => {
-            navigation.push("addMaintenanceRequestScreen");
+            navigation.navigate("addMaintenanceRequestScreen");
           }}
-          raiseLevel={1}
-          stretch={true}
-          borderRadius={10}
-          backgroundShadow={Colors.primary}
-          backgroundDarker={Colors.primary}
-          backgroundColor={Colors.primary}
+          activeOpacity={0.85}
+          style={styles.primaryActionButton}
         >
-          <Text style={{ ...Fonts.SemiBold18white }}>
+          <Text style={styles.primaryActionButtonText}>
             Request New Maintenance
           </Text>
-        </AwesomeButton>
+        </TouchableOpacity>
       </View>
 
       {/* Add Request Modal (enhanced form) */}
@@ -695,6 +689,18 @@ const styles = StyleSheet.create({
   },
   dropdownBtnActive: {
     backgroundColor: Colors.primary,
+  },
+  primaryActionButton: {
+    height: 50,
+    borderRadius: 10,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Default.shadow,
+  },
+  primaryActionButtonText: {
+    ...Fonts.SemiBold18white,
+    textAlign: 'center',
   },
 });
 

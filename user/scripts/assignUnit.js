@@ -1,7 +1,11 @@
 const { createClient } = require('@supabase/supabase-js');
 
-const supabaseUrl = 'https://pswnlowvmdgeifhxilao.supabase.co';
-const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzd25sb3d2bWRnZWlmaHhpbGFvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0Nzc4MTkxNiwiZXhwIjoyMDYzMzU3OTE2fQ.0HGfUIRxfhF6MvJE9HBZmXOT9KHEeSkV8VVksA1GHnM';
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+
+if (!supabaseUrl || !supabaseServiceKey) {
+  throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+}
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -35,12 +39,12 @@ async function assignUnitToUser() {
 
     console.log('Available unit:', availableUnit);
 
-    // Update the demo user profile with unit and society
+    // Update the demo user profile with unit and community
     const { data: updatedProfile, error: updateError } = await supabase
       .from('profiles')
       .update({
         unit_id: availableUnit.id,
-        society_id: availableUnit.society_id,
+        community_id: availableUnit.community_id,
         updated_at: new Date().toISOString()
       })
       .eq('id', demoUser.id)
@@ -80,11 +84,11 @@ async function assignUnitToUser() {
         last_name,
         email,
         unit_id,
-        society_id,
+        community_id,
         units:unit_id (
           id,
           unit_number,
-          societies:society_id (
+          communities:community_id (
             id,
             name
           )

@@ -11,6 +11,7 @@ import {
   TextInput,
   Modal,
   Alert,
+  Platform,
 } from "react-native";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -20,7 +21,6 @@ import MyStatusBar from "../components/myStatusBar";
 import { ms } from "react-native-size-matters/extend";
 import DashedLine from "react-native-dashed-line";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
-import AwesomeButton from "react-native-really-awesome-button";
 import CameraModule from "../components/cameraModule";
 import { Camera } from "expo-camera";
 import SnackbarToast from "../components/snackbarToast";
@@ -64,6 +64,7 @@ const AddMaintenanceRequestScreen = ({ navigation }) => {
 
   const [pickedImages, setPickedImages] = useState([]);
   const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
+  const [showSubmissionSuccessModal, setShowSubmissionSuccessModal] = useState(false);
 
   const [camera, setShowCamera] = useState(false);
 
@@ -71,8 +72,16 @@ const AddMaintenanceRequestScreen = ({ navigation }) => {
 
   useEffect(() => {
     const requestCameraPermission = async () => {
-      const { status } = await Camera.requestCameraPermissionsAsync();
-      if (status !== "granted") {
+      // Avoid camera permission prompts on web during screen mount.
+      if (Platform.OS === "web") return;
+
+      try {
+        const { status } = await Camera.requestCameraPermissionsAsync();
+        if (status !== "granted") {
+          setCameraNotGranted(true);
+        }
+      } catch (cameraError) {
+        console.error("Camera permission error:", cameraError);
         setCameraNotGranted(true);
       }
     };
@@ -193,10 +202,19 @@ const AddMaintenanceRequestScreen = ({ navigation }) => {
     },
   ];
 
-  const [briefRequest, setBriefRequest] = useState();
-  const [requestTitle, setRequestTitle] = useState();
+  const [briefRequest, setBriefRequest] = useState("");
+  const [requestTitle, setRequestTitle] = useState("");
 
   const [submitRequestModal, setSubmitRequestModal] = useState(false);
+
+  const resetMaintenanceForm = () => {
+    setRequestTitle("");
+    setBriefRequest("");
+    setPickedImages([]);
+    setSelectedType("Plumbing");
+    setSelectedPriority("Medium");
+    setSelectedTab(tr("personal"));
+  };
 
   const handleImageUpload = (imageUri) => {
     if (pickedImages.length < 5) {
@@ -206,7 +224,42 @@ const AddMaintenanceRequestScreen = ({ navigation }) => {
     }
   };
 
+  const handleOpenCamera = async () => {
+    // Camera module is not reliable on web in this flow.
+    if (Platform.OS === "web") {
+      Alert.alert(
+        "Not Available",
+        "Camera capture is currently available on mobile app only."
+      );
+      return;
+    }
+
+    try {
+      const currentPermission = await Camera.getCameraPermissionsAsync();
+      let finalStatus = currentPermission.status;
+
+      if (finalStatus !== "granted") {
+        const requestedPermission = await Camera.requestCameraPermissionsAsync();
+        finalStatus = requestedPermission.status;
+      }
+
+      if (finalStatus !== "granted") {
+        setCameraNotGranted(true);
+        return;
+      }
+
+      setShowCamera(true);
+    } catch (cameraError) {
+      console.error("Error opening camera:", cameraError);
+      setCameraNotGranted(true);
+    }
+  };
+
   const handleSubmitMaintenanceRequest = async () => {
+    if (isSubmittingRequest) {
+      return;
+    }
+
     if (!requestTitle?.trim() || !briefRequest?.trim()) {
       Alert.alert("Error", "Please fill in all required fields");
       return;
@@ -217,31 +270,9 @@ const AddMaintenanceRequestScreen = ({ navigation }) => {
       return;
     }
 
-    setIsSubmittingRequest(true);
-
     const handleSuccessfulSubmission = () => {
-      Alert.alert(
-        "Success", 
-        "Maintenance request submitted successfully!",
-        [
-          {
-            text: "OK",
-            onPress: () => {
-              // Reset form
-              setRequestTitle('');
-              setBriefRequest('');
-              setPickedImages([]);
-              setSelectedType("Plumbing");
-              setSelectedPriority("Medium");
-              setSubmitRequestModal(false);
-              
-              // Navigate back to maintenance requests screen
-              navigation.navigate('MaintenanceRequestsScreen');
-            }
-          }
-        ]
-      );
-      setIsSubmittingRequest(false);
+      setSubmitRequestModal(false);
+      setShowSubmissionSuccessModal(true);
     };
 
     try {
@@ -269,8 +300,8 @@ const AddMaintenanceRequestScreen = ({ navigation }) => {
 
       console.log('📝 Submitting maintenance request with data:', requestData);
 
-      // Note: Images are not supported in current database schema
-      // Show warning if user has selected images
+      // Note: Images are not supported in current database schema.
+      // Show warning if user has selected images.
       if (pickedImages.length > 0) {
         Alert.alert(
           "Note", 
@@ -278,21 +309,19 @@ const AddMaintenanceRequestScreen = ({ navigation }) => {
           [
             {
               text: "Cancel",
-              style: "cancel",
-              onPress: () => {
-                setIsSubmittingRequest(false);
-                return;
-              }
+              style: "cancel"
             },
             {
               text: "Continue",
               onPress: async () => {
+                setIsSubmittingRequest(true);
                 try {
                   await createMaintenanceRequest.mutateAsync(requestData);
                   handleSuccessfulSubmission();
                 } catch (error) {
                   console.error('Error submitting maintenance request:', error);
                   Alert.alert("Error", error.message || "Failed to submit maintenance request");
+                } finally {
                   setIsSubmittingRequest(false);
                 }
               }
@@ -302,7 +331,8 @@ const AddMaintenanceRequestScreen = ({ navigation }) => {
         return;
       }
 
-      // Just create the request without images for now
+      // Create request without images for now.
+      setIsSubmittingRequest(true);
       const result = await createMaintenanceRequest.mutateAsync(requestData);
       console.log('✅ Maintenance request created successfully:', result);
       handleSuccessfulSubmission();
@@ -322,6 +352,7 @@ const AddMaintenanceRequestScreen = ({ navigation }) => {
       }
       
       Alert.alert("Submission Error", errorMessage + "\n\nPlease check your connection and try again.");
+    } finally {
       setIsSubmittingRequest(false);
     }
   };
@@ -642,7 +673,7 @@ const AddMaintenanceRequestScreen = ({ navigation }) => {
 
             {pickedImages.length < 5 && (
               <TouchableOpacity
-                onPress={() => setShowCamera(true)}
+                onPress={handleOpenCamera}
                 style={{
                   width: width * 0.25,
                   height: width * 0.25,
@@ -684,20 +715,23 @@ const AddMaintenanceRequestScreen = ({ navigation }) => {
           margin: Default.fixPadding * 2,
         }}
       >
-        <AwesomeButton
-          height={50}
+        <TouchableOpacity
           onPress={() => setSubmitRequestModal(true)}
-          raiseLevel={1}
-          stretch={true}
-          borderRadius={10}
-          backgroundShadow={Colors.primary}
-          backgroundDarker={Colors.primary}
-          backgroundColor={Colors.primary}
+          disabled={isSubmittingRequest}
+          activeOpacity={0.85}
+          style={{
+            height: 50,
+            borderRadius: 10,
+            backgroundColor: isSubmittingRequest ? Colors.grey : Colors.primary,
+            alignItems: "center",
+            justifyContent: "center",
+            ...Default.shadow,
+          }}
         >
           <Text style={{ ...Fonts.SemiBold18white }}>
             {tr("submitRequest")}
           </Text>
-        </AwesomeButton>
+        </TouchableOpacity>
       </View>
 
       {/* Camera Module */}
@@ -951,7 +985,11 @@ const AddMaintenanceRequestScreen = ({ navigation }) => {
       <Modal animationType="fade" transparent={true} visible={submitRequestModal}>
         <TouchableOpacity
           activeOpacity={1}
-          onPress={() => setSubmitRequestModal(false)}
+          onPress={() => {
+            if (!isSubmittingRequest) {
+              setSubmitRequestModal(false);
+            }
+          }}
           style={{ flex: 1, backgroundColor: Colors.transparentBlack }}
         >
           <TouchableOpacity
@@ -999,6 +1037,7 @@ const AddMaintenanceRequestScreen = ({ navigation }) => {
               >
                 <TouchableOpacity
                   onPress={() => setSubmitRequestModal(false)}
+                  disabled={isSubmittingRequest}
                   style={{
                     flex: 1,
                     backgroundColor: Colors.lightGrey,
@@ -1019,7 +1058,7 @@ const AddMaintenanceRequestScreen = ({ navigation }) => {
                   disabled={isSubmittingRequest}
                   style={{
                     flex: 1,
-                    backgroundColor: Colors.primary,
+                    backgroundColor: isSubmittingRequest ? Colors.grey : Colors.primary,
                     borderRadius: 5,
                     justifyContent: "center",
                     alignItems: "center",
@@ -1029,6 +1068,127 @@ const AddMaintenanceRequestScreen = ({ navigation }) => {
                 >
                   <Text style={{ ...Fonts.SemiBold16white }}>
                     {isSubmittingRequest ? tr("submitting") : tr("submit")}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Submission Success Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={showSubmissionSuccessModal}
+        onRequestClose={() => setShowSubmissionSuccessModal(false)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => setShowSubmissionSuccessModal(false)}
+          style={{ flex: 1, backgroundColor: Colors.transparentBlack }}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            style={{
+              flex: 1,
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <View
+              style={{
+                width: width * 0.82,
+                backgroundColor: Colors.white,
+                borderRadius: 12,
+                paddingHorizontal: Default.fixPadding * 2,
+                paddingVertical: Default.fixPadding * 2,
+              }}
+            >
+              <View
+                style={{
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginBottom: Default.fixPadding,
+                }}
+              >
+                <View
+                  style={{
+                    width: 52,
+                    height: 52,
+                    borderRadius: 26,
+                    backgroundColor: Colors.green,
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
+                >
+                  <Ionicons name="checkmark" size={30} color={Colors.white} />
+                </View>
+              </View>
+
+              <Text
+                style={{
+                  ...Fonts.SemiBold18black,
+                  textAlign: "center",
+                  marginBottom: Default.fixPadding * 0.6,
+                }}
+              >
+                Request Submitted
+              </Text>
+
+              <Text
+                style={{
+                  ...Fonts.Medium14grey,
+                  textAlign: "center",
+                  marginBottom: Default.fixPadding * 1.8,
+                }}
+              >
+                Your maintenance request was submitted successfully.
+              </Text>
+
+              <View
+                style={{
+                  flexDirection: isRtl ? "row-reverse" : "row",
+                }}
+              >
+                <TouchableOpacity
+                  onPress={() => {
+                    resetMaintenanceForm();
+                    setShowSubmissionSuccessModal(false);
+                  }}
+                  style={{
+                    flex: 1,
+                    backgroundColor: Colors.lightGrey,
+                    borderRadius: 6,
+                    justifyContent: "center",
+                    alignItems: "center",
+                    paddingVertical: Default.fixPadding,
+                    marginHorizontal: Default.fixPadding * 0.4,
+                  }}
+                >
+                  <Text style={{ ...Fonts.SemiBold16black }}>
+                    New Request
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => {
+                    resetMaintenanceForm();
+                    setShowSubmissionSuccessModal(false);
+                    navigation.navigate("MaintenanceRequestsScreen");
+                  }}
+                  style={{
+                    flex: 1,
+                    backgroundColor: Colors.primary,
+                    borderRadius: 6,
+                    justifyContent: "center",
+                    alignItems: "center",
+                    paddingVertical: Default.fixPadding,
+                    marginHorizontal: Default.fixPadding * 0.4,
+                  }}
+                >
+                  <Text style={{ ...Fonts.SemiBold16white }}>
+                    Back to Requests
                   </Text>
                 </TouchableOpacity>
               </View>

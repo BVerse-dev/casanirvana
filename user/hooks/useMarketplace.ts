@@ -50,7 +50,7 @@ export const useProduct = (productId: string) => {
 // Cart Hooks
 export const useCart = () => {
   const { profile } = useAuth();
-  const userId = profile?.user_id;
+  const userId = profile?.user_id || profile?.id;
 
   return useQuery({
     queryKey: ["marketplace-cart", userId],
@@ -78,7 +78,7 @@ export const useAddToCart = () => {
       quantity: number;
       variantOptions?: any;
     }) => {
-      const userId = profile?.user_id;
+      const userId = profile?.user_id || profile?.id;
       if (!userId) throw new Error("User not authenticated");
 
       const { data, error } = await marketplaceService.addToCart(
@@ -139,7 +139,7 @@ export const useClearCart = () => {
 
   return useMutation({
     mutationFn: async () => {
-      const userId = profile?.user_id;
+      const userId = profile?.user_id || profile?.id;
       if (!userId) throw new Error("User not authenticated");
 
       const { error } = await marketplaceService.clearCart(userId);
@@ -154,7 +154,7 @@ export const useClearCart = () => {
 // Orders Hooks
 export const useOrders = (status?: string) => {
   const { profile } = useAuth();
-  const userId = profile?.user_id;
+  const userId = profile?.user_id || profile?.id;
 
   return useQuery({
     queryKey: ["marketplace-orders", userId, status],
@@ -199,7 +199,7 @@ export const useCreateOrder = () => {
 // Favorites Hooks
 export const useFavorites = () => {
   const { profile } = useAuth();
-  const userId = profile?.user_id;
+  const userId = profile?.user_id || profile?.id;
 
   return useQuery({
     queryKey: ["marketplace-favorites", userId],
@@ -225,7 +225,7 @@ export const useToggleFavorite = () => {
       productId: string;
       isFavorite: boolean;
     }) => {
-      const userId = profile?.user_id;
+      const userId = profile?.user_id || profile?.id;
       if (!userId) throw new Error("User not authenticated");
 
       if (isFavorite) {
@@ -251,7 +251,7 @@ export const useToggleFavorite = () => {
 
 export const useIsFavorite = (productId: string) => {
   const { profile } = useAuth();
-  const userId = profile?.user_id;
+  const userId = profile?.user_id || profile?.id;
 
   return useQuery({
     queryKey: ["marketplace-favorite", userId, productId],
@@ -326,7 +326,7 @@ export const useToggleFollowVendor = () => {
       vendorId: string;
       isFollowing: boolean;
     }) => {
-      const userId = profile?.user_id;
+      const userId = profile?.user_id || profile?.id;
       if (!userId) throw new Error("User not authenticated");
 
       if (isFollowing) {
@@ -364,7 +364,7 @@ export const useSearchProducts = (query: string, filters = {}) => {
 
 export const useSearchHistory = () => {
   const { profile } = useAuth();
-  const userId = profile?.user_id;
+  const userId = profile?.user_id || profile?.id;
 
   return useQuery({
     queryKey: ["marketplace-search-history", userId],
@@ -384,7 +384,7 @@ export const useSaveSearchHistory = () => {
 
   return useMutation({
     mutationFn: async (searchQuery: string) => {
-      const userId = profile?.user_id;
+      const userId = profile?.user_id || profile?.id;
       if (!userId) throw new Error("User not authenticated");
 
       const { data, error } = await marketplaceService.saveSearchHistory(
@@ -396,6 +396,83 @@ export const useSaveSearchHistory = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["marketplace-search-history"] });
+    },
+  });
+};
+
+const mapAddressRowToUi = (row: any) => ({
+  id: row.id,
+  userId: row.user_id,
+  label: row.label || "Address",
+  fullName: row.full_name,
+  phoneNumber: row.phone_number,
+  streetAddress: row.street_address,
+  city: row.city,
+  region: row.region,
+  postalCode: row.postal_code || "",
+  additionalInfo: row.additional_info || "",
+  isDefault: Boolean(row.is_default),
+  createdAt: row.created_at,
+  updatedAt: row.updated_at,
+});
+
+// Delivery Address Hooks
+export const useUserAddresses = () => {
+  const { profile } = useAuth();
+  const userId = profile?.user_id || profile?.id;
+
+  return useQuery({
+    queryKey: ["marketplace-user-addresses", userId],
+    queryFn: async () => {
+      if (!userId) return [];
+      const { data, error } = await marketplaceService.getUserAddresses(userId);
+      if (error) throw error;
+      return (data || []).map(mapAddressRowToUi);
+    },
+    enabled: !!userId,
+  });
+};
+
+export const useCreateUserAddress = () => {
+  const queryClient = useQueryClient();
+  const { profile } = useAuth();
+
+  return useMutation({
+    mutationFn: async (addressData: any) => {
+      const userId = profile?.user_id || profile?.id;
+      if (!userId) throw new Error("User not authenticated");
+
+      const { data, error } = await marketplaceService.createUserAddress(
+        userId,
+        addressData
+      );
+      if (error) throw error;
+      return mapAddressRowToUi(data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["marketplace-user-addresses"] });
+    },
+  });
+};
+
+export const useSetDefaultUserAddress = () => {
+  const queryClient = useQueryClient();
+  const { profile } = useAuth();
+
+  return useMutation({
+    mutationFn: async (addressId: string) => {
+      const userId = profile?.user_id || profile?.id;
+      if (!userId) throw new Error("User not authenticated");
+
+      const { data, error } = await marketplaceService.setUserAddressDefault(
+        userId,
+        addressId
+      );
+      if (error) throw error;
+      return mapAddressRowToUi(data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["marketplace-user-addresses"] });
     },
   });
 };

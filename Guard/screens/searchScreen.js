@@ -7,8 +7,9 @@ import {
   TextInput,
   Alert,
   Image,
+  ActivityIndicator,
 } from "react-native";
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Colors, Default, Fonts } from "../constants/styles";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -16,116 +17,111 @@ import MyStatusBar from "../components/myStatusBar";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { useChatEnhancements } from "../hooks/useChats";
+import {
+  useGuardCommunityDirectoryMembers,
+  useGuardCommunityDirectorySubscription,
+} from "../hooks/useCommunityDirectoryMembers";
+
+const roleLabel = (role) => {
+  if (role === "admin") return "Admin";
+  if (role === "committee") return "Committee";
+  return "Member";
+};
 
 const SearchScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
-  const isRtl = i18n.dir() == "rtl";
+  const isRtl = i18n.dir() === "rtl";
 
   function tr(key) {
     return t(`searchScreen:${key}`);
   }
 
-  const backAction = () => {
+  const backAction = useCallback(() => {
     navigation.pop();
     return true;
-  };
+  }, [navigation]);
 
   useEffect(() => {
-    BackHandler.addEventListener("hardwareBackPress", backAction);
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      backAction,
+    );
     return () => {
-      const subscription = BackHandler.addEventListener("hardwareBackPress", backAction); 
-      return () => subscription?.remove(); 
-    }
-  }, []);
+      subscription?.remove();
+    };
+  }, [backAction]);
 
   const [search, setSearch] = useState("");
   const [clearAll, setClearAll] = useState(false);
   const [isListening, setIsListening] = useState(false);
 
-  // Get chat enhancements for real chat data
   const { enhanceChatItem } = useChatEnhancements();
+  const { data: residents = [], isLoading, error } = useGuardCommunityDirectoryMembers();
+  useGuardCommunityDirectorySubscription();
 
-  // All residents data - same as ResidentsTab
-  const allResidents = [
-    { name: "Emmanuel Broni", unit: "Block A-101 (Owner)", image: require("../assets/images/img1.png") },
-    { name: "James Brown", unit: "Block A-102 (Owner)", image: require("../assets/images/img2.png") },
-    { name: "Sarah Williams", unit: "Block A-103 (Owner)", image: require("../assets/images/image1.png") },
-    { name: "David Brown", unit: "Block A-104 (Owner)", image: require("../assets/images/image2.png") },
-    { name: "Robert Johnson", unit: "Block B-101 (Owner)", image: require("../assets/images/image3.png") },
-    { name: "Lisa Davis", unit: "Block B-102 (Tenant)", image: require("../assets/images/image4.png") },
-    { name: "Eva Davis", unit: "Block B-103 (Owner)", image: require("../assets/images/image5.png") },
-    { name: "Jane Smith", unit: "Block B-104 (Tenant)", image: require("../assets/images/image6.png") },
-    { name: "Maria Garcia", unit: "Block C-101 (Owner)", image: require("../assets/images/image7.png") },
-    { name: "John Doe", unit: "Block C-102 (Tenant)", image: require("../assets/images/img1.png") },
-  ];
+  const allResidents = useMemo(() => {
+    return residents.map((resident) => ({
+      id: resident.id,
+      memberId: resident.id,
+      name: resident.name,
+      phone: resident.phone,
+      unit:
+        resident.block === "N/A"
+          ? roleLabel(resident.role)
+          : `Block ${resident.block}-${resident.flatNo} (${roleLabel(resident.role)})`,
+      image: resident.avatarUrl,
+    }));
+  }, [residents]);
 
-  // Filter residents based on search
   const filteredResults = useMemo(() => {
     if (!search.trim()) return [];
-    
-    const searchLower = search.toLowerCase();
-    return allResidents.filter(resident => 
-      resident.name.toLowerCase().includes(searchLower) ||
-      resident.unit.toLowerCase().includes(searchLower)
-    );
-  }, [search]);
 
-  // Handle voice search
+    const searchLower = search.toLowerCase();
+    return allResidents.filter(
+      (resident) =>
+        resident.name.toLowerCase().includes(searchLower) ||
+        resident.unit.toLowerCase().includes(searchLower),
+    );
+  }, [allResidents, search]);
+
+  const recentSearchList = useMemo(
+    () =>
+      allResidents.slice(0, 4).map((resident, index) => ({
+        key: `${resident.id}-${index}`,
+        title: `${resident.name} (${resident.unit})`,
+        name: resident.name,
+      })),
+    [allResidents],
+  );
+
   const handleVoiceSearch = async () => {
     try {
       setIsListening(true);
-      
-      // For now, we'll show an alert for voice search since Expo Speech doesn't have built-in voice recognition
-      // In a production app, you'd use react-native-voice or similar
       Alert.alert(
         "Voice Search",
         "Voice search feature coming soon! For now, please type your search.",
-        [{ text: "OK", onPress: () => setIsListening(false) }]
+        [{ text: "OK", onPress: () => setIsListening(false) }],
       );
-    } catch (error) {
-      console.error("Voice search error:", error);
+    } catch (voiceError) {
       setIsListening(false);
     }
   };
 
-  // Get user ID for navigation
-  const getUserIdByName = (name) => {
-    const nameToId = {
-      "Emmanuel Broni": "75af3e6b-8bfe-4cf4-b70b-adad3d4edaad",
-      "James Brown": "44444444-4444-4444-4444-444444444444",
-      "Lisa Davis": "55555555-5555-5555-5555-555555555555",
-      "David Brown": "0ccdd312-2af4-4498-a418-c2bce5e71801",
-      "Robert Johnson": "22222222-2222-2222-2222-222222222222",
-      "Eva Davis": "404953a9-7fb7-4de6-8809-217b2659d142",
-      "Sarah Williams": "93cb86a7-c185-43bd-b5af-31faeade3d42",
-      "John Doe": "3edc8dff-dcd9-49f4-8b12-434c5a637cbb",
-      "Maria Garcia": "33333333-3333-3333-3333-333333333333",
-      "Jane Smith": "cdc80950-b84b-4a73-a63b-0da8709fe1bd",
-    };
-    return nameToId[name] || "22222222-2222-2222-2222-222222222222";
-  };
-
-  // Recent searches with real resident data
-  const recentSearchList = [
-    { key: "1", title: "Emmanuel Broni (Block A-101)", name: "Emmanuel Broni" },
-    { key: "2", title: "James Brown (Block A-102)", name: "James Brown" },
-    { key: "3", title: "Sarah Williams (Block A-103)", name: "Sarah Williams" },
-    { key: "4", title: "David Brown (Block A-104)", name: "David Brown" },
-  ];
-
-  // Render search results
   const renderSearchResult = ({ item }) => {
-    const enhancedChat = enhanceChatItem({ name: item.name, message: "Tap to start conversation" });
-    
+    const enhancedChat = enhanceChatItem({
+      name: item.name,
+      message: "Tap to start conversation",
+    });
+
     return (
       <TouchableOpacity
         onPress={() => {
           navigation.navigate("messageScreen", {
-            image: item.image,
+            image: item.image || require("../assets/images/guard.png"),
             name: item.name,
-            key: "1",
-            id: getUserIdByName(item.name),
-            memberId: getUserIdByName(item.name),
+            key: item.id,
+            id: item.id,
+            memberId: item.memberId,
           });
         }}
         style={{
@@ -141,11 +137,9 @@ const SearchScreen = ({ navigation }) => {
       >
         <Image
           source={
-            typeof item.image === 'number' 
-              ? item.image 
-              : typeof item.image === 'string' && item.image.startsWith('http')
-                ? { uri: item.image }
-                : require("../assets/images/guard.png")
+            typeof item.image === "string" && item.image
+              ? { uri: item.image }
+              : require("../assets/images/guard.png")
           }
           style={{
             width: 50,
@@ -177,27 +171,29 @@ const SearchScreen = ({ navigation }) => {
           >
             {item.unit}
           </Text>
-          {enhancedChat.lastMessage && enhancedChat.lastMessage !== "Tap to start a conversation" && (
-            <Text
-              numberOfLines={1}
-              style={{
-                ...Fonts.Medium12grey,
-                overflow: "hidden",
-                marginTop: Default.fixPadding * 0.2,
-                fontStyle: 'italic',
-              }}
-            >
-              Last: {enhancedChat.lastMessage}
-            </Text>
-          )}
+          {enhancedChat.lastMessage &&
+            enhancedChat.lastMessage !== "Tap to start a conversation" && (
+              <Text
+                numberOfLines={1}
+                style={{
+                  ...Fonts.Medium12grey,
+                  overflow: "hidden",
+                  marginTop: Default.fixPadding * 0.2,
+                  fontStyle: "italic",
+                }}
+              >
+                Last: {enhancedChat.lastMessage}
+              </Text>
+            )}
         </View>
         <TouchableOpacity
           onPress={() => {
             navigation.navigate("callScreen", {
-              image: item.image,
+              image: item.image || require("../assets/images/guard.png"),
               name: item.name,
-              id: getUserIdByName(item.name),
-              memberId: getUserIdByName(item.name),
+              phone: item.phone,
+              id: item.id,
+              memberId: item.memberId,
             });
           }}
           style={{ padding: Default.fixPadding * 0.5 }}
@@ -226,6 +222,7 @@ const SearchScreen = ({ navigation }) => {
       </TouchableOpacity>
     );
   };
+
   return (
     <View style={{ flex: 1, backgroundColor: Colors.white }}>
       <MyStatusBar />
@@ -265,7 +262,7 @@ const SearchScreen = ({ navigation }) => {
           >
             <MaterialIcons name="search" size={20} color={Colors.grey} />
             <TextInput
-              autoFocus={true}
+              autoFocus
               value={search}
               onChangeText={setSearch}
               placeholder={tr("search")}
@@ -279,23 +276,30 @@ const SearchScreen = ({ navigation }) => {
               }}
             />
             <TouchableOpacity onPress={handleVoiceSearch}>
-              <MaterialIcons 
-                name={isListening ? "mic" : "mic-none"} 
-                size={20} 
-                color={isListening ? Colors.primary : Colors.grey} 
+              <MaterialIcons
+                name={isListening ? "mic" : "mic-none"}
+                size={20}
+                color={isListening ? Colors.primary : Colors.grey}
               />
             </TouchableOpacity>
           </View>
         </View>
       </View>
 
-      {/* Show search results if actively searching */}
-      {search.trim() ? (
+      {isLoading ? (
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+        </View>
+      ) : error ? (
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+          <Text style={{ ...Fonts.SemiBold16grey }}>Unable to load residents</Text>
+        </View>
+      ) : search.trim() ? (
         filteredResults.length > 0 ? (
           <FlatList
             data={filteredResults}
             renderItem={renderSearchResult}
-            keyExtractor={(item, index) => `search-${index}`}
+            keyExtractor={(item) => item.id}
             showsVerticalScrollIndicator={false}
             ListHeaderComponent={() => (
               <View
@@ -305,20 +309,14 @@ const SearchScreen = ({ navigation }) => {
                   marginHorizontal: Default.fixPadding * 2,
                 }}
               >
-                <Text
-                  style={{
-                    ...Fonts.SemiBold16black,
-                  }}
-                >
+                <Text style={{ ...Fonts.SemiBold16black }}>
                   Search Results ({filteredResults.length})
                 </Text>
               </View>
             )}
           />
         ) : (
-          <View
-            style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
-          >
+          <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
             <MaterialIcons name="search-off" size={40} color={Colors.grey} />
             <Text
               style={{ ...Fonts.SemiBold16grey, marginTop: Default.fixPadding }}
@@ -328,13 +326,9 @@ const SearchScreen = ({ navigation }) => {
           </View>
         )
       ) : clearAll ? (
-        <View
-          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
-        >
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
           <MaterialIcons name="search-off" size={40} color={Colors.grey} />
-          <Text
-            style={{ ...Fonts.SemiBold16grey, marginTop: Default.fixPadding }}
-          >
+          <Text style={{ ...Fonts.SemiBold16grey, marginTop: Default.fixPadding }}>
             {tr("noSearch")}
           </Text>
         </View>

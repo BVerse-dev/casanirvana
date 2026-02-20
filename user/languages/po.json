@@ -47,7 +47,7 @@
     "homeScreen": {
         "hi": "Oi",
         "notice": "PERCEBER",
-        "description": "Ano Novo Reunião no salão da Seven Gen Society em 3 de novembro",
+        "description": "Ano Novo Reunião no salão da Seven Gen Community em 3 de novembro",
         "community": "Comunidade",
         "members": "Membros",
         "visitors": "Visitantes",
@@ -57,7 +57,7 @@
         "helpDesk": "Central de Ajuda",
         "connectMember": "Membro da Sociedade de Connect",
         "manageEntry": "Gerencie a entrada dos visitantes",
-        "societyAnnouncement": "Anúncio da sociedade e aviso de evento",
+        "communityAnnouncement": "Anúncio da sociedade e aviso de evento",
         "directPayment": "Pagamento direto da sociedade devido",
         "preBook": "Comodidades da sociedade pré -livro",
         "complaint": "Reclamação e sugestão",

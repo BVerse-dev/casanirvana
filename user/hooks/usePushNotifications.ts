@@ -1,37 +1,43 @@
 import { useEffect, useRef, useCallback } from 'react';
-import * as Notifications from 'expo-notifications';
 import { useNotificationPermissions } from './useNotificationPermissions';
 import { useNotificationToken } from './useNotificationToken';
-
-// Configure notification behavior
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+import { isPushNotificationsSupported } from '../utils/notificationRuntime';
+import Notifications from '../utils/notificationsAdapter';
 
 export const usePushNotifications = () => {
-  const notificationListener = useRef<Notifications.Subscription | null>(null);
+  const notificationListener = useRef<any>(null);
   
   const { isGranted, requestPermissions } = useNotificationPermissions();
   const { expoPushToken, registerForPushNotificationsAsync } = useNotificationToken();
 
-  const handleNotificationReceived = useCallback((notification: Notifications.Notification) => {
+  const handleNotificationReceived = useCallback((notification: any) => {
     // Handle notification received while app is open
     const { data } = notification.request.content;
     
     // Update badge count
-    Notifications.setBadgeCountAsync(1);
+    if (isPushNotificationsSupported) {
+      Notifications.setBadgeCountAsync(1);
+    }
     
     // Could trigger UI updates here
     console.log('Notification data:', data);
   }, []);
 
   useEffect(() => {
+    if (!isPushNotificationsSupported) {
+      return;
+    }
+
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+        shouldShowBanner: true,
+        shouldShowList: true,
+      }),
+    });
+
     // Cleanup any existing listener first (for hot reload safety)
     if (notificationListener.current) {
       notificationListener.current.remove();
@@ -51,17 +57,23 @@ export const usePushNotifications = () => {
     };
   }, [handleNotificationReceived]);
 
-  const handleNotificationResponse = (response: Notifications.NotificationResponse) => {
+  const handleNotificationResponse = (response: any) => {
     // Handle notification tap/interaction - navigation will be handled separately
     const { data } = response.notification.request.content;
     
     console.log('Notification tapped:', data);
     
     // Clear badge count
-    Notifications.setBadgeCountAsync(0);
+    if (isPushNotificationsSupported) {
+      Notifications.setBadgeCountAsync(0);
+    }
   };
 
   const setupNotifications = async () => {
+    if (!isPushNotificationsSupported) {
+      return false;
+    }
+
     const hasPermission = await requestPermissions();
     if (hasPermission) {
       await registerForPushNotificationsAsync();
@@ -70,6 +82,10 @@ export const usePushNotifications = () => {
   };
 
   const sendLocalNotification = async (title: string, body: string, data?: any) => {
+    if (!isPushNotificationsSupported) {
+      return;
+    }
+
     await Notifications.scheduleNotificationAsync({
       content: {
         title,
@@ -81,6 +97,10 @@ export const usePushNotifications = () => {
   };
 
   const clearAllNotifications = async () => {
+    if (!isPushNotificationsSupported) {
+      return;
+    }
+
     await Notifications.dismissAllNotificationsAsync();
     await Notifications.setBadgeCountAsync(0);
   };

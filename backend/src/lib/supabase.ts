@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import type { Database } from '../database.types';
+import type { Database } from './database.types';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -15,8 +15,8 @@ if (!supabaseUrl || !supabaseServiceKey) {
 // Create supabase client with service key for backend operations
 export const supabase = createClient<Database>(supabaseUrl, supabaseServiceKey, {
   auth: {
-    autoRefreshToken: true,
-    persistSession: true,
+    autoRefreshToken: false,
+    persistSession: false,
   },
 });
 

@@ -11,10 +11,12 @@ import { Colors, Fonts, Default } from "../constants/styles";
 import { useTranslation } from "react-i18next";
 import { useFocusEffect } from "@react-navigation/native";
 import { useChatEnhancements } from "../hooks/useChats";
+import { useGuardCommunityDirectoryMembers } from "../hooks/useCommunityDirectoryMembers";
 
 const ChatsTab = ({ navigation }) => {
   const { i18n } = useTranslation();
   const isRtl = i18n.dir() == "rtl";
+  const { data: directoryMembers = [] } = useGuardCommunityDirectoryMembers();
 
   // Get real chat data enhancements
   const { enhanceChatItem, sortChatsByRecent, generateDynamicChatList, isLoading, immediateRefresh } = useChatEnhancements();
@@ -32,22 +34,26 @@ const ChatsTab = ({ navigation }) => {
     }, []) // Empty dependencies to prevent re-running
   );
 
-  // Simple mapping of mock names to real profile IDs from Casa Nirvana residents  
-  const getUserIdByName = (name) => {
-    const nameToId = {
-      "Emmanuel Broni": "75af3e6b-8bfe-4cf4-b70b-adad3d4edaad", // Profile ID - Confirmed exists
-      "Jane Smith": "de4086ba-79a1-43db-ad62-c8d0f01dc2a7", // Profile ID - Confirmed exists
-      "Sarah Williams": "11111111-1111-1111-1111-111111111111", // Profile ID - Confirmed exists
-      "John Doe": "3edc8dff-dcd9-49f4-8b12-434c5a637cbb", // Profile ID - Confirmed exists
-      "Eva Davis": "404953a9-7fb7-4de6-8809-217b2659d142", // Profile ID - Confirmed exists
-      "Lisa Davis": "55555555-5555-5555-5555-555555555555", // Profile ID - Confirmed exists
-      "Maria Garcia": "33333333-3333-3333-3333-333333333333", // Profile ID - Confirmed exists
-      "James Brown": "44444444-4444-4444-4444-444444444444", // Profile ID - Confirmed exists
-      "David Brown": "0ccdd312-2af4-4498-a418-c2bce5e71801", // Profile ID - Confirmed exists
-      "Robert Johnson": "22222222-2222-2222-2222-222222222222", // Profile ID - Confirmed exists
-      "Jerome Bell": "aaaabbbb-cccc-dddd-eeee-ffffaaaabbbb", // Profile ID - Newly created
-    };
-    return nameToId[name] || "de4086ba-79a1-43db-ad62-c8d0f01dc2a7"; // Default to Jane Smith profile ID
+  const memberIdByName = React.useMemo(() => {
+    const map = new Map();
+    directoryMembers.forEach((member) => {
+      if (member?.name) {
+        map.set(member.name.toLowerCase(), member.id);
+      }
+    });
+    return map;
+  }, [directoryMembers]);
+
+  const isUuid = (value) =>
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      value || "",
+    );
+
+  const getUserIdByName = (name, fallbackId = null) => {
+    const resolvedId = memberIdByName.get((name || "").toLowerCase());
+    if (resolvedId) return resolvedId;
+    if (isUuid(fallbackId)) return fallbackId;
+    return directoryMembers[0]?.id || null;
   };
 
   const chatList = [
@@ -143,15 +149,22 @@ const ChatsTab = ({ navigation }) => {
     
     return (
       <TouchableOpacity
-        onPress={() =>
+        onPress={() => {
+          const resolvedMemberId = getUserIdByName(
+            enhancedItem.name,
+            enhancedItem.userId,
+          );
+          if (!resolvedMemberId) {
+            return;
+          }
           navigation.push("messageScreen", {
             image: enhancedItem.image,
             name: enhancedItem.name,
             key: "1",
-            id: getUserIdByName(enhancedItem.name),
-            memberId: getUserIdByName(enhancedItem.name),
-          })
-        }
+            id: resolvedMemberId,
+            memberId: resolvedMemberId,
+          });
+        }}
         style={{
           flex: 1,
           flexDirection: isRtl ? "row-reverse" : "row",

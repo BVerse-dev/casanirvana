@@ -1,6 +1,20 @@
 import { Request, Response, NextFunction } from 'express';
 import { supabase } from '../lib/supabase';
 
+const ALLOWED_ROLES = [
+  'user',
+  'guard',
+  'admin',
+  'superadmin',
+  'agency_manager',
+  'facility_manager',
+] as const;
+
+type AllowedRole = typeof ALLOWED_ROLES[number];
+
+const isAllowedRole = (role: unknown): role is AllowedRole =>
+  typeof role === 'string' && (ALLOWED_ROLES as readonly string[]).includes(role);
+
 // Analytics functions
 export async function getAnalytics(req: Request, res: Response, next: NextFunction) {
   try {
@@ -133,6 +147,14 @@ export async function getAllUsers(req: Request, res: Response, next: NextFunctio
 export async function createUser(req: Request, res: Response, next: NextFunction) {
   try {
     const { email, password, first_name, last_name, role, phone } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+
+    if (role && !isAllowedRole(role)) {
+      return res.status(400).json({ error: 'Invalid role provided' });
+    }
     
     // Create auth user
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
@@ -172,6 +194,67 @@ export async function createUser(req: Request, res: Response, next: NextFunction
   }
 }
 
+export async function inviteUser(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { email, first_name, last_name, role, phone } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    if (role && !isAllowedRole(role)) {
+      return res.status(400).json({ error: 'Invalid role provided' });
+    }
+
+    const redirectTo =
+      process.env.ADMIN_INVITE_REDIRECT_URL ||
+      process.env.SUPABASE_INVITE_REDIRECT_URL ||
+      undefined;
+
+    const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(
+      email,
+      {
+        redirectTo,
+        data: {
+          first_name,
+          last_name,
+          role: role || 'user',
+        },
+      }
+    );
+
+    if (inviteError || !inviteData.user) {
+      return res.status(500).json({ error: 'Failed to send invite', details: inviteError });
+    }
+
+    // Create profile for invited user
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .insert({
+        id: inviteData.user.id,
+        first_name,
+        last_name,
+        email,
+        role: role || 'user',
+        phone,
+        is_active: true,
+      })
+      .select()
+      .single();
+
+    if (profileError) {
+      return res.status(500).json({ error: 'Invite sent, but profile creation failed', details: profileError });
+    }
+
+    return res.status(201).json({
+      invite: inviteData.user,
+      profile: profileData,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function getUserById(req: Request, res: Response, next: NextFunction) {
   try {
     const { id } = req.params;
@@ -195,7 +278,11 @@ export async function getUserById(req: Request, res: Response, next: NextFunctio
 export async function updateUser(req: Request, res: Response, next: NextFunction) {
   try {
     const { id } = req.params;
-    const { first_name, last_name, role, phone, profile_pic_url } = req.body;
+    const { first_name, last_name, role, phone, profile_pic_url, is_active } = req.body;
+
+    if (role && !isAllowedRole(role)) {
+      return res.status(400).json({ error: 'Invalid role provided' });
+    }
     
     // Check if user exists
     const { data: existingUser, error: fetchError } = await supabase
@@ -217,6 +304,7 @@ export async function updateUser(req: Request, res: Response, next: NextFunction
         role,
         phone,
         profile_pic_url,
+        is_active,
         updated_at: new Date().toISOString()
       })
       .eq('id', id)
@@ -267,6 +355,10 @@ export async function bulkUpdateUsers(req: Request, res: Response, next: NextFun
     
     if (!userIds || !userIds.length || !updates) {
       return res.status(400).json({ error: 'Missing userIds or updates' });
+    }
+
+    if (updates.role && !isAllowedRole(updates.role)) {
+      return res.status(400).json({ error: 'Invalid role provided' });
     }
     
     // Update profiles
@@ -735,6 +827,29 @@ export async function updateSettings(req: Request, res: Response, next: NextFunc
   }
 }
 
+export async function deleteSetting(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { key } = req.params;
+
+    if (!key) {
+      return res.status(400).json({ error: 'Setting key is required' });
+    }
+
+    const { error } = await supabase
+      .from('settings')
+      .delete()
+      .eq('key', key);
+
+    if (error) {
+      return res.status(500).json({ error: 'Failed to delete setting', details: error });
+    }
+
+    res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
+}
+
 // Role management functions
 export async function getRoles(req: Request, res: Response, next: NextFunction) {
   try {
@@ -803,6 +918,29 @@ export async function updateRolePermissions(req: Request, res: Response, next: N
       permissions: data?.map(item => item.permission) || [],
       updated: data?.length || 0
     });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function deleteRole(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { role } = req.params;
+
+    if (!role) {
+      return res.status(400).json({ error: 'Role is required' });
+    }
+
+    const { error } = await supabase
+      .from('role_permissions')
+      .delete()
+      .eq('role', role);
+
+    if (error) {
+      return res.status(500).json({ error: 'Failed to delete role', details: error });
+    }
+
+    res.status(204).send();
   } catch (err) {
     next(err);
   }

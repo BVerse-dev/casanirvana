@@ -51,8 +51,8 @@ const ComplaintDetailScreen = ({ navigation, route }) => {
   const { profile } = useHasJoinedCommunity();
   const queryClient = useQueryClient();
 
-  // Get user's unit information using profile ID (not user_id)
-  const { data: userUnit } = useGetUserUnit(profile?.id);
+  // Get user's unit information using auth user ID
+  const { data: userUnit } = useGetUserUnit(profile?.user_id);
 
   // Fetch comments for this complaint
   const { 
@@ -272,13 +272,31 @@ const ComplaintDetailScreen = ({ navigation, route }) => {
 
   // Get data either from Supabase or fallback to legacy route params
   const getComplaintData = () => {
+    const submittedByName = (() => {
+      if (!complaint) return name || "Unknown";
+
+      if (complaint.reporter_profile) {
+        const firstName = complaint.reporter_profile.first_name || "";
+        const lastName = complaint.reporter_profile.last_name || "";
+        const fullName = `${firstName} ${lastName}`.trim();
+        if (fullName) return fullName;
+        if (complaint.reporter_profile.full_name) return complaint.reporter_profile.full_name;
+      }
+
+      if (complaint.submitted_by) return complaint.submitted_by;
+      if (complaint.created_by_name) return complaint.created_by_name;
+      if (complaint.raised_by_name) return complaint.raised_by_name;
+
+      return name || "Unknown";
+    })();
+
     // If we have real complaint data from Supabase, use it
     if (complaint && isValidUUID(complaintId)) {
       return {
         title: complaint.title || complaint.subject,
         dateTime: formatDateTime(complaint.created_at),
         description: complaint.description || complaint.details,
-        submittedBy: complaint.submitted_by || "Unknown",
+        submittedBy: submittedByName,
         status: complaint.status,
         images: complaint.images || [],
         resolved: complaint.status === 'resolved'

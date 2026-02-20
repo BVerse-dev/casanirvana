@@ -68,7 +68,7 @@ const GetSupportScreen = ({ navigation }) => {
     {
       id: "community",
       title: "Community Issues",
-      description: "Society management, member issues",
+      description: "Community management, member issues",
       icon: "home-group",
       color: Colors.orange,
     },

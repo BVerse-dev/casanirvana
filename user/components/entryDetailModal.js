@@ -302,7 +302,7 @@ const EntryDetailModal = ({ visible, onClose, entry, entryType, onEditFamilyMemb
                       marginHorizontal: Default.fixPadding * 1.5,
                     }}
                   >
-                    {/* Society Name Card */}
+                    {/* Community Name Card */}
                     <View
                       style={{
                         flex: 1,
@@ -331,7 +331,7 @@ const EntryDetailModal = ({ visible, onClose, entry, entryType, onEditFamilyMemb
                           marginTop: Default.fixPadding,
                         }}
                       >
-                        {entry.society_name || "Casa Nirvana"}
+                        {entry.community_name || "Casa Nirvana"}
                       </Text>
                     </View>
 

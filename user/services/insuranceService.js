@@ -1,4 +1,4 @@
-import { supabase } from "../supabase/client";
+import { supabase } from "../utils/supabase";
 
 /**
  * Create an insurance payment record

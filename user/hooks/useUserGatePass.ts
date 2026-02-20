@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../utils/supabase';
+import { getProfileByAuthId } from '../utils/profileResolver';
 
 // Hook to get user's gate pass data
 export const useUserGatePass = () => {
@@ -12,14 +13,24 @@ export const useUserGatePass = () => {
         throw new Error('User not authenticated');
       }
 
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, user_id, full_name, email, qr_code_data, entry_code, society_id, unit_id')
-        .eq('user_id', user.id)
-        .single();
+      const data = await getProfileByAuthId(
+        user.id,
+        `
+          id,
+          user_id,
+          full_name,
+          email,
+          qr_code_data,
+          entry_code,
+          community_id,
+          unit_id,
+          units(block, number),
+          communities!profiles_society_id_fkey(name)
+        `
+      );
 
-      if (error) {
-        throw error;
+      if (!data) {
+        throw new Error('User profile not found');
       }
 
       console.log('🎫 useUserGatePass - Retrieved data:', data);
@@ -43,7 +54,7 @@ export const useGenerateUserGatePass = () => {
       // Generate entry code from user gate pass ID (last 8 characters)
       const entryCode = userGatePassId.slice(-8).toUpperCase();
 
-      // Get user profile data with unit and society information
+      // Get user profile data with unit and community information
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select(`
@@ -51,8 +62,8 @@ export const useGenerateUserGatePass = () => {
           email, 
           community_id, 
           unit_id,
-          units!profiles_unit_id_fkey(block, number),
-          communities!profiles_society_id_fkey(name)
+          unit:units(block, number),
+          community:communities!profiles_society_id_fkey(name)
         `)
         .eq('id', userId)
         .single();
@@ -61,6 +72,9 @@ export const useGenerateUserGatePass = () => {
         throw profileError;
       }
 
+      const unit = Array.isArray(profile.unit) ? profile.unit[0] : profile.unit;
+      const community = Array.isArray(profile.community) ? profile.community[0] : profile.community;
+
       // Generate unique QR code data with user information including unit details
       const qrCodeData = JSON.stringify({
         id: userGatePassId,
@@ -68,9 +82,9 @@ export const useGenerateUserGatePass = () => {
         email: profile.email,
         community_id: profile.community_id,
         unit_id: profile.unit_id,
-        unit_block: profile.units?.[0]?.block,
-        unit_number: profile.units?.[0]?.number,
-        community_name: profile.communities?.[0]?.name,
+        unit_block: unit?.block,
+        unit_number: unit?.number,
+        community_name: community?.name,
         type: 'user_gate_pass',
         entry_code: entryCode,
         created_at: new Date().toISOString(),

@@ -17,9 +17,9 @@ export const amenityService = {
         .select('*')
         .eq('is_active', true);
 
-      // Apply society filter to prevent duplicates
-      if (filters.society_id) {
-        query = query.eq('society_id', filters.society_id);
+      // Apply community filter to prevent duplicates
+      if (filters.community_id) {
+        query = query.eq('community_id', filters.community_id);
       }
 
       // Apply other filters if provided
@@ -39,7 +39,7 @@ export const amenityService = {
         throw error;
       }
 
-      // Deduplicate by name within the society to prevent duplicate amenities
+      // Deduplicate by name within the community to prevent duplicate amenities
       const uniqueAmenities = [];
       const seenNames = new Set();
       

@@ -45,7 +45,7 @@ const NoticeBoardScreen = ({ navigation }) => {
     {
       key: "2",
       title: "New Year celebration",
-      notice: "New year gathering in Seven gen society's hall on 3rd november ",
+      notice: "New year gathering in Seven gen community's hall on 3rd november ",
       dateTime: "20 AUG 05 : 30 PM",
       postBy: "Admin",
       new: true,
@@ -54,14 +54,14 @@ const NoticeBoardScreen = ({ navigation }) => {
       key: "3",
       title: "Christmas party",
       notice:
-        "It is hereby notified that Christmas will be celebrated on 23rd December, 2018 at our Society auditorium. ",
+        "It is hereby notified that Christmas will be celebrated on 23rd December, 2018 at our Community auditorium. ",
       dateTime: "22 Dec 08 : 30 PM",
       postBy: "Admin",
     },
     {
       key: "4",
       title: "New Year celebration",
-      notice: "New year gathering in Seven gen society's hall on 3rd november ",
+      notice: "New year gathering in Seven gen community's hall on 3rd november ",
       dateTime: "20 AUG 05 : 30 PM",
       postBy: "Admin",
     },
@@ -69,7 +69,7 @@ const NoticeBoardScreen = ({ navigation }) => {
       key: "5",
       title: "Christmas party",
       notice:
-        "It is hereby notified that Christmas will be celebrated on 23rd December, 2018 at our Society auditorium. ",
+        "It is hereby notified that Christmas will be celebrated on 23rd December, 2018 at our Community auditorium. ",
       dateTime: "22 Dec 08 : 30 PM",
       postBy: "Admin",
     },

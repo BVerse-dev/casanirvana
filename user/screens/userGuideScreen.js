@@ -62,9 +62,9 @@ const UserGuideScreen = ({ navigation }) => {
         },
         {
           title: "Joining Your Community",
-          content: "Connect with your society by sending a join request. Admin approval is required for security.",
+          content: "Connect with your community by sending a join request. Admin approval is required for security.",
           steps: [
-            "Search for your society",
+            "Search for your community",
             "Select your unit",
             "Submit join request",
             "Wait for admin approval",
@@ -81,7 +81,7 @@ const UserGuideScreen = ({ navigation }) => {
       sections: [
         {
           title: "Connect with Neighbors",
-          content: "View and connect with other society members. See who lives in your community and build relationships.",
+          content: "View and connect with other community members. See who lives in your community and build relationships.",
           steps: [
             "Navigate to Members section",
             "Browse member directory",
@@ -142,10 +142,10 @@ const UserGuideScreen = ({ navigation }) => {
       sections: [
         {
           title: "Stay Updated",
-          content: "Keep track of important society announcements, events, and notifications.",
+          content: "Keep track of important community announcements, events, and notifications.",
           steps: [
             "Check Notice Board regularly",
-            "Read society announcements",
+            "Read community announcements",
             "View event details",
             "Like and comment on notices",
             "Share important updates"
@@ -220,7 +220,7 @@ const UserGuideScreen = ({ navigation }) => {
       sections: [
         {
           title: "Submit Complaints",
-          content: "Report issues and problems within the society for quick resolution.",
+          content: "Report issues and problems within the community for quick resolution.",
           steps: [
             "Go to Complaints section",
             "Select complaint category",

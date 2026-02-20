@@ -73,7 +73,7 @@ const GuardCallingScreen = ({ navigation }) => {
                 paddingHorizontal: Default.fixPadding * 0.5,
               }}
             >
-              Society
+              Community
             </Text>
             <View
               style={{

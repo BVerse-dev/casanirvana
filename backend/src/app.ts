@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -14,6 +15,8 @@ import paymentRoutes from './routes/payment';
 import messageRoutes from './routes/message';
 import uploadRoutes from './routes/upload';
 import adminRoutes from './routes/admin';
+import onboardingRoutes from './routes/onboarding';
+import accountRoutes from './routes/account';
 
 // Enhanced routes with full field support
 import guardsRoutes from './routes/guards';
@@ -21,13 +24,61 @@ import unitsEnhancedRoutes from './routes/units_enhanced';
 import amenitiesRoutes from './routes/amenities';
 
 import { errorHandler } from './middleware/errorHandler';
+import { requestLogger } from './middleware/requestLogger';
+import { apiRateLimiter, adminRateLimiter, authRateLimiter, onboardingRateLimiter } from './middleware/rateLimit';
 
 const app = express();
-app.use(cors());
-app.use(express.json());
+app.disable('x-powered-by');
+
+if (process.env.TRUST_PROXY === 'true') {
+  app.set('trust proxy', 1);
+}
+
+const corsOrigins = (process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map(origin => origin.trim())
+  .filter(Boolean);
+const defaultOrigins = [
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:8080',
+  'http://localhost:19006',
+  'http://localhost:19000',
+];
+const allowList = corsOrigins.length > 0 ? corsOrigins : defaultOrigins;
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (allowList.includes(origin)) return callback(null, true);
+      return callback(new Error('Not allowed by CORS'));
+    },
+    credentials: true,
+  })
+);
+const isProd = process.env.NODE_ENV === 'production';
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+    hsts: isProd
+      ? {
+          maxAge: 15552000,
+          includeSubDomains: true,
+          preload: true,
+        }
+      : false,
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+  })
+);
+app.use(requestLogger);
+app.use(apiRateLimiter);
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
 // Mount routes
-app.use('/auth', authRoutes);
+app.use('/auth', authRateLimiter, authRoutes);
 app.use('/societies', societyRoutes);
 app.use('/societies', unitRoutes); // units are nested under societies
 app.use('/', visitorRoutes); // visitor-passes and entry-logs
@@ -37,7 +88,9 @@ app.use('/', complaintRoutes);
 app.use('/', paymentRoutes);
 app.use('/', messageRoutes);
 app.use('/', uploadRoutes);
-app.use('/admin', adminRoutes); // Admin-specific routes
+app.use('/admin', adminRateLimiter, adminRoutes); // Admin-specific routes
+app.use('/onboarding', onboardingRateLimiter, onboardingRoutes); // Public onboarding requests (API key protected)
+app.use('/account', authRateLimiter, accountRoutes); // User account self-service actions
 
 // Enhanced routes with full field support
 app.use('/api/guards', guardsRoutes); // Enhanced guards management

@@ -2,15 +2,13 @@ import { createClient } from '@supabase/supabase-js';
 import fs from 'fs';
 import path from 'path';
 
-// Use the hardcoded values from utils/supabase.js
-const supabaseUrl = "https://pswnlowvmdgeifhxilao.supabase.co";
-const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzd25sb3d2bWRnZWlmaHhpbGFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3ODE5MTYsImV4cCI6MjA2MzM1NzkxNn0.QOqSJr0qxefrIwM087IKlJJYWwMLCHV_v5iEb-SI7S0";
+const supabaseUrl = process.env.SUPABASE_URL;
 
 // Create a service client with admin privileges
-// Note: This requires the SUPABASE_SERVICE_KEY environment variable to be set
-const serviceKey = process.env.SUPABASE_SERVICE_KEY;
-if (!serviceKey) {
-  console.error('Missing SUPABASE_SERVICE_KEY environment variable');
+// Note: This requires the SUPABASE_SERVICE_ROLE_KEY environment variable to be set
+const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+if (!supabaseUrl || !serviceKey) {
+  console.error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variable');
   process.exit(1);
 }
 
@@ -77,4 +75,3 @@ async function fixDatabaseSchema() {
 }
 
 fixDatabaseSchema();
-

@@ -38,12 +38,8 @@ const PayPalScreen = ({ navigation, route }) => {
   };
 
   useEffect(() => {
-    BackHandler.addEventListener("hardwareBackPress", backAction);
-
-    return () => {
-      const subscription = BackHandler.addEventListener("hardwareBackPress", backAction);
-      return () => subscription?.remove();
-    };
+    const subscription = BackHandler.addEventListener("hardwareBackPress", backAction);
+    return () => subscription.remove();
   }, []);
 
   const [email, setEmail] = useState("");

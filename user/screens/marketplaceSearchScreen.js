@@ -15,7 +15,7 @@ import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors, Fonts, Default } from "../constants/styles";
 import { useTranslation } from "react-i18next";
-import { useSearchProducts } from "../hooks/useMarketplace";
+import { useSearchProducts, useSearchHistory, useSaveSearchHistory } from "../hooks/useMarketplace";
 
 const { width } = Dimensions.get("window");
 
@@ -23,17 +23,12 @@ const MarketplaceSearchScreen = ({ navigation, route }) => {
   const { t } = useTranslation();
   const { query: initialQuery } = route.params || {};
   const [searchQuery, setSearchQuery] = useState(initialQuery || "");
-  const [recentSearches, setRecentSearches] = useState([
-    "Coffee",
-    "Tea",
-    "Snacks",
-    "Beauty products",
-    "Home essentials",
-  ]);
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
+  const { data: searchHistoryData = [] } = useSearchHistory();
+  const saveSearchHistoryMutation = useSaveSearchHistory();
 
   // Build search filters
   const buildSearchFilters = () => {
@@ -51,6 +46,10 @@ const MarketplaceSearchScreen = ({ navigation, route }) => {
     searchQuery,
     buildSearchFilters()
   );
+  const recentSearches = searchHistoryData
+    .map((entry) => entry?.search_query)
+    .filter(Boolean)
+    .slice(0, 5);
 
   // Country filter options
   const countryOptions = [
@@ -64,8 +63,8 @@ const MarketplaceSearchScreen = ({ navigation, route }) => {
     setSelectedCountry(countryId);
   };
 
-  // Mock search results
-  const mockResults = [
+  // Dev-only placeholder results. Production must remain DB-driven.
+  const devMockResults = [
     {
       id: 1,
       name: "RYZE Mushroom Coffee",
@@ -121,12 +120,12 @@ const MarketplaceSearchScreen = ({ navigation, route }) => {
     if (searchQuery.length > 0) {
       performSearch();
     }
-  }, [searchQuery, searchData]);
+  }, [searchQuery, searchData, selectedCountry]);
 
   const performSearch = () => {
     setIsSearching(true);
     
-    // Use real data from hook or fallback to mock data
+    // Use real data from hook in production.
     if (searchData && searchData.length > 0) {
       const formattedResults = searchData.map(product => ({
         id: product.id,
@@ -140,21 +139,19 @@ const MarketplaceSearchScreen = ({ navigation, route }) => {
         image: product.images && product.images.length > 0 ? { uri: product.images[0] } : require("../assets/images/img1.png"),
       }));
       setSearchResults(formattedResults);
+    } else if (__DEV__ && !searchError) {
+      setSearchResults(devMockResults);
     } else {
-      // Fallback to mock results
-      setSearchResults(mockResults);
+      setSearchResults([]);
     }
     setIsSearching(false);
     
-    // Add to recent searches
-    if (!recentSearches.includes(searchQuery)) {
-      setRecentSearches([searchQuery, ...recentSearches.slice(0, 4)]);
-    }
   };
 
   const handleSearch = () => {
     if (searchQuery.trim()) {
       performSearch();
+      saveSearchHistoryMutation.mutate(searchQuery.trim());
     }
   };
 
@@ -298,39 +295,49 @@ const MarketplaceSearchScreen = ({ navigation, route }) => {
       <ScrollView showsVerticalScrollIndicator={false}>
         {searchResults.length === 0 && !isSearching ? (
           <>
-            {/* Recent Searches */}
-            {recentSearches.length > 0 && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Recent searches</Text>
-                {recentSearches.map((search, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={styles.recentSearchItem}
-                    onPress={() => setSearchQuery(search)}
-                  >
-                    <Ionicons
-                      name="time-outline"
-                      size={20}
-                      color={Colors.lightGrey}
-                    />
-                    <Text style={styles.recentSearchText}>{search}</Text>
-                  </TouchableOpacity>
-                ))}
+            {searchQuery.length > 0 ? (
+              <View style={styles.loadingContainer}>
+                <Text style={styles.loadingText}>
+                  No products found for {searchQuery}.
+                </Text>
               </View>
-            )}
+            ) : (
+              <>
+                {/* Recent Searches */}
+                {recentSearches.length > 0 && (
+                  <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Recent searches</Text>
+                    {recentSearches.map((search, index) => (
+                      <TouchableOpacity
+                        key={index}
+                        style={styles.recentSearchItem}
+                        onPress={() => setSearchQuery(search)}
+                      >
+                        <Ionicons
+                          name="time-outline"
+                          size={20}
+                          color={Colors.lightGrey}
+                        />
+                        <Text style={styles.recentSearchText}>{search}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
 
-            {/* Categories */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Browse categories</Text>
-              <FlatList
-                data={categories}
-                renderItem={renderCategory}
-                keyExtractor={(item) => item.id.toString()}
-                numColumns={2}
-                scrollEnabled={false}
-                contentContainerStyle={styles.categoriesGrid}
-              />
-            </View>
+                {/* Categories */}
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Browse categories</Text>
+                  <FlatList
+                    data={categories}
+                    renderItem={renderCategory}
+                    keyExtractor={(item) => item.id.toString()}
+                    numColumns={2}
+                    scrollEnabled={false}
+                    contentContainerStyle={styles.categoriesGrid}
+                  />
+                </View>
+              </>
+            )}
           </>
         ) : isSearching ? (
           <View style={styles.loadingContainer}>
@@ -341,7 +348,7 @@ const MarketplaceSearchScreen = ({ navigation, route }) => {
             {/* Search Results */}
             <View style={styles.resultsHeader}>
               <Text style={styles.resultsCount}>
-                {searchResults.length} results for "{searchQuery}"
+                {searchResults.length} results for {searchQuery}
               </Text>
             </View>
             <FlatList

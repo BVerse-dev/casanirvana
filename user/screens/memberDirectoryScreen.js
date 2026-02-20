@@ -17,7 +17,7 @@ import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityI
 import MyStatusBar from "../components/myStatusBar";
 import { ms } from "react-native-size-matters/extend";
 import MemberDetailModal from "../components/memberDetailModal";
-import { useSocietyMembers, useSocietyAdmins, useSocietyCommittee } from "../hooks/useSocietyMembers";
+import { useCommunityMembers, useCommunityAdmins, useCommunityCommittee } from "../hooks/useCommunityMembers";
 import { useConversationTracker } from "../hooks/useConversationTracker";
 
 const MemberDirectoryScreen = ({ navigation }) => {
@@ -31,9 +31,9 @@ const MemberDirectoryScreen = ({ navigation }) => {
   const [openMemberDetailModal, setOpenMemberDetailModal] = useState(false);
 
   // Hooks for data fetching
-  const { data: members = [], isLoading: loadingMembers } = useSocietyMembers();
-  const { data: admins = [], isLoading: loadingAdmins } = useSocietyAdmins();
-  const { data: committee = [], isLoading: loadingCommittee } = useSocietyCommittee();
+  const { data: members = [], isLoading: loadingMembers } = useCommunityMembers();
+  const { data: admins = [], isLoading: loadingAdmins } = useCommunityAdmins();
+  const { data: committee = [], isLoading: loadingCommittee } = useCommunityCommittee();
   const { startConversation } = useConversationTracker();
 
   function tr(key) {
@@ -66,7 +66,7 @@ const MemberDirectoryScreen = ({ navigation }) => {
         member.name?.toLowerCase().includes(query) ||
         member.block?.toLowerCase().includes(query) ||
         member.flatNo?.toLowerCase().includes(query) ||
-        member.societyName?.toLowerCase().includes(query)
+        member.communityName?.toLowerCase().includes(query)
       );
     }
 
@@ -292,7 +292,7 @@ const MemberDirectoryScreen = ({ navigation }) => {
           modalClose={() => setOpenMemberDetailModal(false)}
           image={selectedMember?.image}
           name={selectedMember?.name}
-          societyName={selectedMember?.societyName}
+          communityName={selectedMember?.communityName}
           flatNo={selectedMember?.flatNo}
           blockNo={selectedMember?.block}
           onCallHandle={() => {

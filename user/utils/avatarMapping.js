@@ -17,14 +17,6 @@ const member13 = require("../assets/images/member13.png");
 const member14 = require("../assets/images/member14.png");
 const pic1 = require("../assets/images/pic1.png");
 
-// Debug log to see what require() actually returns
-console.log('🔍 Avatar require() debug:', {
-  member1: typeof member1,
-  member1Value: member1,
-  member2: typeof member2,
-  member2Value: member2,
-});
-
 // Export all images for direct access if needed
 export const avatarImages = {
   member1,
@@ -69,38 +61,47 @@ const avatarUrlMap = {
  * @returns {any} The require() result for the avatar image or URI object for dynamic images
  */
 export const getAvatarSource = (avatarUrl) => {
-  console.log('🔍 getAvatarSource called with:', avatarUrl, typeof avatarUrl);
-  
   if (!avatarUrl) {
-    console.log('🎯 No avatar URL, using default member13');
     return member13;
   }
-  
-  // If it's already a number (result of require()), it means we have a valid image asset
-  // But we need to verify it's a valid require() result, not just any number
+
+  // Numeric values can be stale module IDs across reloads/app versions.
+  // Use a known-safe fallback to prevent invalid Image source crashes.
   if (typeof avatarUrl === 'number') {
-    console.log('🎯 Received number (require result), using default member13 for safety');
-    // For safety, always return a known good require() result instead of trusting the number
     return member13;
   }
-  
-  // Check if it's a predefined member avatar URL
-  if (avatarUrlMap[avatarUrl]) {
-    const result = avatarUrlMap[avatarUrl];
-    console.log('🎯 Using predefined avatar mapping:', avatarUrl, '->', typeof result, result);
-    // Ensure we return the require() result, not just the number
-    return result;
+
+  if (typeof avatarUrl === 'object' && avatarUrl?.uri) {
+    return getAvatarSource(avatarUrl.uri);
   }
-  
-  // Handle dynamic user images (like pic1.png, etc.)
-  // If it's a URL or file path, return as URI object for Image component
-  if (typeof avatarUrl === 'string' && (avatarUrl.startsWith('http') || avatarUrl.startsWith('/') || avatarUrl.includes('.png') || avatarUrl.includes('.jpg'))) {
-    console.log('🎯 Using dynamic user image:', avatarUrl);
-    return { uri: avatarUrl };
+
+  if (typeof avatarUrl === 'string') {
+    const normalized = avatarUrl.trim();
+
+    if (!normalized) {
+      return member13;
+    }
+
+    if (avatarUrlMap[normalized]) {
+      return avatarUrlMap[normalized];
+    }
+
+    if (
+      normalized.startsWith('http://') ||
+      normalized.startsWith('https://') ||
+      normalized.startsWith('file://') ||
+      normalized.startsWith('content://') ||
+      normalized.startsWith('data:image/')
+    ) {
+      return { uri: normalized };
+    }
+
+    // Map known local filename aliases to a safe bundled image.
+    if (normalized.endsWith('/pic1.png') || normalized === 'pic1.png') {
+      return pic1;
+    }
   }
-  
-  // Fallback to default
-  console.log('🎯 Fallback to default member13');
+
   return member13;
 };
 

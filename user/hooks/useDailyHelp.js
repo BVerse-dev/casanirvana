@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../utils/supabase';
 
 // Hook to list daily help for a user
 export const useListDailyHelp = (userId) => {

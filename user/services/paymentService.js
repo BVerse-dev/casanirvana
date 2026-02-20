@@ -104,7 +104,7 @@ export const getPaymentById = async (id) => {
         *,
         profiles:user_id(id, first_name, last_name, email, profile_pic_url),
         units:unit_id(id, unit_number, block_number, floor_number),
-        societies:society_id(id, name, address)
+        communities:community_id(id, name, address)
       `)
       .eq('id', id)
       .single();

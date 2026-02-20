@@ -13,7 +13,7 @@ import {
   FlatList,
   Dimensions,
 } from "react-native";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Colors, Default, Fonts } from "../constants/styles";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -25,36 +25,38 @@ import { Camera } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import AwesomeButton from "react-native-really-awesome-button";
 import AddImageBottomSheet from "../components/addImageBottomSheet";
-import DateTimePicker from '@react-native-community/datetimepicker';
 import DashedLine from "react-native-dashed-line";
 import FromToCalendarPicker from "../components/fromToCalendarPicker";
+import { useAuth } from "../contexts/AuthContext";
+import { useUpdateProfile } from "../hooks/useSupabaseData";
+import { supabase } from "../utils/supabase";
 
 const { width, height } = Dimensions.get("window");
 
 const EditProfileScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
+  const { profile } = useAuth();
+  const updateProfileMutation = useUpdateProfile();
 
-  const isRtl = i18n.dir() == "rtl";
+  const isRtl = i18n.dir() === "rtl";
 
   function tr(key) {
     return t(`editProfileScreen:${key}`);
   }
-  const backAction = () => {
+  const backAction = useCallback(() => {
     navigation.pop();
     return true;
-  };
+  }, [navigation]);
   useEffect(() => {
-    BackHandler.addEventListener("hardwareBackPress", backAction);
-
-    return () => {
-      const subscription = BackHandler.addEventListener("hardwareBackPress", backAction); return () => subscription?.remove(); }
-  }, []);
+    const subscription = BackHandler.addEventListener("hardwareBackPress", backAction);
+    return () => subscription.remove();
+  }, [backAction]);
 
   // Basic profile information
-  const [firstName, setFirstName] = useState("Jacob");
-  const [lastName, setLastName] = useState("Jones");
-  const [email, setEmail] = useState("Jecob@mail.com");
-  const [number, setNumber] = useState("1234567890");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [number, setNumber] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("1990-05-15");
   const [gender, setGender] = useState("male");
   const [alternativeEmail, setAlternativeEmail] = useState("");
@@ -79,12 +81,12 @@ const EditProfileScreen = ({ navigation }) => {
 
   const [pickedImage, setPickedImage] = useState();
   const [removeImage, setRemoveImage] = useState(false);
+  const [profileImageUrl, setProfileImageUrl] = useState(null);
 
   const [removeImageToast, setRemoveImageToast] = useState(false);
   const onDismissRemoveImage = () => setRemoveImageToast(false);
 
   // Date picker state
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const [dateCalendarModal, setDateCalendarModal] = useState(false);
 
   // Modal states for beautiful dropdowns
@@ -100,6 +102,49 @@ const EditProfileScreen = ({ navigation }) => {
   const [tempContactSharing, setTempContactSharing] = useState(contactSharing);
   const [tempContactInfo, setTempContactInfo] = useState(showContactInfo);
   const [tempPicturePrivacy, setTempPicturePrivacy] = useState(profilePicturePrivacy);
+
+  useEffect(() => {
+    if (!profile) return;
+
+    const preferenceData =
+      profile.preferences && typeof profile.preferences === "object"
+        ? profile.preferences
+        : {};
+
+    setFirstName(profile.first_name || "");
+    setLastName(profile.last_name || "");
+    setEmail(profile.email || "");
+    setNumber(profile.phone || "");
+    setDateOfBirth(preferenceData.date_of_birth || "1990-05-15");
+    setGender(preferenceData.gender || "male");
+    setAlternativeEmail(preferenceData.alternative_email || "");
+    setTotalFamilyMembers(
+      Number.isFinite(preferenceData.total_family_members)
+        ? preferenceData.total_family_members
+        : 2
+    );
+    setHasPets(Boolean(preferenceData.has_pets));
+    setVehicleCount(
+      Number.isFinite(preferenceData.vehicle_count) ? preferenceData.vehicle_count : 1
+    );
+    setProfileVisibility(preferenceData.profile_visibility || "community");
+    setShowContactInfo(preferenceData.show_contact_info || "community");
+    setContactSharing(preferenceData.contact_sharing || "community");
+    setProfilePicturePrivacy(preferenceData.profile_picture_privacy || "community");
+    setActivityStatus(
+      typeof preferenceData.activity_status === "boolean"
+        ? preferenceData.activity_status
+        : true
+    );
+    setTempGender(preferenceData.gender || "male");
+    setTempProfileVisibility(preferenceData.profile_visibility || "community");
+    setTempContactSharing(preferenceData.contact_sharing || "community");
+    setTempContactInfo(preferenceData.show_contact_info || "community");
+    setTempPicturePrivacy(preferenceData.profile_picture_privacy || "community");
+    setPickedImage(null);
+    setRemoveImage(false);
+    setProfileImageUrl(profile.avatar_url || null);
+  }, [profile]);
 
   // Gender options
   const genderOptions = [
@@ -133,6 +178,7 @@ const EditProfileScreen = ({ navigation }) => {
 
     if (!result.canceled) {
       setPickedImage(result.assets[0].uri);
+      setRemoveImage(false);
       closeBottomSheet();
     }
   };
@@ -155,25 +201,12 @@ const EditProfileScreen = ({ navigation }) => {
     }
   };
 
-  const onDateChange = (event, selectedDate) => {
-    setShowDatePicker(false);
-    if (selectedDate) {
-      setDateOfBirth(selectedDate.toISOString().split('T')[0]);
-    }
-  };
-
   // Calendar picker handlers
   const onCalendarDateChange = (selectedDate) => {
     if (selectedDate?.dateString) {
       setDateOfBirth(selectedDate.dateString);
       setDateCalendarModal(false);
     }
-  };
-
-  const formatDisplayDate = (dateString) => {
-    if (!dateString) return null;
-    const date = new Date(dateString);
-    return date.toLocaleDateString();
   };
 
   const today = new Date().toISOString().split('T')[0];
@@ -269,6 +302,99 @@ const EditProfileScreen = ({ navigation }) => {
     </Modal>
   );
 
+  const uploadProfileImageIfNeeded = async () => {
+    if (removeImage) {
+      return null;
+    }
+
+    if (!pickedImage) {
+      return profileImageUrl || null;
+    }
+
+    if (typeof pickedImage === "string" && pickedImage.startsWith("http")) {
+      return pickedImage;
+    }
+
+    if (!profile?.id) {
+      throw new Error("Profile not available for image upload.");
+    }
+
+    const response = await fetch(pickedImage);
+    const imageBlob = await response.blob();
+    const extensionCandidate = pickedImage.split(".").pop() || "jpg";
+    const extension = extensionCandidate.split("?")[0].toLowerCase();
+    const filePath = `profile-avatars/${profile.id}/${Date.now()}.${extension}`;
+
+    const { data, error } = await supabase.storage
+      .from("attachments")
+      .upload(filePath, imageBlob, {
+        contentType: imageBlob.type || `image/${extension}`,
+        upsert: true,
+      });
+
+    if (error) {
+      throw error;
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from("attachments")
+      .getPublicUrl(data.path);
+
+    return publicUrlData?.publicUrl || null;
+  };
+
+  const handleUpdateProfile = async () => {
+    if (!profile?.id) {
+      Alert.alert("Error", "Profile not available.");
+      return;
+    }
+
+    if (!firstName.trim() || !lastName.trim() || !email.trim()) {
+      Alert.alert("Error", "First name, last name, and email are required.");
+      return;
+    }
+
+    const existingPreferences =
+      profile?.preferences && typeof profile.preferences === "object"
+        ? profile.preferences
+        : {};
+
+    try {
+      const nextAvatarUrl = await uploadProfileImageIfNeeded();
+
+      await updateProfileMutation.mutateAsync({
+        id: profile.id,
+        data: {
+          first_name: firstName.trim(),
+          last_name: lastName.trim(),
+          full_name: `${firstName.trim()} ${lastName.trim()}`.trim(),
+          email: email.trim().toLowerCase(),
+          phone: number.trim() || null,
+          avatar_url: nextAvatarUrl,
+          preferences: {
+            ...existingPreferences,
+            date_of_birth: dateOfBirth || null,
+            gender: gender || null,
+            alternative_email: alternativeEmail || null,
+            total_family_members: totalFamilyMembers,
+            has_pets: hasPets,
+            vehicle_count: vehicleCount,
+            profile_visibility: profileVisibility,
+            show_contact_info: showContactInfo,
+            contact_sharing: contactSharing,
+            profile_picture_privacy: profilePicturePrivacy,
+            activity_status: activityStatus,
+          },
+        },
+      });
+
+      navigation.pop();
+    } catch (error) {
+      console.error("Failed to update profile:", error);
+      Alert.alert("Error", "Unable to update profile. Please try again.");
+    }
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: Colors.white }}>
       <MyStatusBar />
@@ -321,6 +447,12 @@ const EditProfileScreen = ({ navigation }) => {
                   }}
                 >
                   <Ionicons name="person" size={45} color={Colors.white} />
+                </View>
+              ) : profileImageUrl ? (
+                <View
+                  style={{ ...styles.imageView, backgroundColor: Colors.white }}
+                >
+                  <Image style={styles.image} source={{ uri: profileImageUrl }} />
                 </View>
               ) : (
                 <View
@@ -691,12 +823,10 @@ const EditProfileScreen = ({ navigation }) => {
         <AwesomeButton
           progress
           height={50}
-          progressLoadingTime={1000}
-          onPress={(next) => {
-            setTimeout(() => {
-              next();
-              navigation.pop();
-            }, 1000);
+          progressLoadingTime={500}
+          onPress={async (next) => {
+            await handleUpdateProfile();
+            next();
           }}
           raiseLevel={1}
           stretch={true}
@@ -725,7 +855,10 @@ const EditProfileScreen = ({ navigation }) => {
         <CameraModule
           showModal={camera}
           setShowCamera={() => setShowCamera(false)}
-          setPickedImage={(result) => setPickedImage(result.uri)}
+          setPickedImage={(result) => {
+            setPickedImage(result.uri);
+            setRemoveImage(false);
+          }}
           closeBottomSheet={() => closeBottomSheet()}
         />
       )}

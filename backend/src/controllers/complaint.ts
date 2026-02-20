@@ -18,3 +18,9 @@ export function updateComplaint(req: Request, res: Response, next: Function) {
     .then(item => res.json(item))
     .catch((error: any) => res.status(500).json({ error: error.message }));
 }
+
+export function deleteComplaint(req: Request, res: Response, next: Function) {
+  ComplaintService.deleteComplaint(req.params.id)
+    .then(() => res.status(204).send())
+    .catch((error: any) => res.status(500).json({ error: error.message }));
+}

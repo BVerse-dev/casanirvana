@@ -37,12 +37,12 @@ export const testEnhancedServices = async () => {
       ownerPhone: phoneSearchResult.data?.[0]?.owner_phone || 'None'
     });
 
-    // Test 4: Units by Society
-    console.log('\n🏘️ Testing Units by Society...');
-    const societyUnitsResult = await unitsService.getUnitsBySociety('841342ff-ee1e-4c6b-a7f2-2d19fcb0acea');
-    console.log('✅ Society Units:', {
-      success: societyUnitsResult.success,
-      count: societyUnitsResult.data?.length || 0
+    // Test 4: Units by Community
+    console.log('\n🏘️ Testing Units by Community...');
+    const communityUnitsResult = await unitsService.getUnitsByCommunity('841342ff-ee1e-4c6b-a7f2-2d19fcb0acea');
+    console.log('✅ Community Units:', {
+      success: communityUnitsResult.success,
+      count: communityUnitsResult.data?.length || 0
     });
 
     console.log('\n🎉 All User-App Enhanced API Services Working!');

@@ -1,0 +1,1561 @@
+{
+  "missing_in_migrations_tables": [
+    "activity_logs",
+    "admin_roles",
+    "admin_settings",
+    "admin_users",
+    "agency_profiles",
+    "amenities",
+    "app_extensions",
+    "app_languages",
+    "app_settings",
+    "app_static_content",
+    "application_settings",
+    "audit_logs",
+    "bookings",
+    "calls",
+    "chat_messages",
+    "chat_participants",
+    "chats",
+    "comments",
+    "communities",
+    "community_admins",
+    "community_amenities",
+    "community_budget_items",
+    "community_configuration",
+    "community_configurations",
+    "community_documents",
+    "community_financial_records",
+    "community_services",
+    "community_staff",
+    "community_units",
+    "complaint_categories",
+    "complaint_comments",
+    "complaints",
+    "daily_help",
+    "daily_helps",
+    "documents",
+    "email_notification_settings",
+    "email_notifications",
+    "email_settings",
+    "email_templates",
+    "emails",
+    "emergency_alert_recipients",
+    "emergency_alerts",
+    "emergency_types",
+    "entry_logs",
+    "equipment_assignments",
+    "equipment_id_mapping",
+    "equipment_maintenance",
+    "extension_settings",
+    "extensions",
+    "family_members",
+    "frequent_entries",
+    "frequent_visitors",
+    "gate_passes",
+    "gatepasses",
+    "guard_certifications",
+    "guard_equipment",
+    "guard_id_mapping",
+    "guard_performance",
+    "guard_performance_metrics",
+    "guard_performance_reviews",
+    "guard_schedules",
+    "guard_shifts",
+    "guard_training",
+    "guard_trainings",
+    "guards",
+    "in_app_notification_settings",
+    "inquiries",
+    "join_request_email_queue",
+    "join_request_sms_queue",
+    "join_requests",
+    "languages",
+    "maintenance",
+    "maintenance_comments",
+    "maintenance_requests",
+    "members",
+    "notices",
+    "notification_analytics",
+    "notification_campaigns",
+    "notification_channel_configs",
+    "notification_configs",
+    "notification_logs",
+    "notification_menus",
+    "notification_metrics",
+    "notification_rules",
+    "notification_settings",
+    "notification_templates",
+    "notifications",
+    "old_services",
+    "payment_fees",
+    "payment_gateway_currencies",
+    "payment_gateways",
+    "payment_settings",
+    "payment_statements",
+    "permissions",
+    "personal_hub_analytics",
+    "preference_categories",
+    "preference_settings",
+    "profile_settings",
+    "profiles",
+    "push_notification_audiences",
+    "push_notification_devices",
+    "push_notification_templates",
+    "push_notifications",
+    "recent_searches",
+    "regional_settings",
+    "role_permissions",
+    "security_settings",
+    "service_bookings",
+    "service_requests",
+    "service_subtypes",
+    "services",
+    "settings",
+    "shift_patterns",
+    "sms_analytics",
+    "sms_credits",
+    "sms_notification_recipients",
+    "sms_notifications",
+    "sms_recipient_groups",
+    "sms_templates",
+    "storage",
+    "support_messages",
+    "support_requests",
+    "system_activities",
+    "system_alerts",
+    "system_components",
+    "system_overview",
+    "system_performance",
+    "training_programs",
+    "transaction_status_logs",
+    "translations",
+    "units",
+    "user_groups",
+    "user_payment_methods",
+    "user_preference_values",
+    "user_profiles",
+    "user_roles",
+    "user_settings",
+    "users",
+    "vehicles",
+    "visitor_passes",
+    "visitors"
+  ],
+  "missing_in_db_tables": [
+    "agency_managed_units",
+    "marketplace_promotions",
+    "marketplace_vendor_followers",
+    "personal_hub_transactions",
+    "saved_bill_accounts",
+    "saved_policies",
+    "society_budget_items",
+    "society_configurations",
+    "society_documents",
+    "society_financial_records",
+    "society_staff"
+  ],
+  "columns_only_in_db": {
+    "data_purchases": [
+      "admin_notes",
+      "amount",
+      "commission_amount",
+      "created_at",
+      "data_amount",
+      "description",
+      "error_code",
+      "error_message",
+      "id",
+      "package_id",
+      "package_name",
+      "phone_number",
+      "processed_by",
+      "profile_id",
+      "provider",
+      "provider_id",
+      "provider_response_time",
+      "status",
+      "updated_at",
+      "user_id",
+      "validity_days"
+    ],
+    "service_providers": [
+      "api_key_encrypted",
+      "average_response_time",
+      "is_active",
+      "last_transaction_at",
+      "provider_name",
+      "success_rate",
+      "total_transactions",
+      "total_volume"
+    ],
+    "in_app_notification_metrics": [
+      "updated_at"
+    ],
+    "chat_settings": [
+      "app_info_preferences",
+      "backup_include_videos",
+      "chat_backup_enabled",
+      "chat_history_enabled",
+      "contact_preferences",
+      "conversation_tones",
+      "created_at",
+      "custom_wallpaper_url",
+      "help_center_favorites",
+      "help_center_search_history",
+      "network_usage_data",
+      "privacy_policy_accepted",
+      "privacy_policy_last_viewed",
+      "privacy_settings",
+      "theme"
+    ],
+    "system_settings": [
+      "created_at",
+      "data_type",
+      "description",
+      "is_sensitive",
+      "key",
+      "value"
+    ],
+    "bill_payments": [
+      "admin_notes",
+      "bill_type",
+      "commission_amount",
+      "error_code",
+      "error_message",
+      "fee",
+      "processed_by",
+      "provider_id",
+      "provider_response_time",
+      "total_amount",
+      "verification_status"
+    ],
+    "marketplace_vendors": [
+      "address",
+      "banner_url",
+      "email",
+      "logo_url",
+      "owner_name",
+      "phone"
+    ],
+    "marketplace_categories": [
+      "background_colors",
+      "category_type",
+      "icon_name",
+      "icon_type"
+    ],
+    "module_settings": [
+      "created_at",
+      "description",
+      "display_order",
+      "hub_type",
+      "icon",
+      "name",
+      "status",
+      "user_type"
+    ],
+    "amenity_bookings": [
+      "amount",
+      "community_id",
+      "end_datetime",
+      "is_paid",
+      "start_datetime",
+      "total_days"
+    ],
+    "agencies": [
+      "address",
+      "agency_type",
+      "annual_revenue",
+      "bonding_amount",
+      "certifications",
+      "city",
+      "commission_percentage",
+      "contact_person_email",
+      "contact_person_name",
+      "contact_person_phone",
+      "contact_person_position",
+      "country",
+      "created_at",
+      "email",
+      "employee_count",
+      "establishment_date",
+      "facebook_url",
+      "id",
+      "instagram_url",
+      "insurance_details",
+      "is_active",
+      "languages_spoken",
+      "license_number",
+      "linkedin_url",
+      "name",
+      "notification_preferences",
+      "operating_hours",
+      "phone",
+      "postal_code",
+      "registration_number",
+      "specializations",
+      "state",
+      "twitter_url",
+      "updated_at",
+      "website"
+    ],
+    "marketplace_search_history": [
+      "results_count"
+    ],
+    "shopping_payments": [
+      "admin_notes",
+      "amount",
+      "commission_amount",
+      "created_at",
+      "delivery_status",
+      "error_code",
+      "error_message",
+      "id",
+      "items",
+      "merchant",
+      "order_number",
+      "processed_by",
+      "profile_id",
+      "provider_response_time",
+      "shipping_fee",
+      "status",
+      "tax",
+      "total_amount",
+      "tracking_number",
+      "updated_at",
+      "user_id"
+    ],
+    "payments": [
+      "amount",
+      "booking_id",
+      "completed_at",
+      "created_at",
+      "description",
+      "due_date",
+      "failed_at",
+      "id",
+      "initiated_at",
+      "invoice_generated_at",
+      "metadata",
+      "notes",
+      "paid_at",
+      "payer_id",
+      "payment_date",
+      "payment_gateway",
+      "payment_method",
+      "payment_type",
+      "receipt_url",
+      "reference_number",
+      "reminder_sent_at",
+      "status",
+      "transaction_id",
+      "unit_id",
+      "updated_at"
+    ],
+    "group_members": [
+      "joined_by"
+    ],
+    "money_transfers": [
+      "admin_notes",
+      "amount",
+      "commission_amount",
+      "created_at",
+      "error_code",
+      "error_message",
+      "fee",
+      "id",
+      "kyc_verified",
+      "processed_by",
+      "profile_id",
+      "provider_id",
+      "provider_response_time",
+      "recipient_account",
+      "recipient_bank",
+      "recipient_name",
+      "recipient_phone",
+      "risk_score",
+      "status",
+      "total_amount",
+      "updated_at",
+      "user_id"
+    ],
+    "airtime_purchases": [
+      "admin_notes",
+      "amount",
+      "commission_amount",
+      "created_at",
+      "description",
+      "error_code",
+      "error_message",
+      "id",
+      "package_id",
+      "phone_number",
+      "processed_by",
+      "profile_id",
+      "provider",
+      "provider_id",
+      "provider_response_time",
+      "status",
+      "updated_at",
+      "user_id"
+    ],
+    "agency_staff": [
+      "commission_percentage",
+      "created_at",
+      "is_active",
+      "position",
+      "reporting_manager_id"
+    ],
+    "marketplace_reviews": [
+      "is_active",
+      "review_text"
+    ],
+    "agency_documents": [
+      "downloads",
+      "file_type_display",
+      "uploaded_by_name",
+      "views"
+    ],
+    "agency_services": [
+      "agency_id",
+      "availability",
+      "base_price",
+      "bookings",
+      "commission_rate",
+      "completion_rate",
+      "created_at",
+      "description",
+      "duration",
+      "features",
+      "id",
+      "rate",
+      "rate_type",
+      "rating",
+      "requirements",
+      "revenue",
+      "service_name",
+      "status",
+      "tags",
+      "target_market",
+      "updated_at"
+    ],
+    "agency_configurations": [
+      "auto_approval_required",
+      "auto_assignment",
+      "client_payment_days",
+      "default_rate",
+      "id",
+      "monthly_listing_target",
+      "rera_registration_mandatory",
+      "sms_notifications",
+      "status"
+    ],
+    "messages": [
+      "attachments",
+      "body",
+      "content",
+      "deleted_at",
+      "delivered_at",
+      "edited_at",
+      "from_user",
+      "id",
+      "is_read",
+      "message_status",
+      "read",
+      "read_at",
+      "reply_to_id",
+      "sent_at",
+      "to_user"
+    ],
+    "marketplace_cart_items": [
+      "created_at"
+    ],
+    "service_packages": [
+      "data_amount",
+      "denomination",
+      "display_order",
+      "is_active",
+      "package_code",
+      "package_name",
+      "validity_days"
+    ],
+    "marketplace_orders": [
+      "actual_delivery_date",
+      "estimated_delivery_date",
+      "final_amount"
+    ],
+    "community_module_overrides": [
+      "created_at"
+    ],
+    "guard_assignments": [
+      "assigned_gate",
+      "assigned_location",
+      "assignment_name",
+      "attendance_percentage",
+      "backup_guard_id",
+      "created_at",
+      "current_status",
+      "days_of_week",
+      "emergency_contact",
+      "end_date",
+      "end_time",
+      "guard_id",
+      "id",
+      "is_permanent",
+      "is_temporary",
+      "last_checkin",
+      "last_checkout",
+      "last_performance_review",
+      "patrol_areas",
+      "performance_rating",
+      "punctuality_score",
+      "responsibilities",
+      "shift_type",
+      "special_instructions",
+      "start_date",
+      "start_time",
+      "status",
+      "supervisor_id",
+      "updated_at"
+    ],
+    "marketplace_products": [
+      "country_of_origin",
+      "discount_percentage",
+      "is_imported",
+      "max_order_quantity",
+      "min_order_quantity",
+      "original_price",
+      "sales_count",
+      "specifications",
+      "tags",
+      "views_count"
+    ],
+    "insurance_payments": [
+      "admin_notes",
+      "beneficiaries",
+      "commission_amount",
+      "error_code",
+      "error_message",
+      "policy_end_date",
+      "policy_start_date",
+      "processed_by",
+      "provider_id",
+      "provider_response_time"
+    ]
+  },
+  "columns_only_in_migrations": {
+    "service_providers": [
+      "api_key",
+      "api_secret",
+      "contact_info",
+      "fee_structure",
+      "metadata",
+      "name",
+      "status"
+    ],
+    "in_app_notification_metrics": [
+      "UNIQUE(date)"
+    ],
+    "marketplace_order_items": [
+      "currency",
+      "metadata",
+      "product_name",
+      "status",
+      "updated_at"
+    ],
+    "chat_settings": [
+      "--",
+      "chat_backup_include_videos",
+      "two_factor_enabled"
+    ],
+    "system_settings": [
+      "'app'",
+      "'app_name'",
+      "'boolean'",
+      "'email'",
+      "'general'",
+      "'guards'",
+      "'json'",
+      "'number'",
+      "'schedules'",
+      "'smtp'",
+      "'smtp_host'",
+      "'templates'",
+      "'timezone'",
+      "--",
+      "UNIQUE(category,",
+      "updated_by"
+    ],
+    "bill_payments": [
+      "bill_period",
+      "description",
+      "due_date",
+      "provider_name"
+    ],
+    "marketplace_vendors": [
+      "follower_count",
+      "logo",
+      "user_id"
+    ],
+    "marketplace_categories": [
+      "icon",
+      "image_url",
+      "is_featured",
+      "metadata",
+      "parent_id",
+      "slug"
+    ],
+    "module_settings": [
+      "'Buy",
+      "'GUARD'",
+      "'Visitors",
+      "'buy_airtime'",
+      "'guard_hub'",
+      "'personal_hub'",
+      "'visitors_management'",
+      "--",
+      "1=enabled"
+    ],
+    "amenity_bookings": [
+      "approved_at",
+      "approved_by",
+      "cancellation_reason",
+      "cancelled_at",
+      "checked_in_at",
+      "checked_out_at",
+      "notes",
+      "payment_reference",
+      "rating",
+      "refund_reference",
+      "review",
+      "special_requests"
+    ],
+    "agencies": [
+      "logo_url",
+      "rating"
+    ],
+    "marketplace_search_history": [
+      "UNIQUE(user_id,",
+      "last_searched_at",
+      "search_count"
+    ],
+    "group_members": [
+      "UNIQUE(group_id,",
+      "role"
+    ],
+    "agency_staff": [
+      "--"
+    ],
+    "marketplace_reviews": [
+      "comment",
+      "helpful_count",
+      "images",
+      "metadata",
+      "status",
+      "title"
+    ],
+    "agency_documents": [
+      "download_count",
+      "is_archived",
+      "view_count"
+    ],
+    "agency_configurations": [
+      "--"
+    ],
+    "marketplace_favorites": [
+      "UNIQUE(user_id,"
+    ],
+    "marketplace_cart_items": [
+      "UNIQUE(user_id,",
+      "added_at",
+      "variant_options"
+    ],
+    "service_packages": [
+      "availability_status",
+      "benefits",
+      "currency",
+      "duration_days",
+      "is_featured",
+      "is_popular",
+      "metadata",
+      "name",
+      "original_price",
+      "price"
+    ],
+    "marketplace_orders": [
+      "cancelled_at",
+      "carrier",
+      "contact_info",
+      "currency",
+      "delivered_at",
+      "delivery_address",
+      "delivery_fee",
+      "delivery_method",
+      "estimated_delivery",
+      "grand_total",
+      "items",
+      "metadata",
+      "order_date",
+      "platform_fee",
+      "refund_amount",
+      "subtotal",
+      "tracking_info",
+      "tracking_number"
+    ],
+    "community_module_overrides": [
+      "--",
+      "1=enabled"
+    ],
+    "marketplace_products": [
+      "currency",
+      "discounted_price",
+      "featured_image_url",
+      "gallery_images",
+      "metadata",
+      "ratings_average",
+      "ratings_count",
+      "sale_price",
+      "slug",
+      "stock_status",
+      "subscribe_price",
+      "variants"
+    ],
+    "insurance_payments": [
+      "description",
+      "premium_frequency",
+      "provider_name"
+    ]
+  },
+  "policies_not_in_migrations": [
+    [
+      "activity_logs",
+      "activity_logs_insert"
+    ],
+    [
+      "activity_logs",
+      "activity_logs_specific_user"
+    ],
+    [
+      "activity_logs",
+      "activity_logs_super_admin_all"
+    ],
+    [
+      "admin_onboarding_requests",
+      "admin_onboarding_requests_service_role_all"
+    ],
+    [
+      "admin_roles",
+      "Allow service role or superadmin to insert"
+    ],
+    [
+      "agency_profiles",
+      "Allow all operations on agency_profiles"
+    ],
+    [
+      "agency_staff",
+      "Allow read for all"
+    ],
+    [
+      "amenities",
+      "allow_anon_read_amenities"
+    ],
+    [
+      "amenities",
+      "allow_authenticated_all_amenities"
+    ],
+    [
+      "amenity_bookings",
+      "service_role_full_access"
+    ],
+    [
+      "amenity_bookings",
+      "user_can_insert_own"
+    ],
+    [
+      "amenity_bookings",
+      "user_can_select_own"
+    ],
+    [
+      "amenity_bookings",
+      "user_delete_pending"
+    ],
+    [
+      "amenity_bookings",
+      "user_update_pending"
+    ],
+    [
+      "app_languages",
+      "Allow read access to app languages"
+    ],
+    [
+      "app_settings",
+      "Allow all operations on app_settings"
+    ],
+    [
+      "app_settings",
+      "Allow read access to app settings"
+    ],
+    [
+      "app_settings",
+      "Allow service role or superadmin to insert"
+    ],
+    [
+      "app_static_content",
+      "select_policy"
+    ],
+    [
+      "audit_logs",
+      "select_own_audit_logs"
+    ],
+    [
+      "bill_payments",
+      "Service role full access bill payments"
+    ],
+    [
+      "bill_payments",
+      "Users can insert own bill payments"
+    ],
+    [
+      "bill_payments",
+      "Users can view own bill payments"
+    ],
+    [
+      "bookings",
+      "Users can insert their own bookings"
+    ],
+    [
+      "bookings",
+      "Users can view their own bookings"
+    ],
+    [
+      "calls",
+      "Enable community calling"
+    ],
+    [
+      "calls",
+      "Guards can insert calls"
+    ],
+    [
+      "calls",
+      "guards_can_insert_calls"
+    ],
+    [
+      "calls",
+      "guards_can_update_own_calls"
+    ],
+    [
+      "chat_messages",
+      "Allow all chat message operations"
+    ],
+    [
+      "chat_participants",
+      "Allow all chat participants operations"
+    ],
+    [
+      "chat_participants",
+      "Users can delete their own participation"
+    ],
+    [
+      "chat_participants",
+      "Users can insert chat participants"
+    ],
+    [
+      "chat_participants",
+      "Users can update their own participation"
+    ],
+    [
+      "chat_settings",
+      "Users can delete their own settings"
+    ],
+    [
+      "chat_settings",
+      "Users can insert their own settings"
+    ],
+    [
+      "chat_settings",
+      "Users can update their own settings"
+    ],
+    [
+      "chat_settings",
+      "Users can view their own settings"
+    ],
+    [
+      "chats",
+      "Allow all chat operations"
+    ],
+    [
+      "chats",
+      "Users can create chats"
+    ],
+    [
+      "comments",
+      "Authenticated users can insert comments"
+    ],
+    [
+      "comments",
+      "Comments are viewable by everyone"
+    ],
+    [
+      "comments",
+      "Users can delete their own comments"
+    ],
+    [
+      "comments",
+      "Users can update their own comments"
+    ],
+    [
+      "communities",
+      "Societies are viewable by everyone"
+    ],
+    [
+      "communities",
+      "authenticated_read_societies"
+    ],
+    [
+      "community_admins",
+      "Society admin relationships viewable by all users"
+    ],
+    [
+      "community_documents",
+      "Anonymous read access to society_documents"
+    ],
+    [
+      "community_documents",
+      "Authenticated full access to society_documents"
+    ],
+    [
+      "community_services",
+      "Allow all operations for authenticated users"
+    ],
+    [
+      "community_services",
+      "Allow anonymous read access to society services"
+    ],
+    [
+      "community_staff",
+      "Enable anonymous read access for society_staff"
+    ],
+    [
+      "complaint_comments",
+      "Users can delete their own comments"
+    ],
+    [
+      "complaint_comments",
+      "Users can insert their own comments"
+    ],
+    [
+      "complaint_comments",
+      "Users can read all complaint comments"
+    ],
+    [
+      "complaint_comments",
+      "Users can update their own comments"
+    ],
+    [
+      "complaints",
+      "Allow users to update own complaints"
+    ],
+    [
+      "complaints",
+      "Allow users to view own complaints"
+    ],
+    [
+      "complaints",
+      "Users can create complaints for their own units"
+    ],
+    [
+      "complaints",
+      "Users can create complaints for their units"
+    ],
+    [
+      "complaints",
+      "Users can view their own complaints"
+    ],
+    [
+      "complaints",
+      "allow_users_insert_complaints"
+    ],
+    [
+      "complaints",
+      "authenticated_read_complaints"
+    ],
+    [
+      "daily_help",
+      "daily_help_insert_own"
+    ],
+    [
+      "daily_help",
+      "daily_help_select_own"
+    ],
+    [
+      "daily_help",
+      "daily_help_update_own"
+    ],
+    [
+      "email_notification_settings",
+      "Allow all operations for authenticated users"
+    ],
+    [
+      "emails",
+      "Emails are viewable by sender and recipient"
+    ],
+    [
+      "emergency_alert_recipients",
+      "Users can see alerts sent to them"
+    ],
+    [
+      "emergency_types",
+      "Allow read access to emergency types"
+    ],
+    [
+      "entry_logs",
+      "Guards can create entry logs"
+    ],
+    [
+      "entry_logs",
+      "Guards can delete their own entry logs"
+    ],
+    [
+      "entry_logs",
+      "Guards can update their own entry logs"
+    ],
+    [
+      "entry_logs",
+      "Guards can view their own entry logs"
+    ],
+    [
+      "frequent_entries",
+      "frequent_entries_insert_own"
+    ],
+    [
+      "frequent_entries",
+      "frequent_entries_select_own"
+    ],
+    [
+      "frequent_entries",
+      "frequent_entries_update_own"
+    ],
+    [
+      "group_members",
+      "group_members_insert_policy"
+    ],
+    [
+      "group_members",
+      "group_members_select_policy"
+    ],
+    [
+      "guard_assignments",
+      "select_own_guard_assignments"
+    ],
+    [
+      "guard_performance_metrics",
+      "Guards can view their own performance metrics"
+    ],
+    [
+      "guard_performance_reviews",
+      "Guards can view their own performance reviews"
+    ],
+    [
+      "guards",
+      "Allow guard profile creation during registration"
+    ],
+    [
+      "guards",
+      "Guards are viewable by society members"
+    ],
+    [
+      "in_app_notification_settings",
+      "Allow all operations for authenticated users"
+    ],
+    [
+      "inquiries",
+      "Users can create their own inquiries"
+    ],
+    [
+      "inquiries",
+      "Users can update their own inquiries"
+    ],
+    [
+      "inquiries",
+      "Users can view their own inquiries"
+    ],
+    [
+      "join_requests",
+      "Users can create join requests"
+    ],
+    [
+      "languages",
+      "Allow service role or superadmin to insert"
+    ],
+    [
+      "maintenance_comments",
+      "maintenance_comments_insert_policy"
+    ],
+    [
+      "maintenance_requests",
+      "Users can create maintenance requests for their own units"
+    ],
+    [
+      "maintenance_requests",
+      "Users can resolve maintenance requests"
+    ],
+    [
+      "maintenance_requests",
+      "maintenance_requests_delete"
+    ],
+    [
+      "maintenance_requests",
+      "maintenance_requests_insert"
+    ],
+    [
+      "maintenance_requests",
+      "maintenance_requests_update"
+    ],
+    [
+      "messages",
+      "Users can delete their own messages"
+    ],
+    [
+      "notices",
+      "anon_read_notices"
+    ],
+    [
+      "notices",
+      "authenticated_read_notices"
+    ],
+    [
+      "notification_campaigns",
+      "notification_campaigns_service_role_all"
+    ],
+    [
+      "notification_configs",
+      "Allow service role or superadmin to insert"
+    ],
+    [
+      "notification_logs",
+      "Service role can manage all notification logs"
+    ],
+    [
+      "notification_logs",
+      "Users can view their own notification logs"
+    ],
+    [
+      "notification_menus",
+      "Allow service role or superadmin to insert"
+    ],
+    [
+      "notification_templates",
+      "Public access for development"
+    ],
+    [
+      "notifications",
+      "System can insert notifications"
+    ],
+    [
+      "payment_gateways",
+      "Allow service role or superadmin to insert"
+    ],
+    [
+      "payment_statements",
+      "Public read access to payment_statements"
+    ],
+    [
+      "payments",
+      "Public read access to payments"
+    ],
+    [
+      "payments",
+      "Users can update payments for their unit"
+    ],
+    [
+      "payments",
+      "authenticated_read_payments"
+    ],
+    [
+      "payments",
+      "user can create payments"
+    ],
+    [
+      "permissions",
+      "Allow authenticated users to read permissions"
+    ],
+    [
+      "preference_categories",
+      "preference_categories_read_policy"
+    ],
+    [
+      "preference_categories",
+      "preference_categories_superadmin_policy"
+    ],
+    [
+      "preference_categories",
+      "user_read_preference_categories"
+    ],
+    [
+      "preference_settings",
+      "preference_settings_read_policy"
+    ],
+    [
+      "preference_settings",
+      "preference_settings_superadmin_policy"
+    ],
+    [
+      "preference_settings",
+      "user_read_preference_settings"
+    ],
+    [
+      "profiles",
+      "Allow service role"
+    ],
+    [
+      "profiles",
+      "Authenticated users can view all profiles for messaging"
+    ],
+    [
+      "profiles",
+      "Enable insert for authenticated users only"
+    ],
+    [
+      "profiles",
+      "Public profiles are viewable by everyone"
+    ],
+    [
+      "profiles",
+      "Service role full access"
+    ],
+    [
+      "profiles",
+      "Users can update own profile via user_id"
+    ],
+    [
+      "profiles",
+      "Users can update their own profile"
+    ],
+    [
+      "role_permissions",
+      "Allow authenticated users to read role permissions"
+    ],
+    [
+      "service_bookings",
+      "Enable insert for authenticated users only"
+    ],
+    [
+      "service_requests",
+      "Users create service requests"
+    ],
+    [
+      "service_requests",
+      "Users view own service requests"
+    ],
+    [
+      "service_requests",
+      "authenticated_read_service_requests"
+    ],
+    [
+      "service_requests",
+      "public_read_service_requests"
+    ],
+    [
+      "services",
+      "authenticated_read_services"
+    ],
+    [
+      "services",
+      "public_read_services"
+    ],
+    [
+      "settings",
+      "Users create settings"
+    ],
+    [
+      "settings",
+      "Users update own settings"
+    ],
+    [
+      "settings",
+      "Users view own settings"
+    ],
+    [
+      "settings",
+      "authenticated_read_settings"
+    ],
+    [
+      "shift_patterns",
+      "Shift patterns are viewable by everyone"
+    ],
+    [
+      "system_activities",
+      "system_activities_service_role_all"
+    ],
+    [
+      "system_alerts",
+      "system_alerts_service_role_all"
+    ],
+    [
+      "system_components",
+      "system_components_service_role_all"
+    ],
+    [
+      "system_overview",
+      "system_overview_service_role_all"
+    ],
+    [
+      "system_performance",
+      "system_performance_service_role_all"
+    ],
+    [
+      "units",
+      "Allow insert for all authenticated users"
+    ],
+    [
+      "units",
+      "Allow read access for all authenticated users"
+    ],
+    [
+      "units",
+      "Super admin can select units"
+    ],
+    [
+      "units",
+      "Unit owners can update their own units"
+    ],
+    [
+      "units",
+      "Units are viewable by everyone"
+    ],
+    [
+      "units",
+      "authenticated_read_units"
+    ],
+    [
+      "user_groups",
+      "user_groups_delete_policy"
+    ],
+    [
+      "user_groups",
+      "user_groups_insert_policy"
+    ],
+    [
+      "user_groups",
+      "user_groups_select_policy"
+    ],
+    [
+      "user_groups",
+      "user_groups_update_policy"
+    ],
+    [
+      "user_payment_methods",
+      "Users can delete their own payment methods"
+    ],
+    [
+      "user_payment_methods",
+      "Users can insert their own payment methods"
+    ],
+    [
+      "user_payment_methods",
+      "Users can update their own payment methods"
+    ],
+    [
+      "user_payment_methods",
+      "Users can view their own payment methods"
+    ],
+    [
+      "user_preference_values",
+      "user_manage_own_preference_values"
+    ],
+    [
+      "user_preference_values",
+      "user_preference_values_superadmin_policy"
+    ],
+    [
+      "user_preference_values",
+      "user_preference_values_user_read_policy"
+    ],
+    [
+      "user_preference_values",
+      "user_preference_values_user_write_policy"
+    ],
+    [
+      "user_roles",
+      "user_roles_read_policy"
+    ],
+    [
+      "user_settings",
+      "select_own_settings"
+    ],
+    [
+      "users",
+      "Admin can manage users"
+    ],
+    [
+      "users",
+      "Allow profile access for auth users"
+    ],
+    [
+      "users",
+      "Allow registration profile creation"
+    ],
+    [
+      "users",
+      "Allow users to view own profile"
+    ],
+    [
+      "users",
+      "Allow viewing user roles for complaints"
+    ],
+    [
+      "users",
+      "Service role can manage users"
+    ],
+    [
+      "users",
+      "Users can edit own profile"
+    ],
+    [
+      "users",
+      "Users can view own profile"
+    ],
+    [
+      "vehicles",
+      "vehicles_insert_own"
+    ],
+    [
+      "vehicles",
+      "vehicles_select_own"
+    ],
+    [
+      "vehicles",
+      "vehicles_update_own"
+    ],
+    [
+      "visitor_passes",
+      "Guards can create visitor passes for their assigned society"
+    ],
+    [
+      "visitor_passes",
+      "Guards can update visitor pass status"
+    ],
+    [
+      "visitor_passes",
+      "Users can create visitor passes for their own units"
+    ],
+    [
+      "visitor_passes",
+      "authenticated_read_visitor_passes"
+    ]
+  ],
+  "policies_missing_in_db": [
+    "Admin full access to society_configurations",
+    "Admins can delete agency staff",
+    "Admins can insert agency staff",
+    "Admins can update agency staff",
+    "Admins can update all reviews",
+    "Admins can view all order items",
+    "Admins can view all orders",
+    "Admins can view all transactions",
+    "Agency admins can manage their own documents",
+    "Agency users can view their own documents",
+    "Allow all operations on agency_managed_units",
+    "Allow read access to agency_documents",
+    "Categories are viewable by everyone",
+    "Enable anonymous read access for documents",
+    "Group admins can manage members",
+    "Group admins can update groups",
+    "Group members can send messages",
+    "Marketplace categories are editable by admins",
+    "Marketplace categories are viewable by everyone",
+    "Marketplace products are editable by admins",
+    "Marketplace products are viewable by everyone",
+    "Marketplace promotions are viewable by everyone if active",
+    "Marketplace reviews are viewable by everyone if approved",
+    "Only admins can delete transactions",
+    "Only admins can modify promotions",
+    "Only admins can update order items",
+    "Only admins can update orders",
+    "Only admins can update transactions",
+    "Products are viewable by everyone",
+    "Reviews are viewable by everyone",
+    "Service packages are editable by admins",
+    "Service packages are viewable by authenticated users",
+    "Service providers are editable by admins",
+    "Service providers are viewable by authenticated users",
+    "Users can access their own chat settings",
+    "Users can add their own favorites",
+    "Users can add to search history",
+    "Users can add to their own cart",
+    "Users can clear search history",
+    "Users can create bookings",
+    "Users can create groups",
+    "Users can create their own orders",
+    "Users can create their own reviews",
+    "Users can create their own transactions",
+    "Users can delete own bookings",
+    "Users can delete their own cart items",
+    "Users can delete their own favorites",
+    "Users can delete their own saved bill accounts",
+    "Users can delete their own saved policies",
+    "Users can follow vendors",
+    "Users can insert order items for their orders",
+    "Users can insert their own bill payments",
+    "Users can insert their own insurance payments",
+    "Users can insert their own saved bill accounts",
+    "Users can insert their own saved policies",
+    "Users can unfollow vendors",
+    "Users can update own bookings",
+    "Users can update their own bill payments",
+    "Users can update their own cart items",
+    "Users can update their own insurance payments",
+    "Users can update their own reviews",
+    "Users can update their own saved bill accounts",
+    "Users can update their own saved policies",
+    "Users can view agency staff",
+    "Users can view group members of their groups",
+    "Users can view groups they are members of",
+    "Users can view messages in their groups",
+    "Users can view own bookings",
+    "Users can view their own bill payments",
+    "Users can view their own cart items",
+    "Users can view their own favorites",
+    "Users can view their own insurance payments",
+    "Users can view their own order items",
+    "Users can view their own orders",
+    "Users can view their own saved bill accounts",
+    "Users can view their own saved policies",
+    "Users can view their own transactions",
+    "Users can view their search history",
+    "Users can view their vendor follows",
+    "Vendors are viewable by everyone",
+    "admin_read",
+    "admin_write",
+    "community_overrides_write_policy",
+    "guard_self_read",
+    "marketplace_admin_read",
+    "marketplace_admin_write",
+    "marketplace_cart_items_owner_delete",
+    "marketplace_cart_items_owner_insert",
+    "marketplace_cart_items_owner_select",
+    "marketplace_cart_items_owner_update",
+    "marketplace_categories_public_read",
+    "marketplace_order_items_owner_insert",
+    "marketplace_order_items_owner_select",
+    "marketplace_orders_owner_insert",
+    "marketplace_orders_owner_select",
+    "marketplace_products_public_read",
+    "marketplace_reviews_public_select",
+    "marketplace_vendor_followers_owner_delete",
+    "marketplace_vendor_followers_owner_insert",
+    "marketplace_vendor_followers_owner_select",
+    "marketplace_vendors_public_read",
+    "module_settings_write_policy"
+  ],
+  "counts": {
+    "live_tables": 181,
+    "expected_tables": 51,
+    "missing_in_migrations_tables": 141,
+    "missing_in_db_tables": 11,
+    "tables_with_columns_only_in_db": 30,
+    "tables_with_columns_only_in_migrations": 24,
+    "policies_not_in_migrations": 179,
+    "policies_missing_in_db": 102
+  }
+}

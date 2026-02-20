@@ -47,7 +47,7 @@
     "homeScreen": {
         "hi": "CIAO",
         "notice": "AVVISO",
-        "description": "Riuniti per il nuovo anno nella sala di Seven Gen Society il 3 novembre",
+        "description": "Riuniti per il nuovo anno nella sala di Seven Gen Community il 3 novembre",
         "community": "Comunità",
         "members": "Membri",
         "visitors": "Visitatrici",
@@ -55,11 +55,11 @@
         "payment": "Pagamento",
         "bookAmenities": "Servizi di libro",
         "helpDesk": "Help Desk",
-        "connectMember": "Connect Society Member",
+        "connectMember": "Connect Community Member",
         "manageEntry": "Gestisci l'ingresso dei visitatori",
         "communityAnnouncement": "Annuncio della comunità e preavviso dell'evento",
         "directPayment": "Pagamento diretto della società dovuta",
-        "preBook": "Pre -book Society Service",
+        "preBook": "Pre -book Community Service",
         "complaint": "Reclamo e suggerimenti",
         "new": "Nuova"
     },

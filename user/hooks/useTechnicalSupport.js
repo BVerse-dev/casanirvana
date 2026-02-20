@@ -80,12 +80,26 @@ export const useUploadAttachment = () => {
     setError(null);
 
     try {
-      const fileExt = fileName.split('.').pop();
-      const filePath = `${Date.now()}-${Math.random()}.${fileExt}`;
+      let resolvedName = fileName;
+      let resolvedType;
+      let uploadPayload = file;
+
+      if (file && typeof file === 'object' && file.uri) {
+        resolvedName = resolvedName || file.name || `attachment_${Date.now()}`;
+        resolvedType = file.type;
+
+        const response = await fetch(file.uri);
+        uploadPayload = await response.blob();
+      } else if (!resolvedName) {
+        resolvedName = `attachment_${Date.now()}`;
+      }
+
+      const fileExt = (resolvedName.includes('.') ? resolvedName.split('.').pop() : 'bin') || 'bin';
+      const filePath = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${fileExt}`;
 
       const { data, error } = await supabase.storage
         .from('attachments')
-        .upload(filePath, file);
+        .upload(filePath, uploadPayload, resolvedType ? { contentType: resolvedType } : undefined);
 
       if (error) throw error;
 
@@ -99,8 +113,9 @@ export const useUploadAttachment = () => {
         data: {
           path: filePath,
           publicUrl: publicData.publicUrl,
-          originalName: fileName
-        }
+          originalName: resolvedName
+        },
+        url: publicData.publicUrl
       };
     } catch (err) {
       console.error('Error uploading attachment:', err);

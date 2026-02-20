@@ -8,7 +8,7 @@ import {
   Linking,
   Alert,
 } from "react-native";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Colors, Default, Fonts } from "../constants/styles";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -23,7 +23,6 @@ import GatePassModal from "../components/gatePassModal";
 import SnackbarToast from "../components/snackbarToast";
 import { useListVisitors } from "../hooks/useListVisitors";
 import { useDeleteVisitor } from "../hooks/useDeleteVisitor";
-import { supabase } from "../utils/supabase";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../contexts/AuthContext";
 import moment from "moment";
@@ -33,7 +32,7 @@ const VisitorsScreen = ({ navigation }) => {
   const queryClient = useQueryClient();
   const { user, profile } = useAuth();
 
-  const isRtl = i18n.dir() == "rtl";
+  const isRtl = i18n.dir() === "rtl";
 
   function tr(key) {
     return t(`visitorsScreen:${key}`);
@@ -43,36 +42,15 @@ const VisitorsScreen = ({ navigation }) => {
   const { data: visitorsData = [], isLoading, error, refetch } = useListVisitors();
   const deleteVisitorMutation = useDeleteVisitor();
 
-  const backAction = () => {
+  const backAction = useCallback(() => {
     navigation.pop();
     return true;
-  };
+  }, [navigation]);
 
   useEffect(() => {
-    BackHandler.addEventListener("hardwareBackPress", backAction);
-
-    return () => {
-      const subscription = BackHandler.addEventListener("hardwareBackPress", backAction); 
-      return () => subscription?.remove(); 
-    }
-  }, []);
-
-  // Real-time subscription for visitor changes
-  useEffect(() => {
-    const channel = supabase
-      .channel('public:visitor_passes')
-      .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public', 
-        table: 'visitor_passes' 
-      }, () => {
-        console.log('🔄 Visitor passes changed, refetching...');
-        queryClient.invalidateQueries(['visitor-passes']);
-      })
-      .subscribe();
-
-    return () => supabase.removeChannel(channel);
-  }, [queryClient]);
+    const subscription = BackHandler.addEventListener("hardwareBackPress", backAction);
+    return () => subscription.remove();
+  }, [backAction]);
 
   const [removeVisitor, setRemoveVisitor] = useState(false);
   const onDismissRemoveVisitor = () => setRemoveVisitor(false);
@@ -126,29 +104,76 @@ const VisitorsScreen = ({ navigation }) => {
     );
   };
 
+  const formatStatusLabel = (status) => {
+    switch (status) {
+      case "approved":
+        return tr("preApproved");
+      case "pending":
+        return "Pending";
+      case "checked_in":
+        return tr("inside");
+      case "checked_out":
+        return "Checked Out";
+      case "denied":
+        return "Denied";
+      case "cancelled":
+        return "Cancelled";
+      case "expired":
+        return "Expired";
+      default:
+        return tr("serviceBooked");
+    }
+  };
+
   // Helper function to determine visitor status and display
   const getVisitorStatus = (visitor) => {
     if (visitor.checked_in_at && !visitor.checked_out_at) {
-      return { 
-        status: 'inside', 
-        color: Colors.red, 
+      return {
+        status: "checked_in",
+        color: Colors.red,
         text: tr("inside"),
-        fontStyle: Fonts.Medium15red 
+        fontStyle: Fonts.Medium15red,
       };
-    } else if (visitor.status === 'approved' && !visitor.checked_in_at) {
-      return { 
-        status: 'preApproved', 
-        color: Colors.orange, 
-        text: tr("preApproved"),
-        fontStyle: Fonts.Medium15orange 
-      };
-    } else {
-      return { 
-        status: 'serviceBooked', 
-        color: Colors.green, 
-        text: tr("serviceBooked"),
-        fontStyle: Fonts.Medium15green 
-      };
+    }
+
+    switch (visitor.status) {
+      case "approved":
+        return {
+          status: "approved",
+          color: Colors.orange,
+          text: tr("preApproved"),
+          fontStyle: Fonts.Medium15orange,
+        };
+      case "pending":
+        return {
+          status: "pending",
+          color: Colors.orange,
+          text: "Pending",
+          fontStyle: Fonts.Medium15orange,
+        };
+      case "checked_out":
+        return {
+          status: "checked_out",
+          color: Colors.grey,
+          text: "Checked Out",
+          fontStyle: Fonts.Medium15grey,
+        };
+      case "denied":
+      case "cancelled":
+      case "expired":
+        return {
+          status: visitor.status,
+          color: Colors.red,
+          text: formatStatusLabel(visitor.status),
+          fontStyle: Fonts.Medium15red,
+        };
+      default:
+        return {
+          status: visitor.status || "unknown",
+          color: Colors.green,
+          text: formatStatusLabel(visitor.status),
+          fontStyle: Fonts.Medium15green,
+        };
     }
   };
 
@@ -194,9 +219,9 @@ const VisitorsScreen = ({ navigation }) => {
       image: visitorImage,
       title: visitor.visitor_name,
       dateTime: dateTimeDisplay,
-      inside: statusInfo.status === 'inside',
-      preApproved: statusInfo.status === 'preApproved',
-      serviceBooked: statusInfo.status === 'serviceBooked',
+      inside: statusInfo.status === "checked_in",
+      preApproved: statusInfo.status === "approved",
+      serviceBooked: !["checked_in", "approved"].includes(statusInfo.status),
       visitor: visitor, // Keep original visitor data
       statusInfo
     };

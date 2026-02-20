@@ -1,10 +1,11 @@
 import { useNavigation } from '@react-navigation/native';
-import * as Notifications from 'expo-notifications';
+import { isPushNotificationsSupported } from '../utils/notificationRuntime';
+import Notifications from '../utils/notificationsAdapter';
 
 export const useNotificationNavigation = () => {
   const navigation = useNavigation();
 
-  const handleNotificationResponse = (response: Notifications.NotificationResponse) => {
+  const handleNotificationResponse = (response: any) => {
     // Handle notification tap/interaction
     const { data } = response.notification.request.content;
     
@@ -24,7 +25,9 @@ export const useNotificationNavigation = () => {
     }
     
     // Clear badge count
-    Notifications.setBadgeCountAsync(0);
+    if (isPushNotificationsSupported) {
+      Notifications.setBadgeCountAsync(0);
+    }
   };
 
   return {

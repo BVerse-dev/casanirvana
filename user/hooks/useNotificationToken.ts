@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
-import * as Notifications from 'expo-notifications';
+import { useState, useEffect, useCallback } from 'react';
 import * as Device from 'expo-device';
-import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { supabase } from '../utils/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { resolveProfileIdByAuthId } from '../utils/profileResolver';
+import { isPushNotificationsSupported } from '../utils/notificationRuntime';
+import Notifications from '../utils/notificationsAdapter';
 
 export const useNotificationToken = () => {
   const [expoPushToken, setExpoPushToken] = useState<string>('');
@@ -12,12 +13,64 @@ export const useNotificationToken = () => {
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
 
-  useEffect(() => {
-    registerForPushNotificationsAsync();
+  const saveTokenToDatabase = useCallback(async (token: string) => {
+    try {
+      if (!user) return;
+      const profileId = await resolveProfileIdByAuthId(user.id);
+      if (!profileId) return;
+
+      // Update user profile with push token
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          push_notification_token: token,
+          push_notifications_enabled: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', profileId);
+
+      if (error) {
+        console.error('Error saving push token:', error);
+      } else {
+        console.log('Push token saved successfully');
+      }
+    } catch (error) {
+      console.error('Error in saveTokenToDatabase:', error);
+    }
   }, [user]);
 
-  const registerForPushNotificationsAsync = async () => {
+  const clearTokenFromDatabase = useCallback(async () => {
     try {
+      if (!user) return;
+      const profileId = await resolveProfileIdByAuthId(user.id);
+      if (!profileId) return;
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          push_notification_token: null,
+          push_notifications_enabled: false,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', profileId);
+
+      if (error) {
+        console.error('Error clearing push token:', error);
+      }
+    } catch (error) {
+      console.error('Error in clearTokenFromDatabase:', error);
+    }
+  }, [user]);
+
+  const registerForPushNotificationsAsync = useCallback(async () => {
+    try {
+      if (!isPushNotificationsSupported) {
+        setExpoPushToken('');
+        setError('Push notifications require a development build in SDK 54+ (Expo Go limitation).');
+        setIsLoading(false);
+        return;
+      }
+
       setIsLoading(true);
       setError(null);
 
@@ -68,52 +121,16 @@ export const useNotificationToken = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [saveTokenToDatabase, user]);
 
-  const saveTokenToDatabase = async (token: string) => {
-    try {
-      if (!user) return;
-
-      // Update user profile with push token
-      const { error } = await supabase
-        .from('profiles')
-        .update({ 
-          push_notification_token: token,
-          push_notifications_enabled: true,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', user.id);
-
-      if (error) {
-        console.error('Error saving push token:', error);
-      } else {
-        console.log('Push token saved successfully');
-      }
-    } catch (error) {
-      console.error('Error in saveTokenToDatabase:', error);
+  useEffect(() => {
+    if (!isPushNotificationsSupported) {
+      setIsLoading(false);
+      return;
     }
-  };
 
-  const clearTokenFromDatabase = async () => {
-    try {
-      if (!user) return;
-
-      const { error } = await supabase
-        .from('profiles')
-        .update({ 
-          push_notification_token: null,
-          push_notifications_enabled: false,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', user.id);
-
-      if (error) {
-        console.error('Error clearing push token:', error);
-      }
-    } catch (error) {
-      console.error('Error in clearTokenFromDatabase:', error);
-    }
-  };
+    registerForPushNotificationsAsync();
+  }, [user, registerForPushNotificationsAsync]);
 
   return {
     expoPushToken,

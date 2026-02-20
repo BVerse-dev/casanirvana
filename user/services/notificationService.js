@@ -1,4 +1,5 @@
 import { supabase } from '../utils/supabase';
+import { getProfileByAuthId } from '../utils/profileResolver';
 
 /**
  * Add a new notification for a user
@@ -16,15 +17,10 @@ export const addNotification = async (notification) => {
     }
 
     // Get the profile to get the correct user_id reference
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('user_id', user.id)
-      .single();
-      
-    if (profileError || !profile) {
-      console.error('Error getting user profile:', profileError);
-      return { success: false, error: profileError || 'Profile not found' };
+    const profile = await getProfileByAuthId(user.id, 'id');
+    if (!profile) {
+      console.error('Error getting user profile for auth user:', user.id);
+      return { success: false, error: 'Profile not found' };
     }
 
     // Set default values if not provided

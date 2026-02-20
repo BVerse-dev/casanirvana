@@ -6,8 +6,9 @@ import {
   StyleSheet,
   SectionList,
   Switch,
+  Alert,
 } from "react-native";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Colors, Default, Fonts } from "../constants/styles";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -17,30 +18,98 @@ import SimpleLineIcons from "react-native-vector-icons/SimpleLineIcons";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import LogoutModal from "../components/logoutModal";
+import { useAuth } from "../contexts/AuthContext";
+import {
+  loadUserAppSettings,
+  updateUserAppSettings,
+} from "../services/settingsPersistenceService";
 
 const SettingScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
+  const { user } = useAuth();
 
-  const isRtl = i18n.dir() == "rtl";
+  const isRtl = i18n.dir() === "rtl";
 
   function tr(key) {
     return t(`settingScreen:${key}`);
   }
-  const backAction = () => {
+  const backAction = useCallback(() => {
     navigation.goBack();
     return true;
-  };
+  }, [navigation]);
   useEffect(() => {
     const backHandler = BackHandler.addEventListener(
       "hardwareBackPress",
       backAction
     );
     return () => backHandler.remove();
-  });
+  }, [backAction]);
 
   const [openLogoutModal, setOpenLogoutModal] = useState(false);
   const [darkTheme, setDarkTheme] = useState(false);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
+  const [isSettingsLoading, setIsSettingsLoading] = useState(true);
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const hydrateSettings = async () => {
+      try {
+        const appSettings = await loadUserAppSettings(
+          user?.id,
+          i18n.resolvedLanguage
+        );
+
+        if (!isMounted) {
+          return;
+        }
+
+        setDarkTheme(Boolean(appSettings.darkMode));
+        setBiometricEnabled(Boolean(appSettings.biometricEnabled));
+      } catch (error) {
+        console.error("Failed to load settings:", error);
+      } finally {
+        if (isMounted) {
+          setIsSettingsLoading(false);
+        }
+      }
+    };
+
+    hydrateSettings();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.id, i18n.resolvedLanguage]);
+
+  const persistToggleSetting = async (settingKey, value) => {
+    if (isSavingSettings) {
+      return;
+    }
+
+    const previousValue = settingKey === "darkMode" ? darkTheme : biometricEnabled;
+    if (settingKey === "darkMode") {
+      setDarkTheme(value);
+    } else {
+      setBiometricEnabled(value);
+    }
+
+    setIsSavingSettings(true);
+    try {
+      await updateUserAppSettings(user?.id, { [settingKey]: value });
+    } catch (error) {
+      console.error("Failed to persist app setting:", error);
+      if (settingKey === "darkMode") {
+        setDarkTheme(previousValue);
+      } else {
+        setBiometricEnabled(previousValue);
+      }
+      Alert.alert("Error", "Failed to update app settings. Please try again.");
+    } finally {
+      setIsSavingSettings(false);
+    }
+  };
 
   const settingSections = [
     {
@@ -273,9 +342,9 @@ const SettingScreen = ({ navigation }) => {
           } else if (item.hasToggle) {
             // Handle toggle items
             if (item.key === "4") {
-              setDarkTheme(!darkTheme);
+              persistToggleSetting("darkMode", !darkTheme);
             } else if (item.key === "8") {
-              setBiometricEnabled(!biometricEnabled);
+              persistToggleSetting("biometricEnabled", !biometricEnabled);
             }
           } else if (item.navigateTo) {
             navigation.push(item.navigateTo);
@@ -334,11 +403,12 @@ const SettingScreen = ({ navigation }) => {
             value={item.key === "4" ? darkTheme : biometricEnabled}
             onValueChange={(value) => {
               if (item.key === "4") {
-                setDarkTheme(value);
+                persistToggleSetting("darkMode", value);
               } else if (item.key === "8") {
-                setBiometricEnabled(value);
+                persistToggleSetting("biometricEnabled", value);
               }
             }}
+            disabled={isSettingsLoading || isSavingSettings}
             trackColor={{ false: Colors.lightGrey, true: Colors.primary }}
             thumbColor={Colors.white}
           />

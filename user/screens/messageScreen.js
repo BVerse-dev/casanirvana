@@ -112,12 +112,12 @@ const MessageScreen = ({ navigation, route }) => {
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
-    if (flatListRef.current && transformedMessages && transformedMessages.length > 0) {
+    if (flatListRef.current && (messages?.length || 0) > 0) {
       setTimeout(() => {
         flatListRef.current.scrollToEnd({ animated: true });
       }, 50);
     }
-  }, [transformedMessages?.length]);
+  }, [messages?.length]);
 
   // Scroll to bottom function
   const scrollToBottom = useCallback(() => {

@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { supabase } from '../utils/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 export const useMessages = (otherUserId) => {
   const queryClient = useQueryClient();
@@ -13,7 +13,6 @@ export const useMessages = (otherUserId) => {
     data: messages = [],
     isLoading,
     error,
-    refetch,
   } = useQuery({
     queryKey: ['messages', profile?.id, otherUserId],
     queryFn: async () => {
@@ -269,39 +268,63 @@ export const useMessages = (otherUserId) => {
 };
 
 export const useConversations = () => {
-  const queryClient = useQueryClient();
+  const { profile } = useAuth();
 
-  // Fetch all conversations (latest message with each user)
   const {
     data: conversations = [],
     isLoading,
     error,
+    refetch,
   } = useQuery({
-    queryKey: ['conversations'],
+    queryKey: ['conversations', profile?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('messages')
-        .select(`
-          *,
-          from_user_profile:users!from_user(id, first_name, last_name, phone),
-          to_user_profile:users!to_user(id, first_name, last_name, phone)
-        `)
-        .order('sent_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching conversations:', error);
-        throw error;
+      if (!profile?.id) {
+        return [];
       }
 
-      // Group messages by conversation partner
-      const conversationMap = new Map();
-      const currentUserId = (await supabase.auth.getUser()).data.user?.id;
+      const { data: messageRows, error: messageError } = await supabase
+        .from('messages')
+        .select('id, from_user, to_user, body, sent_at, is_read, message_type')
+        .or(`from_user.eq.${profile.id},to_user.eq.${profile.id}`)
+        .order('sent_at', { ascending: false });
 
-      data?.forEach(message => {
-        const partnerId = message.from_user === currentUserId ? message.to_user : message.from_user;
-        const partnerProfile = message.from_user === currentUserId ? message.to_user_profile : message.from_user_profile;
-        
+      if (messageError) {
+        console.error('Error fetching conversations:', messageError);
+        throw messageError;
+      }
+
+      const rows = messageRows || [];
+      const partnerIds = [...new Set(
+        rows
+          .map((message) => (message.from_user === profile.id ? message.to_user : message.from_user))
+          .filter(Boolean)
+      )];
+
+      if (partnerIds.length === 0) {
+        return [];
+      }
+
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, avatar_url, last_login, is_active')
+        .in('id', partnerIds);
+
+      if (profilesError) {
+        console.error('Error fetching conversation profiles:', profilesError);
+        throw profilesError;
+      }
+
+      const profilesById = new Map((profilesData || []).map((item) => [item.id, item]));
+      const conversationMap = new Map();
+
+      rows.forEach((message) => {
+        const partnerId = message.from_user === profile.id ? message.to_user : message.from_user;
+        if (!partnerId) {
+          return;
+        }
+
         if (!conversationMap.has(partnerId)) {
+          const partnerProfile = profilesById.get(partnerId);
           conversationMap.set(partnerId, {
             partnerId,
             partnerProfile,
@@ -310,20 +333,25 @@ export const useConversations = () => {
           });
         }
 
-        // Count unread messages
-        if (message.to_user === currentUserId && !message.is_read) {
-          conversationMap.get(partnerId).unreadCount++;
+        if (message.to_user === profile.id && !message.is_read) {
+          conversationMap.get(partnerId).unreadCount += 1;
         }
       });
 
-      return Array.from(conversationMap.values());
+      return Array.from(conversationMap.values()).sort((a, b) => {
+        const aTs = new Date(a.lastMessage?.sent_at || 0).getTime();
+        const bTs = new Date(b.lastMessage?.sent_at || 0).getTime();
+        return bTs - aTs;
+      });
     },
+    enabled: !!profile?.id,
   });
 
   return {
     conversations,
     isLoading,
     error,
+    refetch,
   };
 };
 

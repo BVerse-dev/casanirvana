@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
   createInsurancePayment, 
   getInsurancePayments,
@@ -15,15 +15,13 @@ import { useAuth } from "../contexts/AuthContext";
 export const useCreateInsurancePayment = () => {
   const queryClient = useQueryClient();
   
-  return useMutation(
-    (insurancePayment: any) => createInsurancePayment(insurancePayment),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(["insurancePayments"]);
-        queryClient.invalidateQueries(["personalHubTransactions"]);
-      }
+  return useMutation({
+    mutationFn: (insurancePayment: any) => createInsurancePayment(insurancePayment),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["insurancePayments"] });
+      queryClient.invalidateQueries({ queryKey: ["personalHubTransactions"] });
     }
-  );
+  });
 };
 
 /**
@@ -31,15 +29,14 @@ export const useCreateInsurancePayment = () => {
  */
 export const useInsurancePayments = () => {
   const { profile } = useAuth();
+  const profileKey = profile?.user_id || profile?.id;
   
-  return useQuery(
-    ["insurancePayments", profile?.user_id],
-    () => getInsurancePayments(profile?.user_id),
-    {
-      enabled: !!profile?.user_id,
-      select: (response) => response?.data || []
-    }
-  );
+  return useQuery({
+    queryKey: ["insurancePayments", profileKey],
+    queryFn: () => getInsurancePayments(profileKey),
+    enabled: !!profileKey,
+    select: (response: any) => response?.data || [],
+  });
 };
 
 /**
@@ -48,15 +45,13 @@ export const useInsurancePayments = () => {
 export const useUpdateInsurancePaymentStatus = () => {
   const queryClient = useQueryClient();
   
-  return useMutation(
-    ({ id, status }: { id: string; status: string }) => updateInsurancePaymentStatus(id, status),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(["insurancePayments"]);
-        queryClient.invalidateQueries(["personalHubTransactions"]);
-      }
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) => updateInsurancePaymentStatus(id, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["insurancePayments"] });
+      queryClient.invalidateQueries({ queryKey: ["personalHubTransactions"] });
     }
-  );
+  });
 };
 
 /**
@@ -65,14 +60,12 @@ export const useUpdateInsurancePaymentStatus = () => {
 export const useSavePolicy = () => {
   const queryClient = useQueryClient();
   
-  return useMutation(
-    (policy: any) => savePolicy(policy),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(["savedPolicies"]);
-      }
+  return useMutation({
+    mutationFn: (policy: any) => savePolicy(policy),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["savedPolicies"] });
     }
-  );
+  });
 };
 
 /**
@@ -80,15 +73,14 @@ export const useSavePolicy = () => {
  */
 export const useSavedPolicies = (provider?: string) => {
   const { profile } = useAuth();
+  const profileKey = profile?.user_id || profile?.id;
   
-  return useQuery(
-    ["savedPolicies", profile?.user_id, provider],
-    () => getSavedPolicies(profile?.user_id, provider),
-    {
-      enabled: !!profile?.user_id,
-      select: (response) => response?.data || []
-    }
-  );
+  return useQuery({
+    queryKey: ["savedPolicies", profileKey, provider],
+    queryFn: () => getSavedPolicies(profileKey, provider),
+    enabled: !!profileKey,
+    select: (response: any) => response?.data || [],
+  });
 };
 
 /**
@@ -97,12 +89,10 @@ export const useSavedPolicies = (provider?: string) => {
 export const useDeleteSavedPolicy = () => {
   const queryClient = useQueryClient();
   
-  return useMutation(
-    (id: string) => deleteSavedPolicy(id),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(["savedPolicies"]);
-      }
+  return useMutation({
+    mutationFn: (id: string) => deleteSavedPolicy(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["savedPolicies"] });
     }
-  );
+  });
 };

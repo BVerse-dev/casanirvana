@@ -21,23 +21,21 @@ import { supabase } from "../../utils/supabase";
 const RegisterScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
 
-  const isRtl = i18n.dir() == "rtl";
+  const isRtl = i18n.dir() === "rtl";
 
   function tr(key) {
     return t(`registerScreen:${key}`);
   }
   
-  const backAction = () => {
-    navigation.pop();
-    return true;
-  };
-  
   useEffect(() => {
-    const subscription = BackHandler.addEventListener("hardwareBackPress", backAction);
+    const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
+      navigation.pop();
+      return true;
+    });
     return () => {
       subscription?.remove();
     };
-  }, []);
+  }, [navigation]);
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -107,19 +105,34 @@ const RegisterScreen = ({ navigation }) => {
         return;
       }
 
-      // Registration successful
-      Alert.alert(
-        'Registration Successful!',
-        'Please check your email to verify your account, then sign in.',
-        [
+      const hasActiveSession = Boolean(data?.session?.access_token);
+      const isEmailConfirmed = Boolean(data?.user?.email_confirmed_at);
+
+      if (hasActiveSession || isEmailConfirmed) {
+        Alert.alert("Registration Successful!", "Your account is ready. Welcome to Casa Nirvana.", [
           {
-            text: 'OK',
+            text: "Continue",
             onPress: () => {
               next();
-              navigation.push("verificationScreen");
+              navigation.replace("bottomTab");
             },
           },
-        ],
+        ]);
+        return;
+      }
+
+      Alert.alert(
+        "Registration Successful!",
+        "Please check your email to verify your account, then sign in.",
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              next();
+              navigation.replace("emailLoginScreen");
+            },
+          },
+        ]
       );
       
     } catch (err) {

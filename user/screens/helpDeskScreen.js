@@ -38,8 +38,16 @@ const HelpDeskScreen = ({ navigation }) => {
     return t(`helpDeskScreen:${key}`);
   }
 
-  const backAction = () => {
+  const goBackSafely = () => {
+    if (navigation?.canGoBack?.()) {
+      navigation.goBack();
+      return;
+    }
     navigation.navigate("bottomTab");
+  };
+
+  const backAction = () => {
+    goBackSafely();
     return true;
   };
 
@@ -57,13 +65,13 @@ const HelpDeskScreen = ({ navigation }) => {
   };
 
   const handleStartLiveChat = async () => {
-    if (!profile?.id || !profile?.society_id) {
+    if (!profile?.id || !profile?.community_id) {
       Alert.alert('Error', 'Please ensure you are logged in and have a valid profile to start a chat.');
       return;
     }
 
     try {
-      const result = await startSupportChat(profile.id, profile.society_id);
+      const result = await startSupportChat(profile.id, profile.community_id);
       
       console.log('🔍 Support chat result:', result);
       
@@ -154,7 +162,7 @@ const HelpDeskScreen = ({ navigation }) => {
       <View style={styles.headerRow}>
         <TouchableOpacity
           style={styles.headerBackBtn}
-          onPress={() => navigation.navigate('bottomTab')}>
+          onPress={goBackSafely}>
           <Ionicons name="arrow-back-outline" size={25} color={Colors.black} />
         </TouchableOpacity>
         <Text style={styles.headerTitleText}>Help Desk</Text>

@@ -29,13 +29,13 @@ export const deleteNotice = async (id) =>
   await supabase.from('notices').delete().eq('id', id);
 
 /**
- * Get notices for a society with optional filters, pagination, and sorting.
+ * Get notices for a community with optional filters, pagination, and sorting.
  * Table: notices
- * @param {Object} params - { society_id, search, limit, page, orderBy, ascending }
+ * @param {Object} params - { community_id, search, limit, page, orderBy, ascending }
  * @returns {Promise}
  */
-export const getNoticesForSociety = async ({
-  society_id,
+export const getNoticesForCommunity = async ({
+  community_id,
   search = '',
   limit = 10,
   page = 1,
@@ -43,7 +43,7 @@ export const getNoticesForSociety = async ({
   ascending = false
 } = {}) => {
   let query = supabase.from('notices').select('*', { count: 'exact' });
-  if (society_id) query = query.eq('community_id', society_id);
+  if (community_id) query = query.eq('community_id', community_id);
   if (search) query = query.ilike('title', `%${search}%`);
   query = query.order(orderBy, { ascending });
   if (limit) query = query.range((page - 1) * limit, page * limit - 1);

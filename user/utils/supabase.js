@@ -1,29 +1,63 @@
 import { createClient } from '@supabase/supabase-js';
+import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
+import Constants from 'expo-constants';
 
-// Hardcoded values - no environment variables
-const supabaseUrl = "https://pswnlowvmdgeifhxilao.supabase.co";
-const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzd25sb3d2bWRnZWlmaHhpbGFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3ODE5MTYsImV4cCI6MjA2MzM1NzkxNn0.QOqSJr0qxefrIwM087IKlJJYWwMLCHV_v5iEb-SI7S0";
+const supabaseUrl =
+  Constants.expoConfig?.extra?.EXPO_PUBLIC_SUPABASE_URL ||
+  process.env.EXPO_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey =
+  Constants.expoConfig?.extra?.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
+  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
-console.log('Supabase initialized with URL:', supabaseUrl);
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.warn('Supabase env vars missing:', { supabaseUrl, supabaseAnonKey });
+}
 
-// Custom storage adapter for Expo using SecureStore
-const ExpoSecureStoreAdapter = {
+const WebStorageAdapter = {
   getItem: (key) => {
-    return SecureStore.getItemAsync(key);
+    try {
+      if (typeof localStorage === 'undefined') return Promise.resolve(null);
+      return Promise.resolve(localStorage.getItem(key));
+    } catch (error) {
+      console.warn('Web storage read failed:', error);
+      return Promise.resolve(null);
+    }
   },
   setItem: (key, value) => {
-    return SecureStore.setItemAsync(key, value);
+    try {
+      if (typeof localStorage === 'undefined') return Promise.resolve();
+      localStorage.setItem(key, value);
+    } catch (error) {
+      console.warn('Web storage write failed:', error);
+    }
+    return Promise.resolve();
   },
   removeItem: (key) => {
-    return SecureStore.deleteItemAsync(key);
+    try {
+      if (typeof localStorage === 'undefined') return Promise.resolve();
+      localStorage.removeItem(key);
+    } catch (error) {
+      console.warn('Web storage remove failed:', error);
+    }
+    return Promise.resolve();
   },
 };
+
+const NativeSecureStoreAdapter = {
+  getItem: (key) => SecureStore.getItemAsync(key),
+  setItem: (key, value) => SecureStore.setItemAsync(key, value),
+  removeItem: (key) => SecureStore.deleteItemAsync(key),
+};
+
+const StorageAdapter = Platform.OS === 'web'
+  ? WebStorageAdapter
+  : NativeSecureStoreAdapter;
 
 // Create a supabase client with secure storage for auth persistence
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    storage: ExpoSecureStoreAdapter,
+    storage: StorageAdapter,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,

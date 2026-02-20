@@ -45,7 +45,15 @@ const MobileMoneyScreen = ({ navigation, route }) => {
     description,
     saveAccount,
     transactionType,
-    recipientInfo
+    recipientInfo,
+    dataAmount,
+    validity,
+    reference,
+    schedulePayment,
+    frequency,
+    firstPaymentNow,
+    platformFee,
+    totalAmount,
   } = route.params || {};
   
   const { t, i18n } = useTranslation();
@@ -64,12 +72,8 @@ const MobileMoneyScreen = ({ navigation, route }) => {
   };
 
   useEffect(() => {
-    BackHandler.addEventListener("hardwareBackPress", backAction);
-
-    return () => {
-      const subscription = BackHandler.addEventListener("hardwareBackPress", backAction);
-      return () => subscription?.remove();
-    };
+    const subscription = BackHandler.addEventListener("hardwareBackPress", backAction);
+    return () => subscription.remove();
   }, []);
 
   const [selectedNetwork, setSelectedNetwork] = useState("MTN");
@@ -143,6 +147,7 @@ const MobileMoneyScreen = ({ navigation, route }) => {
       try {
         const cleanPhone = phoneNumber.replace(/\s+/g, "");
         const transactionId = `MM_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const userId = profile?.user_id || profile?.id;
         
         // Create payment record
         const paymentData = {
@@ -162,7 +167,11 @@ const MobileMoneyScreen = ({ navigation, route }) => {
             mobile_network: selectedNetwork,
             phone_number: cleanPhone,
             recipient_phone: recipientPhone,
-            recipient_description: description
+            recipient_description: description,
+            reference,
+            schedule_payment: schedulePayment,
+            frequency,
+            first_payment_now: firstPaymentNow
           }
         };
         
@@ -178,7 +187,7 @@ const MobileMoneyScreen = ({ navigation, route }) => {
         switch(transactionType) {
           case 'airtime':
             transactionResult = await createAirtimePurchase({
-              user_id: profile?.user_id,
+              user_id: userId,
               profile_id: profile?.id,
               provider: provider || 'unknown',
               phone_number: recipientPhone || '',
@@ -191,7 +200,7 @@ const MobileMoneyScreen = ({ navigation, route }) => {
             
           case 'data':
             transactionResult = await createDataPurchase({
-              user_id: profile?.user_id,
+              user_id: userId,
               profile_id: profile?.id,
               provider: provider || 'unknown',
               phone_number: recipientPhone || '',
@@ -207,13 +216,13 @@ const MobileMoneyScreen = ({ navigation, route }) => {
             
           case 'money_transfer':
             transactionResult = await createMoneyTransfer({
-              user_id: profile?.user_id,
+              user_id: userId,
               profile_id: profile?.id,
               recipient_name: description || 'Recipient',
               recipient_phone: recipientPhone || '',
               amount: amount || 0,
-              fee: 0,
-              total_amount: amount || 0,
+              fee: platformFee || 0,
+              total_amount: totalAmount || amount || 0,
               status: 'pending',
               payment_ref_id: paymentResult.data.id
             });
@@ -221,7 +230,7 @@ const MobileMoneyScreen = ({ navigation, route }) => {
             
           case 'bill_payment':
             transactionResult = await createBillPayment({
-              user_id: profile?.user_id,
+              user_id: userId,
               profile_id: profile?.id,
               bill_type: description || 'Utility',
               provider: provider || 'unknown',
@@ -237,7 +246,7 @@ const MobileMoneyScreen = ({ navigation, route }) => {
             
           case 'insurance':
             transactionResult = await createInsurancePayment({
-              user_id: profile?.user_id,
+              user_id: userId,
               profile_id: profile?.id,
               insurance_type: description || 'General',
               provider: provider || 'unknown',
@@ -254,7 +263,7 @@ const MobileMoneyScreen = ({ navigation, route }) => {
             
           case 'shopping':
             transactionResult = await createShoppingPayment({
-              user_id: profile?.user_id,
+              user_id: userId,
               profile_id: profile?.id,
               merchant: provider || 'unknown',
               order_number: recipientPhone || '',

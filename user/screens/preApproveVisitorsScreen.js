@@ -14,7 +14,7 @@ import {
   KeyboardAvoidingView,
   Alert,
 } from "react-native";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Colors, Default, Fonts } from "../constants/styles";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -23,7 +23,6 @@ import MyStatusBar from "../components/myStatusBar";
 import AllowGuestModal from "../components/allowGuestModal";
 import AddCabModal from "../components/addCabModal";
 import AddDeliveryModal from "../components/addDeliveryModal";
-import DashedLine from "react-native-dashed-line";
 import moment from "moment";
 import FromToCalendarPicker from "../components/fromToCalendarPicker";
 import * as Contacts from "expo-contacts";
@@ -34,22 +33,21 @@ import GatePassModal from "../components/gatePassModal";
 const { width, height } = Dimensions.get("window");
 
 const PreApproveVisitorsScreen = ({ navigation }) => {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const { data: visitors, isLoading: visitorsLoading, error: visitorsError } = useListVisitors();
   const createServiceMutation = useCreateService();
+  const isSubmittingService = Boolean(createServiceMutation.isPending ?? createServiceMutation.isLoading);
 
-  const isRtl = i18n.dir() == "rtl";
+  const isRtl = i18n.dir() === "rtl";
   
-  const backAction = () => {
+  const backAction = useCallback(() => {
     navigation.pop();
     return true;
-  };
+  }, [navigation]);
   useEffect(() => {
-    BackHandler.addEventListener("hardwareBackPress", backAction);
-
-    return () => {
-      const subscription = BackHandler.addEventListener("hardwareBackPress", backAction); return () => subscription?.remove(); }
-  }, []);
+    const subscription = BackHandler.addEventListener("hardwareBackPress", backAction);
+    return () => subscription.remove();
+  }, [backAction]);
 
   const [openAllowGuestModal, setOpenAllowGuestModal] = useState(false);
 
@@ -88,8 +86,8 @@ const PreApproveVisitorsScreen = ({ navigation }) => {
       }
       const formatted = momentObj.format('dddd, MMMM D, YYYY');
       return formatted || 'Select Date';
-    } catch (error) {
-      console.warn('Error formatting date:', error);
+    } catch (_error) {
+      console.warn('Error formatting date:', _error);
       return 'Select Date';
     }
   };
@@ -134,7 +132,7 @@ const PreApproveVisitorsScreen = ({ navigation }) => {
       } else {
         Alert.alert('No Contacts', 'No contacts found on your device.');
       }
-    } catch (error) {
+    } catch (_error) {
       Alert.alert('Error', 'Failed to load contacts. Please try again.');
     }
   };
@@ -155,53 +153,6 @@ const PreApproveVisitorsScreen = ({ navigation }) => {
     (contact.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
     (contact.phoneNumber || "").includes(searchQuery)
   );
-
-  const [toNextModal, setToNextModal] = useState(false);
-
-  const toNextList = [
-    {
-      key: "1",
-      title: "Today",
-    },
-    {
-      key: "2",
-      title: "Tomorrow",
-    },
-  ];
-  const [selectedToNext, setSelectedToNext] = useState("Today");
-  const [confirmToNext, setConfirmToNext] = useState();
-
-  const renderItemToNext = ({ item }) => {
-    const isSelected = selectedToNext === item.title;
-    return (
-      <TouchableOpacity
-        onPress={() => setSelectedToNext(item.title)}
-        style={{
-          flex: 1,
-          flexDirection: isRtl ? "row-reverse" : "row",
-          alignItems: "center",
-          marginBottom: Default.fixPadding * 2.5,
-          marginHorizontal: Default.fixPadding * 2.6,
-        }}
-      >
-        <MaterialCommunityIcons
-          name={isSelected ? "record-circle" : "circle-outline"}
-          size={22}
-          color={isSelected ? Colors.primary : Colors.grey}
-        />
-        <Text
-          numberOfLines={1}
-          style={{
-            ...Fonts.Medium16black,
-            overflow: "hidden",
-            marginHorizontal: Default.fixPadding,
-          }}
-        >
-          {item.title}
-        </Text>
-      </TouchableOpacity>
-    );
-  };
 
   return (
     <View style={{ flex: 1, backgroundColor: Colors.white }}>
@@ -722,10 +673,10 @@ const PreApproveVisitorsScreen = ({ navigation }) => {
                               Alert.alert('Error', error.message || 'Failed to create service entry');
                             }
                           }}
-                          disabled={createServiceMutation.isLoading}
+                          disabled={isSubmittingService}
                           style={{
                             height: 50,
-                            backgroundColor: createServiceMutation.isLoading ? Colors.grey : Colors.primary,
+                            backgroundColor: isSubmittingService ? Colors.grey : Colors.primary,
                             borderRadius: 10,
                             justifyContent: 'center',
                             alignItems: 'center',
@@ -737,7 +688,7 @@ const PreApproveVisitorsScreen = ({ navigation }) => {
                           }}
                         >
                           <Text style={{ ...Fonts.SemiBold18white }}>
-                            {createServiceMutation.isLoading ? 'Creating...' : 'Submit'}
+                            {isSubmittingService ? 'Creating...' : 'Submit'}
                           </Text>
                         </TouchableOpacity>
                       </View>

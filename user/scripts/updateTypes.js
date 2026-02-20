@@ -1,8 +1,12 @@
 const { createClient } = require('@supabase/supabase-js');
 const fs = require('fs');
 
-const supabaseUrl = 'https://pswnlowvmdgeifhxilao.supabase.co';
-const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzd25sb3d2bWRnZWlmaHhpbGFvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0Nzc4MTkxNiwiZXhwIjoyMDYzMzU3OTE2fQ.0HGfUIRxfhF6MvJE9HBZmXOT9KHEeSkV8VVksA1GHnM';
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+
+if (!supabaseUrl || !supabaseServiceKey) {
+  throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+}
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -10,7 +14,7 @@ async function checkProfilesStructure() {
   try {
     console.log('Checking updated profiles table structure...');
     
-    // Test query to get a profile with unit and society data
+    // Test query to get a profile with unit and community data
     const { data: testProfile, error: testError } = await supabase
       .from('profiles')
       .select(`
@@ -19,11 +23,11 @@ async function checkProfilesStructure() {
         last_name,
         email,
         unit_id,
-        society_id,
+        community_id,
         units:unit_id (
           id,
           unit_number,
-          societies:society_id (
+          communities:community_id (
             id,
             name
           )
@@ -49,7 +53,7 @@ async function checkProfilesStructure() {
         console.log(JSON.stringify(simpleProfile, null, 2));
       }
     } else {
-      console.log('Sample profile with unit and society data:');
+      console.log('Sample profile with unit and community data:');
       console.log(JSON.stringify(testProfile, null, 2));
     }
 
@@ -66,17 +70,17 @@ async function checkProfilesStructure() {
       console.log(JSON.stringify(units, null, 2));
     }
 
-    // Test getting societies
-    const { data: societies, error: societiesError } = await supabase
-      .from('societies')
+    // Test getting communities
+    const { data: communities, error: communitiesError } = await supabase
+      .from('communities')
       .select('*')
       .limit(3);
 
-    if (societiesError) {
-      console.error('Error getting societies:', societiesError);
+    if (communitiesError) {
+      console.error('Error getting communities:', communitiesError);
     } else {
-      console.log('Sample societies:');
-      console.log(JSON.stringify(societies, null, 2));
+      console.log('Sample communities:');
+      console.log(JSON.stringify(communities, null, 2));
     }
 
   } catch (error) {

@@ -35,7 +35,7 @@
 - ✅ Added `status` column to notices table
 
 ### **4. Edge Function**
-- ✅ `send-notice-push-notifications` - Sends push notifications to society users
+- ✅ `send-notice-push-notifications` - Sends push notifications to community users
 - ✅ Filters by user notification preferences
 - ✅ Logs all notification attempts
 - ✅ Handles Expo push notification API
@@ -71,7 +71,7 @@ extra: {
 ```
 
 ### **Notification Categories**
-- 📢 **Notices** - Society announcements and updates
+- 📢 **Notices** - Community announcements and updates
 - 🔧 **Maintenance** - Maintenance request updates  
 - 💰 **Payments** - Payment reminders and confirmations
 - 👥 **Visitors** - Visitor approval requests
@@ -87,7 +87,7 @@ extra: {
 1. Admin creates notice in Super-Admin dashboard
 2. Notice saved to Supabase with `status: 'published'`
 3. Real-time subscription triggers UI update in user-app
-4. Edge Function sends push notifications to all society users
+4. Edge Function sends push notifications to all community users
 5. Users receive notification on their mobile devices
 6. Tapping notification opens Notice Board or specific notice
 
@@ -104,7 +104,7 @@ extra: {
 ### **Test Notice Created**
 - ID: `c970b73e-e65a-4d0b-989c-ab470700ef61`
 - Title: "🚨 Push Notification Test"
-- Society: Casa Nirvana
+- Community: Casa Nirvana
 - Status: Published
 
 ### **Manual Testing**

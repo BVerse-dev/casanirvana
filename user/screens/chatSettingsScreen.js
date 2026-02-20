@@ -5,42 +5,82 @@ import {
   ScrollView,
   TouchableOpacity,
   Switch,
+  Alert,
 } from "react-native";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Colors, Default, Fonts } from "../constants/styles";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import MyStatusBar from "../components/myStatusBar";
+import { useAuth } from "../contexts/AuthContext";
+import {
+  DEFAULT_CHAT_SETTINGS,
+  loadUserChatSettings,
+  updateUserChatSettings,
+} from "../services/settingsPersistenceService";
 
 const ChatSettingsScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
-  const isRtl = i18n.dir() == "rtl";
+  const { user } = useAuth();
+  const isRtl = i18n.dir() === "rtl";
 
   function tr(key) {
     return t(`settingScreen:${key}`);
   }
 
-  const [settings, setSettings] = useState({
-    messageNotifications: true,
-    soundNotifications: true,
-    vibrationNotifications: true,
-    showOnlineStatus: true,
-    readReceipts: true,
-    typingIndicators: true,
-    groupNotifications: true,
-    mentionNotifications: true,
-    messagePreview: true,
-    autoDownloadImages: true,
-    autoDownloadVideos: false,
-    autoDownloadDocuments: false,
-  });
+  const [settings, setSettings] = useState(DEFAULT_CHAT_SETTINGS);
+  const [isSettingsLoading, setIsSettingsLoading] = useState(true);
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
 
-  const toggleSetting = (key) => {
-    setSettings(prev => ({
-      ...prev,
-      [key]: !prev[key]
-    }));
+  useEffect(() => {
+    let isMounted = true;
+
+    const hydrateSettings = async () => {
+      try {
+        const persistedSettings = await loadUserChatSettings(user?.id);
+        if (isMounted) {
+          setSettings(persistedSettings);
+        }
+      } catch (error) {
+        console.error("Failed to load chat settings:", error);
+      } finally {
+        if (isMounted) {
+          setIsSettingsLoading(false);
+        }
+      }
+    };
+
+    hydrateSettings();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.id]);
+
+  const toggleSetting = async (key) => {
+    if (isSavingSettings) {
+      return;
+    }
+
+    const previousSettings = settings;
+    const nextSettings = {
+      ...settings,
+      [key]: !settings[key],
+    };
+
+    setSettings(nextSettings);
+    setIsSavingSettings(true);
+
+    try {
+      await updateUserChatSettings(user?.id, nextSettings);
+    } catch (error) {
+      console.error("Failed to update chat setting:", error);
+      setSettings(previousSettings);
+      Alert.alert("Error", "Failed to update chat settings. Please try again.");
+    } finally {
+      setIsSavingSettings(false);
+    }
   };
 
   const SettingItem = ({ title, description, value, onToggle, icon, iconColor = Colors.primary }) => (
@@ -61,6 +101,7 @@ const ChatSettingsScreen = ({ navigation }) => {
       <Switch
         value={value}
         onValueChange={onToggle}
+        disabled={isSettingsLoading || isSavingSettings}
         trackColor={{ false: Colors.lightGrey, true: Colors.primary }}
         thumbColor={Colors.white}
       />

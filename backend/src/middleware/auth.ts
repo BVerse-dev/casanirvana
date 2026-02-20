@@ -6,7 +6,7 @@ interface UserProfile {
   first_name: string;
   last_name: string;
   email: string;
-  role: 'user' | 'guard' | 'admin' | 'superadmin';
+  role: 'user' | 'guard' | 'admin' | 'superadmin' | 'agency_manager' | 'facility_manager';
   phone?: string;
   profile_pic_url?: string;
 }
@@ -18,6 +18,7 @@ declare global {
       user?: any;
       userProfile?: UserProfile;
       permissions?: string[];
+      requestId?: string;
     }
   }
 }
@@ -78,7 +79,7 @@ export function requirePermission(permission: string) {
 
 // Middleware to check if user is an admin
 export function requireAdmin(req: Request, res: Response, next: NextFunction) {
-  if (!req.userProfile || (req.userProfile.role !== 'admin' && req.userProfile.role !== 'superadmin')) {
+  if (!req.userProfile || !['admin', 'superadmin', 'agency_manager', 'facility_manager'].includes(req.userProfile.role)) {
     return res.status(403).json({ error: 'Admin access required' });
   }
   next();

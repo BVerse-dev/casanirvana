@@ -45,12 +45,8 @@ const CreditCardScreen = ({ navigation, route }) => {
   };
 
   useEffect(() => {
-    BackHandler.addEventListener("hardwareBackPress", backAction);
-
-    return () => {
-      const subscription = BackHandler.addEventListener("hardwareBackPress", backAction); 
-      return () => subscription?.remove(); 
-    };
+    const subscription = BackHandler.addEventListener("hardwareBackPress", backAction);
+    return () => subscription.remove();
   }, []);
 
   const [focused, setFocused] = useState("name");
@@ -154,7 +150,7 @@ const CreditCardScreen = ({ navigation, route }) => {
     }
     setCardType(getCardType(value));
     if (formattedText.length === 19) {
-      var numberValidation = cardValidator.number(value);
+      const numberValidation = cardValidator.number(value);
       setIsValidNumber(numberValidation.isValid);
     } else {
       setIsValidNumber(false);
@@ -354,7 +350,7 @@ const CreditCardScreen = ({ navigation, route }) => {
                   setFocused("cvc");
                   setCvvCode(text);
                   if (text.length === 3) {
-                    var cvvValidation = cardValidator.cvv(text);
+                    const cvvValidation = cardValidator.cvv(text);
                     setIsValidCvv(cvvValidation.isValid);
                   } else {
                     setIsValidCvv(false);

@@ -60,3 +60,12 @@ export async function updateComplaint(id: string, data: {
   if (error) throw error;
   return complaint;
 }
+
+export async function deleteComplaint(id: string) {
+  const { error } = await supabase
+    .from('complaints')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
+}

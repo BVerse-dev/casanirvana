@@ -142,7 +142,7 @@ const MemberDetailModal = (props) => {
                           marginTop: Default.fixPadding,
                         }}
                       >
-                        {props.societyName}
+                        {props.communityName}
                       </Text>
                     </View>
 

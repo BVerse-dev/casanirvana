@@ -47,7 +47,7 @@
     "homeScreen": {
         "hi": "أهلاً",
         "notice": "يلاحظ",
-        "description": "تجمع العام الجديد في قاعة Seven Gen Society في 3 نوفمبر",
+        "description": "تجمع العام الجديد في قاعة Seven Gen Community في 3 نوفمبر",
         "community": "مجتمع",
         "members": "أعضاء",
         "visitors": "الزائرين",
@@ -57,7 +57,7 @@
         "helpDesk": "مكتب المساعدة",
         "connectMember": "ربط عضو المجتمع",
         "manageEntry": "إدارة دخول الزوار",
-        "societyAnnouncement": "إعلان المجتمع وإشعار الحدث",
+        "communityAnnouncement": "إعلان المجتمع وإشعار الحدث",
         "directPayment": "الدفع المباشر للمجتمع مستحق",
         "preBook": "مرافق المجتمع قبل الكتاب",
         "complaint": "الشكوى والاقتراح",

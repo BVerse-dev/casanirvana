@@ -5,19 +5,30 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
-  Linking,
   Modal,
+  ActivityIndicator,
+  Linking,
+  Platform,
 } from "react-native";
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Colors, Default, Fonts } from "../constants/styles";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
+import Constants from "expo-constants";
+import * as Updates from "expo-updates";
 import MyStatusBar from "../components/myStatusBar";
+import { useAuth } from "../contexts/AuthContext";
+import {
+  loadUserUpdateSettings,
+  updateUserUpdateSettings,
+} from "../services/settingsPersistenceService";
+import { getCurrentUserAppUpdateStatus } from "../services/accountService";
 
 const AppUpdatesScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
-  const isRtl = i18n.dir() == "rtl";
+  const { user } = useAuth();
+  const isRtl = i18n.dir() === "rtl";
 
   function tr(key) {
     return t(`settingScreen:${key}`);
@@ -26,128 +37,209 @@ const AppUpdatesScreen = ({ navigation }) => {
   const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
-  const [downloadProgress, setDownloadProgress] = useState(0);
+  const [isOtaUpdateAvailable, setIsOtaUpdateAvailable] = useState(false);
+  const [updateStatus, setUpdateStatus] = useState(null);
+  const [releaseHistory, setReleaseHistory] = useState([]);
+  const [isStatusLoading, setIsStatusLoading] = useState(true);
   
   // Update settings states
   const [autoUpdatesEnabled, setAutoUpdatesEnabled] = useState(true);
   const [betaUpdatesEnabled, setBetaUpdatesEnabled] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [isSettingsLoading, setIsSettingsLoading] = useState(true);
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
   
   // Modal states
   const [showAutoUpdatesModal, setShowAutoUpdatesModal] = useState(false);
   const [showBetaUpdatesModal, setShowBetaUpdatesModal] = useState(false);
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
 
-  const [appInfo] = useState({
-    currentVersion: "2.1.4",
-    buildNumber: "214",
-    releaseDate: "July 28, 2024",
-    updateSize: "12.5 MB",
-    autoUpdates: true,
-    betaUpdates: false,
-  });
+  const appVersion =
+    Constants.expoConfig?.version ||
+    Constants.manifest2?.extra?.expoClient?.version ||
+    Constants.nativeAppVersion ||
+    "0.0.0";
+  const appBuild = Constants.nativeBuildVersion || Constants.expoConfig?.ios?.buildNumber || null;
 
-  const [updateHistory] = useState([
-    {
-      id: "1",
-      version: "2.1.4",
-      date: "July 28, 2024",
-      size: "12.5 MB",
-      type: "stable",
-      features: [
-        "Enhanced security for payment processing",
-        "Improved chat performance and reliability",
-        "New emergency contact management",
-        "Bug fixes and performance improvements",
-      ],
-      bugFixes: [
-        "Fixed notification delivery issues",
-        "Resolved payment method selection bug",
-        "Fixed profile image upload problem",
-      ],
-    },
-    {
-      id: "2",
-      version: "2.1.3",
-      date: "July 15, 2024",
-      size: "8.2 MB",
-      type: "stable",
-      features: [
-        "New service provider rating system",
-        "Enhanced booking history filters",
-        "Improved maintenance request tracking",
-      ],
-      bugFixes: [
-        "Fixed crash on startup for some devices",
-        "Resolved language switching issues",
-      ],
-    },
-    {
-      id: "3",
-      version: "2.1.2",
-      date: "June 30, 2024",
-      size: "15.1 MB",
-      type: "stable",
-      features: [
-        "Added dark theme support",
-        "New visitor management features",
-        "Enhanced security settings",
-      ],
-      bugFixes: [
-        "Fixed memory leak in chat module",
-        "Resolved notification sound issues",
-      ],
-    },
-  ]);
+  const refreshUpdateStatus = useCallback(async (selectedChannel = betaUpdatesEnabled ? "beta" : "stable") => {
+    const statusResult = await getCurrentUserAppUpdateStatus({
+      platform: Platform.OS === "ios" ? "ios" : Platform.OS === "android" ? "android" : "web",
+      channel: selectedChannel,
+      currentVersion: appVersion,
+      currentBuild: appBuild,
+    });
+
+    if (!statusResult.success) {
+      throw new Error(statusResult.error || "Failed to fetch update status");
+    }
+
+    const nextStatus = statusResult.data?.data || null;
+    setUpdateStatus(nextStatus);
+    setReleaseHistory(nextStatus?.release_history || []);
+    setUpdateAvailable(Boolean(nextStatus?.is_update_available));
+    return nextStatus;
+  }, [appBuild, appVersion, betaUpdatesEnabled]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const hydrateUpdateSettings = async () => {
+      try {
+        const persistedSettings = await loadUserUpdateSettings(user?.id);
+        if (!isMounted) {
+          return;
+        }
+
+        setAutoUpdatesEnabled(Boolean(persistedSettings.autoUpdatesEnabled));
+        setBetaUpdatesEnabled(Boolean(persistedSettings.betaUpdatesEnabled));
+        setNotificationsEnabled(Boolean(persistedSettings.notificationsEnabled));
+        await refreshUpdateStatus(
+          persistedSettings.betaUpdatesEnabled ? "beta" : "stable"
+        );
+      } catch (error) {
+        console.error("Failed to hydrate update settings:", error);
+      } finally {
+        if (isMounted) {
+          setIsSettingsLoading(false);
+          setIsStatusLoading(false);
+        }
+      }
+    };
+
+    hydrateUpdateSettings();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [refreshUpdateStatus, user?.id]);
+
+  const persistUpdateSetting = async (settingKey, nextValue) => {
+    if (isSavingSettings) {
+      return false;
+    }
+
+    const previous = {
+      autoUpdatesEnabled,
+      betaUpdatesEnabled,
+      notificationsEnabled,
+    };
+
+    if (settingKey === "autoUpdatesEnabled") {
+      setAutoUpdatesEnabled(nextValue);
+    } else if (settingKey === "betaUpdatesEnabled") {
+      setBetaUpdatesEnabled(nextValue);
+    } else if (settingKey === "notificationsEnabled") {
+      setNotificationsEnabled(nextValue);
+    }
+
+    setIsSavingSettings(true);
+    try {
+      await updateUserUpdateSettings(user?.id, { [settingKey]: nextValue });
+      const channel =
+        settingKey === "betaUpdatesEnabled"
+          ? nextValue
+            ? "beta"
+            : "stable"
+          : betaUpdatesEnabled
+            ? "beta"
+            : "stable";
+      await refreshUpdateStatus(channel);
+      return true;
+    } catch (error) {
+      console.error("Failed to persist update setting:", error);
+      setAutoUpdatesEnabled(previous.autoUpdatesEnabled);
+      setBetaUpdatesEnabled(previous.betaUpdatesEnabled);
+      setNotificationsEnabled(previous.notificationsEnabled);
+      Alert.alert("Error", "Failed to save update settings. Please try again.");
+      return false;
+    } finally {
+      setIsSavingSettings(false);
+    }
+  };
 
   const checkForUpdates = () => {
-    setIsCheckingUpdates(true);
-    setTimeout(() => {
-      setIsCheckingUpdates(false);
-      const hasUpdate = Math.random() > 0.5;
-      setUpdateAvailable(hasUpdate);
-      if (hasUpdate) {
-        Alert.alert(
-          "Update Available",
-          "A new version (2.1.5) is available with bug fixes and improvements.",
-          [
-            { text: "Later", style: "cancel" },
-            { text: "Update Now", onPress: downloadUpdate },
-          ]
-        );
-      } else {
-        Alert.alert("No Updates", "You're running the latest version of the app.");
-      }
-    }, 2000);
-  };
+    (async () => {
+      setIsCheckingUpdates(true);
+      try {
+        const currentChannel = betaUpdatesEnabled ? "beta" : "stable";
+        const latestStatus = await refreshUpdateStatus(currentChannel);
 
-  const downloadUpdate = () => {
-    setIsDownloading(true);
-    setDownloadProgress(0);
-    
-    const interval = setInterval(() => {
-      setDownloadProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setIsDownloading(false);
-          setUpdateAvailable(false);
-          Alert.alert("Update Complete", "The app has been updated successfully!");
-          return 100;
+        let otaAvailable = false;
+        if (Platform.OS !== "web") {
+          try {
+            const otaCheck = await Updates.checkForUpdateAsync();
+            otaAvailable = Boolean(otaCheck?.isAvailable);
+          } catch (otaError) {
+            console.error("OTA update check failed:", otaError);
+          }
         }
-        return prev + 5;
-      });
-    }, 200);
+
+        setIsOtaUpdateAvailable(otaAvailable);
+        const hasUpdate = Boolean(latestStatus?.is_update_available) || otaAvailable;
+        setUpdateAvailable(hasUpdate);
+
+        if (hasUpdate) {
+          Alert.alert(
+            "Update Available",
+            otaAvailable
+              ? "A new in-app update is available and can be installed now."
+              : `A new version (${latestStatus?.latest_version || "latest"}) is available.`,
+            [
+              { text: "Later", style: "cancel" },
+              { text: "Update Now", onPress: downloadUpdate },
+            ]
+          );
+          return;
+        }
+
+        Alert.alert("No Updates", "You're running the latest version of the app.");
+      } catch (error) {
+        console.error("Failed to check for updates:", error);
+        Alert.alert("Error", error?.message || "Failed to check for updates.");
+      } finally {
+        setIsCheckingUpdates(false);
+      }
+    })();
   };
 
-  const openAppStore = () => {
-    Alert.alert(
-      "Open App Store",
-      "This will take you to the app store to check for updates.",
-      [
-        { text: "Cancel", style: "cancel" },
-        { text: "Open", onPress: () => console.log("Opening app store...") },
-      ]
-    );
+  const downloadUpdate = async () => {
+    setIsDownloading(true);
+    try {
+      if (isOtaUpdateAvailable && Platform.OS !== "web") {
+        const fetched = await Updates.fetchUpdateAsync();
+        if (fetched?.isNew) {
+          Alert.alert("Update Ready", "Installing update now...");
+          await Updates.reloadAsync();
+          return;
+        }
+      }
+
+      await openAppStore();
+    } catch (error) {
+      console.error("Failed to download/apply update:", error);
+      Alert.alert("Error", error?.message || "Failed to apply update.");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const openAppStore = async () => {
+    const updateUrl = updateStatus?.update_url;
+    if (!updateUrl) {
+      Alert.alert(
+        "Store Link Unavailable",
+        "No store URL has been configured for this platform."
+      );
+      return;
+    }
+
+    const canOpen = await Linking.canOpenURL(updateUrl);
+    if (!canOpen) {
+      Alert.alert("Invalid Link", "Unable to open the configured update URL.");
+      return;
+    }
+
+    await Linking.openURL(updateUrl);
   };
 
   const handleAutoUpdatesToggle = () => {
@@ -160,6 +252,19 @@ const AppUpdatesScreen = ({ navigation }) => {
 
   const handleNotificationsToggle = () => {
     setShowNotificationsModal(true);
+  };
+
+  const formatReleaseDate = (value) => {
+    if (!value) {
+      return "Unknown";
+    }
+
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      return value;
+    }
+
+    return parsed.toLocaleDateString();
   };
 
   const VersionCard = ({ version, isLatest = false }) => (
@@ -179,10 +284,10 @@ const AppUpdatesScreen = ({ navigation }) => {
         </View>
       </View>
 
-      {version.features.length > 0 && (
+      {(version.features || []).length > 0 && (
         <View style={styles.changesSection}>
           <Text style={styles.changesSectionTitle}>✨ New Features</Text>
-          {version.features.map((feature, index) => (
+          {(version.features || []).map((feature, index) => (
             <View key={index} style={styles.changeItem}>
               <MaterialCommunityIcons name="circle-small" size={16} color={Colors.green} />
               <Text style={styles.changeText}>{feature}</Text>
@@ -191,10 +296,10 @@ const AppUpdatesScreen = ({ navigation }) => {
         </View>
       )}
 
-      {version.bugFixes.length > 0 && (
+      {(version.bugFixes || []).length > 0 && (
         <View style={styles.changesSection}>
           <Text style={styles.changesSectionTitle}>🐛 Bug Fixes</Text>
-          {version.bugFixes.map((fix, index) => (
+          {(version.bugFixes || []).map((fix, index) => (
             <View key={index} style={styles.changeItem}>
               <MaterialCommunityIcons name="circle-small" size={16} color={Colors.blue} />
               <Text style={styles.changeText}>{fix}</Text>
@@ -236,10 +341,16 @@ const AppUpdatesScreen = ({ navigation }) => {
             
             <TouchableOpacity 
               style={[styles.modalButton, styles.confirmButton]}
-              onPress={() => {
-                setAutoUpdatesEnabled(!autoUpdatesEnabled);
+              onPress={async () => {
+                const nextValue = !autoUpdatesEnabled;
                 setShowAutoUpdatesModal(false);
-                Alert.alert("Success", `Auto updates ${!autoUpdatesEnabled ? 'enabled' : 'disabled'} successfully!`);
+                const saved = await persistUpdateSetting(
+                  "autoUpdatesEnabled",
+                  nextValue
+                );
+                if (saved) {
+                  Alert.alert("Success", `Auto updates ${nextValue ? 'enabled' : 'disabled'} successfully!`);
+                }
               }}
             >
               <Text style={styles.confirmButtonText}>
@@ -288,10 +399,16 @@ const AppUpdatesScreen = ({ navigation }) => {
             
             <TouchableOpacity 
               style={[styles.modalButton, styles.confirmButton]}
-              onPress={() => {
-                setBetaUpdatesEnabled(!betaUpdatesEnabled);
+              onPress={async () => {
+                const nextValue = !betaUpdatesEnabled;
                 setShowBetaUpdatesModal(false);
-                Alert.alert("Success", `Beta updates ${!betaUpdatesEnabled ? 'enabled' : 'disabled'} successfully!`);
+                const saved = await persistUpdateSetting(
+                  "betaUpdatesEnabled",
+                  nextValue
+                );
+                if (saved) {
+                  Alert.alert("Success", `Beta updates ${nextValue ? 'enabled' : 'disabled'} successfully!`);
+                }
               }}
             >
               <Text style={styles.confirmButtonText}>
@@ -335,10 +452,16 @@ const AppUpdatesScreen = ({ navigation }) => {
             
             <TouchableOpacity 
               style={[styles.modalButton, styles.confirmButton]}
-              onPress={() => {
-                setNotificationsEnabled(!notificationsEnabled);
+              onPress={async () => {
+                const nextValue = !notificationsEnabled;
                 setShowNotificationsModal(false);
-                Alert.alert("Success", `Update notifications ${!notificationsEnabled ? 'enabled' : 'disabled'} successfully!`);
+                const saved = await persistUpdateSetting(
+                  "notificationsEnabled",
+                  nextValue
+                );
+                if (saved) {
+                  Alert.alert("Success", `Update notifications ${nextValue ? 'enabled' : 'disabled'} successfully!`);
+                }
               }}
             >
               <Text style={styles.confirmButtonText}>
@@ -407,15 +530,17 @@ const AppUpdatesScreen = ({ navigation }) => {
           <View style={styles.versionInfo}>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Version:</Text>
-              <Text style={styles.infoValue}>{appInfo.currentVersion}</Text>
+              <Text style={styles.infoValue}>{appVersion}</Text>
             </View>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Build:</Text>
-              <Text style={styles.infoValue}>{appInfo.buildNumber}</Text>
+              <Text style={styles.infoValue}>{appBuild || "N/A"}</Text>
             </View>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Released:</Text>
-              <Text style={styles.infoValue}>{appInfo.releaseDate}</Text>
+              <Text style={styles.infoValue}>
+                {formatReleaseDate(updateStatus?.latest_release_date)}
+              </Text>
             </View>
           </View>
 
@@ -423,7 +548,7 @@ const AppUpdatesScreen = ({ navigation }) => {
             <View style={styles.updateBanner}>
               <MaterialCommunityIcons name="new-box" size={24} color={Colors.orange} />
               <Text style={styles.updateBannerText}>
-                New update available! Version 2.1.5 is ready to download.
+                New update available! Version {updateStatus?.latest_version || "latest"} is ready.
               </Text>
             </View>
           )}
@@ -432,10 +557,8 @@ const AppUpdatesScreen = ({ navigation }) => {
         {/* Download Progress */}
         {isDownloading && (
           <View style={styles.progressSection}>
-            <Text style={styles.progressText}>Downloading update... {downloadProgress}%</Text>
-            <View style={styles.progressBar}>
-              <View style={[styles.progressFill, { width: `${downloadProgress}%` }]} />
-            </View>
+            <ActivityIndicator size="small" color={Colors.primary} />
+            <Text style={styles.progressText}>Preparing update...</Text>
           </View>
         )}
 
@@ -447,10 +570,10 @@ const AppUpdatesScreen = ({ navigation }) => {
             disabled={isCheckingUpdates || isDownloading}
           >
             <MaterialCommunityIcons name="refresh" size={20} color={Colors.white} />
-            <Text style={styles.buttonText}>
-              {isCheckingUpdates ? "Checking..." : "Check for Updates"}
-            </Text>
-          </TouchableOpacity>
+              <Text style={styles.buttonText}>
+                {isCheckingUpdates ? "Checking..." : "Check for Updates"}
+              </Text>
+            </TouchableOpacity>
 
           {updateAvailable && (
             <TouchableOpacity
@@ -458,11 +581,11 @@ const AppUpdatesScreen = ({ navigation }) => {
               onPress={downloadUpdate}
               disabled={isDownloading}
             >
-              <MaterialCommunityIcons name="download" size={20} color={Colors.white} />
-              <Text style={styles.buttonText}>
-                {isDownloading ? `Downloading ${downloadProgress}%` : "Download Update"}
-              </Text>
-            </TouchableOpacity>
+                <MaterialCommunityIcons name="download" size={20} color={Colors.white} />
+                <Text style={styles.buttonText}>
+                  {isDownloading ? "Installing..." : "Download Update"}
+                </Text>
+              </TouchableOpacity>
           )}
 
           <TouchableOpacity style={styles.storeButton} onPress={openAppStore}>
@@ -478,7 +601,11 @@ const AppUpdatesScreen = ({ navigation }) => {
             <Text style={styles.sectionTitle}>Update Settings</Text>
           </View>
           
-          <TouchableOpacity style={styles.settingRow} onPress={handleAutoUpdatesToggle}>
+          <TouchableOpacity
+            style={styles.settingRow}
+            onPress={handleAutoUpdatesToggle}
+            disabled={isSettingsLoading || isSavingSettings}
+          >
             <MaterialCommunityIcons name="download-circle" size={24} color={Colors.green} />
             <View style={styles.settingInfo}>
               <Text style={styles.settingName}>Auto Updates</Text>
@@ -489,7 +616,11 @@ const AppUpdatesScreen = ({ navigation }) => {
             <Ionicons name="chevron-forward" size={20} color={Colors.grey} />
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.settingRow} onPress={handleBetaUpdatesToggle}>
+          <TouchableOpacity
+            style={styles.settingRow}
+            onPress={handleBetaUpdatesToggle}
+            disabled={isSettingsLoading || isSavingSettings}
+          >
             <MaterialCommunityIcons name="flask" size={24} color={Colors.orange} />
             <View style={styles.settingInfo}>
               <Text style={styles.settingName}>Beta Updates</Text>
@@ -500,7 +631,11 @@ const AppUpdatesScreen = ({ navigation }) => {
             <Ionicons name="chevron-forward" size={20} color={Colors.grey} />
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.settingRow} onPress={handleNotificationsToggle}>
+          <TouchableOpacity
+            style={styles.settingRow}
+            onPress={handleNotificationsToggle}
+            disabled={isSettingsLoading || isSavingSettings}
+          >
             <MaterialCommunityIcons name="bell" size={24} color={Colors.blue} />
             <View style={styles.settingInfo}>
               <Text style={styles.settingName}>Update Notifications</Text>
@@ -518,14 +653,25 @@ const AppUpdatesScreen = ({ navigation }) => {
             <MaterialCommunityIcons name="history" size={20} color={Colors.primary} />
             <Text style={styles.sectionTitle}>Release History</Text>
           </View>
-          
-          {updateHistory.map((version, index) => (
-            <VersionCard 
-              key={version.id} 
-              version={version} 
-              isLatest={index === 0}
-            />
-          ))}
+
+          {isStatusLoading ? (
+            <View style={styles.emptyHistoryState}>
+              <ActivityIndicator size="small" color={Colors.primary} />
+              <Text style={styles.emptyHistoryText}>Loading release history...</Text>
+            </View>
+          ) : releaseHistory.length > 0 ? (
+            releaseHistory.map((version, index) => (
+              <VersionCard
+                key={String(version.id || `${version.version}-${index}`)}
+                version={version}
+                isLatest={index === 0}
+              />
+            ))
+          ) : (
+            <View style={styles.emptyHistoryState}>
+              <Text style={styles.emptyHistoryText}>No release history available yet.</Text>
+            </View>
+          )}
         </View>
       </ScrollView>
       
@@ -684,6 +830,17 @@ const styles = StyleSheet.create({
     marginBottom: Default.fixPadding * 2,
     borderRadius: 10,
     ...Default.shadow,
+  },
+  emptyHistoryState: {
+    paddingHorizontal: Default.fixPadding * 1.5,
+    paddingVertical: Default.fixPadding * 2,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Default.fixPadding * 0.8,
+  },
+  emptyHistoryText: {
+    ...Fonts.Medium13grey,
+    textAlign: "center",
   },
   sectionHeader: {
     flexDirection: "row",

@@ -111,7 +111,9 @@ const GeneralInquiryScreen = ({ navigation }) => {
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  };  const handleSubmit = async () => {
+  };
+
+  const handleSubmit = async () => {
     if (!validateForm()) {
       Alert.alert('Error', 'Please fill in all required fields correctly');
       return;
@@ -120,7 +122,6 @@ const GeneralInquiryScreen = ({ navigation }) => {
     setIsSubmitting(true);
 
     try {
-      try {
       const inquiryData = {
         ...formData,
         user_id: profile?.id,
@@ -128,51 +129,12 @@ const GeneralInquiryScreen = ({ navigation }) => {
         user_email: profile?.email,
         user_phone: profile?.phone_number,
         unit_number: profile?.unit_number,
-        society_id: profile?.society_id,
+        community_id: profile?.community_id,
         inquiry_type: 'general',
         status: 'open',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
-
-      // Submit to Supabase
-      const result = await submitGeneralInquiry(inquiryData);
-      
-      if (result.success) {
-        Alert.alert(
-          'Success',
-          'Your general inquiry has been submitted successfully. Our team will respond within 24 hours.',
-          [
-            {
-              text: 'OK',
-              onPress: () => {
-                // Reset form
-                setFormData({
-                  inquiryType: '',
-                  category: '',
-                  priority: '',
-                  subject: '',
-                  description: '',
-                  urgency: '',
-                  preferredContactMethod: '',
-                  bestTimeToContact: '',
-                  attachments: '',
-                  allowContact: true,
-                });
-                navigation.navigate('helpDeskScreen');
-              },
-            },
-          ]
-        );
-      } else {
-        Alert.alert('Error', result.error || 'Failed to submit inquiry. Please try again.');
-      }
-    } catch (error) {
-      console.error('Error submitting inquiry:', error);
-      Alert.alert('Error', 'Failed to submit inquiry. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
 
       // Submit to Supabase
       const result = await submitGeneralInquiry(inquiryData);

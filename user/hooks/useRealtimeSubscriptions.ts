@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../utils/supabase';
 
-export const useRealtimeSubscriptions = (userId?: string, unitId?: string, societyId?: string) => {
+export const useRealtimeSubscriptions = (userId?: string, unitId?: string, communityId?: string) => {
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -122,8 +122,8 @@ export const useRealtimeSubscriptions = (userId?: string, unitId?: string, socie
       .subscribe();
     subscriptions.push(messagesSubscription);
 
-    // Subscribe to notices for user's society
-    if (societyId) {
+    // Subscribe to notices for user's community
+    if (communityId) {
       const noticesSubscription = supabase
         .channel('notices-changes')
         .on(
@@ -132,7 +132,7 @@ export const useRealtimeSubscriptions = (userId?: string, unitId?: string, socie
             event: '*',
             schema: 'public',
             table: 'notices',
-            filter: `society_id=eq.${societyId}`,
+            filter: `community_id=eq.${communityId}`,
           },
           () => {
             queryClient.invalidateQueries({ queryKey: ['notices'] });
@@ -165,8 +165,8 @@ export const useRealtimeSubscriptions = (userId?: string, unitId?: string, socie
       .subscribe();
     subscriptions.push(commentsSubscription);
 
-    // Subscribe to emergency alerts for user's society
-    if (societyId) {
+    // Subscribe to emergency alerts for user's community
+    if (communityId) {
       const emergencyAlertsSubscription = supabase
         .channel('emergency-alerts-changes')
         .on(
@@ -175,7 +175,7 @@ export const useRealtimeSubscriptions = (userId?: string, unitId?: string, socie
             event: '*',
             schema: 'public',
             table: 'emergency_alerts',
-            filter: `society_id=eq.${societyId}`,
+            filter: `community_id=eq.${communityId}`,
           },
           () => {
             queryClient.invalidateQueries({ queryKey: ['emergency-alerts'] });
@@ -185,8 +185,8 @@ export const useRealtimeSubscriptions = (userId?: string, unitId?: string, socie
       subscriptions.push(emergencyAlertsSubscription);
     }
 
-    // Subscribe to amenities for user's society
-    if (societyId) {
+    // Subscribe to amenities for user's community
+    if (communityId) {
       const amenitiesSubscription = supabase
         .channel('amenities-changes')
         .on(
@@ -195,7 +195,7 @@ export const useRealtimeSubscriptions = (userId?: string, unitId?: string, socie
             event: '*',
             schema: 'public',
             table: 'amenities',
-            filter: `society_id=eq.${societyId}`,
+            filter: `community_id=eq.${communityId}`,
           },
           () => {
             queryClient.invalidateQueries({ queryKey: ['amenities'] });
@@ -229,5 +229,5 @@ export const useRealtimeSubscriptions = (userId?: string, unitId?: string, socie
         supabase.removeChannel(subscription);
       });
     };
-  }, [userId, unitId, societyId, queryClient]);
+  }, [userId, unitId, communityId, queryClient]);
 };

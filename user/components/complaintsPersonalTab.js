@@ -11,7 +11,6 @@ import {
 import { Colors, Fonts, Default } from "../constants/styles";
 import { useTranslation } from "react-i18next";
 import { ms } from "react-native-size-matters/extend";
-import AwesomeButton from "react-native-really-awesome-button";
 import { useListPersonalComplaints } from "../hooks/useSupabaseData";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../utils/supabase";
@@ -21,7 +20,7 @@ import { getAvatarSource } from "../utils/avatarMapping";
 
 const ComplaintsPersonalTab = ({ navigation }) => {
   const { t, i18n } = useTranslation();
-  const { user, profile } = useAuth();
+  const { profile } = useAuth();
   const queryClient = useQueryClient();
   const isRtl = i18n.dir() == "rtl";
   
@@ -29,15 +28,13 @@ const ComplaintsPersonalTab = ({ navigation }) => {
     return t(`complaintsPersonalTab:${key}`);
   }
 
-  // Use Supabase hook for user's personal complaints
-  // Use the profile that has unit_id (the actual user profile, not the empty one)
-  const actualProfileId = profile?.unit_id ? profile.id : '47bc141e-44e9-4b68-8da4-fc12b187ef52';
+  // Use only authenticated profile id in production (no hardcoded fallback ids).
   const { 
     data: supabaseComplaints = [], 
     isLoading, 
     error,
     refetch
-  } = useListPersonalComplaints(actualProfileId);
+  } = useListPersonalComplaints(profile?.id);
 
   // Force refetch when screen comes into focus
   useFocusEffect(
@@ -50,7 +47,8 @@ const ComplaintsPersonalTab = ({ navigation }) => {
   // Set up real-time subscription for complaints
   useEffect(() => {
     console.log('🔔 Setting up real-time subscription for personal complaints');
-    const actualProfileId = profile?.unit_id ? profile.id : '47bc141e-44e9-4b68-8da4-fc12b187ef52';
+    if (!profile?.id) return;
+
     const channel = supabase
       .channel('personal-complaints-changes')
       .on(
@@ -59,7 +57,7 @@ const ComplaintsPersonalTab = ({ navigation }) => {
           event: '*',
           schema: 'public',
           table: 'complaints',
-          filter: `complaint_type=eq.personal AND raised_by=eq.${actualProfileId}`
+          filter: `complaint_type=eq.personal AND raised_by=eq.${profile.id}`
         },
         (payload) => {
           console.log('🚀 Personal complaint change detected:', payload);
@@ -78,79 +76,6 @@ const ComplaintsPersonalTab = ({ navigation }) => {
     };
   }, [profile, queryClient]);
 
-  // Sample/mock complaints data to show in the app
-  const mockComplaints = [    {
-      id: 'personal-1',
-      subject: 'Water Leakage in Parking Area',
-      details: 'There is a significant water leakage in the basement parking area near slot B-15. Water is accumulating and creating safety hazards that could damage vehicles.',
-      created_at: '2024-06-15T10:30:00Z',
-      status: 'open',
-      priority: 'high',
-      category: 'Infrastructure',
-      complaint_type: 'personal',
-      raised_by: 'demo@casanirvana.com',
-      images: ['https://picsum.photos/400/300?random=1']
-    },    {
-      id: 'personal-2',
-      subject: 'Elevator Not Working - Block A',
-      details: 'The elevator in Block A has been out of order since yesterday morning. Residents on higher floors are facing difficulty, especially elderly people and families with small children.',
-      created_at: '2024-06-16T08:45:00Z',
-      status: 'in_progress',
-      priority: 'urgent',
-      category: 'Infrastructure',
-      complaint_type: 'personal',
-      raised_by: 'demo@casanirvana.com',
-      images: ['https://picsum.photos/400/300?random=2']
-    },    {
-      id: 'personal-3',
-      title: 'Garbage Collection Issue',
-      description: 'Garbage has not been collected from our floor for the past 2 days. The accumulation is causing bad smell and attracting pests.',
-      created_at: '2024-06-18T07:30:00Z',
-      status: 'open',
-      priority: 'high',
-      category: 'Sanitation',
-      complaint_type: 'personal',
-      raised_by: 'demo@casanirvana.com',
-      images: ['https://picsum.photos/400/300?random=3']
-    },
-    {
-      id: 'personal-4',
-      title: 'Swimming Pool Water Quality',
-      description: 'The swimming pool water appeared cloudy and had an unusual smell. Suspected chemical imbalance that could be harmful for swimmers.',
-      created_at: '2024-06-10T16:00:00Z',
-      status: 'resolved',      priority: 'medium',
-      category: 'Amenities',
-      complaint_type: 'personal',
-      raised_by: 'demo@casanirvana.com',
-      images: ['https://picsum.photos/400/300?random=4']
-    },
-    {
-      id: 'personal-5',
-      title: 'Air Conditioning Not Working',
-      description: 'The AC unit in my apartment has stopped working completely. With the summer heat, this is becoming unbearable. Need urgent repair or replacement.',
-      created_at: '2024-06-17T15:20:00Z',
-      status: 'open',
-      priority: 'urgent',
-      category: 'Maintenance',
-      complaint_type: 'personal',
-      raised_by: 'demo@casanirvana.com',
-      images: ['https://picsum.photos/400/300?random=5']
-    },
-    {
-      id: 'personal-6',
-      title: 'Balcony Door Lock Broken',      description: 'The lock on my balcony door is broken and won\'t close properly. This is a security concern as anyone could potentially enter from the balcony.',
-      created_at: '2024-06-14T09:15:00Z',
-      status: 'in_progress',
-      priority: 'medium',
-      category: 'Security',
-      complaint_type: 'personal',
-      raised_by: 'demo@casanirvana.com',
-      images: ['https://picsum.photos/400/300?random=6']
-    }
-  ];
-
-  // Use real data from Supabase first, fall back to mock data if no real data
-  const complaints = supabaseComplaints.length > 0 ? supabaseComplaints : mockComplaints;
   const renderItem = ({ item }) => {
     console.log('📱 Rendering complaint item:', {
       id: item.id,
@@ -301,7 +226,9 @@ const ComplaintsPersonalTab = ({ navigation }) => {
         </View>
       </TouchableOpacity>
     );
-  };return (
+  };
+
+  return (
     <View style={{ flex: 1, backgroundColor: Colors.white }}>
       {isLoading ? (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -315,7 +242,7 @@ const ComplaintsPersonalTab = ({ navigation }) => {
         </View>
       ) : (
         <FlatList
-          data={complaints}
+          data={supabaseComplaints}
           renderItem={renderItem}
           keyExtractor={(item) => item.id?.toString() || item.key}
           showsVerticalScrollIndicator={false}
@@ -324,22 +251,17 @@ const ComplaintsPersonalTab = ({ navigation }) => {
       )}
 
       <View style={{ margin: Default.fixPadding * 2 }}>
-        <AwesomeButton
-          height={50}
+        <TouchableOpacity
           onPress={() => {
-            navigation.push("addComplaintScreen");
+            navigation.navigate("addComplaintScreen");
           }}
-          raiseLevel={1}
-          stretch={true}
-          borderRadius={10}
-          backgroundShadow={Colors.primary}
-          backgroundDarker={Colors.primary}
-          backgroundColor={Colors.primary}
+          activeOpacity={0.85}
+          style={styles.primaryActionButton}
         >
-          <Text style={{ ...Fonts.SemiBold18white }}>
+          <Text style={styles.primaryActionButtonText}>
             {tr("raiseNewComplaint")}
           </Text>
-        </AwesomeButton>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -358,5 +280,17 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: Colors.white,
     ...Default.shadow,
+  },
+  primaryActionButton: {
+    height: 50,
+    borderRadius: 10,
+    backgroundColor: Colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    ...Default.shadow,
+  },
+  primaryActionButtonText: {
+    ...Fonts.SemiBold18white,
+    textAlign: "center",
   },
 });

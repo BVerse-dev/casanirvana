@@ -18,7 +18,7 @@ export const useUserStatus = (userId: string) => {
   const { profile } = useAuth();
 
   useEffect(() => {
-    if (!userId || !profile?.society_id) {
+    if (!userId || !profile?.community_id) {
       setIsLoading(false);
       return;
     }
@@ -28,14 +28,14 @@ export const useUserStatus = (userId: string) => {
         // Get user's profile from profiles table which has last_login info
         const { data: userProfile, error: profileError } = await supabase
           .from('profiles')
-          .select('id, first_name, last_name, society_id, last_login, is_active')
+          .select('id, first_name, last_name, community_id, last_login, is_active')
           .eq('id', userId)
-          .eq('society_id', profile.society_id)
+          .eq('community_id', profile.community_id)
           .single();
 
         if (profileError || !userProfile) {
-          // Silently handle cases where user is not found or not in same society
-          // This is normal behavior when users are from different societies
+          // Silently handle cases where user is not found or not in same community
+          // This is normal behavior when users are from different communities
           setUserStatus({
             isOnline: false,
             lastSeen: null,
@@ -120,7 +120,7 @@ export const useUserStatus = (userId: string) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [userId, profile?.society_id]);
+  }, [userId, profile?.community_id]);
 
   return {
     ...userStatus,

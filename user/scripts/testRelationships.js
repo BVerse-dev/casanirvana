@@ -1,7 +1,11 @@
 const { createClient } = require('@supabase/supabase-js');
 
-const supabaseUrl = 'https://pswnlowvmdgeifhxilao.supabase.co';
-const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzd25sb3d2bWRnZWlmaHhpbGFvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0Nzc4MTkxNiwiZXhwIjoyMDYzMzU3OTE2fQ.0HGfUIRxfhF6MvJE9HBZmXOT9KHEeSkV8VVksA1GHnM';
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+
+if (!supabaseUrl || !supabaseServiceKey) {
+  throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+}
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -16,11 +20,11 @@ async function testProfileRelationships() {
         last_name,
         email,
         unit_id,
-        society_id,
+        community_id,
         units:unit_id (
           id,
           unit_number,
-          societies:society_id (
+          communities:community_id (
             id,
             name
           )
@@ -36,18 +40,18 @@ async function testProfileRelationships() {
       console.log(JSON.stringify(testProfile, null, 2));
     }
 
-    // Also get the society directly
-    const { data: society, error: societyError } = await supabase
-      .from('societies')
+    // Also get the community directly
+    const { data: community, error: communityError } = await supabase
+      .from('communities')
       .select('*')
       .eq('id', '550e8400-e29b-41d4-a716-446655440001')
       .single();
 
-    if (societyError) {
-      console.error('Error getting society:', societyError);
+    if (communityError) {
+      console.error('Error getting community:', communityError);
     } else {
-      console.log('Society details:');
-      console.log(JSON.stringify(society, null, 2));
+      console.log('Community details:');
+      console.log(JSON.stringify(community, null, 2));
     }
 
     // Get the unit directly

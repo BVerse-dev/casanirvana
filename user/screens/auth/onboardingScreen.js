@@ -94,7 +94,7 @@ const OnboardingScreen = ({ navigation }) => {
       title: tr("title3"),
       image: require("../../assets/images/image3.png"),
       description:
-        "Stay updated with society announcements, community events, amenity bookings, and important notices from your management.",
+        "Stay updated with community announcements, community events, amenity bookings, and important notices from your management.",
     },
   ];
 

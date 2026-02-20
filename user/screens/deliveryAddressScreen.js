@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -10,23 +10,29 @@ import {
   StatusBar,
   Alert,
   Modal,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { Colors, Fonts, Default } from "../constants/styles";
-import { useTranslation } from "react-i18next";
 import AwesomeButton from "react-native-really-awesome-button";
 import MyStatusBar from "../components/myStatusBar";
+import { useCreateUserAddress, useUserAddresses } from "../hooks/useMarketplace";
 
 const { width } = Dimensions.get("window");
 
 const DeliveryAddressScreen = ({ navigation, route }) => {
-  const { t } = useTranslation();
   const { cartItems, total } = route.params || {};
   
   const [selectedDeliveryOption, setSelectedDeliveryOption] = useState("delivery");
   const [selectedAddressId, setSelectedAddressId] = useState(null);
   const [showAddAddressModal, setShowAddAddressModal] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const addressesQuery = useUserAddresses();
+  const createAddressMutation = useCreateUserAddress();
+  const savedAddresses = useMemo(
+    () => addressesQuery.data || [],
+    [addressesQuery.data]
+  );
+  const isLoading = addressesQuery.isLoading || createAddressMutation.isPending;
 
   // New address form state
   const [newAddress, setNewAddress] = useState({
@@ -39,32 +45,6 @@ const DeliveryAddressScreen = ({ navigation, route }) => {
     postalCode: "",
     additionalInfo: "",
   });
-
-  // Mock saved addresses (in real app, fetch from user profile/database)
-  const [savedAddresses, setSavedAddresses] = useState([
-    {
-      id: "1",
-      label: "Home",
-      fullName: "John Doe",
-      phoneNumber: "+233 24 123 4567",
-      streetAddress: "123 Main Street, Apartment 4B",
-      city: "Accra",
-      region: "Greater Accra",
-      postalCode: "GA-123-4567",
-      isDefault: true,
-    },
-    {
-      id: "2",
-      label: "Office",
-      fullName: "John Doe",
-      phoneNumber: "+233 24 123 4567",
-      streetAddress: "456 Business District",
-      city: "Accra",
-      region: "Greater Accra",
-      postalCode: "GA-456-7890",
-      isDefault: false,
-    },
-  ]);
 
   const deliveryOptions = [
     {
@@ -88,12 +68,17 @@ const DeliveryAddressScreen = ({ navigation, route }) => {
   ];
 
   useEffect(() => {
-    // Set default address if available
-    const defaultAddress = savedAddresses.find(addr => addr.isDefault);
-    if (defaultAddress) {
-      setSelectedAddressId(defaultAddress.id);
+    if (savedAddresses.length === 0) {
+      setSelectedAddressId(null);
+      return;
     }
-  }, [savedAddresses]);
+
+    const hasSelectedAddress = savedAddresses.some((addr) => addr.id === selectedAddressId);
+    if (hasSelectedAddress) return;
+
+    const defaultAddress = savedAddresses.find((addr) => addr.isDefault) || savedAddresses[0];
+    setSelectedAddressId(defaultAddress.id);
+  }, [savedAddresses, selectedAddressId]);
 
   const validateAddress = () => {
     const required = ["fullName", "phoneNumber", "streetAddress", "city", "region"];
@@ -106,31 +91,35 @@ const DeliveryAddressScreen = ({ navigation, route }) => {
     return true;
   };
 
-  const handleAddAddress = () => {
+  const handleAddAddress = async () => {
     if (!validateAddress()) return;
 
-    const newId = (savedAddresses.length + 1).toString();
-    const addressToAdd = {
-      ...newAddress,
-      id: newId,
-      isDefault: savedAddresses.length === 0,
-    };
+    try {
+      const createdAddress = await createAddressMutation.mutateAsync({
+        ...newAddress,
+        label: newAddress.label.trim() || "Address",
+        isDefault: savedAddresses.length === 0,
+      });
 
-    setSavedAddresses([...savedAddresses, addressToAdd]);
-    setSelectedAddressId(newId);
-    setShowAddAddressModal(false);
-    
-    // Reset form
-    setNewAddress({
-      label: "",
-      fullName: "",
-      phoneNumber: "",
-      streetAddress: "",
-      city: "",
-      region: "",
-      postalCode: "",
-      additionalInfo: "",
-    });
+      setSelectedAddressId(createdAddress.id);
+      setShowAddAddressModal(false);
+
+      setNewAddress({
+        label: "",
+        fullName: "",
+        phoneNumber: "",
+        streetAddress: "",
+        city: "",
+        region: "",
+        postalCode: "",
+        additionalInfo: "",
+      });
+
+      Alert.alert("Success", "Address saved successfully.");
+    } catch (error) {
+      console.error("Failed to save address:", error);
+      Alert.alert("Error", "Unable to save address. Please try again.");
+    }
   };
 
   const handleContinueToPayment = () => {
@@ -139,7 +128,15 @@ const DeliveryAddressScreen = ({ navigation, route }) => {
       return;
     }
 
-    const selectedAddress = savedAddresses.find(addr => addr.id === selectedAddressId);
+    const selectedAddress =
+      selectedDeliveryOption === "delivery"
+        ? savedAddresses.find((addr) => addr.id === selectedAddressId)
+        : null;
+    if (selectedDeliveryOption === "delivery" && !selectedAddress) {
+      Alert.alert("Error", "Selected address is not available. Please select another address.");
+      return;
+    }
+
     const deliveryOption = deliveryOptions.find(opt => opt.id === selectedDeliveryOption);
     
     const deliveryFee = selectedDeliveryOption === "delivery" ? 15.00 : 0.00;
@@ -284,8 +281,23 @@ const DeliveryAddressScreen = ({ navigation, route }) => {
                 <Text style={styles.addAddressText}>Add New</Text>
               </TouchableOpacity>
             </View>
-            
-            {savedAddresses.map(renderAddressCard)}
+
+            {isLoading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color={Colors.primary} />
+                <Text style={styles.loadingText}>Loading addresses...</Text>
+              </View>
+            ) : savedAddresses.length > 0 ? (
+              savedAddresses.map(renderAddressCard)
+            ) : (
+              <View style={styles.emptyAddressCard}>
+                <Ionicons name="location-outline" size={22} color={Colors.grey} />
+                <Text style={styles.emptyAddressTitle}>No saved delivery addresses yet</Text>
+                <Text style={styles.emptyAddressText}>
+                  Tap Add New to create an address for checkout.
+                </Text>
+              </View>
+            )}
           </View>
         )}
 
@@ -468,8 +480,8 @@ const DeliveryAddressScreen = ({ navigation, route }) => {
             <View style={styles.modalButtonContainer}>
               <AwesomeButton
                 progress
-                onPress={(next) => {
-                  handleAddAddress();
+                onPress={async (next) => {
+                  await handleAddAddress();
                   next();
                 }}
                 width={width - Default.fixPadding * 2.4}
@@ -587,6 +599,36 @@ const styles = StyleSheet.create({
   optionTime: {
     ...Fonts.Regular10grey,
     color: Colors.grey,
+  },
+  loadingContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: Default.fixPadding * 1.5,
+  },
+  loadingText: {
+    ...Fonts.Regular12grey,
+    color: Colors.grey,
+    marginTop: Default.fixPadding * 0.6,
+  },
+  emptyAddressCard: {
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    borderStyle: "dashed",
+    borderRadius: 12,
+    padding: Default.fixPadding * 1.2,
+    alignItems: "center",
+    backgroundColor: "#FAFAFA",
+  },
+  emptyAddressTitle: {
+    ...Fonts.SemiBold14black,
+    color: Colors.black,
+    marginTop: Default.fixPadding * 0.6,
+  },
+  emptyAddressText: {
+    ...Fonts.Regular12grey,
+    color: Colors.grey,
+    textAlign: "center",
+    marginTop: Default.fixPadding * 0.4,
   },
   radioContainer: {
     alignItems: "center",

@@ -1,0 +1,207 @@
+# Casa Nirvana Production Readiness - Progress Checklist
+
+Date: 2026-02-06
+
+## Decisions (Locked)
+- [x] Express backend is the privileged API for admin operations and sensitive writes.
+- [x] Admin onboarding is invite-first; sign-up page remains visible but disabled (invite-only message).
+- [x] Admin roles include: `superadmin`, `agency_manager`, `facility_manager`, `admin`.
+
+## Phase 1 - Security Hardening (Critical)
+- [x] Removed Supabase service-role usage from client-side superadmin code; privileged ops are server-side only.
+- [x] Added `supabaseAdmin` for server-only use in superadmin API routes.
+- [x] Admin auth options updated to recognize new admin roles.
+- [x] Backend admin routes enforce auth/permissions (multiple write endpoints fixed).
+- [x] Upload endpoints require auth, size/type limits, and signed URLs.
+- [x] Backend CORS restricted to allowlist.
+- [ ] Verify NextAuth secret is only in env (no hardcoded secret) and demo auth paths removed everywhere.
+
+## Phase 2 - Auth & RBAC Consolidation
+- [x] Roles & permissions UI updated to include `agency_manager` and `facility_manager`.
+- [x] Backend `POST /admin/invites` added for invite flow.
+- [x] Admin Users page uses invite flow (no password creation in client).
+- [x] Admin Roles/Permissions page uses backend endpoints for updates/deletes.
+- [x] System settings (system_settings) now read/write via backend endpoints (no direct Supabase client).
+- [ ] Confirm RLS policies in Supabase match backend expectations for all roles.
+
+## Phase 3 - Admin Onboarding (Agency/Facility Managers)
+- [x] DB migration added: `admin_onboarding_requests`.
+- [x] Public request endpoint: `POST /onboarding/requests` (API key protected).
+- [x] Admin review endpoints: `GET/PATCH /admin/onboarding-requests`.
+- [x] Superadmin UI page: `/settings/admin/onboarding` with filters, approve/reject, approve+invite, and review notes modal.
+- [ ] Wire WordPress “Get Started” form to `POST /onboarding/requests` with `x-onboarding-api-key`.
+
+## Phase 4 - Configuration & Build Hygiene
+- [x] Added env vars: `ADMIN_INVITE_REDIRECT_URL`, `ONBOARDING_REQUEST_API_KEY`, `NEXT_PUBLIC_ADMIN_SIGNUP_DISABLED`.
+- [x] Standardize package manager (removed extra lockfiles in superadmin).
+- [x] Remove build-ignore flags in `next.config.mjs`.
+- [x] Add CI workflows for lint/test/build.
+
+## Phase 4.5 - Privileged API Migration (Admin Writes)
+- [x] Communities, units, profiles, messages, complaints, and payments writes routed through backend admin endpoints.
+- [x] Notification campaign writes routed through backend admin endpoints.
+
+## Phase 5 - Data & Migrations
+- [x] Choose single source of truth for Supabase migrations (`/supabase/migrations`).
+- [x] Generate and distribute shared `database.types.ts` to all apps (canonical: `/supabase/database.types.ts`).
+- [x] Lock down system + notification analytics/queues RLS (admin read, service role all).
+- [ ] Apply Phase 5B internal tables/marketplace/guard RLS (migration `20260206170000_phase5_rls_internal_tables.sql`).
+- [ ] Align seeds and RLS policies across apps.
+
+## Phase 6 - Quality & Observability
+- [ ] Add request validation (Zod/Yup) on backend endpoints.
+- [ ] Normalize error responses across backend.
+- [ ] Add monitoring/logging (Sentry/Logtail or similar).
+- [ ] Add rate limiting and security headers (rate limiting pending).
+- [ ] Add tests (backend unit/integration, admin Playwright smoke tests, mobile regression tests).
+
+## Phase 7 - Migrations/Types Alignment
+- [x] Fix Supabase types generation script for current CLI.
+- [x] Generate and sync shared `supabase/database.types.ts` to all apps.
+- [x] Schema drift audit exports + drift report stored in `supabase/audit/*`.
+- [x] Baseline live DB to `supabase/migrations/20260206_baseline_schema.sql`.
+- [x] Archive pre-baseline migrations to `supabase/migrations/_archive/2026-02-06-pre-baseline`.
+- [x] Update `supabase/migrations/README.md` to document the baseline.
+- [x] Run `supabase migration repair` equivalent (manual baseline insert) on remote.
+- [ ] Confirm `supabase db push` is clean after baseline on staging/prod.
+- [x] Apply financial RLS migration `20260206234500_phase7_rls_financial_tables.sql` and verify flows.
+- [x] Apply PII RLS migration `20260206235500_phase7_rls_pii_tables.sql` and verify flows.
+- [x] Apply payments policy cleanup migration `20260207001000_phase7_policy_cleanup_payments.sql` and verify flows.
+- [x] Apply notifications policy cleanup migration `20260207002000_phase7_policy_cleanup_notifications.sql` and verify flows.
+- [x] Apply profiles/users policy cleanup migration `20260207003000_phase7_policy_cleanup_profiles_users.sql` and verify flows.
+- [x] Apply messaging policy cleanup migration `20260207004000_phase7_policy_cleanup_messaging.sql` and verify flows.
+- [ ] Apply system policy cleanup migration `20260207005000_phase7_policy_cleanup_system.sql` and verify flows.
+
+## Phase 8 - Deployment Readiness
+- [x] Create per-app deployment checklist in `DEPLOYMENT_CHECKLIST.md`.
+- [ ] Configure per-app CI/CD pipelines and hosting targets (backend, superadmin, user, Guard).
+- [ ] Store all production secrets in CI/CD or secrets manager.
+- [ ] Document rollback procedure per app.
+
+## Phase 9 - User App Fullstack Wiring Audit
+- [x] Complete deep screen-level DB wiring audit for user app domains in sequence.
+- [x] Document screen/component wiring status in `user/SCREEN_WIRING_CHECKLIST.md`.
+- [x] Map schema/type mismatches and migration-vs-code decisions in `user/SCHEMA_ALIGNMENT_GAPS.md`.
+- [x] Verify naming consistency (`society` removed from user app code).
+- [x] Verify `useCommunityMembers.js` is a re-export (no empty hook shadow).
+- [x] Remediation Wave 1 (cross-cutting): OTP verification wiring, profile ID strategy normalization, Supabase client import standardization, React Query version standardization.
+- [x] Remediation Wave 2 (domain-by-domain): Auth/Home/Notifications -> Complaints/Maintenance/Help Desk -> Messaging/Visitors/Emergency -> Payments/Personal Hub -> Marketplace -> Profile/Settings. (Implementation complete; manual runtime QA deferred by request)
+- [x] Confirm product scope decision for deferred `events` feature (migration remains intentionally out-of-scope).
+
+### Phase 9 Progress Notes (2026-02-07)
+- [x] Wave 1 (partial): OTP verification now uses Supabase `verifyOtp` in `verificationScreen`.
+- [x] Wave 1 (partial): Profile ID fallback (`user_id` -> `id`) applied for notification settings/token writes and notification hooks.
+- [x] Wave 2: Domain 1 (`Auth/Home/Notifications`) remediation started and implemented for auth routing + notification wiring.
+- [x] Wave 2: Domain 1 fixed `notificationScreen` render loop (`Maximum update depth exceeded`) caused by unstable `notificationList` fallback/state sync.
+- [x] Wave 2: Domain 1 runtime smoke verified signed-in flow `Home -> Notifications -> Help Desk -> Start Live Chat` (chat created and `messageScreen` opened).
+- [x] Wave 2: Domain 1 completed register post-signup routing (`registerScreen`) for both confirmation-required and active-session outcomes.
+- [x] Wave 2: Domain 1 hardened `homeScreen` module visibility by gating cards until module settings load completes.
+- [x] Wave 2: Domain 1 completed module-toggle production wiring (`moduleSettingsService` scoped cache + canonical Supabase client, disabled-card `Coming Soon` UX, and route-level module guards for mapped entry screens).
+- [x] Wave 2: Domain 1 added notice audience safety checks in `noticeDetailScreen` (community match guard) and fixed notice screen hardware-back listener cleanup.
+- [x] Wave 2: Domain 2 (`Complaints/Maintenance/Help Desk`) fixed maintenance create-flow navigation blocker (`maintenanceRequestsScreen` -> `addMaintenanceRequestScreen`).
+- [x] Wave 2: Domain 2 fixed complaint detail reporter mapping via `reporter_profile` enrichment and display fallback hardening.
+- [x] Wave 2: Domain 2 fixed complaints back-navigation behavior (header + hardware back).
+- [x] Wave 2: Domain 2 replaced `AwesomeButton` CTA usage in complaints tabs and maintenance/add-maintenance screens with native `TouchableOpacity` for stable web/runtime click behavior.
+- [x] Wave 2: Domain 2 smoke pass verified signed-in flow: `Home -> Maintenance -> Request New Maintenance`, `Submit Request` modal open, `Home -> Complaints -> Complaint Detail -> Back`, `Complaints -> Back -> Home`.
+- [x] Wave 2: Domain 2 fixed maintenance submit completion UX in `addMaintenanceRequestScreen` (success modal + `Back to Requests`, guarded against duplicate submit taps).
+- [x] Wave 2: Domain 2 re-smoke verified signed-in flow: `Home -> Complaints -> Complaint Detail -> Back -> Home`, `Home -> Maintenance -> Submit -> Success Modal -> Back to Requests`, `Home -> Help Desk -> Start Live Chat`.
+- [x] Wave 2: Domain 3 (`Messaging/Visitors/Emergency`) fixed emergency chat shortcut routing (`bottomTab`) to pass canonical recipient ids (`id/memberId`) used by `messageScreen`.
+- [x] Wave 2: Domain 3 simplified `emergencyService` to a single canonical emergency write path (`emergency_alerts`) and profile-based stakeholder resolution (removed multi-fallback notification/message writes).
+- [x] Wave 2: Domain 3 fixed hardware back handler cleanup in `visitorsScreen` and `preApproveVisitorsScreen` to avoid duplicate listener registration.
+- [x] Wave 2: Domain 3 applied migration `20260207141234_phase9_slice3_messages_rls_insert_fix.sql` to restore `messages` insert policy and remove over-permissive legacy update policy.
+- [x] Wave 2: Domain 3 signed-in runtime smoke pass deferred to manual QA by request (no automated smoke run in this pass).
+- [x] Wave 2: Domain 4 (`Payments/Personal Hub`) migrated `useBillPayments` and `useInsurancePayments` from `react-query` v3 API to `@tanstack/react-query` with stable query-key invalidation.
+- [x] Wave 2: Domain 4 fixed broken Supabase client imports in `billPaymentService` and `insuranceService` (`../supabase/client` -> `../utils/supabase`).
+- [x] Wave 2: Domain 4 enforced canonical personal-hub payment payload propagation in `paymentMethodScreen` (removed hardcoded `transactionType: 'airtime'`, preserved transaction metadata end-to-end).
+- [x] Wave 2: Domain 4 fixed `mobileMoneyScreen` personal-hub payload consumption for `data`/`transfer` fields and unified user-id fallback handling.
+- [x] Wave 2: Domain 4 constrained personal-hub checkout to supported payment path in `paymentMethodScreen` to prevent unsupported-method runtime failures.
+- [x] Wave 2: Domain 4 schema gap closed for `saved_bill_accounts` and `saved_policies` via migration `20260207145514_phase9_slice4_saved_accounts_policies.sql` (RLS + indexes + updated_at triggers).
+- [x] Wave 2: Domain 4 removed legacy `reviewPayScreen` from active navigator map (`user/App.js`) to eliminate non-persistent local checkout path and close remaining slice-4 partial flow gap.
+- [x] Wave 2: Domain 5 (`Marketplace`) restored follow schema via migration `20260207150526_phase9_slice5_marketplace_followers.sql` (`marketplace_vendor_followers`, vendor `follower_count`, trigger-based counter sync, owner-scoped RLS).
+- [x] Wave 2: Domain 5 removed generic `increment`/`decrement` RPC dependency from `marketplaceService` follow/unfollow flow.
+- [x] Wave 2: Domain 5 normalized marketplace hook user-key fallback (`profile.user_id` -> `profile.user_id || profile.id`) in `useMarketplace`.
+- [x] Wave 2: Domain 5 migrated marketplace screens to production DB-first behavior (`marketplaceHomeScreen`, `categoryListingScreen`, `marketplaceSearchScreen`) and wired search history persistence via marketplace hooks.
+- [x] Wave 2: Domain 5 added `user_addresses` schema with RLS via migration `20260207152555_phase9_slice5_user_addresses.sql` and synced shared DB types.
+- [x] Wave 2: Domain 5 wired `deliveryAddressScreen` to persisted addresses using `useUserAddresses` and `useCreateUserAddress` (removed local mock address state).
+- [x] Wave 2: Domain 6 (`Profile + Settings`) removed hardcoded profile demo identity in `profileScreen` (`demoUserId`) and switched profile cards/lists to authenticated user + `useUserGatePass`.
+- [x] Wave 2: Domain 6 removed sample-data fallback from `useCommunityMembers` / `useCommunityAdmins` / `useCommunityCommittee` so member directory uses DB-only results (or empty state).
+- [x] Wave 2: Domain 6 fully wired `communityInfoScreen` to live DB for metadata, contact details, and amenities/features (`communities`, `community_configurations`, `amenities`, `units` count) with fallback-safe rendering.
+- [x] Wave 2: Domain 6 completed `editProfileScreen` persistence for profile + preferences fields and added storage-backed avatar update/removal flow (`avatar_url`) during profile save.
+- [x] Wave 2: Domain 6 remediated settings persistence (`settingScreen`, `languageScreen`, `chatSettingsScreen`) with DB-backed preference storage (`profiles.preferences` and `chat_settings`) plus local language/biometric cache sync.
+- [x] Wave 2: Domain 6 wired `emergencyContactsScreen` to DB-backed community config (`community_configurations.emergency_contacts`) with resilient fallback parsing.
+- [x] Wave 2: Domain 6 completed `emergencyContactsScreen` custom-contact workflow (create/remove persisted in `profiles.preferences.custom_emergency_contacts` and merged with community-config contacts).
+- [x] Wave 2: Domain 6 completed production wiring for `backupRestoreScreen` and `appUpdatesScreen` (backend account endpoints for backup status/export/restore/cleanup + app-update status, with `chat_settings` persistence retained for user preferences).
+- [x] Wave 2: Domain 6 wired `deleteAccountScreen` to secure backend account endpoints (`/account/delete`, `/account/deactivate`) with password re-auth requirement and signed-out completion flow.
+- [x] Wave 1: Supabase client import standardization across full user app (all active imports now resolve through `utils/supabase`; `lib/supabase` retained as compatibility shim).
+- [x] Wave 1: React Query version standardization across hooks (`react-query` legacy imports removed; `@tanstack/react-query` only).
+- [x] Wave 1 (partial): Introduced shared profile resolver utility (`user/utils/profileResolver.ts`) and applied it across notification, community/profile, gate-pass, and chat enhancement profile lookups.
+- [x] Wave 1: Completed profile ID strategy normalization by routing profile lookups through shared resolver (`user/utils/profileResolver.ts`) across support/emergency/settings and notification flows.
+- [x] Phase 9: Deferred `events` feature confirmed out-of-scope for current production release; legacy unused `user/services/eventService.js` removed (no `events` table migration planned).
+- [x] Phase 10: Added canonical community directory table `community_memberships` via migration `supabase/migrations/20260220160000_phase10_community_directory_memberships.sql`.
+- [x] Phase 10: Rewired superadmin community management tab role assignment flow to `community_memberships` (member/admin/committee with committee tenure metadata).
+- [x] Phase 10: Rewired user app member/admin/committee directories to `community_memberships` with safe legacy fallback (`profiles` + `community_admins`) and realtime invalidation.
+- [x] Phase 10: Rewired guard residents/search directories to `community_memberships` with safe legacy fallback; removed hardcoded resident ID mapping source.
+
+## Phase 11 - Tenant Scope + RLS Hardening (Superadmin)
+- [x] Created execution checklist: `superadmin/PRODUCTION_TENANT_RLS_REMEDIATION_CHECKLIST.md`.
+- [x] Extended NextAuth JWT/session claims with tenant scope (`agencyId`, `communityId`, scoped lists) in `superadmin/src/app/api/auth/[...nextauth]/options.ts`.
+- [x] Added shared admin scope helper + UUID guards in `superadmin/src/lib/adminAuth.ts`.
+- [x] Enforced scoped API authorization for module settings routes:
+- `superadmin/src/app/api/module-settings/route.ts`
+- `superadmin/src/app/api/module-settings/communities/route.ts`
+- [x] Applied migration `phase11_tenant_scope_rls_hardening` (file: `supabase/migrations/20260220200500_phase11_tenant_scope_rls_hardening.sql`) to remove legacy permissive policies and recreate scoped policies for critical tables.
+- [x] Applied follow-up migration `phase11_profile_resolution_prefer_user_id` (file: `supabase/migrations/20260220213000_phase11_profile_resolution_prefer_user_id.sql`) to fix canonical profile resolution for accounts with both `profiles.id = auth.uid()` and `profiles.user_id = auth.uid()` rows.
+- [x] Applied follow-up migration `phase11_profiles_identity_guard` (file: `supabase/migrations/20260220215500_phase11_profiles_identity_guard.sql`) to block future dual profile/auth mappings and clean known mis-mapped `profiles.user_id`.
+- [x] Added DB verification script: `supabase/audit/phase11_tenant_scope_verification.sql`.
+- [ ] Manual QA pass pending (superadmin + scoped admin + resident/guard app flows).
+
+## Phase 12 - Visitors Cross-App Sync Hardening
+- [x] Superadmin visitor create flow wired to real `visitor_passes` inserts (simulation removed).
+- [x] Superadmin add-visitor UX polished for production: removed non-wired photo upload block, aligned create payload/QR contract with user app, expanded unit selector coverage, and added post-create gate-pass modal (entry code + QR actions).
+- [x] Superadmin visitor lifecycle actions wired (approve/deny/check-in/check-out/delete).
+- [x] Superadmin visitors list/grid polished: replaced placeholder controls with real filter bars (search/status/type/community), added clear/view toggles, and wired row/card lifecycle actions.
+- [x] Superadmin visitors list/grid navigation UX polished: visitor rows/cards and names are clickable to details while keeping explicit Details action buttons; grid card spacing/gutters corrected for clean separation.
+- [x] Superadmin visitors grid action bar polished: lifecycle buttons stay on one line in card view with compact equal-width layout.
+- [x] Superadmin visitor list/detail attribution enriched with real joins (`Community`, `Unit`, `Created By`, `Agency`).
+- [x] Superadmin visitors list/grid search, filter, and pagination are now data-driven (placeholder slicing removed).
+- [x] Applied migration `20260220213222_phase12_visitor_passes_community_backfill.sql` to backfill `visitor_passes.community_id` from `unit_id` and keep it synced via trigger.
+- [x] Applied migration `20260220221003_phase12_reversible_visitor_created_by_cleanup_v2.sql` to close visitor actor/profile mapping gaps with reversible backup tables (`datafix_phase12_*`).
+- [x] Applied migration `20260220222100_phase12_align_superadmin_scope_to_casa_nirvana.sql` to align primary superadmin profile default scope to Casa Nirvana (`A-203`) with rollback backup.
+- [x] User app visitor status mapping normalized to canonical DB statuses (`pending/approved/denied/checked_in/checked_out/cancelled/expired`).
+- [x] Removed duplicate visitor realtime subscription from `visitorsScreen` (global subscription in `AuthContext` retained as canonical).
+- [x] Fixed delivery company confirm/submit mismatch and cleaned dead pre-approve visitor state.
+- [x] Added lifecycle contract doc: `user/VISITORS_LIFECYCLE_CONTRACT.md`.
+- [ ] Remaining legacy seed rows with `visitor_passes.created_by IS NULL` (15) and `unit_id/community_id` both null (3) require manual attribution or archival (intentionally unchanged by safe cleanup).
+
+## Cleanup / Hygiene
+- [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)
+- [x] Remove any `node_modules` committed to repo.
+- [x] Remove test pages (superadmin test/debug routes and pages).
+
+## Endpoints Added/Updated (Summary)
+- [x] `POST /admin/invites` (admin invite flow)
+- [x] `GET /admin/system-settings` (read system settings)
+- [x] `GET /admin/system-settings/exists` (system settings existence check)
+- [x] `PUT /admin/system-settings` (upsert system settings)
+- [x] `DELETE /admin/system-settings/:key` (delete system setting)
+- [x] `GET /admin/onboarding-requests` (admin review list)
+- [x] `PATCH /admin/onboarding-requests/:id` (approve/reject/update notes)
+- [x] `POST /onboarding/requests` (public onboarding request, API key required)
+- [x] `POST/PUT/DELETE /admin/communities` (admin writes)
+- [x] `POST/PUT/DELETE /admin/units` (admin writes)
+- [x] `POST/PUT/DELETE /admin/profiles` (admin writes)
+- [x] `POST/PATCH/DELETE /admin/messages` (admin writes)
+- [x] `POST/PATCH/DELETE /admin/complaints` (admin writes)
+- [x] `POST/PUT/DELETE /admin/payments` (admin writes)
+- [x] `POST/PUT/DELETE /admin/notification-campaigns` (admin writes)
+
+## Environment Variables (Required)
+- `ADMIN_INVITE_REDIRECT_URL`
+- `ONBOARDING_REQUEST_API_KEY`
+- `NEXT_PUBLIC_ADMIN_SIGNUP_DISABLED=true`
+- `NEXT_PUBLIC_API_URL`
+
+## Notes
+- Invite flow includes “Set Password” modal on the superadmin sign-up page when using invite links.
+- Admin writes are moving behind backend endpoints; verify any remaining admin write flows are not direct-to-Supabase.
+- Shared DB types are synced from `/supabase/database.types.ts` using `scripts/sync-db-types.sh`.

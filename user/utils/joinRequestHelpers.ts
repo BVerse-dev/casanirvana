@@ -33,11 +33,11 @@ export const approveJoinRequestAndUpdateUser = async (joinRequestId: string) => 
       throw updateRequestError;
     }
     
-    // 3. Update the user's society_id and unit_id in profiles table
+    // 3. Update the user's community_id and unit_id in profiles table
     const { error: updateUserError } = await supabase
       .from('profiles')
       .update({
-        society_id: joinRequest.community_id,
+        community_id: joinRequest.community_id,
         unit_id: joinRequest.unit_id
       })
       .eq('id', joinRequest.user_id);
@@ -69,7 +69,7 @@ export const getUserJoinRequestStatus = async (userId: string) => {
         id,
         status,
         created_at,
-        community:societies(name),
+        community:communities(name),
         unit:units(block, number)
       `)
       .eq('user_id', userId)

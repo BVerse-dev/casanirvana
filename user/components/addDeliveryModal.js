@@ -29,21 +29,22 @@ const AddDeliveryModal = (props) => {
   const { t, i18n } = useTranslation();
   const createDeliveryMutation = useCreateDelivery();
 
-  const isRtl = i18n.dir() == "rtl";
+  const isRtl = i18n.dir() === "rtl";
 
   function tr(key) {
     return t(`addDeliveryModal:${key}`);
   }
 
   // Form state
-  const [deliveryPersonName, setDeliveryPersonName] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [deliveryDetails, setDeliveryDetails] = useState("");
-  const [send, setSend] = useState(true);
+  const deliveryPersonName = "";
+  const phoneNumber = "";
+  const deliveryDetails = "";
+  const send = true;
   const [createdDelivery, setCreatedDelivery] = useState(null);
   const [openGatePassModal, setOpenGatePassModal] = useState(false);
 
   const [companyNameModal, setCompanyNameModal] = useState(false);
+  const defaultCompanyName = "Yango Delivery";
 
   const companyNameList = [
     {
@@ -67,8 +68,8 @@ const AddDeliveryModal = (props) => {
       name: "Other",
     },
   ];
-  const [selectedCompanyName, setSelectedCompanyName] = useState("Yango Delivery");
-  const [confirmCompanyName, setConfirmCompanyName] = useState();
+  const [selectedCompanyName, setSelectedCompanyName] = useState(defaultCompanyName);
+  const [confirmCompanyName, setConfirmCompanyName] = useState(defaultCompanyName);
 
   const renderItemCompanyName = ({ item }) => {
     const isSelected = selectedCompanyName === item.name;
@@ -109,7 +110,8 @@ const AddDeliveryModal = (props) => {
 
   // Submit function
   const handleSubmit = async () => {
-    console.log('🚚 Delivery submit clicked', { date, selectedCompanyName });
+    const activeCompanyName = confirmCompanyName || selectedCompanyName || defaultCompanyName;
+    console.log('🚚 Delivery submit clicked', { date, companyName: activeCompanyName });
     
     // Validation
     if (!date) {
@@ -122,7 +124,7 @@ const AddDeliveryModal = (props) => {
       console.log('🚚 Creating delivery with data:', {
         deliveryPersonName: deliveryPersonName || "Delivery Person",
         phoneNumber: phoneNumber || "",
-        companyName: selectedCompanyName,
+        companyName: activeCompanyName,
         deliveryDetails: deliveryDetails || "Package delivery",
         visitDate: date,
         sendGatePassNotification: send,
@@ -132,7 +134,7 @@ const AddDeliveryModal = (props) => {
       const newDelivery = await createDeliveryMutation.mutateAsync({
         deliveryPersonName: deliveryPersonName || "Delivery Person",
         phoneNumber: phoneNumber || "",
-        companyName: selectedCompanyName,
+        companyName: activeCompanyName,
         deliveryDetails: deliveryDetails || "Package delivery",
         visitDate: date,
         sendGatePassNotification: send,
@@ -240,7 +242,10 @@ const AddDeliveryModal = (props) => {
                   </Text>
 
                   <TouchableOpacity
-                    onPress={() => setCompanyNameModal(true)}
+                    onPress={() => {
+                      setSelectedCompanyName(confirmCompanyName || selectedCompanyName || defaultCompanyName);
+                      setCompanyNameModal(true);
+                    }}
                     style={{
                       flexDirection: isRtl ? "row-reverse" : "row",
                       marginBottom: Default.fixPadding * 2.5,

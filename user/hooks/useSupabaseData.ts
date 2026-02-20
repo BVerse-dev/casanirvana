@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../utils/supabase';
 import { Database, Tables, TablesInsert, TablesUpdate } from '../types/database.types';
 import { uploadImageToSupabase } from '../utils/imageUpload';
+import { getProfileByAuthId } from '../utils/profileResolver';
 
 // Generic hooks for common operations
 export const useListData = <T extends keyof Database['public']['Tables']>(
@@ -444,6 +445,8 @@ export const useListPersonalComplaints = (userId?: string) => {
   return useQuery({
     queryKey: ['personal-complaints', userId],
     queryFn: async () => {
+      if (!userId) return [];
+
       let query = supabase
         .from('complaints')
         .select(`
@@ -469,6 +472,7 @@ export const useListPersonalComplaints = (userId?: string) => {
       if (error) throw error;
       return data || [];
     },
+    enabled: !!userId,
   });
 };
 
@@ -617,8 +621,39 @@ export const useGetComplaint = (complaintId: string) => {
     return uuidRegex.test(id);
   };
   
-  return useGetData('complaints', complaintId, ['complaint', complaintId], {
-    enabled: !!complaintId && isValidUUID(complaintId)
+  return useQuery({
+    queryKey: ['complaint', complaintId],
+    queryFn: async () => {
+      const { data: complaint, error } = await supabase
+        .from('complaints')
+        .select('*')
+        .eq('id', complaintId)
+        .single();
+
+      if (error) throw error;
+
+      const reporterProfileId =
+        complaint?.raised_by ||
+        complaint?.created_by ||
+        complaint?.created_by_profile_id ||
+        null;
+
+      if (!reporterProfileId) {
+        return complaint;
+      }
+
+      const { data: reporterProfile } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, full_name, email, avatar_url')
+        .eq('id', reporterProfileId)
+        .maybeSingle();
+
+      return {
+        ...complaint,
+        reporter_profile: reporterProfile || null,
+      };
+    },
+    enabled: !!complaintId && isValidUUID(complaintId),
   });
 };
 
@@ -674,9 +709,9 @@ export const useCreateComplaintComment = () => {
   });
 };
 
-export const useListAmenities = (societyId?: string) => {
-  const filters = societyId ? [{ column: 'society_id', value: societyId }] : undefined;
-  return useListData('amenities', ['amenities', societyId], filters);
+export const useListAmenities = (communityId?: string) => {
+  const filters = communityId ? [{ column: 'community_id', value: communityId }] : undefined;
+  return useListData('amenities', ['amenities', communityId], filters);
 };
 
 export const useListAmenityBookings = (userId?: string) => {
@@ -701,19 +736,19 @@ export const useUpdatePayment = () => {
   return useUpdateData('payments', ['payments']);
 };
 
-export const useListNotices = (societyId?: string) => {
-  const filters = societyId ? [{ column: 'society_id', value: societyId }] : undefined;
-  return useListData('notices', ['notices', societyId], filters);
+export const useListNotices = (communityId?: string) => {
+  const filters = communityId ? [{ column: 'community_id', value: communityId }] : undefined;
+  return useListData('notices', ['notices', communityId], filters);
 };
 
-export const useListEmergencyAlerts = (societyId?: string) => {
-  const filters = societyId 
+export const useListEmergencyAlerts = (communityId?: string) => {
+  const filters = communityId 
     ? [
-        { column: 'society_id', value: societyId },
+        { column: 'community_id', value: communityId },
         { column: 'is_active', value: true }
       ] 
     : [{ column: 'is_active', value: true }];
-  return useListData('emergency_alerts', ['emergency-alerts', societyId], filters);
+  return useListData('emergency_alerts', ['emergency-alerts', communityId], filters);
 };
 
 export const useListMessages = (userId?: string) => {
@@ -737,22 +772,9 @@ export const useGetProfile = (userId?: string) => {
         throw new Error('User ID is required');
       }
       
-      console.log('useGetProfile - Querying for userId:', userId);
-      
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', userId)
-        .single();
-        
-      console.log('useGetProfile - Query result:', { data, error });
-      console.log('useGetProfile - Data rows returned:', data ? 1 : 0);
-      
-      if (error) {
-        console.log('useGetProfile - Error details:', JSON.stringify(error, null, 2));
-        throw error;
-      }
-      return data as Tables<'profiles'>;
+      console.log('useGetProfile - Querying for userId (id/user_id fallback):', userId);
+      const profile = await getProfileByAuthId(userId, '*');
+      return (profile || null) as Tables<'profiles'> | null;
     },
     enabled: !!userId,
   });
@@ -766,8 +788,8 @@ export const useGetUnit = (unitId: string) => {
   return useGetData('units', unitId, ['unit', unitId]);
 };
 
-export const useGetSociety = (societyId: string) => {
-  return useGetData('societies', societyId, ['society', societyId]);
+export const useGetCommunity = (communityId: string) => {
+  return useGetData('communities', communityId, ['community', communityId]);
 };
 
 // Hook to get user's unit information from their profile
@@ -776,10 +798,10 @@ export const useGetUserUnit = (userId?: string) => {
     queryKey: ['userUnit', userId],
     queryFn: async () => {
       if (!userId) return null;
-      
-      const { data, error } = await supabase
-        .from('profiles')
-        .select(`
+
+      const profile = await getProfileByAuthId(
+        userId,
+        `
           unit_id,
           units (
             id,
@@ -787,16 +809,10 @@ export const useGetUserUnit = (userId?: string) => {
             number,
             unit_number
           )
-        `)
-        .eq('user_id', userId)
-        .single();
-      
-      if (error) {
-        console.log('useGetUserUnit - Error:', error);
-        return null;
-      }
-      
-      return data?.units || null;
+        `
+      );
+
+      return profile?.units || null;
     },
     enabled: !!userId,
   });

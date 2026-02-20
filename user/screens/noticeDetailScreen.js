@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Text,
   View,
@@ -9,9 +9,7 @@ import {
   Dimensions,
   Share,
   Alert,
-  Platform,
 } from "react-native";
-import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Colors, Default, Fonts } from "../constants/styles";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -30,16 +28,11 @@ const NoticeDetailScreen = ({ navigation, route }) => {
   const { data: userProfile } = useUserProfile();
   const [isSaved, setIsSaved] = useState(false);
 
-  const isRtl = i18n.dir() == "rtl";
+  const isRtl = i18n.dir() === "rtl";
 
   function tr(key) {
     return t(`noticeBoardScreen:${key}`);
   }
-
-  const backAction = () => {
-    navigation.pop();
-    return true;
-  };
 
   // Check if notice is already saved
   useEffect(() => {
@@ -77,7 +70,7 @@ const NoticeDetailScreen = ({ navigation, route }) => {
       } else if (result.action === Share.dismissedAction) {
         // Dismissed
       }
-    } catch (error) {
+    } catch (_error) {
       Alert.alert('Error', 'Failed to share notice. Please try again.');
     }
   };
@@ -100,16 +93,35 @@ const NoticeDetailScreen = ({ navigation, route }) => {
       }
 
       await AsyncStorage.setItem('savedNotices', JSON.stringify(savedArray));
-    } catch (error) {
+    } catch (_error) {
       Alert.alert('Error', 'Failed to save notice. Please try again.');
     }
   };
 
   useEffect(() => {
-    BackHandler.addEventListener("hardwareBackPress", backAction);
+    const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
+      navigation.pop();
+      return true;
+    });
     return () => {
-      const subscription = BackHandler.addEventListener("hardwareBackPress", backAction); return () => subscription?.remove(); }
-  }, []);
+      subscription?.remove();
+    };
+  }, [navigation]);
+
+  useEffect(() => {
+    if (!notice?.community_id || !userProfile?.community_id) {
+      return;
+    }
+
+    if (String(notice.community_id) !== String(userProfile.community_id)) {
+      Alert.alert("Access restricted", "This notice is not available for your community.", [
+        {
+          text: "OK",
+          onPress: () => navigation.goBack(),
+        },
+      ]);
+    }
+  }, [notice?.community_id, userProfile?.community_id, navigation]);
 
   return (
     <View style={{ flex: 1, backgroundColor: Colors.regularGrey }}>

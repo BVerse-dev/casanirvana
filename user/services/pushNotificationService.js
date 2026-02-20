@@ -8,12 +8,12 @@ export const pushNotificationService = {
   /**
    * Send push notifications for a new notice
    */
-  async sendNoticeNotifications(noticeId, societyId) {
+  async sendNoticeNotifications(noticeId, communityId) {
     try {
       const { data, error } = await supabase.functions.invoke('send-notice-push-notifications', {
         body: {
           noticeId,
-          societyId
+          communityId
         }
       });
 

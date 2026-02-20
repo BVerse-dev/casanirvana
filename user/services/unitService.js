@@ -3,7 +3,7 @@ import { unitsService } from './enhancedApiService';
 /**
  * Create a new unit (admin only).
  * Enhanced with backend API support including phone fields
- * @param {Object} unit - Unit object (number, society_id, owner_phone, tenant_phone, etc)
+ * @param {Object} unit - Unit object (number, community_id, owner_phone, tenant_phone, etc)
  * @returns {Promise}
  */
 export const createUnit = async (unit) => {
@@ -11,13 +11,13 @@ export const createUnit = async (unit) => {
 };
 
 /**
- * Get units for a society with optional filters, pagination, and sorting.
+ * Get units for a community with optional filters, pagination, and sorting.
  * Enhanced with backend API support and comprehensive phone search
- * @param {Object} params - { society_id, search, limit, page, owner_phone, tenant_phone, etc }
+ * @param {Object} params - { community_id, search, limit, page, owner_phone, tenant_phone, etc }
  * @returns {Promise}
  */
-export const getUnitsForSociety = async ({
-  society_id,
+export const getUnitsForCommunity = async ({
+  community_id,
   search = '',
   limit = 10,
   page = 1,
@@ -28,7 +28,7 @@ export const getUnitsForSociety = async ({
   floor
 } = {}) => {
   const filters = {
-    society_id,
+    community_id,
     search,
     owner_phone,
     tenant_phone,

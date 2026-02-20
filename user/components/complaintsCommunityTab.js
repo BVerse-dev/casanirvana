@@ -11,9 +11,7 @@ import {
 import { Colors, Fonts, Default } from "../constants/styles";
 import { useTranslation } from "react-i18next";
 import { ms } from "react-native-size-matters/extend";
-import AwesomeButton from "react-native-really-awesome-button";
 import { useListCommunityComplaints } from "../hooks/useSupabaseData";
-import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../utils/supabase";
 import { useQueryClient } from '@tanstack/react-query';
 import { useFocusEffect } from '@react-navigation/native';
@@ -21,7 +19,6 @@ import { getAvatarSource } from "../utils/avatarMapping";
 
 const ComplaintsCommunityTab = ({ navigation }) => {
   const { t, i18n } = useTranslation();
-  const { user, profile } = useAuth();
   const queryClient = useQueryClient();
   const isRtl = i18n.dir() == "rtl";
 
@@ -55,7 +52,7 @@ const ComplaintsCommunityTab = ({ navigation }) => {
           event: '*',
           schema: 'public',
           table: 'complaints',
-          filter: `complaint_type=eq.community${profile?.id ? ` AND created_by=eq.${profile.id}` : ''}`
+          filter: 'complaint_type=eq.community'
         },
         () => {
           // Invalidate queries when complaints table changes
@@ -70,7 +67,7 @@ const ComplaintsCommunityTab = ({ navigation }) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [profile?.id, queryClient]);
+  }, [queryClient]);
 
   // Use only real data from Supabase - no mock data fallback
   const complaints = supabaseComplaints;
@@ -249,22 +246,17 @@ const ComplaintsCommunityTab = ({ navigation }) => {
       )}
 
       <View style={{ margin: Default.fixPadding * 2 }}>
-        <AwesomeButton
-          height={50}
+        <TouchableOpacity
           onPress={() => {
             navigation.navigate("addComplaintScreen");
           }}
-          raiseLevel={1}
-          stretch={true}
-          borderRadius={10}
-          backgroundShadow={Colors.primary}
-          backgroundDarker={Colors.primary}
-          backgroundColor={Colors.primary}
+          activeOpacity={0.85}
+          style={styles.primaryActionButton}
         >
-          <Text style={{ ...Fonts.SemiBold18white }}>
+          <Text style={styles.primaryActionButtonText}>
             {tr("raiseNewComplaint")}
           </Text>
-        </AwesomeButton>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -283,5 +275,17 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: Colors.white,
     ...Default.shadow,
+  },
+  primaryActionButton: {
+    height: 50,
+    borderRadius: 10,
+    backgroundColor: Colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    ...Default.shadow,
+  },
+  primaryActionButtonText: {
+    ...Fonts.SemiBold18white,
+    textAlign: "center",
   },
 });

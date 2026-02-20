@@ -49,7 +49,7 @@ const AddComplaintScreen = ({ navigation }) => {
     console.log('Current user:', user?.id, user?.email);
     console.log('Current profile:', profile);
     console.log('Profile unit_id:', profile?.unit_id);
-    console.log('Profile society_id:', profile?.society_id);
+    console.log('Profile community_id:', profile?.community_id);
   }, [user, profile]);
 
   const isRtl = i18n.dir() == "rtl";

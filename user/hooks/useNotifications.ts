@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { supabase } from '../utils/supabase';
+import { resolveCurrentProfileId } from '../utils/profileResolver';
 
 export interface Notification {
   id: string;
@@ -21,29 +22,16 @@ export const useNotifications = () => {
   return useQuery({
     queryKey: ['notifications'],
     queryFn: async () => {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      
-      if (userError || !user) {
+      const profileId = await resolveCurrentProfileId();
+      if (!profileId) {
         return [];
       }
-
-      // Get the profile to get the correct user_id reference
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-        
-      if (profileError || !profile) {
-        return [];
-      }
-
-      console.log('🔔 useNotifications: Fetching notifications for profile:', profile.id);
+      console.log('🔔 useNotifications: Fetching notifications for profile:', profileId);
       
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
-        .eq('user_id', profile.id)
+        .eq('user_id', profileId)
         .order('created_at', { ascending: false });
       
       if (error) {
@@ -63,27 +51,15 @@ export const useUnreadNotificationsCount = () => {
   return useQuery({
     queryKey: ['unreadNotificationsCount'],
     queryFn: async () => {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      
-      if (userError || !user) {
-        return 0;
-      }
-
-      // Get the profile to get the correct user_id reference
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-        
-      if (profileError || !profile) {
+      const profileId = await resolveCurrentProfileId();
+      if (!profileId) {
         return 0;
       }
       
       const { count, error } = await supabase
         .from('notifications')
         .select('*', { count: 'exact', head: true })
-        .eq('user_id', profile.id)
+        .eq('user_id', profileId)
         .eq('is_read', false);
       
       if (error) {
@@ -128,27 +104,15 @@ export const useMarkAllNotificationsAsRead = () => {
   
   return useMutation({
     mutationFn: async () => {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      
-      if (userError || !user) {
+      const profileId = await resolveCurrentProfileId();
+      if (!profileId) {
         throw new Error('User not authenticated');
-      }
-
-      // Get the profile to get the correct user_id reference
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-        
-      if (profileError || !profile) {
-        throw new Error('Profile not found');
       }
       
       const { error } = await supabase
         .from('notifications')
         .update({ is_read: true })
-        .eq('user_id', profile.id)
+        .eq('user_id', profileId)
         .eq('is_read', false);
       
       if (error) {
@@ -200,35 +164,22 @@ export const useNotificationSubscription = () => {
     
     const setupSubscription = async () => {
       try {
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
-        
-        if (userError || !user || !mounted) {
+        const profileId = await resolveCurrentProfileId();
+        if (!profileId || !mounted) {
           return;
         }
-
-        // Get the profile to get the correct user_id reference
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('user_id', user.id)
-          .single();
-          
-        if (profileError || !profile || !mounted) {
-          return;
-        }
-
-        console.log('🔔 Setting up notification subscription for profile:', profile.id);
+        console.log('🔔 Setting up notification subscription for profile:', profileId);
 
         // Set up real-time subscription for notifications
         channel = supabase
-          .channel(`user-notifications-${profile.id}`)
+          .channel(`user-notifications-${profileId}`)
           .on(
             'postgres_changes',
             {
               event: '*',
               schema: 'public',
               table: 'notifications',
-              filter: `user_id=eq.${profile.id}`,
+              filter: `user_id=eq.${profileId}`,
             },
             (payload) => {
               if (mounted) {

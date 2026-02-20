@@ -1,6 +1,6 @@
-import 'dotenv/config';
+require("dotenv/config");
 
-export default {
+module.exports = {
   expo: {
     name: "Casa Nirvana User App",
     slug: "casa-nirvana-user",
@@ -9,55 +9,87 @@ export default {
     icon: "./assets/images/icon.png",
     scheme: "myapp",
     userInterfaceStyle: "automatic",
-    main: "App.js",
     splash: {
-      image: "./assets/images/splash.png",
+      image: "./assets/images/splashBg.png",
       resizeMode: "cover",
-      backgroundColor: "#ffffff"
+      backgroundColor: "#ffffff",
     },
     ios: {
       bundleIdentifier: "com.casanirvana.user",
       buildNumber: "1.0.0",
-      supportsTablet: false
+      supportsTablet: false,
+      infoPlist: {
+        NSLocationWhenInUseUsageDescription:
+          "This app needs location access to share your location during emergency alerts, helping responders find you quickly.",
+        NSLocationAlwaysAndWhenInUseUsageDescription:
+          "This app needs location access to share your location during emergency alerts, helping responders find you quickly.",
+      },
     },
     android: {
+      package: "com.casanirvana.user",
+      versionCode: 1,
       adaptiveIcon: {
         foregroundImage: "./assets/images/adaptive-icon.png",
-        backgroundColor: "#ffffff"
+        backgroundColor: "#ffffff",
       },
-      package: "com.casanirvana.user",
       permissions: [
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO",
         "android.permission.VIBRATE",
         "android.permission.WAKE_LOCK",
-        "android.permission.RECEIVE_BOOT_COMPLETED"
-      ]
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+      ],
+    },
+    web: {
+      bundler: "metro",
+      output: "single",
+      favicon: "./assets/images/favicon.png",
     },
     notification: {
       icon: "./assets/images/icon.png",
       color: "#000000",
       androidMode: "default",
-      androidCollapsedTitle: "Casa Nirvana"
+      androidCollapsedTitle: "Casa Nirvana",
     },
     updates: {
-      url: "https://u.expo.dev/74ab69b9-9b75-45e3-83ad-84c0369ac218"
+      url: "https://u.expo.dev/74ab69b9-9b75-45e3-83ad-84c0369ac218",
     },
     runtimeVersion: {
-      policy: "appVersion"
+      policy: "appVersion",
     },
+    jsEngine: "jsc",
+    newArchEnabled: true,
     extra: {
-      // Hardcode the values directly instead of using environment variables
-      supabaseUrl: "https://pswnlowvmdgeifhxilao.supabase.co",
-      supabaseAnonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzd25sb3d2bWRnZWlmaHhpbGFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3ODE5MTYsImV4cCI6MjA2MzM1NzkxNn0.QOqSJr0qxefrIwM087IKlJJYWwMLCHV_v5iEb-SI7S0",
+      EXPO_PUBLIC_SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,
+      EXPO_PUBLIC_SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+      API_BASE_URL: process.env.API_BASE_URL || "http://localhost:8080",
       sizemattersBaseWidth: 414,
       sizemattersBaseHeight: 896,
       eas: {
-        projectId: "74ab69b9-9b75-45e3-83ad-84c0369ac218"
-      }
+        projectId: "74ab69b9-9b75-45e3-83ad-84c0369ac218",
+      },
     },
     plugins: [
-      "expo-web-browser"
-    ]
-  }
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          photosPermission: "Allow Casa Nirvana to access your photos to share images in chat.",
+          cameraPermission: "Allow Casa Nirvana to access your camera to take photos for chat.",
+        },
+      ],
+      [
+        "expo-av",
+        {
+          microphonePermission: "Allow Casa Nirvana to access your microphone to record voice messages.",
+        },
+      ],
+      "expo-camera",
+      "expo-document-picker",
+      "expo-secure-store",
+      "expo-web-browser",
+    ],
+  },
 };

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
+import { isPushNotificationsSupported } from '../utils/notificationRuntime';
+import Notifications from '../utils/notificationsAdapter';
 
 export const useNotificationPermissions = () => {
   const [permissionStatus, setPermissionStatus] = useState<string>('undetermined');
@@ -9,11 +10,24 @@ export const useNotificationPermissions = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
+    if (!isPushNotificationsSupported) {
+      setPermissionStatus('unavailable');
+      setCanAskAgain(false);
+      setIsLoading(false);
+      return;
+    }
+
     checkPermissions();
   }, []);
 
   const checkPermissions = async () => {
     try {
+      if (!isPushNotificationsSupported) {
+        setPermissionStatus('unavailable');
+        setCanAskAgain(false);
+        return;
+      }
+
       setIsLoading(true);
       const { status, canAskAgain } = await Notifications.getPermissionsAsync();
       setPermissionStatus(status);
@@ -28,6 +42,10 @@ export const useNotificationPermissions = () => {
 
   const requestPermissions = async (): Promise<boolean> => {
     try {
+      if (!isPushNotificationsSupported) {
+        return false;
+      }
+
       if (!Device.isDevice) {
         console.warn('Must use physical device for notifications');
         return false;

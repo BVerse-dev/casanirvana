@@ -163,7 +163,7 @@ export const reportEmergency = async (emergencyData) => {
 };
 
 // Search and Directory Functions
-export const searchByPhone = async (phoneNumber, societyId) => {
+export const searchByPhone = async (phoneNumber, communityId) => {
   try {
     // Search across multiple entities
     const [users, visitors, family] = await Promise.all([
@@ -171,7 +171,7 @@ export const searchByPhone = async (phoneNumber, societyId) => {
       supabase
         .from('users')
         .select('*')
-        .eq('society_id', societyId)
+        .eq('community_id', communityId)
         .or(`phone.ilike.%${phoneNumber}%,mobile.ilike.%${phoneNumber}%`)
         .limit(5),
       

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../utils/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { getProfileByAuthId } from '../utils/profileResolver';
 
 // Helper function to format time
 const formatTime = (timestamp: string) => {
@@ -91,28 +92,27 @@ export const useChatEnhancements = () => {
 
       console.log('👤 Auth user:', authUser.id);
 
-      // Get the current user's profile to get the profile ID and society
-      const { data: currentProfile, error: profileError } = await supabase
-        .from('profiles')
-        .select('id, user_id, first_name, last_name, email, society_id')
-        .eq('user_id', authUser.id)
-        .single();
+      // Get the current user's profile to get the profile ID and community
+      const currentProfile = await getProfileByAuthId(
+        authUser.id,
+        'id, user_id, first_name, last_name, email, community_id'
+      );
 
-      if (profileError || !currentProfile) {
-        console.error('❌ Error fetching current user profile:', profileError);
+      if (!currentProfile) {
+        console.error('❌ Error fetching current user profile for auth user:', authUser.id);
         setIsLoading(false);
         return;
       }
 
       const currentUserId = currentProfile.id; // Use profile ID for message queries
-      const currentSocietyId = currentProfile.society_id;
-      console.log('👤 Current user profile ID:', currentUserId, 'Name:', `${currentProfile.first_name} ${currentProfile.last_name}`, 'Society:', currentSocietyId);
+      const currentCommunityId = currentProfile.community_id;
+      console.log('👤 Current user profile ID:', currentUserId, 'Name:', `${currentProfile.first_name} ${currentProfile.last_name}`, 'Community:', currentCommunityId);
 
       // Get users from profiles table with online status using last_login
       const { data: authUsers, error: authError } = await supabase
         .from('profiles')
         .select('id, first_name, last_name, last_login, is_active')
-        .eq('society_id', currentSocietyId);
+        .eq('community_id', currentCommunityId);
       
       if (authError) {
         console.error('❌ Auth users query error:', authError);
@@ -120,11 +120,11 @@ export const useChatEnhancements = () => {
         console.log('📊 Auth users data:', authUsers?.length, 'users');
       }
 
-      // Get all users from the same society in the profiles table (filter by society)
+      // Get all users from the same community in the profiles table (filter by community)
       const { data: users, error: usersError } = await supabase
         .from('profiles')
-        .select('id, user_id, email, first_name, last_name, role, society_id')
-        .eq('society_id', currentSocietyId);
+        .select('id, user_id, email, first_name, last_name, role, community_id')
+        .eq('community_id', currentCommunityId);
 
       if (usersError) {
         console.error('❌ Error fetching profiles:', usersError);
@@ -132,7 +132,7 @@ export const useChatEnhancements = () => {
         return;
       }
 
-      console.log('👥 Society profiles data:', users?.length, 'profiles found for society:', currentSocietyId);
+      console.log('👥 Community profiles data:', users?.length, 'profiles found for community:', currentCommunityId);
       console.log('👥 Profile names:', users?.map(u => `${u.first_name} ${u.last_name} (${u.role})`).join(', '));
 
       // Get chat messages involving the current user (FRESH QUERY)

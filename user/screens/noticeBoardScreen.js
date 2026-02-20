@@ -18,17 +18,17 @@ import MyStatusBar from "../components/myStatusBar";
 import DashedLine from "react-native-dashed-line";
 import { ms } from "react-native-size-matters/extend";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
-import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import Feather from "react-native-vector-icons/Feather";
 import { useAuth } from "../contexts/AuthContext";
 import { useListNotices } from "../hooks/useListNotices";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../utils/supabase";
 import { useNotificationContext } from "../contexts/NotificationContext";
+import { isPushNotificationsSupported } from "../utils/notificationRuntime";
 
 const NoticeBoardScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
-  const isRtl = i18n.dir() == "rtl";
+  const isRtl = i18n.dir() === "rtl";
   const { profile } = useAuth();
   const queryClient = useQueryClient();
   const { isGranted, setupNotifications } = useNotificationContext();
@@ -43,10 +43,10 @@ const NoticeBoardScreen = ({ navigation }) => {
 
   // Initialize push notifications on mount
   useEffect(() => {
-    if (profile && !isGranted) {
+    if (profile && !isGranted && isPushNotificationsSupported) {
       setupNotifications();
     }
-  }, [profile, isGranted]);
+  }, [profile, isGranted, setupNotifications]);
 
   // Get notices for user's community
   const { data: noticesResponse, isLoading, error, refetch } = useListNotices(profile?.community_id, 1, 50);
@@ -55,6 +55,7 @@ const NoticeBoardScreen = ({ navigation }) => {
   const noticeList = noticesResponse?.data?.map(notice => ({
     key: notice.id.toString(),
     id: notice.id,
+    community_id: notice.community_id,
     title: notice.title,
     notice: notice.body ? notice.body.substring(0, 300) + (notice.body.length > 300 ? "..." : "") : "",
     fullNotice: notice.body,
@@ -72,16 +73,15 @@ const NoticeBoardScreen = ({ navigation }) => {
     new: new Date(notice.posted_at) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // New if posted within last 7 days
   })) || [];
 
-  const backAction = () => {
-    navigation.pop();
-    return true;
-  };
-
   useEffect(() => {
-    BackHandler.addEventListener("hardwareBackPress", backAction);
+    const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
+      navigation.pop();
+      return true;
+    });
     return () => {
-      const subscription = BackHandler.addEventListener("hardwareBackPress", backAction); return () => subscription?.remove(); }
-  }, []);
+      subscription?.remove();
+    };
+  }, [navigation]);
 
   // Set up real-time subscription for notice updates
   useEffect(() => {
@@ -95,7 +95,7 @@ const NoticeBoardScreen = ({ navigation }) => {
         table: 'notices',
         filter: `community_id=eq.${profile.community_id}`
       }, () => {
-        queryClient.invalidateQueries(['notices', profile.community_id]);
+        queryClient.invalidateQueries({ queryKey: ['notices', profile.community_id] });
       })
       .subscribe();
 
@@ -420,7 +420,7 @@ const NoticeBoardScreen = ({ navigation }) => {
             No notices available
           </Text>
           <Text style={{ ...Fonts.Regular14grey, textAlign: 'center', marginTop: Default.fixPadding * 0.5 }}>
-            Check back later for updates from your society
+            Check back later for updates from your community
           </Text>
         </View>
       ) : (

@@ -1,10 +1,19 @@
 // Direct implementation without imports to avoid any module loading issues
 import { createClient } from '@supabase/supabase-js';
 import * as SecureStore from 'expo-secure-store';
+import Constants from 'expo-constants';
 
-// Hardcoded values - no dependencies
-const DIRECT_SUPABASE_URL = "https://pswnlowvmdgeifhxilao.supabase.co";
-const DIRECT_SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzd25sb3d2bWRnZWlmaHhpbGFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3ODE5MTYsImV4cCI6MjA2MzM1NzkxNn0.QOqSJr0qxefrIwM087IKlJJYWwMLCHV_v5iEb-SI7S0";
+const DIRECT_SUPABASE_URL =
+  Constants.expoConfig?.extra?.EXPO_PUBLIC_SUPABASE_URL ||
+  process.env.EXPO_PUBLIC_SUPABASE_URL;
+const DIRECT_SUPABASE_KEY =
+  Constants.expoConfig?.extra?.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
+  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!DIRECT_SUPABASE_URL || !DIRECT_SUPABASE_KEY) {
+  // eslint-disable-next-line no-console
+  console.warn('Supabase env vars missing:', { DIRECT_SUPABASE_URL, DIRECT_SUPABASE_KEY });
+}
 
 // Custom storage adapter for Expo using SecureStore
 const SecureStoreAdapter = {

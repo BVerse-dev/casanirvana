@@ -4,27 +4,25 @@ import { Colors, Fonts, Default } from "../constants/styles";
 import { useTranslation } from "react-i18next";
 import { ms } from "react-native-size-matters/extend";
 import MemberDetailModal from "./memberDetailModal";
-import { useSocietyCommittee, useSocietyMembersSubscription } from "../hooks/useSocietyMembers";
+import { useCommunityCommittee, useCommunityMembersSubscription } from "../hooks/useCommunityMembers";
 import { useConversationTracker } from "../hooks/useConversationTracker";
 
 const CommitteeTab = ({ navigation }) => {
   const { i18n } = useTranslation();
 
-  const isRtl = i18n.dir() == "rtl";
+  const isRtl = i18n.dir() === "rtl";
 
   const [openMemberDetailModal, setOpenMemberDetailModal] = useState(false);
   const [selectedCommittee, setSelectedCommittee] = useState(0);
 
   // Use real data from Supabase
-  const { data: committeeList = [], isLoading, error } = useSocietyCommittee();
+  const { data: committeeList = [], isLoading, error } = useCommunityCommittee();
   
   // Set up real-time subscription
-  useSocietyMembersSubscription();
+  useCommunityMembersSubscription();
 
   // Use conversation tracker
-  const { startConversation, markConversationActive } = useConversationTracker();
-
-  console.log('🏛️ CommitteeTab: Loaded', committeeList.length, 'committee members');
+  const { startConversation } = useConversationTracker();
 
   const renderItem = ({ item, index }) => {
     return (
@@ -89,7 +87,7 @@ const CommitteeTab = ({ navigation }) => {
                 marginTop: Default.fixPadding * 0.5,
               }}
             >
-              {`Block ${item.block}-${item.flatNo} | ${item.societyName}`}
+              {`Block ${item.block}-${item.flatNo} | ${item.communityName}`}
             </Text>
           </View>
         </View>
@@ -189,7 +187,7 @@ const CommitteeTab = ({ navigation }) => {
         modalClose={() => setOpenMemberDetailModal(false)}
         image={selectedItem?.image}
         name={selectedItem?.name}
-        societyName={selectedItem?.societyName}
+        communityName={selectedItem?.communityName}
         flatNo={selectedItem?.flatNo}
         blockNo={selectedItem?.block}
         onCallHandle={() => {

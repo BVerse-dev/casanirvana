@@ -1,21 +1,24 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../utils/supabase';
+import { resolveProfileIdByAuthId } from '../utils/profileResolver';
 
 // Hook to start a support chat with an admin
 export const useStartSupportChat = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState(null);
 
-  const startSupportChat = async (userId, societyId) => {
+  const startSupportChat = async (userId, communityId) => {
     setIsCreating(true);
     setError(null);
 
     try {
-      // First, get an available admin from the same society
+      const resolvedUserId = await resolveProfileIdByAuthId(userId) || userId;
+
+      // First, get an available admin from the same community
       const { data: adminUsers, error: adminError } = await supabase
         .from('profiles')
         .select('id, full_name, email, avatar_url')
-        .eq('society_id', societyId)
+        .eq('community_id', communityId)
         .in('role', ['admin', 'superadmin'])
         .limit(1);
 
@@ -24,7 +27,7 @@ export const useStartSupportChat = () => {
       let adminUser = null;
 
       if (!adminUsers || adminUsers.length === 0) {
-        // Fallback to any admin if no society-specific admin found
+        // Fallback to any admin if no community-specific admin found
         const { data: fallbackAdmins, error: fallbackError } = await supabase
           .from('profiles')
           .select('id, full_name, email, avatar_url')
@@ -45,50 +48,55 @@ export const useStartSupportChat = () => {
       console.log('🔍 useSupportChat: Found admin:', adminUser);
 
       // Check if there's already an active support chat between this user and any admin
-      const { data: existingChats, error: existingError } = await supabase
-        .from('chat_participants')
-        .select(`
-          chat_id,
-          chats:chat_id (
-            id,
-            created_at
-          )
-        `)
-        .eq('user_id', userId);
-
-      if (existingError) throw existingError;
-
       // Check if any of these chats have an admin participant
       let existingChatId = null;
       let existingChatAdmin = null;
-      
-      if (existingChats && existingChats.length > 0) {
-        for (const chat of existingChats) {
-          const { data: adminParticipant, error: adminParticipantError } = await supabase
-            .from('chat_participants')
-            .select(`
-              id,
-              user_id,
-              profiles:user_id(
-                id,
-                full_name,
-                email,
-                avatar_url,
-                phone
-              )
-            `)
-            .eq('chat_id', chat.chat_id)
-            .eq('is_admin', true)
-            .limit(1);
 
-          if (adminParticipantError) continue;
-          
-          if (adminParticipant && adminParticipant.length > 0) {
-            existingChatId = chat.chat_id;
-            existingChatAdmin = adminParticipant[0].profiles;
-            break;
+      try {
+        const { data: existingChats, error: existingError } = await supabase
+          .from('chat_participants')
+          .select(`
+            chat_id,
+            chats:chat_id (
+              id,
+              created_at
+            )
+          `)
+          .eq('user_id', resolvedUserId);
+
+        if (existingError) throw existingError;
+
+        if (existingChats && existingChats.length > 0) {
+          for (const chat of existingChats) {
+            const { data: adminParticipant, error: adminParticipantError } = await supabase
+              .from('chat_participants')
+              .select(`
+                id,
+                user_id,
+                profiles:user_id(
+                  id,
+                  full_name,
+                  email,
+                  avatar_url,
+                  phone
+                )
+              `)
+              .eq('chat_id', chat.chat_id)
+              .eq('is_admin', true)
+              .limit(1);
+
+            if (adminParticipantError) continue;
+
+            if (adminParticipant && adminParticipant.length > 0) {
+              existingChatId = chat.chat_id;
+              existingChatAdmin = adminParticipant[0].profiles;
+              break;
+            }
           }
         }
+      } catch (lookupError) {
+        // If RLS/policy blocks existing-chat lookup, continue by creating a new support chat.
+        console.warn('Support chat lookup failed, falling back to new chat creation:', lookupError);
       }
 
       // If existing support chat found, return it with the actual admin from that chat
@@ -108,7 +116,7 @@ export const useStartSupportChat = () => {
       const { data: newChat, error: chatError } = await supabase
         .from('chats')
         .insert([{
-          society_id: societyId
+          community_id: communityId
         }])
         .select()
         .single();
@@ -120,7 +128,7 @@ export const useStartSupportChat = () => {
         .from('chat_participants')
         .insert([{
           chat_id: newChat.id,
-          user_id: userId,
+          user_id: resolvedUserId,
           is_admin: false
         }]);
 
@@ -185,6 +193,8 @@ export const useGetSupportChats = (userId) => {
   useEffect(() => {
     const fetchSupportChats = async () => {
       try {
+        const resolvedUserId = await resolveProfileIdByAuthId(userId) || userId;
+
         // Get all chats where user is participant
         const { data: userChats, error: userChatsError } = await supabase
           .from('chat_participants')
@@ -193,10 +203,10 @@ export const useGetSupportChats = (userId) => {
             chats:chat_id (
               id,
               created_at,
-              society_id
+              community_id
             )
           `)
-          .eq('user_id', userId);
+          .eq('user_id', resolvedUserId);
 
         if (userChatsError) throw userChatsError;
 

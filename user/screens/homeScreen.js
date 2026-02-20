@@ -1,7 +1,7 @@
-import React, { useState } from "react";
-import { Text, View, TouchableOpacity, Image, FlatList, PanGestureHandler, State } from "react-native";
+import React, { useState, useEffect } from "react";
+import { Text, View, TouchableOpacity, Image, FlatList, ActivityIndicator, Alert } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, { useSharedValue, useAnimatedStyle, withSpring, runOnJS } from "react-native-reanimated";
+import { runOnJS } from "react-native-reanimated";
 import MyStatusBar from "../components/myStatusBar";
 import { Colors, Fonts, Default } from "../constants/styles";
 import { useTranslation } from "react-i18next";
@@ -11,33 +11,23 @@ import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityI
 import { useHasJoinedCommunity, useProfileSubscription } from "../hooks/useCommunityData";
 import { useUnreadNotificationsCount, useNotificationSubscription } from "../hooks/useNotifications";
 import { useListNotices } from "../hooks/useListNotices";
+import { loadModuleSettings, isScreenEnabled } from "../services/moduleSettingsService";
 
 const HomeScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
 
-  const isRtl = i18n.dir() == "rtl";
+  const isRtl = i18n.dir() === "rtl";
 
   // Real community status check from database
   const { hasJoinedCommunity, hasPendingRequest, isLoading: communityLoading, profile, userName, unitDisplay, pendingRequest } = useHasJoinedCommunity();
 
-  // Debug logging for homescreen
-  console.log('🏠 HomeScreen: Community status:', {
-    hasJoinedCommunity,
-    hasPendingRequest, 
-    unitDisplay,
-    communityLoading,
-    profileCommunityId: profile?.community_id,
-    profileUnitId: profile?.unit_id,
-    profileEmail: profile?.email
-  });
-
   // Real notification system
   const { data: unreadCount = 0 } = useUnreadNotificationsCount();
-  
+
   // Fetch latest notices for the banner
   const { data: noticesResponse } = useListNotices(profile?.community_id, 1, 1);
   const latestNotice = noticesResponse?.data?.[0];
-  
+
   // Set up real-time subscriptions
   useNotificationSubscription();
   useProfileSubscription();
@@ -48,10 +38,29 @@ const HomeScreen = ({ navigation }) => {
 
   // State for hub tabs
   const [activeTab, setActiveTab] = useState('community'); // 'community' or 'personal'
-  
-  // Animation values for swipe
-  const translateX = useSharedValue(0);
-  
+  const [modulesLoaded, setModulesLoaded] = useState(false);
+
+  // Load module settings on mount
+  useEffect(() => {
+    let isMounted = true;
+
+    const initModules = async () => {
+      setModulesLoaded(false);
+      try {
+        await loadModuleSettings(profile?.community_id);
+      } finally {
+        if (isMounted) {
+          setModulesLoaded(true);
+        }
+      }
+    };
+
+    initModules();
+    return () => {
+      isMounted = false;
+    };
+  }, [profile?.community_id]);
+
   // Swipe handler function
   const handleSwipeTab = (direction) => {
     if (direction === 'left' && activeTab === 'community') {
@@ -64,19 +73,19 @@ const HomeScreen = ({ navigation }) => {
   // Safe translation function that ALWAYS returns a string
   function tr(key, fallback = "Missing Translation") {
     if (!key) return fallback || "";
-    
+
     try {
       const translation = t(`homeScreen:${key}`);
-      
+
       // Verify the translation is a valid string
       if (typeof translation !== 'string') {
         return fallback || key || "";
       }
-      
-      return (translation && typeof translation === 'string' && translation.trim() !== '') 
-        ? translation 
+
+      return (translation && typeof translation === 'string' && translation.trim() !== '')
+        ? translation
         : fallback;
-    } catch (error) {
+    } catch (_error) {
       // If any error occurs during translation, return the fallback
       return fallback || key || "";
     }
@@ -101,7 +110,7 @@ const HomeScreen = ({ navigation }) => {
       key: "3",
       image: require("../assets/images/community3.png"),
       title: tr("noticeBoard"),
-      other: tr("societyAnnouncement"),
+      other: tr("communityAnnouncement"),
       navigateTo: "noticeBoardScreen",
     },
     {
@@ -139,7 +148,10 @@ const HomeScreen = ({ navigation }) => {
       other: tr("requestService"),
       navigateTo: "MaintenanceRequestsScreen",
     },
-  ];
+  ].map((item) => ({
+    ...item,
+    isEnabled: isScreenEnabled(item.navigateTo),
+  }));
 
   const personalList = [
     {
@@ -184,12 +196,26 @@ const HomeScreen = ({ navigation }) => {
       other: "Shopping & services",
       navigateTo: "marketplaceHomeScreen",
     },
-  ];
+  ].map((item) => ({
+    ...item,
+    isEnabled: isScreenEnabled(item.navigateTo),
+  }));
 
   const renderItem = ({ item, index }) => {
+    const isDisabled = item.isEnabled === false;
+
+    const onPressCard = () => {
+      if (isDisabled) {
+        Alert.alert("Coming Soon", "This module is currently unavailable for your community.");
+        return;
+      }
+      navigation.push(item.navigateTo);
+    };
+
     return (
       <TouchableOpacity
-        onPress={() => navigation.push(item.navigateTo)}
+        onPress={onPressCard}
+        activeOpacity={0.85}
         style={{
           flex: 1,
           justifyContent: "space-between",
@@ -198,10 +224,13 @@ const HomeScreen = ({ navigation }) => {
           marginTop: index < 2 ? Default.fixPadding * 2 : 0, // Add space above first row of cards only
           marginBottom: Default.fixPadding * 1.5,
           borderRadius: 20,
-          backgroundColor: Colors.white,
+          backgroundColor: isDisabled ? Colors.regularLightGrey : Colors.white,
+          borderWidth: isDisabled ? 1 : 0,
+          borderColor: isDisabled ? Colors.lightGrey : Colors.transparent,
           ...Default.shadow,
           height: ms(150),
           overflow: 'hidden', // Ensure content stays within card bounds
+          opacity: isDisabled ? 0.8 : 1,
         }}
       >
         <View
@@ -215,8 +244,9 @@ const HomeScreen = ({ navigation }) => {
         >
           <Text
             numberOfLines={1}
-            style={{ 
-              ...Fonts.SemiBold16black, 
+            style={{
+              ...Fonts.SemiBold16black,
+              color: isDisabled ? Colors.extraDarkGrey : Colors.black,
               overflow: "hidden",
               width: '100%',
             }}
@@ -227,6 +257,7 @@ const HomeScreen = ({ navigation }) => {
             numberOfLines={2}
             style={{
               ...Fonts.Medium12grey,
+              color: isDisabled ? Colors.extraDarkGrey : Colors.grey,
               overflow: "hidden",
               marginTop: Default.fixPadding * 0.2,
               width: '100%',
@@ -234,11 +265,31 @@ const HomeScreen = ({ navigation }) => {
           >
             {item.other}
           </Text>
+          {isDisabled && (
+            <View
+              style={{
+                alignSelf: "flex-start",
+                backgroundColor: Colors.primary,
+                paddingHorizontal: Default.fixPadding * 0.8,
+                paddingVertical: Default.fixPadding * 0.3,
+                borderRadius: 10,
+                marginTop: Default.fixPadding * 0.7,
+              }}
+            >
+              <Text
+                style={{
+                  ...Fonts.SemiBold12white,
+                }}
+              >
+                Coming Soon
+              </Text>
+            </View>
+          )}
         </View>
         <View
           style={{
             alignSelf: isRtl ? "flex-start" : "flex-end",
-            marginTop: (item.title === "Buy Data" || item.title === "Send Money" || item.title === "Pay Bills") 
+            marginTop: (item.title === "Buy Data" || item.title === "Send Money" || item.title === "Pay Bills")
               ? Default.fixPadding * 2.2 // Increased marginTop for specific cards
               : Default.fixPadding * 1.5, // Original marginTop for other cards
             marginRight: Default.fixPadding,
@@ -250,8 +301,8 @@ const HomeScreen = ({ navigation }) => {
         >
           <Image
             source={
-              typeof item.image === 'number' 
-                ? item.image 
+              typeof item.image === 'number'
+                ? item.image
                 : typeof item.image === 'string' && item.image.startsWith('http')
                   ? { uri: item.image }
                   : require("../assets/images/community1.png") // Fallback community icon
@@ -262,6 +313,7 @@ const HomeScreen = ({ navigation }) => {
               height: ms(50),
               maxWidth: ms(50),
               maxHeight: ms(50),
+              opacity: isDisabled ? 0.45 : 1,
             }}
           />
         </View>
@@ -284,7 +336,7 @@ const HomeScreen = ({ navigation }) => {
   const swipeGesture = Gesture.Pan()
     .onEnd((event) => {
       const { velocityX, translationX } = event;
-      
+
       // Determine swipe direction based on velocity and translation
       if (Math.abs(translationX) > 50 || Math.abs(velocityX) > 500) {
         if (translationX > 0 || velocityX > 0) {
@@ -328,7 +380,7 @@ const HomeScreen = ({ navigation }) => {
               Community Hub
             </Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             onPress={() => setActiveTab('personal')}
             style={{
@@ -355,14 +407,14 @@ const HomeScreen = ({ navigation }) => {
   const NoticeBanner = () => {
     // Determine if the latest notice is "new" (posted within last 7 days)
     const isNewNotice = latestNotice && new Date(latestNotice.posted_at) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    
+
     // Get notice preview (first 180 characters for 3 lines) or fallback to original translation
     // Clean up the text by removing extra whitespace and line breaks
-    const noticePreview = latestNotice?.body 
+    const noticePreview = latestNotice?.body
       ? latestNotice.body
-          .replace(/\s+/g, ' ') // Replace multiple spaces/newlines with single space
-          .trim() // Remove leading/trailing whitespace
-          .substring(0, 180) + (latestNotice.body.length > 180 ? "..." : "")
+        .replace(/\s+/g, ' ') // Replace multiple spaces/newlines with single space
+        .trim() // Remove leading/trailing whitespace
+        .substring(0, 180) + (latestNotice.body.length > 180 ? "..." : "")
       : tr("description");
 
     return (
@@ -399,14 +451,14 @@ const HomeScreen = ({ navigation }) => {
               paddingBottom: Default.fixPadding * 2.7,
               paddingHorizontal: Default.fixPadding * 1.2,
             }}
-            >
+          >
             <Text
               numberOfLines={1}
               style={{
                 ...Fonts.SemiBold14white,
                 overflow: "hidden",
                 textShadowColor: 'rgba(0, 0, 0, 0.3)',
-                textShadowOffset: {width: 0, height: 1},
+                textShadowOffset: { width: 0, height: 1 },
                 textShadowRadius: 2,
                 fontSize: 16,
                 fontWeight: '600',
@@ -432,7 +484,7 @@ const HomeScreen = ({ navigation }) => {
                   textAlign: isRtl ? "right" : "left",
                   color: 'rgba(255, 255, 255, 0.95)',
                   textShadowColor: 'rgba(0, 0, 0, 0.2)',
-                  textShadowOffset: {width: 0, height: 1},
+                  textShadowOffset: { width: 0, height: 1 },
                   textShadowRadius: 1,
                   lineHeight: 22,
                   fontSize: 13,
@@ -495,7 +547,7 @@ const HomeScreen = ({ navigation }) => {
                 </Text>
               </View>
             )}
-            
+
             {/* Favorite icon */}
             <TouchableOpacity
               onPress={handleFavoriteNotice}
@@ -564,10 +616,10 @@ const HomeScreen = ({ navigation }) => {
     const getCardContent = () => {
       if (hasPendingRequest) {
         // Phase 2: User has pending request
-        const requestInfo = pendingRequest?.is_manual_entry 
+        const requestInfo = pendingRequest?.is_manual_entry
           ? pendingRequest.community_name
           : pendingRequest?.community?.[0]?.name || 'Community';
-        
+
         return {
           title: "Request Submitted",
           description: `Your request to join ${requestInfo} has been submitted and is currently under review. You will receive a notification once the admin approves your request.`,
@@ -609,7 +661,7 @@ const HomeScreen = ({ navigation }) => {
         >
           {content.title}
         </Text>
-        
+
         <Text
           style={{
             ...Fonts.Medium14grey,
@@ -644,10 +696,7 @@ const HomeScreen = ({ navigation }) => {
         </TouchableOpacity>
 
         <TouchableOpacity
-          onPress={() => {
-            // TODO: Navigate to setup community flow
-            console.log("Set Up a Community pressed");
-          }}
+          onPress={() => navigation.push("getSupportScreen")}
           style={{
             alignItems: "center",
           }}
@@ -715,7 +764,7 @@ const HomeScreen = ({ navigation }) => {
               numberOfLines={1}
               style={{ ...Fonts.SemiBold18primary, overflow: "hidden" }}
             >{`${tr("hi")} ${userName}`}</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => {
                 if (!hasJoinedCommunity && !hasPendingRequest) {
                   navigation.push("joinCommunityScreen");
@@ -772,7 +821,21 @@ const HomeScreen = ({ navigation }) => {
           )}
         </TouchableOpacity>
       </View>
-      {hasJoinedCommunity ? (
+      {communityLoading || !modulesLoaded ? (
+        <View
+          style={{
+            flex: 1,
+            justifyContent: "center",
+            alignItems: "center",
+            backgroundColor: Colors.white,
+          }}
+        >
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={{ ...Fonts.Medium14grey, marginTop: Default.fixPadding }}>
+            Loading home...
+          </Text>
+        </View>
+      ) : hasJoinedCommunity ? (
         <FlatList
           numColumns={2}
           data={activeTab === 'community' ? communityList : personalList}
@@ -787,9 +850,9 @@ const HomeScreen = ({ navigation }) => {
                 paddingBottom: Default.fixPadding * 0.5, // Extended white background
               }}
             >
-              <View style={{ 
+              <View style={{
                 paddingTop: Default.fixPadding * 0.8,
-                paddingHorizontal: Default.fixPadding * 2, 
+                paddingHorizontal: Default.fixPadding * 2,
                 marginBottom: Default.fixPadding * 0.2, // Reduced from 2 to 1.2
               }}>
                 <NoticeBanner />

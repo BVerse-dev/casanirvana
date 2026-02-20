@@ -7,9 +7,12 @@
 
 const { createClient } = require('@supabase/supabase-js');
 
-// Configuration (replace with your actual values)
-const SUPABASE_URL = 'https://pswnlowvmdgeifhxilao.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzd25sb3d2bWRnZWlmaHhpbGFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3ODE5MTYsImV4cCI6MjA2MzM1NzkxNn0.QOqSJr0qxefrIwM087IKlJJYWwMLCHV_v5iEb-SI7S0';
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  throw new Error('Missing SUPABASE_URL or SUPABASE_ANON_KEY');
+}
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -33,7 +36,7 @@ async function testCommunityLogic() {
         unit_id,
         status,
         community:communities!profiles_society_id_fkey(id, name, address, city, state),
-        unit:units!profiles_unit_id_fkey(id, block, number, unit_type, floor)
+        unit:units(id, block, number, unit_type, floor)
       `)
       .eq('email', 'demo@casanirvana.com')
       .single();

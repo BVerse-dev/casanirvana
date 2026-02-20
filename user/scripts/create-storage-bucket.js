@@ -1,14 +1,12 @@
 const { createClient } = require('@supabase/supabase-js');
 
-// Your Supabase configuration
-const supabaseUrl = "https://pswnlowvmdgeifhxilao.supabase.co";
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY; // You'll need to set this
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
 
 async function createAttachmentsBucket() {
-  if (!supabaseServiceKey) {
+  if (!supabaseUrl || !supabaseServiceKey) {
     console.error('❌ SUPABASE_SERVICE_KEY environment variable is required');
-    console.log('💡 Get your service key from: https://supabase.com/dashboard/project/pswnlowvmdgeifhxilao/settings/api');
-    console.log('💡 Then run: SUPABASE_SERVICE_KEY=your_key node scripts/create-storage-bucket.js');
+    console.log('💡 Then run: SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... node scripts/create-storage-bucket.js');
     process.exit(1);
   }
 

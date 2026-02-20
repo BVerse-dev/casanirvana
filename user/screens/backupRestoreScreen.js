@@ -5,20 +5,31 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
-  ProgressBarAndroid,
-  Platform,
   Modal,
+  ActivityIndicator,
 } from "react-native";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Colors, Default, Fonts } from "../constants/styles";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import MyStatusBar from "../components/myStatusBar";
+import { useAuth } from "../contexts/AuthContext";
+import {
+  loadUserBackupSettings,
+  updateUserBackupSettings,
+} from "../services/settingsPersistenceService";
+import {
+  cleanupCurrentUserBackups,
+  createCurrentUserBackup,
+  getCurrentUserBackupStatus,
+  restoreCurrentUserBackup,
+} from "../services/accountService";
 
 const BackupRestoreScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
-  const isRtl = i18n.dir() == "rtl";
+  const { user } = useAuth();
+  const isRtl = i18n.dir() === "rtl";
 
   function tr(key) {
     return t(`settingScreen:${key}`);
@@ -26,91 +37,188 @@ const BackupRestoreScreen = ({ navigation }) => {
 
   const [isBackingUp, setIsBackingUp] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
-  const [backupProgress, setBackupProgress] = useState(0);
-  const [restoreProgress, setRestoreProgress] = useState(0);
+  const [isCleaningBackups, setIsCleaningBackups] = useState(false);
   const [autoBackupEnabled, setAutoBackupEnabled] = useState(true);
+  const [backupFrequency, setBackupFrequency] = useState("daily");
   const [selectedBackupLocation, setSelectedBackupLocation] = useState("Google Drive");
+  const [isSettingsLoading, setIsSettingsLoading] = useState(true);
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [backupStatus, setBackupStatus] = useState(null);
   
   // Modal states
   const [showAutoBackupModal, setShowAutoBackupModal] = useState(false);
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  const [backupInfo] = useState({
-    lastBackup: "2024-07-30 14:30",
-    backupSize: "2.3 MB",
-    backupLocation: "Google Drive",
-    autoBackup: true,
-    backupFrequency: "Weekly",
-    nextBackup: "2024-08-06 14:30",
-  });
-
-  const [dataTypes] = useState([
+  const dataSummary = backupStatus?.data_summary || {};
+  const dataTypes = [
     {
       id: "profile",
       name: "Profile Information",
       description: "Name, email, phone number, avatar",
-      size: "0.1 MB",
+      size: `${dataSummary.profileRecords || 0} record(s)`,
       enabled: true,
       icon: "account",
       color: Colors.blue,
     },
     {
       id: "messages",
-      name: "Chat Messages",
-      description: "All chat conversations and media",
-      size: "1.2 MB",
+      name: "Messages",
+      description: "Chat conversations and notifications",
+      size: `${(dataSummary.messages || 0) + (dataSummary.notifications || 0)} record(s)`,
       enabled: true,
       icon: "message-text",
       color: Colors.green,
     },
     {
       id: "bookings",
-      name: "Service Bookings",
-      description: "Booking history and preferences",
-      size: "0.5 MB",
+      name: "Service Activity",
+      description: "Maintenance and service booking records",
+      size: `${(dataSummary.maintenanceRequests || 0) + (dataSummary.serviceBookings || 0)} record(s)`,
       enabled: true,
       icon: "calendar-check",
       color: Colors.orange,
     },
     {
       id: "payments",
-      name: "Payment Methods",
-      description: "Saved payment information (encrypted)",
-      size: "0.1 MB",
-      enabled: false,
+      name: "Payment Records",
+      description: "Payments and transaction metadata",
+      size: `${dataSummary.payments || 0} record(s)`,
+      enabled: true,
       icon: "credit-card",
       color: Colors.purple,
     },
     {
       id: "settings",
       name: "App Settings",
-      description: "Preferences and configuration",
-      size: "0.4 MB",
+      description: "Preferences and app configuration",
+      size: `${(dataSummary.inquiries || 0) + (dataSummary.visitorPasses || 0)} related record(s)`,
       enabled: true,
       icon: "cog",
       color: Colors.primary,
     },
-  ]);
+  ];
 
-  const simulateBackup = () => {
-    setIsBackingUp(true);
-    setBackupProgress(0);
-    
-    const interval = setInterval(() => {
-      setBackupProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setIsBackingUp(false);
-          Alert.alert("Success", "Backup completed successfully!");
-          return 100;
-        }
-        return prev + 10;
-      });
-    }, 300);
+  const formatDateTime = (value) => {
+    if (!value) {
+      return "Never";
+    }
+
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      return "Never";
+    }
+
+    return parsed.toLocaleString();
   };
 
-  const simulateRestore = () => {
+  const refreshBackupStatus = async () => {
+    const result = await getCurrentUserBackupStatus();
+    if (!result.success) {
+      throw new Error(result.error || "Failed to load backup status");
+    }
+
+    const status = result.data?.data;
+    if (status) {
+      setBackupStatus(status);
+      setAutoBackupEnabled(Boolean(status.auto_backup_enabled));
+      setBackupFrequency(status.backup_frequency || "daily");
+      setSelectedBackupLocation(status.backup_location || "Google Drive");
+    }
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const hydrateBackupSettings = async () => {
+      try {
+        const persistedSettings = await loadUserBackupSettings(user?.id);
+        if (isMounted) {
+          setAutoBackupEnabled(Boolean(persistedSettings.autoBackupEnabled));
+          setBackupFrequency(persistedSettings.backupFrequency || "daily");
+          setSelectedBackupLocation(persistedSettings.backupLocation || "Google Drive");
+        }
+
+        await refreshBackupStatus();
+      } catch (error) {
+        console.error("Failed to hydrate backup data:", error);
+      } finally {
+        if (isMounted) {
+          setIsSettingsLoading(false);
+        }
+      }
+    };
+
+    hydrateBackupSettings();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.id]);
+
+  const persistBackupSettings = async (patch, previousState) => {
+    if (isSavingSettings) {
+      return false;
+    }
+
+    setIsSavingSettings(true);
+    try {
+      await updateUserBackupSettings(user?.id, patch);
+      await refreshBackupStatus();
+      return true;
+    } catch (error) {
+      console.error("Failed to persist backup settings:", error);
+      setAutoBackupEnabled(previousState.autoBackupEnabled);
+      setBackupFrequency(previousState.backupFrequency);
+      setSelectedBackupLocation(previousState.selectedBackupLocation);
+      Alert.alert("Error", "Failed to save backup settings. Please try again.");
+      return false;
+    } finally {
+      setIsSavingSettings(false);
+    }
+  };
+
+  const executeBackupNow = async () => {
+    setIsBackingUp(true);
+    try {
+      const result = await createCurrentUserBackup();
+      if (!result.success) {
+        throw new Error(result.error || "Failed to create backup");
+      }
+
+      await refreshBackupStatus();
+      const backupData = result.data?.data;
+      Alert.alert(
+        "Success",
+        `Backup completed successfully${backupData?.backup_size_label ? ` (${backupData.backup_size_label})` : "!"}`
+      );
+    } catch (error) {
+      console.error("Failed to create backup:", error);
+      Alert.alert("Error", error?.message || "Failed to create backup. Please try again.");
+    } finally {
+      setIsBackingUp(false);
+    }
+  };
+
+  const executeRestore = async () => {
+    setIsRestoring(true);
+    try {
+      const result = await restoreCurrentUserBackup();
+      if (!result.success) {
+        throw new Error(result.error || "Failed to restore backup");
+      }
+
+      await refreshBackupStatus();
+      Alert.alert("Success", "Backup restored successfully.");
+    } catch (error) {
+      console.error("Failed to restore backup:", error);
+      Alert.alert("Error", error?.message || "Failed to restore backup. Please try again.");
+    } finally {
+      setIsRestoring(false);
+    }
+  };
+
+  const handleRestoreBackup = () => {
     Alert.alert(
       "Restore Data",
       "This will replace your current data with the backup. Are you sure?",
@@ -119,22 +227,7 @@ const BackupRestoreScreen = ({ navigation }) => {
         {
           text: "Restore",
           style: "destructive",
-          onPress: () => {
-            setIsRestoring(true);
-            setRestoreProgress(0);
-            
-            const interval = setInterval(() => {
-              setRestoreProgress(prev => {
-                if (prev >= 100) {
-                  clearInterval(interval);
-                  setIsRestoring(false);
-                  Alert.alert("Success", "Data restored successfully!");
-                  return 100;
-                }
-                return prev + 8;
-              });
-            }, 400);
-          }
+          onPress: executeRestore
         }
       ]
     );
@@ -209,10 +302,22 @@ const BackupRestoreScreen = ({ navigation }) => {
             
             <TouchableOpacity 
               style={[styles.modalButton, styles.confirmButton]}
-              onPress={() => {
-                setAutoBackupEnabled(!autoBackupEnabled);
+              onPress={async () => {
+                const previousState = {
+                  autoBackupEnabled,
+                  backupFrequency,
+                  selectedBackupLocation,
+                };
+                const nextValue = !autoBackupEnabled;
+                setAutoBackupEnabled(nextValue);
                 setShowAutoBackupModal(false);
-                Alert.alert("Success", `Auto backup ${!autoBackupEnabled ? 'enabled' : 'disabled'} successfully!`);
+                const saved = await persistBackupSettings(
+                  { autoBackupEnabled: nextValue },
+                  previousState
+                );
+                if (saved) {
+                  Alert.alert("Success", `Auto backup ${nextValue ? 'enabled' : 'disabled'} successfully!`);
+                }
               }}
             >
               <Text style={styles.confirmButtonText}>
@@ -259,9 +364,22 @@ const BackupRestoreScreen = ({ navigation }) => {
                     selectedBackupLocation === location.name && styles.selectedLocationOption
                   ]}
                   onPress={() => {
+                    const previousState = {
+                      autoBackupEnabled,
+                      backupFrequency,
+                      selectedBackupLocation,
+                    };
                     setSelectedBackupLocation(location.name);
                     setShowLocationModal(false);
-                    Alert.alert("Success", `Backup location set to ${location.name}!`);
+                    (async () => {
+                      const saved = await persistBackupSettings(
+                        { backupLocation: location.name },
+                        previousState
+                      );
+                      if (saved) {
+                        Alert.alert("Success", `Backup location set to ${location.name}!`);
+                      }
+                    })();
                   }}
                 >
                   <MaterialCommunityIcons 
@@ -329,12 +447,34 @@ const BackupRestoreScreen = ({ navigation }) => {
             
             <TouchableOpacity 
               style={[styles.modalButton, styles.deleteButton]}
-              onPress={() => {
+              disabled={isCleaningBackups}
+              onPress={async () => {
                 setShowDeleteModal(false);
-                Alert.alert("Success", "Old backups deleted successfully!");
+                setIsCleaningBackups(true);
+                try {
+                  const result = await cleanupCurrentUserBackups({ retentionDays: 30 });
+                  if (!result.success) {
+                    throw new Error(result.error || "Failed to clean backups");
+                  }
+                  await refreshBackupStatus();
+                  const deletedCount = result.data?.data?.deleted_backups || 0;
+                  Alert.alert(
+                    "Success",
+                    deletedCount > 0
+                      ? `Deleted ${deletedCount} old backup(s).`
+                      : "No old backups found to delete."
+                  );
+                } catch (error) {
+                  console.error("Failed to clean old backups:", error);
+                  Alert.alert("Error", error?.message || "Failed to clean old backups.");
+                } finally {
+                  setIsCleaningBackups(false);
+                }
               }}
             >
-              <Text style={styles.deleteButtonText}>Delete</Text>
+              <Text style={styles.deleteButtonText}>
+                {isCleaningBackups ? "Deleting..." : "Delete"}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -398,19 +538,31 @@ const BackupRestoreScreen = ({ navigation }) => {
           <View style={styles.backupStatusCard}>
             <View style={styles.statusRow}>
               <Text style={styles.statusLabel}>Last Backup:</Text>
-              <Text style={styles.statusValue}>{backupInfo.lastBackup}</Text>
+              <Text style={styles.statusValue}>{formatDateTime(backupStatus?.last_backup_at)}</Text>
             </View>
             <View style={styles.statusRow}>
               <Text style={styles.statusLabel}>Backup Size:</Text>
-              <Text style={styles.statusValue}>{backupInfo.backupSize}</Text>
+              <Text style={styles.statusValue}>
+                {backupStatus?.last_backup_size_label || "0 B"}
+              </Text>
             </View>
             <View style={styles.statusRow}>
               <Text style={styles.statusLabel}>Location:</Text>
-              <Text style={styles.statusValue}>{backupInfo.backupLocation}</Text>
+              <Text style={styles.statusValue}>{selectedBackupLocation}</Text>
             </View>
             <View style={styles.statusRow}>
               <Text style={styles.statusLabel}>Next Auto Backup:</Text>
-              <Text style={styles.statusValue}>{backupInfo.nextBackup}</Text>
+              <Text style={styles.statusValue}>
+                {autoBackupEnabled
+                  ? formatDateTime(backupStatus?.next_backup_at)
+                  : "Auto backup disabled"}
+              </Text>
+            </View>
+            <View style={styles.statusRow}>
+              <Text style={styles.statusLabel}>Available Backups:</Text>
+              <Text style={styles.statusValue}>
+                {backupStatus?.available_backups?.length || 0}
+              </Text>
             </View>
           </View>
         </View>
@@ -418,20 +570,16 @@ const BackupRestoreScreen = ({ navigation }) => {
         {/* Backup Progress */}
         {isBackingUp && (
           <View style={styles.progressSection}>
-            <Text style={styles.progressText}>Creating backup... {backupProgress}%</Text>
-            <View style={styles.progressBar}>
-              <View style={[styles.progressFill, { width: `${backupProgress}%` }]} />
-            </View>
+            <ActivityIndicator size="small" color={Colors.primary} />
+            <Text style={styles.progressText}>Creating secure backup...</Text>
           </View>
         )}
 
         {/* Restore Progress */}
         {isRestoring && (
           <View style={styles.progressSection}>
-            <Text style={styles.progressText}>Restoring data... {restoreProgress}%</Text>
-            <View style={styles.progressBar}>
-              <View style={[styles.progressFill, { width: `${restoreProgress}%` }]} />
-            </View>
+            <ActivityIndicator size="small" color={Colors.primary} />
+            <Text style={styles.progressText}>Restoring latest backup...</Text>
           </View>
         )}
 
@@ -451,8 +599,8 @@ const BackupRestoreScreen = ({ navigation }) => {
         <View style={styles.actionsSection}>
           <TouchableOpacity
             style={[styles.actionButton, styles.backupButton]}
-            onPress={simulateBackup}
-            disabled={isBackingUp || isRestoring}
+            onPress={executeBackupNow}
+            disabled={isBackingUp || isRestoring || isSettingsLoading}
           >
             <MaterialCommunityIcons name="backup-restore" size={20} color={Colors.white} />
             <Text style={styles.buttonText}>
@@ -462,8 +610,13 @@ const BackupRestoreScreen = ({ navigation }) => {
 
           <TouchableOpacity
             style={[styles.actionButton, styles.restoreButton]}
-            onPress={simulateRestore}
-            disabled={isBackingUp || isRestoring}
+            onPress={handleRestoreBackup}
+            disabled={
+              isBackingUp ||
+              isRestoring ||
+              isSettingsLoading ||
+              !backupStatus?.latest_backup_path
+            }
           >
             <MaterialCommunityIcons name="restore" size={20} color={Colors.white} />
             <Text style={styles.buttonText}>
@@ -479,18 +632,28 @@ const BackupRestoreScreen = ({ navigation }) => {
             <Text style={styles.sectionTitle}>Backup Settings</Text>
           </View>
           
-          <TouchableOpacity style={styles.settingRow} onPress={handleAutoBackupToggle}>
+          <TouchableOpacity
+            style={styles.settingRow}
+            onPress={handleAutoBackupToggle}
+            disabled={isSettingsLoading || isSavingSettings}
+          >
             <MaterialCommunityIcons name="cloud-sync" size={24} color={Colors.blue} />
             <View style={styles.settingInfo}>
               <Text style={styles.settingName}>Auto Backup</Text>
               <Text style={styles.settingDescription}>
-                {autoBackupEnabled ? 'Enabled - Weekly backups' : 'Disabled - Tap to enable'}
+                {autoBackupEnabled
+                  ? `Enabled - ${backupFrequency.charAt(0).toUpperCase()}${backupFrequency.slice(1)} backups`
+                  : "Disabled - Tap to enable"}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={Colors.grey} />
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.settingRow} onPress={handleBackupLocationSelect}>
+          <TouchableOpacity
+            style={styles.settingRow}
+            onPress={handleBackupLocationSelect}
+            disabled={isSettingsLoading || isSavingSettings}
+          >
             <MaterialCommunityIcons name="cloud" size={24} color={Colors.green} />
             <View style={styles.settingInfo}>
               <Text style={styles.settingName}>Backup Location</Text>

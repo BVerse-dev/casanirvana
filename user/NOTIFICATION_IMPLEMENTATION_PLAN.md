@@ -31,7 +31,7 @@ npm install expo-notifications expo-device expo-constants
 ### 4. Update Notice Board Integration
 - Add notification trigger when admin posts notice
 - Connect to existing FCM infrastructure
-- Send targeted notifications by society_id
+- Send targeted notifications by community_id
 
 ### 5. Add Notification Settings
 - User notification preferences

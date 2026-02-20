@@ -21,7 +21,7 @@ const HomeScreen = ({ navigation }) => {
       image: require("../assets/images/community1.png"),
       title: tr("members"),
       other: tr("connectMember"),
-      navigateTo: "societyMemberScreen",
+      navigateTo: "communityMemberScreen",
     },
     {
       key: "2",
@@ -34,7 +34,7 @@ const HomeScreen = ({ navigation }) => {
       key: "3",
       image: require("../assets/images/community3.png"),
       title: tr("noticeBoard"),
-      other: tr("societyAnnouncement"),
+      other: tr("communityAnnouncement"),
       navigateTo: "noticeBoardScreen",
     },
     {

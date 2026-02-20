@@ -92,8 +92,8 @@ const CategoryListingScreen = ({ navigation, route }) => {
     refetch();
   }, [categoryId, categoryData?.name]);
 
-  // Use dynamic products or fallback to mock data
-  const mockProducts = [
+  // Dev-only placeholder data. Production must remain DB-driven.
+  const devMockProducts = [
     {
       id: 1,
       name: "Honey Bee Balm",
@@ -162,7 +162,7 @@ const CategoryListingScreen = ({ navigation, route }) => {
     },
   ];
 
-  // Use database products if available, otherwise show empty state or mock data
+  // Use database products in production; only use placeholders in development.
   let products = [];
   let showEmptyState = false;
 
@@ -185,9 +185,10 @@ const CategoryListingScreen = ({ navigation, route }) => {
       // No products found for this category
       showEmptyState = true;
     }
+  } else if (__DEV__ && !isLoading && !error) {
+    products = devMockProducts;
   } else if (!isLoading) {
-    // Fallback to mock data if no database connection
-    products = mockProducts;
+    showEmptyState = true;
   }
 
   console.log("CategoryListing - Final products count:", products.length);

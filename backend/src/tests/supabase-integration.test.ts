@@ -1,11 +1,18 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { supabase, adminSupabase } from '../lib/supabase';
-import * as SocietyService from '../services/society';
 
 // Test ID to track created records for cleanup
 const TEST_ID = `test-${Date.now()}`;
 
-describe('Supabase Integration Tests', () => {
+const hasSupabaseEnv = Boolean(
+  process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL
+) && Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY);
+
+const suite = hasSupabaseEnv ? describe : describe.skip;
+
+suite('Supabase Integration Tests', () => {
+  let supabase: typeof import('../lib/supabase').supabase;
+  let adminSupabase: typeof import('../lib/supabase').adminSupabase;
+  let SocietyService: typeof import('../services/society');
   // Test data
   const testSociety = {
     name: `Test Society ${TEST_ID}`,
@@ -32,6 +39,11 @@ describe('Supabase Integration Tests', () => {
         .delete()
         .eq('id', createdIds.society);
     }
+  });
+
+  beforeAll(async () => {
+    ({ supabase, adminSupabase } = await import('../lib/supabase'));
+    SocietyService = await import('../services/society');
   });
 
   // Test CRUD operations for societies

@@ -12,6 +12,7 @@ import { Colors, Fonts, Default } from "../constants/styles";
 import { useTranslation } from "react-i18next";
 import { ms } from "react-native-size-matters/extend";
 import { OtpInput } from "react-native-otp-entry";
+import { loadModuleSettings, isScreenEnabled } from "../services/moduleSettingsService";
 
 const HomeScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
@@ -26,10 +27,20 @@ const HomeScreen = ({ navigation }) => {
   const titleCase = (str) =>
     typeof str === "string"
       ? str
-          .split(" ")
-          .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1) : w))
-          .join(" ")
+        .split(" ")
+        .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1) : w))
+        .join(" ")
       : str;
+
+  // Load module settings on mount
+  const [modulesLoaded, setModulesLoaded] = useState(false);
+  useEffect(() => {
+    const initModules = async () => {
+      await loadModuleSettings();
+      setModulesLoaded(true);
+    };
+    initModules();
+  }, []);
 
   const visitorList = [
     {
@@ -56,7 +67,7 @@ const HomeScreen = ({ navigation }) => {
       title: tr("serviceEntry"),
       navigateTo: "serviceEntryScreen",
     },
-  ];
+  ].filter(item => isScreenEnabled(item.navigateTo));
 
   const renderItem = ({ item, index }) => {
     return (
@@ -155,7 +166,7 @@ const HomeScreen = ({ navigation }) => {
                 paddingLeft: isRtl ? Default.fixPadding * 0.5 : 0,
               }}
             >
-              {`Gate A |  Casa Nirvana Society`}
+              {`Gate A |  Casa Nirvana Community`}
             </Text>
           </View>
         </View>

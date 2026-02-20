@@ -1,12 +1,42 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Text, View, ImageBackground, Image } from "react-native";
 import MyStatusBar from "../components/myStatusBar";
 import { Colors, Default, Fonts } from "../constants/styles";
+import { supabase } from "../utils/supabase";
 
 const SplashScreen = ({ navigation }) => {
-  setTimeout(() => {
-    navigation.push("onboardingScreen");
-  }, 2000);
+  useEffect(() => {
+    let mounted = true;
+
+    const routeFromSession = async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (!mounted) return;
+
+        if (error) {
+          navigation.replace("onboardingScreen");
+          return;
+        }
+
+        if (data?.session?.user) {
+          navigation.replace("bottomTab");
+        } else {
+          navigation.replace("onboardingScreen");
+        }
+      } catch (_) {
+        if (mounted) {
+          navigation.replace("onboardingScreen");
+        }
+      }
+    };
+
+    const timeoutId = setTimeout(routeFromSession, 1200);
+    return () => {
+      mounted = false;
+      clearTimeout(timeoutId);
+    };
+  }, [navigation]);
+
   return (
     <View style={{ flex: 1 }}>
       <MyStatusBar />
@@ -55,7 +85,7 @@ const SplashScreen = ({ navigation }) => {
                 paddingHorizontal: Default.fixPadding * 0.5,
               }}
             >
-              Society
+              Community
             </Text>
             <View
               style={{

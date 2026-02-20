@@ -30,7 +30,7 @@ function testDataStructure() {
   // Test 2: Check data structure
   console.log('🔍 Data Structure Test:');
   const testMember = sampleMembers[0];
-  const requiredFields = ['key', 'id', 'name', 'flatNo', 'block', 'societyName', 'email', 'phone', 'role', 'status', 'avatar_url', 'image'];
+  const requiredFields = ['key', 'id', 'name', 'flatNo', 'block', 'communityName', 'email', 'phone', 'role', 'status', 'avatar_url', 'image'];
   
   console.log(`   Testing member: ${testMember?.name}`);
   requiredFields.forEach(field => {

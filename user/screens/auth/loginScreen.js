@@ -190,7 +190,10 @@ const LoginScreen = ({ navigation }) => {
                     return;
                   }
 
-                  navigation.push("verificationScreen", { phone: fullPhone });
+                  navigation.push("verificationScreen", {
+                    phone: fullPhone,
+                    verificationType: "phone",
+                  });
                 } catch (e) {
                   console.log("Phone login error:", e);
                   Alert.alert("Error", e.message || "Something went wrong. Please try again.");

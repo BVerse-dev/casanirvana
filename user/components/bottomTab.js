@@ -29,8 +29,12 @@ import ServiceScreen from "../screens/serviceScreen";
 import ProfileScreen from "../screens/profileScreen";
 import { Fonts, Colors, Default } from "../constants/styles";
 import { useHasJoinedCommunity } from "../hooks/useCommunityData";
-import emergencyService, { EMERGENCY_TYPES } from "../services/emergencyService";
-import LocationPreview from "./LocationPreview";
+import {
+  EMERGENCY_TYPES,
+  createEmergencyAlert,
+  getAllGuards,
+  getCommunityAdmins,
+} from "../services/emergencyService";
 
 const Tab = createBottomTabNavigator();
 
@@ -77,7 +81,7 @@ const BottomTab = ({ navigation }) => {
         backSubscription?.remove();
         navigation.removeListener("gestureEnd", backAction);
       };
-    }, [exitApp])
+    }, [exitApp, navigation])
   );
 
   const title1 = isRtl ? tr("profile") : tr("home");
@@ -93,7 +97,6 @@ const BottomTab = ({ navigation }) => {
   const [isProcessingAlert, setIsProcessingAlert] = useState(false);
   const [showEmergencyModal, setShowEmergencyModal] = useState(false);
   const [selectedEmergency, setSelectedEmergency] = useState(null);
-  const [emergencyLocationData, setEmergencyLocationData] = useState(null);
 
   const securityAlertList = [
     {
@@ -154,7 +157,7 @@ const BottomTab = ({ navigation }) => {
     setShowEmergencyModal(false);
     
             try {
-              const result = await emergencyService.createEmergencyAlert(
+              const result = await createEmergencyAlert(
                 selectedEmergency.type,
                 null, // Will use user's unit location
                 profile, // Pass the profile data that's already working
@@ -162,11 +165,6 @@ const BottomTab = ({ navigation }) => {
               );
 
       if (result.success) {
-        // Store location data for the success modal
-        if (result.locationData) {
-          setEmergencyLocationData(result.locationData);
-        }
-        
         Alert.alert(
           "Emergency Alert Sent! 🚨",
           `${result.message}\n\n${result.notifiedCount} people have been notified.${result.locationData ? '\n\n📍 Your location has been shared with responders.' : ''}`,
@@ -195,40 +193,25 @@ const BottomTab = ({ navigation }) => {
     
     try {
       // Get any admin from the community
-      const admins = await emergencyService.getCommunityAdmins(profile.community_id);
+      const admins = await getCommunityAdmins(profile.community_id);
       
       if (admins && admins.length > 0) {
         const admin = admins[0]; // Just pick the first admin
         navigation.push("messageScreen", {
           image: require("../assets/images/img14.png"), // Default admin image
           name: `${admin.first_name} ${admin.last_name} (Admin)`,
-          key: admin.id,
-          userId: admin.id,
+          key: "2",
+          id: admin.id,
+          memberId: admin.id,
           role: admin.role,
           isAdmin: true
         });
       } else {
-        // Create a default admin chat if none found
-        navigation.push("messageScreen", {
-          image: require("../assets/images/img14.png"),
-          name: "Community Admin",
-          key: "admin_default",
-          userId: "admin_default",
-          role: "admin",
-          isAdmin: true
-        });
+        Alert.alert("Unavailable", "No community admin is available for chat right now.");
       }
     } catch (error) {
       console.error("Error getting admin for chat:", error);
-      // Still open chat even if there's an error
-      navigation.push("messageScreen", {
-        image: require("../assets/images/img14.png"),
-        name: "Community Admin",
-        key: "admin_default",
-        userId: "admin_default",
-        role: "admin",
-        isAdmin: true
-      });
+      Alert.alert("Error", "Unable to open admin chat right now. Please try again.");
     }
   };
 
@@ -243,40 +226,25 @@ const BottomTab = ({ navigation }) => {
     
     try {
       // Get any guard from the community
-      const guards = await emergencyService.getAllGuards(profile.community_id);
+      const guards = await getAllGuards(profile.community_id);
       
       if (guards && guards.length > 0) {
         const guard = guards[0]; // Just pick the first guard
         navigation.push("messageScreen", {
           image: require("../assets/images/s2.png"), // Security guard image
           name: `${guard.first_name} ${guard.last_name} (Security)`,
-          key: guard.id,
-          userId: guard.id,
+          key: "2",
+          id: guard.id,
+          memberId: guard.id,
           role: "guard",
           isGuard: true
         });
       } else {
-        // Create a default guard chat if none found
-        navigation.push("messageScreen", {
-          image: require("../assets/images/s2.png"),
-          name: "Security Guard",
-          key: "guard_default",
-          userId: "guard_default",
-          role: "guard",
-          isGuard: true
-        });
+        Alert.alert("Unavailable", "No security guard is available for chat right now.");
       }
     } catch (error) {
       console.error("Error getting guard for chat:", error);
-      // Still open chat even if there's an error
-      navigation.push("messageScreen", {
-        image: require("../assets/images/s2.png"),
-        name: "Security Guard",
-        key: "guard_default",
-        userId: "guard_default",
-        role: "guard",
-        isGuard: true
-      });
+      Alert.alert("Error", "Unable to open guard chat right now. Please try again.");
     }
   };
 

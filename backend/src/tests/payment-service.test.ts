@@ -1,17 +1,25 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { adminSupabase } from '../lib/supabase';
-import * as PaymentService from '../services/payment';
 
 // Test ID to track created records for cleanup
 const TEST_ID = `test-${Date.now()}`;
 
-describe('Payment Service Supabase Integration Tests', () => {
+const hasSupabaseEnv = Boolean(
+  process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL
+) && Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY);
+
+const suite = hasSupabaseEnv ? describe : describe.skip;
+
+suite('Payment Service Supabase Integration Tests', () => {
+  let adminSupabase: typeof import('../lib/supabase').adminSupabase;
+  let PaymentService: typeof import('../services/payment');
   // Store created IDs for cleanup
   const createdIds: { [key: string]: string } = {};
 
   // Setup: Create test society, unit, and user for our payments
   beforeAll(async () => {
     try {
+      ({ adminSupabase } = await import('../lib/supabase'));
+      PaymentService = await import('../services/payment');
       // Create a test society
       const { data: society } = await adminSupabase
         .from('societies')

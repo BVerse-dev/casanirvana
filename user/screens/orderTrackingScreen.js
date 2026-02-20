@@ -18,7 +18,7 @@ import { Colors, Fonts, Default } from "../constants/styles";
 import { useTranslation } from "react-i18next";
 import MyStatusBar from "../components/myStatusBar";
 import { useOrder } from "../hooks/useMarketplace";
-import { supabase } from "../lib/supabase";
+import { supabase } from "../utils/supabase";
 
 const { width, height } = Dimensions.get("window");
 

@@ -12,15 +12,18 @@
 
 const { createClient } = require('@supabase/supabase-js');
 
-// Configuration
-const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || 'your-supabase-url';
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || 'your-service-key';
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.EXPO_PUBLIC_SUPABASE_URL;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+  throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+}
 
 // Initialize Supabase client with service role key for admin operations
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
 // Sample data structure matching the database schema
-const sampleSocietyData = {
+const sampleCommunityData = {
   name: "Ayi Mensah Park Community",
   description: "A modern residential community with world-class amenities",
   address: "123 Ayi Mensah Street, Accra, Ghana",
@@ -94,32 +97,32 @@ async function seedDatabase() {
   try {
     console.log('🌱 Starting database seeding...');
 
-    // 1. Create or get society
-    console.log('📍 Creating society...');
-    const { data: society, error: societyError } = await supabase
-      .from('societies')
-      .upsert([sampleSocietyData], { onConflict: 'name' })
+    // 1. Create or get community
+    console.log('📍 Creating community...');
+    const { data: community, error: communityError } = await supabase
+      .from('communities')
+      .upsert([sampleCommunityData], { onConflict: 'name' })
       .select()
       .single();
 
-    if (societyError) {
-      console.error('❌ Error creating society:', societyError);
+    if (communityError) {
+      console.error('❌ Error creating community:', communityError);
       return;
     }
 
-    console.log('✅ Society created:', society.name);
+    console.log('✅ Community created:', community.name);
 
     // 2. Create units
     console.log('🏠 Creating units...');
     const unitsToCreate = sampleUnits.map(unit => ({
       ...unit,
-      society_id: society.id,
+      community_id: community.id,
       status: 'occupied'
     }));
 
     const { data: units, error: unitsError } = await supabase
       .from('units')
-      .upsert(unitsToCreate, { onConflict: 'society_id,block,number' })
+      .upsert(unitsToCreate, { onConflict: 'community_id,block,number' })
       .select();
 
     if (unitsError) {
@@ -149,11 +152,11 @@ async function seedDatabase() {
         email: member.email,
         phone: member.phone,
         role: member.role,
-        society_id: society.id,
+        community_id: community.id,
         unit_id: unit.id,
         status: 'active',
         is_active: true,
-        current_society_id: society.id,
+        current_community_id: community.id,
       };
 
       const { data: profile, error: profileError } = await supabase
@@ -171,7 +174,7 @@ async function seedDatabase() {
 
     console.log('🎉 Database seeding completed successfully!');
     console.log('📊 Summary:');
-    console.log(`   • Society: ${society.name}`);
+    console.log(`   • Community: ${community.name}`);
     console.log(`   • Units: ${units?.length || 0}`);
     console.log(`   • Members: ${sampleMembers.length}`);
     console.log(`   • Admins: ${sampleMembers.filter(m => m.role === 'admin').length}`);
@@ -194,4 +197,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { seedDatabase, sampleSocietyData, sampleUnits, sampleMembers };
+module.exports = { seedDatabase, sampleCommunityData, sampleUnits, sampleMembers };

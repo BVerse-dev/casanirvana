@@ -159,7 +159,7 @@ const SuggestionsScreen = ({ navigation }) => {
         user_email: formData.isAnonymous ? null : profile?.email,
         user_phone: formData.isAnonymous ? null : profile?.phone_number,
         unit_number: formData.isAnonymous ? null : profile?.unit_number,
-        society_id: profile?.society_id,
+        community_id: profile?.community_id,
         inquiry_type: 'suggestion',
         status: 'open',
         created_at: new Date().toISOString(),

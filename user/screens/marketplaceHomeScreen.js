@@ -133,14 +133,31 @@ const MarketplaceHomeScreen = ({ navigation }) => {
     },
   ];
 
-  // Use database categories if available, otherwise fallback
+  const parseBackgroundColors = (colors) => {
+    if (Array.isArray(colors) && colors.length > 0) {
+      return colors;
+    }
+    if (typeof colors === "string") {
+      try {
+        const parsed = JSON.parse(colors);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      } catch (error) {
+        console.warn("Invalid category background colors:", error);
+      }
+    }
+    return ["#FF6B6B", "#FF8E8E"];
+  };
+
+  // Production is DB-driven; fallback categories are dev-only.
   const categories = categoriesData && categoriesData.length > 0 ? categoriesData.map(cat => ({
     id: cat.id,
     name: cat.name,
     icon: cat.icon_name || "grid",
     iconType: cat.icon_type || "Ionicons",
-    bgColor: cat.background_colors ? JSON.parse(cat.background_colors) : ["#FF6B6B", "#FF8E8E"]
-  })) : fallbackCategories;
+    bgColor: parseBackgroundColors(cat.background_colors),
+  })) : (__DEV__ ? fallbackCategories : []);
 
   const heroSlides = [
     {
@@ -196,7 +213,7 @@ const MarketplaceHomeScreen = ({ navigation }) => {
     },
   ];
 
-  const freshFoodsProducts = [
+  const devFreshFoodsProducts = [
     {
       id: 1,
       name: "Organic Vegetables",
@@ -223,7 +240,7 @@ const MarketplaceHomeScreen = ({ navigation }) => {
     },
   ];
 
-  const homeProducts = [
+  const devHomeProducts = [
     {
       id: 1,
       name: "Modern Furniture Set",
@@ -250,7 +267,7 @@ const MarketplaceHomeScreen = ({ navigation }) => {
     },
   ];
 
-  const groceriesProducts = [
+  const devGroceriesProducts = [
     {
       id: 1,
       name: "Pantry Essentials Pack",
@@ -276,6 +293,24 @@ const MarketplaceHomeScreen = ({ navigation }) => {
       image: require("../assets/images/img3.png"),
     },
   ];
+
+  const mapProductCard = (product) => {
+    const price = Number(product.price || 0);
+    const originalPrice = Number(product.original_price || price);
+    return {
+      id: product.id,
+      name: product.name,
+      price: `US$${price.toFixed(2)}`,
+      originalPrice: `US$${originalPrice.toFixed(2)}`,
+      discount: product.discount_percentage ? `${product.discount_percentage}% off` : null,
+      image: product.images && product.images.length > 0 ? { uri: product.images[0] } : require("../assets/images/img1.png"),
+    };
+  };
+
+  const dbCards = Array.isArray(productsData) ? productsData.map(mapProductCard) : [];
+  const freshFoodsProducts = dbCards.length > 0 ? dbCards.slice(0, 8) : (__DEV__ ? devFreshFoodsProducts : []);
+  const homeProducts = dbCards.length > 8 ? dbCards.slice(8, 16) : (__DEV__ ? devHomeProducts : []);
+  const groceriesProducts = dbCards.length > 16 ? dbCards.slice(16, 24) : (__DEV__ ? devGroceriesProducts : []);
 
   useEffect(() => {
     // Auto-slide hero images
@@ -616,117 +651,125 @@ const MarketplaceHomeScreen = ({ navigation }) => {
         </View>
 
         {/* Fresh Foods Section */}
-        <View style={styles.section}>
-          <TouchableOpacity 
-            style={styles.sectionHeader}
-            onPress={() => navigation.navigate("categoryListingScreen", {
-              category: "Fresh Foods",
-              categoryId: "fresh-foods",
-              categoryData: { name: "Fresh Foods", id: "fresh-foods" }
-            })}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.sectionTitle}>Fresh Foods</Text>
-            <Ionicons name="chevron-forward" size={20} color={Colors.black} />
-          </TouchableOpacity>
-          <FlatList
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            data={freshFoodsProducts}
-            renderItem={renderProduct}
-            keyExtractor={(item) => item.id.toString()}
-            contentContainerStyle={styles.horizontalList}
-          />
-        </View>
+        {freshFoodsProducts.length > 0 && (
+          <View style={styles.section}>
+            <TouchableOpacity 
+              style={styles.sectionHeader}
+              onPress={() => navigation.navigate("categoryListingScreen", {
+                category: "Fresh Foods",
+                categoryId: "fresh-foods",
+                categoryData: { name: "Fresh Foods", id: "fresh-foods" }
+              })}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.sectionTitle}>Fresh Foods</Text>
+              <Ionicons name="chevron-forward" size={20} color={Colors.black} />
+            </TouchableOpacity>
+            <FlatList
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              data={freshFoodsProducts}
+              renderItem={renderProduct}
+              keyExtractor={(item) => item.id.toString()}
+              contentContainerStyle={styles.horizontalList}
+            />
+          </View>
+        )}
 
         {/* Home & Living Section */}
-        <View style={styles.section}>
-          <TouchableOpacity 
-            style={styles.sectionHeader}
-            onPress={() => navigation.navigate("categoryListingScreen", {
-              category: "Home & Living",
-              categoryId: "home-living",
-              categoryData: { name: "Home & Living", id: "home-living" }
-            })}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.sectionTitle}>Home & Living</Text>
-            <Ionicons name="chevron-forward" size={20} color={Colors.black} />
-          </TouchableOpacity>
-          <FlatList
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            data={homeProducts}
-            renderItem={renderProduct}
-            keyExtractor={(item) => item.id.toString()}
-            contentContainerStyle={styles.horizontalList}
-          />
-        </View>
+        {homeProducts.length > 0 && (
+          <View style={styles.section}>
+            <TouchableOpacity 
+              style={styles.sectionHeader}
+              onPress={() => navigation.navigate("categoryListingScreen", {
+                category: "Home & Living",
+                categoryId: "home-living",
+                categoryData: { name: "Home & Living", id: "home-living" }
+              })}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.sectionTitle}>Home & Living</Text>
+              <Ionicons name="chevron-forward" size={20} color={Colors.black} />
+            </TouchableOpacity>
+            <FlatList
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              data={homeProducts}
+              renderItem={renderProduct}
+              keyExtractor={(item) => item.id.toString()}
+              contentContainerStyle={styles.horizontalList}
+            />
+          </View>
+        )}
 
         {/* Groceries Section */}
-        <View style={styles.section}>
-          <TouchableOpacity 
-            style={styles.sectionHeader}
-            onPress={() => navigation.navigate("categoryListingScreen", {
-              category: "Groceries",
-              categoryId: "groceries",
-              categoryData: { name: "Groceries", id: "groceries" }
-            })}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.sectionTitle}>Groceries</Text>
-            <Ionicons name="chevron-forward" size={20} color={Colors.black} />
-          </TouchableOpacity>
-          <FlatList
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            data={groceriesProducts}
-            renderItem={renderProduct}
-            keyExtractor={(item) => item.id.toString()}
-            contentContainerStyle={styles.horizontalList}
-          />
-        </View>
+        {groceriesProducts.length > 0 && (
+          <View style={styles.section}>
+            <TouchableOpacity 
+              style={styles.sectionHeader}
+              onPress={() => navigation.navigate("categoryListingScreen", {
+                category: "Groceries",
+                categoryId: "groceries",
+                categoryData: { name: "Groceries", id: "groceries" }
+              })}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.sectionTitle}>Groceries</Text>
+              <Ionicons name="chevron-forward" size={20} color={Colors.black} />
+            </TouchableOpacity>
+            <FlatList
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              data={groceriesProducts}
+              renderItem={renderProduct}
+              keyExtractor={(item) => item.id.toString()}
+              contentContainerStyle={styles.horizontalList}
+            />
+          </View>
+        )}
 
         {/* Imported Products Section */}
-        <View style={styles.section}>
-          <TouchableOpacity 
-            style={styles.sectionHeader}
-            onPress={() => navigation.navigate("categoryListingScreen", {
-              category: "Imported Products",
-              categoryId: "imported",
-              categoryData: { name: "Imported Products", id: "imported", category_type: "imported" }
-            })}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.sectionTitle}>Imported Products</Text>
-            <Ionicons name="chevron-forward" size={20} color={Colors.black} />
-          </TouchableOpacity>
-          <FlatList
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            data={importedCategoriesData || []}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.importedCategoryCard}
-                onPress={() => navigation.navigate("categoryListingScreen", {
-                  category: item.name,
-                  categoryId: item.id,
-                  categoryData: item
-                })}
-              >
-                <LinearGradient
-                  colors={JSON.parse(item.background_colors || '["#6B3AA0", "#8B5FBF"]')}
-                  style={styles.importedCategoryGradient}
+        {Array.isArray(importedCategoriesData) && importedCategoriesData.length > 0 && (
+          <View style={styles.section}>
+            <TouchableOpacity 
+              style={styles.sectionHeader}
+              onPress={() => navigation.navigate("categoryListingScreen", {
+                category: "Imported Products",
+                categoryId: "imported",
+                categoryData: { name: "Imported Products", id: "imported", category_type: "imported" }
+              })}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.sectionTitle}>Imported Products</Text>
+              <Ionicons name="chevron-forward" size={20} color={Colors.black} />
+            </TouchableOpacity>
+            <FlatList
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              data={importedCategoriesData}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.importedCategoryCard}
+                  onPress={() => navigation.navigate("categoryListingScreen", {
+                    category: item.name,
+                    categoryId: item.id,
+                    categoryData: item
+                  })}
                 >
-                  <Text style={styles.importedCategoryText}>{item.name}</Text>
-                  <Text style={styles.importedCategoryDesc}>{item.description}</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            )}
-            keyExtractor={(item) => item.id.toString()}
-            contentContainerStyle={styles.horizontalList}
-          />
-        </View>
+                  <LinearGradient
+                    colors={parseBackgroundColors(item.background_colors)}
+                    style={styles.importedCategoryGradient}
+                  >
+                    <Text style={styles.importedCategoryText}>{item.name}</Text>
+                    <Text style={styles.importedCategoryDesc}>{item.description}</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
+              keyExtractor={(item) => item.id.toString()}
+              contentContainerStyle={styles.horizontalList}
+            />
+          </View>
+        )}
 
         {/* More Categories */}
         <View style={styles.categoriesGrid}>

@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
   createBillPayment, 
   getBillPayments,
@@ -15,15 +15,13 @@ import { useAuth } from "../contexts/AuthContext";
 export const useCreateBillPayment = () => {
   const queryClient = useQueryClient();
   
-  return useMutation(
-    (billPayment: any) => createBillPayment(billPayment),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(["billPayments"]);
-        queryClient.invalidateQueries(["personalHubTransactions"]);
-      }
+  return useMutation({
+    mutationFn: (billPayment: any) => createBillPayment(billPayment),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["billPayments"] });
+      queryClient.invalidateQueries({ queryKey: ["personalHubTransactions"] });
     }
-  );
+  });
 };
 
 /**
@@ -31,15 +29,14 @@ export const useCreateBillPayment = () => {
  */
 export const useBillPayments = () => {
   const { profile } = useAuth();
+  const profileKey = profile?.user_id || profile?.id;
   
-  return useQuery(
-    ["billPayments", profile?.user_id],
-    () => getBillPayments(profile?.user_id),
-    {
-      enabled: !!profile?.user_id,
-      select: (response) => response?.data || []
-    }
-  );
+  return useQuery({
+    queryKey: ["billPayments", profileKey],
+    queryFn: () => getBillPayments(profileKey),
+    enabled: !!profileKey,
+    select: (response: any) => response?.data || [],
+  });
 };
 
 /**
@@ -48,15 +45,13 @@ export const useBillPayments = () => {
 export const useUpdateBillPaymentStatus = () => {
   const queryClient = useQueryClient();
   
-  return useMutation(
-    ({ id, status }: { id: string; status: string }) => updateBillPaymentStatus(id, status),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(["billPayments"]);
-        queryClient.invalidateQueries(["personalHubTransactions"]);
-      }
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) => updateBillPaymentStatus(id, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["billPayments"] });
+      queryClient.invalidateQueries({ queryKey: ["personalHubTransactions"] });
     }
-  );
+  });
 };
 
 /**
@@ -65,14 +60,12 @@ export const useUpdateBillPaymentStatus = () => {
 export const useSaveBillAccount = () => {
   const queryClient = useQueryClient();
   
-  return useMutation(
-    (account: any) => saveBillAccount(account),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(["savedBillAccounts"]);
-      }
+  return useMutation({
+    mutationFn: (account: any) => saveBillAccount(account),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["savedBillAccounts"] });
     }
-  );
+  });
 };
 
 /**
@@ -80,15 +73,14 @@ export const useSaveBillAccount = () => {
  */
 export const useSavedBillAccounts = (provider?: string) => {
   const { profile } = useAuth();
+  const profileKey = profile?.user_id || profile?.id;
   
-  return useQuery(
-    ["savedBillAccounts", profile?.user_id, provider],
-    () => getSavedBillAccounts(profile?.user_id, provider),
-    {
-      enabled: !!profile?.user_id,
-      select: (response) => response?.data || []
-    }
-  );
+  return useQuery({
+    queryKey: ["savedBillAccounts", profileKey, provider],
+    queryFn: () => getSavedBillAccounts(profileKey, provider),
+    enabled: !!profileKey,
+    select: (response: any) => response?.data || [],
+  });
 };
 
 /**
@@ -97,12 +89,10 @@ export const useSavedBillAccounts = (provider?: string) => {
 export const useDeleteSavedBillAccount = () => {
   const queryClient = useQueryClient();
   
-  return useMutation(
-    (id: string) => deleteSavedBillAccount(id),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(["savedBillAccounts"]);
-      }
+  return useMutation({
+    mutationFn: (id: string) => deleteSavedBillAccount(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["savedBillAccounts"] });
     }
-  );
+  });
 };

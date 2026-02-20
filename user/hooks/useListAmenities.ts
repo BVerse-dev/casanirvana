@@ -24,7 +24,7 @@ export interface Amenity {
   contact_person: string;
   contact_phone: string;
   booking_phone: string;
-  society_id: string;
+  community_id: string;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -40,21 +40,21 @@ export interface UseListAmenitiesOptions {
   type?: string;
   category?: string;
   search?: string;
-  society_id?: string;
+  community_id?: string;
   enabled?: boolean;
 }
 
 export const useListAmenities = (options: UseListAmenitiesOptions = {}) => {
-  const { type, category, search, society_id, enabled = true } = options;
+  const { type, category, search, community_id, enabled = true } = options;
 
   return useQuery({
-    queryKey: ['amenities', { type, category, search, society_id }],
+    queryKey: ['amenities', { type, category, search, community_id }],
     queryFn: async (): Promise<Amenity[]> => {
       const filters: Record<string, any> = {};
       if (type) filters.type = type;
       if (category) filters.category = category;
       if (search) filters.search = search;
-      if (society_id) filters.society_id = society_id;
+      if (community_id) filters.community_id = community_id;
 
       const response = await amenityService.getAmenities(filters) as ServiceResponse<Amenity[]>;
       

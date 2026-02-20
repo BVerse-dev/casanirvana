@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   StyleSheet,
   Text,
@@ -31,30 +31,17 @@ import { useListDailyHelp } from "../hooks/useDailyHelp";
 import { useListVehicles } from "../hooks/useVehicles";
 import { useListFrequentEntries } from "../hooks/useFrequentEntries";
 import { useUserGatePass } from "../hooks/useUserGatePass";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "../lib/supabase";
+import { useAuth } from "../contexts/AuthContext";
 
 const ProfileScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
-  const [user, setUser] = useState(null);
-  const queryClient = useQueryClient();
+  const { user, profile } = useAuth();
 
-  const isRtl = i18n.dir() == "rtl";
+  const isRtl = i18n.dir() === "rtl";
 
   function tr(key) {
     return t(`profileScreen:${key}`);
   }
-
-  // Get current user
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-    };
-    getUser();
-  }, []);
-
-
 
   const shareMessage = () => {
     Share.share({
@@ -66,45 +53,28 @@ const ProfileScreen = ({ navigation }) => {
     setSelectedEntry(entry);
     setSelectedEntryType(entryType);
     setOpenEntryDetailModal(true);
-  };  // Real data from Supabase - Use demo user ID for now
-  const demoUserId = '8fcb1ff1-a385-4c26-8bb4-80c5f23477de';
-  const { data: familyMembers, isLoading: familyLoading, error: familyError } = useListFamilyMembers(demoUserId);
-  const { data: dailyHelp, isLoading: dailyHelpLoading, error: dailyHelpError } = useListDailyHelp(demoUserId);
-  const { data: vehicles, isLoading: vehiclesLoading, error: vehiclesError } = useListVehicles(demoUserId);
-  const { data: frequentEntries, isLoading: frequentEntriesLoading, error: frequentEntriesError } = useListFrequentEntries(demoUserId);
-  
-  // Get user's gate pass data - use hardcoded demo user ID for consistency
-  const { data: userGatePass, isLoading: userGatePassLoading } = useQuery({
-    queryKey: ['user-gate-pass'],
-    queryFn: async () => {
-      console.log('🎫 ProfileScreen - Fetching user gate pass for demo user ID:', demoUserId);
-      const { data, error } = await supabase
-        .from('profiles')
-        .select(`
-          id, 
-          user_id, 
-          full_name, 
-          email, 
-          qr_code_data, 
-          entry_code, 
-          community_id, 
-          unit_id,
-          units(block, number),
-          communities!profiles_society_id_fkey(name)
-        `)
-        .eq('user_id', demoUserId)
-        .single();
+  };
 
-      if (error) {
-        console.error('🎫 ProfileScreen - Error fetching user gate pass:', error);
-        throw error;
-      }
+  const activeUserId = user?.id || profile?.user_id || null;
+  const { data: familyMembers, isLoading: familyLoading } = useListFamilyMembers(activeUserId);
+  const { data: dailyHelp, isLoading: dailyHelpLoading } = useListDailyHelp(activeUserId);
+  const { data: vehicles, isLoading: vehiclesLoading } = useListVehicles(activeUserId);
+  const { data: frequentEntries, isLoading: frequentEntriesLoading } = useListFrequentEntries(activeUserId);
+  const { data: userGatePass } = useUserGatePass();
 
-      console.log('🎫 ProfileScreen - Retrieved user gate pass data:', data);
-      return data;
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
+  const unit = Array.isArray(userGatePass?.units) ? userGatePass.units[0] : userGatePass?.units;
+  const community = Array.isArray(userGatePass?.communities)
+    ? userGatePass.communities[0]
+    : userGatePass?.communities;
+
+  const displayName =
+    userGatePass?.full_name ||
+    profile?.full_name ||
+    `${profile?.first_name || ""} ${profile?.last_name || ""}`.trim() ||
+    "User";
+  const displayCommunityName = community?.name || "Community";
+  const displayUnitNumber = unit?.number || "--";
+  const displayBlockNumber = unit?.block || "--";
 
 
 
@@ -114,9 +84,9 @@ const ProfileScreen = ({ navigation }) => {
     image: member.avatar_url || require("../assets/images/pic1.png"),
     name: member.name,
     phone: member.phone,
-    society_name: "Casa Nirvana",
-    unit_number: "A-203",
-    block_number: "A",
+    community_name: displayCommunityName,
+    unit_number: displayUnitNumber,
+    block_number: displayBlockNumber,
     other: member.relation,
     qrCode: member.qr_code,
     entryCode: member.entry_code,
@@ -127,9 +97,9 @@ const ProfileScreen = ({ navigation }) => {
     image: help.avatar_url || require("../assets/images/pic1.png"),
     name: help.name,
     phone: help.phone,
-    society_name: "Casa Nirvana",
-    unit_number: "A-203",
-    block_number: "A",
+    community_name: displayCommunityName,
+    unit_number: displayUnitNumber,
+    block_number: displayBlockNumber,
     other: help.type,
     qrCode: help.qr_code,
     entryCode: help.entry_code,
@@ -142,9 +112,9 @@ const ProfileScreen = ({ navigation }) => {
     model: vehicle.model,
     color: vehicle.color,
     plate_number: vehicle.plate_number,
-    society_name: "Casa Nirvana",
-    unit_number: "A-203",
-    block_number: "A",
+    community_name: displayCommunityName,
+    unit_number: displayUnitNumber,
+    block_number: displayBlockNumber,
     other: `${vehicle.model} (${vehicle.color})`,
     qrCode: vehicle.qr_code,
     entryCode: vehicle.entry_code,
@@ -155,9 +125,9 @@ const ProfileScreen = ({ navigation }) => {
     image: entry.avatar_url || require("../assets/images/pic1.png"),
     name: entry.name,
     phone: entry.phone,
-    society_name: "Casa Nirvana",
-    unit_number: "A-203",
-    block_number: "A",
+    community_name: displayCommunityName,
+    unit_number: displayUnitNumber,
+    block_number: displayBlockNumber,
     other: entry.relation,
     qrCode: entry.qr_code,
     entryCode: entry.entry_code,
@@ -592,7 +562,7 @@ const ProfileScreen = ({ navigation }) => {
                 numberOfLines={1}
                 style={{ ...Fonts.SemiBold18primary, overflow: "hidden" }}
               >
-                Demo User
+                {displayName}
               </Text>
               <Text
                 numberOfLines={1}
@@ -616,13 +586,15 @@ const ProfileScreen = ({ navigation }) => {
                   return;
                 }
                 
-                // Update QR code data with unit and society information
+                // Update QR code data with unit and community information
                 let updatedQRCodeData = userGatePass.qr_code_data;
                 try {
                   const qrData = JSON.parse(userGatePass.qr_code_data);
-                  const unitBlock = userGatePass.units?.[0]?.block;
-                  const unitNumber = userGatePass.units?.[0]?.number;
-                  const societyName = userGatePass.societies?.[0]?.name;
+                  const unit = Array.isArray(userGatePass.units) ? userGatePass.units[0] : userGatePass.units;
+                  const community = Array.isArray(userGatePass.communities) ? userGatePass.communities[0] : userGatePass.communities;
+                  const unitBlock = unit?.block;
+                  const unitNumber = unit?.number;
+                  const communityName = community?.name;
                   
                   // Use database values if available, otherwise keep existing QR data
                   if (unitBlock && unitNumber) {
@@ -630,8 +602,8 @@ const ProfileScreen = ({ navigation }) => {
                     qrData.unit_number = unitNumber;
                   }
                   
-                  if (societyName) {
-                    qrData.society_name = societyName;
+                  if (communityName) {
+                    qrData.community_name = communityName;
                   }
                   
                   updatedQRCodeData = JSON.stringify(qrData);
@@ -639,7 +611,7 @@ const ProfileScreen = ({ navigation }) => {
                   console.error('🎫 ProfileScreen - Error updating QR data:', error);
                 }
                 
-                setSelectedName(userGatePass?.full_name || "Demo User");
+                setSelectedName(userGatePass?.full_name || displayName);
                 setSelectedQRCode(updatedQRCodeData);
                 setSelectedEntryCode(userGatePass?.entry_code);
                 setOpenGatePassModal(true);
@@ -706,7 +678,7 @@ const ProfileScreen = ({ navigation }) => {
                       marginTop: Default.fixPadding * 0.5,
                     }}
                   >
-                    Casa Nirvana
+                    {displayCommunityName}
                   </Text>
                 </View>
 
@@ -748,7 +720,7 @@ const ProfileScreen = ({ navigation }) => {
                         ...Fonts.Medium14black,
                       }}
                     >
-                      203
+                      {displayUnitNumber}
                     </Text>
                   </View>
                 </View>
@@ -784,7 +756,7 @@ const ProfileScreen = ({ navigation }) => {
                       ...Fonts.Medium14black,
                     }}
                   >
-                    A
+                    {displayBlockNumber}
                   </Text>
                 </View>
               </View>

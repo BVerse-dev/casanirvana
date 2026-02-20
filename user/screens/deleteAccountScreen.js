@@ -14,10 +14,16 @@ import { Colors, Default, Fonts } from "../constants/styles";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import MyStatusBar from "../components/myStatusBar";
+import { useAuth } from "../contexts/AuthContext";
+import {
+  deactivateCurrentUserAccount,
+  deleteCurrentUserAccount,
+} from "../services/accountService";
 
 const DeleteAccountScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
-  const isRtl = i18n.dir() == "rtl";
+  const { user, signOut } = useAuth();
+  const isRtl = i18n.dir() === "rtl";
 
   function tr(key) {
     return t(`settingScreen:${key}`);
@@ -27,7 +33,9 @@ const DeleteAccountScreen = ({ navigation }) => {
   const [reasonSelected, setReasonSelected] = useState("");
   const [otherReason, setOtherReason] = useState("");
   const [confirmationText, setConfirmationText] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeactivating, setIsDeactivating] = useState(false);
   
   // Alternative modals state
   const [showExportModal, setShowExportModal] = useState(false);
@@ -54,13 +62,18 @@ const DeleteAccountScreen = ({ navigation }) => {
     payments: "Payment methods, billing history",
     bookings: "Service bookings, maintenance requests", 
     communications: "Messages, notifications, chat history",
-    community: "Member directory access, society information",
+    community: "Member directory access, community information",
     documents: "Uploaded documents, verification files",
   });
 
   const confirmDeletion = () => {
-    if (confirmationText.toLowerCase() !== "delete my account") {
+    if (confirmationText.trim().toLowerCase() !== "delete my account") {
       Alert.alert("Error", "Please type 'DELETE MY ACCOUNT' to confirm.");
+      return;
+    }
+
+    if (!currentPassword.trim()) {
+      Alert.alert("Error", "Please enter your current password to continue.");
       return;
     }
 
@@ -78,17 +91,49 @@ const DeleteAccountScreen = ({ navigation }) => {
     );
   };
 
-  const processDeletion = () => {
+  const processDeletion = async () => {
     setIsDeleting(true);
-    // Simulate deletion process
-    setTimeout(() => {
-      setIsDeleting(false);
+
+    const reasonDetails = reasonSelected === "other" ? otherReason.trim() : null;
+    const deletionReason = reasonSelected || null;
+
+    const result = await deleteCurrentUserAccount({
+      currentPassword: currentPassword.trim(),
+      confirmationText: "DELETE MY ACCOUNT",
+      reason: deletionReason,
+      reasonDetails,
+    });
+
+    setIsDeleting(false);
+
+    if (!result.success) {
       Alert.alert(
-        "Account Deleted",
-        "Your account has been permanently deleted. We're sorry to see you go!",
-        [{ text: "OK", onPress: () => navigation.navigate("loginScreen") }]
+        "Deletion Failed",
+        result.error || "Unable to delete account. Please verify your password and try again."
       );
-    }, 3000);
+      return;
+    }
+
+    try {
+      await signOut();
+    } catch (error) {
+      console.error("Sign out after deletion failed:", error);
+    }
+
+    Alert.alert(
+      "Account Deleted",
+      "Your account has been permanently deleted. We're sorry to see you go!",
+      [
+        {
+          text: "OK",
+          onPress: () =>
+            navigation.reset({
+              index: 0,
+              routes: [{ name: "loginScreen" }],
+            }),
+        },
+      ]
+    );
   };
 
 
@@ -156,7 +201,7 @@ const DeleteAccountScreen = ({ navigation }) => {
           <View style={styles.alternativeInfo}>
             <Text style={styles.alternativeTitle}>Contact Support</Text>
             <Text style={styles.alternativeDescription}>
-              Let us help resolve any issues you're facing
+              Let us help resolve any issues you are facing
             </Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color={Colors.grey} />
@@ -264,7 +309,24 @@ const DeleteAccountScreen = ({ navigation }) => {
 
       <View style={styles.confirmationSection}>
         <Text style={styles.confirmationLabel}>
-          Type "DELETE MY ACCOUNT" to confirm:
+          Account: {user?.email || "Signed-in user"}
+        </Text>
+        <Text style={styles.confirmationLabel}>
+          Enter your current password:
+        </Text>
+        <TextInput
+          style={styles.confirmationInput}
+          placeholder="Current password"
+          placeholderTextColor={Colors.grey}
+          value={currentPassword}
+          onChangeText={setCurrentPassword}
+          secureTextEntry={true}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+
+        <Text style={styles.confirmationLabel}>
+          Type DELETE MY ACCOUNT to confirm:
         </Text>
         <TextInput
           style={styles.confirmationInput}
@@ -289,10 +351,19 @@ const DeleteAccountScreen = ({ navigation }) => {
           style={[
             styles.actionButton, 
             styles.deleteButton,
-            (isDeleting || confirmationText.toLowerCase() !== "delete my account") && styles.disabledButton
+            (
+              isDeleting ||
+              !currentPassword.trim() ||
+              confirmationText.trim().toLowerCase() !== "delete my account"
+            ) &&
+              styles.disabledButton
           ]}
           onPress={confirmDeletion}
-          disabled={isDeleting || confirmationText.toLowerCase() !== "delete my account"}
+          disabled={
+            isDeleting ||
+            !currentPassword.trim() ||
+            confirmationText.trim().toLowerCase() !== "delete my account"
+          }
         >
           <Text style={styles.deleteButtonText}>
             {isDeleting ? "Deleting..." : "Delete My Account Forever"}
@@ -409,7 +480,7 @@ const DeleteAccountScreen = ({ navigation }) => {
             </View>
             
             <Text style={styles.modalMessage}>
-              We'll prepare a comprehensive export of your data including:
+              We will prepare a comprehensive export of your data including:
               {'\n\n'}• Profile information and preferences{'\n'}
               • Payment methods and billing history{'\n'}
               • Service bookings and maintenance requests{'\n'}
@@ -479,13 +550,58 @@ const DeleteAccountScreen = ({ navigation }) => {
               
               <TouchableOpacity 
                 style={styles.confirmButton}
-                onPress={() => {
+                onPress={async () => {
+                  if (isDeactivating) {
+                    return;
+                  }
+
+                  setIsDeactivating(true);
                   setShowDeactivateModal(false);
-                  Alert.alert('Account Deactivated', 'Your account has been deactivated. You can reactivate it anytime by logging in.');
-                  navigation.goBack();
+                  const deactivationReason = reasonSelected || null;
+                  const deactivationReasonDetails =
+                    reasonSelected === "other" ? otherReason.trim() : null;
+
+                  const result = await deactivateCurrentUserAccount({
+                    reason: deactivationReason,
+                    reasonDetails: deactivationReasonDetails,
+                  });
+
+                  if (!result.success) {
+                    Alert.alert(
+                      "Deactivation Failed",
+                      result.error || "Unable to deactivate your account. Please try again."
+                    );
+                    setIsDeactivating(false);
+                    return;
+                  }
+
+                  try {
+                    await signOut();
+                  } catch (error) {
+                    console.error("Sign out after deactivation failed:", error);
+                  } finally {
+                    setIsDeactivating(false);
+                  }
+
+                  Alert.alert(
+                    "Account Deactivated",
+                    "Your account has been deactivated. You can reactivate it anytime by logging in.",
+                    [
+                      {
+                        text: "OK",
+                        onPress: () =>
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "loginScreen" }],
+                          }),
+                      },
+                    ]
+                  );
                 }}
               >
-                <Text style={styles.confirmButtonText}>Deactivate</Text>
+                <Text style={styles.confirmButtonText}>
+                  {isDeactivating ? "Deactivating..." : "Deactivate"}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -518,7 +634,7 @@ const DeleteAccountScreen = ({ navigation }) => {
               • Community and building management{'\n'}
               • Payment and billing questions
               {'\n\n'}
-              Choose how you'd like to reach us:
+              Choose how you would like to reach us:
             </Text>
 
             <View style={styles.contactOptions}>

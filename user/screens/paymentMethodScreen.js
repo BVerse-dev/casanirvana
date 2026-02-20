@@ -27,6 +27,8 @@ const PaymentMethodScreen = ({ navigation, route }) => {
     // Airtime purchase params
     provider,
     providerName,
+    providerColor,
+    providerLogo,
     packageType,
     amountTitle,
     amount,
@@ -35,7 +37,18 @@ const PaymentMethodScreen = ({ navigation, route }) => {
     description,
     saveAccount,
     transactionType,
-    recipientInfo
+    recipientInfo,
+    dataAmount,
+    validity,
+    reference,
+    schedulePayment,
+    frequency,
+    firstPaymentNow,
+    platformFee,
+    totalAmount,
+    billInfo,
+    policyInfo,
+    isPersonalHubTransaction: isPersonalHubTransactionParam,
   } = route.params || {};
   
   const { t, i18n } = useTranslation();
@@ -44,7 +57,10 @@ const PaymentMethodScreen = ({ navigation, route }) => {
   const isAddingMode = isAddingPaymentMethod === true;
   
   // Determine transaction type for dynamic display
-  const isPersonalHubTransaction = transactionType && ['airtime', 'data', 'money_transfer', 'bill_payment', 'insurance', 'shopping'].includes(transactionType);
+  const isPersonalHubTransaction =
+    Boolean(isPersonalHubTransactionParam) ||
+    (transactionType &&
+      ["airtime", "data", "money_transfer", "bill_payment", "insurance", "shopping"].includes(transactionType));
   
   // Get transaction type display name
   const getTransactionTypeDisplay = () => {
@@ -59,17 +75,6 @@ const PaymentMethodScreen = ({ navigation, route }) => {
     }
   };
 
-  // Debug: Log what we receive from payment screen
-  console.log('PaymentMethodScreen - Received params:', { 
-    bookingId, 
-    bookingData: bookingData ? 'present' : 'null', 
-    paymentData: paymentData ? 'present' : 'null',
-    isAddingPaymentMethod,
-    isAddingMode
-  });
-  console.log('PaymentMethodScreen - BookingData:', bookingData);
-  console.log('PaymentMethodScreen - PaymentData:', paymentData);
-
   const isRtl = i18n.dir() == "rtl";
 
   function tr(key) {
@@ -80,10 +85,8 @@ const PaymentMethodScreen = ({ navigation, route }) => {
     return true;
   };
   useEffect(() => {
-    BackHandler.addEventListener("hardwareBackPress", backAction);
-
-    return () => {
-      const subscription = BackHandler.addEventListener("hardwareBackPress", backAction); return () => subscription?.remove(); }
+    const subscription = BackHandler.addEventListener("hardwareBackPress", backAction);
+    return () => subscription.remove();
   }, []);
 
   const paymentList = [
@@ -115,6 +118,16 @@ const PaymentMethodScreen = ({ navigation, route }) => {
 
   const [selectedPaymentMethod, setSelectedPaymentMethod] =
     useState("Credit Card");
+
+  useEffect(() => {
+    if (isPersonalHubTransaction) {
+      setSelectedPaymentMethod("Mobile Money");
+    }
+  }, [isPersonalHubTransaction]);
+
+  const availablePaymentList = isPersonalHubTransaction
+    ? paymentList.filter((method) => method.title === "Mobile Money")
+    : paymentList;
 
   const renderItem = ({ item }) => {
     const isSelected = selectedPaymentMethod === item.title;
@@ -198,16 +211,32 @@ const PaymentMethodScreen = ({ navigation, route }) => {
         paymentMethod: selectedPaymentMethod
       };
     } else if (isPersonalHubTransaction) {
-      // For airtime purchase flow
+      // Canonical personal hub transaction payload (shared across payment method screens)
       navigationParams = {
+        transactionType,
         provider,
         providerName,
+        providerColor,
+        providerLogo,
+        packageType,
+        amountTitle,
         amount,
         amountFormatted,
         phoneNumber,
         description,
+        saveAccount,
         recipientInfo,
-        transactionType: 'airtime'
+        dataAmount,
+        validity,
+        reference,
+        schedulePayment,
+        frequency,
+        firstPaymentNow,
+        platformFee,
+        totalAmount,
+        billInfo,
+        policyInfo,
+        isPersonalHubTransaction: true,
       };
     } else if (isAddingMode) {
       // For adding payment method
@@ -538,7 +567,7 @@ const PaymentMethodScreen = ({ navigation, route }) => {
                           textAlign: isRtl ? "right" : "left",
                         }}
                       >
-                        <Text style={{ ...Fonts.SemiBold14black }}>Recipient:</Text> {description || phoneNumber || recipientInfo || 'N/A'}
+                        <Text style={{ ...Fonts.SemiBold14black }}>Recipient:</Text> {description || phoneNumber || recipientInfo?.name || recipientInfo?.accountNumber || recipientInfo?.policyNumber || 'N/A'}
                       </Text>
                     </View>
 
@@ -844,7 +873,7 @@ const PaymentMethodScreen = ({ navigation, route }) => {
           </Text>
           
           <FlatList
-            data={paymentList}
+            data={availablePaymentList}
             renderItem={renderItem}
             keyExtractor={(item) => item.key}
             showsVerticalScrollIndicator={false}

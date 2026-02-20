@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../utils/supabase';
+import { getProfileByAuthId } from '../utils/profileResolver';
 
 // Hook to search communities with real-time autocomplete
 export const useSearchCommunities = (searchText: string) => {
@@ -9,7 +10,7 @@ export const useSearchCommunities = (searchText: string) => {
       if (!searchText || searchText.length < 1) return [];
       
       const { data, error } = await supabase
-        .from('societies')
+        .from('communities')
         .select('id, name, address, city, state')
         .ilike('name', `%${searchText}%`)
         .eq('status', 'active')
@@ -101,7 +102,7 @@ export const useGetCommunityByName = (communityName: string) => {
       console.log('🔍 useGetCommunityByName: Searching for:', communityName);
       
       const { data, error } = await supabase
-        .from('societies')
+        .from('communities')
         .select('id, name, address, city, state')
         .ilike('name', communityName.trim())
         .eq('status', 'active')
@@ -149,14 +150,10 @@ export const useCreateManualUnitRequest = () => {
       console.log('✅ Authenticated user:', user.id);
       
       // Get the profile to make sure user exists in profiles table
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('id, user_id')
-        .eq('user_id', user.id)
-        .single();
-        
-      if (profileError || !profile) {
-        console.error('❌ Profile not found:', profileError);
+      const profile = await getProfileByAuthId(user.id, 'id, user_id');
+
+      if (!profile) {
+        console.error('❌ Profile not found for auth user:', user.id);
         throw new Error('User profile not found');
       }
       
@@ -226,14 +223,10 @@ export const useJoinCommunity = () => {
       console.log('✅ Authenticated user:', user.id);
       
       // Get the profile to make sure user exists in profiles table
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('id, user_id')
-        .eq('user_id', user.id)
-        .single();
-        
-      if (profileError || !profile) {
-        console.error('❌ Profile not found:', profileError);
+      const profile = await getProfileByAuthId(user.id, 'id, user_id');
+
+      if (!profile) {
+        console.error('❌ Profile not found for auth user:', user.id);
         throw new Error('User profile not found');
       }
       
@@ -288,9 +281,9 @@ export const useUserProfile = () => {
       
       console.log('🔍 useUserProfile: Fetching profile for auth user:', user.id);
       
-      const { data, error } = await supabase
-        .from('profiles')
-        .select(`
+      const data = await getProfileByAuthId(
+        user.id,
+        `
           id,
           user_id,
           email,
@@ -303,15 +296,14 @@ export const useUserProfile = () => {
           status,
           community:communities!profiles_society_id_fkey(id, name, address, city, state),
           unit:units!profiles_unit_id_fkey(id, block, number, unit_type, floor)
-        `)
-        .eq('user_id', user.id)
-        .single();
-      
-      if (error) {
-        console.error('❌ Error fetching user profile:', error);
-        throw error;
+        `
+      );
+
+      if (!data) {
+        console.log('ℹ️ No profile found for authenticated user');
+        return null;
       }
-      
+
       console.log('✅ useUserProfile: Fetched profile:', data);
       return data;
     },
@@ -331,13 +323,9 @@ export const usePendingJoinRequest = () => {
       }
       
       // Get the profile first
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-        
-      if (profileError || !profile) {
+      const profile = await getProfileByAuthId(user.id, 'id');
+
+      if (!profile) {
         return null;
       }
       
@@ -476,13 +464,9 @@ export const useProfileSubscription = () => {
       }
 
       // Get the profile to get the correct user_id reference
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-        
-      if (profileError || !profile) {
+      const profile = await getProfileByAuthId(user.id, 'id');
+
+      if (!profile) {
         return null;
       }
 

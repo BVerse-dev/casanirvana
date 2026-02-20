@@ -1,4 +1,4 @@
-import { supabase } from "../lib/supabase";
+import { supabase } from "../utils/supabase";
 
 // Categories
 export const getCategories = async (filters = {}) => {
@@ -335,21 +335,15 @@ export const getVendorById = async (vendorId) => {
 export const followVendor = async (userId, vendorId) => {
   const { data, error } = await supabase
     .from("marketplace_vendor_followers")
-    .insert({
+    .upsert({
       user_id: userId,
       vendor_id: vendorId,
+    }, {
+      onConflict: "vendor_id,user_id",
+      ignoreDuplicates: true,
     })
     .select()
-    .single();
-
-  if (!error) {
-    // Update follower count
-    await supabase.rpc("increment", {
-      table_name: "marketplace_vendors",
-      column_name: "follower_count",
-      row_id: vendorId,
-    });
-  }
+    .maybeSingle();
 
   return { data, error };
 };
@@ -360,15 +354,6 @@ export const unfollowVendor = async (userId, vendorId) => {
     .delete()
     .eq("user_id", userId)
     .eq("vendor_id", vendorId);
-
-  if (!error) {
-    // Update follower count
-    await supabase.rpc("decrement", {
-      table_name: "marketplace_vendors",
-      column_name: "follower_count",
-      row_id: vendorId,
-    });
-  }
 
   return { error };
 };
@@ -440,4 +425,49 @@ export const getSearchHistory = async (userId, limit = 5) => {
     .limit(limit);
 
   return { data: data?.map(item => item.search_query) || [], error };
+};
+
+// Delivery Addresses
+export const getUserAddresses = async (userId) => {
+  const { data, error } = await supabase
+    .from("user_addresses")
+    .select("*")
+    .eq("user_id", userId)
+    .order("is_default", { ascending: false })
+    .order("created_at", { ascending: false });
+
+  return { data, error };
+};
+
+export const createUserAddress = async (userId, addressData) => {
+  const { data, error } = await supabase
+    .from("user_addresses")
+    .insert({
+      user_id: userId,
+      label: addressData.label || null,
+      full_name: addressData.fullName,
+      phone_number: addressData.phoneNumber,
+      street_address: addressData.streetAddress,
+      city: addressData.city,
+      region: addressData.region,
+      postal_code: addressData.postalCode || null,
+      additional_info: addressData.additionalInfo || null,
+      is_default: Boolean(addressData.isDefault),
+    })
+    .select()
+    .single();
+
+  return { data, error };
+};
+
+export const setUserAddressDefault = async (userId, addressId) => {
+  const { data, error } = await supabase
+    .from("user_addresses")
+    .update({ is_default: true })
+    .eq("user_id", userId)
+    .eq("id", addressId)
+    .select()
+    .single();
+
+  return { data, error };
 };

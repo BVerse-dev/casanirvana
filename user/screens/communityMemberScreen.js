@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect } from "react";
 import { Text, View, BackHandler, TouchableOpacity } from "react-native";
 import MyStatusBar from "../components/myStatusBar";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
@@ -11,24 +11,29 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 
 const Tab = createMaterialTopTabNavigator();
 
-const SocietyMemberScreen = ({ navigation }) => {
+const CommunityMemberScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
 
-  const isRtl = i18n.dir() == "rtl";
+  const isRtl = i18n.dir() === "rtl";
 
   function tr(key) {
     return t(`communityMemberScreen:${key}`);
   }
-  const backAction = () => {
+  const backAction = useCallback(() => {
     navigation.pop();
     return true;
-  };
+  }, [navigation]);
+
   useEffect(() => {
-    BackHandler.addEventListener("hardwareBackPress", backAction);
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      backAction,
+    );
 
     return () => {
-      const subscription = BackHandler.addEventListener("hardwareBackPress", backAction); return () => subscription?.remove(); }
-  }, []);
+      subscription?.remove();
+    };
+  }, [backAction]);
 
   const CustomTabBar = ({ state, descriptors, navigation }) => {
     return (
@@ -167,4 +172,4 @@ const SocietyMemberScreen = ({ navigation }) => {
   );
 };
 
-export default SocietyMemberScreen;
+export default CommunityMemberScreen;

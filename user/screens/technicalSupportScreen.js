@@ -222,7 +222,7 @@ const TechnicalSupportScreen = ({ navigation }) => {
         user_email: profile?.email,
         user_phone: profile?.phone_number,
         unit_number: profile?.unit_number,
-        society_id: profile?.society_id,
+        community_id: profile?.community_id,
         inquiry_type: 'technical_support',
         status: 'open',
         created_at: new Date().toISOString(),
@@ -233,9 +233,9 @@ const TechnicalSupportScreen = ({ navigation }) => {
       let attachmentUrls = [];
       if (attachments.length > 0) {
         for (const attachment of attachments) {
-          const uploadResult = await uploadAttachment(attachment);
+          const uploadResult = await uploadAttachment(attachment, attachment.name);
           if (uploadResult.success) {
-            attachmentUrls.push(uploadResult.url);
+            attachmentUrls.push(uploadResult.data?.publicUrl || uploadResult.url);
           } else {
             Alert.alert('Error', 'Failed to upload attachment. Please try again.');
             return;

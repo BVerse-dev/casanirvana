@@ -1,4 +1,4 @@
-import { supabase } from "../supabase/client";
+import { supabase } from "../utils/supabase";
 
 /**
  * Create a bill payment record

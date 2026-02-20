@@ -5,38 +5,222 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
+  ActivityIndicator,
 } from "react-native";
-import React, { useState, useEffect } from "react";
+import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Colors, Default, Fonts } from "../constants/styles";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import MyStatusBar from "../components/myStatusBar";
+import { useQuery } from "@tanstack/react-query";
+import { useUserProfile } from "../hooks/useCommunityData";
+import { supabase } from "../utils/supabase";
+
+const resolveAmenityIcon = (amenity) => {
+  const content = `${amenity?.name || ""} ${amenity?.type || ""} ${amenity?.category || ""}`
+    .toLowerCase()
+    .trim();
+
+  if (content.includes("pool")) return "pool";
+  if (content.includes("gym") || content.includes("fitness")) return "dumbbell";
+  if (content.includes("park") || content.includes("parking")) return "car";
+  if (content.includes("security")) return "security";
+  if (content.includes("play")) return "playground";
+  if (content.includes("wifi") || content.includes("internet")) return "wifi";
+  if (content.includes("club")) return "account-group";
+  if (content.includes("court")) return "tennis";
+  if (content.includes("hall")) return "home-city";
+  return "star-circle";
+};
 
 const CommunityInfoScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
-  const isRtl = i18n.dir() == "rtl";
+  const isRtl = i18n.dir() === "rtl";
 
-  // Community information (will be fetched from admin dashboard)
-  const [communityData, setCommunityData] = useState({
-    name: "Ayi Mensah Park Community",
-    address: "123 Ayi Mensah Street, Accra, Ghana",
-    phone: "+233 24 123 4567",
-    email: "info@ayimensahpark.com",
-    website: "www.ayimensahpark.com",
-    totalUnits: "150",
-    establishedYear: "2018",
-    description: "A modern residential community with world-class amenities and facilities for comfortable living.",
+  const { data: userProfile, isLoading: profileLoading } = useUserProfile();
+  const community = userProfile?.community;
+  const communityId = userProfile?.community_id;
+
+  const { data: communityDetails, isLoading: communityLoading } = useQuery({
+    queryKey: ["community-details", communityId],
+    queryFn: async () => {
+      if (!communityId) return null;
+
+      const { data, error } = await supabase
+        .from("communities")
+        .select(
+          "id, name, address, city, state, description, email, phone, website, established_year, total_units"
+        )
+        .eq("id", communityId)
+        .maybeSingle();
+
+      if (error) {
+        throw error;
+      }
+
+      return data;
+    },
+    enabled: !!communityId,
+    staleTime: 2 * 60 * 1000,
   });
+
+  const { data: communityConfig, isLoading: configLoading } = useQuery({
+    queryKey: ["community-config", communityId],
+    queryFn: async () => {
+      if (!communityId) return null;
+
+      const { data, error } = await supabase
+        .from("community_configurations")
+        .select(
+          "welcome_message, amenity_module_enabled, messaging_module_enabled, visitor_module_enabled, emergency_alert_enabled, emergency_broadcast_enabled, cctv_integration, access_control_integration, panic_button_enabled, online_payments_enabled"
+        )
+        .eq("community_id", communityId)
+        .maybeSingle();
+
+      if (error) {
+        throw error;
+      }
+
+      return data;
+    },
+    enabled: !!communityId,
+    staleTime: 2 * 60 * 1000,
+  });
+
+  const { data: amenities = [], isLoading: amenitiesLoading } = useQuery({
+    queryKey: ["community-amenities", communityId],
+    queryFn: async () => {
+      if (!communityId) return [];
+
+      const { data, error } = await supabase
+        .from("amenities")
+        .select("id, name, type, category, is_active")
+        .eq("community_id", communityId)
+        .eq("is_active", true)
+        .order("name", { ascending: true });
+
+      if (error) {
+        throw error;
+      }
+
+      return data || [];
+    },
+    enabled: !!communityId,
+    staleTime: 2 * 60 * 1000,
+  });
+
+  const { data: totalUnits = 0, isLoading: unitsLoading } = useQuery({
+    queryKey: ["community-unit-count", communityId],
+    queryFn: async () => {
+      if (!communityId) return 0;
+
+      const { count, error } = await supabase
+        .from("units")
+        .select("id", { count: "exact", head: true })
+        .eq("community_id", communityId);
+
+      if (error) {
+        throw error;
+      }
+
+      return count || 0;
+    },
+    enabled: !!communityId,
+    staleTime: 2 * 60 * 1000,
+  });
+
+  const communityData = useMemo(() => {
+    const source = communityDetails || community;
+    const cityState = [source?.city, source?.state].filter(Boolean).join(", ");
+    const resolvedTotalUnits =
+      source?.total_units != null && source?.total_units !== ""
+        ? String(source.total_units)
+        : String(totalUnits);
+
+    return {
+      name: source?.name || "Community",
+      address: source?.address || cityState || "Not available",
+      phone: source?.phone || "Not available",
+      email: source?.email || "Not available",
+      website: source?.website || "Not available",
+      totalUnits: resolvedTotalUnits,
+      establishedYear: source?.established_year || "N/A",
+      description:
+        source?.description ||
+        communityConfig?.welcome_message ||
+        "Community information managed by admin.",
+    };
+  }, [community, communityConfig?.welcome_message, communityDetails, totalUnits]);
+
+  const amenityItems = useMemo(() => {
+    const fromAmenitiesTable = (amenities || []).map((amenity) => ({
+      id: amenity.id,
+      icon: resolveAmenityIcon(amenity),
+      name: amenity.name,
+    }));
+
+    const featureItems = [
+      {
+        id: "feature-amenities",
+        enabled: communityConfig?.amenity_module_enabled,
+        icon: "home-city",
+        name: "Amenity Booking",
+      },
+      {
+        id: "feature-messaging",
+        enabled: communityConfig?.messaging_module_enabled,
+        icon: "chat",
+        name: "Community Messaging",
+      },
+      {
+        id: "feature-visitors",
+        enabled: communityConfig?.visitor_module_enabled,
+        icon: "account-group",
+        name: "Visitor Management",
+      },
+      {
+        id: "feature-emergency",
+        enabled:
+          communityConfig?.emergency_alert_enabled ||
+          communityConfig?.emergency_broadcast_enabled,
+        icon: "alert-circle",
+        name: "Emergency Alerts",
+      },
+      {
+        id: "feature-cctv",
+        enabled: communityConfig?.cctv_integration,
+        icon: "cctv",
+        name: "CCTV Integration",
+      },
+      {
+        id: "feature-access-control",
+        enabled: communityConfig?.access_control_integration,
+        icon: "lock-outline",
+        name: "Access Control",
+      },
+      {
+        id: "feature-panic-button",
+        enabled: communityConfig?.panic_button_enabled,
+        icon: "alarm-light",
+        name: "Panic Button",
+      },
+      {
+        id: "feature-online-payments",
+        enabled: communityConfig?.online_payments_enabled,
+        icon: "credit-card",
+        name: "Online Payments",
+      },
+    ]
+      .filter((item) => item.enabled)
+      .map((item) => ({ id: item.id, icon: item.icon, name: item.name }));
+
+    return [...fromAmenitiesTable, ...featureItems].slice(0, 8);
+  }, [amenities, communityConfig]);
 
   function tr(key) {
     return t(`communityInfoScreen:${key}`);
   }
-
-  // TODO: Fetch community data from API/admin dashboard
-  useEffect(() => {
-    // fetchCommunityData();
-  }, []);
 
   const renderInfoItem = (icon, label, value) => (
     <View style={styles.infoItem}>
@@ -64,6 +248,12 @@ const CommunityInfoScreen = ({ navigation }) => {
         <Text style={styles.headerTitle}>{tr("communityInfo")}</Text>
       </View>
       
+      {(profileLoading || unitsLoading || communityLoading || configLoading || amenitiesLoading) ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={styles.loadingText}>Loading community information...</Text>
+        </View>
+      ) : (
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
@@ -114,27 +304,34 @@ const CommunityInfoScreen = ({ navigation }) => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{tr("amenitiesFeatures")}</Text>
           <View style={styles.amenitiesGrid}>
-            {[
-              { icon: "pool", name: tr("swimmingPool") },
-              { icon: "dumbbell", name: tr("gymnasium") },
-              { icon: "car", name: tr("parking") },
-              { icon: "security", name: tr("security24x7") },
-              { icon: "playground", name: tr("playground") },
-              { icon: "wifi", name: tr("wifiInternet") },
-            ].map((amenity, index) => (
-              <View key={index} style={styles.amenityItem}>
+            {amenityItems.length > 0 ? (
+              amenityItems.map((amenity) => (
+                <View key={amenity.id} style={styles.amenityItem}>
+                  <MaterialCommunityIcons
+                    name={amenity.icon}
+                    size={24}
+                    color={Colors.primary}
+                  />
+                  <Text style={styles.amenityText}>{amenity.name}</Text>
+                </View>
+              ))
+            ) : (
+              <View style={styles.emptyAmenitiesContainer}>
                 <MaterialCommunityIcons
-                  name={amenity.icon}
+                  name="information-outline"
                   size={24}
-                  color={Colors.primary}
+                  color={Colors.grey}
                 />
-                <Text style={styles.amenityText}>{amenity.name}</Text>
+                <Text style={styles.emptyAmenitiesText}>
+                  No amenities have been configured yet.
+                </Text>
               </View>
-            ))}
+            )}
           </View>
         </View>
 
       </ScrollView>
+      )}
     </View>
   );
 };
@@ -241,5 +438,27 @@ const styles = StyleSheet.create({
     ...Fonts.Medium12black,
     marginLeft: Default.fixPadding * 0.5,
     flex: 1,
+  },
+  emptyAmenitiesContainer: {
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.extraLightGrey,
+    borderRadius: 8,
+    padding: Default.fixPadding,
+  },
+  emptyAmenitiesText: {
+    ...Fonts.Medium12grey,
+    marginTop: Default.fixPadding * 0.4,
+    textAlign: "center",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    ...Fonts.Medium14grey,
+    marginTop: Default.fixPadding,
   },
 });

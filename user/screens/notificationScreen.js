@@ -32,7 +32,7 @@ const NotificationScreen = ({ navigation }) => {
   }
 
   // Real notification hooks
-  const { data: notificationList = [], isLoading, refetch } = useNotifications();
+  const { data: notificationList, isLoading, refetch } = useNotifications();
   const markAsRead = useMarkNotificationAsRead();
   const deleteNotification = useDeleteNotification();
   
@@ -73,8 +73,8 @@ const NotificationScreen = ({ navigation }) => {
   };
 
   // Convert real notifications to display format
-  const getDisplayNotifications = () => {
-    return notificationList.map((notification, index) => ({
+  const getDisplayNotifications = (list) => {
+    return list.map((notification) => ({
       key: notification.id,
       id: notification.id,
       title: notification.title,
@@ -121,13 +121,14 @@ const NotificationScreen = ({ navigation }) => {
 
   // Update local state when real notifications change
   useEffect(() => {
-    const displayNotifications = getDisplayNotifications();
+    const sourceList = Array.isArray(notificationList) ? notificationList : [];
+    const displayNotifications = getDisplayNotifications(sourceList);
     setNotification(displayNotifications);
   }, [notificationList]);
 
   const rowTranslateAnimatedValues = {};
-  notification.forEach((_, i) => {
-    rowTranslateAnimatedValues[`${i}`] = new Animated.Value(1);
+  notification.forEach((item) => {
+    rowTranslateAnimatedValues[item.key] = new Animated.Value(1);
   });
 
   const onSwipeValueChange = (swipeData) => {

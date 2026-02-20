@@ -67,6 +67,6 @@ export const MESSAGE_STATUS = {
    - For production, set up a token server and update TOKEN_SERVER_URL
 
 5. Test the integration:
-   - Use the Members screen to call other society members
+   - Use the Members screen to call other community members
    - Test voice calls and messaging functionality
 */

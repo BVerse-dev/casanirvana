@@ -40,13 +40,13 @@ const committee = getSampleMembersByRole('management');
 const regularMembers = getSampleMembersByRole('user');
 ```
 
-### In Hooks (useSocietyMembers.ts)
+### In Hooks (useCommunityMembers.ts)
 The hooks automatically fall back to sample data when no real data is available:
 
 ```typescript
 // If no real data, return sample data for development/testing
 if (transformedData.length === 0) {
-  console.log('📝 useSocietyMembers: No real data found, returning sample data');
+  console.log('📝 useCommunityMembers: No real data found, returning sample data');
   return sampleMembers;
 }
 ```
@@ -78,7 +78,7 @@ interface CommunityMember {
   name: string;          // Full name
   flatNo: string;        // Unit/apartment number
   block: string;         // Building block (A, B, C, D)
-  societyName: string;   // Community name
+  communityName: string;   // Community name
   email: string;         // Email address
   phone: string;         // Phone number
   role: string;          // 'user' | 'admin' | 'management'
@@ -137,7 +137,7 @@ To modify sample data:
 2. **Change Roles**: Update `role` property
 3. **Add Blocks**: Include new block letters
 4. **Update Images**: Reference different image assets
-5. **Modify Community**: Change `societyName` property
+5. **Modify Community**: Change `communityName` property
 
 ## 📈 Statistics
 

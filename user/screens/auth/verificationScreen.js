@@ -1,75 +1,121 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
-  Text,
-  View,
-  ImageBackground,
+  Alert,
   BackHandler,
-  StyleSheet,
-  TouchableOpacity,
+  ImageBackground,
   ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { Colors, Fonts, Default } from "../../constants/styles";
+import { Colors, Default, Fonts } from "../../constants/styles";
 import { useTranslation } from "react-i18next";
 import MyStatusBar from "../../components/myStatusBar";
 import { ms } from "react-native-size-matters/extend";
 import AwesomeButton from "react-native-really-awesome-button";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { OtpInput } from "react-native-otp-entry";
+import { supabase } from "../../utils/supabase";
 
-const VerificationScreen = ({ navigation }) => {
+const VerificationScreen = ({ navigation, route }) => {
   const { t, i18n } = useTranslation();
+  const isRtl = i18n.dir() === "rtl";
 
-  const isRtl = i18n.dir() == "rtl";
+  const phone = route?.params?.phone || "";
+  const verificationType = route?.params?.verificationType || "phone";
+
+  const [timer, setTimer] = useState(59);
+  const [otp, setOtp] = useState("");
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [isResending, setIsResending] = useState(false);
 
   function tr(key) {
     return t(`verificationScreen:${key}`);
   }
-  const backAction = () => {
-    setIntervalStop(false);
-    navigation.pop();
-    return true;
-  };
+
   useEffect(() => {
-    BackHandler.addEventListener("hardwareBackPress", backAction);
-
-    return () => {
-      const subscription = BackHandler.addEventListener("hardwareBackPress", backAction); return () => subscription?.remove(); }
-  }, []);
-
-  const [timer, setTimer] = useState(59);
-  const [intervalStop, setIntervalStop] = useState(true);
-
-  const intervalRef = useRef();
-
-  useEffect(() => {    if (intervalStop) {
-      intervalRef.current = setInterval(() => {
-        if (timer > 0) {
-          setTimer((prevTimer) => prevTimer - 1);
-        } else {
-          clearInterval(intervalRef.current);
-        }
-      }, 1000);
-    }
-
-    return () => {
-      clearInterval(intervalRef.current);
+    const backAction = () => {
+      navigation.goBack();
+      return true;
     };
-  }, [timer, intervalStop]);
+    const subscription = BackHandler.addEventListener("hardwareBackPress", backAction);
+    return () => subscription?.remove();
+  }, [navigation]);
+
+  useEffect(() => {
+    if (timer <= 0) {
+      return undefined;
+    }
+    const intervalId = setInterval(() => {
+      setTimer((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(intervalId);
+  }, [timer]);
+
+  const formattedPhone = useMemo(() => (phone ? phone : tr("phoneNumber")), [phone, tr]);
 
   const formatSecondsToTime = (totalSeconds) => {
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
-
-    const formattedMinutes = String(minutes).padStart(2, "0");
-    const formattedSeconds = String(seconds).padStart(2, "0");
-
-    return `${formattedMinutes}:${formattedSeconds}`;
+    return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
   };
 
-  const handleTextChange = (otp) => {
-    if (otp.length === 4) {
-      setIntervalStop(false);
-      navigation.push("bottomTab");
+  const handleVerify = async () => {
+    if (verificationType !== "phone") {
+      Alert.alert("Unsupported flow", "Please sign in with email.");
+      navigation.replace("emailLoginScreen");
+      return;
+    }
+
+    if (!phone) {
+      Alert.alert("Missing phone number", "Please go back and request a new OTP.");
+      return;
+    }
+
+    if (otp.length !== 4) {
+      Alert.alert("Invalid OTP", "Please enter the 4-digit OTP sent to your phone.");
+      return;
+    }
+
+    try {
+      setIsVerifying(true);
+      const { error } = await supabase.auth.verifyOtp({
+        phone,
+        token: otp,
+        type: "sms",
+      });
+
+      if (error) {
+        Alert.alert("Verification failed", error.message || "Unable to verify OTP.");
+        return;
+      }
+
+      navigation.replace("bottomTab");
+    } catch (error) {
+      Alert.alert("Verification error", error?.message || "Unable to verify OTP.");
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (timer > 0 || verificationType !== "phone" || !phone) {
+      return;
+    }
+
+    try {
+      setIsResending(true);
+      const { error } = await supabase.auth.signInWithOtp({ phone });
+      if (error) {
+        Alert.alert("Resend failed", error.message || "Unable to resend OTP.");
+        return;
+      }
+      setTimer(59);
+    } catch (error) {
+      Alert.alert("Resend error", error?.message || "Unable to resend OTP.");
+    } finally {
+      setIsResending(false);
     }
   };
 
@@ -83,10 +129,7 @@ const VerificationScreen = ({ navigation }) => {
         style={{ flex: 1 }}
       >
         <TouchableOpacity
-          onPress={() => {
-            setIntervalStop(false);
-            navigation.pop();
-          }}
+          onPress={() => navigation.goBack()}
           style={{
             alignSelf: isRtl ? "flex-end" : "flex-start",
             marginHorizontal: Default.fixPadding * 2,
@@ -99,6 +142,7 @@ const VerificationScreen = ({ navigation }) => {
             color={Colors.black}
           />
         </TouchableOpacity>
+
         <ScrollView
           showsVerticalScrollIndicator={false}
           automaticallyAdjustKeyboardInsets={true}
@@ -111,9 +155,7 @@ const VerificationScreen = ({ navigation }) => {
               marginHorizontal: Default.fixPadding * 3,
             }}
           >
-            <Text style={{ ...Fonts.SemiBold21primary }}>
-              {tr("otpVerification")}
-            </Text>
+            <Text style={{ ...Fonts.SemiBold21primary }}>{tr("otpVerification")}</Text>
 
             <Text
               style={{
@@ -122,7 +164,7 @@ const VerificationScreen = ({ navigation }) => {
                 marginTop: Default.fixPadding * 1.1,
               }}
             >
-              {`${tr("pleaseEnter")} +91 1234567890`}
+              {`${tr("pleaseEnter")} ${formattedPhone}`}
             </Text>
           </View>
 
@@ -134,7 +176,7 @@ const VerificationScreen = ({ navigation }) => {
           >
             <OtpInput
               numberOfDigits={4}
-              onTextChange={(text) => handleTextChange(text)}
+              onTextChange={setOtp}
               theme={{
                 pinCodeContainerStyle: {
                   borderWidth: 0,
@@ -153,10 +195,9 @@ const VerificationScreen = ({ navigation }) => {
               }}
             />
           </View>
+
           <View style={styles.timeView}>
-            <Text style={{ ...Fonts.Regular16black }}>
-              {formatSecondsToTime(timer)}
-            </Text>
+            <Text style={{ ...Fonts.Regular16black }}>{formatSecondsToTime(timer)}</Text>
           </View>
 
           <View
@@ -168,14 +209,12 @@ const VerificationScreen = ({ navigation }) => {
           >
             <AwesomeButton
               progress
+              disabled={isVerifying || otp.length !== 4}
               height={50}
-              progressLoadingTime={1500}
-              onPress={(next) => {
-                setIntervalStop(false);
-                setTimeout(() => {
-                  next();
-                  navigation.push("bottomTab");
-                }, 1500);
+              progressLoadingTime={300}
+              onPress={async (next) => {
+                await handleVerify();
+                next();
               }}
               raiseLevel={1}
               stretch={true}
@@ -184,24 +223,22 @@ const VerificationScreen = ({ navigation }) => {
               backgroundDarker={Colors.primary}
               backgroundColor={Colors.primary}
             >
-              <Text style={{ ...Fonts.SemiBold18white }}>{tr("verify")}</Text>
+              <Text style={{ ...Fonts.SemiBold18white }}>
+                {isVerifying ? tr("verifying") || "Verifying..." : tr("verify")}
+              </Text>
             </AwesomeButton>
           </View>
 
           <Text
-            disabled={timer !== 0}
-            onPress={() => {
-              if (timer === 0) {
-                setTimer(59);
-              }
-            }}
+            onPress={handleResend}
             style={{
               ...Fonts.Medium16primary,
               textAlign: "center",
               marginBottom: Default.fixPadding,
+              opacity: timer === 0 && !isResending ? 1 : 0.5,
             }}
           >
-            {tr("resend")}
+            {isResending ? tr("resending") || "Resending..." : tr("resend")}
           </Text>
         </ScrollView>
       </ImageBackground>

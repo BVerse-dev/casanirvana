@@ -54,6 +54,8 @@ logs/
 *.sql
 !backend/supabase/migrations/**/*.sql
 !backend/supabase/seeds/**/*.sql
+!supabase/migrations/**/*.sql
+!supabase/seeds/**/*.sql
 SQL/
 SQLScripts/
 data-dumps/

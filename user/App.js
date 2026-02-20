@@ -29,6 +29,13 @@ import PreApproveVisitorsScreen from "./screens/preApproveVisitorsScreen";
 import NoticeBoardScreen from "./screens/noticeBoardScreen";
 import NoticeDetailScreen from "./screens/noticeDetailScreen";
 import PaymentScreen from "./screens/paymentScreen";
+import AirtimeScreen from "./screens/airtimeScreen";
+import DataScreen from "./screens/dataScreen";
+import TransferScreen from "./screens/transferScreen";
+import PayBillsScreen from "./screens/payBillsScreen";
+import InsuranceScreen from "./screens/insuranceScreen";
+import MarketplaceHomeScreen from "./screens/marketplaceHomeScreen";
+import ComplaintsScreen from "./screens/complaintsScreen";
 import PaymentHistoryScreen from './screens/paymentHistoryScreen';
 import BillingHistoryScreen from './screens/billingHistoryScreen';
 import PaymentMethodScreen from "./screens/paymentMethodScreen";
@@ -50,7 +57,6 @@ import AddComplaintScreen from "./screens/addComplaintScreen";
 import ComplaintDetailScreen from "./screens/complaintDetailScreen";
 import CallScreen from "./screens/callScreen";
 import GuardCallingScreen from "./screens/guardCallingScreen";
-import MessageScreen from "./screens/messageScreen";
 import SearchScreen from "./screens/searchScreen";
 import SettingScreen from "./screens/settingScreen";
 import EditProfileScreen from "./screens/editProfileScreen";
@@ -82,10 +88,38 @@ import LicenseAgreementScreen from "./screens/licenseAgreementScreen";
 import OpenSourceLicensesScreen from "./screens/openSourceLicensesScreen";
 import PinSetupScreen from "./screens/pinSetupScreen";
 import LockScreen from "./screens/lockScreen";
-import { LogBox } from "react-native";
+import ModuleGuardScreen from "./components/ModuleGuardScreen";
 
 const Stack = createStackNavigator();
-LogBox.ignoreAllLogs();
+
+const withModuleGuard = (screenName, ScreenComponent) => {
+  const GuardedScreen = (props) => (
+    <ModuleGuardScreen
+      {...props}
+      screenName={screenName}
+      component={ScreenComponent}
+    />
+  );
+
+  GuardedScreen.displayName = `ModuleGuard(${screenName})`;
+  return GuardedScreen;
+};
+
+const GuardedComplaintsScreen = withModuleGuard("complaintsScreen", ComplaintsScreen);
+const GuardedCommunityMemberScreen = withModuleGuard("communityMemberScreen", CommunityMemberScreen);
+const GuardedVisitorsScreen = withModuleGuard("visitorsScreen", VisitorsScreen);
+const GuardedNoticeBoardScreen = withModuleGuard("noticeBoardScreen", NoticeBoardScreen);
+const GuardedPaymentScreen = withModuleGuard("paymentScreen", PaymentScreen);
+const GuardedBookedAmenitiesScreen = withModuleGuard("bookedAmenitiesScreen", BookedAmenitiesScreen);
+const GuardedHelpDeskScreen = withModuleGuard("helpDeskScreen", HelpDeskScreen);
+const GuardedMaintenanceRequestsScreen = withModuleGuard("MaintenanceRequestsScreen", MaintenanceRequestsScreen);
+const GuardedServiceProvidersScreen = withModuleGuard("serviceProvidersScreen", ServiceProvidersScreen);
+const GuardedAirtimeScreen = withModuleGuard("airtimeScreen", AirtimeScreen);
+const GuardedDataScreen = withModuleGuard("dataScreen", DataScreen);
+const GuardedTransferScreen = withModuleGuard("transferScreen", TransferScreen);
+const GuardedPayBillsScreen = withModuleGuard("payBillsScreen", PayBillsScreen);
+const GuardedInsuranceScreen = withModuleGuard("insuranceScreen", InsuranceScreen);
+const GuardedMarketplaceHomeScreen = withModuleGuard("marketplaceHomeScreen", MarketplaceHomeScreen);
 
 const MainNavigation = () => {
   return (
@@ -102,7 +136,7 @@ const MainNavigation = () => {
         >
         <Stack.Screen
           name="complaintsScreen"
-          component={require("./screens/complaintsScreen").default}
+          component={GuardedComplaintsScreen}
         />
         <Stack.Screen name="splashScreen" component={SplashScreen} />
         <Stack.Screen name="onboardingScreen" component={OnboardingScreen} />
@@ -134,16 +168,16 @@ const MainNavigation = () => {
         />
         <Stack.Screen
           name="communityMemberScreen"
-          component={CommunityMemberScreen}
+          component={GuardedCommunityMemberScreen}
         />
-        <Stack.Screen name="visitorsScreen" component={VisitorsScreen} />
+        <Stack.Screen name="visitorsScreen" component={GuardedVisitorsScreen} />
         <Stack.Screen
           name="preApproveVisitorsScreen"
           component={PreApproveVisitorsScreen}
         />
-        <Stack.Screen name="noticeBoardScreen" component={NoticeBoardScreen} />
+        <Stack.Screen name="noticeBoardScreen" component={GuardedNoticeBoardScreen} />
         <Stack.Screen name="noticeDetailScreen" component={NoticeDetailScreen} />
-        <Stack.Screen name="paymentScreen" component={PaymentScreen} />
+        <Stack.Screen name="paymentScreen" component={GuardedPaymentScreen} />
         <Stack.Screen name="paymentHistoryScreen" component={PaymentHistoryScreen} />
         <Stack.Screen name="paymentReceiptScreen" component={require("./screens/paymentReceiptScreen").default} />
         <Stack.Screen name="billingHistoryScreen" component={BillingHistoryScreen} />
@@ -159,7 +193,7 @@ const MainNavigation = () => {
         {/* Airtime Purchase Flow */}
         <Stack.Screen
           name="airtimeScreen"
-          component={require("./screens/airtimeScreen").default}
+          component={GuardedAirtimeScreen}
         />
         <Stack.Screen
           name="selectPackageScreen"
@@ -177,15 +211,10 @@ const MainNavigation = () => {
           name="accountDetailsScreen"
           component={require("./screens/accountDetailsScreen").default}
         />
-        <Stack.Screen
-          name="reviewPayScreen"
-          component={require("./screens/reviewPayScreen").default}
-        />
-        
         {/* Data Purchase Flow */}
         <Stack.Screen
           name="dataScreen"
-          component={require("./screens/dataScreen").default}
+          component={GuardedDataScreen}
         />
         <Stack.Screen
           name="selectDataPackageScreen"
@@ -203,7 +232,7 @@ const MainNavigation = () => {
         {/* Money Transfer Flow */}
         <Stack.Screen
           name="transferScreen"
-          component={require("./screens/transferScreen").default}
+          component={GuardedTransferScreen}
         />
         <Stack.Screen
           name="transferRecipientScreen"
@@ -223,11 +252,11 @@ const MainNavigation = () => {
         <Stack.Screen name="successScreen" component={SuccessScreen} />
         <Stack.Screen
           name="bookedAmenitiesScreen"
-          component={BookedAmenitiesScreen}
+          component={GuardedBookedAmenitiesScreen}
         />
         <Stack.Screen name="amenityScreen" component={AmenityScreen} />
         <Stack.Screen name="bookAmenityScreen" component={BookAmenityScreen} />
-        <Stack.Screen name="helpDeskScreen" component={HelpDeskScreen} />
+        <Stack.Screen name="helpDeskScreen" component={GuardedHelpDeskScreen} />
         <Stack.Screen name="userGuideScreen" component={UserGuideScreen} />
         <Stack.Screen
           name="generalInquiryScreen"
@@ -258,7 +287,10 @@ const MainNavigation = () => {
           name="guardCallingScreen"
           component={GuardCallingScreen}
         />
-        <Stack.Screen name="messageScreen" component={MessageScreen} />
+        <Stack.Screen
+          name="messageScreen"
+          getComponent={() => require("./screens/messageScreen").default}
+        />
         <Stack.Screen name="searchScreen" component={SearchScreen} />
         <Stack.Screen name="settingScreen" component={SettingScreen} />
         <Stack.Screen name="editProfileScreen" component={EditProfileScreen} />
@@ -274,7 +306,7 @@ const MainNavigation = () => {
         <Stack.Screen name="getSupportScreen" component={GetSupportScreen} />
         <Stack.Screen
           name="MaintenanceRequestsScreen"
-          component={MaintenanceRequestsScreen}
+          component={GuardedMaintenanceRequestsScreen}
           options={{ title: 'Maintenance Requests' }}
         />
         {/* Old maintenance detail screen - replaced with maintenanceDetailScreen
@@ -334,7 +366,7 @@ const MainNavigation = () => {
         />
         <Stack.Screen
           name="serviceProvidersScreen"
-          component={ServiceProvidersScreen}
+          component={GuardedServiceProvidersScreen}
         />
         <Stack.Screen
           name="bookingHistoryScreen"
@@ -376,7 +408,7 @@ const MainNavigation = () => {
         {/* Pay Bills Flow */}
         <Stack.Screen
           name="payBillsScreen"
-          component={require("./screens/payBillsScreen").default}
+          component={GuardedPayBillsScreen}
         />
         <Stack.Screen
           name="utilitiesScreen"
@@ -398,7 +430,7 @@ const MainNavigation = () => {
         {/* Insurance Flow */}
         <Stack.Screen
           name="insuranceScreen"
-          component={require("./screens/insuranceScreen").default}
+          component={GuardedInsuranceScreen}
         />
         <Stack.Screen
           name="policyDetailsScreen"
@@ -412,7 +444,7 @@ const MainNavigation = () => {
         {/* Marketplace Screens */}
         <Stack.Screen
           name="marketplaceHomeScreen"
-          component={require("./screens/marketplaceHomeScreen").default}
+          component={GuardedMarketplaceHomeScreen}
         />
         <Stack.Screen
           name="categoryListingScreen"
@@ -465,10 +497,6 @@ const MainNavigation = () => {
         <Stack.Screen
           name="orderTrackingScreen"
           component={require("./screens/orderTrackingScreen").default}
-        />
-        <Stack.Screen
-          name="ordersScreen"
-          component={require("./screens/ordersScreen").default}
         />
           </Stack.Navigator>
           </NotificationNavigationHandler>

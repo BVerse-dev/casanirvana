@@ -8,7 +8,7 @@ import {
   ScrollView,
   Modal,
 } from "react-native";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Colors, Default, Fonts } from "../constants/styles";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -17,11 +17,13 @@ import MyStatusBar from "../components/myStatusBar";
 import { useAuth } from "../contexts/AuthContext";
 import { useNotificationContext } from "../contexts/NotificationContext";
 import { supabase } from "../utils/supabase";
+import { resolveProfileIdByAuthId } from "../utils/profileResolver";
 import { pushNotificationService } from "../services/pushNotificationService";
+import { isPushNotificationsSupported } from "../utils/notificationRuntime";
 
 const NotificationSettingsScreen = ({ navigation }) => {
-  const { t, i18n } = useTranslation();
-  const isRtl = i18n.dir() == "rtl";
+  const { i18n } = useTranslation();
+  const isRtl = i18n.dir() === "rtl";
   const { user, profile } = useAuth();
   const { isGranted, setupNotifications, expoPushToken } = useNotificationContext();
   
@@ -121,28 +123,32 @@ const NotificationSettingsScreen = ({ navigation }) => {
     { key: "badge", title: "App Badge", description: "Show unread count on app icon", icon: "numeric" },
   ];
 
-  function tr(key) {
-    return t(`notificationSettingsScreen:${key}`);
-  }
-
-  const backAction = () => {
+  const backAction = useCallback(() => {
     navigation.goBack();
     return true;
-  };
+  }, [navigation]);
 
   useEffect(() => {
     const subscription = BackHandler.addEventListener("hardwareBackPress", backAction);
     return () => {
       subscription?.remove(); 
     };
-  }, []);
+  }, [backAction]);
 
   // Initialize notifications when this screen loads
   useEffect(() => {
     const initializeNotifications = async () => {
+      if (!isPushNotificationsSupported) {
+        return;
+      }
+
       try {
-        await setupNotifications();
-        console.log('Push notifications initialized successfully');
+        const initialized = await setupNotifications();
+        if (initialized) {
+          console.log('Push notifications initialized successfully');
+        } else {
+          console.log('Push notifications unavailable in Expo Go. Use a development build for remote push support.');
+        }
       } catch (error) {
         console.error('Failed to initialize push notifications:', error);
       }
@@ -151,11 +157,14 @@ const NotificationSettingsScreen = ({ navigation }) => {
     initializeNotifications();
   }, [setupNotifications]);
 
-  useEffect(() => {
-    loadNotificationPreferences();
-  }, [profile]);
+  const resolveProfileId = async () => {
+    if (profile?.id) {
+      return profile.id;
+    }
+    return resolveProfileIdByAuthId(user?.id);
+  };
 
-  const loadNotificationPreferences = async () => {
+  const loadNotificationPreferences = useCallback(async () => {
     if (!profile) return;
     
     try {
@@ -167,13 +176,21 @@ const NotificationSettingsScreen = ({ navigation }) => {
     } catch (error) {
       console.error('Error loading notification preferences:', error);
     }
-  };
+  }, [profile]);
 
-  const updatePreference = async (key, value) => {
+  useEffect(() => {
+    loadNotificationPreferences();
+  }, [loadNotificationPreferences]);
+
+  const persistPreferences = async (newPreferences, previousPreferences) => {
     try {
       setIsLoading(true);
-      const newPreferences = { ...preferences, [key]: value };
       setPreferences(newPreferences);
+      const profileId = await resolveProfileId();
+
+      if (!profileId) {
+        throw new Error("Profile not found for current user");
+      }
 
       const { error } = await supabase
         .from('profiles')
@@ -181,24 +198,32 @@ const NotificationSettingsScreen = ({ navigation }) => {
           notification_preferences: newPreferences,
           updated_at: new Date().toISOString()
         })
-        .eq('id', user.id);
+        .eq('id', profileId);
 
       if (error) {
-        console.error('Error updating preferences:', error);
-        // Revert on error
-        setPreferences(preferences);
-        Alert.alert('Error', 'Failed to update notification preferences');
+        throw error;
       }
     } catch (error) {
       console.error('Error updating preference:', error);
-      setPreferences(preferences);
+      setPreferences(previousPreferences);
       Alert.alert('Error', 'Failed to update notification preferences');
     } finally {
       setIsLoading(false);
     }
   };
 
+  const updatePreference = async (key, value) => {
+    const previousPreferences = preferences;
+    const newPreferences = { ...preferences, [key]: value };
+    await persistPreferences(newPreferences, previousPreferences);
+  };
+
   const enableNotifications = async () => {
+    if (!isPushNotificationsSupported) {
+      Alert.alert('Unavailable in Expo Go', 'Remote push notifications require a development build.');
+      return;
+    }
+
     try {
       const granted = await setupNotifications();
       if (granted) {
@@ -213,6 +238,11 @@ const NotificationSettingsScreen = ({ navigation }) => {
   };
 
   const testNotification = async () => {
+    if (!isPushNotificationsSupported) {
+      Alert.alert('Unavailable in Expo Go', 'Test push notifications require a development build.');
+      return;
+    }
+
     if (!expoPushToken) {
       Alert.alert('Error', 'No push token available. Please enable notifications first.');
       return;
@@ -236,6 +266,7 @@ const NotificationSettingsScreen = ({ navigation }) => {
   };
 
   const enableAllNotifications = () => {
+    const previousPreferences = preferences;
     const allEnabled = Object.keys(preferences).reduce((acc, key) => {
       if (key !== 'quietHoursStart' && key !== 'quietHoursEnd') {
         acc[key] = true;
@@ -244,11 +275,11 @@ const NotificationSettingsScreen = ({ navigation }) => {
       }
       return acc;
     }, {});
-    setPreferences(allEnabled);
-    updatePreference('all', true);
+    persistPreferences(allEnabled, previousPreferences);
   };
 
   const disableAllNotifications = () => {
+    const previousPreferences = preferences;
     const allDisabled = Object.keys(preferences).reduce((acc, key) => {
       if (key !== 'quietHoursStart' && key !== 'quietHoursEnd' && key !== 'quietHoursEnabled') {
         acc[key] = false;
@@ -257,8 +288,7 @@ const NotificationSettingsScreen = ({ navigation }) => {
       }
       return acc;
     }, {});
-    setPreferences(allDisabled);
-    updatePreference('all', false);
+    persistPreferences(allDisabled, previousPreferences);
   };
 
   const renderNotificationItem = (item, categoryColor) => (

@@ -41,15 +41,15 @@ const AmenityScreen = ({ navigation }) => {
     };
   }, []);
 
-  // Fetch amenities from the database for the user's society only
+  // Fetch amenities from the database for the user's community only
   const { data: amenities, isLoading, error } = useListAmenities({
-    society_id: profile?.society_id,
-    enabled: !!profile?.society_id, // Only fetch if we have a society_id
+    community_id: profile?.community_id,
+    enabled: !!profile?.community_id, // Only fetch if we have a community_id
   });
 
   // Debug information
   console.log('AmenityScreen - User profile:', profile);
-  console.log('AmenityScreen - User society_id:', profile?.society_id);
+  console.log('AmenityScreen - User community_id:', profile?.community_id);
   console.log('AmenityScreen - Amenities count:', amenities?.length);
   console.log('AmenityScreen - Amenities data:', amenities?.map(a => ({ id: a.id, name: a.name })));
   console.log('AmenityScreen - Loading state:', isLoading);
@@ -103,8 +103,8 @@ const AmenityScreen = ({ navigation }) => {
     );
   }
 
-  // Show error if profile doesn't have society_id
-  if (!profile.society_id) {
+  // Show error if profile doesn't have community_id
+  if (!profile.community_id) {
     return (
       <View style={{ flex: 1, backgroundColor: Colors.white }}>
         <MyStatusBar />

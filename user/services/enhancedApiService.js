@@ -130,9 +130,9 @@ export const guardsService = {
     return apiClient.get('/api/guards', { search: phone });
   },
 
-  // Get guards by society
-  async getGuardsBySociety(societyId) {
-    return apiClient.get('/api/guards', { society_id: societyId });
+  // Get guards by community
+  async getGuardsByCommunity(communityId) {
+    return apiClient.get('/api/guards', { community_id: communityId });
   },
 
   // Get guards by shift type
@@ -170,9 +170,9 @@ export const unitsService = {
     return apiClient.get('/api/units-enhanced/search/phone', { phone });
   },
 
-  // Get units by society
-  async getUnitsBySociety(societyId) {
-    return apiClient.get('/api/units-enhanced', { society_id: societyId });
+  // Get units by community
+  async getUnitsByCommunity(communityId) {
+    return apiClient.get('/api/units-enhanced', { community_id: communityId });
   },
 
   // Get units by owner phone
