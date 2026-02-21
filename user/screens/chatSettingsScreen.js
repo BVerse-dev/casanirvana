@@ -155,51 +155,51 @@ const ChatSettingsScreen = ({ navigation }) => {
             size={50}
             color={Colors.primary}
           />
-          <Text style={styles.title}>Chat Settings</Text>
+          <Text style={styles.title}>{tr("chatScreenTitle")}</Text>
           <Text style={styles.description}>
-            Customize your messaging experience and notification preferences.
+            {tr("chatScreenDescription")}
           </Text>
         </View>
 
         {/* Notifications Section */}
         <View style={styles.section}>
-          <SectionHeader title="Notifications" icon="bell" />
+          <SectionHeader title={tr("chatSectionNotifications")} icon="bell" />
           
           <SettingItem
-            title="Message Notifications"
-            description="Receive notifications for new messages"
+            title={tr("chatMessageNotificationsTitle")}
+            description={tr("chatMessageNotificationsDescription")}
             value={settings.messageNotifications}
             onToggle={() => toggleSetting('messageNotifications')}
             icon="message-text"
           />
           
           <SettingItem
-            title="Sound Notifications"
-            description="Play sound for new messages"
+            title={tr("chatSoundNotificationsTitle")}
+            description={tr("chatSoundNotificationsDescription")}
             value={settings.soundNotifications}
             onToggle={() => toggleSetting('soundNotifications')}
             icon="volume-high"
           />
           
           <SettingItem
-            title="Vibration"
-            description="Vibrate for new messages"
+            title={tr("chatVibrationTitle")}
+            description={tr("chatVibrationDescription")}
             value={settings.vibrationNotifications}
             onToggle={() => toggleSetting('vibrationNotifications')}
             icon="vibrate"
           />
           
           <SettingItem
-            title="Group Notifications"
-            description="Notifications for group messages"
+            title={tr("chatGroupNotificationsTitle")}
+            description={tr("chatGroupNotificationsDescription")}
             value={settings.groupNotifications}
             onToggle={() => toggleSetting('groupNotifications')}
             icon="account-group"
           />
           
           <SettingItem
-            title="Mention Notifications"
-            description="Special notifications when mentioned"
+            title={tr("chatMentionNotificationsTitle")}
+            description={tr("chatMentionNotificationsDescription")}
             value={settings.mentionNotifications}
             onToggle={() => toggleSetting('mentionNotifications')}
             icon="at"
@@ -209,11 +209,11 @@ const ChatSettingsScreen = ({ navigation }) => {
 
         {/* Privacy Section */}
         <View style={styles.section}>
-          <SectionHeader title="Privacy" icon="shield-check" />
+          <SectionHeader title={tr("chatSectionPrivacy")} icon="shield-check" />
           
           <SettingItem
-            title="Show Online Status"
-            description="Let others see when you're online"
+            title={tr("chatShowOnlineStatusTitle")}
+            description={tr("chatShowOnlineStatusDescription")}
             value={settings.showOnlineStatus}
             onToggle={() => toggleSetting('showOnlineStatus')}
             icon="circle"
@@ -221,8 +221,8 @@ const ChatSettingsScreen = ({ navigation }) => {
           />
           
           <SettingItem
-            title="Read Receipts"
-            description="Show when you've read messages"
+            title={tr("chatReadReceiptsTitle")}
+            description={tr("chatReadReceiptsDescription")}
             value={settings.readReceipts}
             onToggle={() => toggleSetting('readReceipts')}
             icon="check-all"
@@ -230,16 +230,16 @@ const ChatSettingsScreen = ({ navigation }) => {
           />
           
           <SettingItem
-            title="Typing Indicators"
-            description="Show when you're typing"
+            title={tr("chatTypingIndicatorsTitle")}
+            description={tr("chatTypingIndicatorsDescription")}
             value={settings.typingIndicators}
             onToggle={() => toggleSetting('typingIndicators')}
             icon="keyboard"
           />
           
           <SettingItem
-            title="Message Preview"
-            description="Show message content in notifications"
+            title={tr("chatMessagePreviewTitle")}
+            description={tr("chatMessagePreviewDescription")}
             value={settings.messagePreview}
             onToggle={() => toggleSetting('messagePreview')}
             icon="eye"
@@ -248,11 +248,11 @@ const ChatSettingsScreen = ({ navigation }) => {
 
         {/* Media Section */}
         <View style={styles.section}>
-          <SectionHeader title="Media & Downloads" icon="download" />
+          <SectionHeader title={tr("chatSectionMediaDownloads")} icon="download" />
           
           <SettingItem
-            title="Auto-download Images"
-            description="Automatically download images"
+            title={tr("chatAutoDownloadImagesTitle")}
+            description={tr("chatAutoDownloadImagesDescription")}
             value={settings.autoDownloadImages}
             onToggle={() => toggleSetting('autoDownloadImages')}
             icon="image"
@@ -260,8 +260,8 @@ const ChatSettingsScreen = ({ navigation }) => {
           />
           
           <SettingItem
-            title="Auto-download Videos"
-            description="Automatically download videos"
+            title={tr("chatAutoDownloadVideosTitle")}
+            description={tr("chatAutoDownloadVideosDescription")}
             value={settings.autoDownloadVideos}
             onToggle={() => toggleSetting('autoDownloadVideos')}
             icon="video"
@@ -269,8 +269,8 @@ const ChatSettingsScreen = ({ navigation }) => {
           />
           
           <SettingItem
-            title="Auto-download Documents"
-            description="Automatically download documents"
+            title={tr("chatAutoDownloadDocumentsTitle")}
+            description={tr("chatAutoDownloadDocumentsDescription")}
             value={settings.autoDownloadDocuments}
             onToggle={() => toggleSetting('autoDownloadDocuments')}
             icon="file-document"
@@ -278,35 +278,17 @@ const ChatSettingsScreen = ({ navigation }) => {
           />
         </View>
 
-        {/* Storage Management */}
         <View style={styles.section}>
-          <TouchableOpacity style={styles.actionButton}>
+          <View style={styles.infoCard}>
             <MaterialCommunityIcons
-              name="trash-can"
-              size={24}
-              color={Colors.red}
-            />
-            <Text style={styles.actionButtonText}>Clear Chat History</Text>
-            <Ionicons
-              name="chevron-forward"
-              size={20}
-              color={Colors.grey}
-            />
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.actionButton}>
-            <MaterialCommunityIcons
-              name="database"
-              size={24}
+              name="information-outline"
+              size={22}
               color={Colors.blue}
             />
-            <Text style={styles.actionButtonText}>Manage Storage</Text>
-            <Ionicons
-              name="chevron-forward"
-              size={20}
-              color={Colors.grey}
-            />
-          </TouchableOpacity>
+            <Text style={styles.infoText}>
+              {tr("chatRetentionInfo")}
+            </Text>
+          </View>
         </View>
       </ScrollView>
     </View>
@@ -385,16 +367,15 @@ const styles = StyleSheet.create({
     ...Fonts.Medium12grey,
     lineHeight: 16,
   },
-  actionButton: {
+  infoCard: {
     flexDirection: "row",
     alignItems: "center",
     padding: Default.fixPadding * 1.5,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.extraLightGrey,
   },
-  actionButtonText: {
-    ...Fonts.Medium15black,
+  infoText: {
+    ...Fonts.Medium14grey,
     flex: 1,
-    marginLeft: Default.fixPadding,
+    marginLeft: Default.fixPadding * 0.8,
+    lineHeight: 20,
   },
 });

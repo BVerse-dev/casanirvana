@@ -31,6 +31,7 @@ const { width, height } = Dimensions.get("window");
 const GatePassModal = (props) => {
   const { t, i18n } = useTranslation();
   const viewShotRef = useRef();
+  const hasContent = (value) => value !== null && value !== undefined && value !== "";
 
   const isRtl = i18n.dir() == "rtl";
 
@@ -541,7 +542,7 @@ const GatePassModal = (props) => {
                         })()}
                         
                         {/* Display vehicle number for cabs/deliveries */}
-                        {props.visitorData?.vehicle_number && (
+                        {hasContent(props.visitorData?.vehicle_number) && (
                           <Text style={{ ...Fonts.Regular14grey, marginTop: Default.fixPadding * 0.2 }}>
                             {tr("vehicle")}: {props.visitorData.vehicle_number}
                           </Text>

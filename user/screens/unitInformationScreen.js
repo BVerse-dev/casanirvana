@@ -34,6 +34,16 @@ const UnitInformationScreen = ({ navigation }) => {
     }
   }
 
+  const hasValue = (value) => value !== null && value !== undefined && value !== "";
+
+  const normalizeSectionChildren = (children) =>
+    React.Children.toArray(children).filter((child) => {
+      if (typeof child === "string") {
+        return child.trim().length > 0;
+      }
+      return true;
+    });
+
   // Fetch detailed unit information
   const { data: unitData, isLoading: unitLoading, error: unitError } = useQuery({
     queryKey: ['unitInformation', profile?.unit_id],
@@ -104,11 +114,21 @@ const UnitInformationScreen = ({ navigation }) => {
   const renderInfoSection = (title, icon, children) => (
     <View style={styles.infoSection}>
       <View style={styles.sectionHeader}>
-        <MaterialCommunityIcons name={icon} size={24} color={Colors.primary} />
+        {hasValue(icon) && (
+          <MaterialCommunityIcons name={icon} size={24} color={Colors.primary} />
+        )}
         <Text style={styles.sectionTitle}>{title}</Text>
       </View>
       <View style={styles.sectionContent}>
-        {children}
+        {normalizeSectionChildren(children).map((child, index) =>
+          typeof child === "string" || typeof child === "number" ? (
+            <Text key={`section-child-${index}`} style={styles.sectionInlineText}>
+              {String(child)}
+            </Text>
+          ) : (
+            child
+          )
+        )}
       </View>
     </View>
   );
@@ -116,7 +136,7 @@ const UnitInformationScreen = ({ navigation }) => {
   const renderInfoItem = (label, value, icon = null) => (
     <View style={styles.infoItem}>
       <View style={styles.infoItemLeft}>
-        {icon && (
+        {hasValue(icon) && (
           <MaterialCommunityIcons 
             name={icon} 
             size={20} 
@@ -277,7 +297,7 @@ const UnitInformationScreen = ({ navigation }) => {
         ))}
 
         {/* Owner Information */}
-        {owner && renderInfoSection(tr("ownerInfo", "Owner Information"), "account", (
+        {hasValue(owner) && renderInfoSection(tr("ownerInfo", "Owner Information"), "account", (
           <>
             {renderInfoItem(tr("ownerName", "Owner Name"), `${owner.first_name || ''} ${owner.last_name || ''}`.trim(), "account")}
             {renderInfoItem(tr("ownerEmail", "Email"), owner.email, "email")}
@@ -286,7 +306,7 @@ const UnitInformationScreen = ({ navigation }) => {
         ))}
 
         {/* Tenant Information */}
-        {tenant && renderInfoSection(tr("tenantInfo", "Tenant Information"), "account-group", (
+        {hasValue(tenant) && renderInfoSection(tr("tenantInfo", "Tenant Information"), "account-group", (
           <>
             {renderInfoItem(tr("tenantName", "Tenant Name"), `${tenant.first_name || ''} ${tenant.last_name || ''}`.trim(), "account")}
             {renderInfoItem(tr("tenantEmail", "Email"), tenant.email, "email")}
@@ -295,7 +315,7 @@ const UnitInformationScreen = ({ navigation }) => {
         ))}
 
         {/* Amenities */}
-        {unitData.amenities && Array.isArray(unitData.amenities) && unitData.amenities.length > 0 && 
+        {Array.isArray(unitData.amenities) && unitData.amenities.length > 0 &&
           renderInfoSection(tr("amenities", "Unit Amenities"), "star", (
             <View style={styles.amenitiesList}>
               {unitData.amenities.map((amenity, index) => (
@@ -309,7 +329,7 @@ const UnitInformationScreen = ({ navigation }) => {
         }
 
         {/* Community Information */}
-        {community && renderInfoSection(tr("communityInfo", "Community Information"), "city", (
+        {hasValue(community) && renderInfoSection(tr("communityInfo", "Community Information"), "city", (
           <>
             {renderInfoItem(tr("communityName", "Community Name"), community.name, "home-city")}
             {renderInfoItem(tr("address", "Address"), community.address, "map-marker")}
@@ -414,6 +434,10 @@ const styles = StyleSheet.create({
   },
   sectionContent: {
     padding: Default.fixPadding * 1.5,
+  },
+  sectionInlineText: {
+    ...Fonts.Medium14black,
+    paddingVertical: Default.fixPadding * 0.4,
   },
 
   // Info Item Styles

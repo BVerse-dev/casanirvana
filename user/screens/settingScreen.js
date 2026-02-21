@@ -26,7 +26,7 @@ import {
 
 const SettingScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
 
   const isRtl = i18n.dir() === "rtl";
 
@@ -116,31 +116,36 @@ const SettingScreen = ({ navigation }) => {
       title: tr("appPreferences"),
       data: [
         {
-          key: "1",
+          id: "editProfile",
           icon: Ionicons,
           iconName: "person-outline",
           title: tr("editProfile"),
+          type: "navigate",
           navigateTo: "editProfileScreen",
         },
         {
-          key: "2",
+          id: "language",
           icon: SimpleLineIcons,
           iconName: "globe",
           title: tr("language"),
+          type: "navigate",
           navigateTo: "languageScreen",
         },
         {
-          key: "3",
+          id: "notificationSettings",
           icon: Ionicons,
           iconName: "notifications-outline",
           title: tr("notificationSettings"),
+          type: "navigate",
           navigateTo: "notificationSettingsScreen",
         },
         {
-          key: "4",
+          id: "darkTheme",
           icon: MaterialCommunityIcons,
           iconName: "theme-light-dark",
           title: tr("darkTheme"),
+          type: "toggle",
+          settingKey: "darkMode",
           hasToggle: true,
         },
       ]
@@ -149,24 +154,27 @@ const SettingScreen = ({ navigation }) => {
       title: tr("communityManagement"),
       data: [
         {
-          key: "5",
+          id: "communityInfo",
           icon: MaterialCommunityIcons,
           iconName: "information-outline",
           title: tr("communityInfo"),
+          type: "navigate",
           navigateTo: "communityInfoScreen",
         },
         {
-          key: "6",
+          id: "memberDirectory",
           icon: MaterialCommunityIcons,
           iconName: "account-group",
           title: tr("memberDirectory"),
+          type: "navigate",
           navigateTo: "memberDirectoryScreen",
         },
         {
-          key: "7",
+          id: "unitInformation",
           icon: MaterialCommunityIcons,
           iconName: "home-outline",
           title: tr("unitInformation"),
+          type: "navigate",
           navigateTo: "unitInformationScreen",
         },
       ]
@@ -175,17 +183,20 @@ const SettingScreen = ({ navigation }) => {
       title: tr("security"),
       data: [
         {
-          key: "8",
+          id: "biometricLock",
           icon: MaterialCommunityIcons,
           iconName: "fingerprint",
           title: tr("biometricLock"),
+          type: "toggle",
+          settingKey: "biometricEnabled",
           hasToggle: true,
         },
         {
-          key: "9",
+          id: "pinCode",
           icon: MaterialCommunityIcons,
           iconName: "lock-outline",
           title: tr("pinCode"),
+          type: "navigate",
           navigateTo: "pinCodeScreen",
         },
       ]
@@ -194,17 +205,19 @@ const SettingScreen = ({ navigation }) => {
       title: tr("paymentBilling"),
       data: [
         {
-          key: "10",
+          id: "paymentMethods",
           icon: MaterialCommunityIcons,
           iconName: "credit-card-outline",
           title: tr("paymentMethods"),
+          type: "navigate",
           navigateTo: "myPaymentMethodsScreen",
         },
         {
-          key: "11",
+          id: "billingHistory",
           icon: MaterialCommunityIcons,
           iconName: "history",
           title: tr("billingHistory"),
+          type: "navigate",
           navigateTo: "billingHistoryScreen",
         },
       ]
@@ -213,37 +226,20 @@ const SettingScreen = ({ navigation }) => {
       title: tr("communication"),
       data: [
         {
-          key: "12",
+          id: "emergencyContacts",
           icon: MaterialCommunityIcons,
           iconName: "phone-outline",
           title: tr("emergencyContacts"),
+          type: "navigate",
           navigateTo: "emergencyContactsScreen",
         },
         {
-          key: "13",
+          id: "chatSettings",
           icon: MaterialCommunityIcons,
           iconName: "chat-outline",
           title: tr("chatSettings"),
+          type: "navigate",
           navigateTo: "chatSettingsScreen",
-        },
-      ]
-    },
-    {
-      title: tr("serviceManagement"),
-      data: [
-        {
-          key: "14",
-          icon: MaterialCommunityIcons,
-          iconName: "account-hard-hat",
-          title: tr("serviceProviders"),
-          navigateTo: "serviceProvidersScreen",
-        },
-        {
-          key: "15",
-          icon: MaterialCommunityIcons,
-          iconName: "history",
-          title: tr("bookingHistory"),
-          navigateTo: "bookingHistoryScreen",
         },
       ]
     },
@@ -251,24 +247,27 @@ const SettingScreen = ({ navigation }) => {
       title: tr("accountManagement"),
       data: [
         {
-          key: "16",
+          id: "backupRestore",
           icon: MaterialCommunityIcons,
           iconName: "database-outline",
           title: tr("backupRestore"),
+          type: "navigate",
           navigateTo: "backupRestoreScreen",
         },
         {
-          key: "17",
+          id: "appUpdates",
           icon: MaterialCommunityIcons,
           iconName: "update",
           title: tr("appUpdates"),
+          type: "navigate",
           navigateTo: "appUpdatesScreen",
         },
         {
-          key: "18",
+          id: "deleteAccount",
           icon: MaterialCommunityIcons,
           iconName: "delete-outline",
           title: tr("deleteAccount"),
+          type: "navigate",
           navigateTo: "deleteAccountScreen",
           isDestructive: true,
         },
@@ -278,24 +277,27 @@ const SettingScreen = ({ navigation }) => {
       title: tr("helpSupport"),
       data: [
         {
-          key: "19",
+          id: "getSupport",
           icon: SimpleLineIcons,
           iconName: "question",
           title: tr("getSupport"),
+          type: "navigate",
           navigateTo: "getSupportScreen",
         },
         {
-          key: "20",
+          id: "userGuide",
           icon: MaterialIcons,
           iconName: "book",
           title: tr("userGuide"),
+          type: "navigate",
           navigateTo: "userGuideScreen",
         },
         {
-          key: "21",
+          id: "aboutApp",
           icon: MaterialCommunityIcons,
           iconName: "information-outline",
           title: tr("aboutApp"),
+          type: "navigate",
           navigateTo: "aboutAppScreen",
         },
       ]
@@ -304,17 +306,19 @@ const SettingScreen = ({ navigation }) => {
       title: tr("legal"),
       data: [
         {
-          key: "22",
+          id: "termsCondition",
           icon: MaterialIcons,
           iconName: "list-alt",
           title: tr("termsCondition"),
+          type: "navigate",
           navigateTo: "termsOfServiceScreen",
         },
         {
-          key: "23",
+          id: "privacyPolicy",
           icon: MaterialCommunityIcons,
           iconName: "shield-alert-outline",
           title: tr("privacyPolicy"),
+          type: "navigate",
           navigateTo: "privacyPolicyScreen",
         },
       ]
@@ -323,33 +327,46 @@ const SettingScreen = ({ navigation }) => {
       title: "",
       data: [
         {
-          key: "24",
+          id: "logout",
           icon: Feather,
           iconName: "log-out",
           title: tr("logout"),
+          type: "logout",
           isDestructive: true,
         },
       ]
     }
   ];
 
+  const getToggleValue = (settingKey) => {
+    if (settingKey === "darkMode") {
+      return darkTheme;
+    }
+
+    if (settingKey === "biometricEnabled") {
+      return biometricEnabled;
+    }
+
+    return false;
+  };
+
+  const handleItemPress = (item) => {
+    if (item.type === "logout") {
+      setOpenLogoutModal(true);
+      return;
+    }
+
+    if (item.type === "navigate" && item.navigateTo) {
+      navigation.navigate(item.navigateTo);
+    }
+  };
+
   const renderItem = ({ item }) => {
     return (
       <TouchableOpacity
-        onPress={() => {
-          if (item.key === "24") {
-            setOpenLogoutModal(true);
-          } else if (item.hasToggle) {
-            // Handle toggle items
-            if (item.key === "4") {
-              persistToggleSetting("darkMode", !darkTheme);
-            } else if (item.key === "8") {
-              persistToggleSetting("biometricEnabled", !biometricEnabled);
-            }
-          } else if (item.navigateTo) {
-            navigation.push(item.navigateTo);
-          }
-        }}
+        onPress={() => handleItemPress(item)}
+        disabled={item.hasToggle}
+        activeOpacity={item.hasToggle ? 1 : 0.7}
         style={{
           flexDirection: isRtl ? "row-reverse" : "row",
           ...styles.mainTouchOpacity,
@@ -400,12 +417,10 @@ const SettingScreen = ({ navigation }) => {
         
         {item.hasToggle ? (
           <Switch
-            value={item.key === "4" ? darkTheme : biometricEnabled}
+            value={getToggleValue(item.settingKey)}
             onValueChange={(value) => {
-              if (item.key === "4") {
-                persistToggleSetting("darkMode", value);
-              } else if (item.key === "8") {
-                persistToggleSetting("biometricEnabled", value);
+              if (item.settingKey) {
+                persistToggleSetting(item.settingKey, value);
               }
             }}
             disabled={isSettingsLoading || isSavingSettings}
@@ -464,18 +479,30 @@ const SettingScreen = ({ navigation }) => {
         sections={settingSections}
         renderItem={renderItem}
         renderSectionHeader={renderSectionHeader}
-        keyExtractor={(item) => item.key}
+        keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingTop: Default.fixPadding * 0.8 }}
+        contentContainerStyle={{
+          paddingTop: Default.fixPadding * 0.8,
+          paddingBottom: Default.fixPadding * 2,
+        }}
         stickySectionHeadersEnabled={false}
       />
 
       <LogoutModal
         visible={openLogoutModal}
         modalClose={() => setOpenLogoutModal(false)}
-        onLogoutHandle={() => {
+        onLogoutHandle={async () => {
           setOpenLogoutModal(false);
-          navigation.push("loginScreen");
+          try {
+            await signOut();
+          } catch (error) {
+            console.error("Failed to sign out:", error);
+          } finally {
+            navigation.reset({
+              index: 0,
+              routes: [{ name: "loginScreen" }],
+            });
+          }
         }}
       />
     </View>

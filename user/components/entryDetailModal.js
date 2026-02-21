@@ -50,6 +50,7 @@ const EntryDetailModal = ({ visible, onClose, entry, entryType, onEditFamilyMemb
   const { user, profile } = useAuth();
   const isRtl = i18n.dir() === 'rtl';
   const activeUserId = user?.id || profile?.user_id || null;
+  const hasContent = (value) => value !== null && value !== undefined && value !== "";
 
   // Delete hooks
   const deleteFamilyMember = useDeleteFamilyMember();
@@ -260,7 +261,7 @@ const EntryDetailModal = ({ visible, onClose, entry, entryType, onEditFamilyMemb
                       {entry.name || entry.full_name}
                     </Text>
                     {/* Phone Number */}
-                    {entry.phone && (
+                    {hasContent(entry.phone) && (
                       <Text
                         style={{
                           ...Fonts.Medium14grey,
@@ -271,7 +272,7 @@ const EntryDetailModal = ({ visible, onClose, entry, entryType, onEditFamilyMemb
                       </Text>
                     )}
                     {/* Vehicle Number */}
-                    {entryType === 'vehicle' && entry.plate_number && (
+                    {entryType === 'vehicle' && hasContent(entry.plate_number) && (
                       <Text
                         style={{
                           ...Fonts.Medium14grey,
@@ -282,7 +283,7 @@ const EntryDetailModal = ({ visible, onClose, entry, entryType, onEditFamilyMemb
                       </Text>
                     )}
                     {/* Vehicle Model and Color */}
-                    {entryType === 'vehicle' && (entry.model || entry.color) && (
+                    {entryType === 'vehicle' && (hasContent(entry.model) || hasContent(entry.color)) && (
                       <Text
                         style={{
                           ...Fonts.Medium14grey,
@@ -440,7 +441,7 @@ const EntryDetailModal = ({ visible, onClose, entry, entryType, onEditFamilyMemb
                   </View>
 
                   {/* Additional Details Section */}
-                  {(entry.entry_code || entry.created_at || entry.plate_number) && (
+                  {(hasContent(entry.entry_code) || hasContent(entry.created_at) || hasContent(entry.plate_number)) && (
                     <View
                       style={{
                         flexDirection: isRtl ? "row-reverse" : "row",
@@ -452,7 +453,7 @@ const EntryDetailModal = ({ visible, onClose, entry, entryType, onEditFamilyMemb
 
 
                                             {/* Entry Code Card */}
-                      {entry.entry_code && (
+                      {hasContent(entry.entry_code) && (
                         <>
                           <View
                             style={{
@@ -495,9 +496,9 @@ const EntryDetailModal = ({ visible, onClose, entry, entryType, onEditFamilyMemb
 
 
                       {/* Plate Number Card */}
-                      {entry.plate_number && (
+                      {hasContent(entry.plate_number) && (
                         <>
-                          {entry.entry_code && (
+                          {hasContent(entry.entry_code) && (
                             <View
                               style={{
                                 height: 60,
@@ -544,9 +545,9 @@ const EntryDetailModal = ({ visible, onClose, entry, entryType, onEditFamilyMemb
                       )}
 
                       {/* Date Added Card */}
-                      {entry.created_at && (
+                      {hasContent(entry.created_at) && (
                         <>
-                          {(entry.entry_code || entry.plate_number) && (
+                          {(hasContent(entry.entry_code) || hasContent(entry.plate_number)) && (
                             <View
                               style={{
                                 height: 60,

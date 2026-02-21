@@ -22,8 +22,32 @@ export const AppLockProvider = ({ children }) => {
 
   useEffect(() => {
     initializeAppLock();
-    setupAppStateListener();
   }, []);
+
+  useEffect(() => {
+    const handleAppStateChange = async (nextAppState) => {
+      if (nextAppState === 'background' || nextAppState === 'inactive') {
+        if (isPinEnabled) {
+          const currentTime = Date.now();
+          setBackgroundTime(currentTime);
+          await AsyncStorage.setItem('app_background_time', currentTime.toString());
+        }
+      } else if (nextAppState === 'active') {
+        if (isPinEnabled && backgroundTime) {
+          const timeDiff = Date.now() - backgroundTime;
+          const timeoutMs = lockTimeout * 60 * 1000;
+
+          if (timeDiff > timeoutMs) {
+            setIsLocked(true);
+          }
+          setBackgroundTime(null);
+        }
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    return () => subscription?.remove();
+  }, [backgroundTime, isPinEnabled, lockTimeout]);
 
   const initializeAppLock = async () => {
     try {
@@ -55,39 +79,18 @@ export const AppLockProvider = ({ children }) => {
     }
   };
 
-  const setupAppStateListener = () => {
-    const handleAppStateChange = async (nextAppState) => {
-      if (nextAppState === 'background' || nextAppState === 'inactive') {
-        // App is going to background
-        if (isPinEnabled) {
-          const currentTime = Date.now();
-          setBackgroundTime(currentTime);
-          await AsyncStorage.setItem('app_background_time', currentTime.toString());
-        }
-      } else if (nextAppState === 'active') {
-        // App is coming to foreground
-        if (isPinEnabled && backgroundTime) {
-          const timeDiff = Date.now() - backgroundTime;
-          const timeoutMs = lockTimeout * 60 * 1000; // Convert to milliseconds
-          
-          if (timeDiff > timeoutMs) {
-            setIsLocked(true);
-          }
-          setBackgroundTime(null);
-        }
-      }
-    };
-
-    const subscription = AppState.addEventListener('change', handleAppStateChange);
-    return () => subscription?.remove();
-  };
-
-  const enablePin = async (pin, biometricEnabled = false) => {
+  const enablePin = async (pin, biometricEnabled = null) => {
     try {
+      let resolvedBiometric = biometricEnabled;
+      if (typeof resolvedBiometric !== 'boolean') {
+        const storedBiometric = await AsyncStorage.getItem('biometric_enabled');
+        resolvedBiometric = storedBiometric === 'true';
+      }
+
       await AsyncStorage.multiSet([
         ['app_pin', pin],
         ['pin_enabled', 'true'],
-        ['biometric_enabled', biometricEnabled.toString()],
+        ['biometric_enabled', String(Boolean(resolvedBiometric))],
         ['lock_timeout', lockTimeout.toString()]
       ]);
       

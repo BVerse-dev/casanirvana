@@ -305,6 +305,14 @@ Date: 2026-02-06
 - [x] Applied migration `supabase/migrations/20260221224136_phase22_profile_directory_admin_read_scope.sql` to allow tenant-scoped admin `SELECT` access on resident profile-directory tables.
 - [ ] Manual runtime QA pending for profile lifecycle (`family/daily help/vehicle/frequent entry create -> edit -> soft delete -> gate pass modal data`).
 
+## Phase 23 - Settings UX Consistency Hardening
+- [x] Removed `Service Management` section from user app settings menu (`serviceProvidersScreen` + `bookingHistoryScreen` entry points removed from settings list).
+- [x] Refactored settings item interaction contract to action-based items (`navigate`/`toggle`/`logout`) and replaced stack-duplicating `navigation.push` with `navigation.navigate`.
+- [x] Hardened `pinCodeScreen` into a real lock-management flow (set/change PIN, current PIN verification, disable PIN lock) wired to `AppLockContext`.
+- [x] Updated `AppLockContext.enablePin` to preserve existing biometric preference when updating PIN (prevents accidental biometric reset during PIN change).
+- [x] Replaced non-functional chat-settings action buttons with explicit informational state to avoid dead-end UX.
+- [x] Targeted lint validation completed for changed settings files (no errors/warnings in touched files).
+
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)
 - [x] Remove any `node_modules` committed to repo.

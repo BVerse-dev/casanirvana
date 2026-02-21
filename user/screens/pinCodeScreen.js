@@ -6,17 +6,22 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
+  ActivityIndicator,
 } from "react-native";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Colors, Default, Fonts } from "../constants/styles";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import MyStatusBar from "../components/myStatusBar";
+import { useAppLock } from "../contexts/AppLockContext";
+
+const PIN_LENGTH = 4;
 
 const PinCodeScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
-  const isRtl = i18n.dir() == "rtl";
+  const isRtl = i18n.dir() === "rtl";
+  const { isPinEnabled, isLoading, verifyPin, enablePin, disablePin } = useAppLock();
 
   function tr(key) {
     return t(`settingScreen:${key}`);
@@ -28,25 +33,38 @@ const PinCodeScreen = ({ navigation }) => {
   const [showCurrentPin, setShowCurrentPin] = useState(false);
   const [showNewPin, setShowNewPin] = useState(false);
   const [showConfirmPin, setShowConfirmPin] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [mode, setMode] = useState("create");
 
-  const handleSavePin = () => {
-    if (!currentPin) {
-      Alert.alert("Error", "Please enter your current PIN");
-      return;
+  useEffect(() => {
+    if (!isLoading) {
+      setMode(isPinEnabled ? "change" : "create");
     }
-    if (!newPin || newPin.length < 4) {
-      Alert.alert("Error", "New PIN must be at least 4 digits");
-      return;
-    }
-    if (newPin !== confirmPin) {
-      Alert.alert("Error", "New PIN and confirmation PIN do not match");
-      return;
-    }
-    
-    Alert.alert("Success", "PIN code updated successfully", [
-      { text: "OK", onPress: () => navigation.goBack() }
-    ]);
-  };
+  }, [isLoading, isPinEnabled]);
+
+  useEffect(() => {
+    setCurrentPin("");
+    setNewPin("");
+    setConfirmPin("");
+    setShowCurrentPin(false);
+    setShowNewPin(false);
+    setShowConfirmPin(false);
+  }, [mode]);
+
+  const screenCopy =
+    mode === "change"
+      ? {
+          title: tr("pinHeaderChangeTitle"),
+          description: tr("pinHeaderChangeDescription"),
+          cta: tr("pinUpdateButton"),
+        }
+      : {
+          title: tr("pinHeaderCreateTitle"),
+          description: tr("pinHeaderCreateDescription"),
+          cta: tr("pinCreateButton"),
+        };
+
+  const normalizePin = (value) => value.replace(/\D/g, "").slice(0, PIN_LENGTH);
 
   const pinInputField = (label, value, setValue, showPin, setShowPin, placeholder) => (
     <View style={styles.inputContainer}>
@@ -55,12 +73,12 @@ const PinCodeScreen = ({ navigation }) => {
         <TextInput
           style={[styles.textInput, { textAlign: isRtl ? "right" : "left" }]}
           value={value}
-          onChangeText={setValue}
+          onChangeText={(text) => setValue(normalizePin(text))}
           placeholder={placeholder}
           placeholderTextColor={Colors.lightGrey}
           secureTextEntry={!showPin}
-          keyboardType="numeric"
-          maxLength={6}
+          keyboardType="number-pad"
+          maxLength={PIN_LENGTH}
         />
         <TouchableOpacity
           onPress={() => setShowPin(!showPin)}
@@ -75,6 +93,109 @@ const PinCodeScreen = ({ navigation }) => {
       </View>
     </View>
   );
+
+  const validatePinPayload = () => {
+    if (mode === "change" && currentPin.length !== PIN_LENGTH) {
+      Alert.alert(tr("errorTitle"), tr("pinCurrentLengthError", { length: PIN_LENGTH }));
+      return false;
+    }
+
+    if (newPin.length !== PIN_LENGTH) {
+      Alert.alert(tr("errorTitle"), tr("pinNewLengthError", { length: PIN_LENGTH }));
+      return false;
+    }
+
+    if (confirmPin.length !== PIN_LENGTH) {
+      Alert.alert(tr("errorTitle"), tr("pinConfirmLengthError", { length: PIN_LENGTH }));
+      return false;
+    }
+
+    if (newPin !== confirmPin) {
+      Alert.alert(tr("errorTitle"), tr("pinMismatchError"));
+      return false;
+    }
+
+    if (mode === "change" && currentPin === newPin) {
+      Alert.alert(tr("errorTitle"), tr("pinSameAsCurrentError"));
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSavePin = async () => {
+    if (!validatePinPayload() || isSubmitting) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      if (mode === "change") {
+        const validCurrentPin = await verifyPin(currentPin);
+        if (!validCurrentPin) {
+          Alert.alert(tr("errorTitle"), tr("pinIncorrectCurrentError"));
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      const saved = await enablePin(newPin);
+      if (!saved) {
+        throw new Error("Unable to save PIN");
+      }
+
+      Alert.alert(tr("successTitle"), tr("pinSavedSuccess"), [
+        { text: tr("okay"), onPress: () => navigation.goBack() },
+      ]);
+    } catch (error) {
+      console.error("Failed to save PIN:", error);
+      Alert.alert(tr("errorTitle"), tr("pinSaveFailure"));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDisablePin = async () => {
+    if (isSubmitting) {
+      return;
+    }
+
+    if (currentPin.length !== PIN_LENGTH) {
+      Alert.alert(tr("errorTitle"), tr("pinDisableEnterCurrentError", { length: PIN_LENGTH }));
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const validCurrentPin = await verifyPin(currentPin);
+      if (!validCurrentPin) {
+        Alert.alert(tr("errorTitle"), tr("pinIncorrectCurrentError"));
+        return;
+      }
+
+      const disabled = await disablePin();
+      if (!disabled) {
+        throw new Error("Unable to disable PIN");
+      }
+
+      Alert.alert(tr("successTitle"), tr("pinDisabledSuccess"), [
+        {
+          text: tr("okay"),
+          onPress: () => {
+            setMode("create");
+            setCurrentPin("");
+            setNewPin("");
+            setConfirmPin("");
+          },
+        },
+      ]);
+    } catch (error) {
+      console.error("Failed to disable PIN:", error);
+      Alert.alert(tr("errorTitle"), tr("pinDisableFailure"));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: Colors.extraLightGrey }}>
@@ -104,79 +225,96 @@ const PinCodeScreen = ({ navigation }) => {
         </Text>
       </View>
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{
-          paddingVertical: Default.fixPadding * 2,
-        }}
-      >
-        <View style={styles.container}>
-          <View style={styles.headerSection}>
-            <MaterialCommunityIcons
-              name="lock-outline"
-              size={50}
-              color={Colors.primary}
-            />
-            <Text style={styles.title}>Change PIN Code</Text>
-            <Text style={styles.description}>
-              Update your security PIN to keep your account safe. Your PIN should be at least 4 digits long.
-            </Text>
-          </View>
-
-          <View style={styles.formSection}>
-            {pinInputField(
-              "Current PIN",
-              currentPin,
-              setCurrentPin,
-              showCurrentPin,
-              setShowCurrentPin,
-              "Enter current PIN"
-            )}
-
-            {pinInputField(
-              "New PIN",
-              newPin,
-              setNewPin,
-              showNewPin,
-              setShowNewPin,
-              "Enter new PIN"
-            )}
-
-            {pinInputField(
-              "Confirm New PIN",
-              confirmPin,
-              setConfirmPin,
-              showConfirmPin,
-              setShowConfirmPin,
-              "Confirm new PIN"
-            )}
-          </View>
-
-          <View style={styles.securityTips}>
-            <Text style={styles.tipsTitle}>Security Tips:</Text>
-            <View style={styles.tipItem}>
-              <Ionicons name="checkmark-circle" size={16} color={Colors.primary} />
-              <Text style={styles.tipText}>Use a unique PIN that's hard to guess</Text>
-            </View>
-            <View style={styles.tipItem}>
-              <Ionicons name="checkmark-circle" size={16} color={Colors.primary} />
-              <Text style={styles.tipText}>Avoid using birthdays or simple patterns</Text>
-            </View>
-            <View style={styles.tipItem}>
-              <Ionicons name="checkmark-circle" size={16} color={Colors.primary} />
-              <Text style={styles.tipText}>Change your PIN regularly</Text>
-            </View>
-          </View>
-
-          <TouchableOpacity
-            style={styles.saveButton}
-            onPress={handleSavePin}
-          >
-            <MaterialCommunityIcons name="lock-check" size={20} color={Colors.white} />
-            <Text style={styles.saveButtonText}>Update PIN</Text>
-          </TouchableOpacity>
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
         </View>
-      </ScrollView>
+      ) : (
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{
+            paddingVertical: Default.fixPadding * 2,
+          }}
+        >
+          <View style={styles.container}>
+            <View style={styles.headerSection}>
+              <MaterialCommunityIcons
+                name={mode === "change" ? "lock-reset" : "lock-plus-outline"}
+                size={50}
+                color={Colors.primary}
+              />
+              <Text style={styles.title}>{screenCopy.title}</Text>
+              <Text style={styles.description}>{screenCopy.description}</Text>
+            </View>
+
+            <View style={styles.formSection}>
+              {mode === "change" &&
+                pinInputField(
+                  tr("pinCurrentLabel"),
+                  currentPin,
+                  setCurrentPin,
+                  showCurrentPin,
+                  setShowCurrentPin,
+                  tr("pinCurrentPlaceholder")
+                )}
+
+              {pinInputField(
+                tr("pinNewLabel"),
+                newPin,
+                setNewPin,
+                showNewPin,
+                setShowNewPin,
+                tr("pinNewPlaceholder")
+              )}
+
+              {pinInputField(
+                tr("pinConfirmLabel"),
+                confirmPin,
+                setConfirmPin,
+                showConfirmPin,
+                setShowConfirmPin,
+                tr("pinConfirmPlaceholder")
+              )}
+            </View>
+
+            <View style={styles.securityTips}>
+              <Text style={styles.tipsTitle}>{tr("pinSecurityTipsTitle")}</Text>
+              <View style={styles.tipItem}>
+                <Ionicons name="checkmark-circle" size={16} color={Colors.primary} />
+                <Text style={styles.tipText}>{tr("pinSecurityTip1")}</Text>
+              </View>
+              <View style={styles.tipItem}>
+                <Ionicons name="checkmark-circle" size={16} color={Colors.primary} />
+                <Text style={styles.tipText}>{tr("pinSecurityTip2")}</Text>
+              </View>
+              <View style={styles.tipItem}>
+                <Ionicons name="checkmark-circle" size={16} color={Colors.primary} />
+                <Text style={styles.tipText}>{tr("pinSecurityTip3")}</Text>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.saveButton, isSubmitting && styles.buttonDisabled]}
+              onPress={handleSavePin}
+              disabled={isSubmitting}
+            >
+              <MaterialCommunityIcons name="lock-check" size={20} color={Colors.white} />
+              <Text style={styles.saveButtonText}>{screenCopy.cta}</Text>
+            </TouchableOpacity>
+
+            {mode === "change" && (
+              <TouchableOpacity
+                style={[styles.disableButton, isSubmitting && styles.buttonDisabled]}
+                onPress={handleDisablePin}
+                disabled={isSubmitting}
+              >
+                <MaterialCommunityIcons name="lock-off-outline" size={20} color={Colors.red} />
+                <Text style={styles.disableButtonText}>{tr("pinDisableButton")}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </ScrollView>
+      )}
     </View>
   );
 };
@@ -184,6 +322,11 @@ const PinCodeScreen = ({ navigation }) => {
 export default PinCodeScreen;
 
 const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   container: {
     marginHorizontal: Default.fixPadding * 2,
   },
@@ -272,5 +415,28 @@ const styles = StyleSheet.create({
   saveButtonText: {
     ...Fonts.SemiBold16white,
     marginLeft: Default.fixPadding * 0.8,
+  },
+  disableButton: {
+    marginTop: Default.fixPadding,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.red,
+    paddingHorizontal: Default.fixPadding * 2,
+    paddingVertical: Default.fixPadding * 1.2,
+    borderRadius: 10,
+    minHeight: 50,
+    width: "100%",
+    ...Default.shadow,
+  },
+  disableButtonText: {
+    ...Fonts.SemiBold16black,
+    color: Colors.red,
+    marginLeft: Default.fixPadding * 0.8,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
 });
