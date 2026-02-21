@@ -53,7 +53,8 @@ export const AuthProvider: React.FC<Props> = ({ children }) => {
   useRealtimeSubscriptions(
     user?.id,
     profile?.unit_id || undefined,
-    profile?.community_id || undefined
+    profile?.community_id || undefined,
+    profile?.id || undefined
   );
 
   useEffect(() => {

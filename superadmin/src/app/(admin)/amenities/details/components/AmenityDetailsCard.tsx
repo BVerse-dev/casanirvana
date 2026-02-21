@@ -29,6 +29,7 @@ type AmenityType = {
   image_urls?: string[]
   created_at: string
   updated_at: string
+  communityName?: string
   societies?: { name: string }
 }
 
@@ -366,7 +367,7 @@ const AmenityDetailsCard = ({ amenity }: AmenityDetailsCardProps) => {
                     </Badge>
                     <Badge bg="info" className="fs-11">
                       <IconifyIcon icon="ri:map-pin-line" className="me-1" />
-                      {amenity.societies?.name || 'Casa Nirvana'}
+                      {amenity.communityName || amenity.societies?.name || 'Community'}
                     </Badge>
                   </div>
                 </div>

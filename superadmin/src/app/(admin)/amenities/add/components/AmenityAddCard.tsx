@@ -29,7 +29,7 @@ const AmenityAddCard = () => {
           </p>
           <p className="d-flex align-items-center gap-2 mt-2">
             <IconifyIcon icon="ri:map-pin-line" className="fs-18 text-primary" />
-            Casa Nirvana Societies
+            Casa Nirvana Community
           </p>
           <h5 className="my-3">Amenity Features :</h5>
           <ul className="list-inline d-flex gap-1 mb-0 align-items-center">

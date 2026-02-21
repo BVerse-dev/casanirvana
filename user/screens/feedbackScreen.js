@@ -19,6 +19,7 @@ import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import AwesomeButton from "react-native-really-awesome-button";
 import { useAuth } from "../contexts/AuthContext";
 import { useSubmitFeedback } from "../hooks/useFeedback";
+import { buildFeedbackPayload } from "../utils/inquiryPayloadMappers";
 
 const FeedbackScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
@@ -134,22 +135,15 @@ const FeedbackScreen = ({ navigation }) => {
       return;
     }
 
+    if (!profile?.id || !profile?.community_id) {
+      Alert.alert('Error', 'Please complete your profile before submitting feedback.');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      const feedbackData = {
-        ...formData,
-        user_id: formData.isAnonymous ? null : profile?.id,
-        user_name: formData.isAnonymous ? null : profile?.full_name,
-        user_email: formData.isAnonymous ? null : profile?.email,
-        user_phone: formData.isAnonymous ? null : profile?.phone_number,
-        unit_number: formData.isAnonymous ? null : profile?.unit_number,
-        community_id: profile?.community_id,
-        inquiry_type: 'feedback',
-        status: 'open',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
+      const feedbackData = buildFeedbackPayload(formData, profile);
 
       // Submit to Supabase
       const result = await submitFeedback(feedbackData);

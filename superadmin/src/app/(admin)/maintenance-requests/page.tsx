@@ -1,7 +1,11 @@
 "use client";
 import PageTitle from "@/components/PageTitle";
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
-import { useListMaintenanceRequests } from "@/hooks/useMaintenanceRequests";
+import {
+  useDeleteMaintenanceRequest,
+  useListMaintenanceRequests,
+  useUpdateMaintenanceRequestById,
+} from "@/hooks/useMaintenanceRequests";
 import { Database } from "@/lib/database.types";
 import { mapAvatarUrl } from "@/utils/avatarMapper";
 import Image from "next/image";
@@ -31,6 +35,47 @@ type MaintenanceWithProfiles =
 const MaintenanceRequestsPage = () => {
   const { data: maintenanceRequests = [], isLoading } =
     useListMaintenanceRequests();
+  const updateMaintenanceRequestById = useUpdateMaintenanceRequestById();
+  const deleteMaintenanceRequest = useDeleteMaintenanceRequest();
+
+  const handleToggleCompletion = async (
+    request: MaintenanceWithProfiles,
+  ) => {
+    const newStatus = request.status === "completed" ? "pending" : "completed";
+
+    try {
+      await updateMaintenanceRequestById.mutateAsync({
+        id: request.id,
+        updates: {
+          status: newStatus,
+          updated_at: new Date().toISOString(),
+          ...(newStatus === "completed" && {
+            completed_at: new Date().toISOString(),
+            resolved_at: new Date().toISOString(),
+          }),
+          ...(newStatus !== "completed" && {
+            completed_at: null,
+            resolved_at: null,
+          }),
+        },
+      });
+    } catch (error) {
+      console.error("Failed to update maintenance status:", error);
+    }
+  };
+
+  const handleDelete = async (request: MaintenanceWithProfiles) => {
+    const shouldDelete = window.confirm(
+      `Delete maintenance request #${request.id}? This action cannot be undone.`,
+    );
+    if (!shouldDelete) return;
+
+    try {
+      await deleteMaintenanceRequest.mutateAsync(request.id);
+    } catch (error) {
+      console.error("Failed to delete maintenance request:", error);
+    }
+  };
 
   if (isLoading) {
     return <div>Loading maintenance requests...</div>;
@@ -145,7 +190,7 @@ const MaintenanceRequestsPage = () => {
                                     "Unknown"}
                                 </Link>
                                 <p className="text-muted mb-0 fs-13">
-                                  Unit: {request.unit?.unit_number || "N/A"}
+                                  Unit: {request.unit?.unit_number || request.unit?.number || "N/A"}
                                 </p>
                               </div>
                             </div>
@@ -186,19 +231,48 @@ const MaintenanceRequestsPage = () => {
                           </td>
                           <td>
                             <div className="d-flex gap-2">
-                              <Button variant="light" size="sm">
+                              <Button
+                                as={Link}
+                                href={`/maintenance-requests/${request.id}`}
+                                variant="light"
+                                size="sm"
+                              >
                                 <IconifyIcon
                                   icon="solar:eye-broken"
                                   className="align-middle fs-18"
                                 />
                               </Button>
-                              <Button variant="soft-primary" size="sm">
+                              <Button
+                                variant={
+                                  request.status === "completed"
+                                    ? "soft-warning"
+                                    : "soft-success"
+                                }
+                                size="sm"
+                                onClick={() => handleToggleCompletion(request)}
+                                disabled={updateMaintenanceRequestById.isPending}
+                                title={
+                                  request.status === "completed"
+                                    ? "Reopen Request"
+                                    : "Mark Completed"
+                                }
+                              >
                                 <IconifyIcon
-                                  icon="solar:pen-2-broken"
+                                  icon={
+                                    request.status === "completed"
+                                      ? "solar:refresh-broken"
+                                      : "solar:check-read-broken"
+                                  }
                                   className="align-middle fs-18"
                                 />
                               </Button>
-                              <Button variant="soft-danger" size="sm">
+                              <Button
+                                variant="soft-danger"
+                                size="sm"
+                                onClick={() => handleDelete(request)}
+                                disabled={deleteMaintenanceRequest.isPending}
+                                title="Delete Request"
+                              >
                                 <IconifyIcon
                                   icon="solar:trash-bin-minimalistic-2-broken"
                                   className="align-middle fs-18"

@@ -1,7 +1,7 @@
 "use client";
 import { useParams } from "next/navigation";
-import { Card, CardBody, CardHeader, CardTitle, Row, Col, Badge, Button, Tab, Tabs } from "react-bootstrap";
-import { useGetServiceRequest } from "@/hooks/useServiceRequests";
+import { Card, CardBody, CardHeader, CardTitle, Row, Col, Badge, Button } from "react-bootstrap";
+import { useGetServiceRequest, useUpdateServiceRequest } from "@/hooks/useServiceRequests";
 import PageTitle from "@/components/PageTitle";
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
 import { useState } from "react";
@@ -11,6 +11,24 @@ const ServiceRequestDetailsPage = () => {
   const params = useParams();
   const requestId = params.id as string;
   const { data: serviceRequest, isLoading, error } = useGetServiceRequest(requestId);
+  const updateServiceRequest = useUpdateServiceRequest();
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const handleStatusUpdate = async (status: "in_progress" | "completed") => {
+    if (!serviceRequest?.id) return;
+    setActionError(null);
+
+    try {
+      await updateServiceRequest.mutateAsync({
+        id: serviceRequest.id,
+        status,
+        completion_date: status === "completed" ? new Date().toISOString().slice(0, 10) : null,
+      });
+    } catch (updateError) {
+      const message = updateError instanceof Error ? updateError.message : "Failed to update service request status.";
+      setActionError(message);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -64,20 +82,9 @@ const ServiceRequestDetailsPage = () => {
     }
   };
 
-  const getPriorityBadgeClass = (priority: string) => {
-    switch (priority) {
-      case "high":
-        return "bg-danger-subtle text-danger";
-      case "medium":
-        return "bg-warning-subtle text-warning";
-      case "low":
-        return "bg-success-subtle text-success";
-      default:
-        return "bg-secondary-subtle text-secondary";
-    }
-  };
+  const formatDate = (dateString?: string | null) => {
+    if (!dateString) return "N/A";
 
-  const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
       month: "long",
@@ -87,12 +94,14 @@ const ServiceRequestDetailsPage = () => {
     });
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-IN", {
+  const formatCurrency = (amount?: number | null) => {
+    return new Intl.NumberFormat("en-GH", {
       style: "currency",
-      currency: "INR",
-    }).format(amount);
+      currency: "GHS",
+    }).format(Number(amount || 0));
   };
+
+  const serviceName = serviceRequest.services?.name || serviceRequest.title || "Service Request";
 
   return (
     <>
@@ -101,9 +110,9 @@ const ServiceRequestDetailsPage = () => {
       {/* Header Actions */}
       <Row className="mb-3">
         <Col xl={12}>
-          <div className="d-flex justify-content-between align-items-center">
-            <Link 
-              href="/service-requests" 
+            <div className="d-flex justify-content-between align-items-center">
+              <Link 
+                href="/service-requests" 
               className="btn text-white fw-semibold"
               style={{
                 background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
@@ -116,38 +125,45 @@ const ServiceRequestDetailsPage = () => {
             >
               <IconifyIcon icon="ri:arrow-left-line" className="me-1" />
               Back to Service Requests
-            </Link>
-            <div className="d-flex gap-2">
-              <Button variant="soft-primary">
-                <IconifyIcon icon="ri:edit-line" className="me-1" />
-                Edit
-              </Button>
-              <Button variant="soft-secondary">
-                <IconifyIcon icon="ri:download-line" className="me-1" />
-                Export PDF
-              </Button>
-              {serviceRequest.status === "pending" && (
-                <>
-                  <Button variant="warning">
-                    <IconifyIcon icon="ri:play-line" className="me-1" />
-                    Start Service
-                  </Button>
-                  <Button variant="success">
+              </Link>
+              <div className="d-flex gap-2">
+                {serviceRequest.status === "pending" && (
+                  <>
+                    <Button
+                      variant="warning"
+                      onClick={() => handleStatusUpdate("in_progress")}
+                      disabled={updateServiceRequest.isPending}
+                    >
+                      <IconifyIcon icon="ri:play-line" className="me-1" />
+                      Start Service
+                    </Button>
+                    <Button
+                      variant="success"
+                      onClick={() => handleStatusUpdate("completed")}
+                      disabled={updateServiceRequest.isPending}
+                    >
+                      <IconifyIcon icon="ri:check-line" className="me-1" />
+                      Mark as Completed
+                    </Button>
+                  </>
+                )}
+                {serviceRequest.status === "in_progress" && (
+                  <Button
+                    variant="success"
+                    onClick={() => handleStatusUpdate("completed")}
+                    disabled={updateServiceRequest.isPending}
+                  >
                     <IconifyIcon icon="ri:check-line" className="me-1" />
                     Mark as Completed
                   </Button>
-                </>
-              )}
-              {serviceRequest.status === "in_progress" && (
-                <Button variant="success">
-                  <IconifyIcon icon="ri:check-line" className="me-1" />
-                  Mark as Completed
-                </Button>
-              )}
+                )}
+              </div>
             </div>
-          </div>
-        </Col>
-      </Row>
+            {actionError && (
+              <div className="alert alert-danger mt-3 mb-0">{actionError}</div>
+            )}
+          </Col>
+        </Row>
 
       <Row>
         {/* Main Service Request Information */}
@@ -157,11 +173,11 @@ const ServiceRequestDetailsPage = () => {
               <div className="d-flex justify-content-between align-items-start">
                 <div>
                   <CardTitle as="h4" className="mb-1">
-                    {serviceRequest.services?.name}
+                    {serviceName}
                   </CardTitle>
                   <div className="d-flex align-items-center gap-3 mt-2">
-                    <Badge className={`py-1 px-2 fs-13 ${getStatusBadgeClass(serviceRequest.status)}`}>
-                      {serviceRequest.status.replace('_', ' ').toUpperCase()}
+                    <Badge className={`py-1 px-2 fs-13 ${getStatusBadgeClass(serviceRequest.status || "pending")}`}>
+                      {(serviceRequest.status || "pending").replace("_", " ").toUpperCase()}
                     </Badge>
                     <Badge className="bg-info-subtle text-info py-1 px-2 fs-13">
                       {serviceRequest.services?.category}
@@ -179,162 +195,82 @@ const ServiceRequestDetailsPage = () => {
             </CardHeader>
             
             <CardBody>
-              <Tabs defaultActiveKey="details" className="mb-3">
-                <Tab eventKey="details" title="Details">
-                  <div className="mb-4">
-                    <h6 className="mb-2">Service Details</h6>
-                    <div className="row g-3 mb-3">
-                      <div className="col-md-6">
-                        <small className="text-muted">Service Name</small>
-                        <div className="fw-medium">{serviceRequest.services?.name}</div>
-                      </div>
-                      <div className="col-md-6">
-                        <small className="text-muted">Category</small>
-                        <div className="fw-medium text-capitalize">{serviceRequest.services?.category}</div>
-                      </div>
-                      <div className="col-md-6">
-                        <small className="text-muted">Preferred Date</small>
-                        <div className="fw-medium">
-                          {serviceRequest.preferred_date ? new Date(serviceRequest.preferred_date).toLocaleDateString("en-US", {
+              <div className="mb-4">
+                <h6 className="mb-2">Service Details</h6>
+                <div className="row g-3 mb-3">
+                  <div className="col-md-6">
+                    <small className="text-muted">Service Name</small>
+                    <div className="fw-medium">{serviceName}</div>
+                  </div>
+                  <div className="col-md-6">
+                    <small className="text-muted">Category</small>
+                    <div className="fw-medium text-capitalize">{serviceRequest.services?.category || "General"}</div>
+                  </div>
+                  <div className="col-md-6">
+                    <small className="text-muted">Preferred Date</small>
+                    <div className="fw-medium">
+                      {serviceRequest.preferred_date
+                        ? new Date(serviceRequest.preferred_date).toLocaleDateString("en-US", {
                             year: "numeric",
                             month: "long",
                             day: "numeric",
-                          }) : 'Not specified'}
-                        </div>
-                      </div>
-                      <div className="col-md-6">
-                        <small className="text-muted">Total Amount</small>
-                        <div className="fw-medium text-success">{formatCurrency(serviceRequest.total_amount)}</div>
-                      </div>
+                          })
+                        : "Not specified"}
                     </div>
                   </div>
+                  <div className="col-md-6">
+                    <small className="text-muted">Total Amount</small>
+                    <div className="fw-medium text-success">{formatCurrency(serviceRequest.total_amount)}</div>
+                  </div>
+                </div>
+              </div>
 
-                  {serviceRequest.description && (
-                    <div className="mb-4">
-                      <h6 className="mb-2">Service Instructions</h6>
-                      <div className="p-3 bg-light rounded">
-                        <p className="mb-0 text-muted">
-                          {serviceRequest.description}
-                        </p>
+              {(serviceRequest.description || serviceRequest.request_details) && (
+                <div className="mb-4">
+                  <h6 className="mb-2">Service Instructions</h6>
+                  <div className="p-3 bg-light rounded">
+                    <p className="mb-0 text-muted">{serviceRequest.description || serviceRequest.request_details}</p>
+                  </div>
+                </div>
+              )}
+
+              {serviceRequest.services?.description && (
+                <div className="mb-4">
+                  <h6 className="mb-2">Service Description</h6>
+                  <p className="text-muted mb-0 lh-base">{serviceRequest.services.description}</p>
+                </div>
+              )}
+
+              <div>
+                <h6 className="mb-3">Timeline</h6>
+                <div className="timeline">
+                  <div className="timeline-item">
+                    <div className="timeline-marker bg-primary"></div>
+                    <div className="timeline-content">
+                      <h6 className="mb-1">Service Request Created</h6>
+                      <small className="text-muted">{formatDate(serviceRequest.created_at)}</small>
+                    </div>
+                  </div>
+                  {serviceRequest.updated_at && serviceRequest.updated_at !== serviceRequest.created_at && (
+                    <div className="timeline-item">
+                      <div className="timeline-marker bg-warning"></div>
+                      <div className="timeline-content">
+                        <h6 className="mb-1">Last Updated</h6>
+                        <small className="text-muted">{formatDate(serviceRequest.updated_at)}</small>
                       </div>
                     </div>
                   )}
-
-                  {/* Service Description */}
-                  {serviceRequest.services?.description && (
-                    <div className="mb-4">
-                      <h6 className="mb-2">Service Description</h6>
-                      <p className="text-muted mb-0 lh-base">
-                        {serviceRequest.services.description}
-                      </p>
+                  {serviceRequest.status === "completed" && (
+                    <div className="timeline-item">
+                      <div className="timeline-marker bg-success"></div>
+                      <div className="timeline-content">
+                        <h6 className="mb-1">Service Completed</h6>
+                        <small className="text-muted">{formatDate(serviceRequest.updated_at)}</small>
+                      </div>
                     </div>
                   )}
-
-                  {/* Status Timeline */}
-                  <div>
-                    <h6 className="mb-3">Timeline</h6>
-                    <div className="timeline">
-                      <div className="timeline-item">
-                        <div className="timeline-marker bg-primary"></div>
-                        <div className="timeline-content">
-                          <h6 className="mb-1">Service Request Created</h6>
-                          <small className="text-muted">{formatDate(serviceRequest.created_at)}</small>
-                        </div>
-                      </div>
-                      {serviceRequest.updated_at !== serviceRequest.created_at && (
-                        <div className="timeline-item">
-                          <div className="timeline-marker bg-warning"></div>
-                          <div className="timeline-content">
-                            <h6 className="mb-1">Last Updated</h6>
-                            <small className="text-muted">{formatDate(serviceRequest.updated_at)}</small>
-                          </div>
-                        </div>
-                      )}
-                      {serviceRequest.status === "completed" && (
-                        <div className="timeline-item">
-                          <div className="timeline-marker bg-success"></div>
-                          <div className="timeline-content">
-                            <h6 className="mb-1">Service Completed</h6>
-                            <small className="text-muted">{formatDate(serviceRequest.updated_at)}</small>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </Tab>
-                
-                <Tab eventKey="history" title="Service History">
-                  <div className="text-center p-4">
-                    <IconifyIcon icon="ri:history-line" className="fs-48 text-muted mb-3" />
-                    <p className="text-muted">Service history will be displayed here</p>
-                  </div>
-                </Tab>
-                
-                <Tab eventKey="actions" title="Actions">
-                  <div className="row g-3">
-                    <div className="col-md-6">
-                      <div className="border rounded p-3">
-                        <h6 className="mb-3">Status Management</h6>
-                        <div className="d-grid gap-2">
-                          {serviceRequest.status === "pending" && (
-                            <>
-                              <Button variant="warning" size="sm">
-                                <IconifyIcon icon="ri:play-line" className="me-1" />
-                                Start Service
-                              </Button>
-                              <Button variant="success" size="sm">
-                                <IconifyIcon icon="ri:check-line" className="me-1" />
-                                Mark as Completed
-                              </Button>
-                              <Button variant="danger" size="sm">
-                                <IconifyIcon icon="ri:close-line" className="me-1" />
-                                Cancel Service
-                              </Button>
-                            </>
-                          )}
-                          {serviceRequest.status === "in_progress" && (
-                            <>
-                              <Button variant="success" size="sm">
-                                <IconifyIcon icon="ri:check-line" className="me-1" />
-                                Mark as Completed
-                              </Button>
-                              <Button variant="secondary" size="sm">
-                                <IconifyIcon icon="ri:pause-line" className="me-1" />
-                                Pause Service
-                              </Button>
-                            </>
-                          )}
-                          {serviceRequest.status === "completed" && (
-                            <Button variant="warning" size="sm">
-                              <IconifyIcon icon="ri:restart-line" className="me-1" />
-                              Reopen Service
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="col-md-6">
-                      <div className="border rounded p-3">
-                        <h6 className="mb-3">Communication</h6>
-                        <div className="d-grid gap-2">
-                          <Button variant="outline-primary" size="sm">
-                            <IconifyIcon icon="ri:phone-line" className="me-1" />
-                            Contact Resident
-                          </Button>
-                          <Button variant="outline-info" size="sm">
-                            <IconifyIcon icon="ri:mail-line" className="me-1" />
-                            Send Email
-                          </Button>
-                          <Button variant="outline-warning" size="sm">
-                            <IconifyIcon icon="ri:message-line" className="me-1" />
-                            Send SMS
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </Tab>
-              </Tabs>
+                </div>
+              </div>
             </CardBody>
           </Card>
         </Col>
@@ -356,7 +292,9 @@ const ServiceRequestDetailsPage = () => {
                 </div>
                 <div>
                   <h6 className="mb-1">
-                    {serviceRequest.user_profile?.first_name} {serviceRequest.user_profile?.last_name}
+                    {[serviceRequest.user_profile?.first_name, serviceRequest.user_profile?.last_name]
+                      .filter(Boolean)
+                      .join(" ") || serviceRequest.user_profile?.email || "Resident"}
                   </h6>
                   <p className="text-muted mb-0 fs-13">Resident</p>
                 </div>
@@ -366,20 +304,20 @@ const ServiceRequestDetailsPage = () => {
                 <div className="row g-2">
                   <div className="col-6">
                     <small className="text-muted">Unit</small>
-                    <div className="fw-medium">{serviceRequest.units?.number}</div>
+                    <div className="fw-medium">{serviceRequest.units?.number || serviceRequest.units?.unit_number || "N/A"}</div>
                   </div>
                   <div className="col-6">
                     <small className="text-muted">Block</small>
-                    <div className="fw-medium">{serviceRequest.units?.block}</div>
+                    <div className="fw-medium">{serviceRequest.units?.block || "N/A"}</div>
                   </div>
                 </div>
                 <div className="mt-2">
                   <small className="text-muted">Community</small>
-                  <div className="fw-medium">{serviceRequest.units?.communities?.name}</div>
+                  <div className="fw-medium">{serviceRequest.units?.community?.name || "N/A"}</div>
                 </div>
                 <div className="mt-2">
                   <small className="text-muted">Email</small>
-                  <div className="fw-medium">{serviceRequest.user_profile?.email}</div>
+                  <div className="fw-medium">{serviceRequest.user_profile?.email || "N/A"}</div>
                 </div>
               </div>
             </CardBody>
@@ -397,75 +335,76 @@ const ServiceRequestDetailsPage = () => {
               <div className="d-grid gap-2">
                 {serviceRequest.status === "pending" && (
                   <>
-                    <Button variant="success" size="sm">
-                      <IconifyIcon icon="ri:check-line" className="me-1" />
-                      Mark as Completed
-                    </Button>
-                    <Button variant="warning" size="sm">
+                    <Button
+                      variant="warning"
+                      size="sm"
+                      onClick={() => handleStatusUpdate("in_progress")}
+                      disabled={updateServiceRequest.isPending}
+                    >
                       <IconifyIcon icon="ri:play-line" className="me-1" />
                       Start Service
+                    </Button>
+                    <Button
+                      variant="success"
+                      size="sm"
+                      onClick={() => handleStatusUpdate("completed")}
+                      disabled={updateServiceRequest.isPending}
+                    >
+                      <IconifyIcon icon="ri:check-line" className="me-1" />
+                      Mark as Completed
                     </Button>
                   </>
                 )}
                 {serviceRequest.status === "in_progress" && (
-                  <Button variant="success" size="sm">
+                  <Button
+                    variant="success"
+                    size="sm"
+                    onClick={() => handleStatusUpdate("completed")}
+                    disabled={updateServiceRequest.isPending}
+                  >
                     <IconifyIcon icon="ri:check-line" className="me-1" />
                     Mark as Completed
                   </Button>
                 )}
-                <Button variant="outline-primary" size="sm">
-                  <IconifyIcon icon="ri:phone-line" className="me-1" />
-                  Contact Resident
-                </Button>
-                <Button variant="outline-info" size="sm">
-                  <IconifyIcon icon="ri:mail-line" className="me-1" />
-                  Send Email
-                </Button>
-                <Button variant="outline-warning" size="sm">
-                  <IconifyIcon icon="ri:calendar-line" className="me-1" />
-                  Reschedule Service
-                </Button>
-                <Button variant="outline-danger" size="sm">
-                  <IconifyIcon icon="ri:close-line" className="me-1" />
-                  Cancel Service
-                </Button>
+                <Link href="/service-requests" className="btn btn-outline-secondary btn-sm">
+                  <IconifyIcon icon="ri:list-check-3" className="me-1" />
+                  Back to Requests List
+                </Link>
               </div>
             </CardBody>
           </Card>
 
-          {/* Service Statistics */}
+          {/* Request Metadata */}
           <Card>
             <CardHeader>
               <CardTitle as="h5" className="mb-0">
-                <IconifyIcon icon="ri:bar-chart-line" className="me-2" />
-                Related Statistics
+                <IconifyIcon icon="ri:file-info-line" className="me-2" />
+                Request Metadata
               </CardTitle>
             </CardHeader>
             <CardBody>
-              <div className="row g-3 text-center">
-                <div className="col-6">
-                  <div className="border rounded p-2">
-                    <h5 className="mb-1 text-primary">8</h5>
-                    <small className="text-muted">Total Requests</small>
-                  </div>
+              <div className="d-flex flex-column gap-2">
+                <div className="d-flex justify-content-between">
+                  <span className="text-muted">Status</span>
+                  <span className="fw-semibold text-capitalize">
+                    {serviceRequest.status?.replace("_", " ") || "pending"}
+                  </span>
                 </div>
-                <div className="col-6">
-                  <div className="border rounded p-2">
-                    <h5 className="mb-1 text-success">5</h5>
-                    <small className="text-muted">Completed</small>
-                  </div>
+                <div className="d-flex justify-content-between">
+                  <span className="text-muted">Priority</span>
+                  <span className="fw-semibold text-capitalize">{serviceRequest.priority || "medium"}</span>
                 </div>
-                <div className="col-6">
-                  <div className="border rounded p-2">
-                    <h5 className="mb-1 text-warning">2</h5>
-                    <small className="text-muted">In Progress</small>
-                  </div>
+                <div className="d-flex justify-content-between">
+                  <span className="text-muted">Created</span>
+                  <span className="fw-semibold">{formatDate(serviceRequest.created_at)}</span>
                 </div>
-                <div className="col-6">
-                  <div className="border rounded p-2">
-                    <h5 className="mb-1 text-info">1</h5>
-                    <small className="text-muted">Pending</small>
-                  </div>
+                <div className="d-flex justify-content-between">
+                  <span className="text-muted">Last Updated</span>
+                  <span className="fw-semibold">{formatDate(serviceRequest.updated_at)}</span>
+                </div>
+                <div className="d-flex justify-content-between">
+                  <span className="text-muted">Amount</span>
+                  <span className="fw-semibold">{formatCurrency(serviceRequest.total_amount)}</span>
                 </div>
               </div>
             </CardBody>

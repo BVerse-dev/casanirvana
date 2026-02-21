@@ -56,22 +56,25 @@ export const useListMessages = (fromUser?: string, toUser?: string) => {
   return useQuery({
     queryKey: ["messages", fromUser, toUser],
     queryFn: async () => {
+      if (!fromUser || !toUser) {
+        return [];
+      }
+
       let query = supabase
         .from("messages")
         .select("*")
         .order("sent_at", { ascending: true });
 
-      if (fromUser && toUser) {
-        query = query.or(
-          `and(from_user.eq.${fromUser},to_user.eq.${toUser}),and(from_user.eq.${toUser},to_user.eq.${fromUser})`,
-        );
-      }
+      query = query.or(
+        `and(from_user.eq.${fromUser},to_user.eq.${toUser}),and(from_user.eq.${toUser},to_user.eq.${fromUser})`,
+      );
 
       const { data, error } = await query;
 
       if (error) throw error;
       return data;
     },
+    enabled: !!fromUser && !!toUser,
   });
 };
 
@@ -159,7 +162,7 @@ export const useMessageStats = () => {
       const { count: unreadMessages } = await supabase
         .from("messages")
         .select("*", { count: "exact", head: true })
-        .eq("read", false);
+        .or("is_read.eq.false,read.eq.false");
 
       // Get active chats (unique conversation pairs)
       const { data: conversations } = await supabase
@@ -174,17 +177,20 @@ export const useMessageStats = () => {
         uniqueConversations.add(key);
       });
 
-      // Get online users (simplified - in real app would check last activity)
+      const onlineThreshold = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+
+      // Get currently online users based on active profiles and last login heartbeat
       const { count: onlineUsers } = await supabase
         .from("profiles")
         .select("*", { count: "exact", head: true })
-        .eq("role", "user");
+        .eq("is_active", true)
+        .gte("last_login", onlineThreshold);
 
       const stats: MessageStats = {
         totalMessages: totalMessages || 0,
         activeChats: uniqueConversations.size,
         unreadMessages: unreadMessages || 0,
-        onlineUsers: Math.floor((onlineUsers || 0) * 0.3), // Simulate ~30% online
+        onlineUsers: onlineUsers || 0,
       };
 
       return stats;

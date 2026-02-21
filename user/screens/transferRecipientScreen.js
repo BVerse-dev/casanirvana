@@ -41,6 +41,7 @@ const TransferRecipientScreen = ({ navigation, route }) => {
   // Get data from route params
   const { 
     provider, 
+    providerId,
     providerName, 
     providerColor,
     providerLogo
@@ -76,6 +77,7 @@ const TransferRecipientScreen = ({ navigation, route }) => {
     // Navigate to amount entry screen
     navigation.navigate("transferAmountScreen", {
       provider,
+      providerId,
       providerName,
       providerColor,
       providerLogo,

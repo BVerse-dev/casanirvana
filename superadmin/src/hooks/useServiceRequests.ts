@@ -1,248 +1,140 @@
 "use client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from '../lib/supabase';
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "../lib/supabase";
 import type { Database } from "../lib/database.types";
 
 type ServiceRequest = Database["public"]["Tables"]["service_requests"]["Row"];
 type ServiceRequestInsert = Database["public"]["Tables"]["service_requests"]["Insert"];
 type ServiceRequestUpdate = Database["public"]["Tables"]["service_requests"]["Update"];
+type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
-// List all service requests
-export const useListServiceRequests = (
-  serviceId?: string,
-  status?: string,
-  userId?: string,
-) => {
+type ServiceRequestWithRelations = ServiceRequest & {
+  services?: Database["public"]["Tables"]["services"]["Row"] | null;
+  units?: (Database["public"]["Tables"]["units"]["Row"] & {
+    community?: Database["public"]["Tables"]["communities"]["Row"] | null;
+  }) | null;
+  user_profile?: Profile | null;
+};
+
+const SERVICE_REQUEST_SELECT = `
+  *,
+  services (
+    id,
+    name,
+    category,
+    base_price,
+    description
+  ),
+  units (
+    id,
+    block,
+    number,
+    unit_number,
+    community_id,
+    community:communities!units_community_id_fkey (
+      id,
+      name,
+      address
+    )
+  )
+`;
+
+const fetchProfilesByActorIds = async (actorIds: string[]) => {
+  if (!actorIds.length) {
+    return new Map<string, Profile>();
+  }
+
+  const profileMap = new Map<string, Profile>();
+
+  const { data: byUserIdProfiles } = await supabase
+    .from("profiles")
+    .select("id, user_id, first_name, last_name, email, phone, role, avatar_url")
+    .in("user_id", actorIds);
+
+  (byUserIdProfiles || []).forEach((profile) => {
+    profileMap.set(profile.id, profile);
+    if (profile.user_id) {
+      profileMap.set(profile.user_id, profile);
+    }
+  });
+
+  const unresolvedIds = actorIds.filter((id) => !profileMap.has(id));
+  if (unresolvedIds.length > 0) {
+    const { data: byIdProfiles } = await supabase
+      .from("profiles")
+      .select("id, user_id, first_name, last_name, email, phone, role, avatar_url")
+      .in("id", unresolvedIds);
+
+    (byIdProfiles || []).forEach((profile) => {
+      profileMap.set(profile.id, profile);
+      if (profile.user_id) {
+        profileMap.set(profile.user_id, profile);
+      }
+    });
+  }
+
+  return profileMap;
+};
+
+const withRequesterProfiles = async (rows: ServiceRequestWithRelations[]) => {
+  const actorIds = [...new Set(rows.flatMap((row) => [row.user_id, row.created_by]).filter(Boolean))] as string[];
+  const profileMap = await fetchProfilesByActorIds(actorIds);
+
+  return rows.map((row) => ({
+    ...row,
+    user_profile:
+      (row.user_id ? profileMap.get(row.user_id) : null) ||
+      (row.created_by ? profileMap.get(row.created_by) : null) ||
+      null,
+  }));
+};
+
+export const useListServiceRequests = (serviceId?: string, status?: string, userId?: string) => {
   return useQuery({
     queryKey: ["service_requests", serviceId, status, userId],
     queryFn: async () => {
-      console.log('🔍 useListServiceRequests - Starting query');
-      console.log('  - serviceId:', serviceId);
-      console.log('  - status:', status);
-      console.log('  - userId:', userId);
+      let query = supabase
+        .from("service_requests")
+        .select(SERVICE_REQUEST_SELECT)
+        .order("created_at", { ascending: false });
 
-      try {
-        // Test the supabase client first
-        console.log('🔍 useListServiceRequests - Testing supabase client...');
-        console.log('  - Supabase URL:', supabase.supabaseUrl);
-        console.log('  - Supabase Key exists:', !!supabase.supabaseKey);
-        
-        // First try a simple query to test table access with regular client
-        console.log('🔍 useListServiceRequests - Testing simple table access...');
-        const simpleTest = await supabase
-          .from("service_requests")
-          .select("id, status, created_at")
-          .limit(1);
-        
-        console.log('🔍 useListServiceRequests - Simple test result:', simpleTest);
-        
-        if (simpleTest.error) {
-          console.error('❌ Simple test failed with regular client:', simpleTest.error);
-          
-          // Try with admin client to bypass RLS
-          console.log('🔍 useListServiceRequests - Trying with admin client...');
-          const adminTest = await supabase
-            .from("service_requests")
-            .select("id, status, created_at")
-            .limit(1);
-          
-          console.log('🔍 useListServiceRequests - Admin test result:', adminTest);
-          
-          if (adminTest.error) {
-            console.error('❌ Admin test also failed:', adminTest.error);
-            throw adminTest.error;
-          }
-        }
-        
-        // If simple test works, try basic query with admin client for now
-        console.log('🔍 useListServiceRequests - Testing basic query with admin client...');
-        const { data, error } = await supabase
-          .from("service_requests")
-          .select("*")
-          .order("created_at", { ascending: false });
-        
-        console.log('🔍 useListServiceRequests - Basic query result:');
-        console.log('  - Data:', data);
-        console.log('  - Error:', error);
-        console.log('  - Count:', data?.length);
-
-        if (error) {
-          console.error('❌ Basic query failed:', error);
-          console.error('❌ Error details:', JSON.stringify(error, null, 2));
-          throw error;
-        }
-
-        console.log('✅ useListServiceRequests - Success:', data?.length || 0, 'service requests found');
-
-        return data || [];
-      } catch (err) {
-        console.error('❌ useListServiceRequests - Catch block error:', err);
-        console.error('❌ Error type:', typeof err);
-        console.error('❌ Error message:', err instanceof Error ? err.message : String(err));
-        throw err;
+      if (serviceId) {
+        query = query.eq("service_id", serviceId);
       }
+      if (status) {
+        query = query.eq("status", status);
+      }
+      if (userId) {
+        query = query.or(`user_id.eq.${userId},created_by.eq.${userId}`);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      return withRequesterProfiles((data || []) as ServiceRequestWithRelations[]);
     },
   });
 };
 
-// Get single service request
 export const useGetServiceRequest = (id: string) => {
   return useQuery({
     queryKey: ["service_request", id],
     queryFn: async () => {
-      console.log('🔍 useGetServiceRequest - Starting query for ID:', id);
+      const { data, error } = await supabase
+        .from("service_requests")
+        .select(SERVICE_REQUEST_SELECT)
+        .eq("id", id)
+        .single();
 
-      try {
-        // Try with regular supabase client first
-        console.log('🔍 useGetServiceRequest - Testing with regular client...');
-        let client = supabase;
-        
-        let { data, error } = await client
-          .from("service_requests")
-          .select(`
-            *,
-            services (
-              id,
-              name,
-              category,
-              base_price,
-              description
-            ),
-            units (
-              id,
-              block,
-              number,
-              unit_number,
-              community_id,
-              community:communities!units_community_id_fkey (
-                id,
-                name,
-                address
-              )
-            )
-          `)
-          .eq("id", id)
-          .single();
+      if (error) throw error;
 
-        console.log('🔍 useGetServiceRequest - Regular client result:', { data, error });
-
-        // If regular client fails, try admin client
-        if (error) {
-          console.log('🔍 useGetServiceRequest - Regular client failed, trying admin client...');
-          const adminResult = await supabase
-            .from("service_requests")
-            .select(`
-              *,
-              services (
-                id,
-                name,
-                category,
-                base_price,
-                description
-              ),
-              units (
-                id,
-                block,
-                number,
-                unit_number,
-                community_id,
-                community:communities!units_community_id_fkey (
-                  id,
-                  name,
-                  address
-                )
-              )
-            `)
-            .eq("id", id)
-            .single();
-
-          console.log('🔍 useGetServiceRequest - Admin client result:', adminResult);
-          
-          data = adminResult.data;
-          error = adminResult.error;
-          client = supabase;
-        }
-
-        if (error) {
-          console.error('❌ Both clients failed:', error);
-          console.log('🔍 useGetServiceRequest - Returning mock data for testing...');
-          
-          // Return mock data to test if component works
-          return {
-            id: id,
-            status: 'pending',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            service_id: 1,
-            user_id: 'mock-user-id',
-            unit_id: 'mock-unit-id',
-            total_amount: 500,
-            description: 'Mock service request for testing',
-            preferred_date: new Date().toISOString(),
-            services: {
-              id: 1,
-              name: 'Test Service',
-              category: 'maintenance',
-              base_price: 500,
-              description: 'Test service description'
-            },
-            units: {
-              id: 'mock-unit-id',
-              block: 'A',
-              number: '101',
-              unit_number: '101',
-              community_id: 'mock-community-id',
-              communities: {
-                id: 'mock-community-id',
-                name: 'Test Community',
-                address: 'Test Address'
-              }
-            },
-            user_profile: {
-              id: 'mock-user-id',
-              first_name: 'Test',
-              last_name: 'User',
-              email: 'test@example.com',
-              phone: '1234567890'
-            }
-          };
-        }
-
-        // Manual join with profiles
-        let user_profile = null;
-        if (data?.user_id) {
-          console.log('🔍 useGetServiceRequest - Fetching user profile for:', data.user_id);
-          const { data: profile, error: profileError } = await client
-            .from("profiles")
-            .select("id, first_name, last_name, email, phone")
-            .eq("id", data.user_id)
-            .single();
-          
-          console.log('🔍 useGetServiceRequest - Profile result:', { profile, profileError });
-          
-          if (!profileError && profile) {
-            user_profile = profile;
-          }
-        }
-
-        const result = {
-          ...data,
-          user_profile
-        };
-
-        console.log('🔍 useGetServiceRequest - Final result:', result);
-        return result;
-
-      } catch (error) {
-        console.error('❌ useGetServiceRequest - Error:', error);
-        throw error;
-      }
+      const rows = await withRequesterProfiles([data as ServiceRequestWithRelations]);
+      return rows[0];
     },
     enabled: !!id,
   });
 };
 
-// Create service request
 export const useCreateServiceRequest = () => {
   const queryClient = useQueryClient();
 
@@ -263,15 +155,11 @@ export const useCreateServiceRequest = () => {
   });
 };
 
-// Update service request
 export const useUpdateServiceRequest = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      id,
-      ...data
-    }: ServiceRequestUpdate & { id: string }) => {
+    mutationFn: async ({ id, ...data }: ServiceRequestUpdate & { id: string }) => {
       const { data: result, error } = await supabase
         .from("service_requests")
         .update(data)
@@ -282,23 +170,19 @@ export const useUpdateServiceRequest = () => {
       if (error) throw error;
       return result;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["service_requests"] });
+      queryClient.invalidateQueries({ queryKey: ["service_request", variables.id] });
     },
   });
 };
 
-// Delete service request
 export const useDeleteServiceRequest = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("service_requests")
-        .delete()
-        .eq("id", id);
-
+      const { error } = await supabase.from("service_requests").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {

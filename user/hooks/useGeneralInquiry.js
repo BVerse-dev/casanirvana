@@ -33,7 +33,12 @@ export const useSubmitGeneralInquiry = () => {
     }
   };
 
-  return { submitInquiry, isSubmitting, error };
+  return {
+    submitInquiry,
+    submitGeneralInquiry: submitInquiry,
+    isSubmitting,
+    error,
+  };
 };
 
 // Hook to get user's general inquiries

@@ -14,7 +14,7 @@ import {
   Keyboard,
   Alert,
 } from "react-native";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Colors, Default, Fonts } from "../constants/styles";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -22,20 +22,14 @@ import MyStatusBar from "../components/myStatusBar";
 import { ms } from "react-native-size-matters/extend";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import AwesomeButton from "react-native-really-awesome-button";
-import { useGetComplaint, useListComplaintComments, useCreateComplaintComment, useGetUserUnit, useUpdateComplaint } from "../hooks/useSupabaseData";
+import { useGetComplaint, useListComplaintComments, useCreateComplaintComment, useUpdateComplaint } from "../hooks/useSupabaseData";
 import { useHasJoinedCommunity } from '../hooks/useCommunityData';
-import { useAuth } from '../contexts/AuthContext';
 import { getAvatarSource } from "../utils/avatarMapping";
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../utils/supabase';
 
 const ComplaintDetailScreen = ({ navigation, route }) => {
-  const { 
-    complaintId, 
-    headerTitle, 
-    // Legacy props for fallback
-    image, title, dateTime, other, name, resolved 
-  } = route.params;
+  const { complaintId, headerTitle } = route.params;
 
   const { t, i18n } = useTranslation();
   
@@ -46,19 +40,14 @@ const ComplaintDetailScreen = ({ navigation, route }) => {
     error 
   } = useGetComplaint(complaintId);
 
-  // Get current user from auth context (same pattern as maintenance screen)
-  const { user } = useAuth();
   const { profile } = useHasJoinedCommunity();
   const queryClient = useQueryClient();
-
-  // Get user's unit information using auth user ID
-  const { data: userUnit } = useGetUserUnit(profile?.user_id);
+  const contentScrollRef = useRef(null);
 
   // Fetch comments for this complaint
   const { 
     data: comments = [], 
     isLoading: commentsLoading,
-    error: commentsError,
     refetch: refetchComments 
   } = useListComplaintComments(complaintId);
 
@@ -82,14 +71,6 @@ const ComplaintDetailScreen = ({ navigation, route }) => {
   
   // Update complaint mutation for resolving/reopening
   const updateComplaintMutation = useUpdateComplaint();
-
-  // Get user's unit information for flatNo display
-  const getUserFlatNo = () => {
-    if (userUnit?.block && userUnit?.number) {
-      return `${userUnit.block}-${userUnit.number}`;
-    }
-    return "N/A";
-  };
 
   // Helper function to get unit information for any commenter
   const getCommenterFlatNo = (profile) => {
@@ -122,7 +103,7 @@ const ComplaintDetailScreen = ({ navigation, route }) => {
     return id && uuidRegex.test(id);
   };
 
-  const isRtl = i18n.dir() == "rtl";
+  const isRtl = i18n.dir() === "rtl";
 
   function tr(key) {
     return t(`complaintDetailScreen:${key}`);
@@ -153,15 +134,15 @@ const ComplaintDetailScreen = ({ navigation, route }) => {
     return formatDateTime(dateString);
   };
 
-  const backAction = () => {
+  const backAction = useCallback(() => {
     navigation.pop();
     return true;
-  };
+  }, [navigation]);
   
   useEffect(() => {
     const subscription = BackHandler.addEventListener("hardwareBackPress", backAction);
     return () => subscription?.remove();
-  }, []);
+  }, [backAction]);
 
   // Format comment data for display - only show real comments, no mock data
   const commentList = comments.length > 0 ? comments.map((comment) => {
@@ -190,7 +171,7 @@ const ComplaintDetailScreen = ({ navigation, route }) => {
     
     try {
       // 1. Check current Supabase session to get the real auth user
-      const { data: { user: sessionUser }, error: sessionError } = await supabase.auth.getUser();
+      const { data: { user: sessionUser } } = await supabase.auth.getUser();
       
       if (!sessionUser) {
         Alert.alert('Authentication Error', 'No active session found. Please log in again.');
@@ -270,10 +251,10 @@ const ComplaintDetailScreen = ({ navigation, route }) => {
     }
   };
 
-  // Get data either from Supabase or fallback to legacy route params
+  // Get data from canonical DB-backed complaint payload.
   const getComplaintData = () => {
     const submittedByName = (() => {
-      if (!complaint) return name || "Unknown";
+      if (!complaint) return "Unknown";
 
       if (complaint.reporter_profile) {
         const firstName = complaint.reporter_profile.first_name || "";
@@ -287,11 +268,10 @@ const ComplaintDetailScreen = ({ navigation, route }) => {
       if (complaint.created_by_name) return complaint.created_by_name;
       if (complaint.raised_by_name) return complaint.raised_by_name;
 
-      return name || "Unknown";
+      return "Unknown";
     })();
 
-    // If we have real complaint data from Supabase, use it
-    if (complaint && isValidUUID(complaintId)) {
+    if (complaint) {
       return {
         title: complaint.title || complaint.subject,
         dateTime: formatDateTime(complaint.created_at),
@@ -302,15 +282,15 @@ const ComplaintDetailScreen = ({ navigation, route }) => {
         resolved: complaint.status === 'resolved'
       };
     }
-    // Fallback to legacy route params for mock data
+
     return {
-      title: title,
-      dateTime: dateTime,
-      description: other,
-      submittedBy: name,
-      status: resolved ? 'resolved' : 'pending',
-      images: image ? [image] : [],
-      resolved: resolved
+      title: "N/A",
+      dateTime: "N/A",
+      description: "N/A",
+      submittedBy: "Unknown",
+      status: 'pending',
+      images: [],
+      resolved: false,
     };
   };
 
@@ -391,7 +371,7 @@ const ComplaintDetailScreen = ({ navigation, route }) => {
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
-        keyboardVerticalOffset={0}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 16 : 0}
       >
         <View
           style={{
@@ -408,10 +388,13 @@ const ComplaintDetailScreen = ({ navigation, route }) => {
             />
           </TouchableOpacity>
         </View>
-        <ScrollView 
+        <ScrollView
+          ref={contentScrollRef}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ flexGrow: 1 }}
+          contentContainerStyle={{ paddingBottom: Default.fixPadding * 2 }}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          nestedScrollEnabled
         >
           <View
             style={{
@@ -656,7 +639,7 @@ const ComplaintDetailScreen = ({ navigation, route }) => {
             </Text>
 
             <View style={{
-              flexDirection: 'row',
+              flexDirection: isRtl ? "row-reverse" : "row",
               justifyContent: 'space-between',
               alignItems: 'center',
               marginTop: Default.fixPadding * 2.5,
@@ -676,11 +659,19 @@ const ComplaintDetailScreen = ({ navigation, route }) => {
                   paddingHorizontal: 12,
                   paddingVertical: 6,
                   borderRadius: 6,
-                  flexDirection: 'row',
+                  flexDirection: isRtl ? "row-reverse" : "row",
                   alignItems: 'center'
                 }}
               >
-                <Ionicons name="refresh-outline" size={16} color={Colors.white} style={{ marginRight: 4 }} />
+                <Ionicons
+                  name="refresh-outline"
+                  size={16}
+                  color={Colors.white}
+                  style={{
+                    marginRight: isRtl ? 0 : 4,
+                    marginLeft: isRtl ? 4 : 0,
+                  }}
+                />
                 <Text style={{ ...Fonts.Medium12white, color: Colors.white }}>Refresh</Text>
               </TouchableOpacity>
             </View>
@@ -735,8 +726,8 @@ const ComplaintDetailScreen = ({ navigation, route }) => {
                     paddingTop: firstIndex
                       ? Default.fixPadding
                       : Default.fixPadding * 2.3,
-                    borderTopWidth: firstIndex ? null : 1,
-                    borderTopColor: firstIndex ? null : Colors.lightGrey,
+                    borderTopWidth: firstIndex ? 0 : 1,
+                    borderTopColor: Colors.lightGrey,
                   }}
                 >
                   <View
@@ -811,6 +802,7 @@ const ComplaintDetailScreen = ({ navigation, route }) => {
                       ...Fonts.Medium14grey,
                       textAlign: isRtl ? "right" : "left",
                       marginTop: Default.fixPadding * 1.7,
+                      lineHeight: 20,
                     }}
                   >
                     {item.comment}
@@ -821,20 +813,18 @@ const ComplaintDetailScreen = ({ navigation, route }) => {
           </View>
         </ScrollView>
         
-        <View
-          style={{
-            flexDirection: isRtl ? "row-reverse" : "row",
-            alignItems: "center",
-            paddingVertical: Default.fixPadding * 1.2,
-            backgroundColor: Colors.primary,
-          }}
-        >
+        <View style={styles.composerContainer}>
           <TextInput
             value={writeComment}
             onChangeText={setWriteComment}
             placeholder={tr("writeComment")}
             placeholderTextColor={Colors.white}
             selectionColor={Colors.white}
+            onFocus={() => {
+              setTimeout(() => {
+                contentScrollRef.current?.scrollToEnd({ animated: true });
+              }, 120);
+            }}
             style={{
               ...Fonts.Medium14white,
               flex: 8.7,
@@ -884,6 +874,14 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: Colors.white,
     ...Default.shadow,
+  },
+  composerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: Default.fixPadding * 1.2,
+    borderTopWidth: 1,
+    borderTopColor: Colors.lightGrey,
+    backgroundColor: Colors.primary,
   },
   sendBtn: {
     justifyContent: "center",

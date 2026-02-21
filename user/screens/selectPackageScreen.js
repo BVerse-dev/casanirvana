@@ -21,7 +21,7 @@ const SelectPackageScreen = ({ navigation, route }) => {
   const isRtl = i18n.dir() === "rtl";
   
   // Get provider data from route params
-  const { provider, providerName, providerColor, providerLogo } = route.params || {};
+  const { provider, providerId, providerName, providerColor, providerLogo } = route.params || {};
   const [selectedPackage, setSelectedPackage] = useState(null);
 
   // Safe translation function that ALWAYS returns a string
@@ -66,6 +66,7 @@ const SelectPackageScreen = ({ navigation, route }) => {
     if (selectedPackage === "fixed") {
       navigation.navigate("amountScreen", { 
         provider, 
+        providerId,
         providerName,
         providerColor,
         providerLogo,
@@ -74,6 +75,7 @@ const SelectPackageScreen = ({ navigation, route }) => {
     } else {
       navigation.navigate("otherAmountScreen", { 
         provider, 
+        providerId,
         providerName,
         providerColor,
         providerLogo,

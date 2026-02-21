@@ -57,32 +57,44 @@ export const addNotification = async (notification) => {
 export const createPaymentNotification = async (payment) => {
   try {
     let title, body, notificationType, priority;
+    const isPending = payment?.status === 'pending' || payment?.payment_status === 'pending';
+    const formattedAmount = payment.amount_formatted || `GHS ${payment.amount?.toFixed(2)}`;
 
     // Determine notification content based on transaction type
     if (payment.transaction_type === 'airtime') {
-      title = 'Airtime Purchase Successful';
-      body = `Your airtime purchase of ${payment.amount_formatted || `GHS ${payment.amount?.toFixed(2)}`} was successful.`;
-      notificationType = 'payment_success';
+      title = isPending ? 'Airtime Purchase Initiated' : 'Airtime Purchase Successful';
+      body = isPending
+        ? `Your airtime purchase of ${formattedAmount} is pending confirmation.`
+        : `Your airtime purchase of ${formattedAmount} was successful.`;
+      notificationType = isPending ? 'payment_pending' : 'payment_success';
       priority = 'normal';
     } else if (payment.transaction_type === 'data') {
-      title = 'Data Purchase Successful';
-      body = `Your data purchase of ${payment.data_amount || ''} (${payment.amount_formatted || `GHS ${payment.amount?.toFixed(2)}`}) was successful. Valid for ${payment.validity || '30 days'}.`;
-      notificationType = 'payment_success';
+      title = isPending ? 'Data Purchase Initiated' : 'Data Purchase Successful';
+      body = isPending
+        ? `Your data purchase of ${payment.data_amount || ''} (${formattedAmount}) is pending confirmation.`
+        : `Your data purchase of ${payment.data_amount || ''} (${formattedAmount}) was successful. Valid for ${payment.validity || '30 days'}.`;
+      notificationType = isPending ? 'payment_pending' : 'payment_success';
       priority = 'normal';
     } else if (payment.transaction_type === 'money_transfer') {
-      title = 'Money Transfer Successful';
-      body = `Your money transfer of ${payment.amount_formatted || `GHS ${payment.amount?.toFixed(2)}`} was successful.`;
-      notificationType = 'payment_success';
+      title = isPending ? 'Money Transfer Initiated' : 'Money Transfer Successful';
+      body = isPending
+        ? `Your money transfer of ${formattedAmount} is pending confirmation.`
+        : `Your money transfer of ${formattedAmount} was successful.`;
+      notificationType = isPending ? 'payment_pending' : 'payment_success';
       priority = 'normal';
     } else if (payment.transaction_type === 'bill_payment') {
-      title = 'Bill Payment Successful';
-      body = `Your bill payment of ${payment.amount_formatted || `GHS ${payment.amount?.toFixed(2)}`} was successful.`;
-      notificationType = 'payment_success';
+      title = isPending ? 'Bill Payment Initiated' : 'Bill Payment Successful';
+      body = isPending
+        ? `Your bill payment of ${formattedAmount} is pending confirmation.`
+        : `Your bill payment of ${formattedAmount} was successful.`;
+      notificationType = isPending ? 'payment_pending' : 'payment_success';
       priority = 'normal';
     } else {
-      title = 'Payment Successful';
-      body = `Your payment of ${payment.amount_formatted || `GHS ${payment.amount?.toFixed(2)}`} was successful.`;
-      notificationType = 'payment_success';
+      title = isPending ? 'Payment Initiated' : 'Payment Successful';
+      body = isPending
+        ? `Your payment of ${formattedAmount} is pending confirmation.`
+        : `Your payment of ${formattedAmount} was successful.`;
+      notificationType = isPending ? 'payment_pending' : 'payment_success';
       priority = 'normal';
     }
 

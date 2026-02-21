@@ -22,7 +22,6 @@ import AwesomeButton from "react-native-really-awesome-button";
 import FromToCalendarPicker from "../components/fromToCalendarPicker";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import moment from "moment";
-import { useCreateAmenityBooking } from "../hooks/useCreateAmenityBooking";
 import { useHasJoinedCommunity } from "../hooks/useCommunityData";
 
 const { width } = Dimensions.get("window");
@@ -41,14 +40,20 @@ const BookAmenityScreen = ({ navigation, route }) => {
     booking_phone,
     price,
     charges_per_hour,
-    monthly_charges
+    monthly_charges,
+    is_paid
   } = route.params;
 
   const { t, i18n } = useTranslation();
   const { profile } = useHasJoinedCommunity();
-  const createBookingMutation = useCreateAmenityBooking();
 
   const isRtl = i18n.dir() == "rtl";
+  const hasConfiguredCharges =
+    Number(charges_per_hour) > 0 || Number(price) > 0 || Number(monthly_charges) > 0;
+  const isAmenityPaid = typeof is_paid === "boolean" ? is_paid : hasConfiguredCharges;
+  const amenityStatusLabel = isAmenityPaid
+    ? tr("paid")
+    : t("amenityScreen:free", { defaultValue: "Free" });
 
   function tr(key) {
     return t(`bookAmenityScreen:${key}`);
@@ -60,12 +65,8 @@ const BookAmenityScreen = ({ navigation, route }) => {
   };
 
   useEffect(() => {
-    BackHandler.addEventListener("hardwareBackPress", backAction);
-
-    return () => {
-      const subscription = BackHandler.addEventListener("hardwareBackPress", backAction); 
-      return () => subscription?.remove(); 
-    };
+    const subscription = BackHandler.addEventListener("hardwareBackPress", backAction);
+    return () => subscription.remove();
   }, []);
 
   const today = moment().format("YYYY-MM-DD");
@@ -156,7 +157,6 @@ const BookAmenityScreen = ({ navigation, route }) => {
 
     const duration = moment.duration(toDateTime.diff(fromDateTime));
     const hours = Math.max(1, Math.ceil(duration.asHours())); // Minimum 1 hour
-    const days = Math.max(1, Math.ceil(duration.asDays())); // Minimum 1 day
 
     // Calculate days based on date selection (more accurate for daily pricing)
     const fromDateOnly = moment(fromDate, 'YYYY-MM-DD');
@@ -166,43 +166,30 @@ const BookAmenityScreen = ({ navigation, route }) => {
 
     // Get pricing from route params (passed from amenity selection)
     const amenityData = route.params;
-    
-    console.log('Amenity pricing data:', {
-      charges_per_hour: amenityData.charges_per_hour,
-      monthly_charges: amenityData.monthly_charges,
-      price: amenityData.price,
-      hours: hours,
-      days: days,
-      totalDaysFromDates: totalDaysFromDates
-    });
+
+    // Respect explicit free setting to keep flow consistent across screens
+    if (amenityData.is_paid === false) {
+      return 0;
+    }
     
     // Try hourly pricing first
     if (amenityData.charges_per_hour && amenityData.charges_per_hour > 0) {
-      const total = hours * amenityData.charges_per_hour;
-      console.log('Hourly pricing:', total);
-      return total;
+      return hours * amenityData.charges_per_hour;
     } 
     // Try daily pricing (using price field) - use the calculated days from date selection
     else if (amenityData.price && amenityData.price > 0) {
-      const total = totalDaysFromDates * amenityData.price;
-      console.log('Daily pricing:', total, 'days:', totalDaysFromDates, 'price per day:', amenityData.price);
-      return total;
+      return totalDaysFromDates * amenityData.price;
     }
     // Try monthly pricing
     else if (amenityData.monthly_charges && amenityData.monthly_charges > 0) {
-      const total = Math.ceil(totalDaysFromDates / 30) * amenityData.monthly_charges;
-      console.log('Monthly pricing:', total);
-      return total;
+      return Math.ceil(totalDaysFromDates / 30) * amenityData.monthly_charges;
     } 
     // Default to free
-    console.log('Free pricing');
     return 0;
   }, [fromDate, toDate, selectedFromTime, selectedToTime, route.params]);
 
-  // Handle proceed to payment
-  const handleProceedToPayment = async () => {
-    console.log('BookAmenity - handleProceedToPayment called');
-    
+  // Validate and proceed to booking review
+  const handleProceedToReview = () => {
     if (!profile) {
       Alert.alert('Authentication Required', 'Please log in to book an amenity.');
       return;
@@ -224,56 +211,54 @@ const BookAmenityScreen = ({ navigation, route }) => {
       return;
     }
 
-    console.log('BookAmenity - All validations passed, proceeding with booking...');
+    const calculatedDays = totalDays > 0 ? totalDays : 1;
+    const fromTime = confirmTime(selectedFromTime);
+    const toTime = confirmTime(selectedToTime);
 
-    try {
-      // Use the calculated total days
-      const calculatedDays = totalDays > 0 ? totalDays : 1;
+    const bookingDraft = {
+      amenity_id: amenityId,
+      user_id: profile.id,
+      community_id: profile.community_id,
+      start_datetime: moment(`${fromDate} ${fromTime}`, 'YYYY-MM-DD h:mm A').toISOString(),
+      end_datetime: moment(`${toDate} ${toTime}`, 'YYYY-MM-DD h:mm A').toISOString(),
+      booking_date: moment().format('YYYY-MM-DD'),
+      start_time: fromTime,
+      end_time: toTime,
+      amount: totalAmount,
+      total_amount: totalAmount,
+      is_paid: totalAmount > 0,
+      total_days: calculatedDays,
+      status: 'pending',
+      payment_status: totalAmount > 0 ? 'pending' : 'paid',
+    };
 
-      // Create the booking data
-      const bookingData = {
-        amenity_id: amenityId,
-        user_id: profile.user_id,
-        start_datetime: moment(`${fromDate} ${confirmTime(selectedFromTime)}`, 'YYYY-MM-DD h:mm A').toISOString(),
-        end_datetime: moment(`${toDate} ${confirmTime(selectedToTime)}`, 'YYYY-MM-DD h:mm A').toISOString(),
-        booking_date: moment().format('YYYY-MM-DD'),
-        start_time: confirmTime(selectedFromTime),
-        end_time: confirmTime(selectedToTime),
-        amount: totalAmount,
-        total_days: calculatedDays,
-        status: 'pending',
-        payment_status: totalAmount > 0 ? 'pending' : 'paid',
-      };
-
-      // Create the booking in the database
-      console.log('BookAmenity - Creating booking with data:', bookingData);
-      const result = await createBookingMutation.mutateAsync(bookingData);
-      console.log('BookAmenity - Booking creation result:', result);
-
-      if (result) {
-        console.log('BookAmenity - Navigating to payment method screen...');
-        // Navigate to payment method selection screen
-        navigation.push("paymentMethodScreen", {
-          bookingId: result.id,
-          bookingData: {
-            ...bookingData,
-            amenityName: name,
-            totalAmount,
-            totalDays: calculatedDays,
-            fromDate,
-            toDate,
-            fromTime: confirmTime(selectedFromTime),
-            toTime: confirmTime(selectedToTime),
-          }
-        });
-      } else {
-        console.log('BookAmenity - No result returned from booking creation');
-        Alert.alert('Booking Error', 'Booking was created but no result returned. Please try again.');
-      }
-    } catch (error) {
-      console.error('Booking creation failed:', error);
-      Alert.alert('Booking Failed', 'There was an error creating your booking. Please try again.');
-    }
+    navigation.push("amenityBookingReviewScreen", {
+      bookingDraft,
+      bookingData: {
+        ...bookingDraft,
+        amenityName: name,
+        totalAmount,
+        totalDays: calculatedDays,
+        fromDate,
+        toDate,
+        fromTime,
+        toTime,
+      },
+      amenity: {
+        id: amenityId,
+        name,
+        image,
+        description,
+        location,
+        capacity,
+        contact_person,
+        contact_phone,
+        booking_phone,
+        charges_per_hour,
+        price,
+        monthly_charges,
+      },
+    });
   };
 
   return (
@@ -351,7 +336,7 @@ const BookAmenityScreen = ({ navigation, route }) => {
                   alignItems: "center",
                   width: 103,
                   paddingVertical: Default.fixPadding * 0.3,
-                  backgroundColor: Colors.green,
+                  backgroundColor: isAmenityPaid ? Colors.green : Colors.orange,
                   borderTopRightRadius: isRtl ? 0 : 10,
                   borderTopLeftRadius: isRtl ? 10 : 0,
                 }}
@@ -364,7 +349,7 @@ const BookAmenityScreen = ({ navigation, route }) => {
                     paddingHorizontal: Default.fixPadding * 0.5,
                   }}
                 >
-                  {tr("paid")}
+                  {amenityStatusLabel}
                 </Text>
               </View>
             </View>
@@ -408,7 +393,9 @@ const BookAmenityScreen = ({ navigation, route }) => {
                   style={{ ...Fonts.Medium14grey, overflow: "hidden" }}
                 >
                   {`${tr("maximinCapacity")} : `}
-                  <Text style={{ ...Fonts.Medium14black }}>50 person</Text>
+                  <Text style={{ ...Fonts.Medium14black }}>
+                    {capacity ? `${capacity} person${capacity > 1 ? "s" : ""}` : "N/A"}
+                  </Text>
                 </Text>
 
                 <Text
@@ -420,17 +407,21 @@ const BookAmenityScreen = ({ navigation, route }) => {
                   }}
                 >
                   {`${tr("bookBeforeLeast")} : `}
-                  <Text style={{ ...Fonts.Medium14black }}>2 days</Text>
+                  <Text style={{ ...Fonts.Medium14black }}>
+                    {operating_hours?.open && operating_hours?.close
+                      ? `${operating_hours.open} - ${operating_hours.close}`
+                      : "N/A"}
+                  </Text>
                 </Text>
                 <Text
                   numberOfLines={1}
                   style={{ ...Fonts.Medium14black, overflow: "hidden" }}
                 >
-                  {charges_per_hour && charges_per_hour > 0 
+                  {isAmenityPaid && charges_per_hour && charges_per_hour > 0 
                     ? `GH₵ ${charges_per_hour} per hour`
-                    : price && price > 0
+                    : isAmenityPaid && price && price > 0
                     ? `GH₵ ${price} per day`
-                    : monthly_charges && monthly_charges > 0
+                    : isAmenityPaid && monthly_charges && monthly_charges > 0
                     ? `GH₵ ${monthly_charges} per month`
                     : 'Free'
                   }
@@ -726,17 +717,16 @@ const BookAmenityScreen = ({ navigation, route }) => {
       >
         <AwesomeButton
           height={50}
-          onPress={handleProceedToPayment}
+          onPress={handleProceedToReview}
           raiseLevel={1}
           stretch={true}
           borderRadius={10}
           backgroundShadow={Colors.primary}
           backgroundDarker={Colors.primary}
           backgroundColor={Colors.primary}
-          disabled={createBookingMutation.isLoading}
         >
           <Text style={{ ...Fonts.SemiBold18white }}>
-            {createBookingMutation.isLoading ? 'Processing...' : tr("proceedPay")}
+            {totalAmount > 0 ? "Review & Pay" : "Review Booking"}
           </Text>
         </AwesomeButton>
       </View>

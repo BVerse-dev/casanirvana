@@ -41,6 +41,7 @@ const AccountDetailsScreen = ({ navigation, route }) => {
   // Get data from route params
   const { 
     provider, 
+    providerId,
     providerName, 
     providerColor,
     providerLogo,
@@ -77,6 +78,7 @@ const AccountDetailsScreen = ({ navigation, route }) => {
     // Navigate to payment method selection
     navigation.navigate("paymentMethodScreen", {
       provider,
+      providerId,
       providerName,
       providerColor,
       providerLogo,

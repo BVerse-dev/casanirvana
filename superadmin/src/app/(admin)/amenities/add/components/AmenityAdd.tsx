@@ -69,6 +69,27 @@ const cancellationPolicies = [
   { value: 'No cancellation allowed', label: 'No cancellation allowed' },
 ]
 
+const mapAmenityTypeToCategory = (amenityType?: string) => {
+  const normalized = (amenityType || '').toLowerCase()
+  switch (normalized) {
+    case 'fitness':
+      return 'fitness'
+    case 'utility':
+      return 'utility'
+    case 'security':
+      return 'security'
+    case 'healthcare':
+      return 'convenience'
+    case 'business':
+      return 'community'
+    case 'sports':
+    case 'outdoor':
+      return 'outdoor'
+    default:
+      return 'recreation'
+  }
+}
+
 // Define the amenity data type locally
 interface CreateAmenityData {
   name: string
@@ -200,12 +221,54 @@ const AmenityAdd = () => {
 
   const onSubmit = async (data: any) => {
     try {
-      // Clean up the data to match expected types
+      const availabilityStart = String(data.availability_start || '06:00').slice(0, 5)
+      const availabilityEnd = String(data.availability_end || '22:00').slice(0, 5)
+      const mergedFeatures = [
+        ...(data.accessibility_features?.filter((f: string | undefined) => !!f) || []),
+        ...(data.safety_features?.filter((f: string | undefined) => !!f) || []),
+      ]
+
+      // Canonical payload for hook/service layer.
       const amenityData = {
-        ...data,
-        price_per_hour: data.is_paid ? data.price_per_hour : undefined,
-        accessibility_features: data.accessibility_features?.filter((f: string | undefined) => f !== undefined) || [],
-        safety_features: data.safety_features?.filter((f: string | undefined) => f !== undefined) || [],
+        name: data.name,
+        description: data.description,
+        category: mapAmenityTypeToCategory(data.amenity_type),
+        communityId: data.community_id,
+        type: data.is_paid ? 'paid' : 'free',
+        location: data.floor_location || '',
+        capacity: data.capacity || undefined,
+        status: data.is_active ? 'active' : 'inactive',
+        operatingHours: {
+          open: availabilityStart,
+          close: availabilityEnd,
+          days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'],
+        },
+        bookingRequired: true,
+        advanceBookingDays: data.max_advance_booking_days || 0,
+        maxBookingDuration: data.maximum_booking_duration_hours || 2,
+        chargesPerHour: data.is_paid ? Number(data.price_per_hour || 0) : 0,
+        monthlyCharges: 0,
+        securityDeposit: data.security_deposit || 0,
+        amenityFeatures: mergedFeatures,
+        contactPerson: data.contact_person || '',
+        contactPhone: data.contact_number || '',
+        maintenanceFrequency: 'weekly',
+        lastMaintenance: data.last_maintenance || undefined,
+        rules: [data.rules_and_regulations || data.rules || ''].filter(Boolean),
+        images: data.images || [],
+
+        // Legacy mirror fields to support remaining legacy views.
+        amenity_type: data.amenity_type,
+        community_id: data.community_id,
+        is_paid: data.is_paid,
+        is_active: data.is_active,
+        price_per_hour: data.is_paid ? Number(data.price_per_hour || 0) : 0,
+        availability_start: availabilityStart,
+        availability_end: availabilityEnd,
+        booking_limit_per_day: data.booking_limit_per_day || data.booking_slots_per_day || 1,
+        cancellation_policy: data.cancellation_policy,
+        rules_and_regulations: data.rules_and_regulations || data.rules,
+        contact_number: data.contact_number,
       }
       
       await createAmenity.mutateAsync(amenityData)

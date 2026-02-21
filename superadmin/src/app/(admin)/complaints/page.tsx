@@ -16,11 +16,13 @@ import {
   DropdownToggle,
   Row,
 } from "react-bootstrap";
-import { useListComplaints } from "@/hooks/useComplaints";
+import { useDeleteComplaint, useListComplaints, useUpdateComplaint } from "@/hooks/useComplaints";
 import ComplaintGridCard from "./components/ComplaintGridCard";
 
 const ComplaintsPage = () => {
   const { data: complaints = [], isLoading, error } = useListComplaints();
+  const updateComplaintMutation = useUpdateComplaint();
+  const deleteComplaintMutation = useDeleteComplaint();
 
   // Debug logging
   console.log('📊 Complaints page state:', { 
@@ -67,7 +69,7 @@ const ComplaintsPage = () => {
     );
   }
 
-  const getStatusBadgeClass = (status: string) => {
+  const getStatusBadgeClass = (status?: string | null) => {
     switch (status) {
       case "resolved":
         return "bg-success-subtle text-success";
@@ -80,7 +82,7 @@ const ComplaintsPage = () => {
     }
   };
 
-  const getPriorityBadgeClass = (priority: string) => {
+  const getPriorityBadgeClass = (priority?: string | null) => {
     switch (priority) {
       case "high":
         return "bg-danger-subtle text-danger";
@@ -99,6 +101,39 @@ const ComplaintsPage = () => {
       month: "short",
       day: "numeric",
     });
+  };
+
+  const handleStatusUpdate = async (
+    complaintId: string,
+    status: "pending" | "in_progress" | "resolved",
+  ) => {
+    try {
+      const now = new Date().toISOString();
+      const updates: Record<string, string | null> = {
+        status,
+        updated_at: now,
+      };
+      if (status === "in_progress") {
+        updates.in_progress_at = now;
+        updates.resolved_at = null;
+      } else if (status === "resolved") {
+        updates.resolved_at = now;
+      }
+      await updateComplaintMutation.mutateAsync({ id: complaintId, data: updates });
+    } catch (mutationError) {
+      console.error("Failed to update complaint status:", mutationError);
+      window.alert("Failed to update complaint status. Please try again.");
+    }
+  };
+
+  const handleDeleteComplaint = async (complaintId: string) => {
+    if (!window.confirm("Delete this complaint? This action cannot be undone.")) return;
+    try {
+      await deleteComplaintMutation.mutateAsync(complaintId);
+    } catch (mutationError) {
+      console.error("Failed to delete complaint:", mutationError);
+      window.alert("Failed to delete complaint. Please try again.");
+    }
   };
 
   return (
@@ -204,12 +239,9 @@ const ComplaintsPage = () => {
                       </td>
                       <td>
                         <div>
-                          <div className="fw-medium">
-                            {(complaint.created_by_profile as any)?.first_name || 'N/A'}{" "}
-                            {(complaint.created_by_profile as any)?.last_name || ''}
-                          </div>
+                          <div className="fw-medium">{complaint.reporter_name || "N/A"}</div>
                           <small className="text-muted">
-                            Unit: {(complaint.units as any)?.number || complaint.unit_id?.substring(0, 8) || 'N/A'}
+                            Unit: {complaint.unit?.number || complaint.unit?.unit_number || "N/A"}
                           </small>
                         </div>
                       </td>
@@ -229,7 +261,7 @@ const ComplaintsPage = () => {
                             complaint.priority
                           )} py-1 px-2 fs-13`}
                         >
-                          {complaint.priority}
+                          {complaint.priority || "medium"}
                         </span>
                       </td>
                       <td>
@@ -238,7 +270,7 @@ const ComplaintsPage = () => {
                             complaint.status
                           )} py-1 px-2 fs-13`}
                         >
-                          {complaint.status}
+                          {complaint.status || "pending"}
                         </span>
                       </td>
                       <td>{formatDate(complaint.created_at)}</td>
@@ -256,20 +288,46 @@ const ComplaintsPage = () => {
                               />
                             </Button>
                           </Link>
-                          <Button variant="soft-primary" size="sm">
+                          <Button
+                            variant="soft-primary"
+                            size="sm"
+                            onClick={() =>
+                              handleStatusUpdate(
+                                complaint.id,
+                            complaint.status === "pending" ? "in_progress" : "pending",
+                              )
+                            }
+                            disabled={updateComplaintMutation.isPending}
+                          >
                             <IconifyIcon
-                              icon="solar:pen-2-broken"
+                              icon="ri:play-line"
                               className="align-middle fs-18"
                             />
                           </Button>
                           {complaint.status === "pending" && (
-                            <Button variant="soft-success" size="sm">
+                            <Button
+                              variant="soft-success"
+                              size="sm"
+                              onClick={() => handleStatusUpdate(complaint.id, "resolved")}
+                              disabled={updateComplaintMutation.isPending}
+                            >
                               <IconifyIcon
                                 icon="ri:check-line"
                                 className="align-middle fs-18"
                               />
                             </Button>
                           )}
+                          <Button
+                            variant="soft-danger"
+                            size="sm"
+                            onClick={() => handleDeleteComplaint(complaint.id)}
+                            disabled={deleteComplaintMutation.isPending}
+                          >
+                            <IconifyIcon
+                              icon="ri:delete-bin-line"
+                              className="align-middle fs-18"
+                            />
+                          </Button>
                         </div>
                       </td>
                     </tr>

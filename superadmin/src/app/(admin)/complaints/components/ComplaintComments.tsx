@@ -1,81 +1,73 @@
 import { useState } from "react";
-import { Card, CardBody, CardHeader, CardTitle, Button, Form } from "react-bootstrap";
+import { Alert, Button, Card, CardBody, CardHeader, CardTitle, Form } from "react-bootstrap";
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
-
-interface Comment {
-  id: string;
-  author: string;
-  role: string;
-  content: string;
-  timestamp: string;
-  avatar?: string;
-}
+import {
+  useCreateComplaintComment,
+  useListComplaintComments,
+  type ComplaintCommentWithProfile,
+} from "@/hooks/useComplaints";
 
 interface ComplaintCommentsProps {
   complaintId: string;
-  comments?: Comment[];
 }
 
-const ComplaintComments = ({ complaintId, comments = [] }: ComplaintCommentsProps) => {
+const getAuthorName = (comment: ComplaintCommentWithProfile) => {
+  const profile = comment.created_by_profile;
+  if (!profile) return "Unknown User";
+  const full = `${profile.first_name || ""} ${profile.last_name || ""}`.trim();
+  if (full) return full;
+  if (profile.full_name) return profile.full_name;
+  return profile.email || "Unknown User";
+};
+
+const getRoleLabel = (comment: ComplaintCommentWithProfile) => {
+  const role = comment.created_by_profile?.role;
+  if (!role) return "User";
+  return role.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
+const getRoleBadgeClass = (roleLabel: string) => {
+  const role = roleLabel.toLowerCase();
+  if (role.includes("admin") || role.includes("superadmin")) {
+    return "bg-primary-subtle text-primary";
+  }
+  if (role.includes("guard")) {
+    return "bg-warning-subtle text-warning";
+  }
+  if (role.includes("committee")) {
+    return "bg-info-subtle text-info";
+  }
+  return "bg-secondary-subtle text-secondary";
+};
+
+const formatDate = (dateString?: string | null) => {
+  if (!dateString) return "N/A";
+  return new Date(dateString).toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+const ComplaintComments = ({ complaintId }: ComplaintCommentsProps) => {
   const [newComment, setNewComment] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Sample comments data
-  const sampleComments: Comment[] = [
-    {
-      id: "1",
-      author: "Admin User",
-      role: "Admin",
-      content: "Thank you for reporting this issue. We have assigned a technician to investigate the problem.",
-      timestamp: "2024-11-15T10:00:00Z",
-    },
-    {
-      id: "2",
-      author: "Sarah Johnson",
-      role: "Resident",
-      content: "The issue is getting worse. Water is now dripping onto the floor below. Please expedite the repair.",
-      timestamp: "2024-11-15T14:30:00Z",
-    },
-  ];
-
-  const allComments = comments.length > 0 ? comments : sampleComments;
+  const {
+    data: comments = [],
+    isLoading,
+    error,
+  } = useListComplaintComments(complaintId);
+  const createCommentMutation = useCreateComplaintComment();
 
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newComment.trim()) return;
 
-    setIsSubmitting(true);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Add comment logic here
-    console.log("Adding comment:", newComment);
-    
-    setNewComment("");
-    setIsSubmitting(false);
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString("en-US", {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
+    await createCommentMutation.mutateAsync({
+      complaintId,
+      comment: newComment,
     });
-  };
-
-  const getRoleBadgeClass = (role: string) => {
-    switch (role.toLowerCase()) {
-      case "admin":
-        return "bg-primary-subtle text-primary";
-      case "resident":
-        return "bg-info-subtle text-info";
-      case "maintenance":
-        return "bg-warning-subtle text-warning";
-      default:
-        return "bg-secondary-subtle text-secondary";
-    }
+    setNewComment("");
   };
 
   return (
@@ -83,39 +75,53 @@ const ComplaintComments = ({ complaintId, comments = [] }: ComplaintCommentsProp
       <CardHeader>
         <CardTitle as="h5" className="mb-0">
           <IconifyIcon icon="ri:chat-3-line" className="me-2" />
-          Comments & Updates ({allComments.length})
+          Comments & Updates ({comments.length})
         </CardTitle>
       </CardHeader>
       <CardBody>
-        {/* Comments List */}
+        {error ? (
+          <Alert variant="danger" className="mb-3">
+            Failed to load comments: {(error as Error).message}
+          </Alert>
+        ) : null}
+
         <div className="comments-list mb-4">
-          {allComments.map((comment) => (
-            <div key={comment.id} className="comment-item mb-3 pb-3 border-bottom">
-              <div className="d-flex align-items-start">
-                <div className="avatar-sm bg-primary bg-opacity-10 rounded flex-centered me-3">
-                  <IconifyIcon 
-                    icon={comment.role === "Admin" ? "ri:admin-line" : "ri:user-line"} 
-                    className="fs-16 text-primary" 
-                  />
-                </div>
-                <div className="flex-grow-1">
-                  <div className="d-flex align-items-center justify-content-between mb-1">
-                    <div className="d-flex align-items-center gap-2">
-                      <h6 className="mb-0 fs-14">{comment.author}</h6>
-                      <span className={`badge py-1 px-2 fs-12 ${getRoleBadgeClass(comment.role)}`}>
-                        {comment.role}
-                      </span>
+          {isLoading ? (
+            <div className="text-muted">Loading comments...</div>
+          ) : comments.length === 0 ? (
+            <div className="text-muted">No comments yet.</div>
+          ) : (
+            comments.map((comment) => {
+              const author = getAuthorName(comment);
+              const roleLabel = getRoleLabel(comment);
+              return (
+                <div key={comment.id} className="comment-item mb-3 pb-3 border-bottom">
+                  <div className="d-flex align-items-start">
+                    <div className="avatar-sm bg-primary bg-opacity-10 rounded flex-centered me-3">
+                      <IconifyIcon
+                        icon={roleLabel.toLowerCase().includes("admin") ? "ri:admin-line" : "ri:user-line"}
+                        className="fs-16 text-primary"
+                      />
                     </div>
-                    <small className="text-muted">{formatDate(comment.timestamp)}</small>
+                    <div className="flex-grow-1">
+                      <div className="d-flex align-items-center justify-content-between mb-1">
+                        <div className="d-flex align-items-center gap-2">
+                          <h6 className="mb-0 fs-14">{author}</h6>
+                          <span className={`badge py-1 px-2 fs-12 ${getRoleBadgeClass(roleLabel)}`}>
+                            {roleLabel}
+                          </span>
+                        </div>
+                        <small className="text-muted">{formatDate(comment.created_at)}</small>
+                      </div>
+                      <p className="mb-0 text-muted fs-13 lh-base">{comment.comment}</p>
+                    </div>
                   </div>
-                  <p className="mb-0 text-muted fs-13 lh-base">{comment.content}</p>
                 </div>
-              </div>
-            </div>
-          ))}
+              );
+            })
+          )}
         </div>
 
-        {/* Add Comment Form */}
         <Form onSubmit={handleSubmitComment}>
           <div className="mb-3">
             <Form.Label className="fw-medium">Add Comment</Form.Label>
@@ -125,18 +131,18 @@ const ComplaintComments = ({ complaintId, comments = [] }: ComplaintCommentsProp
               placeholder="Write a comment or update about this complaint..."
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
-              disabled={isSubmitting}
+              disabled={createCommentMutation.isPending}
             />
           </div>
           <div className="d-flex justify-content-end">
-            <Button 
-              type="submit" 
-              variant="primary" 
-              disabled={!newComment.trim() || isSubmitting}
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={!newComment.trim() || createCommentMutation.isPending}
             >
-              {isSubmitting ? (
+              {createCommentMutation.isPending ? (
                 <>
-                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" />
                   Posting...
                 </>
               ) : (
@@ -147,6 +153,11 @@ const ComplaintComments = ({ complaintId, comments = [] }: ComplaintCommentsProp
               )}
             </Button>
           </div>
+          {createCommentMutation.error ? (
+            <Alert variant="danger" className="mt-3 mb-0">
+              Failed to post comment: {(createCommentMutation.error as Error).message}
+            </Alert>
+          ) : null}
         </Form>
       </CardBody>
     </Card>

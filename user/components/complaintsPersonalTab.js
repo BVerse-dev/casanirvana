@@ -22,7 +22,7 @@ const ComplaintsPersonalTab = ({ navigation }) => {
   const { t, i18n } = useTranslation();
   const { profile } = useAuth();
   const queryClient = useQueryClient();
-  const isRtl = i18n.dir() == "rtl";
+  const isRtl = i18n.dir() === "rtl";
   
   function tr(key) {
     return t(`complaintsPersonalTab:${key}`);
@@ -97,15 +97,6 @@ const ComplaintsPersonalTab = ({ navigation }) => {
           navigation.push("complaintDetailScreen", {
             complaintId: item.id,
             headerTitle: tr("personal"),
-            // Keep legacy props for fallback
-            image: item.images && item.images.length > 0 ? item.images[0] : null,            
-            title: item.title || item.subject,
-            dateTime: formatDateTime(item.created_at),
-            other: item.description || item.details,
-            name: item.raised_by_profile 
-              ? `${item.raised_by_profile.first_name} ${item.raised_by_profile.last_name}` 
-              : (item.submitted_by || "You"),
-            resolved: item.status === 'resolved',
           });
         }}
         style={{

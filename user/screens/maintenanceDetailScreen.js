@@ -14,7 +14,7 @@ import {
   Keyboard,
   Alert,
 } from "react-native";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Colors, Default, Fonts } from "../constants/styles";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -22,39 +22,24 @@ import MyStatusBar from "../components/myStatusBar";
 import { ms } from "react-native-size-matters/extend";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import AwesomeButton from "react-native-really-awesome-button";
-import { useGetMaintenanceRequest, useListMaintenanceComments, useCreateMaintenanceComment, useGetUserUnit, useUpdateMaintenanceRequest } from "../hooks/useSupabaseData";
+import { useGetMaintenanceRequest, useListMaintenanceComments, useCreateMaintenanceComment, useUpdateMaintenanceRequest } from "../hooks/useSupabaseData";
 import { useHasJoinedCommunity } from '../hooks/useCommunityData';
 import { getAvatarSource } from "../utils/avatarMapping";
 import { useQueryClient } from '@tanstack/react-query';
-import { supabase } from '../utils/supabase';
 
 const MaintenanceDetailScreen = ({ navigation, route }) => {
-  const { 
-    maintenanceId, 
-    headerTitle, 
-    // Legacy props for fallback
-    image, title, dateTime, other, name, resolved 
-  } = route.params;
+  const maintenanceId = route?.params?.maintenanceId
+    ? String(route.params.maintenanceId)
+    : "";
+  const headerTitle = route?.params?.headerTitle;
 
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   
-  // Check if this is a valid ID to determine if we should try fetching from Supabase
-  // For maintenance requests, we accept both UUIDs and integer IDs
+  // maintenance_requests.id is bigint in DB
   const isValidId = (id) => {
     if (!id) return false;
-    // Check if it's a UUID
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    if (uuidRegex.test(id)) return true;
-    // Check if it's a valid integer ID (most maintenance requests use integer IDs)
-    const intId = parseInt(id);
-    return !isNaN(intId) && intId > 0;
-  };
-
-  // Check if the ID is specifically a UUID (for conditional logic)
-  const isValidUUID = (id) => {
-    if (!id) return false;
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    return uuidRegex.test(id);
+    const intId = Number(id);
+    return Number.isFinite(intId) && intId > 0;
   };
   
   // Fetch real maintenance data from Supabase
@@ -68,14 +53,10 @@ const MaintenanceDetailScreen = ({ navigation, route }) => {
   const { profile } = useHasJoinedCommunity();
   const queryClient = useQueryClient();
 
-  // Get user's unit information using profile ID (not user_id)
-  const { data: userUnit } = useGetUserUnit(profile?.id);
-
   // Fetch comments for this maintenance
   const { 
     data: comments = [], 
     isLoading: commentsLoading,
-    error: commentsError,
     refetch: refetchComments 
   } = useListMaintenanceComments(maintenanceId);
   
@@ -100,68 +81,40 @@ const MaintenanceDetailScreen = ({ navigation, route }) => {
   // Update maintenance mutation for resolving/reopening
   const updateMaintenanceMutation = useUpdateMaintenanceRequest();
 
-  // Get user's unit information for flatNo display
-  const getUserFlatNo = () => {
-    if (userUnit?.block && userUnit?.number) {
-      const flatNo = `${userUnit.block}-${userUnit.number}`;
-      return flatNo;
-    }
-    
-    // Fallback to profile unit if available
-    if (profile?.unit?.block && profile?.unit?.number) {
-      const flatNo = `${profile.unit.block}-${profile.unit.number}`;
-      return flatNo;
-    }
-    
-    return "N/A";
-  };
-
   // Helper function to get unit information for any commenter
   const getCommenterFlatNo = (profile) => {
-    console.log('� getCommenterFlatNo: Processing profile:', JSON.stringify(profile, null, 2));
-    
     if (!profile) {
-      console.log('⚠️ getCommenterFlatNo: No profile data found');
       return 'N/A';
     }
 
-    console.log('👤 getCommenterFlatNo: Profile data:', JSON.stringify(profile, null, 2));
-    console.log('🔍 getCommenterFlatNo: Profile role:', profile.role);
-    console.log('🔍 getCommenterFlatNo: Profile units:', JSON.stringify(profile.units, null, 2));
-
     // Check if user is admin - show "Admin" only for admin role
     if (profile.role && profile.role.toLowerCase() === 'admin') {
-      console.log('👔 getCommenterFlatNo: Admin role found, returning Admin');
       return 'Admin';
     }
 
     // For all other users (including staff), show their unit information
     if (profile.units && profile.units.block && profile.units.number) {
-      const unitDisplay = `${profile.units.block}-${profile.units.number}`;
-      console.log('🏠 getCommenterFlatNo: Unit found, returning:', unitDisplay);
-      return unitDisplay;
+      return `${profile.units.block}-${profile.units.number}`;
     }
 
-    // Additional debugging for unit data
-    console.log('🔍 getCommenterFlatNo: Unit check failed');
-    console.log('  - profile.units exists:', !!profile.units);
-    console.log('  - profile.units.block:', profile.units?.block);
-    console.log('  - profile.units.number:', profile.units?.number);
-    console.log('  - profile.unit_id:', profile.unit_id);
+    return profile.unit_id ? 'Unit Info Missing' : 'N/A';
+  };
 
-    // Fallback - check if there's unit_id and try to get unit info another way
-    if (profile.unit_id) {
-      console.log('🔍 getCommenterFlatNo: Has unit_id but no units data:', profile.unit_id);
-      return 'Unit Info Missing';
+  const isRtl = i18n.dir() === "rtl";
+
+  const getStatusMeta = (rawStatus) => {
+    const normalizedStatus = (rawStatus || "pending").toLowerCase();
+    switch (normalizedStatus) {
+      case "completed":
+        return { label: "Completed", color: Colors.green };
+      case "in_progress":
+        return { label: "In Progress", color: Colors.orange };
+      case "cancelled":
+        return { label: "Cancelled", color: Colors.grey };
+      default:
+        return { label: "Pending", color: Colors.red };
     }
-
-    console.log('⚠️ getCommenterFlatNo: No unit or role info found, returning N/A');
-    return 'N/A';
-  };  const isRtl = i18n.dir() == "rtl";
-
-  function tr(key) {
-    return t(`maintenanceDetailScreen:${key}`);
-  }
+  };
 
   // Helper functions for data display - define these first
   const formatDateTime = (dateString) => {
@@ -188,15 +141,15 @@ const MaintenanceDetailScreen = ({ navigation, route }) => {
     return formatDateTime(dateString);
   };
 
-  const backAction = () => {
+  const backAction = useCallback(() => {
     navigation.pop();
     return true;
-  };
+  }, [navigation]);
   
   useEffect(() => {
     const subscription = BackHandler.addEventListener("hardwareBackPress", backAction);
     return () => subscription?.remove();
-  }, []);
+  }, [backAction]);
 
   // Format comment data for display - only show real comments, no mock data
   const commentList = comments.length > 0 ? comments.map((comment) => {
@@ -215,89 +168,32 @@ const MaintenanceDetailScreen = ({ navigation, route }) => {
 
   const [writeComment, setWriteComment] = useState("");
 
-  // Handle comment submission with comprehensive authentication debugging
+  // Handle comment submission
   const handleSendComment = async () => {
-    console.log('🔍 Starting handleSendComment with comprehensive debugging');
-    
-    // Check basic requirements
     if (!writeComment?.trim() || !profile?.id) {
-      console.log('❌ Cannot send comment: missing data', { 
-        hasComment: !!writeComment?.trim(), 
-        hasProfile: !!profile?.id,
-        profileId: profile?.id
-      });
       Alert.alert('Error', 'Unable to post comment. Please ensure you are logged in.');
       return;
     }
     
     try {
-      // 1. Check current Supabase session
-      const { data: { user }, error: sessionError } = await supabase.auth.getUser();
-      console.log('🔍 Current Supabase session:', {
-        hasUser: !!user,
-        userId: user?.id,
-        userEmail: user?.email,
-        sessionError: sessionError?.message
-      });
-      
-      if (!user) {
-        Alert.alert('Authentication Error', 'No active session found. Please log in again.');
-        return;
-      }
-      
-      // 2. Verify profile matches session
-      console.log('🔍 Profile vs Session comparison:', {
-        profileId: profile.id,
-        profileUserId: profile.user_id,
-        sessionUserId: user.id,
-        profileMatchesSession: profile.user_id === user.id,
-        profileEmail: profile.email,
-        sessionEmail: user.email
-      });
-      
-      if (profile.user_id !== user.id) {
-        Alert.alert('Authentication Error', 'Profile mismatch detected. Please log in again.');
-        return;
-      }
-      
-      // Convert maintenanceId to integer for BIGINT field
       const maintenanceIdInt = parseInt(maintenanceId);
       if (isNaN(maintenanceIdInt)) {
         throw new Error('Invalid maintenance ID');
       }
       
-      // 3. Log the exact data being sent
       const commentData = {
         maintenance_id: maintenanceIdInt,
         comment: writeComment.trim(),
-        created_by: profile.id, // Profile ID for created_by field
+        created_by: profile.id,
       };
-      
-      console.log('💬 Sending comment with verified authentication:', {
-        commentData,
-        authUserId: user.id,
-        profileId: profile.id,
-        maintenanceId: maintenanceIdInt
-      });
-      
-      // 4. Attempt to create comment
+
       await createCommentMutation.mutateAsync(commentData);
       
       setWriteComment("");
       Keyboard.dismiss();
-      console.log('✅ Comment sent successfully');
       Alert.alert('Success', 'Comment posted successfully!');
       
     } catch (error) {
-      console.error('❌ Error creating comment:', error);
-      console.error('❌ Full error details:', {
-        message: error.message,
-        code: error.code,
-        details: error.details,
-        hint: error.hint
-      });
-      
-      // Provide specific error messages based on error type
       if (error.code === '42501') {
         Alert.alert(
           'Permission Error', 
@@ -311,32 +207,14 @@ const MaintenanceDetailScreen = ({ navigation, route }) => {
 
   // Handle resolve/reopen maintenance
   const handleToggleMaintenanceStatus = async () => {
-    console.log('🎯 handleToggleMaintenanceStatus: Function called!');
-    console.log('🎯 handleToggleMaintenanceStatus: Parameters:', { 
-      maintenanceId, 
-      maintenanceIdType: typeof maintenanceId,
-      isValidId: isValidId(maintenanceId),
-      isUUID: isValidUUID(maintenanceId)
-    });
-    
     if (!maintenanceId || !isValidId(maintenanceId)) {
-      console.log('❌ handleToggleMaintenanceStatus: Invalid parameters, returning early');
       return;
     }
     
     try {
       const currentStatus = maintenance?.status || 'pending';
       const newStatus = currentStatus === 'completed' ? 'pending' : 'completed';
-      
-      console.log('🔄 Toggling maintenance status:', { 
-        currentStatus, 
-        newStatus, 
-        maintenanceId,
-        maintenance: maintenance ? { id: maintenance.id, status: maintenance.status } : null,
-        profile: profile ? { id: profile.id } : null
-      });
-      
-      // Use the exact pattern from working complaints
+
       await updateMaintenanceMutation.mutateAsync({
         id: maintenanceId,
         data: {
@@ -345,11 +223,13 @@ const MaintenanceDetailScreen = ({ navigation, route }) => {
           // Add resolved fields if marking as completed
           ...(newStatus === 'completed' && {
             resolved_at: new Date().toISOString(),
+            completed_at: new Date().toISOString(),
             resolved_by_profile_id: profile?.id
           }),
           // Clear resolved fields if reopening
           ...(newStatus === 'pending' && {
             resolved_at: null,
+            completed_at: null,
             resolved_by_profile_id: null
           })
         }
@@ -358,79 +238,67 @@ const MaintenanceDetailScreen = ({ navigation, route }) => {
       // Invalidate and refetch the maintenance data to update UI immediately
       queryClient.invalidateQueries({ queryKey: ['maintenance', maintenanceId] });
       queryClient.invalidateQueries({ queryKey: ['maintenance-requests'] });
-      
-      console.log(`✅ Maintenance ${newStatus === 'completed' ? 'resolved' : 'reopened'} successfully`);
     } catch (error) {
-      console.error('❌ Error updating maintenance status:', error);
-      console.error('❌ Error details:', {
-        message: error.message,
-        code: error.code,
-        details: error.details
-      });
-      // You can add error toast/alert here
+      Alert.alert("Error", error?.message || "Failed to update maintenance status.");
     }
   };
 
-  // Get data either from Supabase or fallback to legacy route params
+  // Build data from the DB-backed maintenance row
   const getMaintenanceData = () => {
-    // If we have real maintenance data from Supabase, use it
-    if (maintenance && isValidId(maintenanceId)) {
-      // Determine who submitted/resolved the maintenance request
-      let submittedBy = maintenance.submitted_by || "Unknown";
-      let resolvedBy = "Unknown";
-      
-      // Check if current user resolved it
-      if (maintenance.status === 'completed' && maintenance.resolved_by_profile_id) {
-        if (maintenance.resolved_by_profile_id === profile?.id) {
-          resolvedBy = "You";
-        } else {
-          // TODO: Fetch the resolver's name from the database
-          resolvedBy = "Admin";
-        }
-      }
-      
-      const data = {
-        title: maintenance.title || maintenance.subject,
-        dateTime: formatDateTime(maintenance.created_at),
-        description: maintenance.description || maintenance.details,
-        submittedBy: submittedBy,
-        resolvedBy: resolvedBy,
-        status: maintenance.status,
-        images: Array.isArray(maintenance.images) ? maintenance.images.filter(img => typeof img === 'string') : [],
-        resolved: maintenance.status === 'completed'
-      };
-      console.log('🔍 Maintenance data from Supabase:', { 
-        status: data.status, 
-        resolved: data.resolved, 
-        resolvedBy: data.resolvedBy,
-        maintenanceId 
-      });
-      return data;
+    if (!maintenance || !isValidId(maintenanceId)) {
+      return null;
     }
-    // Fallback to legacy route params for mock data
-    const data = {
-      title: title,
-      dateTime: dateTime,
-      description: other,
-      submittedBy: name,
-      resolvedBy: resolved ? "You" : "Unknown",
-      status: resolved ? 'completed' : 'pending',
-      images: (image && typeof image === 'string') ? [image] : [],
-      resolved: resolved
+
+    const submittedBy =
+      maintenance.requested_by_profile?.full_name ||
+      `${maintenance.requested_by_profile?.first_name || ""} ${maintenance.requested_by_profile?.last_name || ""}`.trim() ||
+      "Unknown";
+    const resolvedBy =
+      maintenance.status === "completed" &&
+      maintenance.resolved_by_profile_id === profile?.id
+        ? "You"
+        : maintenance.status === "completed"
+          ? maintenance.resolved_by_profile?.full_name ||
+            `${maintenance.resolved_by_profile?.first_name || ""} ${maintenance.resolved_by_profile?.last_name || ""}`.trim() ||
+            "Admin"
+          : "Unknown";
+
+    const statusMeta = getStatusMeta(maintenance.status);
+
+    return {
+      title: maintenance.title,
+      dateTime: formatDateTime(maintenance.created_at),
+      description: maintenance.description,
+      submittedBy,
+      resolvedBy,
+      status: maintenance.status,
+      statusMeta,
+      images: Array.isArray(maintenance.images)
+        ? maintenance.images.filter((img) => typeof img === "string")
+        : [],
+      resolved: (maintenance.status || "pending").toLowerCase() === "completed",
     };
-    console.log('🔍 Maintenance data from legacy params:', { 
-      status: data.status, 
-      resolved: data.resolved, 
-      resolvedBy: data.resolvedBy,
-      maintenanceId 
-    });
-    return data;
   };
 
   const maintenanceData = getMaintenanceData();
 
-  // Show loading state only for valid IDs (both UUID and integer)
-  if (isLoading && isValidId(maintenanceId)) {
+  if (!isValidId(maintenanceId)) {
+    return (
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : null}
+        style={{ flex: 1, backgroundColor: Colors.white }}
+      >
+        <MyStatusBar />
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+          <Text style={{ ...Fonts.Medium16grey, textAlign: "center" }}>
+            Invalid maintenance request reference.
+          </Text>
+        </View>
+      </KeyboardAvoidingView>
+    );
+  }
+
+  if (isLoading) {
     return (
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : null}
@@ -464,8 +332,7 @@ const MaintenanceDetailScreen = ({ navigation, route }) => {
     );
   }
 
-  // Show error state only for valid IDs and real errors
-  if (error && isValidId(maintenanceId)) {
+  if (error) {
     return (
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : null}
@@ -493,6 +360,22 @@ const MaintenanceDetailScreen = ({ navigation, route }) => {
               Error loading maintenance details: {error.message}
             </Text>
           </View>
+        </View>
+      </KeyboardAvoidingView>
+    );
+  }
+
+  if (!maintenanceData) {
+    return (
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : null}
+        style={{ flex: 1, backgroundColor: Colors.white }}
+      >
+        <MyStatusBar />
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+          <Text style={{ ...Fonts.Medium16grey, textAlign: "center" }}>
+            Maintenance request not found.
+          </Text>
         </View>
       </KeyboardAvoidingView>
     );
@@ -537,7 +420,7 @@ const MaintenanceDetailScreen = ({ navigation, route }) => {
                 ...Fonts.SemiBold16black,
                 textAlign: isRtl ? "right" : "left",
               }}
-            >{`${headerTitle} Maintenance`}</Text>
+            >{`${headerTitle || "Request"} Maintenance`}</Text>
 
             <View
               style={{
@@ -620,7 +503,7 @@ const MaintenanceDetailScreen = ({ navigation, route }) => {
                       numberOfLines={1}
                       style={{ ...Fonts.Medium14grey, overflow: "hidden" }}
                     >
-                      {maintenanceData.resolved ? "Resolved By" : "Raised By"}
+                      {maintenanceData.resolved ? "Completed By" : "Raised By"}
                       <Text
                         style={{ ...Fonts.Medium14black }}
                       >{` : ${maintenanceData.resolved ? maintenanceData.resolvedBy : maintenanceData.submittedBy}`}</Text>
@@ -629,7 +512,7 @@ const MaintenanceDetailScreen = ({ navigation, route }) => {
                 </View>
               </View>
 
-              <View
+                <View
                 style={{
                   position: "absolute",
                   right: isRtl ? null : 0,
@@ -638,7 +521,7 @@ const MaintenanceDetailScreen = ({ navigation, route }) => {
                   alignItems: "center",
                   width: 90,
                   paddingVertical: Default.fixPadding * 0.3,
-                  backgroundColor: maintenanceData.resolved ? Colors.green : Colors.primary,
+                  backgroundColor: maintenanceData.statusMeta.color,
                   borderTopRightRadius: isRtl ? 0 : 10,
                   borderTopLeftRadius: isRtl ? 10 : 0,
                 }}
@@ -651,7 +534,7 @@ const MaintenanceDetailScreen = ({ navigation, route }) => {
                     paddingHorizontal: Default.fixPadding * 0.5,
                   }}
                 >
-                  {maintenanceData.resolved ? "Resolved" : "Pending"}
+                  {maintenanceData.statusMeta.label}
                 </Text>
               </View>
             </View>
@@ -670,8 +553,8 @@ const MaintenanceDetailScreen = ({ navigation, route }) => {
               <Text style={{ ...Fonts.SemiBold18white }}>
                 {updateMaintenanceMutation.isLoading 
                   ? "Updating..." 
-                  : (maintenanceData.resolved ? "Reopen" : "Mark Resolved")
-                }
+                  : (maintenanceData.resolved ? "Reopen" : "Mark Completed")
+                  }
               </Text>
             </AwesomeButton>
 

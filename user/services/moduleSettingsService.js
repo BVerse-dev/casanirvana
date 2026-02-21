@@ -51,6 +51,7 @@ export const SCREEN_TO_MODULE_MAP = {
   helpDeskScreen: MODULE_SLUGS.HELP_DESK,
   complaintsScreen: MODULE_SLUGS.COMPLAINTS,
   MaintenanceRequestsScreen: MODULE_SLUGS.MAINTENANCE_REQUESTS,
+  serviceScreen: MODULE_SLUGS.SERVICES,
   serviceProvidersScreen: MODULE_SLUGS.SERVICES,
 
   // Personal Hub screens

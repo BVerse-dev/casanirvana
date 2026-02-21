@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Text,
   View,
@@ -24,6 +24,8 @@ import { useUpdateAmenityBooking } from "../hooks/useCreateAmenityBooking";
 import { addPayment } from "../services/paymentService";
 import { createPaymentNotification } from "../services/notificationService";
 import { createAirtimePurchase, createDataPurchase, createMoneyTransfer, createBillPayment, createInsurancePayment, createShoppingPayment } from "../services/personalHubService";
+import { saveBillAccount } from "../services/billPaymentService";
+import { savePolicy as savePolicyRecord } from "../services/insuranceService";
 import { useAuth } from "../contexts/AuthContext";
 
 const { width } = Dimensions.get("window");
@@ -34,6 +36,7 @@ const MobileMoneyScreen = ({ navigation, route }) => {
     bookingData,
     // Airtime purchase params
     provider,
+    providerId,
     providerName,
     providerColor,
     providerLogo,
@@ -44,6 +47,7 @@ const MobileMoneyScreen = ({ navigation, route }) => {
     phoneNumber: recipientPhone,
     description,
     saveAccount,
+    savePolicy,
     transactionType,
     recipientInfo,
     dataAmount,
@@ -57,8 +61,14 @@ const MobileMoneyScreen = ({ navigation, route }) => {
   } = route.params || {};
   
   const { t, i18n } = useTranslation();
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const updateBookingMutation = useUpdateAmenityBooking();
+  const navigateHome = useCallback(() => {
+    navigation.navigate("bottomTab", {
+      screen: "homeScreen",
+      params: { activeTab: "personal" },
+    });
+  }, [navigation]);
 
   const isRtl = i18n.dir() == "rtl";
 
@@ -81,7 +91,7 @@ const MobileMoneyScreen = ({ navigation, route }) => {
   const [isValidPhone, setIsValidPhone] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
-  const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [paymentReference, setPaymentReference] = useState("");
 
   const mobileNetworks = [
     {
@@ -134,6 +144,57 @@ const MobileMoneyScreen = ({ navigation, route }) => {
     setIsValidPhone(validatePhoneNumber(cleanedText));
   };
 
+  const getTransactionLabel = (type) => {
+    switch (type) {
+      case "airtime":
+        return "airtime purchase";
+      case "data":
+        return "data purchase";
+      case "money_transfer":
+        return "money transfer";
+      case "bill_payment":
+        return "bill payment";
+      case "insurance":
+        return "insurance payment";
+      case "shopping":
+        return "shopping payment";
+      case "booking":
+        return "booking payment";
+      default:
+        return "payment";
+    }
+  };
+
+  const persistSavedDestination = async ({ authUserId, profileId }) => {
+    if (!authUserId) return;
+
+    if (transactionType === "bill_payment" && saveAccount) {
+      await saveBillAccount({
+        user_id: authUserId,
+        profile_id: profileId || null,
+        provider: provider || "unknown",
+        provider_name: providerName || null,
+        account_number: recipientPhone || "",
+        description: description || null,
+        is_favorite: false,
+      });
+    }
+
+    if (transactionType === "insurance" && savePolicy) {
+      await savePolicyRecord({
+        user_id: authUserId,
+        profile_id: profileId || null,
+        provider: provider || "unknown",
+        provider_name: providerName || null,
+        policy_number: recipientPhone || "",
+        description: description || null,
+        insurance_type: recipientInfo?.policyType || "Insurance",
+        insured_name: recipientInfo?.name || description || null,
+        is_favorite: false,
+      });
+    }
+  };
+
   const handlePayment = async () => {
     if (!phoneNumber || !isValidPhone) {
       Alert.alert("Invalid Phone Number", "Please enter a valid phone number for the selected network.");
@@ -147,11 +208,15 @@ const MobileMoneyScreen = ({ navigation, route }) => {
       try {
         const cleanPhone = phoneNumber.replace(/\s+/g, "");
         const transactionId = `MM_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        const userId = profile?.user_id || profile?.id;
+        const authUserId = user?.id || profile?.user_id || null;
+        const profileId = profile?.id || null;
+        const numericAmount = Number(amount) || 0;
+        const numericPlatformFee = Number(platformFee) || 0;
+        const numericTotalAmount = Number(totalAmount) || numericAmount;
         
         // Create payment record
         const paymentData = {
-          amount: amount || 0,
+          amount: numericAmount,
           payment_method: 'mobile_money',
           payment_type: transactionType || 'airtime',
           transaction_id: transactionId,
@@ -160,8 +225,8 @@ const MobileMoneyScreen = ({ navigation, route }) => {
           payment_gateway: 'mobile_money',
           status: 'pending',
           // Required field - use the user's unit_id from profile
-          unit_id: profile?.unit_id || '',
-          payer_id: profile?.id || '',
+          unit_id: profile?.unit_id || null,
+          payer_id: authUserId,
           // Store mobile network details in metadata
           metadata: {
             mobile_network: selectedNetwork,
@@ -187,12 +252,13 @@ const MobileMoneyScreen = ({ navigation, route }) => {
         switch(transactionType) {
           case 'airtime':
             transactionResult = await createAirtimePurchase({
-              user_id: userId,
-              profile_id: profile?.id,
+              user_id: authUserId,
+              profile_id: profileId,
               provider: provider || 'unknown',
+              provider_id: providerId || null,
               phone_number: recipientPhone || '',
               description: description || '',
-              amount: amount || 0,
+              amount: numericAmount,
               status: 'pending',
               payment_ref_id: paymentResult.data.id
             });
@@ -200,15 +266,16 @@ const MobileMoneyScreen = ({ navigation, route }) => {
             
           case 'data':
             transactionResult = await createDataPurchase({
-              user_id: userId,
-              profile_id: profile?.id,
+              user_id: authUserId,
+              profile_id: profileId,
               provider: provider || 'unknown',
+              provider_id: providerId || null,
               phone_number: recipientPhone || '',
               description: description || '',
               package_name: amountTitle || 'Data Bundle',
               data_amount: dataAmount || '1GB',
               validity_days: validity ? parseInt(validity) : 30,
-              amount: amount || 0,
+              amount: numericAmount,
               status: 'pending',
               payment_ref_id: paymentResult.data.id
             });
@@ -216,13 +283,14 @@ const MobileMoneyScreen = ({ navigation, route }) => {
             
           case 'money_transfer':
             transactionResult = await createMoneyTransfer({
-              user_id: userId,
-              profile_id: profile?.id,
+              user_id: authUserId,
+              profile_id: profileId,
+              provider_id: providerId || null,
               recipient_name: description || 'Recipient',
               recipient_phone: recipientPhone || '',
-              amount: amount || 0,
-              fee: platformFee || 0,
-              total_amount: totalAmount || amount || 0,
+              amount: numericAmount,
+              fee: numericPlatformFee,
+              total_amount: numericTotalAmount,
               status: 'pending',
               payment_ref_id: paymentResult.data.id
             });
@@ -230,15 +298,16 @@ const MobileMoneyScreen = ({ navigation, route }) => {
             
           case 'bill_payment':
             transactionResult = await createBillPayment({
-              user_id: userId,
-              profile_id: profile?.id,
+              user_id: authUserId,
+              profile_id: profileId,
               bill_type: description || 'Utility',
               provider: provider || 'unknown',
+              provider_id: providerId || null,
               account_number: recipientPhone || '',
               customer_name: description || '',
-              amount: amount || 0,
+              amount: numericAmount,
               fee: 0,
-              total_amount: amount || 0,
+              total_amount: numericAmount,
               status: 'pending',
               payment_ref_id: paymentResult.data.id
             });
@@ -246,16 +315,17 @@ const MobileMoneyScreen = ({ navigation, route }) => {
             
           case 'insurance':
             transactionResult = await createInsurancePayment({
-              user_id: userId,
-              profile_id: profile?.id,
+              user_id: authUserId,
+              profile_id: profileId,
               insurance_type: description || 'General',
               provider: provider || 'unknown',
+              provider_id: providerId || null,
               policy_number: recipientPhone || '',
               insured_name: description || '',
               coverage_period: '1 year',
-              amount: amount || 0,
+              amount: numericAmount,
               fee: 0,
-              total_amount: amount || 0,
+              total_amount: numericAmount,
               status: 'pending',
               payment_ref_id: paymentResult.data.id
             });
@@ -263,15 +333,15 @@ const MobileMoneyScreen = ({ navigation, route }) => {
             
           case 'shopping':
             transactionResult = await createShoppingPayment({
-              user_id: userId,
-              profile_id: profile?.id,
+              user_id: authUserId,
+              profile_id: profileId,
               merchant: provider || 'unknown',
               order_number: recipientPhone || '',
-              items: [{ name: description || 'Item', price: amount || 0 }],
-              amount: amount || 0,
+              items: [{ name: description || 'Item', price: numericAmount }],
+              amount: numericAmount,
               shipping_fee: 0,
               tax: 0,
-              total_amount: amount || 0,
+              total_amount: numericAmount,
               status: 'pending',
               payment_ref_id: paymentResult.data.id
             });
@@ -286,28 +356,23 @@ const MobileMoneyScreen = ({ navigation, route }) => {
           // Continue with the flow even if transaction record creation fails
         }
         
-        // Show confirmation modal
+        await persistSavedDestination({ authUserId, profileId });
+
+        // Create pending notification
+        await createPaymentNotification({
+          transaction_type: transactionType,
+          transaction_id: transactionId,
+          amount: numericAmount,
+          amount_formatted: amountFormatted,
+          data_amount: dataAmount,
+          validity,
+          status: "pending",
+        });
+
+        // Show pending confirmation modal
+        setPaymentReference(transactionId);
         setIsProcessing(false);
         setShowConfirmationModal(true);
-        
-        // Simulate payment processing and success after 3 seconds
-        setTimeout(async () => {
-          setPaymentSuccess(true);
-          
-          // Create notification for successful payment
-          try {
-            const notificationResult = await createPaymentNotification({
-              ...paymentData,
-              amount_formatted: amountFormatted
-            });
-            
-            if (!notificationResult.success) {
-              console.error('Failed to create payment notification:', notificationResult.error);
-            }
-          } catch (notificationError) {
-            console.error('Error creating payment notification:', notificationError);
-          }
-        }, 3000);
         
       } catch (error) {
         console.error("Mobile Money payment error:", error);
@@ -329,64 +394,58 @@ const MobileMoneyScreen = ({ navigation, route }) => {
     try {
       const cleanPhone = phoneNumber.replace(/\s+/g, "");
       const transactionId = `MM_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const bookingType = bookingData?.type || 'booking';
 
       // Create payment record
       const paymentData = {
-        booking_id: bookingId,
         amount: bookingData.totalAmount,
         payment_method: 'mobile_money',
-        payment_type: 'booking',
+        payment_type: bookingType,
         transaction_id: transactionId,
         title: `Booking Payment`,
         description: `Payment for booking #${bookingId}`,
         payment_gateway: 'mobile_money',
         status: 'pending', // Mobile money payments start as pending
         // Required field - use the user's unit_id from profile
-        unit_id: profile?.unit_id || bookingData?.unit_id || '',
-        payer_id: profile?.id || '',
+        unit_id: profile?.unit_id || bookingData?.unit_id || null,
+        payer_id: user?.id || profile?.user_id || null,
         // Store mobile network details in metadata
         metadata: {
           mobile_network: selectedNetwork,
-          phone_number: cleanPhone
+          phone_number: cleanPhone,
+          source_booking_id: bookingId || null,
+          source_booking_type: bookingType,
         }
       };
 
       const paymentResult = await addPayment(paymentData);
 
-      if (paymentResult.success) {
+      if (!paymentResult.error && paymentResult.data) {
         // Update booking status
-        await updateBookingMutation.mutateAsync({
-          id: bookingId,
-          updates: {
-            payment_status: 'pending',
-            status: 'pending',
-          }
+        if (bookingData?.type !== 'service_booking') {
+          await updateBookingMutation.mutateAsync({
+            id: bookingId,
+            updates: {
+              payment_status: 'pending',
+              status: 'pending',
+            }
+          });
+        }
+
+        // Create pending notification and show confirmation modal
+        await createPaymentNotification({
+          transaction_type: bookingType,
+          transaction_id: transactionId,
+          amount: bookingData.totalAmount,
+          amount_formatted: `GHS ${bookingData.totalAmount?.toFixed(2)}`,
+          status: "pending",
         });
 
-        // Show confirmation modal instead of navigating directly
+        setPaymentReference(transactionId);
         setIsProcessing(false);
         setShowConfirmationModal(true);
-        
-        // Simulate payment processing and success after 3 seconds
-        setTimeout(async () => {
-          setPaymentSuccess(true);
-          
-          // Create notification for successful payment
-          try {
-            const notificationResult = await createPaymentNotification({
-              ...paymentData,
-              amount_formatted: `GHS ${bookingData.totalAmount?.toFixed(2)}`
-            });
-            
-            if (!notificationResult.success) {
-              console.error('Failed to create payment notification:', notificationResult.error);
-            }
-          } catch (notificationError) {
-            console.error('Error creating payment notification:', notificationError);
-          }
-        }, 3000);
       } else {
-        throw new Error(paymentResult.error || "Payment failed");
+        throw new Error(paymentResult.error?.message || "Payment failed");
       }
     } catch (error) {
       console.error("Mobile Money payment error:", error);
@@ -640,7 +699,7 @@ const MobileMoneyScreen = ({ navigation, route }) => {
             >
               1. You will receive a payment prompt on your phone{'\n'}
               2. Enter your mobile money PIN to authorize the payment{'\n'}
-              3. You will receive a confirmation SMS upon successful payment
+              3. You will receive a status update once the provider confirms processing
             </Text>
           </View>
         </View>
@@ -671,12 +730,8 @@ const MobileMoneyScreen = ({ navigation, route }) => {
         transparent={true}
         animationType="fade"
         onRequestClose={() => {
-          if (paymentSuccess) {
-            // If payment is successful, navigate to home screen personal tab
-            navigation.navigate("homeScreen", { activeTab: 'personal' });
-          } else {
-            setShowConfirmationModal(false);
-          }
+          setShowConfirmationModal(false);
+          navigateHome();
         }}
       >
         <View style={{
@@ -693,108 +748,63 @@ const MobileMoneyScreen = ({ navigation, route }) => {
             padding: Default.fixPadding * 2,
             ...Default.shadow,
           }}>
-            {paymentSuccess ? (
-              // Success state
-              <>
-                <View style={{
-                  alignItems: 'center',
-                  marginBottom: Default.fixPadding * 2,
+            <View style={{
+              alignItems: 'center',
+              marginBottom: Default.fixPadding * 2,
+            }}>
+              <View style={{
+                width: 80,
+                height: 80,
+                borderRadius: 40,
+                backgroundColor: Colors.primary + '20',
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginBottom: Default.fixPadding * 1.5,
+              }}>
+                <MaterialCommunityIcons
+                  name="cellphone-check"
+                  size={50}
+                  color={Colors.primary}
+                />
+              </View>
+              <Text style={{ ...Fonts.SemiBold18black, textAlign: 'center' }}>
+                Payment Initiated
+              </Text>
+              <Text style={{ 
+                ...Fonts.Medium14grey, 
+                textAlign: 'center',
+                marginTop: Default.fixPadding,
+                marginHorizontal: Default.fixPadding,
+              }}>
+                Your {getTransactionLabel(transactionType || "booking")} has been submitted and is pending mobile money confirmation.
+              </Text>
+              {paymentReference ? (
+                <Text style={{
+                  ...Fonts.Medium13black,
+                  textAlign: "center",
+                  marginTop: Default.fixPadding,
                 }}>
-                  <View style={{
-                    width: 80,
-                    height: 80,
-                    borderRadius: 40,
-                    backgroundColor: Colors.green + '20',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    marginBottom: Default.fixPadding * 1.5,
-                  }}>
-                    <MaterialIcons
-                      name="check-circle"
-                      size={50}
-                      color={Colors.green}
-                    />
-                  </View>
-                  <Text style={{ ...Fonts.SemiBold18black, textAlign: 'center' }}>
-                    Payment Successful
-                  </Text>
-                  <Text style={{ 
-                    ...Fonts.Medium14grey, 
-                    textAlign: 'center',
-                    marginTop: Default.fixPadding,
-                    marginHorizontal: Default.fixPadding,
-                  }}>
-                    Your payment has been processed successfully.
-                  </Text>
-                </View>
-                
-                <TouchableOpacity
-                  style={{
-                    backgroundColor: Colors.primary,
-                    paddingVertical: Default.fixPadding * 1.2,
-                    borderRadius: 10,
-                    alignItems: 'center',
-                  }}
-                  onPress={() => {
-                    setShowConfirmationModal(false);
-                    navigation.navigate("homeScreen", { activeTab: 'personal' });
-                  }}
-                >
-                  <Text style={{ ...Fonts.SemiBold16white }}>
-                    Done
-                  </Text>
-                </TouchableOpacity>
-              </>
-            ) : (
-              // Processing state
-              <>
-                <View style={{
-                  alignItems: 'center',
-                  marginBottom: Default.fixPadding * 2,
-                }}>
-                  <View style={{
-                    width: 80,
-                    height: 80,
-                    borderRadius: 40,
-                    backgroundColor: Colors.primary + '20',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    marginBottom: Default.fixPadding * 1.5,
-                  }}>
-                    <MaterialCommunityIcons
-                      name="cellphone-check"
-                      size={50}
-                      color={Colors.primary}
-                    />
-                  </View>
-                  <Text style={{ ...Fonts.SemiBold18black, textAlign: 'center' }}>
-                    Payment Processing
-                  </Text>
-                  <Text style={{ 
-                    ...Fonts.Medium14grey, 
-                    textAlign: 'center',
-                    marginTop: Default.fixPadding,
-                    marginHorizontal: Default.fixPadding,
-                  }}>
-                    You will receive a prompt on your phone to enter your mobile money PIN to approve this payment.
-                  </Text>
-                </View>
-                
-                <TouchableOpacity
-                  style={{
-                    backgroundColor: Colors.grey,
-                    paddingVertical: Default.fixPadding * 1.2,
-                    borderRadius: 10,
-                    alignItems: 'center',
-                  }}
-                  onPress={() => setShowConfirmationModal(false)}
-                >
-                  <Text style={{ ...Fonts.SemiBold16white }}>
-                    Cancel
-                  </Text>
-                </TouchableOpacity>
-              </>
-            )}
+                  Reference: {paymentReference}
+                </Text>
+              ) : null}
+            </View>
+            
+            <TouchableOpacity
+              style={{
+                backgroundColor: Colors.primary,
+                paddingVertical: Default.fixPadding * 1.2,
+                borderRadius: 10,
+                alignItems: 'center',
+              }}
+              onPress={() => {
+                setShowConfirmationModal(false);
+                navigateHome();
+              }}
+            >
+              <Text style={{ ...Fonts.SemiBold16white }}>
+                Done
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>

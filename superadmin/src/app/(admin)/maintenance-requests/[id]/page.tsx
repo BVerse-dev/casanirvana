@@ -15,6 +15,7 @@ const MaintenanceRequestDetailsPage = () => {
   const { data: request, isLoading, error } = useGetMaintenanceRequest(requestId);
   const updateMaintenanceRequest = useUpdateMaintenanceRequest(requestId);
   const [activeTab, setActiveTab] = useState("details");
+  const [selectedAttachment, setSelectedAttachment] = useState<string | null>(null);
 
   if (isLoading) {
     return (
@@ -89,19 +90,27 @@ const MaintenanceRequestDetailsPage = () => {
     });
   };
 
+  const attachments = Array.isArray(request.images)
+    ? request.images.filter(
+        (item): item is string => typeof item === "string" && item.length > 0,
+      )
+    : [];
+
   // Handle status updates
   const handleStatusUpdate = async (newStatus: string) => {
     try {
       await updateMaintenanceRequest.mutateAsync({
         status: newStatus,
         updated_at: new Date().toISOString(),
-        // Add resolved fields if marking as resolved
-        ...(newStatus === 'resolved' && {
+        // Add completion fields when closing request
+        ...(newStatus === 'completed' && {
           resolved_at: new Date().toISOString(),
+          completed_at: new Date().toISOString(),
         }),
-        // Clear resolved fields if reopening
-        ...(newStatus === 'pending' && {
+        // Clear completion fields if reopening
+        ...(newStatus !== 'completed' && {
           resolved_at: null,
+          completed_at: null,
         })
       });
     } catch (error) {
@@ -112,7 +121,7 @@ const MaintenanceRequestDetailsPage = () => {
   // Handle resolve/reopen toggle
   const handleToggleResolve = async () => {
     const currentStatus = request?.status || 'pending';
-    const newStatus = currentStatus === 'resolved' ? 'pending' : 'resolved';
+    const newStatus = currentStatus === 'completed' ? 'pending' : 'completed';
     await handleStatusUpdate(newStatus);
   };
 
@@ -389,13 +398,53 @@ const MaintenanceRequestDetailsPage = () => {
                     </div>
                   </div>
                 </Tab>
-                <Tab eventKey="attachments" title="Attachments">
+                <Tab eventKey="attachments" title={`Attachments (${attachments.length})`}>
                   <div className="tab-content mt-3">
-                    <div className="text-center py-4">
-                      <IconifyIcon icon="ri:file-list-3-line" className="fs-48 text-muted mb-3" />
-                      <h6 className="text-muted">No attachments available</h6>
-                      <p className="text-muted mb-0">Files and images related to this request will appear here</p>
-                    </div>
+                    {attachments.length > 0 ? (
+                      <>
+                        <div className="d-flex justify-content-between align-items-center mb-3">
+                          <h6 className="mb-0 fw-semibold">Uploaded Attachments</h6>
+                          <small className="text-muted">{attachments.length} file(s)</small>
+                        </div>
+                        <Row className="g-3">
+                          {attachments.map((attachmentUrl, index) => (
+                            <Col md={4} sm={6} key={`${attachmentUrl}-${index}`}>
+                              <div className="border rounded overflow-hidden bg-light">
+                                <button
+                                  type="button"
+                                  className="w-100 border-0 p-0 bg-transparent"
+                                  onClick={() => setSelectedAttachment(attachmentUrl)}
+                                  style={{ height: 160, cursor: "zoom-in" }}
+                                >
+                                  <img
+                                    src={attachmentUrl}
+                                    alt={`Maintenance attachment ${index + 1}`}
+                                    className="w-100 h-100 object-fit-cover"
+                                  />
+                                </button>
+                                <div className="d-flex justify-content-between align-items-center p-2 border-top">
+                                  <small className="text-muted">Attachment {index + 1}</small>
+                                  <a
+                                    href={attachmentUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="btn btn-sm btn-outline-primary py-0 px-2"
+                                  >
+                                    Open
+                                  </a>
+                                </div>
+                              </div>
+                            </Col>
+                          ))}
+                        </Row>
+                      </>
+                    ) : (
+                      <div className="text-center py-4">
+                        <IconifyIcon icon="ri:file-list-3-line" className="fs-48 text-muted mb-3" />
+                        <h6 className="text-muted">No attachments available</h6>
+                        <p className="text-muted mb-0">Files and images related to this request will appear here</p>
+                      </div>
+                    )}
                   </div>
                 </Tab>
               </Tabs>
@@ -443,7 +492,7 @@ const MaintenanceRequestDetailsPage = () => {
                 </div>
                 <div className="d-flex justify-content-between mb-2">
                   <span className="text-muted">Unit:</span>
-                  <span className="fw-medium">{request.unit?.unit_number || "N/A"}</span>
+                  <span className="fw-medium">{request.unit?.unit_number || request.unit?.number || "N/A"}</span>
                 </div>
                 <div className="d-flex justify-content-between">
                   <span className="text-muted">Block:</span>
@@ -472,24 +521,16 @@ const MaintenanceRequestDetailsPage = () => {
                   {updateMaintenanceRequest.isPending ? 'Updating...' : 'Mark as In Progress'}
                 </Button>
                 <Button 
-                  variant={request?.status === 'resolved' ? 'warning' : 'success'} 
+                  variant={request?.status === 'completed' ? 'warning' : 'success'} 
                   size="sm"
                   onClick={handleToggleResolve}
                   disabled={updateMaintenanceRequest.isPending}
                 >
-                  <IconifyIcon icon={request?.status === 'resolved' ? 'ri:refresh-line' : 'ri:check-double-line'} className="me-1" />
+                  <IconifyIcon icon={request?.status === 'completed' ? 'ri:refresh-line' : 'ri:check-double-line'} className="me-1" />
                   {updateMaintenanceRequest.isPending 
                     ? 'Updating...' 
-                    : (request?.status === 'resolved' ? 'Reopen Request' : 'Mark as Resolved')
+                    : (request?.status === 'completed' ? 'Reopen Request' : 'Mark as Completed')
                   }
-                </Button>
-                <Button variant="warning" size="sm">
-                  <IconifyIcon icon="ri:user-add-line" className="me-1" />
-                  Assign Technician
-                </Button>
-                <Button variant="info" size="sm">
-                  <IconifyIcon icon="ri:message-3-line" className="me-1" />
-                  Send Update
                 </Button>
               </div>
             </CardBody>
@@ -518,6 +559,33 @@ const MaintenanceRequestDetailsPage = () => {
           </Card>
         </Col>
       </Row>
+
+      {selectedAttachment && (
+        <div
+          className="modal fade show d-block"
+          style={{ backgroundColor: "rgba(0,0,0,0.8)" }}
+          onClick={() => setSelectedAttachment(null)}
+        >
+          <div
+            className="modal-dialog modal-lg modal-dialog-centered"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Attachment Preview</h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => setSelectedAttachment(null)}
+                />
+              </div>
+              <div className="modal-body text-center">
+                <img src={selectedAttachment} alt="Maintenance attachment preview" className="img-fluid" />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style jsx>{`
         .timeline-container {

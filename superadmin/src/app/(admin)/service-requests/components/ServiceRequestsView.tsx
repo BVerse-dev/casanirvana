@@ -3,9 +3,9 @@ import IconifyIcon from "@/components/wrappers/IconifyIcon";
 import { useListServiceRequests } from "@/hooks/useServiceRequests";
 import { supabase } from "@/lib/supabase";
 import { useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
 import { useEffect, useState, useMemo } from "react";
 import {
-  Button,
   Card,
   CardBody,
   CardFooter,
@@ -50,22 +50,18 @@ const ServiceRequestsView = () => {
 
   // Real-time subscription for service requests updates
   useEffect(() => {
-    console.log('🔄 Setting up real-time subscription for service requests');
-    
     const channel = supabase
       .channel('public:service_requests')
       .on('postgres_changes', { 
         event: '*', 
         schema: 'public', 
         table: 'service_requests' 
-      }, (payload) => {
-        console.log('🔄 Service request change detected:', payload);
+      }, () => {
         queryClient.invalidateQueries({ queryKey: ['service_requests'] });
       })
       .subscribe();
 
     return () => {
-      console.log('🔄 Cleaning up real-time subscription for service requests');
       supabase.removeChannel(channel);
     };
   }, [queryClient]);
@@ -119,10 +115,10 @@ const ServiceRequestsView = () => {
                     <DropdownItem onClick={() => setStatusFilter('cancelled')}>Cancelled</DropdownItem>
                   </DropdownMenu>
                 </Dropdown>
-                <Button variant="primary" size="sm">
-                  <IconifyIcon icon="ri:add-line" className="me-1" />
-                  New Request
-                </Button>
+                <Link href="/services" className="btn btn-sm btn-primary">
+                  <IconifyIcon icon="ri:settings-3-line" className="me-1" />
+                  Manage Services
+                </Link>
               </div>
             </CardHeader>
             <CardBody className="p-0">
@@ -132,7 +128,9 @@ const ServiceRequestsView = () => {
               <div className="d-flex justify-content-between align-items-center">
                 <div className="d-flex align-items-center gap-3">
                   <div className="text-muted">
-                    Showing {startIndex + 1} to {endIndex} of {totalEntries} service requests
+                    {totalEntries === 0
+                      ? "Showing 0 of 0 service requests"
+                      : `Showing ${startIndex + 1} to ${endIndex} of ${totalEntries} service requests`}
                   </div>
                   <div className="d-flex align-items-center gap-2">
                     <span className="text-muted">Show:</span>

@@ -1,13 +1,3 @@
-import small1 from "@/assets/images/small/img-1.jpg";
-import small10 from "@/assets/images/small/img-10.jpg";
-import small2 from "@/assets/images/small/img-2.jpg";
-import small3 from "@/assets/images/small/img-3.jpg";
-import small4 from "@/assets/images/small/img-4.jpg";
-import small5 from "@/assets/images/small/img-5.jpg";
-import small6 from "@/assets/images/small/img-6.jpg";
-import small7 from "@/assets/images/small/img-7.jpg";
-import small8 from "@/assets/images/small/img-8.jpg";
-import small9 from "@/assets/images/small/img-9.jpg";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -30,19 +20,8 @@ const PhotoCard = () => {
   const mediaNotices = notices 
     ? notices
         .filter(notice => (notice.image_url && notice.image_url.startsWith('http')) || (notice.video_url && notice.video_url.startsWith('http')))
-        .slice(0, 6) // Reduced to 6 to fill with static images
+        .slice(0, 12)
     : [];
-  
-  // Fallback static images
-  const staticImages = [
-    small1, small2, small3, small4, small5, small6,
-    small7, small8, small9, small10
-  ];
-
-  // Combine media notices with static images to ensure we always have 12 items
-  const allMedia = [...mediaNotices];
-  const remainingSlots = 12 - allMedia.length;
-  const staticToAdd = staticImages.slice(0, remainingSlots);
 
   const handleMediaClick = (noticeId: string) => {
     router.push(`/post/details?id=${noticeId}`);
@@ -53,7 +32,7 @@ const PhotoCard = () => {
       <CardHeader className="d-flex border-bottom border-dashed">
         <CardTitle as={"a"}>Photo And Video</CardTitle>
         <div className="ms-auto">
-          <Link href="" className="text-muted fw-semibold">
+          <Link href="/post" className="text-muted fw-semibold">
             See all
           </Link>
         </div>
@@ -100,15 +79,11 @@ const PhotoCard = () => {
                   </div>
                 </Col>
               ))}
-              
-              {/* Fill remaining slots with static images */}
-              {staticToAdd.map((item, idx) => (
-                <Col lg={4} key={`static-${idx}`}>
-                  <div className="d-block m-1">
-                    <Image src={item} alt="gallery" className="img-fluid rounded" />
-                  </div>
+              {mediaNotices.length === 0 ? (
+                <Col className="text-center py-3 text-muted">
+                  No media notices available.
                 </Col>
-              ))}
+              ) : null}
             </>
           )}
         </Row>

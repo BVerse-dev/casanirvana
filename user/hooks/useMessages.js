@@ -92,33 +92,18 @@ export const useMessages = (otherUserId) => {
         throw new Error('Missing required fields: recipient or message content');
       }
 
-      // Debug logging
-      console.log('📤 Sending message to admin:', {
-        from_user: profile.id,
-        to_user: toUserId,
-        messageType
-      });
-
-      // Format message body for different types
-      let messageBody = content;
-      if (messageType !== 'text' && attachments) {
-        // Store attachment info in body as JSON for non-text messages
-        messageBody = JSON.stringify({
-          type: messageType,
-          content: content,
-          attachment: attachments
-        });
-      }
-
+      const isAttachmentMessage = messageType !== 'text' && !!attachments;
       const messageData = {
         from_user: profile.id,
         to_user: toUserId,
-        body: messageBody,
+        body: content,
+        message_type: isAttachmentMessage ? 'file' : 'text',
+        attachments: isAttachmentMessage ? { type: messageType, ...attachments } : null,
         sent_at: new Date().toISOString(),
         read: false,
+        is_read: false,
+        message_status: 'sent',
       };
-
-      console.log('📤 Message data:', messageData);
 
       const { data, error } = await supabase
         .from('messages')
@@ -131,31 +116,27 @@ export const useMessages = (otherUserId) => {
         throw error;
       }
 
-      console.log('✅ Message sent successfully');
       return data;
     },
     onMutate: async ({ toUserId, content, messageType = 'text', attachments = null }) => {
-      // Format optimistic message body for different types
-      let messageBody = content;
-      if (messageType !== 'text' && attachments) {
-        messageBody = JSON.stringify({
-          type: messageType,
-          content: content,
-          attachment: attachments
-        });
-      }
+      const isAttachmentMessage = messageType !== 'text' && !!attachments;
+      const normalizedAttachments = isAttachmentMessage ? { type: messageType, ...attachments } : null;
 
       // Create optimistic message
       const optimisticMessage = {
         id: `temp-${Date.now()}`, // Temporary ID
         from_user: profile.id,
         to_user: toUserId,
-        body: messageBody,
+        body: content,
+        message_type: isAttachmentMessage ? 'file' : 'text',
+        attachments: normalizedAttachments,
         sent_at: new Date().toISOString(),
         read: false,
+        is_read: false,
+        message_status: 'sent',
         // Add temporary fields for display
         _messageType: messageType,
-        _attachments: attachments,
+        _attachments: normalizedAttachments,
         _status: 'sending',
       };
 
@@ -218,6 +199,7 @@ export const useMessages = (otherUserId) => {
       const { error } = await supabase
         .from('messages')
         .update({
+          read: true,
           is_read: true,
           read_at: new Date().toISOString(),
           message_status: 'read'
@@ -230,8 +212,8 @@ export const useMessages = (otherUserId) => {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['messages', profile?.id, otherUserId]);
-      queryClient.invalidateQueries(['messages', otherUserId, profile?.id]);
+      queryClient.invalidateQueries({ queryKey: ['messages', profile?.id, otherUserId] });
+      queryClient.invalidateQueries({ queryKey: ['messages', otherUserId, profile?.id] });
     },
   });
 
@@ -251,8 +233,8 @@ export const useMessages = (otherUserId) => {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['messages', profile?.id, otherUserId]);
-      queryClient.invalidateQueries(['messages', otherUserId, profile?.id]);
+      queryClient.invalidateQueries({ queryKey: ['messages', profile?.id, otherUserId] });
+      queryClient.invalidateQueries({ queryKey: ['messages', otherUserId, profile?.id] });
     },
   });
 
@@ -284,7 +266,7 @@ export const useConversations = () => {
 
       const { data: messageRows, error: messageError } = await supabase
         .from('messages')
-        .select('id, from_user, to_user, body, sent_at, is_read, message_type')
+        .select('id, from_user, to_user, body, sent_at, is_read, read, message_type, attachments')
         .or(`from_user.eq.${profile.id},to_user.eq.${profile.id}`)
         .order('sent_at', { ascending: false });
 
@@ -333,7 +315,8 @@ export const useConversations = () => {
           });
         }
 
-        if (message.to_user === profile.id && !message.is_read) {
+        const isMessageRead = message.is_read ?? message.read ?? false;
+        if (message.to_user === profile.id && !isMessageRead) {
           conversationMap.get(partnerId).unreadCount += 1;
         }
       });
@@ -370,31 +353,21 @@ export const useRealTimeMessages = (otherUserId) => {
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'messages',
-          filter: `or(and(from_user.eq.${profile.id},to_user.eq.${otherUserId}),and(from_user.eq.${otherUserId},to_user.eq.${profile.id}))`,
         },
         (payload) => {
-          // Only update cache if this is a message from the other user (not our own sent message)
-          if (payload.new.from_user === otherUserId) {
-            const queryKey = ['messages', profile.id, otherUserId];
-            queryClient.invalidateQueries(queryKey);
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'messages',
-          filter: `or(and(from_user.eq.${profile.id},to_user.eq.${otherUserId}),and(from_user.eq.${otherUserId},to_user.eq.${profile.id}))`,
-        },
-        (payload) => {
-          // Update the specific message in cache
+          const row = payload.new || payload.old;
+          const involvesCurrentChat =
+            (row?.from_user === profile.id && row?.to_user === otherUserId) ||
+            (row?.from_user === otherUserId && row?.to_user === profile.id);
+
+          if (!involvesCurrentChat) return;
+
           const queryKey = ['messages', profile.id, otherUserId];
-          queryClient.invalidateQueries(queryKey);
+          queryClient.invalidateQueries({ queryKey });
+          queryClient.invalidateQueries({ queryKey: ['conversations', profile.id] });
         }
       )
       .subscribe();
@@ -408,16 +381,19 @@ export const useRealTimeMessages = (otherUserId) => {
           event: '*',
           schema: 'public',
           table: 'calls',
-          filter: `or(and(caller_id.eq.${profile.id},callee_id.eq.${otherUserId}),and(caller_id.eq.${otherUserId},callee_id.eq.${profile.id}))`,
         },
         (payload) => {
-          console.log('🔔 Real-time call update in messages:', payload);
+          const row = payload.new || payload.old;
+          const involvesCurrentChat =
+            (row?.caller_id === profile.id && row?.callee_id === otherUserId) ||
+            (row?.caller_id === otherUserId && row?.callee_id === profile.id);
+
+          if (!involvesCurrentChat) return;
+
           // Invalidate messages query to include new calls
           const queryKey = ['messages', profile.id, otherUserId];
-          queryClient.invalidateQueries(queryKey);
-          
-          // Also invalidate chat enhancements for call previews
-          queryClient.invalidateQueries(['chatEnhancements']);
+          queryClient.invalidateQueries({ queryKey });
+          queryClient.invalidateQueries({ queryKey: ['conversations', profile.id] });
         }
       )
       .subscribe();
@@ -468,8 +444,8 @@ export const useRealTimeCalls = () => {
           if (payload.new.status !== 'initiated' && payload.new.status !== 'ringing') {
             setIncomingCall(null);
           }
-          
-          queryClient.invalidateQueries(['calls']);
+
+          queryClient.invalidateQueries({ queryKey: ['calls'] });
         }
       )
       .subscribe();

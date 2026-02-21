@@ -12,17 +12,6 @@ export const useListServices = (communityId?: string) => {
   return useQuery({
     queryKey: ["services", communityId],
     queryFn: async () => {
-      console.log('🔍 useListServices - Starting query, communityId:', communityId);
-      
-      // First try a simple query to test table access
-      console.log('🔍 useListServices - Testing simple table access...');
-      const simpleTest = await supabase
-        .from("services")
-        .select("id, name")
-        .limit(1);
-      
-      console.log('🔍 useListServices - Simple test result:', simpleTest);
-      
       let query = supabase
         .from("services")
         .select(`
@@ -35,23 +24,12 @@ export const useListServices = (communityId?: string) => {
         query = query.eq("community_id", communityId);
       }
 
-      console.log('🔍 useListServices - About to execute query');
       const { data, error } = await query;
 
-      console.log('🔍 useListServices - Query result:');
-      console.log('  - Data:', data);
-      console.log('  - Error:', error);
-      console.log('  - Count:', data?.length);
-
       if (error) {
-        console.error('❌ useListServices - Error details:', error);
-        console.error('❌ useListServices - Error message:', error.message);
-        console.error('❌ useListServices - Error code:', error.code);
         throw error;
       }
-      
-      console.log('✅ useListServices - Success:', data?.length || 0, 'services found');
-      console.log('✅ useListServices - Services data:', data);
+
       return data;
     },
   });
@@ -62,8 +40,6 @@ export const useGetService = (id: string) => {
   return useQuery({
     queryKey: ["services", id],
     queryFn: async () => {
-      console.log('🔍 Fetching service with ID:', id, 'Type:', typeof id);
-      
       const { data, error } = await supabase
         .from("services")
         .select(`
@@ -74,11 +50,9 @@ export const useGetService = (id: string) => {
         .single();
 
       if (error) {
-        console.error('❌ Error fetching service:', error);
         throw error;
       }
-      
-      console.log('✅ Fetched service:', data);
+
       return data;
     },
     enabled: !!id,

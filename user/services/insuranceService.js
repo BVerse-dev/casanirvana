@@ -86,7 +86,7 @@ export const savePolicy = async (policy) => {
   try {
     const { data, error } = await supabase
       .from("saved_policies")
-      .insert([policy])
+      .upsert([policy], { onConflict: "user_id,provider,policy_number" })
       .select()
       .single();
 

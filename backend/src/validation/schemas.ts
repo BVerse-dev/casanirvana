@@ -341,10 +341,17 @@ export const schemas = {
   complaintUpdate: atLeastOne(
     z.object({
       status: optionalString,
+      priority: optionalString,
+      category: optionalString,
+      subject: optionalString,
+      details: optionalString,
       assigned_to: optionalString,
       resolution: optionalString,
+      resolution_notes: optionalString,
       resolved_at: optionalString,
       in_progress_at: optionalString,
+      resolved_by_profile_id: optionalString,
+      updated_at: optionalString,
     })
   ),
 
@@ -352,10 +359,10 @@ export const schemas = {
     withUser: nonEmptyString,
   }),
   messageCreate: z.object({
-    sender_id: nonEmptyString,
-    recipient_id: nonEmptyString,
-    message: nonEmptyString,
-    society_id: optionalString,
+    from_user: nonEmptyString,
+    to_user: nonEmptyString,
+    body: nonEmptyString,
+    message_type: z.enum(['text', 'file']).optional(),
   }),
 
   noticeQuery: z.object({

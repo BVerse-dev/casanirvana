@@ -11,6 +11,14 @@ type MaintenanceRequestInsert =
 type MaintenanceRequestUpdate =
   Database["public"]["Tables"]["maintenance_requests"]["Update"];
 
+const toMaintenanceId = (id: string | number) => {
+  const parsedId = Number(id);
+  if (!Number.isFinite(parsedId)) {
+    throw new Error("Invalid maintenance request id");
+  }
+  return parsedId;
+};
+
 // Mock data has been replaced with real database integration
 
 // List all maintenance requests
@@ -38,6 +46,7 @@ export const useListMaintenanceRequests = (
           unit:units!maintenance_requests_unit_id_fkey(
             id,
             block,
+            number,
             unit_number,
             community_id,
             owner_id,
@@ -69,6 +78,7 @@ export const useGetMaintenanceRequest = (id: string) => {
   return useQuery({
     queryKey: ["maintenance_requests", id],
     queryFn: async () => {
+      const maintenanceId = toMaintenanceId(id);
       const { data, error } = await supabase
         .from("maintenance_requests")
         .select(`
@@ -86,6 +96,7 @@ export const useGetMaintenanceRequest = (id: string) => {
           unit:units!maintenance_requests_unit_id_fkey(
             id,
             block,
+            number,
             unit_number,
             community_id,
             owner_id,
@@ -94,7 +105,7 @@ export const useGetMaintenanceRequest = (id: string) => {
             bathrooms
           )
         `)
-        .eq("id", parseInt(id))
+        .eq("id", maintenanceId)
         .single();
 
       if (error) throw error;
@@ -133,10 +144,11 @@ export const useUpdateMaintenanceRequest = (id: string) => {
 
   return useMutation({
     mutationFn: async (updates: MaintenanceRequestUpdate) => {
+      const maintenanceId = toMaintenanceId(id);
       const { data, error } = await supabase
         .from("maintenance_requests")
         .update(updates)
-        .eq("id", parseInt(id))
+        .eq("id", maintenanceId)
         .select()
         .single();
 
@@ -150,16 +162,49 @@ export const useUpdateMaintenanceRequest = (id: string) => {
   });
 };
 
+// Update maintenance request with dynamic id (for list actions)
+export const useUpdateMaintenanceRequestById = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      updates,
+    }: {
+      id: string | number;
+      updates: MaintenanceRequestUpdate;
+    }) => {
+      const maintenanceId = toMaintenanceId(id);
+      const { data, error } = await supabase
+        .from("maintenance_requests")
+        .update(updates)
+        .eq("id", maintenanceId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["maintenance_requests"] });
+      queryClient.invalidateQueries({
+        queryKey: ["maintenance_requests", String(data.id)],
+      });
+    },
+  });
+};
+
 // Delete maintenance request
 export const useDeleteMaintenanceRequest = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async (id: string | number) => {
+      const maintenanceId = toMaintenanceId(id);
       const { error } = await supabase
         .from("maintenance_requests")
         .delete()
-        .eq("id", parseInt(id));
+        .eq("id", maintenanceId);
 
       if (error) throw error;
     },

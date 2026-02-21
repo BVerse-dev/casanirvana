@@ -4,11 +4,10 @@ import {
   TouchableOpacity,
   BackHandler,
   StyleSheet,
-  Image,
   FlatList,
   ScrollView,
 } from "react-native";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Colors, Default, Fonts } from "../constants/styles";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -26,6 +25,7 @@ const PaymentMethodScreen = ({ navigation, route }) => {
     onPaymentMethodAdded,
     // Airtime purchase params
     provider,
+    providerId,
     providerName,
     providerColor,
     providerLogo,
@@ -36,6 +36,7 @@ const PaymentMethodScreen = ({ navigation, route }) => {
     phoneNumber,
     description,
     saveAccount,
+    savePolicy,
     transactionType,
     recipientInfo,
     dataAmount,
@@ -75,19 +76,19 @@ const PaymentMethodScreen = ({ navigation, route }) => {
     }
   };
 
-  const isRtl = i18n.dir() == "rtl";
+  const isRtl = i18n.dir() === "rtl";
 
   function tr(key) {
     return t(`paymentMethodScreen:${key}`);
   }
-  const backAction = () => {
+  const backAction = useCallback(() => {
     navigation.pop();
     return true;
-  };
+  }, [navigation]);
   useEffect(() => {
     const subscription = BackHandler.addEventListener("hardwareBackPress", backAction);
     return () => subscription.remove();
-  }, []);
+  }, [backAction]);
 
   const paymentList = [
     {
@@ -215,6 +216,7 @@ const PaymentMethodScreen = ({ navigation, route }) => {
       navigationParams = {
         transactionType,
         provider,
+        providerId,
         providerName,
         providerColor,
         providerLogo,
@@ -225,6 +227,7 @@ const PaymentMethodScreen = ({ navigation, route }) => {
         phoneNumber,
         description,
         saveAccount,
+        savePolicy,
         recipientInfo,
         dataAmount,
         validity,
@@ -792,28 +795,29 @@ const PaymentMethodScreen = ({ navigation, route }) => {
                 }}
               >
                 {(() => {
-                  // Use amountFormatted if available (from airtime purchase)
+                  // For booking flow, prioritize booking amount to avoid stale route-param overrides.
+                  if (bookingData) {
+                    const bookingAmount = Number(bookingData?.totalAmount);
+                    if (Number.isFinite(bookingAmount)) {
+                      return `GHS ${bookingAmount.toFixed(2)}`;
+                    }
+                  }
+
                   if (amountFormatted) {
                     return amountFormatted;
                   }
-                  
-                  // Otherwise calculate from available data
-                  let calculatedAmount = 0;
-                  
-                  // Check for amount from route params (airtime/personal hub)
-                  if (amount !== undefined && amount !== null) {
-                    calculatedAmount = parseFloat(amount);
-                  } 
-                  // Check booking data
-                  else if (bookingData && bookingData.totalAmount) {
-                    calculatedAmount = parseFloat(bookingData.totalAmount);
-                  } 
-                  // Check payment data
-                  else if (paymentData && paymentData.amount) {
-                    calculatedAmount = parseFloat(paymentData.amount);
+
+                  const explicitAmount = Number(amount);
+                  if (Number.isFinite(explicitAmount)) {
+                    return `GHS ${explicitAmount.toFixed(2)}`;
                   }
-                  
-                  return `GHS ${calculatedAmount.toFixed(2)}`;
+
+                  const paymentAmount = Number(paymentData?.amount);
+                  if (Number.isFinite(paymentAmount)) {
+                    return `GHS ${paymentAmount.toFixed(2)}`;
+                  }
+
+                  return "GHS 0.00";
                 })()}
               </Text>
             </View>

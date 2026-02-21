@@ -24,6 +24,7 @@ import QRCode from "react-native-qrcode-svg";
 import BarcodeMask from "react-native-barcode-mask";
 import ViewShot from "react-native-view-shot";
 import * as FileSystem from "expo-file-system";
+import * as LegacyFileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 
 const { width, height } = Dimensions.get("window");
@@ -150,9 +151,16 @@ const GatePassModal = (props) => {
 
       const visitorName = props.visitorData?.visitor_name || props.name || 'visitor';
       const fileName = `GatePass_${visitorName.replace(/\s+/g, '_')}_${new Date().getTime()}.png`;
-      const fileUri = `${FileSystem.documentDirectory}${fileName}`;
+      const documentDirectory = LegacyFileSystem.documentDirectory || FileSystem.documentDirectory;
+      const copyAsync = LegacyFileSystem.copyAsync || FileSystem.copyAsync;
 
-      await FileSystem.copyAsync({
+      if (!documentDirectory || !copyAsync) {
+        throw new Error('FileSystem download APIs are not available in this runtime');
+      }
+
+      const fileUri = `${documentDirectory}${fileName}`;
+
+      await copyAsync({
         from: uri,
         to: fileUri,
       });

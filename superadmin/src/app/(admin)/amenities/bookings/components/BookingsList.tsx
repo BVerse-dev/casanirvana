@@ -13,30 +13,53 @@ import {
   DropdownToggle,
   Row,
 } from "react-bootstrap";
-import { useListAmenityBookings } from "@/hooks/useAmenities";
+import { useListAmenityBookings, useUpdateAmenityBooking } from "@/hooks/useAmenities";
 import { useRouter } from "next/navigation";
+import { toast } from "react-hot-toast";
 
 const BookingsList = () => {
   const { data: bookings = [], isLoading } = useListAmenityBookings();
+  const updateAmenityBooking = useUpdateAmenityBooking();
   const router = useRouter();
 
   const handleViewBooking = (bookingId: string) => {
     router.push(`/amenities/bookings/${bookingId}`);
   };
 
-  const handleApproveBooking = (bookingId: string) => {
-    // TODO: Implement approve booking functionality
-    console.log("Approve booking:", bookingId);
+  const handleApproveBooking = async (booking: any) => {
+    try {
+      await updateAmenityBooking.mutateAsync({
+        id: booking.id,
+        updates: {
+          status: "confirmed",
+          payment_status: booking.total_amount > 0 ? booking.payment_status : "paid",
+        },
+      });
+      toast.success("Booking approved");
+    } catch (error) {
+      console.error("Failed to approve booking:", error);
+      toast.error("Failed to approve booking");
+    }
   };
 
-  const handleRejectBooking = (bookingId: string) => {
-    // TODO: Implement reject booking functionality
-    console.log("Reject booking:", bookingId);
+  const handleRejectBooking = async (booking: any) => {
+    try {
+      await updateAmenityBooking.mutateAsync({
+        id: booking.id,
+        updates: {
+          status: "cancelled",
+          payment_status: booking.payment_status === "paid" ? "refunded" : booking.payment_status,
+        },
+      });
+      toast.success("Booking rejected");
+    } catch (error) {
+      console.error("Failed to reject booking:", error);
+      toast.error("Failed to reject booking");
+    }
   };
 
   const handleEditBooking = (bookingId: string) => {
-    // TODO: Implement edit booking functionality
-    console.log("Edit booking:", bookingId);
+    router.push(`/amenities/bookings/${bookingId}`);
   };
 
   if (isLoading) {
@@ -65,6 +88,7 @@ const BookingsList = () => {
   };
 
   const formatDate = (dateString: string) => {
+    if (!dateString) return "N/A";
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
@@ -73,6 +97,7 @@ const BookingsList = () => {
   };
 
   const formatTime = (timeString: string) => {
+    if (!timeString) return "N/A";
     return new Date(`2000-01-01T${timeString}`).toLocaleTimeString("en-US", {
       hour: "2-digit",
       minute: "2-digit",
@@ -199,13 +224,14 @@ const BookingsList = () => {
                     </td>
                     <td>
                       {(() => {
+                        if (!booking.start_time || !booking.end_time) return "N/A";
                         const start = new Date(`2024-01-01 ${booking.start_time}`);
                         const end = new Date(`2024-01-01 ${booking.end_time}`);
                         const hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
                         return `${hours}h`;
                       })()}
                     </td>
-                    <td>${booking.total_amount}</td>
+                    <td>GH₵ {Number(booking.total_amount || booking.amount || 0).toFixed(2)}</td>
                     <td>
                       <span
                         className={`badge ${getStatusBadgeClass(
@@ -247,11 +273,11 @@ const BookingsList = () => {
                           size="sm" 
                           className="btn-icon d-flex align-items-center justify-content-center" 
                           title={booking.status === "pending" ? "Approve Booking" : "Approved"}
-                          disabled={booking.status !== "pending"}
+                          disabled={booking.status !== "pending" || updateAmenityBooking.isPending}
                           style={{ width: "32px", height: "32px" }}
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleApproveBooking(booking.id);
+                            handleApproveBooking(booking);
                           }}
                         >
                           <IconifyIcon
@@ -264,11 +290,11 @@ const BookingsList = () => {
                           size="sm" 
                           className="btn-icon d-flex align-items-center justify-content-center" 
                           title={booking.status === "pending" ? "Reject Booking" : booking.status === "cancelled" ? "Cancelled" : "Cancel Booking"}
-                          disabled={booking.status === "cancelled"}
+                          disabled={booking.status === "cancelled" || updateAmenityBooking.isPending}
                           style={{ width: "32px", height: "32px" }}
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleRejectBooking(booking.id);
+                            handleRejectBooking(booking);
                           }}
                         >
                           <IconifyIcon

@@ -33,24 +33,22 @@ const CreditCardScreen = ({ navigation, route }) => {
   const isAddingMode = isAddingPaymentMethod === true;
   const { profile } = useHasJoinedCommunity();
 
-  const isRtl = i18n.dir() == "rtl";
+  const isRtl = i18n.dir() === "rtl";
 
   function tr(key) {
     return t(`creditCardScreen:${key}`);
   }
 
-  const backAction = () => {
-    navigation.pop();
-    return true;
-  };
-
   useEffect(() => {
-    const subscription = BackHandler.addEventListener("hardwareBackPress", backAction);
+    const onBackPress = () => {
+      navigation.pop();
+      return true;
+    };
+    const subscription = BackHandler.addEventListener("hardwareBackPress", onBackPress);
     return () => subscription.remove();
-  }, []);
+  }, [navigation]);
 
   const [focused, setFocused] = useState("name");
-  const [backspaceRemove, setBackspaceRemove] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [savedPaymentMethod, setSavedPaymentMethod] = useState(null);
@@ -514,115 +512,48 @@ const CreditCardScreen = ({ navigation, route }) => {
 
   // Handle payment processing
   async function handlePayment() {
-    try {
-      console.log('🚀 handlePayment called!', { isAddingMode, name, number: number.slice(-4) });
-      console.log('🔍 Step 1: Function started successfully');
-      
-      // Immediate debug - let's see what's in our form fields
-      console.log('📋 RAW FORM DATA:', { 
-        name: `"${name}"`, 
-        nameLength: name.length,
-        number: `"${number}"`, 
-        numberLength: number.length,
-        cvvCode: `"${cvvCode}"`,
-        cvvLength: cvvCode.length,
-        expiryDate: `"${expiryDate}"`,
-        expiryLength: expiryDate.length
-      });
-      console.log('🔍 Step 2: Raw data logged');
+    if (!name.trim()) {
+      setIsValidName(false);
+      Alert.alert('Validation Error', 'Please enter cardholder name');
+      return;
+    }
 
-      console.log('🔍 Step 3: Basic function test passed, proceeding with validation...');
-      
-      // Form validation
-      console.log('🔍 Step 4: Starting form validation...');
-      console.log('🔍 Form validation check:', { 
-      name: name.trim(), 
-      nameValid: !!name.trim(),
-      number: number.slice(-4),
-      numberValid: cardValidator.number(number).isValid,
-        cvv: cvvCode,
-        cvvValid: cardValidator.cvv(cvvCode).isValid,
-        expiry: expiryDate,
-        expiryValid: cardValidator.expirationDate(expiryDate).isValid
-      });
-      
-      // Validate form inputs
-      if (!name.trim()) {
-        console.log('❌ Name validation failed');
-        setIsValidName(false);
-        Alert.alert('Validation Error', 'Please enter cardholder name');
-        return;
-      }
+    if (!cardValidator.number(number).isValid) {
+      setIsValidNumber(false);
+      Alert.alert('Validation Error', 'Please enter a valid card number');
+      return;
+    }
 
-      if (!cardValidator.number(number).isValid) {
-        console.log('❌ Card number validation failed');
-        setIsValidNumber(false);
-        Alert.alert('Validation Error', 'Please enter a valid card number');
-        return;
-      }
+    if (!cardValidator.cvv(cvvCode).isValid) {
+      setIsValidCvv(false);
+      Alert.alert('Validation Error', 'Please enter a valid CVV');
+      return;
+    }
 
-      if (!cardValidator.cvv(cvvCode).isValid) {
-        console.log('❌ CVV validation failed');
-        setIsValidCvv(false);
-        Alert.alert('Validation Error', 'Please enter a valid CVV');
-        return;
-      }
+    if (!cardValidator.expirationDate(expiryDate).isValid) {
+      setIsValidExpiry(false);
+      Alert.alert('Validation Error', 'Please enter a valid expiry date');
+      return;
+    }
 
-      if (!cardValidator.expirationDate(expiryDate).isValid) {
-        console.log('❌ Expiry validation failed');
-        setIsValidExpiry(false);
-        Alert.alert('Validation Error', 'Please enter a valid expiry date');
-        return;
-      }
-
-      console.log('✅ All validations passed, proceeding...');
-
-      // Handle adding payment method mode
-      if (isAddingMode) {
-        console.log('🔄 Adding payment method mode detected');
-        console.log('👤 Profile:', profile);
-      
-      // Check current auth user
-      const { data: { user } } = await supabase.auth.getUser();
-      console.log('🔐 Current auth user:', user?.id);
-      console.log('🆔 Profile ID vs Auth ID:', { profileId: profile.id, authId: user?.id, match: profile.id === user?.id });
-      
-      if (!profile?.id) {
-        console.error('❌ No profile ID found');
-        Alert.alert('Error', 'User profile not found');
-        return;
-      }
-
-      console.log('💳 Starting to save payment method...');
+    if (isAddingMode) {
       setIsProcessing(true);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        const userId = user?.id || profile?.id;
 
-      // Parse expiry date
-        console.log('🔍 Parsing expiry date:', expiryDate);
+        if (!userId) {
+          Alert.alert('Error', 'User profile not found');
+          return;
+        }
+
         const expiryParts = expiryDate.split('/');
         const expiryMonth = parseInt(expiryParts[0], 10);
         const expiryYear = parseInt(`20${expiryParts[1]}`, 10);
-        console.log('📅 Parsed expiry:', { expiryMonth, expiryYear });
-
-        // Get card brand
         const cardInfo = cardValidator.number(number);
         const cardBrand = cardInfo.card?.type || 'unknown';
 
-        // Use auth user ID for RLS policy compliance
-        const userId = user?.id || profile.id;
-        console.log('🎯 Using user ID for insert:', userId);
-        
-        console.log('📊 Payment method data to save:', {
-          user_id: userId,
-          payment_type: 'card',
-          card_last_four: number.slice(-4),
-          card_brand: cardBrand.charAt(0).toUpperCase() + cardBrand.slice(1),
-          card_expiry_month: expiryMonth,
-          card_expiry_year: expiryYear
-        });
-
-        // Save payment method to database
-        console.log('🚀 About to call Supabase insert...');
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from('user_payment_methods')
           .insert({
             user_id: userId,
@@ -631,46 +562,31 @@ const CreditCardScreen = ({ navigation, route }) => {
             card_brand: cardBrand.charAt(0).toUpperCase() + cardBrand.slice(1),
             card_expiry_month: expiryMonth,
             card_expiry_year: expiryYear,
-            is_default: false, // Let user set default later
+            is_default: false,
             is_active: true
-          })
-          .select();
-
-        console.log('💾 Database response:', { data, error });
-        console.log('💾 Data details:', JSON.stringify(data, null, 2));
-        console.log('💾 Error details:', JSON.stringify(error, null, 2));
+          });
 
         if (error) {
-          console.error('❌ Error saving payment method:', error);
           Alert.alert('Error', `Failed to save payment method: ${error.message}`);
-          setIsProcessing(false);
           return;
         }
 
-        setIsProcessing(false);
-
-        // Save payment method details for modal display
         setSavedPaymentMethod({
           type: 'Credit Card',
           brand: cardBrand.charAt(0).toUpperCase() + cardBrand.slice(1),
           lastFour: number.slice(-4),
           expiry: expiryDate
         });
-
-        // Show success modal
         setShowSuccessModal(true);
         return;
+      } catch (error) {
+        Alert.alert('Function Error', `Error: ${error.message}`);
+        return;
+      } finally {
+        setIsProcessing(false);
       }
-    } catch (error) {
-      console.error('💥 ERROR in handlePayment:', error);
-      console.error('💥 Error message:', error.message);
-      console.error('💥 Error stack:', error.stack);
-      Alert.alert('Function Error', `Error: ${error.message}`);
-      setIsProcessing(false);
-      return;
     }
 
-    // Check if we have either booking data or payment data (for payment mode)
     if (!bookingData && !paymentData) {
       Alert.alert('Error', 'Payment information is missing');
       return;
@@ -679,48 +595,61 @@ const CreditCardScreen = ({ navigation, route }) => {
     setIsProcessing(true);
 
     try {
-      // Generate transaction ID
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      const payerId = user?.id || profile?.id || null;
+      const unitId = bookingData?.unit_id || paymentData?.unit_id || profile?.unit_id || null;
+
+      if (!unitId) {
+        throw new Error('Unable to resolve unit for payment');
+      }
+
+      if (!payerId) {
+        throw new Error('Unable to resolve payer for payment');
+      }
+
       const transactionId = `TXN_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
       if (bookingData) {
-        // Handle amenity booking payment
+        const bookingType = bookingData?.type || paymentData?.type || 'booking';
         const paymentRecord = {
-          booking_id: bookingId,
           amount: bookingData.totalAmount,
+          unit_id: unitId,
+          payer_id: payerId,
           payment_method: 'card',
           transaction_id: transactionId,
-          card_last_four: number.slice(-4),
-          cardholder_name: name,
           status: 'completed',
           payment_date: new Date().toISOString(),
-          payment_type: 'amenity_booking',
-          description: `Payment for ${bookingData.amenityName} booking`,
+          payment_type: bookingType,
+          description: `Payment for ${bookingData.amenityName || bookingData.serviceTitle || 'booking'}`,
+          metadata: {
+            card_last_four: number.slice(-4),
+            cardholder_name: name,
+            card_brand: cardValidator.number(number).card?.type || 'unknown',
+            source_booking_id: bookingId || null,
+            source_booking_type: bookingType,
+          },
         };
 
-        console.log('Processing booking payment:', paymentRecord);
-
-        // Simulate payment processing delay
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
-        // Add payment record to database
         const paymentResult = await addPayment(paymentRecord);
-
         if (paymentResult.error) {
-          throw new Error(paymentResult.error);
+          throw new Error(paymentResult.error?.message || 'Failed to create payment');
         }
 
-        // Update booking status to confirmed and payment status to paid
-        await updateBookingMutation.mutateAsync({
-          id: bookingId,
-          updates: {
-            status: 'confirmed',
-            payment_status: 'paid',
-          }
-        });
+        if (bookingData?.type !== 'service_booking') {
+          await updateBookingMutation.mutateAsync({
+            id: bookingId,
+            updates: {
+              payment_status: 'paid',
+            }
+          });
+        }
 
-        // Navigate to success screen with booking details
         navigation.push("successScreen", {
           bookingId,
+          paymentMethod: `**** **** **** ${number.slice(-4)}`,
+          transactionId,
           bookingData: {
             ...bookingData,
             paymentMethod: `**** **** **** ${number.slice(-4)}`,
@@ -728,50 +657,45 @@ const CreditCardScreen = ({ navigation, route }) => {
             transactionId,
           }
         });
-
-      } else if (paymentData) {
-        // Handle general payment
-        const paymentRecord = {
-          amount: paymentData.amount,
-          payment_method: 'card',
-          transaction_id: transactionId,
-          card_last_four: number.slice(-4),
-          cardholder_name: name,
-          status: 'completed',
-          payment_date: new Date().toISOString(),
-          payment_type: 'community_dues',
-          description: paymentData.title || paymentData.description || 'Community Payment',
-          due_date: paymentData.dueDate,
-        };
-
-        console.log('Processing general payment:', paymentRecord);
-
-        // Simulate payment processing delay
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
-        // Add payment record to database
-        const paymentResult = await addPayment(paymentRecord);
-
-        if (paymentResult.error) {
-          throw new Error(paymentResult.error);
-        }
-
-        // Navigate to success screen with payment details
-        navigation.push("successScreen", {
-          paymentData: {
-            ...paymentData,
-            paymentMethod: `**** **** **** ${number.slice(-4)}`,
-            paymentDate: new Date().toISOString(),
-            transactionId,
-          }
-        });
+        return;
       }
 
+      const paymentRecord = {
+        amount: paymentData.amount,
+        unit_id: unitId,
+        payer_id: payerId,
+        payment_method: 'card',
+        transaction_id: transactionId,
+        status: 'completed',
+        payment_date: new Date().toISOString(),
+        payment_type: 'community_dues',
+        description: paymentData.title || paymentData.description || 'Community Payment',
+        due_date: paymentData.dueDate,
+        metadata: {
+          card_last_four: number.slice(-4),
+          cardholder_name: name,
+          card_brand: cardValidator.number(number).card?.type || 'unknown',
+        },
+      };
+
+      const paymentResult = await addPayment(paymentRecord);
+      if (paymentResult.error) {
+        throw new Error(paymentResult.error?.message || 'Failed to create payment');
+      }
+
+      navigation.push("successScreen", {
+        paymentMethod: `**** **** **** ${number.slice(-4)}`,
+        transactionId,
+        paymentData: {
+          ...paymentData,
+          paymentMethod: `**** **** **** ${number.slice(-4)}`,
+          paymentDate: new Date().toISOString(),
+          transactionId,
+        }
+      });
     } catch (error) {
-      console.error('💥 ERROR in handlePayment:', error);
-      console.error('💥 Error message:', error.message);
-      console.error('💥 Error stack:', error.stack);
       Alert.alert('Function Error', `Error: ${error.message}`);
+    } finally {
       setIsProcessing(false);
     }
   }

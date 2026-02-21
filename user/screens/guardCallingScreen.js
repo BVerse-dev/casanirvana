@@ -167,7 +167,9 @@ const GuardCallingScreen = ({ navigation }) => {
             }}
           >
             <SwipeButton
-              onSwipeUpToAllowHandle={() => navigation.navigate("homeScreen")}
+              onSwipeUpToAllowHandle={() =>
+                navigation.navigate("bottomTab", { screen: "homeScreen" })
+              }
             />
 
             <Text

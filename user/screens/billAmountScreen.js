@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Text,
   View,
@@ -22,13 +22,11 @@ const BillAmountScreen = ({ navigation, route }) => {
   const { t, i18n } = useTranslation();
   const isRtl = i18n.dir() === "rtl";
   
-  const { provider, providerName, accountNumber, description, saveAccount, providerLogo } = route.params || {};
+  const { provider, providerId, providerName, accountNumber, description, saveAccount, providerLogo } = route.params || {};
   
   const [amount, setAmount] = useState("");
   const [isValidAmount, setIsValidAmount] = useState(false);
   const [amountError, setAmountError] = useState("");
-  const [isChecking, setIsChecking] = useState(false);
-  const [billInfo, setBillInfo] = useState(null);
 
   // Safe translation function that ALWAYS returns a string
   function tr(key, fallback = "Missing Translation") {
@@ -36,26 +34,6 @@ const BillAmountScreen = ({ navigation, route }) => {
     const translated = t(key);
     return translated || fallback;
   }
-
-  // Simulate bill checking
-  useEffect(() => {
-    if (provider && accountNumber && provider.includes("ecg")) {
-      setIsChecking(true);
-      
-      // Simulate API call
-      setTimeout(() => {
-        setBillInfo({
-          customerName: "John Doe",
-          billAmount: 125.50,
-          dueDate: "2025-10-15",
-          billPeriod: "September 2025"
-        });
-        setAmount("125.50");
-        setIsValidAmount(true);
-        setIsChecking(false);
-      }, 2000);
-    }
-  }, [provider, accountNumber]);
 
   // Validate amount
   const validateAmount = (text) => {
@@ -84,17 +62,18 @@ const BillAmountScreen = ({ navigation, route }) => {
 
     navigation.navigate("paymentMethodScreen", {
       provider,
+      providerId,
       providerName,
       accountNumber,
       description,
+      saveAccount,
       amount: parseFloat(amount),
       amountFormatted: `GHS ${parseFloat(amount).toFixed(2)}`,
       transactionType: "bill_payment",
-      billInfo,
       providerLogo,
       phoneNumber: accountNumber, // Pass account number as phone number for mobile money screen
       recipientInfo: {
-        name: billInfo?.customerName || description || "Bill Payment",
+        name: description || "Bill Payment",
         accountNumber: accountNumber
       },
       isPersonalHubTransaction: true
@@ -195,88 +174,19 @@ const BillAmountScreen = ({ navigation, route }) => {
               </View>
             </View>
 
-            {/* Bill Info if available */}
-            {isChecking ? (
-              <View
-                style={{
-                  backgroundColor: Colors.white,
-                  borderRadius: 10,
-                  padding: Default.fixPadding * 2,
-                  marginBottom: Default.fixPadding * 2,
-                  alignItems: "center",
-                  ...Default.shadow,
-                }}
-              >
-                <Text style={{ ...Fonts.Medium14grey }}>
-                  {tr("Checking bill information...")}
-                </Text>
-              </View>
-            ) : billInfo ? (
-              <View
-                style={{
-                  backgroundColor: Colors.white,
-                  borderRadius: 10,
-                  padding: Default.fixPadding * 2,
-                  marginBottom: Default.fixPadding * 2,
-                  ...Default.shadow,
-                }}
-              >
-                <Text style={{ ...Fonts.SemiBold16black, marginBottom: Default.fixPadding }}>
-                  {tr("Bill Information")}
-                </Text>
-                
-                <View style={{
-                  flexDirection: isRtl ? "row-reverse" : "row",
-                  justifyContent: "space-between",
-                  marginBottom: Default.fixPadding * 0.5,
-                }}>
-                  <Text style={{ ...Fonts.Medium14grey }}>
-                    {tr("Customer Name")}
-                  </Text>
-                  <Text style={{ ...Fonts.SemiBold14black }}>
-                    {billInfo.customerName}
-                  </Text>
-                </View>
-                
-                <View style={{
-                  flexDirection: isRtl ? "row-reverse" : "row",
-                  justifyContent: "space-between",
-                  marginBottom: Default.fixPadding * 0.5,
-                }}>
-                  <Text style={{ ...Fonts.Medium14grey }}>
-                    {tr("Bill Amount")}
-                  </Text>
-                  <Text style={{ ...Fonts.SemiBold14primary }}>
-                    {`GHS ${billInfo.billAmount.toFixed(2)}`}
-                  </Text>
-                </View>
-                
-                <View style={{
-                  flexDirection: isRtl ? "row-reverse" : "row",
-                  justifyContent: "space-between",
-                  marginBottom: Default.fixPadding * 0.5,
-                }}>
-                  <Text style={{ ...Fonts.Medium14grey }}>
-                    {tr("Due Date")}
-                  </Text>
-                  <Text style={{ ...Fonts.SemiBold14black }}>
-                    {billInfo.dueDate}
-                  </Text>
-                </View>
-                
-                <View style={{
-                  flexDirection: isRtl ? "row-reverse" : "row",
-                  justifyContent: "space-between",
-                }}>
-                  <Text style={{ ...Fonts.Medium14grey }}>
-                    {tr("Billing Period")}
-                  </Text>
-                  <Text style={{ ...Fonts.SemiBold14black }}>
-                    {billInfo.billPeriod}
-                  </Text>
-                </View>
-              </View>
-            ) : null}
+            <View
+              style={{
+                backgroundColor: Colors.white,
+                borderRadius: 10,
+                padding: Default.fixPadding * 2,
+                marginBottom: Default.fixPadding * 2,
+                ...Default.shadow,
+              }}
+            >
+              <Text style={{ ...Fonts.Medium14grey }}>
+                Bill verification is completed during provider processing after payment initiation.
+              </Text>
+            </View>
 
             {/* Amount Input */}
             <View

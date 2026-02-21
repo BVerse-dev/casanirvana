@@ -86,7 +86,7 @@ export const saveBillAccount = async (account) => {
   try {
     const { data, error } = await supabase
       .from("saved_bill_accounts")
-      .insert([account])
+      .upsert([account], { onConflict: "user_id,provider,account_number" })
       .select()
       .single();
 

@@ -9,319 +9,323 @@ import {
   Alert,
   Share,
   Platform,
+  BackHandler,
 } from "react-native";
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Colors, Default, Fonts } from "../constants/styles";
 import MyStatusBar from "../components/myStatusBar";
 import { ms } from "react-native-size-matters/extend";
 import moment from "moment";
-import * as FileSystem from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
-import RNHTMLtoPDF from 'react-native-html-to-pdf';
+import * as Sharing from "expo-sharing";
+import RNHTMLtoPDF from "react-native-html-to-pdf";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 
-const SuccessScreen = ({ navigation, route }) => {
-  const { bookingId, bookingData, paymentMethod, transactionId } = route.params || {};
-  const { t, i18n } = useTranslation();
+const normalizeText = (value, fallback = "N/A") => {
+  if (value === null || value === undefined) return fallback;
+  const text = String(value).trim();
+  return text.length > 0 ? text : fallback;
+};
 
-  const isRtl = i18n.dir() == "rtl";
+const normalizeRange = (start, end, fallback = "N/A") => {
+  const hasStart = start !== null && start !== undefined && String(start).trim().length > 0;
+  const hasEnd = end !== null && end !== undefined && String(end).trim().length > 0;
+
+  if (!hasStart && !hasEnd) return fallback;
+  if (hasStart && hasEnd) return `${start} - ${end}`;
+  return hasStart ? String(start) : String(end);
+};
+
+const escapeHtml = (value) =>
+  String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
+const SuccessScreen = ({ navigation, route }) => {
+  const params = route.params || {};
+  const bookingData = params.bookingData || null;
+  const paymentData = params.paymentData || null;
+  const bookingType = bookingData?.type || paymentData?.type || null;
+
+  const { t, i18n } = useTranslation();
+  const isRtl = i18n.dir() === "rtl";
+
+  const navigateHome = useCallback(() => {
+    navigation.navigate("bottomTab", { screen: "homeScreen" });
+  }, [navigation]);
 
   function tr(key) {
     return t(`successScreen:${key}`);
   }
 
   useEffect(() => {
-    navigation.addListener("beforeRemove", (e) => {
-      e.preventDefault();
-      navigation.navigate("homeScreen");
+    const timeoutId = setTimeout(() => {
+      navigateHome();
+    }, 5000);
+
+    return () => clearTimeout(timeoutId);
+  }, [navigateHome]);
+
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener("hardwareBackPress", () => {
+      navigateHome();
+      return true;
     });
-  }, []);
 
-  // Auto-navigate to home after 5 seconds instead of 2 seconds to give user time to read
-  setTimeout(() => {
-    navigation.navigate("homeScreen");
-  }, 5000);
+    return () => backHandler.remove();
+  }, [navigateHome]);
 
-  // Generate receipt data from booking information
-  const receiptData = bookingData ? [
-    {
-      key: "1",
-      title: "Amenity",
-      other: bookingData.amenityName || "N/A",
-    },
-    {
-      key: "2",
-      title: "Booking Date",
-      other: `${bookingData.fromDate} - ${bookingData.toDate}`,
-    },
-    {
-      key: "3",
-      title: "Time",
-      other: `${bookingData.fromTime} - ${bookingData.toTime}`,
-    },
-    {
-      key: "4",
-      title: "Amount Paid",
-      other: bookingData.totalAmount > 0 ? `GH₵ ${bookingData.totalAmount.toFixed(2)}` : "Free",
-    },
-    {
-      key: "5",
-      title: "Payment Method",
-      other: paymentMethod || "N/A",
-    },
-    {
-      key: "6",
-      title: "Transaction ID",
-      other: transactionId || "N/A",
-    },
-    {
-      key: "7",
-      title: "Paid On",
-      other: moment().format("DD MMMM, YYYY"),
-    },
-  ] : [
-    {
-      key: "1",
-      title: tr("securityDeposit"),
-      other: tr("paid"),
-    },
-    {
-      key: "2",
-      title: tr("amountPaid"),
-      other: "$50.00",
-    },
-    {
-      key: "3",
-      title: tr("paidOn"),
-      other: "5 June, 2022",
-    },
-    {
-      key: "4",
-      title: tr("paidVia"),
-      other: "Credit card",
-    },
-    {
-      key: "5",
-      title: tr("transactionID"),
-      other: "DF12345678910",
-    },
-  ];
+  const resolvedTransactionId = normalizeText(
+    params.transactionId || bookingData?.transactionId || paymentData?.transactionId
+  );
+  const resolvedPaymentMethod = normalizeText(
+    params.paymentMethod || bookingData?.paymentMethod || paymentData?.paymentMethod
+  );
+  const resolvedReferenceId = normalizeText(
+    params.bookingId || paymentData?.id || paymentData?.paymentId || bookingData?.id
+  );
+  const resolvedAmountRaw = Number(bookingData?.totalAmount ?? paymentData?.amount ?? 0);
+  const resolvedAmount =
+    Number.isFinite(resolvedAmountRaw) && resolvedAmountRaw > 0
+      ? `GH₵ ${resolvedAmountRaw.toFixed(2)}`
+      : "Free";
+  const resolvedPaidOn = moment(
+    paymentData?.paymentDate || bookingData?.paymentDate || new Date().toISOString()
+  ).format("DD MMMM, YYYY");
 
-  // Generate HTML template for PDF receipt
+  const receiptData = useMemo(() => {
+    if (bookingType === "service_booking") {
+      return [
+        {
+          key: "1",
+          title: "Service",
+          other: normalizeText(bookingData?.serviceName || bookingData?.serviceTitle || paymentData?.title),
+        },
+        {
+          key: "2",
+          title: "Preferred Date",
+          other: normalizeText(bookingData?.date),
+        },
+        {
+          key: "3",
+          title: "Preferred Time",
+          other: normalizeText(bookingData?.time),
+        },
+        {
+          key: "4",
+          title: "Amount Paid",
+          other: resolvedAmount,
+        },
+        {
+          key: "5",
+          title: "Payment Method",
+          other: resolvedPaymentMethod,
+        },
+        {
+          key: "6",
+          title: "Transaction ID",
+          other: resolvedTransactionId,
+        },
+        {
+          key: "7",
+          title: "Paid On",
+          other: resolvedPaidOn,
+        },
+      ];
+    }
+
+    if (bookingData) {
+      return [
+        {
+          key: "1",
+          title: "Amenity",
+          other: normalizeText(bookingData?.amenityName || paymentData?.title),
+        },
+        {
+          key: "2",
+          title: "Booking Date",
+          other: normalizeRange(bookingData?.fromDate, bookingData?.toDate),
+        },
+        {
+          key: "3",
+          title: "Time",
+          other: normalizeRange(bookingData?.fromTime, bookingData?.toTime),
+        },
+        {
+          key: "4",
+          title: "Amount Paid",
+          other: resolvedAmount,
+        },
+        {
+          key: "5",
+          title: "Payment Method",
+          other: resolvedPaymentMethod,
+        },
+        {
+          key: "6",
+          title: "Transaction ID",
+          other: resolvedTransactionId,
+        },
+        {
+          key: "7",
+          title: "Paid On",
+          other: resolvedPaidOn,
+        },
+      ];
+    }
+
+    return [
+      {
+        key: "1",
+        title: "Payment For",
+        other: normalizeText(paymentData?.title || paymentData?.description),
+      },
+      {
+        key: "2",
+        title: "Reference",
+        other: resolvedReferenceId,
+      },
+      {
+        key: "3",
+        title: "Amount Paid",
+        other: resolvedAmount,
+      },
+      {
+        key: "4",
+        title: "Payment Method",
+        other: resolvedPaymentMethod,
+      },
+      {
+        key: "5",
+        title: "Transaction ID",
+        other: resolvedTransactionId,
+      },
+      {
+        key: "6",
+        title: "Paid On",
+        other: resolvedPaidOn,
+      },
+    ];
+  }, [
+    bookingData,
+    bookingType,
+    paymentData,
+    resolvedAmount,
+    resolvedPaidOn,
+    resolvedPaymentMethod,
+    resolvedReferenceId,
+    resolvedTransactionId,
+  ]);
+
+  const receiptText = useMemo(() => {
+    const lines = receiptData.map((item) => `${item.title}: ${item.other}`);
+    return [
+      "CASA NIRVANA RECEIPT",
+      "====================",
+      ...lines,
+      "",
+      "Thank you for your payment.",
+      "Casa Nirvana Management",
+    ].join("\n");
+  }, [receiptData]);
+
   const generateHTMLReceipt = () => {
+    const rows = receiptData
+      .map(
+        (item) => `
+      <div class="detail-row">
+        <span class="detail-label">${escapeHtml(item.title)}:</span>
+        <span class="detail-value">${escapeHtml(item.other)}</span>
+      </div>
+    `
+      )
+      .join("");
+
     return `
     <!DOCTYPE html>
     <html>
     <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Amenity Booking Receipt</title>
-        <style>
-            body {
-                font-family: Arial, sans-serif;
-                margin: 0;
-                padding: 20px;
-                background-color: #f5f5f5;
-            }
-            .receipt-container {
-                max-width: 600px;
-                margin: 0 auto;
-                background-color: white;
-                padding: 30px;
-                border-radius: 10px;
-                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            }
-            .header {
-                text-align: center;
-                margin-bottom: 30px;
-                border-bottom: 2px solid #4CAF50;
-                padding-bottom: 20px;
-            }
-            .header h1 {
-                color: #4CAF50;
-                margin: 0;
-                font-size: 24px;
-            }
-            .header p {
-                color: #666;
-                margin: 5px 0;
-            }
-            .receipt-details {
-                margin-bottom: 20px;
-            }
-            .detail-row {
-                display: flex;
-                justify-content: space-between;
-                padding: 10px 0;
-                border-bottom: 1px solid #eee;
-            }
-            .detail-label {
-                font-weight: bold;
-                color: #333;
-            }
-            .detail-value {
-                color: #666;
-            }
-            .total-row {
-                background-color: #f9f9f9;
-                padding: 15px;
-                border-radius: 5px;
-                margin-top: 20px;
-            }
-            .total-row .detail-row {
-                border-bottom: none;
-                font-size: 18px;
-                font-weight: bold;
-            }
-            .footer {
-                text-align: center;
-                margin-top: 30px;
-                padding-top: 20px;
-                border-top: 1px solid #eee;
-                color: #666;
-            }
-            .success-badge {
-                background-color: #4CAF50;
-                color: white;
-                padding: 5px 15px;
-                border-radius: 20px;
-                font-size: 12px;
-                display: inline-block;
-                margin-top: 10px;
-            }
-        </style>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Payment Receipt</title>
+      <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5; }
+        .receipt-container { max-width: 620px; margin: 0 auto; background: #fff; padding: 24px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+        .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #4CAF50; padding-bottom: 14px; }
+        .header h1 { color: #4CAF50; margin: 0 0 8px; font-size: 22px; }
+        .success-badge { background: #4CAF50; color: #fff; display: inline-block; padding: 6px 12px; border-radius: 999px; font-size: 12px; }
+        .detail-row { display: flex; justify-content: space-between; gap: 16px; padding: 10px 0; border-bottom: 1px solid #eee; }
+        .detail-label { color: #222; font-weight: 600; }
+        .detail-value { color: #555; text-align: right; }
+        .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+      </style>
     </head>
     <body>
-        <div class="receipt-container">
-            <div class="header">
-                <h1>CASA NIRVANA</h1>
-                <p>Amenity Booking Receipt</p>
-                <div class="success-badge">PAYMENT SUCCESSFUL</div>
-            </div>
-            
-            <div class="receipt-details">
-                <div class="detail-row">
-                    <span class="detail-label">Booking ID:</span>
-                    <span class="detail-value">${bookingId || 'N/A'}</span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">Amenity:</span>
-                    <span class="detail-value">${bookingData?.amenityName || 'N/A'}</span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">Booking Date:</span>
-                    <span class="detail-value">${bookingData?.fromDate || 'N/A'} to ${bookingData?.toDate || 'N/A'}</span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">Time:</span>
-                    <span class="detail-value">${bookingData?.fromTime || 'N/A'} - ${bookingData?.toTime || 'N/A'}</span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">Total Days:</span>
-                    <span class="detail-value">${bookingData?.totalDays || 1} ${bookingData?.totalDays === 1 ? 'day' : 'days'}</span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">Payment Method:</span>
-                    <span class="detail-value">${paymentMethod || 'N/A'}</span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">Transaction ID:</span>
-                    <span class="detail-value">${transactionId || 'N/A'}</span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">Payment Date:</span>
-                    <span class="detail-value">${moment().format("DD MMMM, YYYY - hh:mm A")}</span>
-                </div>
-            </div>
-            
-            <div class="total-row">
-                <div class="detail-row">
-                    <span class="detail-label">Total Amount Paid:</span>
-                    <span class="detail-value">${bookingData?.totalAmount > 0 ? `GH₵ ${bookingData.totalAmount.toFixed(2)}` : 'Free'}</span>
-                </div>
-            </div>
-            
-            <div class="footer">
-                <p>Thank you for your booking!</p>
-                <p>For any queries, please contact our support team.</p>
-                <p><strong>Casa Nirvana Management</strong></p>
-            </div>
+      <div class="receipt-container">
+        <div class="header">
+          <h1>CASA NIRVANA</h1>
+          <div class="success-badge">PAYMENT SUCCESSFUL</div>
         </div>
+        ${rows}
+        <div class="footer">
+          <p>Thank you for your payment.</p>
+          <p><strong>Casa Nirvana Management</strong></p>
+        </div>
+      </div>
     </body>
     </html>
     `;
   };
 
-  // Handle download receipt as PDF
+  const shareTextReceipt = async () => {
+    await Share.share({
+      title: "Payment Receipt",
+      message: receiptText,
+    });
+  };
+
   const handleDownloadReceipt = async () => {
     try {
-      const htmlContent = generateHTMLReceipt();
-      const fileName = `receipt_${bookingId || moment().format('YYYYMMDD_HHmmss')}.pdf`;
-      
-      // Create PDF from HTML
-      const options = {
-        html: htmlContent,
-        fileName: fileName,
-        directory: 'Documents',
-        base64: false,
-        width: 595,
-        height: 842,
-        paddingTop: 20,
-        paddingBottom: 20,
-        paddingLeft: 20,
-        paddingRight: 20,
-      };
-      
-      const file = await RNHTMLtoPDF.convert(options);
-      
-      if (file.filePath) {
-        // Check if sharing is available
-        const isAvailable = await Sharing.isAvailableAsync();
-        
-        if (isAvailable) {
-          await Sharing.shareAsync(file.filePath, {
-            mimeType: 'application/pdf',
-            dialogTitle: 'Download Receipt',
-            UTI: 'com.adobe.pdf',
-          });
-          Alert.alert('Success', 'Receipt downloaded successfully!');
-        } else {
-          Alert.alert('Success', `Receipt saved to: ${file.filePath}`);
-        }
-      } else {
-        throw new Error('Failed to generate PDF file');
+      const canGeneratePdf = RNHTMLtoPDF && typeof RNHTMLtoPDF.convert === "function";
+
+      if (!canGeneratePdf) {
+        await shareTextReceipt();
+        return;
       }
-    } catch (error) {
-      console.error('Error generating PDF receipt:', error);
-      
-      // Fallback to text sharing if PDF generation fails
-      try {
-        const receiptText = `
-AMENITY BOOKING RECEIPT
-====================
 
-Booking ID: ${bookingId || 'N/A'}
-Amenity: ${bookingData?.amenityName || 'N/A'}
-Date: ${bookingData?.fromDate || 'N/A'} - ${bookingData?.toDate || 'N/A'}
-Time: ${bookingData?.fromTime || 'N/A'} - ${bookingData?.toTime || 'N/A'}
-Total Days: ${bookingData?.totalDays || 1} ${bookingData?.totalDays === 1 ? 'day' : 'days'}
-Amount: ${bookingData?.totalAmount > 0 ? `GH₵ ${bookingData.totalAmount.toFixed(2)}` : 'Free'}
-Payment Method: ${paymentMethod || 'N/A'}
-Transaction ID: ${transactionId || 'N/A'}
-Paid On: ${moment().format("DD MMMM, YYYY - hh:mm A")}
+      const fileName = `receipt_${moment().format("YYYYMMDD_HHmmss")}`;
+      const file = await RNHTMLtoPDF.convert({
+        html: generateHTMLReceipt(),
+        fileName,
+        directory: "Documents",
+        base64: false,
+      });
 
-Thank you for your booking!
-Casa Nirvana Management
-        `;
+      if (!file?.filePath) {
+        throw new Error("PDF generation returned an empty file path.");
+      }
 
-        await Share.share({
-          message: receiptText,
-          title: 'Amenity Booking Receipt',
+      const canShareFile = Platform.OS !== "web" && (await Sharing.isAvailableAsync());
+      if (canShareFile) {
+        await Sharing.shareAsync(file.filePath, {
+          mimeType: "application/pdf",
+          dialogTitle: tr("downloadReceipt"),
+          UTI: "com.adobe.pdf",
         });
+        return;
+      }
+
+      await shareTextReceipt();
+    } catch (error) {
+      console.error("Error generating PDF receipt:", error);
+      try {
+        await shareTextReceipt();
       } catch (shareError) {
-        console.error('Error sharing receipt:', shareError);
-        Alert.alert('Error', 'Could not generate or share receipt. Please try again.');
+        console.error("Error sharing receipt:", shareError);
+        Alert.alert("Error", "Could not generate or share receipt. Please try again.");
       }
     }
   };
@@ -334,10 +338,7 @@ Casa Nirvana Management
         source={require("../assets/images/onboarding.png")}
         style={{ flex: 1 }}
       >
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ flexGrow: 1 }}
-        >
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
           <View
             style={{
               justifyContent: "center",
@@ -369,75 +370,63 @@ Casa Nirvana Management
               ...Default.shadow,
             }}
           >
-            {receiptData.map((item, index) => {
-              return (
-                <View
-                  key={item.key}
+            {receiptData.map((item, index) => (
+              <View
+                key={item.key}
+                style={{
+                  flexDirection: isRtl ? "row-reverse" : "row",
+                  alignItems: "center",
+                  paddingBottom: Default.fixPadding * 2,
+                  paddingHorizontal: Default.fixPadding * 1.2,
+                  paddingTop: index === 0 ? Default.fixPadding * 1.8 : Default.fixPadding * 2,
+                  borderTopWidth: index === 0 ? 0 : 1,
+                  borderTopColor: Colors.lightGrey,
+                }}
+              >
+                <Text
+                  numberOfLines={1}
                   style={{
-                    flexDirection: isRtl ? "row-reverse" : "row",
-                    alignItems: "center",
-                    paddingBottom: Default.fixPadding * 2,
-                    paddingHorizontal: Default.fixPadding * 1.2,
-                    paddingTop:
-                      index === 0
-                        ? Default.fixPadding * 1.8
-                        : Default.fixPadding * 2,
-                    borderTopWidth: index === 0 ? null : 1,
-                    borderTopColor: index === 0 ? null : Colors.lightGrey,
+                    ...Fonts.Medium16black,
+                    flex: 1,
+                    overflow: "hidden",
+                    textAlign: isRtl ? "right" : "left",
+                  }}
+                >
+                  {item.title}
+                </Text>
+                <View
+                  style={{
+                    flex: 1,
+                    alignItems: isRtl ? "flex-start" : "flex-end",
                   }}
                 >
                   <Text
                     numberOfLines={1}
                     style={{
-                      ...Fonts.Medium16black,
-                      flex: 1,
+                      ...(item.key === "1" ? Fonts.SemiBold16green : Fonts.Medium16black),
                       overflow: "hidden",
-                      textAlign: isRtl ? "right" : "left",
                     }}
                   >
-                    {item.title}
+                    {item.other}
                   </Text>
-                  <View
-                    style={{
-                      flex: 1,
-                      alignItems: isRtl ? "flex-start" : "flex-end",
-                    }}
-                  >
-                    <Text
-                      numberOfLines={1}
-                      style={{
-                        ...(item.key === "1"
-                          ? Fonts.SemiBold16green
-                          : Fonts.Medium16black),
-                        overflow: "hidden",
-                      }}
-                    >
-                      {item.other}
-                    </Text>
-                  </View>
                 </View>
-              );
-            })}
+              </View>
+            ))}
           </View>
 
-          <TouchableOpacity 
-            style={styles.downloadReceiptBtn}
-            onPress={handleDownloadReceipt}
-          >
+          <TouchableOpacity style={styles.downloadReceiptBtn} onPress={handleDownloadReceipt}>
             <MaterialCommunityIcons
               name="download"
               size={20}
               color={Colors.primary}
               style={{ marginRight: Default.fixPadding * 0.5 }}
             />
-            <Text style={{ ...Fonts.SemiBold18primary }}>
-              {tr("downloadReceipt")}
-            </Text>
+            <Text style={{ ...Fonts.SemiBold18primary }}>{tr("downloadReceipt")}</Text>
           </TouchableOpacity>
         </ScrollView>
 
         <TouchableOpacity
-          onPress={() => navigation.navigate("homeScreen")}
+          onPress={navigateHome}
           style={{
             alignSelf: "center",
             margin: Default.fixPadding * 1.6,

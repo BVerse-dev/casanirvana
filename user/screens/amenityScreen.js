@@ -33,12 +33,8 @@ const AmenityScreen = ({ navigation }) => {
   };
 
   useEffect(() => {
-    BackHandler.addEventListener("hardwareBackPress", backAction);
-
-    return () => {
-      const subscription = BackHandler.addEventListener("hardwareBackPress", backAction); 
-      return () => subscription?.remove(); 
-    };
+    const subscription = BackHandler.addEventListener("hardwareBackPress", backAction);
+    return () => subscription.remove();
   }, []);
 
   // Fetch amenities from the database for the user's community only
@@ -46,14 +42,6 @@ const AmenityScreen = ({ navigation }) => {
     community_id: profile?.community_id,
     enabled: !!profile?.community_id, // Only fetch if we have a community_id
   });
-
-  // Debug information
-  console.log('AmenityScreen - User profile:', profile);
-  console.log('AmenityScreen - User community_id:', profile?.community_id);
-  console.log('AmenityScreen - Amenities count:', amenities?.length);
-  console.log('AmenityScreen - Amenities data:', amenities?.map(a => ({ id: a.id, name: a.name })));
-  console.log('AmenityScreen - Loading state:', isLoading);
-  console.log('AmenityScreen - Error:', error);
 
   // Show loading state while profile is loading
   if (!profile) {

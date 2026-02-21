@@ -5,54 +5,93 @@ import {
   BackHandler,
   Image,
   ActivityIndicator,
-  Modal,
   ScrollView,
   Dimensions,
 } from "react-native";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Colors, Default, Fonts } from "../constants/styles";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import MyStatusBar from "../components/myStatusBar";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
+import { useGetServiceRequest } from "../hooks/useServiceRequests";
 
 const { width: screenWidth } = Dimensions.get('window');
 
 const ServiceBookingDetailScreen = ({ navigation, route }) => {
-  const { booking } = route.params || {};
-  const { t, i18n } = useTranslation();
-  const isRtl = i18n.dir() == "rtl";
+  const { bookingId, booking } = route.params || {};
+  const { i18n } = useTranslation();
+  const isRtl = i18n.dir() === "rtl";
+  const { data: dbRequest, isLoading } = useGetServiceRequest(bookingId);
 
-  function tr(key) {
-    return t(`serviceBookingDetailScreen:${key}`) || key;
-  }
-
-  const backAction = () => {
+  const backAction = useCallback(() => {
     navigation.pop();
     return true;
-  };
+  }, [navigation]);
 
   useEffect(() => {
-    BackHandler.addEventListener("hardwareBackPress", backAction);
+    const subscription = BackHandler.addEventListener("hardwareBackPress", backAction);
+    return () => subscription.remove();
+  }, [backAction]);
 
-    return () => {
-      const subscription = BackHandler.addEventListener("hardwareBackPress", backAction); 
-      return () => subscription?.remove(); 
-    };
-  }, []);
+  const getServiceImageByName = (name = "") => {
+    const normalized = String(name).toLowerCase();
+    if (normalized.includes("clean")) return require("../assets/images/service1.png");
+    if (normalized.includes("appliance")) return require("../assets/images/service2.png");
+    if (normalized.includes("carpenter")) return require("../assets/images/service3.png");
+    if (normalized.includes("paint")) return require("../assets/images/service.png");
+    if (normalized.includes("plumb")) return require("../assets/images/s7.png");
+    if (normalized.includes("packer") || normalized.includes("mover")) {
+      return require("../assets/images/service4.png");
+    }
+    if (normalized.includes("sanitize")) return require("../assets/images/service5.png");
+    if (normalized.includes("hair") || normalized.includes("beauty")) {
+      return require("../assets/images/service6.png");
+    }
+    if (normalized.includes("laundry")) return require("../assets/images/service8.png");
+    if (normalized.includes("garden")) return require("../assets/images/service9.png");
+    if (normalized.includes("cooking")) return require("../assets/images/service10.png");
+    if (normalized.includes("electrical")) return require("../assets/images/s1.png");
+    if (normalized.includes("hvac")) return require("../assets/images/s2.png");
+    if (normalized.includes("pest")) return require("../assets/images/s3.png");
+    if (normalized.includes("security")) return require("../assets/images/s4.png");
+    if (normalized.includes("water")) return require("../assets/images/s1.png");
+    return require("../assets/images/service.png");
+  };
+
+  const normalizedDbBooking = dbRequest
+    ? {
+        id: dbRequest.id,
+        title: dbRequest?.services?.name || dbRequest.title || "Service Request",
+        serviceName: dbRequest?.services?.name || dbRequest.title || "Service Request",
+        image: getServiceImageByName(dbRequest?.services?.name || dbRequest.title),
+        date: dbRequest.preferred_date || dbRequest.created_at,
+        time: dbRequest.preferred_time || null,
+        booking_date: dbRequest.preferred_date,
+        start_time: dbRequest.preferred_time,
+        confirmedBy: dbRequest.assigned_to || "Pending",
+        status: dbRequest.status || "pending",
+        payment_status: Number(dbRequest.total_amount || 0) > 0 ? "pending" : "not_required",
+        price: `GHS ${Number(dbRequest.total_amount || dbRequest?.services?.base_price || 0).toFixed(2)}`,
+        totalAmount: Number(dbRequest.total_amount || dbRequest?.services?.base_price || 0),
+        description: dbRequest.description || dbRequest.request_details || "",
+        createdAt: dbRequest.created_at,
+        updatedAt: dbRequest.updated_at,
+      }
+    : null;
+
+  const effectiveBooking = normalizedDbBooking || booking;
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'confirmed':
-        return Colors.green;
       case 'pending':
         return Colors.orange;
+      case 'in_progress':
+        return Colors.blue;
+      case 'completed':
+        return Colors.green;
       case 'cancelled':
         return Colors.red;
-      case 'completed':
-        return Colors.blue;
-      case 'in_progress':
-        return Colors.purple;
       default:
         return Colors.grey;
     }
@@ -60,13 +99,9 @@ const ServiceBookingDetailScreen = ({ navigation, route }) => {
 
   const getPaymentStatusColor = (paymentStatus) => {
     switch (paymentStatus) {
-      case 'paid':
-        return Colors.green;
       case 'pending':
         return Colors.orange;
-      case 'failed':
-        return Colors.red;
-      case 'refunded':
+      case 'not_required':
         return Colors.blue;
       default:
         return Colors.grey;
@@ -75,18 +110,20 @@ const ServiceBookingDetailScreen = ({ navigation, route }) => {
 
   const formatDateTime = (dateString, timeString) => {
     if (!dateString) return { date: 'N/A', time: 'N/A' };
+
+    const normalizedDate = String(dateString);
     
     // Handle different date formats
     let date;
-    if (dateString.includes('-') && dateString.length > 10) {
+    if (normalizedDate.includes('-') && normalizedDate.length > 10) {
       // ISO format
-      date = new Date(dateString);
-    } else if (dateString.includes(' ')) {
+      date = new Date(normalizedDate);
+    } else if (normalizedDate.includes(' ')) {
       // "DD MMM YYYY" format
-      date = new Date(dateString);
+      date = new Date(normalizedDate);
     } else {
       // Other formats
-      date = new Date(dateString);
+      date = new Date(normalizedDate);
     }
 
     const formattedDate = date.toLocaleDateString('en-US', {
@@ -101,7 +138,16 @@ const ServiceBookingDetailScreen = ({ navigation, route }) => {
     };
   };
 
-  if (!booking) {
+  if (isLoading && bookingId) {
+    return (
+      <View style={{ flex: 1, backgroundColor: Colors.extraLightGrey, justifyContent: "center", alignItems: "center" }}>
+        <MyStatusBar />
+        <ActivityIndicator size="small" color={Colors.primary} />
+      </View>
+    );
+  }
+
+  if (!effectiveBooking) {
     return (
       <View style={{ flex: 1, backgroundColor: Colors.extraLightGrey }}>
         <MyStatusBar />
@@ -140,7 +186,10 @@ const ServiceBookingDetailScreen = ({ navigation, route }) => {
     );
   }
 
-  const formatted = formatDateTime(booking.booking_date || booking.date, booking.start_time || booking.time);
+  const formatted = formatDateTime(
+    effectiveBooking.booking_date || effectiveBooking.date,
+    effectiveBooking.start_time || effectiveBooking.time
+  );
 
   return (
     <View style={{ flex: 1, backgroundColor: Colors.extraLightGrey }}>
@@ -189,12 +238,12 @@ const ServiceBookingDetailScreen = ({ navigation, route }) => {
         }}>
           <Image
             source={
-              typeof booking.image === 'number' 
-                ? booking.image 
-                : typeof booking.image === 'string' && booking.image.startsWith('http')
-                  ? { uri: booking.image }
-                  : typeof booking.image === 'object' && booking.image.uri
-                    ? booking.image
+              typeof effectiveBooking.image === 'number' 
+                ? effectiveBooking.image 
+                : typeof effectiveBooking.image === 'string' && effectiveBooking.image.startsWith('http')
+                  ? { uri: effectiveBooking.image }
+                  : typeof effectiveBooking.image === 'object' && effectiveBooking.image.uri
+                    ? effectiveBooking.image
                     : require("../assets/images/service.png") // Fallback service image
             }
             style={{
@@ -212,15 +261,15 @@ const ServiceBookingDetailScreen = ({ navigation, route }) => {
               textAlign: 'center',
               marginBottom: Default.fixPadding * 0.5,
             }}>
-              {booking.title || booking.serviceName || booking.serviceTitle}
+              {effectiveBooking.title || effectiveBooking.serviceName || effectiveBooking.serviceTitle}
             </Text>
-            {booking.description && (
+            {effectiveBooking.description && (
               <Text style={{
                 ...Fonts.Medium14grey,
                 textAlign: 'center',
                 marginBottom: Default.fixPadding,
               }}>
-                {booking.description}
+                {effectiveBooking.description}
               </Text>
             )}
           </View>
@@ -234,7 +283,7 @@ const ServiceBookingDetailScreen = ({ navigation, route }) => {
           marginHorizontal: Default.fixPadding * 2,
         }}>
           <View style={{
-            backgroundColor: getStatusColor(booking.status),
+            backgroundColor: getStatusColor(effectiveBooking.status),
             paddingHorizontal: Default.fixPadding * 1.5,
             paddingVertical: Default.fixPadding * 0.8,
             borderRadius: 20,
@@ -248,11 +297,11 @@ const ServiceBookingDetailScreen = ({ navigation, route }) => {
               textAlign: 'center',
               textTransform: 'capitalize',
             }}>
-              {booking.status || 'pending'}
+              {(effectiveBooking.status || 'pending').replace(/_/g, ' ')}
             </Text>
           </View>
           <View style={{
-            backgroundColor: getPaymentStatusColor(booking.payment_status || 'pending'),
+            backgroundColor: getPaymentStatusColor(effectiveBooking.payment_status || 'pending'),
             paddingHorizontal: Default.fixPadding * 1.5,
             paddingVertical: Default.fixPadding * 0.8,
             borderRadius: 20,
@@ -264,7 +313,7 @@ const ServiceBookingDetailScreen = ({ navigation, route }) => {
               textAlign: 'center',
               textTransform: 'capitalize',
             }}>
-              Payment: {booking.payment_status || 'pending'}
+              Payment: {(effectiveBooking.payment_status || 'pending').replace(/_/g, ' ')}
             </Text>
           </View>
         </View>
@@ -328,13 +377,10 @@ const ServiceBookingDetailScreen = ({ navigation, route }) => {
               style={{ marginRight: Default.fixPadding * 0.8 }}
             />
             <Text style={{ ...Fonts.Medium14black, flex: 1 }}>
-              {booking.status === 'cancelled' ? 'Cancelled By' : 'Confirmed By'}: {
-                booking.status === 'pending' ? 'Pending' :
-                booking.status === 'cancelled' ? 'Admin' :
-                booking.status === 'confirmed' ? (booking.confirmedBy || 'Admin') :
-                booking.status === 'completed' ? (booking.confirmedBy || 'Admin') :
-                booking.status === 'in_progress' ? (booking.confirmedBy || 'Admin') :
-                'Pending'
+              {effectiveBooking.status === 'cancelled' ? 'Cancelled By' : 'Assigned To'}: {
+                effectiveBooking.status === 'pending'
+                  ? 'Pending'
+                  : (effectiveBooking.confirmedBy || 'Admin')
               }
             </Text>
           </View>
@@ -351,7 +397,7 @@ const ServiceBookingDetailScreen = ({ navigation, route }) => {
               style={{ marginRight: Default.fixPadding * 0.8 }}
             />
             <Text style={{ ...Fonts.Medium14black, flex: 1 }}>
-              Booking ID: {booking.id ? booking.id.substring(0, 8) + '...' : booking.key}
+              Booking ID: {effectiveBooking.id ? effectiveBooking.id.substring(0, 8) + '...' : effectiveBooking.key}
             </Text>
           </View>
 
@@ -396,7 +442,7 @@ const ServiceBookingDetailScreen = ({ navigation, route }) => {
               Service Fee:
             </Text>
             <Text style={{ ...Fonts.SemiBold16primary }}>
-              {booking.price || booking.totalAmount || 'GH₵ 0.00'}
+              {effectiveBooking.price || effectiveBooking.totalAmount || 'GH₵ 0.00'}
             </Text>
           </View>
 
@@ -410,10 +456,10 @@ const ServiceBookingDetailScreen = ({ navigation, route }) => {
             </Text>
             <Text style={{ 
               ...Fonts.SemiBold14black,
-              color: getPaymentStatusColor(booking.payment_status || 'pending'),
+              color: getPaymentStatusColor(effectiveBooking.payment_status || 'pending'),
               textTransform: 'capitalize',
             }}>
-              {booking.payment_status || 'pending'}
+              {effectiveBooking.payment_status || 'pending'}
             </Text>
           </View>
 
@@ -426,13 +472,13 @@ const ServiceBookingDetailScreen = ({ navigation, route }) => {
               Payment Method:
             </Text>
             <Text style={{ ...Fonts.Medium14grey }}>
-              {booking.payment_status === 'paid' ? 'Credit Card' : 'Pending Payment'}
+              {effectiveBooking.payment_status === 'not_required' ? 'Not Required' : 'Pending Payment'}
             </Text>
           </View>
         </View>
 
         {/* Service Request Details */}
-        {booking.description && (
+        {effectiveBooking.description && (
           <View style={{
             backgroundColor: Colors.regularLightGrey,
             borderRadius: 15,
@@ -458,7 +504,7 @@ const ServiceBookingDetailScreen = ({ navigation, route }) => {
                 style={{ marginRight: Default.fixPadding * 0.8 }}
               />
               <Text style={{ ...Fonts.Medium14black, flex: 1, lineHeight: 20 }}>
-                {booking.description}
+                {effectiveBooking.description}
               </Text>
             </View>
           </View>
@@ -494,12 +540,12 @@ const ServiceBookingDetailScreen = ({ navigation, route }) => {
                 Booking Created
               </Text>
               <Text style={{ ...Fonts.Medium12grey }}>
-                {booking.createdAt ? new Date(booking.createdAt).toLocaleString() : 'Recently'}
+                {effectiveBooking.createdAt ? new Date(effectiveBooking.createdAt).toLocaleString() : 'Recently'}
               </Text>
             </View>
           </View>
 
-          {booking.updatedAt && booking.updatedAt !== booking.createdAt && (
+          {effectiveBooking.updatedAt && effectiveBooking.updatedAt !== effectiveBooking.createdAt && (
             <View style={{
               flexDirection: 'row',
               marginBottom: Default.fixPadding,
@@ -515,13 +561,13 @@ const ServiceBookingDetailScreen = ({ navigation, route }) => {
                   Last Updated
                 </Text>
                 <Text style={{ ...Fonts.Medium12grey }}>
-                  {new Date(booking.updatedAt).toLocaleString()}
+                  {new Date(effectiveBooking.updatedAt).toLocaleString()}
                 </Text>
               </View>
             </View>
           )}
 
-          {booking.status === 'confirmed' && (
+          {effectiveBooking.status === 'in_progress' && (
             <View style={{
               flexDirection: 'row',
               marginBottom: Default.fixPadding,
@@ -529,15 +575,36 @@ const ServiceBookingDetailScreen = ({ navigation, route }) => {
               <MaterialCommunityIcons
                 name="check-circle"
                 size={20}
+                color={Colors.blue}
+                style={{ marginRight: Default.fixPadding * 0.8 }}
+              />
+              <View style={{ flex: 1 }}>
+                <Text style={{ ...Fonts.Medium14black, marginBottom: 2 }}>
+                  Service In Progress
+                </Text>
+                <Text style={{ ...Fonts.Medium12grey }}>
+                  Your request is being handled by the service team.
+                </Text>
+              </View>
+            </View>
+          )}
+          {effectiveBooking.status === 'completed' && (
+            <View style={{
+              flexDirection: 'row',
+              marginBottom: Default.fixPadding,
+            }}>
+              <MaterialCommunityIcons
+                name="check-decagram"
+                size={20}
                 color={Colors.green}
                 style={{ marginRight: Default.fixPadding * 0.8 }}
               />
               <View style={{ flex: 1 }}>
                 <Text style={{ ...Fonts.Medium14black, marginBottom: 2 }}>
-                  Service Confirmed
+                  Service Completed
                 </Text>
                 <Text style={{ ...Fonts.Medium12grey }}>
-                  Your service has been confirmed and assigned
+                  This service request has been marked as completed.
                 </Text>
               </View>
             </View>
@@ -545,74 +612,78 @@ const ServiceBookingDetailScreen = ({ navigation, route }) => {
         </View>
 
         {/* Action Buttons */}
-        <View style={{
-          marginTop: Default.fixPadding,
-          paddingHorizontal: Default.fixPadding * 2,
-        }}>
-          {/* For paid and confirmed bookings, only show back button */}
-          {(booking.payment_status === 'paid' && booking.status === 'confirmed') ? (
-            <TouchableOpacity
+        <View
+          style={{
+            marginTop: Default.fixPadding,
+            paddingHorizontal: Default.fixPadding * 2,
+            flexDirection: 'row',
+          }}
+        >
+          <TouchableOpacity
+            style={{
+              backgroundColor: Colors.primary,
+              paddingHorizontal: Default.fixPadding * 2,
+              paddingVertical: Default.fixPadding * 1.2,
+              borderRadius: 10,
+              flex: 1,
+              marginRight: Default.fixPadding * 0.5,
+            }}
+            onPress={() => navigation.pop()}
+          >
+            <Text
               style={{
-                backgroundColor: Colors.primary,
-                paddingVertical: Default.fixPadding * 1.2,
-                borderRadius: 10,
-                width: '100%',
-              }}
-              onPress={() => navigation.pop()}
-            >
-              <Text style={{
                 ...Fonts.SemiBold16white,
                 textAlign: 'center',
-              }}>
-                Back
-              </Text>
-            </TouchableOpacity>
-          ) : (
-            // For other bookings, show both buttons
-            <>
-              <TouchableOpacity
+              }}
+            >
+              Back
+            </Text>
+          </TouchableOpacity>
+
+          {effectiveBooking.payment_status === 'pending' && effectiveBooking.totalAmount > 0 && (
+            <TouchableOpacity
+              style={{
+                backgroundColor: Colors.green,
+                paddingHorizontal: Default.fixPadding * 2,
+                paddingVertical: Default.fixPadding * 1.2,
+                borderRadius: 10,
+                flex: 1,
+                marginLeft: Default.fixPadding * 0.5,
+              }}
+              onPress={() => {
+                navigation.navigate("paymentMethodScreen", {
+                  bookingId: effectiveBooking.id,
+                  bookingType: "service",
+                  bookingData: {
+                    serviceName:
+                      effectiveBooking.serviceName || effectiveBooking.title || "Service Request",
+                    serviceTitle:
+                      effectiveBooking.title || effectiveBooking.serviceName || "Service Request",
+                    date: effectiveBooking.booking_date || effectiveBooking.date,
+                    time: effectiveBooking.start_time || effectiveBooking.time,
+                    description: effectiveBooking.description,
+                    image: effectiveBooking.image,
+                    totalAmount: Number(effectiveBooking.totalAmount || 0),
+                    type: "service_booking",
+                  },
+                  paymentData: {
+                    amount: Number(effectiveBooking.totalAmount || 0),
+                    description: "Service Booking Payment",
+                    type: "service_booking",
+                    title: `${effectiveBooking.serviceName || effectiveBooking.title || "Service"} Booking`,
+                  },
+                });
+              }}
+            >
+              <Text
                 style={{
-                  backgroundColor: Colors.primary,
-                  paddingHorizontal: Default.fixPadding * 2,
-                  paddingVertical: Default.fixPadding * 1.2,
-                  borderRadius: 10,
-                  flex: 1,
-                  marginRight: Default.fixPadding * 0.5,
-                }}
-                onPress={() => navigation.pop()}
-              >
-                <Text style={{
                   ...Fonts.SemiBold16white,
                   textAlign: 'center',
-                }}>
-                  Back
-                </Text>
-              </TouchableOpacity>
-              
-              {booking.status === 'confirmed' && (
-                <TouchableOpacity
-                  style={{
-                    backgroundColor: Colors.primary,
-                    paddingHorizontal: Default.fixPadding * 2,
-                    paddingVertical: Default.fixPadding * 1.2,
-                    borderRadius: 10,
-                    flex: 1,
-                    marginLeft: Default.fixPadding * 0.5,
-                  }}
-                  onPress={() => {
-                    // Handle contact service provider
-                    console.log('Contact service provider');
-                  }}
-                >
-                  <Text style={{
-                    ...Fonts.SemiBold16white,
-                    textAlign: 'center',
-                  }}>
-                    Contact Provider
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </>
+                }}
+              >
+                Proceed to Payment
+              </Text>
+            </TouchableOpacity>
           )}
         </View>
       </ScrollView>

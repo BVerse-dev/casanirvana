@@ -4,12 +4,15 @@ import { amenityService } from '../services/amenityService';
 export interface CreateAmenityBookingData {
   amenity_id: string;
   user_id: string;
+  community_id?: string;
   start_datetime: string;
   end_datetime: string;
   booking_date: string;
   start_time: string;
   end_time: string;
   amount: number;
+  total_amount?: number;
+  is_paid?: boolean;
   total_days: number;
   status?: 'pending' | 'confirmed' | 'cancelled' | 'completed';
   payment_status?: 'pending' | 'paid' | 'failed' | 'refunded';

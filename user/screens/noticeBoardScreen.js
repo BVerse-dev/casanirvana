@@ -18,11 +18,8 @@ import MyStatusBar from "../components/myStatusBar";
 import DashedLine from "react-native-dashed-line";
 import { ms } from "react-native-size-matters/extend";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
-import Feather from "react-native-vector-icons/Feather";
 import { useAuth } from "../contexts/AuthContext";
 import { useListNotices } from "../hooks/useListNotices";
-import { useQueryClient } from "@tanstack/react-query";
-import { supabase } from "../utils/supabase";
 import { useNotificationContext } from "../contexts/NotificationContext";
 import { isPushNotificationsSupported } from "../utils/notificationRuntime";
 
@@ -30,7 +27,6 @@ const NoticeBoardScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
   const isRtl = i18n.dir() === "rtl";
   const { profile } = useAuth();
-  const queryClient = useQueryClient();
   const { isGranted, setupNotifications } = useNotificationContext();
 
   // State for favorites and refresh
@@ -83,25 +79,6 @@ const NoticeBoardScreen = ({ navigation }) => {
     };
   }, [navigation]);
 
-  // Set up real-time subscription for notice updates
-  useEffect(() => {
-    if (!profile?.community_id) return;
-    
-    const channel = supabase
-      .channel('public:notices')
-      .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public', 
-        table: 'notices',
-        filter: `community_id=eq.${profile.community_id}`
-      }, () => {
-        queryClient.invalidateQueries({ queryKey: ['notices', profile.community_id] });
-      })
-      .subscribe();
-
-    return () => supabase.removeChannel(channel);
-  }, [profile?.community_id, queryClient]);
-
   // Helper function to handle sharing
   const handleShare = async (notice) => {
     try {
@@ -129,28 +106,6 @@ const NoticeBoardScreen = ({ navigation }) => {
       }
       return newFavorites;
     });
-  };
-
-  // Helper function to handle delete
-  const handleDelete = (notice) => {
-    Alert.alert(
-      "Delete Notice",
-      `Are you sure you want to delete "${notice.title}"?`,
-      [
-        {
-          text: "Cancel",
-          style: "cancel"
-        },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => {
-            // TODO: Implement actual delete functionality with Supabase
-            Alert.alert("Info", "Delete functionality will be implemented with proper permissions.");
-          }
-        }
-      ]
-    );
   };
 
   // Helper function to get notice image
@@ -342,27 +297,6 @@ const NoticeBoardScreen = ({ navigation }) => {
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            onPress={() => handleDelete(item)}
-            style={{
-              flex: 1,
-              flexDirection: isRtl ? "row-reverse" : "row",
-              justifyContent: "flex-end",
-              alignItems: "center",
-            }}
-          >
-            <Feather name="trash" size={19} color={Colors.grey} />
-            <Text
-              numberOfLines={1}
-              style={{
-                ...Fonts.Medium14grey,
-                overflow: "hidden",
-                marginHorizontal: Default.fixPadding * 0.5,
-              }}
-            >
-              {tr("delete")}
-            </Text>
-          </TouchableOpacity>
         </View>
       </View>
     );

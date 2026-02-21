@@ -5,12 +5,15 @@ export interface AmenityBooking {
   id: string;
   amenity_id: string;
   user_id: string;
+  community_id?: string;
   start_datetime: string;
   end_datetime: string;
   booking_date: string;
   start_time: string;
   end_time: string;
   amount: number;
+  total_amount?: number;
+  is_paid?: boolean;
   total_days: number;
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
   payment_status: 'pending' | 'paid' | 'failed' | 'refunded';
@@ -29,6 +32,15 @@ export interface AmenityBooking {
     category: string;
     charges_per_hour: number;
     monthly_charges: number;
+    location?: string;
+    contact_person?: string;
+    contact_phone?: string;
+    operating_hours?: {
+      days: string[];
+      open: string;
+      close: string;
+    };
+    capacity?: number;
   };
 }
 

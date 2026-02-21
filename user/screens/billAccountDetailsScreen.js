@@ -23,7 +23,7 @@ const BillAccountDetailsScreen = ({ navigation, route }) => {
   const { t, i18n } = useTranslation();
   const isRtl = i18n.dir() === "rtl";
   
-  const { provider, providerName } = route.params || {};
+  const { provider, providerId, providerName, providerLogo } = route.params || {};
   
   const [accountNumber, setAccountNumber] = useState("");
   const [description, setDescription] = useState("");
@@ -40,6 +40,8 @@ const BillAccountDetailsScreen = ({ navigation, route }) => {
 
   // Get logo based on provider
   const getProviderLogo = () => {
+    if (providerLogo) return providerLogo;
+
     switch (provider) {
       case "ecg_postpaid":
       case "ecg_prepaid":
@@ -104,6 +106,7 @@ const BillAccountDetailsScreen = ({ navigation, route }) => {
 
     navigation.navigate("billAmountScreen", {
       provider,
+      providerId,
       providerName,
       accountNumber,
       description,

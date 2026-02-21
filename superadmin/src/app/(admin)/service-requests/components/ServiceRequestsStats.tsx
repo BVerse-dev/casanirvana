@@ -18,28 +18,24 @@ const ServiceRequestsStats = ({ serviceRequests }: ServiceRequestsStatsProps) =>
       value: totalRequests,
       icon: "solar:clipboard-list-broken",
       gradient: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-      change: "+12.5%",
     },
     {
       title: "Pending",
       value: pendingRequests,
       icon: "solar:clock-circle-broken",
       gradient: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
-      change: "+8.3%",
     },
     {
       title: "In Progress", 
       value: inProgressRequests,
       icon: "solar:play-circle-broken",
       gradient: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
-      change: "+15.7%",
     },
     {
       title: "Completed",
       value: completedRequests,
       icon: "solar:check-circle-broken",
       gradient: "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)",
-      change: "+24.1%",
     },
   ];
 
@@ -100,10 +96,10 @@ const ServiceRequestsStats = ({ serviceRequests }: ServiceRequestsStatsProps) =>
               {/* Growth indicator at bottom */}
               <div className="d-flex align-items-center justify-content-between mt-auto">
                 <span className="text-white fs-13 fw-medium opacity-75">
-                  <IconifyIcon icon="ri:arrow-up-line" className="me-1" />
-                  {stat.change}
+                  <IconifyIcon icon="ri:database-2-line" className="me-1" />
+                  Live data
                 </span>
-                <span className="text-white fs-12 opacity-60">This month</span>
+                <span className="text-white fs-12 opacity-60">Current scope</span>
               </div>
             </CardBody>
           </Card>

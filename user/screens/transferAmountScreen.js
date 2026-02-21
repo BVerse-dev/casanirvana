@@ -35,6 +35,7 @@ const TransferAmountScreen = ({ navigation, route }) => {
   // Get data from route params
   const { 
     provider, 
+    providerId,
     providerName, 
     providerColor,
     providerLogo,
@@ -78,6 +79,7 @@ const TransferAmountScreen = ({ navigation, route }) => {
     // Navigate to review screen
     navigation.navigate("transferReviewScreen", {
       provider,
+      providerId,
       providerName,
       providerColor,
       providerLogo,

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Text,
   View,
@@ -28,17 +28,14 @@ const { width, height } = Dimensions.get("window");
 const ServiceModal = (props) => {
   const { t, i18n } = useTranslation();
 
-  const isRtl = i18n.dir() == "rtl";
+  const isRtl = i18n.dir() === "rtl";
 
   function tr(key) {
     return t(`serviceModal:${key}`);
   }
 
-  const [serviceModal, setServiceModal] = useState(false);
   const [successModal, setSuccessModal] = useState(false);
-
-  const [selectedService, setSelectedService] = useState(props.title || "");
-  const [confirmService, setConfirmService] = useState(props.title || "");
+  const [createdRequest, setCreatedRequest] = useState(null);
 
   const today = moment().format("YYYY-MM-DD");
 
@@ -68,7 +65,13 @@ const ServiceModal = (props) => {
     return `${hours}:${minutesStr} ${ampm}`;
   };
 
-  const [writeProblem, setWriteProblem] = useState();
+  const [writeProblem, setWriteProblem] = useState("");
+
+  useEffect(() => {
+    if (props.visible) {
+      setCreatedRequest(null);
+    }
+  }, [props.visible]);
 
   // Validation function
   const validateForm = () => {
@@ -88,42 +91,34 @@ const ServiceModal = (props) => {
   };
 
   // Function to create service booking
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!validateForm()) return;
 
-    // Format date for display (convert YYYY-MM-DD to readable format)
-    const formatDisplayDate = (dateString) => {
-      const date = moment(dateString);
-      return date.format("DD MMM YYYY");
-    };
-
-    // Create new booking object
-    const newBooking = {
-      key: Date.now().toString(),
-      id: `sb${Date.now()}`,
-      image: props.image,
-      title: props.title,
-      date: formatDisplayDate(date), // Single date, not range
-      time: confirmTime(selectedFromTime),
-      confirmedBy: "Pending",
-      price: "GH₵ 0.00", // Will be set by admin
-      confirmed: false,
-      pending: true,
-      cancelled: false,
-      status: "pending",
-      payment_status: "pending",
-      description: writeProblem,
-      booking_date: date,
-      start_time: confirmTime(selectedFromTime),
-    };
-
-    // Pass the new booking to parent component
-    if (props.onBookingCreated) {
-      props.onBookingCreated(newBooking);
+    if (!props.onBookingCreated) {
+      Alert.alert("Unavailable", "Service booking is not available right now.");
+      return;
     }
 
-    // Show success modal
-    setSuccessModal(true);
+    try {
+      const created = await props.onBookingCreated({
+        serviceId: props.serviceId,
+        serviceTitle: props.title,
+        date,
+        time: selectedFromTime,
+        description: writeProblem,
+        image: props.image,
+        amount: Number(props.basePrice || 0),
+      });
+
+      if (!created?.id) {
+        throw new Error("Service request was not saved. Please try again.");
+      }
+
+      setCreatedRequest(created || null);
+      setSuccessModal(true);
+    } catch (error) {
+      Alert.alert("Request Failed", error?.message || "Unable to submit service request.");
+    }
   };
 
   return (
@@ -326,6 +321,7 @@ const ServiceModal = (props) => {
                   <AwesomeButton
                     height={50}
                     onPress={handleSubmit}
+                    disabled={props.isSubmitting}
                     raiseLevel={1}
                     stretch={true}
                     borderRadius={10}
@@ -334,7 +330,7 @@ const ServiceModal = (props) => {
                     backgroundColor={Colors.primary}
                   >
                     <Text style={{ ...Fonts.SemiBold18white }}>
-                      {tr("submit")}
+                      {props.isSubmitting ? "Submitting..." : tr("submit")}
                     </Text>
                   </AwesomeButton>
                 </View>
@@ -488,8 +484,20 @@ const ServiceModal = (props) => {
                   marginBottom: Default.fixPadding * 2.5,
                 }}
               >
-                Our admin will review your request and assign a service provider. Please proceed with payment to confirm your booking.
+                Your request has been saved. You can proceed to payment now or pay later from your bookings list.
               </Text>
+
+              {createdRequest?.id && (
+                <Text
+                  style={{
+                    ...Fonts.Medium13grey,
+                    textAlign: "center",
+                    marginBottom: Default.fixPadding * 1.5,
+                  }}
+                >
+                  Reference: {createdRequest.id.slice(0, 8).toUpperCase()}
+                </Text>
+              )}
 
               {/* Single Payment Button */}
               <TouchableOpacity
@@ -498,12 +506,13 @@ const ServiceModal = (props) => {
                   const serviceBookingDetails = {
                     serviceTitle: props.title,
                     serviceName: props.title,
-                    date: date,
-                    time: selectedFromTime ? confirmTime(selectedFromTime) : null,
+                    date: createdRequest?.preferred_date || date,
+                    time: createdRequest?.preferred_time || (selectedFromTime ? confirmTime(selectedFromTime) : null),
                     description: writeProblem,
                     image: props.image,
-                    amount: 0, // Will be set by admin
-                    type: "service_booking"
+                    amount: Number(createdRequest?.total_amount ?? props.basePrice ?? 0),
+                    type: "service_booking",
+                    requestId: createdRequest?.id || null,
                   };
                   
                   setSuccessModal(false);
@@ -532,6 +541,28 @@ const ServiceModal = (props) => {
               >
                 <Text style={{ ...Fonts.SemiBold16white }}>
                   Proceed to Payment
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  setSuccessModal(false);
+                  props.closeServiceModal();
+                  setSelectedFromTime();
+                  setWriteProblem("");
+                  setDate();
+                  if (props.onViewBookings) {
+                    props.onViewBookings();
+                  }
+                }}
+                style={{
+                  width: "100%",
+                  paddingVertical: Default.fixPadding,
+                  alignItems: "center",
+                  marginTop: Default.fixPadding,
+                }}
+              >
+                <Text style={{ ...Fonts.Medium15primary }}>
+                  View My Bookings
                 </Text>
               </TouchableOpacity>
             </TouchableOpacity>

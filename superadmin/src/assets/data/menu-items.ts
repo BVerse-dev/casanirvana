@@ -221,6 +221,12 @@ export const MENU_ITEMS: MenuItemType[] = [
     url: "/complaints",
   },
   {
+    key: "help-desk-inquiries",
+    label: "Help Desk",
+    icon: "ri:customer-service-2-line",
+    url: "/help-desk/inquiries",
+  },
+  {
     key: "amenities",
     label: "Amenities",
     icon: "ri:building-2-line",

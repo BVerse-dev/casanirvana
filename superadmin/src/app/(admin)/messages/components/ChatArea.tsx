@@ -3,7 +3,7 @@ import EmojiPicker from "@emoji-mart/react";
 import clsx from "clsx";
 
 import { yupResolver } from "@hookform/resolvers/yup";
-import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import {
   Button,
   Card,
@@ -22,15 +22,14 @@ import {
 } from "react-bootstrap";
 import { useForm } from "react-hook-form";
 import * as yup from "yup";
+import { useSession } from "next-auth/react";
 
-import { messages } from "@/assets/data/social";
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
 import SimplebarReactClient from "@/components/wrappers/SimplebarReactClient";
 import { useChatContext } from "@/context/useChatContext";
 import { useLayoutContext } from "@/context/useLayoutContext";
 import type { ChatMessageType, UserType } from "@/types/data";
 import type { ChatUser } from "@/hooks/useProfiles";
-import { addOrSubtractMinutesFromDate } from "@/utils/date";
 import { getFileExtensionIcon } from "@/utils/get-icons";
 import { useCreateMessage, useListMessages } from "@/hooks/useMessages";
 import { avatars } from "@/assets/images/users";
@@ -652,49 +651,46 @@ const ChatArea = ({ selectedUser, selectedUserId }: { selectedUser: ChatUser; se
     imageName: ''
   });
 
-  // Get current user ID - for demo, using a fixed admin user
-  // In real app, this would come from auth context
-  const currentUserId = "35995267-1de3-48e7-a991-91f38ffdcab1"; // Alice's ID
+  const { data: session } = useSession();
+  const currentUserId = session?.user?.id;
+  const currentUserName = session?.user?.name || "You";
+  const currentUserEmail = session?.user?.email || "admin@casanirvana.com";
+  const effectiveSelectedUserId =
+    selectedUserId && selectedUserId !== currentUserId ? selectedUserId : undefined;
 
   // Use real messages from Supabase - only if selectedUserId is valid
   const { data: realMessages, isLoading } = useListMessages(
     currentUserId, 
-    selectedUserId || "" // Use the real selectedUserId from ChatApp
+    effectiveSelectedUserId
   );
   const createMessageMutation = useCreateMessage();
+
+  const currentUser: UserType = {
+    id: currentUserId || "current-user",
+    mutualCount: 0,
+    name: currentUserName,
+    avatar: avatars.avatar10,
+    email: currentUserEmail,
+    message: "",
+    time: new Date(),
+    contact: "Not provided",
+    emailMessage: "",
+    location: "Casa Nirvana Admin",
+    languages: ["English"],
+    activityStatus: "online",
+    status: "Active",
+  };
 
   // Transform Supabase messages to ChatMessageType format for UI compatibility
   const userMessages: (ChatMessageType & { attachments?: any; content?: string })[] = realMessages?.map((msg) => ({
     id: msg.id,
     from: msg.from_user === currentUserId ? {
-      id: currentUserId,
-      name: "You",
-      avatar: avatars.avatar10,
-      email: "admin@casanirvana.com",
-      mutualCount: 0,
-      contact: "123 456 7890",
+      ...currentUser,
       activityStatus: "online" as const,
-      status: "Active",
-      location: "Casa Nirvana Admin",
-      languages: ["English"],
-      time: new Date(),
-      message: "",
-      emailMessage: "",
     } : selectedUser,
     to: msg.to_user === currentUserId ? {
-      id: currentUserId,
-      name: "You", 
-      avatar: avatars.avatar10,
-      email: "admin@casanirvana.com",
-      mutualCount: 0,
-      contact: "123 456 7890",
+      ...currentUser,
       activityStatus: "online" as const,
-      status: "Active",
-      location: "Casa Nirvana Admin",
-      languages: ["English"],
-      time: new Date(),
-      message: "",
-      emailMessage: "",
     } : selectedUser,
     message: {
       type: msg.message_type === 'file' ? 'file' : msg.message_type === 'video_call' ? 'text' : 'text', // Map to valid types
@@ -705,23 +701,7 @@ const ChatArea = ({ selectedUser, selectedUserId }: { selectedUser: ChatUser; se
     attachments: msg.attachments,
     content: msg.content || undefined,
   })) || [];
-
-  // Fixed current user object for UI compatibility
-  const toUser: UserType = {
-    id: currentUserId,
-    mutualCount: 56,
-    name: "You",
-    avatar: avatars.avatar10,
-    email: "admin@casanirvana.com",
-    message: "",
-    time: new Date(),
-    contact: "123 456 7890",
-    emailMessage: "",
-    location: "Casa Nirvana Admin",
-    languages: ["English"],
-    activityStatus: "online",
-    status: "Active",
-  };
+  const toUser: UserType = currentUser;
 
   /**
    * Handle attachment button click
@@ -737,7 +717,7 @@ const ChatArea = ({ selectedUser, selectedUserId }: { selectedUser: ChatUser; se
    */
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
-    if (!files || files.length === 0 || !selectedUserId) return;
+    if (!files || files.length === 0 || !effectiveSelectedUserId || !currentUserId) return;
 
     const file = files[0];
     const maxSize = 10 * 1024 * 1024; // 10MB limit
@@ -751,10 +731,11 @@ const ChatArea = ({ selectedUser, selectedUserId }: { selectedUser: ChatUser; se
       // Upload file to Supabase Storage
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const storagePath = `${currentUserId}/chat/${fileName}`;
       
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('chat-attachments')
-        .upload(fileName, file, {
+        .upload(storagePath, file, {
           cacheControl: '3600',
           upsert: false
         });
@@ -764,24 +745,25 @@ const ChatArea = ({ selectedUser, selectedUserId }: { selectedUser: ChatUser; se
         // Fallback: send text message about file
         await createMessageMutation.mutateAsync({
           from_user: currentUserId,
-          to_user: selectedUserId,
+          to_user: effectiveSelectedUserId,
           body: `📎 File share attempted: ${file.name} (upload failed)`,
           content: null,
           attachments: null,
           message_type: 'text',
           sent_at: new Date().toISOString(),
           read: false,
+          is_read: false,
         });
       } else {
         // Get public URL for the uploaded file
         const { data: { publicUrl } } = supabase.storage
           .from('chat-attachments')
-          .getPublicUrl(fileName);
+          .getPublicUrl(storagePath);
 
         // Send message with file attachment
         await createMessageMutation.mutateAsync({
           from_user: currentUserId,
-          to_user: selectedUserId,
+          to_user: effectiveSelectedUserId,
           body: `📎 ${file.name}`,
           content: null,
           attachments: {
@@ -794,6 +776,7 @@ const ChatArea = ({ selectedUser, selectedUserId }: { selectedUser: ChatUser; se
           message_type: 'file',
           sent_at: new Date().toISOString(),
           read: false,
+          is_read: false,
         });
       }
       
@@ -811,11 +794,13 @@ const ChatArea = ({ selectedUser, selectedUserId }: { selectedUser: ChatUser; se
    * Handle video call button click
    */
   const handleVideoCallClick = async () => {
+    if (!currentUserId || !effectiveSelectedUserId) return;
+
     // Send a message indicating video call attempt
     try {
       await createMessageMutation.mutateAsync({
         from_user: currentUserId,
-        to_user: selectedUserId,
+        to_user: effectiveSelectedUserId,
         body: `📹 Video call initiated`,
         content: `Video call started at ${new Date().toLocaleTimeString()}`,
         attachments: {
@@ -826,6 +811,7 @@ const ChatArea = ({ selectedUser, selectedUserId }: { selectedUser: ChatUser; se
         message_type: 'video_call',
         sent_at: new Date().toISOString(),
         read: false,
+        is_read: false,
       });
     } catch (error) {
       console.error('Error sending video call message:', error);
@@ -868,16 +854,17 @@ const ChatArea = ({ selectedUser, selectedUserId }: { selectedUser: ChatUser; se
    * sends the chat message - FIXED: No automatic response
    */
   const sendChatMessage = async (values: { newMessage?: string }) => {
-    if (!values.newMessage?.trim() || !selectedUserId) return;
+    if (!values.newMessage?.trim() || !effectiveSelectedUserId || !currentUserId) return;
 
     try {
       await createMessageMutation.mutateAsync({
         from_user: currentUserId,
-        to_user: selectedUserId, // Use the real selectedUserId
+        to_user: effectiveSelectedUserId,
         body: values.newMessage.trim(),
         message_type: 'text',
         sent_at: new Date().toISOString(),
         read: false,
+        is_read: false,
       });
       
       reset();
@@ -1065,6 +1052,7 @@ const ChatArea = ({ selectedUser, selectedUserId }: { selectedUser: ChatUser; se
                     variant="soft-success" 
                     size="sm"
                     onClick={handleAttachmentClick}
+                    disabled={!currentUserId || !effectiveSelectedUserId}
                     title="Attach file"
                   >
                     <IconifyIcon
@@ -1080,6 +1068,7 @@ const ChatArea = ({ selectedUser, selectedUserId }: { selectedUser: ChatUser; se
                     variant="soft-warning" 
                     size="sm"
                     onClick={handleVideoCallClick}
+                    disabled={!currentUserId || !effectiveSelectedUserId}
                     title="Start video call"
                   >
                     <IconifyIcon
@@ -1093,7 +1082,7 @@ const ChatArea = ({ selectedUser, selectedUserId }: { selectedUser: ChatUser; se
                   {/* Send message button */}
                   <button
                     type="submit"
-                    disabled={createMessageMutation.isPending}
+                    disabled={createMessageMutation.isPending || !currentUserId || !effectiveSelectedUserId}
                     className="btn btn-primary btn-sm chat-send"
                     title="Send message"
                   >

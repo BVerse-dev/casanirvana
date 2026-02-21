@@ -47,5 +47,14 @@ export const getNoticesForCommunity = async ({
   if (search) query = query.ilike('title', `%${search}%`);
   query = query.order(orderBy, { ascending });
   if (limit) query = query.range((page - 1) * limit, page * limit - 1);
-  return await query;
+  const { data, error, count } = await query;
+  if (error) {
+    throw error;
+  }
+
+  return {
+    data: data || [],
+    error: null,
+    count: count ?? 0,
+  };
 };

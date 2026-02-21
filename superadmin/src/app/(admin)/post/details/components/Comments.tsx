@@ -5,16 +5,20 @@ import { useListComments, useCreateComment } from "@/hooks/useComments";
 import avatarImg from "@/assets/images/users/avatar-6.jpg";
 import { useState } from "react";
 import { Button } from "react-bootstrap";
+import { useSession } from "next-auth/react";
 
 interface CommentsProps {
   noticeId?: string;
 }
 
 const Comments = ({ noticeId }: CommentsProps) => {
+  const { data: session } = useSession();
   const { data: comments, isLoading, error } = useListComments(noticeId || '');
   const createCommentMutation = useCreateComment();
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
+  const currentAuthorName = session?.user?.name || session?.user?.email || "Administrator";
+  const currentAuthorAvatar = session?.user?.image || "/images/users/avatar-6.jpg";
 
   const handleReply = (commentId: string) => {
     setReplyingTo(commentId);
@@ -32,8 +36,8 @@ const Comments = ({ noticeId }: CommentsProps) => {
     try {
       await createCommentMutation.mutateAsync({
         notice_id: noticeId,
-        author_name: 'Administrator', // In production, get from user session
-        author_avatar: '/images/users/avatar-6.jpg',
+        author_name: currentAuthorName,
+        author_avatar: currentAuthorAvatar,
         content: replyText.trim(),
         parent_id: parentId
       });

@@ -1,16 +1,19 @@
 "use client";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Card, CardBody, CardHeader, CardTitle, Row, Col, Badge, Button, Tab, Tabs } from "react-bootstrap";
-import { useGetAmenityBooking } from "@/hooks/useAmenities";
+import { useGetAmenityBooking, useUpdateAmenityBooking } from "@/hooks/useAmenities";
 import PageTitle from "@/components/PageTitle";
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
 import { useState } from "react";
 import Link from "next/link";
+import { toast } from "react-hot-toast";
 
 const AmenityBookingDetailsPage = () => {
   const params = useParams();
+  const router = useRouter();
   const bookingId = params.id as string;
   const { data: booking, isLoading, error } = useGetAmenityBooking(bookingId);
+  const updateAmenityBooking = useUpdateAmenityBooking();
   const [activeTab, setActiveTab] = useState("details");
 
   if (isLoading) {
@@ -107,10 +110,43 @@ const AmenityBookingDetailsPage = () => {
   };
 
   const calculateDuration = () => {
+    if (!booking.start_time || !booking.end_time) return 'N/A';
     const start = new Date(`2024-01-01 ${booking.start_time}`);
     const end = new Date(`2024-01-01 ${booking.end_time}`);
     const hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
     return `${hours} hour${hours !== 1 ? 's' : ''}`;
+  };
+
+  const handleApprove = async () => {
+    try {
+      await updateAmenityBooking.mutateAsync({
+        id: booking.id,
+        updates: {
+          status: 'confirmed',
+          payment_status: booking.total_amount > 0 ? booking.payment_status : 'paid',
+        },
+      });
+      toast.success('Booking approved');
+    } catch (mutationError) {
+      console.error('Failed to approve booking:', mutationError);
+      toast.error('Failed to approve booking');
+    }
+  };
+
+  const handleReject = async () => {
+    try {
+      await updateAmenityBooking.mutateAsync({
+        id: booking.id,
+        updates: {
+          status: 'cancelled',
+          payment_status: booking.payment_status === 'paid' ? 'refunded' : booking.payment_status,
+        },
+      });
+      toast.success('Booking rejected');
+    } catch (mutationError) {
+      console.error('Failed to reject booking:', mutationError);
+      toast.error('Failed to reject booking');
+    }
   };
 
   return (
@@ -161,19 +197,19 @@ const AmenityBookingDetailsPage = () => {
                 <div className="d-flex gap-2">
                   {booking.status === "pending" && (
                     <>
-                      <Button variant="success" size="sm">
+                      <Button variant="success" size="sm" onClick={handleApprove} disabled={updateAmenityBooking.isPending}>
                         <IconifyIcon icon="ri:check-line" className="me-1" />
                         Approve
                       </Button>
-                      <Button variant="danger" size="sm">
+                      <Button variant="danger" size="sm" onClick={handleReject} disabled={updateAmenityBooking.isPending}>
                         <IconifyIcon icon="ri:close-line" className="me-1" />
                         Reject
                       </Button>
                     </>
                   )}
-                  <Button variant="primary" size="sm">
+                  <Button variant="primary" size="sm" onClick={() => router.push('/amenities/bookings')}>
                     <IconifyIcon icon="ri:edit-line" className="me-1" />
-                    Edit Booking
+                    Back to Bookings
                   </Button>
                 </div>
               </div>
@@ -483,17 +519,17 @@ const AmenityBookingDetailsPage = () => {
               </CardHeader>
               <CardBody>
                 <div className="d-grid gap-2">
-                  <Button variant="success" size="sm">
+                  <Button variant="success" size="sm" onClick={handleApprove} disabled={updateAmenityBooking.isPending}>
                     <IconifyIcon icon="ri:check-line" className="me-1" />
                     Approve Booking
                   </Button>
-                  <Button variant="danger" size="sm">
+                  <Button variant="danger" size="sm" onClick={handleReject} disabled={updateAmenityBooking.isPending}>
                     <IconifyIcon icon="ri:close-line" className="me-1" />
                     Reject Booking
                   </Button>
-                  <Button variant="primary" size="sm">
+                  <Button variant="primary" size="sm" onClick={() => router.push('/amenities/bookings')}>
                     <IconifyIcon icon="ri:edit-line" className="me-1" />
-                    Edit Details
+                    Back to Bookings
                   </Button>
                   <Button variant="info" size="sm">
                     <IconifyIcon icon="ri:message-3-line" className="me-1" />

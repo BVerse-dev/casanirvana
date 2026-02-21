@@ -17,7 +17,7 @@ export const usePersonalHubTransactions = (options: {
   enabled?: boolean;
 } = {}) => {
   const { profile } = useAuth();
-  const userId = profile?.user_id;
+  const userId = profile?.user_id || profile?.id;
   const { limit, page, transaction_type, status, orderBy, ascending, enabled = true } = options;
 
   return useQuery({

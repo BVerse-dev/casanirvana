@@ -11,7 +11,7 @@ const Articles = () => {
   
   // Filter notices for featured articles
   const articles = notices?.filter(notice => 
-    notice.category === 'general' && 
+    (notice.category || '').toLowerCase() === 'general' && 
     (notice.tags?.includes('Guidelines') || notice.tags?.includes('Notice'))
   ).slice(0, 4) || []; // Show first 4 articles
   

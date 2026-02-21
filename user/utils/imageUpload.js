@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import * as FileSystem from 'expo-file-system';
+import * as LegacyFileSystem from 'expo-file-system/legacy';
 
 /**
  * Uploads an image to Supabase storage and returns the public URL
@@ -20,9 +20,17 @@ export const uploadImageToSupabase = async (imageUri, bucketName = 'complaint-im
     const fileExtension = imageUri.split('.').pop() || 'jpg';
     const uniqueFileName = fileName || `complaint_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExtension}`;
 
+    // Expo SDK 54: use legacy module for readAsStringAsync/EncodingType.
+    const readAsStringAsync = LegacyFileSystem.readAsStringAsync;
+    const base64Encoding = LegacyFileSystem.EncodingType?.Base64 || 'base64';
+
+    if (!readAsStringAsync) {
+      throw new Error('FileSystem readAsStringAsync is not available in this runtime');
+    }
+
     // Read the file as base64
-    const base64 = await FileSystem.readAsStringAsync(imageUri, {
-      encoding: FileSystem.EncodingType.Base64,
+    const base64 = await readAsStringAsync(imageUri, {
+      encoding: base64Encoding,
     });
 
     console.log('File read as base64, length:', base64.length);

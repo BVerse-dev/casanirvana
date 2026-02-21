@@ -228,64 +228,45 @@ export const useListMaintenanceRequests = (profileId?: string) => {
   return useQuery({
     queryKey: ['maintenance-requests', profileId],
     queryFn: async () => {
-      console.log('🔍 useListMaintenanceRequests called with profileId:', profileId);
-      
-      try {
-        let query = supabase
-          .from('maintenance_requests')
-          .select(`
-            *,
-            units (
-              id,
-              number,
-              type,
-              block
-            ),
-            requested_by_profile:profiles!requested_by (
-              id,
-              first_name,
-              last_name,
-              full_name,
-              email
-            ),
-            assigned_to_profile:profiles!assigned_to (
-              id,
-              first_name,
-              last_name,
-              full_name,
-              email
-            )
-          `);
+      let query = supabase
+        .from('maintenance_requests')
+        .select(`
+          *,
+          units (
+            id,
+            number,
+            type,
+            block
+          ),
+          requested_by_profile:profiles!requested_by (
+            id,
+            first_name,
+            last_name,
+            full_name,
+            email
+          ),
+          assigned_to_profile:profiles!assigned_to (
+            id,
+            first_name,
+            last_name,
+            full_name,
+            email
+          )
+        `);
 
-        // Show user's own maintenance requests
-        if (profileId) {
-          query = query.eq('requested_by', profileId);
-        } else {
-          // No profile ID provided, return empty array
-          return [];
-        }
-
-        query = query.order('created_at', { ascending: false });
-
-        const { data, error } = await query;
-        
-        console.log('🔍 Maintenance requests query result:', { 
-          dataLength: data?.length || 0, 
-          error: error?.message,
-          firstItem: data?.[0]?.title,
-          allTitles: data?.map(item => item.title) || []
-        });
-        
-        if (error) {
-          console.error('❌ Supabase error:', error);
-          throw error;
-        }
-        
-        return data || [];
-      } catch (err) {
-        console.error('❌ Hook error:', err);
-        throw err;
+      // Show user's own maintenance requests
+      if (profileId) {
+        query = query.eq('requested_by', profileId);
+      } else {
+        // No profile ID provided, return empty array
+        return [];
       }
+
+      query = query.order('created_at', { ascending: false });
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return data || [];
     },
     enabled: true, // Always enabled like complaints
     staleTime: 30000, // Consider data fresh for 30 seconds
@@ -297,24 +278,105 @@ export const useCreateMaintenanceRequest = () => {
   return useCreateData('maintenance_requests', ['maintenance-requests']);
 };
 
+export const useCreateMaintenanceRequestWithImages = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (
+      maintenanceData: TablesInsert<'maintenance_requests'> & {
+        imageUris?: string[];
+        storageOwnerId?: string;
+      }
+    ) => {
+      try {
+        let imageUrls: string[] = [];
+        const now = Date.now();
+        const ownerFolder = maintenanceData.storageOwnerId || maintenanceData.requested_by;
+
+        if (maintenanceData.imageUris && maintenanceData.imageUris.length > 0) {
+          const uploadPromises = maintenanceData.imageUris.map((uri, index) => {
+            const extension = uri.split('.').pop() || 'jpg';
+            const fileName = `${ownerFolder}/maintenance_${now}_${index}_${Math.random()
+              .toString(36)
+              .slice(2, 8)}.${extension}`;
+            return uploadImageToSupabase(uri, 'attachments', fileName);
+          });
+
+          imageUrls = await Promise.all(uploadPromises);
+        }
+
+        const { imageUris, storageOwnerId, ...dbData } = maintenanceData;
+        const payload: TablesInsert<'maintenance_requests'> = {
+          ...dbData,
+          images: imageUrls.length > 0 ? imageUrls : null,
+        };
+
+        const { data: result, error } = await supabase
+          .from('maintenance_requests')
+          .insert(payload)
+          .select()
+          .single();
+
+        if (error) throw error;
+        return result;
+      } catch (error) {
+        console.error('Error creating maintenance request with images:', error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['maintenance-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['maintenance'] });
+    },
+  });
+};
+
 export const useUpdateMaintenanceRequest = () => {
   return useUpdateData('maintenance_requests', ['maintenance-requests']);
 };
 
 export const useGetMaintenanceRequest = (maintenanceId: string) => {
-  // Check if the maintenanceId is a valid ID (UUID or integer)
+  // maintenance_requests.id is bigint
   const isValidId = (id: string) => {
     if (!id) return false;
-    // Check if it's a UUID
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    if (uuidRegex.test(id)) return true;
-    // Check if it's a valid integer ID
-    const intId = parseInt(id);
-    return !isNaN(intId) && intId > 0;
+    const intId = Number(id);
+    return Number.isFinite(intId) && intId > 0;
   };
-  
-  return useGetData('maintenance_requests', maintenanceId, ['maintenance', maintenanceId], {
-    enabled: !!maintenanceId && isValidId(maintenanceId)
+
+  return useQuery({
+    queryKey: ['maintenance', maintenanceId],
+    queryFn: async () => {
+      const maintenanceIdInt = Number(maintenanceId);
+      if (!Number.isFinite(maintenanceIdInt) || maintenanceIdInt <= 0) {
+        throw new Error('Invalid maintenance ID');
+      }
+
+      const { data, error } = await supabase
+        .from('maintenance_requests')
+        .select(`
+          *,
+          requested_by_profile:profiles!requested_by (
+            id,
+            first_name,
+            last_name,
+            full_name,
+            email
+          ),
+          resolved_by_profile:profiles!resolved_by_profile_id (
+            id,
+            first_name,
+            last_name,
+            full_name,
+            email
+          )
+        `)
+        .eq('id', maintenanceIdInt)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!maintenanceId && isValidId(maintenanceId),
   });
 };
 
@@ -396,8 +458,6 @@ export const useCreateMaintenanceComment = () => {
   
   return useMutation({
     mutationFn: async (commentData: { maintenance_id: number; comment: string; created_by: string }) => {
-      console.log('🚀 Creating comment with data:', commentData);
-      
       const { data, error } = await supabase
         .from('maintenance_comments')
         .insert([commentData])
@@ -415,15 +475,12 @@ export const useCreateMaintenanceComment = () => {
         .single();
       
       if (error) {
-        console.error('❌ Error creating comment:', error);
         throw error;
       }
       
-      console.log('✅ Comment created successfully:', data);
       return data;
     },
     onSuccess: (data, variables) => {
-      console.log('🔄 Invalidating queries for maintenance:', variables.maintenance_id);
       // Invalidate comments for this specific maintenance request
       queryClient.invalidateQueries({ 
         queryKey: ['maintenance-comments', variables.maintenance_id.toString()] 
@@ -476,57 +533,88 @@ export const useListPersonalComplaints = (userId?: string) => {
   });
 };
 
-export const useListCommunityComplaints = (userId?: string) => {
+export const useListCommunityComplaints = (communityId?: string) => {
   return useQuery({
-    queryKey: ['community-complaints', userId],
+    queryKey: ['community-complaints', communityId],
     queryFn: async () => {
-      // Get complaints with basic data first
+      if (!communityId) return [];
+
+      const profileSelect = 'id, user_id, first_name, last_name, full_name, avatar_url, email';
+
+      // Fetch community complaints with unit/community and direct profile relations.
       const { data: complaints, error } = await supabase
         .from('complaints')
-        .select('*')
+        .select(`
+          *,
+          units!inner (
+            id,
+            unit_number,
+            community_id
+          ),
+          raised_by_profile:profiles!raised_by (${profileSelect}),
+          created_by_profile:profiles!created_by_profile_id (${profileSelect})
+        `)
         .eq('complaint_type', 'community')
+        .eq('units.community_id', communityId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      // Now get profile data for each complaint
-      const complaintsWithProfiles = await Promise.all(
-        (complaints || []).map(async (complaint) => {
-          let profile = null;
-          
-          // Try to get profile from raised_by first, then created_by, then created_by_profile_id
-          if (complaint.raised_by) {
-            const { data: raisedByProfile } = await supabase
-              .from('profiles')
-              .select('id, first_name, last_name, avatar_url, email')
-              .eq('id', complaint.raised_by)
-              .single();
-            profile = raisedByProfile;
-          } else if (complaint.created_by) {
-            const { data: createdByProfile } = await supabase
-              .from('profiles')
-              .select('id, first_name, last_name, avatar_url, email')
-              .eq('id', complaint.created_by)
-              .single();
-            profile = createdByProfile;
-          } else if (complaint.created_by_profile_id) {
-            const { data: profileById } = await supabase
-              .from('profiles')
-              .select('id, first_name, last_name, avatar_url, email')
-              .eq('id', complaint.created_by_profile_id)
-              .single();
-            profile = profileById;
-          }
-          
-          return {
-            ...complaint,
-            profile
-          };
-        })
+      const rows = complaints || [];
+      const unresolvedCreatedByActors = Array.from(
+        new Set(
+          rows
+            .filter(
+              (complaint: any) =>
+                !complaint.raised_by_profile &&
+                !complaint.created_by_profile &&
+                complaint.created_by
+            )
+            .map((complaint: any) => complaint.created_by)
+        )
       );
 
-      return complaintsWithProfiles;
+      const fallbackProfilesByActor = new Map<string, any>();
+
+      if (unresolvedCreatedByActors.length > 0) {
+        const [profilesByIdResult, profilesByUserIdResult] = await Promise.all([
+          supabase
+            .from('profiles')
+            .select(profileSelect)
+            .in('id', unresolvedCreatedByActors),
+          supabase
+            .from('profiles')
+            .select(profileSelect)
+            .in('user_id', unresolvedCreatedByActors),
+        ]);
+
+        if (profilesByIdResult.error) throw profilesByIdResult.error;
+        if (profilesByUserIdResult.error) throw profilesByUserIdResult.error;
+
+        for (const profile of profilesByIdResult.data || []) {
+          fallbackProfilesByActor.set(profile.id, profile);
+        }
+        for (const profile of profilesByUserIdResult.data || []) {
+          if (profile.user_id) {
+            fallbackProfilesByActor.set(profile.user_id, profile);
+          }
+          if (!fallbackProfilesByActor.has(profile.id)) {
+            fallbackProfilesByActor.set(profile.id, profile);
+          }
+        }
+      }
+
+      return rows.map((complaint: any) => ({
+        ...complaint,
+        unit: complaint.units || null,
+        profile:
+          complaint.raised_by_profile ||
+          complaint.created_by_profile ||
+          fallbackProfilesByActor.get(complaint.created_by) ||
+          null,
+      }));
     },
+    enabled: !!communityId,
   });
 };
 
@@ -626,31 +714,89 @@ export const useGetComplaint = (complaintId: string) => {
     queryFn: async () => {
       const { data: complaint, error } = await supabase
         .from('complaints')
-        .select('*')
+        .select(`
+          *,
+          raised_by_profile:profiles!raised_by (
+            id,
+            user_id,
+            first_name,
+            last_name,
+            full_name,
+            email,
+            avatar_url
+          ),
+          created_by_profile:profiles!created_by_profile_id (
+            id,
+            user_id,
+            first_name,
+            last_name,
+            full_name,
+            email,
+            avatar_url
+          )
+        `)
         .eq('id', complaintId)
         .single();
 
       if (error) throw error;
 
-      const reporterProfileId =
-        complaint?.raised_by ||
-        complaint?.created_by ||
-        complaint?.created_by_profile_id ||
+      const directReporterProfile =
+        complaint?.raised_by_profile ||
+        complaint?.created_by_profile ||
         null;
 
-      if (!reporterProfileId) {
-        return complaint;
+      if (directReporterProfile) {
+        return {
+          ...complaint,
+          reporter_profile: directReporterProfile,
+        };
       }
 
-      const { data: reporterProfile } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, full_name, email, avatar_url')
-        .eq('id', reporterProfileId)
-        .maybeSingle();
+      const candidateActorIds = Array.from(
+        new Set(
+          [complaint?.raised_by, complaint?.created_by, complaint?.created_by_profile_id].filter(Boolean)
+        )
+      );
+
+      if (candidateActorIds.length === 0) {
+        return {
+          ...complaint,
+          reporter_profile: null,
+        };
+      }
+
+      const [profileByIdResult, profileByUserIdResult] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('id, user_id, first_name, last_name, full_name, email, avatar_url')
+          .in('id', candidateActorIds),
+        supabase
+          .from('profiles')
+          .select('id, user_id, first_name, last_name, full_name, email, avatar_url')
+          .in('user_id', candidateActorIds),
+      ]);
+
+      if (profileByIdResult.error) throw profileByIdResult.error;
+      if (profileByUserIdResult.error) throw profileByUserIdResult.error;
+
+      const profileLookup = new Map<string, any>();
+      for (const profile of profileByIdResult.data || []) {
+        profileLookup.set(profile.id, profile);
+      }
+      for (const profile of profileByUserIdResult.data || []) {
+        if (profile.user_id) profileLookup.set(profile.user_id, profile);
+        if (!profileLookup.has(profile.id)) profileLookup.set(profile.id, profile);
+      }
+
+      const reporterProfile =
+        profileLookup.get(complaint?.raised_by) ||
+        profileLookup.get(complaint?.created_by_profile_id) ||
+        profileLookup.get(complaint?.created_by) ||
+        null;
 
       return {
         ...complaint,
-        reporter_profile: reporterProfile || null,
+        reporter_profile: reporterProfile,
       };
     },
     enabled: !!complaintId && isValidUUID(complaintId),

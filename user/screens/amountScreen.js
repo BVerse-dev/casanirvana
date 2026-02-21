@@ -22,7 +22,7 @@ const AmountScreen = ({ navigation, route }) => {
   const isRtl = i18n.dir() === "rtl";
   
   // Get provider data from route params
-  const { provider, providerName, providerColor, providerLogo, packageType } = route.params || {};
+  const { provider, providerId, providerName, providerColor, providerLogo, packageType } = route.params || {};
   const [selectedAmount, setSelectedAmount] = useState(null);
 
   // Safe translation function that ALWAYS returns a string
@@ -61,6 +61,7 @@ const AmountScreen = ({ navigation, route }) => {
     
     navigation.navigate("accountDetailsScreen", {
       provider,
+      providerId,
       providerName,
       providerColor,
       providerLogo,

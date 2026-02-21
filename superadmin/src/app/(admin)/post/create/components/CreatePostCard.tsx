@@ -7,8 +7,13 @@ import Link from "next/link";
 import { Button, Card, CardBody, CardFooter, Col, Row } from "react-bootstrap";
 import { useRouter } from "next/navigation";
 
-const CreatePostCard = () => {
+interface CreatePostCardProps {
+  mode?: "create" | "edit";
+}
+
+const CreatePostCard = ({ mode = "create" }: CreatePostCardProps) => {
   const router = useRouter();
+  const isEditMode = mode === "edit";
   
   return (
     <Card>
@@ -79,7 +84,7 @@ const CreatePostCard = () => {
                 }
               }}
             >
-              Create Notice
+              {isEditMode ? "Update Notice" : "Create Notice"}
             </Button>
           </Col>
           <Col lg={6}>

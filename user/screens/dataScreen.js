@@ -10,6 +10,7 @@ import {
   SafeAreaView,
   BackHandler,
   useWindowDimensions,
+  ActivityIndicator,
 } from "react-native";
 import { Colors, Fonts, Default } from "../constants/styles";
 import { useTranslation } from "react-i18next";
@@ -17,40 +18,16 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import { ms } from "react-native-size-matters/extend";
 import MyStatusBar from "../components/myStatusBar";
+import { getActiveServiceProviders } from "../services/serviceProviderCatalogService";
 
 const DataScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
   const isRtl = i18n.dir() === "rtl";
   const { width } = useWindowDimensions();
   const [selectedProvider, setSelectedProvider] = useState(null);
-
-  // Network providers data
-  const providers = [
-    {
-      id: "mtn",
-      name: "MTN 4G Data",
-      subtitle: "Buy data bundles for MTN numbers",
-      logo: require("../assets/images/pay1.png"),
-      icon: "wifi",
-      color: "#FFB900",
-    },
-    {
-      id: "telecel",
-      name: "Telecel Broadband",
-      subtitle: "Buy data bundles for Telecel numbers",
-      logo: require("../assets/images/pay2.png"),
-      icon: "wifi",
-      color: "#E60000",
-    },
-    {
-      id: "airtel",
-      name: "AirtelTigo Internet",
-      subtitle: "Buy data bundles for AirtelTigo numbers",
-      logo: require("../assets/images/pay3.png"),
-      icon: "wifi",
-      color: "#0057B8",
-    }
-  ];
+  const [providers, setProviders] = useState([]);
+  const [providersLoading, setProvidersLoading] = useState(true);
+  const [providerLoadError, setProviderLoadError] = useState(null);
 
   // Safe translation function that ALWAYS returns a string
   function tr(key, fallback = "Missing Translation") {
@@ -70,10 +47,30 @@ const DataScreen = ({ navigation }) => {
     return () => backHandler.remove();
   }, [navigation]);
 
+  React.useEffect(() => {
+    let isMounted = true;
+
+    const loadProviders = async () => {
+      setProvidersLoading(true);
+      const { data, error } = await getActiveServiceProviders({ serviceType: "data" });
+      if (!isMounted) return;
+      setProviders(data || []);
+      setProviderLoadError(error?.message || null);
+      setProvidersLoading(false);
+    };
+
+    loadProviders();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const handleContinue = () => {
     if (selectedProvider) {
-      navigation.navigate("selectDataPackageScreen", {
-        provider: selectedProvider.id,
+        navigation.navigate("selectDataPackageScreen", {
+        provider: selectedProvider.providerCode,
+        providerId: selectedProvider.providerId || null,
         providerName: selectedProvider.name,
         providerColor: selectedProvider.color,
         providerLogo: selectedProvider.logo
@@ -214,11 +211,50 @@ const DataScreen = ({ navigation }) => {
             {tr("Select Internet Provider")}
           </Text>
 
-          {providers.map((item) => (
-            <React.Fragment key={item.id}>
-              {renderItem({ item })}
-            </React.Fragment>
-          ))}
+          {providersLoading ? (
+            <View style={{ alignItems: "center", paddingVertical: Default.fixPadding * 2 }}>
+              <ActivityIndicator size="small" color={Colors.primary} />
+              <Text style={{ ...Fonts.Medium14grey, marginTop: Default.fixPadding }}>
+                {tr("Loading providers...")}
+              </Text>
+            </View>
+          ) : (
+            providers.map((item) => (
+              <React.Fragment key={item.id}>
+                {renderItem({ item })}
+              </React.Fragment>
+            ))
+          )}
+
+          {!providersLoading && !providers.length ? (
+            <View
+              style={{
+                backgroundColor: Colors.lightLinkWater,
+                borderRadius: 10,
+                padding: Default.fixPadding * 1.5,
+                marginTop: Default.fixPadding,
+              }}
+            >
+              <Text style={{ ...Fonts.Medium14black }}>
+                {tr("No active providers are available right now. Please try again later.")}
+              </Text>
+            </View>
+          ) : null}
+
+          {providerLoadError ? (
+            <View
+              style={{
+                backgroundColor: "#FFF3E0",
+                borderRadius: 10,
+                padding: Default.fixPadding * 1.5,
+                marginTop: Default.fixPadding,
+              }}
+            >
+              <Text style={{ ...Fonts.Medium14black }}>
+                {tr("Provider catalog is currently using fallback data.")}
+              </Text>
+            </View>
+          ) : null}
 
           {/* Instructions */}
           <View
@@ -245,9 +281,9 @@ const DataScreen = ({ navigation }) => {
         >
           <TouchableOpacity
             onPress={handleContinue}
-            disabled={!selectedProvider}
+            disabled={!selectedProvider || providersLoading}
             style={{
-              backgroundColor: selectedProvider ? Colors.primary : Colors.grey,
+              backgroundColor: selectedProvider && !providersLoading ? Colors.primary : Colors.grey,
               borderRadius: 10,
               paddingVertical: Default.fixPadding * 1.5,
               alignItems: "center",

@@ -288,7 +288,7 @@ const AmenitiesList = () => {
                       <div className="d-flex flex-column align-items-center gap-1">
                         {getTypeBadge(amenity.amenity_type || "General")}
                         <small className="text-muted fs-11">
-                          {(amenity.societies as any)?.name || "N/A"}
+                          {amenity.communityName || "N/A"}
                         </small>
                       </div>
                     </td>

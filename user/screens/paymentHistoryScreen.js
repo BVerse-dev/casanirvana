@@ -19,6 +19,7 @@ import MyStatusBar from "../components/myStatusBar";
 import DashedLine from "react-native-dashed-line";
 import { useAuth } from "../contexts/AuthContext";
 import { usePersonalHubTransactions } from "../hooks/usePersonalHubTransactions";
+import { useListPendingPayments, useListPaymentHistory } from "../hooks/usePayments";
 import { ms } from "react-native-size-matters";
 import { format } from "date-fns";
 
@@ -40,76 +41,39 @@ const PaymentHistoryScreen = ({ navigation, route }) => {
     orderBy: "created_at",
     ascending: false,
   });
+  const {
+    data: pendingMaintenance = [],
+    isLoading: isLoadingPendingMaintenance,
+    error: pendingMaintenanceError,
+    refetch: refetchPendingMaintenance,
+  } = useListPendingPayments(profile?.unit_id);
+  const {
+    data: maintenanceHistory = [],
+    isLoading: isLoadingMaintenanceHistory,
+    error: maintenanceHistoryError,
+    refetch: refetchMaintenanceHistory,
+  } = useListPaymentHistory(profile?.unit_id);
 
   function tr(key) {
     return t(`paymentScreen:${key}`);
   }
 
-  const backAction = () => {
-    navigation.pop();
-    return true;
-  };
-
   useEffect(() => {
-    BackHandler.addEventListener("hardwareBackPress", backAction);
-    return () => {
-      const subscription = BackHandler.addEventListener(
-        "hardwareBackPress",
-        backAction
-      );
-      return () => subscription?.remove();
+    const onBackPress = () => {
+      navigation.pop();
+      return true;
     };
-  }, []);
-
-  // Sample maintenance payments (would be replaced with real data from API)
-  const maintenancePayments = [
-    {
-      id: "1",
-      title: "Maintenance charge June 2022",
-      amount: 15.00,
-      currency: "GHS",
-      date: "2022-06-05T15:30:00",
-      status: "paid",
-      type: "maintenance",
-      isNew: true,
-    },
-    {
-      id: "2",
-      title: "Security Deposit",
-      amount: 15.00,
-      currency: "GHS",
-      date: "2022-06-05T15:30:00",
-      status: "pending",
-      type: "maintenance",
-      isNew: true,
-    },
-    {
-      id: "3",
-      title: "Community welfare fund",
-      amount: 15.00,
-      currency: "GHS",
-      date: "2022-06-05T15:30:00",
-      status: "failed",
-      type: "maintenance",
-      isNew: true,
-    },
-    {
-      id: "4",
-      title: "Maintenance charge May 2022",
-      amount: 15.00,
-      currency: "GHS",
-      date: "2022-05-05T15:30:00",
-      status: "paid",
-      type: "maintenance",
-      isNew: false,
-    },
-  ];
+    const subscription = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+    return () => {
+      subscription.remove();
+    };
+  }, [navigation]);
 
   // Format personal hub transactions into a consistent format
   const formatPersonalHubTransactions = () => {
     if (!transactionsData?.data) return [];
     
-    return transactionsData.data.map(transaction => {
+    return transactionsData.data.map((transaction, index) => {
       const typeLabels = {
         airtime: "Airtime Purchase",
         data: "Data Purchase",
@@ -120,7 +84,7 @@ const PaymentHistoryScreen = ({ navigation, route }) => {
       };
       
       return {
-        id: transaction.transaction_id,
+        id: transaction.transaction_id || `${transaction.transaction_type || "tx"}_${transaction.created_at || "unknown"}_${index}`,
         title: `${typeLabels[transaction.transaction_type] || transaction.transaction_type} - ${transaction.provider || ''}`,
         amount: transaction.amount || 0,
         currency: "GHS",
@@ -131,6 +95,33 @@ const PaymentHistoryScreen = ({ navigation, route }) => {
         recipientName: transaction.recipient_name || '',
         recipientIdentifier: transaction.recipient_identifier || '',
         transactionType: transaction.transaction_type,
+        provider: transaction.provider || "",
+      };
+    });
+  };
+
+  const formatMaintenancePayments = () => {
+    const combined = [...pendingMaintenance, ...maintenanceHistory];
+
+    return combined.map((payment) => {
+      const paymentDate =
+        payment.payment_date ||
+        payment.paid_at ||
+        payment.created_at ||
+        payment.updated_at ||
+        new Date().toISOString();
+
+      return {
+        id: payment.id,
+        title: payment.title || payment.description || "Community Payment",
+        amount: Number(payment.amount) || 0,
+        currency: "GHS",
+        date: paymentDate,
+        status: payment.status || "pending",
+        type: "maintenance",
+        transactionType: "maintenance",
+        isNew: new Date(paymentDate) > new Date(Date.now() - 24 * 60 * 60 * 1000),
+        paymentData: payment,
       };
     });
   };
@@ -138,6 +129,7 @@ const PaymentHistoryScreen = ({ navigation, route }) => {
   // Combine all payment types based on active tab
   const getFilteredPayments = () => {
     const personalTransactions = formatPersonalHubTransactions();
+    const maintenancePayments = formatMaintenancePayments();
     
     switch (activeTab) {
       case "maintenance":
@@ -154,9 +146,9 @@ const PaymentHistoryScreen = ({ navigation, route }) => {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await refetch();
+    await Promise.all([refetch(), refetchPendingMaintenance(), refetchMaintenanceHistory()]);
     setRefreshing(false);
-  }, [refetch]);
+  }, [refetch, refetchPendingMaintenance, refetchMaintenanceHistory]);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -309,11 +301,28 @@ const PaymentHistoryScreen = ({ navigation, route }) => {
               <TouchableOpacity
                 onPress={() => {
                   if (item.status === "pending" || item.status === "processing") {
-                    // Navigate to payment method screen for pending payments
+                    if (item.type === "personal") {
+                      navigation.push("paymentMethodScreen", {
+                        transactionType: item.transactionType,
+                        provider: item.provider || "",
+                        providerName: item.provider || "",
+                        amount: item.amount,
+                        amountFormatted: formattedAmount,
+                        phoneNumber: item.recipientIdentifier || "",
+                        description: item.recipientName || "",
+                        recipientInfo: {
+                          name: item.recipientName || "",
+                          phoneNumber: item.recipientIdentifier || "",
+                        },
+                        isPersonalHubTransaction: true,
+                      });
+                      return;
+                    }
+
                     navigation.push("paymentMethodScreen", {
-                      paymentData: item,
+                      paymentData: item.paymentData || item,
                       amount: item.amount,
-                      amountFormatted: formattedAmount
+                      amountFormatted: formattedAmount,
                     });
                   }
                 }}
@@ -373,6 +382,20 @@ const PaymentHistoryScreen = ({ navigation, route }) => {
   );
 
   const filteredPayments = getFilteredPayments();
+  const maintenanceLoading = isLoadingPendingMaintenance || isLoadingMaintenanceHistory;
+  const maintenanceError = pendingMaintenanceError || maintenanceHistoryError;
+  const screenLoading =
+    activeTab === "personal"
+      ? isLoading
+      : activeTab === "maintenance"
+      ? maintenanceLoading
+      : isLoading || maintenanceLoading;
+  const screenError =
+    activeTab === "personal"
+      ? error
+      : activeTab === "maintenance"
+      ? maintenanceError
+      : error || maintenanceError;
 
   return (
     <View style={{ flex: 1, backgroundColor: Colors.extraLightGrey }}>
@@ -397,16 +420,16 @@ const PaymentHistoryScreen = ({ navigation, route }) => {
         {renderTabButton("personal", tr("personal"))}
       </View>
 
-      {isLoading && activeTab === "personal" ? (
+      {screenLoading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
           <Text style={styles.loadingText}>{tr("loading")}</Text>
         </View>
-      ) : error && activeTab === "personal" ? (
+      ) : screenError ? (
         <View style={styles.errorContainer}>
           <MaterialIcons name="error-outline" size={50} color={Colors.red} />
           <Text style={styles.errorText}>{tr("errorLoading")}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={refetch}>
+          <TouchableOpacity style={styles.retryButton} onPress={onRefresh}>
             <Text style={styles.retryButtonText}>{tr("retry")}</Text>
           </TouchableOpacity>
         </View>
@@ -420,7 +443,7 @@ const PaymentHistoryScreen = ({ navigation, route }) => {
         <FlatList
           data={filteredPayments}
           renderItem={renderItem}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item, index) => item.id || `${item.type || "payment"}_${index}`}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingVertical: Default.fixPadding }}
           refreshControl={

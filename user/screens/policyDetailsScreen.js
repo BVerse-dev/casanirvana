@@ -23,7 +23,7 @@ const PolicyDetailsScreen = ({ navigation, route }) => {
   const { t, i18n } = useTranslation();
   const isRtl = i18n.dir() === "rtl";
   
-  const { provider, providerName } = route.params || {};
+  const { provider, providerId, providerName, providerLogo } = route.params || {};
   
   const [policyNumber, setPolicyNumber] = useState("");
   const [description, setDescription] = useState("");
@@ -40,6 +40,8 @@ const PolicyDetailsScreen = ({ navigation, route }) => {
 
   // Get logo based on provider
   const getProviderLogo = () => {
+    if (providerLogo) return providerLogo;
+
     switch (provider) {
       case "enterprise_life":
         return require("../assets/images/pay1.png");
@@ -83,6 +85,7 @@ const PolicyDetailsScreen = ({ navigation, route }) => {
 
     navigation.navigate("insuranceAmountScreen", {
       provider,
+      providerId,
       providerName,
       policyNumber,
       description,

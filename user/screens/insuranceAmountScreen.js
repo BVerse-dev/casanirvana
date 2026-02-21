@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Text,
   View,
@@ -22,13 +22,11 @@ const InsuranceAmountScreen = ({ navigation, route }) => {
   const { t, i18n } = useTranslation();
   const isRtl = i18n.dir() === "rtl";
   
-  const { provider, providerName, policyNumber, description, savePolicy, providerLogo } = route.params || {};
+  const { provider, providerId, providerName, policyNumber, description, savePolicy, providerLogo } = route.params || {};
   
   const [amount, setAmount] = useState("");
   const [isValidAmount, setIsValidAmount] = useState(false);
   const [amountError, setAmountError] = useState("");
-  const [isChecking, setIsChecking] = useState(false);
-  const [policyInfo, setPolicyInfo] = useState(null);
   const [schedulePayment, setSchedulePayment] = useState(false);
 
   // Safe translation function that ALWAYS returns a string
@@ -37,27 +35,6 @@ const InsuranceAmountScreen = ({ navigation, route }) => {
     const translated = t(key);
     return translated || fallback;
   }
-
-  // Simulate policy checking
-  useEffect(() => {
-    if (provider && policyNumber) {
-      setIsChecking(true);
-      
-      // Simulate API call
-      setTimeout(() => {
-        setPolicyInfo({
-          policyHolder: "John Doe",
-          policyType: "Life Insurance",
-          premiumAmount: 250.00,
-          dueDate: "2025-10-15",
-          coveragePeriod: "October 2025 - September 2026"
-        });
-        setAmount("250.00");
-        setIsValidAmount(true);
-        setIsChecking(false);
-      }, 2000);
-    }
-  }, [provider, policyNumber]);
 
   // Validate amount
   const validateAmount = (text) => {
@@ -86,20 +63,21 @@ const InsuranceAmountScreen = ({ navigation, route }) => {
 
     navigation.navigate("paymentMethodScreen", {
       provider,
+      providerId,
       providerName,
       policyNumber,
       description,
+      savePolicy,
       amount: parseFloat(amount),
       amountFormatted: `GHS ${parseFloat(amount).toFixed(2)}`,
       transactionType: "insurance",
-      policyInfo,
       providerLogo,
       schedulePayment,
       phoneNumber: policyNumber, // Pass policy number as phone number for mobile money screen
       recipientInfo: {
-        name: policyInfo?.policyHolder || description || "Insurance Premium",
+        name: description || "Insurance Premium",
         policyNumber: policyNumber,
-        policyType: policyInfo?.policyType || "Insurance"
+        policyType: "Insurance"
       },
       isPersonalHubTransaction: true
     });
@@ -213,101 +191,19 @@ const InsuranceAmountScreen = ({ navigation, route }) => {
               </View>
             </View>
 
-            {/* Policy Info if available */}
-            {isChecking ? (
-              <View
-                style={{
-                  backgroundColor: Colors.white,
-                  borderRadius: 10,
-                  padding: Default.fixPadding * 2,
-                  marginBottom: Default.fixPadding * 2,
-                  alignItems: "center",
-                  ...Default.shadow,
-                }}
-              >
-                <Text style={{ ...Fonts.Medium14grey }}>
-                  {tr("Checking policy information...")}
-                </Text>
-              </View>
-            ) : policyInfo ? (
-              <View
-                style={{
-                  backgroundColor: Colors.white,
-                  borderRadius: 10,
-                  padding: Default.fixPadding * 2,
-                  marginBottom: Default.fixPadding * 2,
-                  ...Default.shadow,
-                }}
-              >
-                <Text style={{ ...Fonts.SemiBold16black, marginBottom: Default.fixPadding }}>
-                  {tr("Policy Information")}
-                </Text>
-                
-                <View style={{
-                  flexDirection: isRtl ? "row-reverse" : "row",
-                  justifyContent: "space-between",
-                  marginBottom: Default.fixPadding * 0.5,
-                }}>
-                  <Text style={{ ...Fonts.Medium14grey }}>
-                    {tr("Policy Holder")}
-                  </Text>
-                  <Text style={{ ...Fonts.SemiBold14black }}>
-                    {policyInfo.policyHolder}
-                  </Text>
-                </View>
-                
-                <View style={{
-                  flexDirection: isRtl ? "row-reverse" : "row",
-                  justifyContent: "space-between",
-                  marginBottom: Default.fixPadding * 0.5,
-                }}>
-                  <Text style={{ ...Fonts.Medium14grey }}>
-                    {tr("Policy Type")}
-                  </Text>
-                  <Text style={{ ...Fonts.SemiBold14black }}>
-                    {policyInfo.policyType}
-                  </Text>
-                </View>
-                
-                <View style={{
-                  flexDirection: isRtl ? "row-reverse" : "row",
-                  justifyContent: "space-between",
-                  marginBottom: Default.fixPadding * 0.5,
-                }}>
-                  <Text style={{ ...Fonts.Medium14grey }}>
-                    {tr("Premium Amount")}
-                  </Text>
-                  <Text style={{ ...Fonts.SemiBold14primary }}>
-                    {`GHS ${policyInfo.premiumAmount.toFixed(2)}`}
-                  </Text>
-                </View>
-                
-                <View style={{
-                  flexDirection: isRtl ? "row-reverse" : "row",
-                  justifyContent: "space-between",
-                  marginBottom: Default.fixPadding * 0.5,
-                }}>
-                  <Text style={{ ...Fonts.Medium14grey }}>
-                    {tr("Due Date")}
-                  </Text>
-                  <Text style={{ ...Fonts.SemiBold14black }}>
-                    {policyInfo.dueDate}
-                  </Text>
-                </View>
-                
-                <View style={{
-                  flexDirection: isRtl ? "row-reverse" : "row",
-                  justifyContent: "space-between",
-                }}>
-                  <Text style={{ ...Fonts.Medium14grey }}>
-                    {tr("Coverage Period")}
-                  </Text>
-                  <Text style={{ ...Fonts.SemiBold14black }}>
-                    {policyInfo.coveragePeriod}
-                  </Text>
-                </View>
-              </View>
-            ) : null}
+            <View
+              style={{
+                backgroundColor: Colors.white,
+                borderRadius: 10,
+                padding: Default.fixPadding * 2,
+                marginBottom: Default.fixPadding * 2,
+                ...Default.shadow,
+              }}
+            >
+              <Text style={{ ...Fonts.Medium14grey }}>
+                Policy verification is completed during provider processing after payment initiation.
+              </Text>
+            </View>
 
             {/* Amount Input */}
             <View

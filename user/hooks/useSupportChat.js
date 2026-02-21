@@ -17,33 +17,18 @@ export const useStartSupportChat = () => {
       // First, get an available admin from the same community
       const { data: adminUsers, error: adminError } = await supabase
         .from('profiles')
-        .select('id, full_name, email, avatar_url')
+        .select('id, full_name, email, avatar_url, community_id, role')
         .eq('community_id', communityId)
         .in('role', ['admin', 'superadmin'])
         .limit(1);
 
       if (adminError) throw adminError;
 
-      let adminUser = null;
-
       if (!adminUsers || adminUsers.length === 0) {
-        // Fallback to any admin if no community-specific admin found
-        const { data: fallbackAdmins, error: fallbackError } = await supabase
-          .from('profiles')
-          .select('id, full_name, email, avatar_url')
-          .in('role', ['admin', 'superadmin'])
-          .limit(1);
-
-        if (fallbackError) throw fallbackError;
-        
-        if (!fallbackAdmins || fallbackAdmins.length === 0) {
-          throw new Error('No admin users available for support chat');
-        }
-        
-        adminUser = fallbackAdmins[0];
-      } else {
-        adminUser = adminUsers[0];
+        throw new Error('No support admin is currently assigned to your community');
       }
+      
+      const adminUser = adminUsers[0];
 
       console.log('🔍 useSupportChat: Found admin:', adminUser);
 
@@ -59,7 +44,8 @@ export const useStartSupportChat = () => {
             chat_id,
             chats:chat_id (
               id,
-              created_at
+              created_at,
+              community_id
             )
           `)
           .eq('user_id', resolvedUserId);
@@ -68,6 +54,10 @@ export const useStartSupportChat = () => {
 
         if (existingChats && existingChats.length > 0) {
           for (const chat of existingChats) {
+            if (chat?.chats?.community_id && chat.chats.community_id !== communityId) {
+              continue;
+            }
+
             const { data: adminParticipant, error: adminParticipantError } = await supabase
               .from('chat_participants')
               .select(`
@@ -78,7 +68,8 @@ export const useStartSupportChat = () => {
                   full_name,
                   email,
                   avatar_url,
-                  phone
+                  phone,
+                  community_id
                 )
               `)
               .eq('chat_id', chat.chat_id)
@@ -87,7 +78,11 @@ export const useStartSupportChat = () => {
 
             if (adminParticipantError) continue;
 
-            if (adminParticipant && adminParticipant.length > 0) {
+            if (
+              adminParticipant &&
+              adminParticipant.length > 0 &&
+              adminParticipant[0].profiles?.community_id === communityId
+            ) {
               existingChatId = chat.chat_id;
               existingChatAdmin = adminParticipant[0].profiles;
               break;

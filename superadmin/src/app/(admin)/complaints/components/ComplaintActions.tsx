@@ -1,66 +1,68 @@
 import { useState } from "react";
-import { Card, CardBody, CardHeader, CardTitle, Button, Form, Modal } from "react-bootstrap";
+import { Alert, Button, Card, CardBody, CardHeader, CardTitle, Form, Modal } from "react-bootstrap";
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
+import type { ComplaintWithContext } from "@/hooks/useComplaints";
 
 interface ComplaintActionsProps {
-  complaint: {
-    id: string;
-    status: string;
-    priority: string;
-    title: string;
-  };
-  onStatusChange?: (status: string) => void;
-  onPriorityChange?: (priority: string) => void;
+  complaint: Pick<ComplaintWithContext, "id" | "status" | "priority" | "subject">;
+  isUpdating?: boolean;
+  onStatusChange: (
+    status: "pending" | "in_progress" | "resolved",
+    options?: { resolutionNotes?: string },
+  ) => Promise<void>;
+  onPriorityChange: (
+    priority: "low" | "medium" | "high",
+    options?: { reason?: string },
+  ) => Promise<void>;
 }
 
-const ComplaintActions = ({ complaint, onStatusChange, onPriorityChange }: ComplaintActionsProps) => {
+const ComplaintActions = ({
+  complaint,
+  isUpdating = false,
+  onStatusChange,
+  onPriorityChange,
+}: ComplaintActionsProps) => {
   const [showResolveModal, setShowResolveModal] = useState(false);
   const [showEscalateModal, setShowEscalateModal] = useState(false);
   const [resolutionNotes, setResolutionNotes] = useState("");
   const [escalationReason, setEscalationReason] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
-  const handleResolveComplaint = async () => {
-    if (!resolutionNotes.trim()) return;
-
-    setIsSubmitting(true);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    console.log("Resolving complaint with notes:", resolutionNotes);
-    onStatusChange?.("resolved");
-    
-    setShowResolveModal(false);
-    setResolutionNotes("");
-    setIsSubmitting(false);
+  const runStatusAction = async (
+    status: "pending" | "in_progress" | "resolved",
+    options?: { resolutionNotes?: string },
+  ) => {
+    try {
+      setActionError(null);
+      await onStatusChange(status, options);
+      if (status === "resolved") {
+        setResolutionNotes("");
+        setShowResolveModal(false);
+      }
+    } catch (error) {
+      setActionError((error as Error).message || "Failed to update complaint status.");
+    }
   };
 
-  const handleEscalateComplaint = async () => {
-    if (!escalationReason.trim()) return;
-
-    setIsSubmitting(true);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    console.log("Escalating complaint with reason:", escalationReason);
-    onPriorityChange?.("high");
-    
-    setShowEscalateModal(false);
-    setEscalationReason("");
-    setIsSubmitting(false);
+  const runPriorityAction = async (priority: "low" | "medium" | "high", reason?: string) => {
+    try {
+      setActionError(null);
+      await onPriorityChange(priority, reason ? { reason } : undefined);
+      setEscalationReason("");
+      setShowEscalateModal(false);
+    } catch (error) {
+      setActionError((error as Error).message || "Failed to update complaint priority.");
+    }
   };
 
-  const getStatusActions = () => {
-    switch (complaint.status) {
-      case "pending":
-        return [
+  const statusActions =
+    complaint.status === "pending"
+      ? [
           {
             label: "Mark as In Progress",
             icon: "ri:play-line",
             variant: "warning",
-            action: () => onStatusChange?.("in_progress"),
+            action: () => runStatusAction("in_progress"),
           },
           {
             label: "Resolve Complaint",
@@ -68,37 +70,30 @@ const ComplaintActions = ({ complaint, onStatusChange, onPriorityChange }: Compl
             variant: "success",
             action: () => setShowResolveModal(true),
           },
-        ];
-      case "in_progress":
-        return [
-          {
-            label: "Mark as Pending",
-            icon: "ri:pause-line",
-            variant: "secondary",
-            action: () => onStatusChange?.("pending"),
-          },
-          {
-            label: "Resolve Complaint",
-            icon: "ri:check-line",
-            variant: "success",
-            action: () => setShowResolveModal(true),
-          },
-        ];
-      case "resolved":
-        return [
-          {
-            label: "Reopen Complaint",
-            icon: "ri:restart-line",
-            variant: "warning",
-            action: () => onStatusChange?.("pending"),
-          },
-        ];
-      default:
-        return [];
-    }
-  };
-
-  const statusActions = getStatusActions();
+        ]
+      : complaint.status === "in_progress"
+        ? [
+            {
+              label: "Mark as Pending",
+              icon: "ri:pause-line",
+              variant: "secondary",
+              action: () => runStatusAction("pending"),
+            },
+            {
+              label: "Resolve Complaint",
+              icon: "ri:check-line",
+              variant: "success",
+              action: () => setShowResolveModal(true),
+            },
+          ]
+        : [
+            {
+              label: "Reopen Complaint",
+              icon: "ri:restart-line",
+              variant: "warning",
+              action: () => runStatusAction("pending"),
+            },
+          ];
 
   return (
     <>
@@ -110,16 +105,22 @@ const ComplaintActions = ({ complaint, onStatusChange, onPriorityChange }: Compl
           </CardTitle>
         </CardHeader>
         <CardBody>
-          {/* Status Actions */}
+          {actionError ? (
+            <Alert variant="danger" className="mb-3">
+              {actionError}
+            </Alert>
+          ) : null}
+
           <div className="mb-4">
             <h6 className="mb-3">Status Actions</h6>
             <div className="d-grid gap-2">
-              {statusActions.map((action, index) => (
+              {statusActions.map((action) => (
                 <Button
-                  key={index}
+                  key={action.label}
                   variant={`outline-${action.variant}`}
                   size="sm"
                   onClick={action.action}
+                  disabled={isUpdating}
                 >
                   <IconifyIcon icon={action.icon} className="me-1" />
                   {action.label}
@@ -128,7 +129,6 @@ const ComplaintActions = ({ complaint, onStatusChange, onPriorityChange }: Compl
             </div>
           </div>
 
-          {/* Priority Actions */}
           <div className="mb-4">
             <h6 className="mb-3">Priority Actions</h6>
             <div className="d-grid gap-2">
@@ -136,50 +136,27 @@ const ComplaintActions = ({ complaint, onStatusChange, onPriorityChange }: Compl
                 variant="outline-danger"
                 size="sm"
                 onClick={() => setShowEscalateModal(true)}
-                disabled={complaint.priority === "high"}
+                disabled={complaint.priority === "high" || isUpdating}
               >
                 <IconifyIcon icon="ri:arrow-up-line" className="me-1" />
                 Escalate Priority
               </Button>
-              {complaint.priority !== "low" && (
+              {complaint.priority !== "low" ? (
                 <Button
                   variant="outline-success"
                   size="sm"
-                  onClick={() => onPriorityChange?.("low")}
+                  onClick={() => runPriorityAction("low")}
+                  disabled={isUpdating}
                 >
                   <IconifyIcon icon="ri:arrow-down-line" className="me-1" />
                   Lower Priority
                 </Button>
-              )}
-            </div>
-          </div>
-
-          {/* Administrative Actions */}
-          <div>
-            <h6 className="mb-3">Administrative</h6>
-            <div className="d-grid gap-2">
-              <Button variant="outline-primary" size="sm">
-                <IconifyIcon icon="ri:edit-line" className="me-1" />
-                Edit Details
-              </Button>
-              <Button variant="outline-info" size="sm">
-                <IconifyIcon icon="ri:file-copy-line" className="me-1" />
-                Duplicate Complaint
-              </Button>
-              <Button variant="outline-secondary" size="sm">
-                <IconifyIcon icon="ri:download-line" className="me-1" />
-                Export PDF
-              </Button>
-              <Button variant="outline-danger" size="sm">
-                <IconifyIcon icon="ri:delete-bin-line" className="me-1" />
-                Archive
-              </Button>
+              ) : null}
             </div>
           </div>
         </CardBody>
       </Card>
 
-      {/* Resolve Complaint Modal */}
       <Modal show={showResolveModal} onHide={() => setShowResolveModal(false)} centered>
         <Modal.Header closeButton>
           <Modal.Title>Resolve Complaint</Modal.Title>
@@ -196,22 +173,22 @@ const ComplaintActions = ({ complaint, onStatusChange, onPriorityChange }: Compl
               placeholder="Describe how the complaint was resolved..."
               value={resolutionNotes}
               onChange={(e) => setResolutionNotes(e.target.value)}
-              disabled={isSubmitting}
+              disabled={isUpdating}
             />
           </Form.Group>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowResolveModal(false)} disabled={isSubmitting}>
+          <Button variant="secondary" onClick={() => setShowResolveModal(false)} disabled={isUpdating}>
             Cancel
           </Button>
-          <Button 
-            variant="success" 
-            onClick={handleResolveComplaint}
-            disabled={!resolutionNotes.trim() || isSubmitting}
+          <Button
+            variant="success"
+            onClick={() => runStatusAction("resolved", { resolutionNotes })}
+            disabled={!resolutionNotes.trim() || isUpdating}
           >
-            {isSubmitting ? (
+            {isUpdating ? (
               <>
-                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" />
                 Resolving...
               </>
             ) : (
@@ -221,7 +198,6 @@ const ComplaintActions = ({ complaint, onStatusChange, onPriorityChange }: Compl
         </Modal.Footer>
       </Modal>
 
-      {/* Escalate Complaint Modal */}
       <Modal show={showEscalateModal} onHide={() => setShowEscalateModal(false)} centered>
         <Modal.Header closeButton>
           <Modal.Title>Escalate Complaint</Modal.Title>
@@ -238,22 +214,22 @@ const ComplaintActions = ({ complaint, onStatusChange, onPriorityChange }: Compl
               placeholder="Why is this complaint being escalated?"
               value={escalationReason}
               onChange={(e) => setEscalationReason(e.target.value)}
-              disabled={isSubmitting}
+              disabled={isUpdating}
             />
           </Form.Group>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowEscalateModal(false)} disabled={isSubmitting}>
+          <Button variant="secondary" onClick={() => setShowEscalateModal(false)} disabled={isUpdating}>
             Cancel
           </Button>
-          <Button 
-            variant="danger" 
-            onClick={handleEscalateComplaint}
-            disabled={!escalationReason.trim() || isSubmitting}
+          <Button
+            variant="danger"
+            onClick={() => runPriorityAction("high", escalationReason)}
+            disabled={!escalationReason.trim() || isUpdating}
           >
-            {isSubmitting ? (
+            {isUpdating ? (
               <>
-                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" />
                 Escalating...
               </>
             ) : (

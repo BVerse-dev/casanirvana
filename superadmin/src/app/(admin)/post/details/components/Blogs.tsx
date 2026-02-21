@@ -1,28 +1,52 @@
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
 import Image from "next/image";
-import { blogData } from "../data";
-import { Card, CardBody, CardTitle, Col, Row } from "react-bootstrap";
-import Link from "next/link";
+import { Card, CardBody, CardTitle } from "react-bootstrap";
 import { useListNotices } from "@/hooks/useNotices";
 import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
 
 const Blogs = () => {
   const router = useRouter();
   const { data: notices, isLoading } = useListNotices();
-  
-  // Get latest 5 notices sorted by creation date
-  const latestNotices = notices 
-    ? notices
-        .sort((a, b) => new Date(b.created_at || b.posted_at || 0).getTime() - new Date(a.created_at || a.posted_at || 0).getTime())
-        .slice(0, 5)
-    : [];
+  const [searchValue, setSearchValue] = useState("");
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
-  // Extract unique categories/tags from notices
-  const categories = notices 
-    ? [...new Set(notices.flatMap(notice => notice.tags || []))]
-        .filter(tag => tag && tag.trim())
-        .slice(0, 5) // Show max 5 categories
-    : ['Community Guidelines', 'Safety & Security', 'Amenity Management', 'Maintenance Updates', 'Visitor Policies'];
+  const categories = useMemo(
+    () =>
+      notices
+        ? [...new Set(notices.flatMap((notice) => notice.tags || []))]
+            .map((tag) => tag?.trim())
+            .filter((tag): tag is string => Boolean(tag))
+            .slice(0, 8)
+        : [],
+    [notices]
+  );
+
+  const latestNotices = useMemo(() => {
+    const normalizedSearch = searchValue.trim().toLowerCase();
+    const filtered = (notices || []).filter((notice) => {
+      if (selectedTag && !(notice.tags || []).includes(selectedTag)) {
+        return false;
+      }
+
+      if (!normalizedSearch) {
+        return true;
+      }
+
+      return [notice.title, notice.body, notice.author_name]
+        .filter(Boolean)
+        .some((value) => value!.toLowerCase().includes(normalizedSearch));
+    });
+
+    return filtered
+      .slice()
+      .sort(
+        (a, b) =>
+          new Date(b.created_at || b.posted_at || 0).getTime() -
+          new Date(a.created_at || a.posted_at || 0).getTime()
+      )
+      .slice(0, 5);
+  }, [notices, searchValue, selectedTag]);
 
   const handleNoticeClick = (noticeId: string) => {
     router.push(`/post/details?id=${noticeId}`);
@@ -38,6 +62,8 @@ const Blogs = () => {
               className="form-control"
               placeholder="Search"
               autoComplete="off"
+              value={searchValue}
+              onChange={(event) => setSearchValue(event.target.value)}
             />
             <IconifyIcon
               icon="solar:magnifer-broken"
@@ -50,22 +76,31 @@ const Blogs = () => {
             <CardTitle as={"h4"}>Categories</CardTitle>
           </div>
           <div className="my-3 ms-2">
-            {categories.map((category, idx) => (
-              <div className="form-check mb-2" key={idx}>
-                <input
-                  className="form-check-input fs-16"
-                  type="checkbox"
-                  id={`flexCheck${idx}`}
-                  defaultChecked={idx === 0}
-                />
-                <label
-                  className="form-check-label text-dark ms-2"
-                  htmlFor={`flexCheck${idx}`}
-                >
-                  {category}
-                </label>
-              </div>
-            ))}
+            {categories.length > 0 ? (
+              categories.map((category, idx) => (
+                <div className="form-check mb-2" key={category}>
+                  <input
+                    className="form-check-input fs-16"
+                    type="checkbox"
+                    id={`notice-tag-${idx}`}
+                    checked={selectedTag === category}
+                    onChange={() =>
+                      setSelectedTag((currentTag) =>
+                        currentTag === category ? null : category
+                      )
+                    }
+                  />
+                  <label
+                    className="form-check-label text-dark ms-2"
+                    htmlFor={`notice-tag-${idx}`}
+                  >
+                    {category}
+                  </label>
+                </div>
+              ))
+            ) : (
+              <p className="text-muted mb-0">No tags available yet.</p>
+            )}
           </div>
         </div>
         <div className="mt-4">
@@ -126,35 +161,9 @@ const Blogs = () => {
                 </li>
               ))
             ) : (
-              // Fallback to static data if no database notices
-              blogData.map((item, idx) => (
-                <li className="mb-3 pb-3 border-bottom" key={idx}>
-                  <Row>
-                    <Col lg={4}>
-                      <Link className="me-3" href="">
-                        <Image
-                          src={item.image}
-                          alt="small"
-                          className="img-fluid rounded"
-                        />
-                      </Link>
-                    </Col>
-                    <Col lg={8}>
-                      <Link href="" className="text-dark fw-medium fs-15">
-                        {item.title}{" "}
-                      </Link>
-                      <p className="text-muted mb-0">
-                        <IconifyIcon icon="ti:calendar-due" />
-                        {item.date.toLocaleString("en-us", {
-                          month: "short",
-                          day: "2-digit",
-                          year: "numeric",
-                        })}
-                      </p>
-                    </Col>
-                  </Row>
-                </li>
-              ))
+              <li className="text-muted py-2">
+                No notices match the current filters.
+              </li>
             )}
           </ul>
         </div>
@@ -176,11 +185,15 @@ const Blogs = () => {
             <CardTitle as={"h4"}>Tags</CardTitle>
           </div>
           <div className="d-flex gap-2 flex-wrap mt-3">
-            {categories.slice(0, 6).map((tag, idx) => (
-              <span key={idx} className="badge bg-light text-dark px-2 py-1 fs-12">
-                {tag}
-              </span>
-            ))}
+            {categories.length > 0 ? (
+              categories.slice(0, 6).map((tag) => (
+                <span key={tag} className="badge bg-light text-dark px-2 py-1 fs-12">
+                  {tag}
+                </span>
+              ))
+            ) : (
+              <span className="text-muted">No tags available.</span>
+            )}
           </div>
         </div>
       </CardBody>

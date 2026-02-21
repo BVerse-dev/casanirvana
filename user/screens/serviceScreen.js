@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   StyleSheet,
   Text,
   View,
@@ -15,204 +16,178 @@ import { ms } from "react-native-size-matters/extend";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import ServiceModal from "../components/serviceModal";
 import DashedLine from "react-native-dashed-line";
+import {
+  useCreateServiceRequest,
+  useListCommunityServices,
+  useListMyServiceRequests,
+} from "../hooks/useServiceRequests";
+
+const formatCurrency = (value) => `GHS ${Number(value || 0).toFixed(2)}`;
+
+const formatBookingDate = (dateString) => {
+  if (!dateString) return "N/A";
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return "N/A";
+  return date.toLocaleDateString("en-US", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+};
+
+const formatBookingTime = (timeValue) => {
+  if (!timeValue) return "N/A";
+  const parsed = new Date(`1970-01-01T${String(timeValue)}`);
+  if (Number.isNaN(parsed.getTime())) return String(timeValue);
+  return parsed.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+};
+
+const getServiceImageByName = (name = "") => {
+  const normalized = String(name).toLowerCase();
+
+  if (normalized.includes("clean")) return require("../assets/images/service1.png");
+  if (normalized.includes("appliance")) return require("../assets/images/service2.png");
+  if (normalized.includes("carpenter")) return require("../assets/images/service3.png");
+  if (normalized.includes("paint")) return require("../assets/images/service.png");
+  if (normalized.includes("plumb")) return require("../assets/images/s7.png");
+  if (normalized.includes("packer") || normalized.includes("mover")) {
+    return require("../assets/images/service4.png");
+  }
+  if (normalized.includes("sanitize")) return require("../assets/images/service5.png");
+  if (normalized.includes("hair") || normalized.includes("beauty")) {
+    return require("../assets/images/service6.png");
+  }
+  if (normalized.includes("laundry")) return require("../assets/images/service8.png");
+  if (normalized.includes("garden")) return require("../assets/images/service9.png");
+  if (normalized.includes("cooking")) return require("../assets/images/service10.png");
+  if (normalized.includes("electrical")) return require("../assets/images/s1.png");
+  if (normalized.includes("hvac")) return require("../assets/images/s2.png");
+  if (normalized.includes("pest")) return require("../assets/images/s3.png");
+  if (normalized.includes("security")) return require("../assets/images/s4.png");
+  if (normalized.includes("water")) return require("../assets/images/s1.png");
+
+  return require("../assets/images/service.png");
+};
+
+const getStatusMeta = (status = "pending") => {
+  switch (status) {
+    case "completed":
+      return { label: "Completed", color: Colors.green };
+    case "in_progress":
+      return { label: "In Progress", color: Colors.orange };
+    case "cancelled":
+      return { label: "Cancelled", color: Colors.red };
+    default:
+      return { label: "Pending", color: Colors.orange };
+  }
+};
 
 const ServiceScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
 
-  const isRtl = i18n.dir() == "rtl";
+  const isRtl = i18n.dir() === "rtl";
 
   function tr(key) {
     return t(`serviceScreen:${key}`);
   }
 
   const [openServiceModal, setOpenServiceModal] = useState(false);
-  const [activeTab, setActiveTab] = useState('services');
+  const [activeTab, setActiveTab] = useState("services");
+  const [selectedService, setSelectedService] = useState(null);
 
-  // Mock data for service bookings matching bookedAmenitiesScreen card design
-  const [serviceBookingsList, setServiceBookingsList] = useState([
-    {
-      key: "1",
-      id: "sb001",
-      image: require("../assets/images/booked1.png"),
-      title: "Home Cleaning Service",
-      date: "25 Jul 2025",
-      time: "09:00 AM",
-      confirmedBy: "Sarah Johnson",
-      price: "GH₵ 150.00",
-      confirmed: true,
-      pending: false,
-      cancelled: false,
-      status: "confirmed",
-      payment_status: "paid",
-    },
-    {
-      key: "2",
-      id: "sb002",
-      image: require("../assets/images/booked2.png"),
-      title: "Appliance Repair",
-      date: "28 Jul 2025",
-      time: "02:00 PM",
-      confirmedBy: "Mike Thompson",
-      price: "GH₵ 200.00",
-      confirmed: false,
-      pending: true,
-      cancelled: false,
-      status: "pending",
-      payment_status: "pending",
-    },
-    {
-      key: "3",
-      id: "sb003",
-      image: require("../assets/images/booked3.png"),
-      title: "Carpenter Service",
-      date: "22 Jul 2025",
-      time: "08:00 AM",
-      confirmedBy: "David Wilson",
-      price: "GH₵ 350.00",
-      confirmed: true,
-      pending: false,
-      cancelled: false,
-      status: "confirmed",
-      payment_status: "paid",
-    },
-    {
-      key: "4",
-      id: "sb004",
-      image: require("../assets/images/booked4.png"),
-      title: "Home Painting",
-      date: "15 Jul 2025",
-      time: "08:00 AM",
-      confirmedBy: "Pending",
-      price: "GH₵ 800.00",
-      confirmed: false,
-      pending: false,
-      cancelled: true,
-      status: "cancelled",
-      payment_status: "refunded",
-    },
-  ]);
+  const { data: services = [], isLoading: servicesLoading } = useListCommunityServices();
+  const { data: serviceRequests = [], isLoading: bookingsLoading } = useListMyServiceRequests();
+  const createServiceRequestMutation = useCreateServiceRequest();
 
-  const serviceList = [
-    {
-      key: "1",
-      title: tr("homeCleaning"),
-      image: require("../assets/images/service1.png"),
-    },
-    {
-      key: "2",
-      title: tr("appliancesRepair"),
-      image: require("../assets/images/service2.png"),
-    },
-    {
-      key: "3",
-      title: tr("carpentersService"),
-      image: require("../assets/images/service3.png"),
-    },
-    {
-      key: "4",
-      title: tr("homePainting"),
-      image: require("../assets/images/service.png"),
-    },
-    {
-      key: "5",
-      title: tr("plumbingService"),
-      image: require("../assets/images/s7.png"),
-    },
-    {
-      key: "6",
-      title: tr("packerMovers"),
-      image: require("../assets/images/service4.png"),
-    },
-    {
-      key: "7",
-      title: tr("homeSanitize"),
-      image: require("../assets/images/service5.png"),
-    },
-    {
-      key: "8",
-      title: tr("hairBeauty"),
-      image: require("../assets/images/service6.png"),
-    },
-    {
-      key: "9",
-      title: tr("laundryServices"),
-      image: require("../assets/images/service8.png"),
-    },
-    {
-      key: "10",
-      title: tr("gardening"),
-      image: require("../assets/images/service9.png"),
-    },
-    {
-      key: "11",
-      title: tr("cooking"),
-      image: require("../assets/images/service10.png"),
-    },
-    {
-      key: "12",
-      title: tr("electricalServices"),
-      image: require("../assets/images/s1.png"),
-    },
-    {
-      key: "13",
-      title: tr("hvacServices"),
-      image: require("../assets/images/s2.png"),
-    },
-    {
-      key: "14",
-      title: tr("pestControl"),
-      image: require("../assets/images/s3.png"),
-    },
-    {
-      key: "15",
-      title: tr("securityServices"),
-      image: require("../assets/images/s4.png"),
-    },
-    {
-      key: "16",
-      title: tr("waterTankCleaning"),
-      image: require("../assets/images/s1.png"),
-    },
-  ];
+  const serviceList = useMemo(
+    () =>
+      services.map((service) => ({
+        key: String(service.id),
+        id: service.id,
+        title: service.name,
+        image: getServiceImageByName(service.name),
+        basePrice: Number(service.base_price || 0),
+      })),
+    [services]
+  );
 
-  const [selectedService, setSelectedService] = useState(0);
+  const serviceBookingsList = useMemo(
+    () =>
+      serviceRequests.map((request) => ({
+        key: request.id,
+        id: request.id,
+        image: getServiceImageByName(request?.services?.name || request.title),
+        title: request?.services?.name || request.title || "Service Request",
+        date: formatBookingDate(request.preferred_date || request.created_at),
+        time: formatBookingTime(request.preferred_time),
+        confirmedBy: request.assigned_to || "Pending",
+        price: formatCurrency(request.total_amount || request?.services?.base_price || 0),
+        status: request.status || "pending",
+        requestDate: request.preferred_date,
+        requestTime: request.preferred_time,
+        description: request.description || request.request_details,
+        totalAmount: Number(request.total_amount || request?.services?.base_price || 0),
+      })),
+    [serviceRequests]
+  );
 
-  // Function to handle new booking creation
-  const handleBookingCreated = (newBooking) => {
-    setServiceBookingsList(prevBookings => [newBooking, ...prevBookings]);
-    // Switch to bookings tab to show the new booking
-    setActiveTab('bookings');
+  const handleBookingCreated = async (bookingInput) => {
+    const selectedServiceFromCatalog = services.find(
+      (service) => String(service.id) === String(bookingInput.serviceId)
+    );
+    const resolvedAmount = Number(
+      bookingInput.amount ?? selectedServiceFromCatalog?.base_price ?? 0
+    );
+
+    const createdRequest = await createServiceRequestMutation.mutateAsync({
+      serviceId: bookingInput.serviceId,
+      title: bookingInput.serviceTitle,
+      description: bookingInput.description,
+      preferredDate: bookingInput.date,
+      preferredTime: bookingInput.time,
+      totalAmount: resolvedAmount,
+    });
+
+    setActiveTab("bookings");
+    return {
+      ...createdRequest,
+      total_amount: Number(createdRequest?.total_amount ?? resolvedAmount),
+    };
   };
 
   // Function to switch to bookings tab
   const handleViewBookings = () => {
-    setActiveTab('bookings');
+    setActiveTab("bookings");
   };
 
   // Function to handle payment navigation
   const handleProceedToPayment = (serviceBookingDetails) => {
-    console.log('ServiceScreen - handleProceedToPayment called with:', serviceBookingDetails);
-    
-    // Navigate to payment method screen with service booking details
+    const resolvedAmount = Number(
+      serviceBookingDetails?.amount ?? serviceBookingDetails?.totalAmount ?? 0
+    );
+
     navigation.navigate("paymentMethodScreen", {
+      bookingId: serviceBookingDetails?.requestId || null,
       bookingType: "service",
+      amount: resolvedAmount,
+      amountFormatted: `GHS ${resolvedAmount.toFixed(2)}`,
       bookingData: {
-        serviceName: serviceBookingDetails?.serviceName || serviceBookingDetails?.serviceTitle,
+        serviceName:
+          serviceBookingDetails?.serviceName || serviceBookingDetails?.serviceTitle,
         serviceTitle: serviceBookingDetails?.serviceTitle || serviceBookingDetails?.serviceName,
         date: serviceBookingDetails?.date,
         time: serviceBookingDetails?.time,
         description: serviceBookingDetails?.description,
         image: serviceBookingDetails?.image,
-        totalAmount: serviceBookingDetails?.amount || 0,
-        type: "service_booking"
+        totalAmount: resolvedAmount,
+        type: "service_booking",
       },
-      // Keep paymentData for backward compatibility
       paymentData: {
-        amount: serviceBookingDetails?.amount || 0,
+        amount: resolvedAmount,
         description: "Service Booking Payment",
         type: "service_booking",
-        title: `${serviceBookingDetails?.serviceTitle || 'Service'} Booking`
-      }
+        title: `${serviceBookingDetails?.serviceTitle || "Service"} Booking`,
+      },
     });
   };
 
@@ -220,7 +195,7 @@ const ServiceScreen = ({ navigation }) => {
     return (
       <TouchableOpacity
         onPress={() => {
-          setSelectedService(index);
+          setSelectedService(item);
           setOpenServiceModal(true);
         }}
         style={{
@@ -247,13 +222,14 @@ const ServiceScreen = ({ navigation }) => {
             marginTop: Default.fixPadding,
           }}
         >
-          {item.title}
+              {item.title}
         </Text>
       </TouchableOpacity>
     );
   };
 
   const renderBookingItem = ({ item, index }) => {
+    const statusMeta = getStatusMeta(item.status);
     const lastIndex = serviceBookingsList.length - 1 === index;
     return (
       <TouchableOpacity
@@ -267,9 +243,9 @@ const ServiceScreen = ({ navigation }) => {
         }}
         activeOpacity={0.8}
         onPress={() => {
-          // Navigate to service booking detail screen
-          navigation.navigate('serviceBookingDetailScreen', {
-            booking: item
+          navigation.navigate("serviceBookingDetailScreen", {
+            bookingId: item.id,
+            booking: item,
           });
         }}
       >
@@ -308,11 +284,7 @@ const ServiceScreen = ({ navigation }) => {
                 height: 30,
                 borderTopRightRadius: isRtl ? 0 : 10,
                 borderTopLeftRadius: isRtl ? 10 : 0,
-                backgroundColor: item.confirmed
-                  ? Colors.green
-                  : item.pending
-                  ? Colors.orange
-                  : Colors.red,
+                backgroundColor: statusMeta.color,
               }}
             >
               <Text
@@ -323,11 +295,7 @@ const ServiceScreen = ({ navigation }) => {
                   paddingHorizontal: Default.fixPadding * 0.5,
                 }}
               >
-                {item.confirmed
-                  ? "Confirmed"
-                  : item.pending
-                  ? "Pending"
-                  : "Cancelled"}
+                {statusMeta.label}
               </Text>
             </View>
           </View>
@@ -349,7 +317,13 @@ const ServiceScreen = ({ navigation }) => {
             }}
           >
             <Image
-              source={item.image}
+              source={
+                typeof item.image === "number"
+                  ? item.image
+                  : typeof item.image === "string" && item.image.startsWith("http")
+                  ? { uri: item.image }
+                  : require("../assets/images/service.png")
+              }
               style={{ width: ms(83), height: ms(83), borderRadius: 10 }}
             />
 
@@ -410,13 +384,11 @@ const ServiceScreen = ({ navigation }) => {
               <Text
                 numberOfLines={1}
                 style={{ ...Fonts.Medium14black, overflow: "hidden" }}
-              >{`${item.status === "cancelled" ? "Cancelled By" : "Confirmed By"} : ${
-                item.status === "pending"
-                  ? "Pending"
-                  : item.status === "cancelled"
-                  ? "Admin"
-                  : item.confirmedBy || "Admin"
-              }`}</Text>
+              >
+                {`${item.status === "cancelled" ? "Cancelled By" : "Assigned To"} : ${
+                  item.status === "pending" ? "Pending" : item.confirmedBy || "Admin"
+                }`}
+              </Text>
             </View>
           </View>
         </View>
@@ -456,7 +428,7 @@ const ServiceScreen = ({ navigation }) => {
                 marginRight: isRtl ? Default.fixPadding * 0.5 : 0,
               }}
             >
-              {item.confirmed ? "Paid Debit Card" : "No Payment"}
+              {item.totalAmount > 0 ? "Payment Pending" : "No Payment Required"}
             </Text>
           </View>
 
@@ -562,7 +534,7 @@ const ServiceScreen = ({ navigation }) => {
                   fontWeight: '600',
                 }}
               >
-                {tr("homePainting")}
+                {serviceList[0]?.title || tr("homePainting")}
               </Text>
               
               <View
@@ -588,7 +560,9 @@ const ServiceScreen = ({ navigation }) => {
                   fontSize: 13,
                 }}
               >
-                {tr("paintService")}
+                {serviceList[0]
+                  ? "Book trusted service providers in your community."
+                  : "No active services available for your community yet."}
               </Text>
 
               <View
@@ -613,7 +587,9 @@ const ServiceScreen = ({ navigation }) => {
                     textShadowRadius: 1,
                   }}
                 >
-                  {`20 Aug 2022 | 03:30pm`}
+                  {serviceList[0]
+                    ? `${formatCurrency(serviceList[0]?.basePrice || 0)} starting price`
+                    : " "}
                 </Text>
               </View>
             </View>
@@ -628,7 +604,7 @@ const ServiceScreen = ({ navigation }) => {
               }}
             >
               <Image
-                source={require("../assets/images/service.png")}
+                source={serviceList[0]?.image || require("../assets/images/service.png")}
                 style={{
                   resizeMode: "contain",
                   width: ms(90),
@@ -669,39 +645,72 @@ const ServiceScreen = ({ navigation }) => {
 
       {/* Tab Content */}
       {activeTab === 'services' && (
-        <FlatList
-          numColumns={2}
-          data={serviceList}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.key}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ 
-            paddingTop: Default.fixPadding * 1,
-            paddingBottom: Default.fixPadding * 3
-          }}
-          style={{ backgroundColor: Colors.regularGrey }}
-        />
+        servicesLoading ? (
+          <View style={styles.loadingWrap}>
+            <ActivityIndicator size="small" color={Colors.primary} />
+          </View>
+        ) : (
+          <FlatList
+            numColumns={2}
+            data={serviceList}
+            renderItem={renderItem}
+            keyExtractor={(item) => item.key}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{
+              paddingTop: Default.fixPadding * 1,
+              paddingBottom: Default.fixPadding * 3,
+              flexGrow: 1,
+            }}
+            style={{ backgroundColor: Colors.regularGrey }}
+            ListEmptyComponent={() => (
+              <View style={styles.emptyStateWrap}>
+                <Text style={styles.emptyStateTitle}>No Services Available</Text>
+                <Text style={styles.emptyStateSubtitle}>
+                  Services will appear here once your community admin enables them.
+                </Text>
+              </View>
+            )}
+          />
+        )
       )}
 
       {activeTab === 'bookings' && (
-        <FlatList
-          data={serviceBookingsList}
-          renderItem={renderBookingItem}
-          keyExtractor={(item) => item.key}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ 
-            paddingTop: Default.fixPadding * 1,
-            paddingBottom: Default.fixPadding * 3
-          }}
-          style={{ backgroundColor: Colors.regularGrey }}
-        />
+        bookingsLoading ? (
+          <View style={styles.loadingWrap}>
+            <ActivityIndicator size="small" color={Colors.primary} />
+          </View>
+        ) : (
+          <FlatList
+            data={serviceBookingsList}
+            renderItem={renderBookingItem}
+            keyExtractor={(item) => item.key}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{
+              paddingTop: Default.fixPadding * 1,
+              paddingBottom: Default.fixPadding * 3,
+              flexGrow: 1,
+            }}
+            style={{ backgroundColor: Colors.regularGrey }}
+            ListEmptyComponent={() => (
+              <View style={styles.emptyStateWrap}>
+                <Text style={styles.emptyStateTitle}>No Service Requests Yet</Text>
+                <Text style={styles.emptyStateSubtitle}>
+                  Your service requests will appear here after submission.
+                </Text>
+              </View>
+            )}
+          />
+        )
       )}
 
       <ServiceModal
         visible={openServiceModal}
         closeServiceModal={() => setOpenServiceModal(false)}
-        image={serviceList[selectedService].image}
-        title={serviceList[selectedService].title}
+        image={selectedService?.image}
+        title={selectedService?.title}
+        serviceId={selectedService?.id}
+        basePrice={selectedService?.basePrice || 0}
+        isSubmitting={createServiceRequestMutation.isPending}
         onBookingCreated={handleBookingCreated}
         onViewBookings={handleViewBookings}
         onProceedToPayment={handleProceedToPayment}
@@ -766,6 +775,29 @@ const styles = StyleSheet.create({
     marginBottom: Default.fixPadding,
   },
   noBookingsSubText: {
+    ...Fonts.Medium14grey,
+    textAlign: "center",
+    lineHeight: 20,
+  },
+  loadingWrap: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: Colors.regularGrey,
+  },
+  emptyStateWrap: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: Default.fixPadding * 3,
+    paddingVertical: Default.fixPadding * 4,
+  },
+  emptyStateTitle: {
+    ...Fonts.SemiBold18black,
+    textAlign: "center",
+    marginBottom: Default.fixPadding * 0.8,
+  },
+  emptyStateSubtitle: {
     ...Fonts.Medium14grey,
     textAlign: "center",
     lineHeight: 20,

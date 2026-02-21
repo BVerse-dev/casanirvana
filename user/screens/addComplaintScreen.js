@@ -6,13 +6,12 @@ import {
   Dimensions,
   StyleSheet,
   Image,
-  FlatList,
   ScrollView,
   TextInput,
   Modal,
   Alert,
 } from "react-native";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Colors, Default, Fonts } from "../constants/styles";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -34,15 +33,6 @@ const AddComplaintScreen = ({ navigation }) => {
   const { user, profile } = useAuth();
   const createComplaint = useCreateComplaint();
   const createComplaintWithImage = useCreateComplaintWithImage();
-  
-  // Add a manual refresh mechanism for testing
-  const [refreshProfile, setRefreshProfile] = useState(0);
-  
-  // Manual profile refresh function for testing
-  const handleRefreshProfile = () => {
-    console.log('Manually refreshing profile...');
-    setRefreshProfile(prev => prev + 1);
-  };
 
   // Debug: log current profile to see what's available
   useEffect(() => {
@@ -52,20 +42,18 @@ const AddComplaintScreen = ({ navigation }) => {
     console.log('Profile community_id:', profile?.community_id);
   }, [user, profile]);
 
-  const isRtl = i18n.dir() == "rtl";
+  const isRtl = i18n.dir() === "rtl";
   function tr(key) {
     return t(`addComplaintScreen:${key}`);
   }  
-  const backAction = () => {
+  const backAction = useCallback(() => {
     navigation.pop();
     return true;
-  };
+  }, [navigation]);
   useEffect(() => {
-    BackHandler.addEventListener("hardwareBackPress", backAction);
-
-    return () => {
-      const subscription = BackHandler.addEventListener("hardwareBackPress", backAction); return () => subscription?.remove(); }
-  }, []);
+    const subscription = BackHandler.addEventListener("hardwareBackPress", backAction);
+    return () => subscription?.remove();
+  }, [backAction]);
   const [pickedImages, setPickedImages] = useState([]);
   const [isSubmittingComplaint, setIsSubmittingComplaint] = useState(false);
 
@@ -100,7 +88,8 @@ const AddComplaintScreen = ({ navigation }) => {
 
   const [selectedTab, setSelectedTab] = useState(tr("personal"));
 
-  const [complaintTypeModal, setComplaintTypeModal] = useState(false);  const typeList = [
+  const [complaintTypeModal, setComplaintTypeModal] = useState(false);
+  const typeList = [
     {
       key: "1",
       title: "Maintenance",
@@ -214,14 +203,11 @@ const AddComplaintScreen = ({ navigation }) => {
       // Show error toast for no category selected
       return;
     }
-      try {      // Validate required fields - but allow submission without unit_id for testing
+    try {
       if (!profile?.unit_id) {
-        console.warn('User profile missing unit_id - continuing with fallback');
-        // Show info but continue with submission
         Alert.alert(
-          'Unit Info Missing',
-          'Your unit information is missing. The complaint will be submitted without unit assignment. Please contact admin to assign your unit.',
-          [{ text: 'Continue', onPress: () => submitWithFallback() }]
+          "Unit Assignment Required",
+          "Your account is missing a unit assignment. Please contact management before submitting a complaint.",
         );
         return;
       }
@@ -233,53 +219,11 @@ const AddComplaintScreen = ({ navigation }) => {
     }
   };
 
-  // Function to submit complaint with fallback values for testing
-  const submitWithFallback = async () => {    
-    setIsSubmittingComplaint(true);
-    try {      
-      // Determine the correct profile ID to use
-      const actualProfileId = profile?.unit_id ? profile.id : user?.id;
-      console.log('Using profile ID for complaint:', actualProfileId, 'Profile has unit_id:', !!profile?.unit_id);
-      
-      const complaintData = {
-        subject: complaintTitle?.trim() || `${selectedType} Issue`, // Use 'subject' not 'title'
-        details: briefComplaint.trim(), // Use 'details' not 'description'
-        category: selectedType,        
-        complaint_type: selectedTab.toLowerCase(), // 'personal' or 'community'        
-        priority: 'medium', // Default priority
-        status: 'pending', // Use 'pending' instead of 'open'
-        raised_by: actualProfileId, // Use the profile that has unit_id data
-        unit_id: profile?.unit_id || null, // Allow null for testing
-        // Add image URIs if available
-        imageUris: pickedImages.length > 0 ? pickedImages : null
-      };
-      
-      // Use the appropriate hook based on whether there are images
-      if (pickedImages.length > 0) {
-        console.log('Submitting complaint with images...');
-        await createComplaintWithImage.mutateAsync(complaintData);
-      } else {
-        // Remove imageUris from data when using regular hook
-        const { imageUris, ...dataWithoutImage } = complaintData;
-        console.log('Submitting complaint without images...');
-        await createComplaint.mutateAsync(dataWithoutImage);
-      }
-      
-      setSubmitComplaintModal(true);
-    } catch (error) {
-      console.error('Error submitting complaint with fallback:', error);
-      Alert.alert('Error', 'Failed to submit complaint. Please try again.');
-    } finally {
-      setIsSubmittingComplaint(false);
-    }
-  };
-
   // Function to submit complaint with full validation
   const submitComplaint = async () => {    
     setIsSubmittingComplaint(true);
     try {
-      // Determine the correct profile ID to use
-      const actualProfileId = profile?.unit_id ? profile.id : user?.id;
+      const actualProfileId = profile?.id;
       console.log('Using profile ID for complaint:', actualProfileId, 'Profile has unit_id:', !!profile?.unit_id);
              
       const complaintData = {
@@ -383,7 +327,7 @@ const AddComplaintScreen = ({ navigation }) => {
                 // Add new image to the array
                 setPickedImages(prev => [...prev, result.uri]);
               }}
-              closeBottomSheet={() => setShowCamera()}
+              closeBottomSheet={() => setShowCamera(false)}
             />
           )}
 
@@ -527,14 +471,16 @@ const AddComplaintScreen = ({ navigation }) => {
           })}
         </View>
 
-        <View style={{ marginHorizontal: Default.fixPadding * 2 }}>          <Text
+        <View style={{ marginHorizontal: Default.fixPadding * 2 }}>
+          <Text
             style={{
               ...Fonts.Medium16black,
               textAlign: isRtl ? "right" : "left",
             }}
           >
             {"Complaint Type"}
-          </Text>          <TouchableOpacity
+          </Text>
+          <TouchableOpacity
             onPress={() => setComplaintTypeModal(true)}
             style={{
               marginBottom: Default.fixPadding * 3,
@@ -554,7 +500,8 @@ const AddComplaintScreen = ({ navigation }) => {
             >{confirmComplaintType
                 ? confirmComplaintType
                 : "Select Complaint Type"}
-            </Text>          </TouchableOpacity>
+            </Text>
+          </TouchableOpacity>
 
           <Text
             style={{
@@ -620,7 +567,8 @@ const AddComplaintScreen = ({ navigation }) => {
         style={{
           margin: Default.fixPadding * 2,
         }}
-      >        <AwesomeButton
+      >
+        <AwesomeButton
           height={50}
           onPress={handleSubmitComplaint}
           raiseLevel={1}
@@ -653,7 +601,8 @@ const AddComplaintScreen = ({ navigation }) => {
           activeOpacity={1}
           onPressOut={() => setComplaintTypeModal(false)}
           style={{ flex: 1 }}
-        >          <View style={styles.mainModalView}>
+        >
+          <View style={styles.mainModalView}>
             <TouchableOpacity activeOpacity={1} style={styles.subModalView}>
               <Text
                 style={{

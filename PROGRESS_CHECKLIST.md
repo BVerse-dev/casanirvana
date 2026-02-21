@@ -117,6 +117,16 @@ Date: 2026-02-06
 - [x] Wave 2: Domain 4 constrained personal-hub checkout to supported payment path in `paymentMethodScreen` to prevent unsupported-method runtime failures.
 - [x] Wave 2: Domain 4 schema gap closed for `saved_bill_accounts` and `saved_policies` via migration `20260207145514_phase9_slice4_saved_accounts_policies.sql` (RLS + indexes + updated_at triggers).
 - [x] Wave 2: Domain 4 removed legacy `reviewPayScreen` from active navigator map (`user/App.js`) to eliminate non-persistent local checkout path and close remaining slice-4 partial flow gap.
+- [x] Wave 2: Domain 4 removed simulated bill/policy verification placeholders in `billAmountScreen` and `insuranceAmountScreen`; both flows now use explicit user-entered amounts and pass canonical payload only.
+- [x] Wave 2: Domain 4 removed fake mobile-money success timer in `mobileMoneyScreen`; checkout now records pending status and shows a production-safe `Payment Initiated` confirmation with reference.
+- [x] Wave 2: Domain 4 wired `saveAccount` / `savePolicy` preferences to persisted upsert writes (`saved_bill_accounts`, `saved_policies`) after successful personal-hub payment initiation.
+- [x] Wave 2: Domain 4 replaced hardcoded provider catalogs in user entry screens (`airtime`, `data`, `transfer`, `utilities`, `tv`, `insurance`) with DB-backed provider loading via safe RPC contract plus resilient fallback catalog.
+- [x] Wave 2: Domain 4 propagated `providerId` end-to-end through personal-hub checkout payload and now persists `provider_id` on new personal-hub transaction rows where schema supports it.
+- [x] Wave 2: Domain 4 removed remaining simulated-success behavior from legacy `reviewPayScreen`; if reached, it now forwards to canonical payment processing screens instead of local fake completion.
+- [x] Wave 2: Domain 4 removed demo maintenance payment rows from `paymentHistoryScreen`; maintenance tab now renders real `payments` data (`pending` + `completed`) scoped by authenticated unit.
+- [x] Wave 2: Domain 4 fixed pending "Pay Now" retry path in `paymentHistoryScreen` for personal-hub records to re-enter canonical personal-hub checkout (`paymentMethodScreen` with transaction metadata) instead of generic payment payload.
+- [x] Wave 2: Domain 4 fixed hardware-back listener cleanup in `paymentHistoryScreen` and `paymentReceiptScreen` to prevent duplicate listener registration.
+- [x] Wave 2: Payments UX hardening pass removed debug-noise + simulated delay behavior from `creditCardScreen` checkout (`setTimeout` processing removed; flow now uses direct DB write/update response path).
 - [x] Wave 2: Domain 5 (`Marketplace`) restored follow schema via migration `20260207150526_phase9_slice5_marketplace_followers.sql` (`marketplace_vendor_followers`, vendor `follower_count`, trigger-based counter sync, owner-scoped RLS).
 - [x] Wave 2: Domain 5 removed generic `increment`/`decrement` RPC dependency from `marketplaceService` follow/unfollow flow.
 - [x] Wave 2: Domain 5 normalized marketplace hook user-key fallback (`profile.user_id` -> `profile.user_id || profile.id`) in `useMarketplace`.
@@ -172,6 +182,117 @@ Date: 2026-02-06
 - [x] Fixed delivery company confirm/submit mismatch and cleaned dead pre-approve visitor state.
 - [x] Added lifecycle contract doc: `user/VISITORS_LIFECYCLE_CONTRACT.md`.
 - [ ] Remaining legacy seed rows with `visitor_passes.created_by IS NULL` (15) and `unit_id/community_id` both null (3) require manual attribution or archival (intentionally unchanged by safe cleanup).
+
+## Phase 13 - Notice Module Hardening
+- [x] Superadmin notice create flow now derives `community_id` from authenticated admin scope (removed hardcoded `default-community`).
+- [x] User notice detail now supports both navigation contracts (`{ notice }` and `{ noticeId }`) with safe DB fallback and no runtime crash path.
+- [x] Applied migration `supabase/migrations/20260221113000_phase13_notices_rls_scope_hardening.sql` (removed permissive notice read policies and enforced scoped notice access via `can_access_community`).
+- [x] Applied migration `supabase/migrations/20260221115000_phase13_comments_notice_contract_hardening.sql` to normalize `comments.notice_id` to UUID + FK, rebuild comments RLS join contract, and preserve legacy static/unlinked rows in backup table `datafix_phase13_legacy_notice_comments_backup` (15 rows).
+- [x] Retired static-notice comment write path in superadmin notice details (static placeholders are now read-only for comments).
+- [x] Removed duplicate notice realtime subscription in user notice board screen (global `AuthContext` realtime invalidation remains canonical).
+- [x] Hardened user notice service error propagation (`getNoticesForCommunity`) so query failures surface through React Query error states.
+- [x] Normalized superadmin notice category contract for new creates (lowercase canonical values) and made article filtering case-insensitive for legacy rows.
+- [x] Removed broken superadmin dependency on missing RPC `increment_comment_likes` by switching to direct comment like-count update flow.
+- [x] Added production notice edit route (`/post/edit?id=...`) and wired details-page edit action to a real DB-backed update form.
+- [x] Removed non-functional resident notice delete CTA from user `noticeBoardScreen` (read-only user flow preserved with share/favorite/detail actions).
+- [x] Superadmin notice comments/replies now attribute `author_name`/`author_avatar` from active session instead of hardcoded placeholders.
+- [x] Superadmin notice details sidebar (`Blogs`/`PhotoCard`) now uses DB-only notice/media data (static fallback content removed), with functional search/tag filtering and empty states.
+- [x] Superadmin notice details metrics row now displays live notice like/view counts and computed comment totals; non-functional overflow menu actions removed.
+
+## Phase 14 - Payments Domain Hardening
+- [x] Applied migration `supabase/migrations/20260221101410_phase14_payments_rls_and_datafix.sql`.
+- [x] Applied migration `supabase/migrations/20260221104014_phase14_public_service_provider_catalog_rpc.sql`.
+- [x] Hardened `service_providers` access model (RLS policies rebuilt; admin-scoped read, superadmin-scoped writes, service-role full access).
+- [x] Added secure provider catalog read function `public.list_active_service_providers(text)` (security-definer, row-security-off, non-sensitive columns only, execute granted to `authenticated`/`service_role`).
+- [x] Hardened `transaction_status_logs` access model (scoped read via transaction ownership/tenant checks; admin-scoped inserts; service-role full access).
+- [x] Switched `personal_hub_transactions` view to `security_invoker = true` and reduced grants to `SELECT` only for `authenticated`/`service_role`.
+- [x] Ran reversible cleanup for personal-hub transaction user attribution with backup table `public.datafix_phase14_payment_user_id_backfill_backup` and cleanup tag `phase14_payments_user_id_cleanup_20260221`.
+- [x] Ran reversible pass-2 cleanup for personal-hub transaction user attribution (`phase14_personal_hub_user_id_backfill_pass2_auth_only`) using backup table `public.datafix_phase14_personal_hub_user_id_backfill_pass2_backup` and cleanup tag `phase14_payments_user_id_cleanup_pass2_20260221`.
+- [x] Archived unresolved legacy personal-hub rows with null `user_id` into reversible phase-14 archive tables and removed them from live transaction tables via migration `supabase/migrations/20260221215412_phase14_personal_hub_null_user_archival.sql` (`airtime` 12, `data` 12, `money_transfers` 6, `bill_payments` 6).
+- [x] Payments module closure gate met for production runtime flows; `personal_hub_transactions` now has zero null-actor rows in live data (`user_id IS NULL` = 0).
+- [x] Fixed user payment insert runtime blockers: moved non-schema card fields to `payments.metadata`, enforced `unit_id` + `payer_id` in card/paypal payment creation flows, and replaced legacy `payments` RLS with actor/unit scoped Phase 21 policies (`supabase/migrations/20260221213000_phase21_payments_rls_actor_scope_fix.sql`).
+- [x] Fixed payments FK runtime blocker (`payments_booking_id_fkey`) by removing invalid `booking_id` writes from user checkout screens (amenity/service request IDs are now stored as `metadata.source_booking_id` + `metadata.source_booking_type` instead of writing into `payments.booking_id` which references `service_bookings` only).
+- [x] Reworked user `successScreen` into a context-aware receipt view (service booking vs amenity booking vs generic payment), fixed nested navigation target (`bottomTab -> homeScreen`), and added Expo Go-safe receipt fallback when native PDF module is unavailable.
+- [x] Fixed remaining direct `homeScreen` navigation calls in non-tab stack screens (`messageScreen`, `guardCallingScreen`, `paymentReceiptScreen`, `mobileMoneyScreen`) by routing through nested navigator target (`bottomTab -> homeScreen`).
+- [x] Fixed amenity post-payment RLS violation path by updating only `payment_status` (not booking `status`) for user-driven amenity payment completion.
+
+## Phase 15 - Book Amenities Hardening
+- [x] Applied migration `supabase/migrations/20260221124000_phase15_amenities_rls_contract_cleanup.sql`.
+- [x] Added reversible backup table `public.amenity_bookings_cleanup_backup_20260221` before amenity booking cleanup.
+- [x] Backfilled and normalized `amenity_bookings` contract fields (`community_id`, `total_amount`, `booking_date`, `start_time`, `end_time`).
+- [x] Added trigger `trg_sync_amenity_booking_contract_fields` to keep booking contract fields synced on insert/update.
+- [x] Replaced permissive legacy RLS on `amenities` and `amenity_bookings` with tenant-scoped policy set (`p15_*`).
+- [x] Wired superadmin amenity bookings actions (approve/reject) to real DB mutation flow in list and details views.
+- [x] Fixed user app amenities query invalidation mismatch (`amenityBookings` key) and corrected hardware-back listener cleanup in amenity screens.
+- [x] Aligned user booking create payload with DB contract (`user_id` as profile id, plus `community_id`, `total_amount`, `is_paid`).
+- [x] Removed remaining Book Amenities UI “Societies” wording in superadmin surfaces (`Community` naming retained).
+- [x] Fixed free-amenity booking UX in user app: free bookings now bypass payment-method selection and complete via booking confirmation path.
+- [x] Added user-app `amenityBookingReviewScreen` as a dedicated final review/confirm step and wired post-submit modal actions (`Continue to Payment` for paid bookings, `View Bookings`/`Back Home` for free bookings).
+- [x] Polished amenity final-review UX card + confirmation modal (paid/free badge, rate display, booking reference pill) for production consistency.
+- [x] Fixed paid/free consistency bug on `bookAmenityScreen`: status badge + price label now respect amenity `is_paid`, and price calculation now enforces explicit free amenities as zero-cost.
+- [x] Manual end-to-end QA completed (user create/list/details + superadmin approve/reject + cross-app visibility).
+
+## Phase 16 - Help Desk Hardening
+- [x] Fixed user-app Help Desk hook contract mismatch (`useSubmitGeneralInquiry`/`useSubmitTechnicalSupport`) by exposing expected submit function aliases.
+- [x] Added canonical inquiry payload mappers in `user/utils/inquiryPayloadMappers.js` and rewired user forms to send DB-aligned snake_case fields only.
+- [x] Fixed user-form state key mismatches blocking persisted values (`preferredContactMethod`, `reproductionSteps`).
+- [x] Added profile/community guardrails before inquiry submission for user-side forms.
+- [x] Normalized inquiry actor mapping to auth user identity (`user_id = profile.user_id || profile.id`) to satisfy current `inquiries` RLS contract.
+- [x] Built superadmin inquiries operations module (list/filter/detail with assign/respond/resolve actions) mapped to `public.inquiries` at `/help-desk/inquiries`.
+- [x] Hardened `public.inquiries` RLS via migration `supabase/migrations/20260221140227_phase16_inquiries_rls_hardening.sql` and applied it to the Casa Nirvana project.
+- [x] Tightened support-chat fallback to community-scoped admins only (removed cross-community fallback and cross-community existing-chat reuse).
+
+## Phase 17 - Complaints Hardening
+- [x] Wired superadmin complaints hooks to include reporter/unit/community context (`profiles`, `units`, `communities`) with profile fallback resolution by `profiles.id` and `profiles.user_id`.
+- [x] Wired superadmin complaints status/priority actions in list and details pages to real backend mutations (`PATCH /admin/complaints/:id`) and real delete flow.
+- [x] Replaced superadmin complaints comments sample/simulated flow with DB-backed read/write (`get_complaint_comments_with_profiles` + `complaint_comments` insert).
+- [x] Fixed backend complaint create default status contract (`open` -> `pending`) in `/Users/andromeda/casanirvana/backend/src/services/complaint.ts`.
+- [x] Expanded backend complaint update validation to include production action fields (`priority`, `resolution_notes`, `resolved_by_profile_id`, `updated_at`, editable `subject/details`).
+- [x] Added and applied migration `supabase/migrations/20260221152000_phase17_complaint_comments_rls_hardening.sql` to harden `complaint_comments` RLS to complaint-scoped tenant access and to upgrade comment-profile resolution fallback.
+- [x] Removed user-app complaint null-unit fallback path in `/Users/andromeda/casanirvana/user/screens/addComplaintScreen.js`; complaint submission now requires assigned unit.
+- [x] Added and applied migration `supabase/migrations/20260221164500_phase17_complaints_community_visibility_scope.sql` to explicitly allow `complaint_type='community'` reads within accessible community scope (`can_access_community(units.community_id)`).
+- [x] Aligned user `useListCommunityComplaints` query to authenticated `profile.community_id` and replaced per-row profile fetches with joined/fallback profile resolution.
+- [x] Removed legacy route-param complaint fallback path from user complaint navigation/details (`complaintsPersonalTab`, `complaintsCommunityTab`, `complaintDetailScreen`); detail screen now uses canonical DB complaint payload.
+- [x] Hardened user complaint reporter profile resolution in `useGetComplaint` with direct joins plus fallback lookup on both `profiles.id` and `profiles.user_id`.
+
+## Phase 18 - Maintenance Hardening
+- [x] Normalized maintenance status contract to canonical DB enum (`pending`, `in_progress`, `completed`) across user and superadmin flows (removed `resolved` write-path usage).
+- [x] Wired superadmin maintenance list actions to real operations (view/details route, complete/reopen status mutation, delete with confirmation).
+- [x] Hardened superadmin maintenance detail actions to write completion metadata (`completed_at`, `resolved_at`) and removed non-wired quick-action placeholders.
+- [x] Removed user maintenance legacy route-param fallback from detail flow; maintenance detail now reads DB-backed payload only.
+- [x] Consolidated maintenance realtime to global `AuthContext` subscription (`requested_by=profile.id`) and removed duplicate screen-level subscription in `maintenanceRequestsScreen`.
+- [x] Added and applied migration `supabase/migrations/20260221161045_phase18_maintenance_profile_unit_alignment_cleanup.sql` (reversible backup + targeted pending-row unit alignment for `thebornless144@gmail.com`).
+- [x] Added and applied migration `supabase/migrations/20260221173000_phase18_maintenance_attachments_support.sql` to add `maintenance_requests.images text[]` with max-5 attachment guardrail.
+- [x] Re-enabled maintenance image attachments in user create flow (`addMaintenanceRequestScreen`) and wired uploads to Storage bucket `attachments` via `useCreateMaintenanceRequestWithImages`.
+- [x] Wired superadmin maintenance details Attachments tab to render real `maintenance_requests.images` gallery with preview modal and external open action.
+- [x] Aligned user maintenance status presentation with full DB enum (`pending`, `in_progress`, `completed`, `cancelled`) and strengthened realtime invalidation for maintenance list/detail updates.
+
+## Phase 19 - Chat Module Hardening
+- [x] Removed hardcoded superadmin chat sender identity in `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/messages/components/ChatArea.tsx`; sender now resolves from authenticated session profile (`session.user.id`).
+- [x] Prevented self-chat default in superadmin contact sourcing by excluding current profile from `useListChatUsers` and keeping only auth-backed profiles.
+- [x] Aligned superadmin chat attachment upload path to owner-scoped storage key format (`{auth.uid}/chat/{file}`) for policy-safe writes.
+- [x] Aligned user chat attachment uploads to bucket `chat-attachments` with owner-scoped key prefix (`{auth.uid}/chat/{file}`).
+- [x] Normalized remaining React Query invalidation calls in user messaging hooks to TanStack v5 object-form query keys.
+- [x] Applied migration `supabase/migrations/20260221175254_phase19_chat_calls_and_storage_hardening.sql` (legacy calls policy cleanup, scoped calls RLS rebuild, and explicit `chat-attachments` storage policies for authenticated owner + service role).
+- [ ] Manual runtime QA pending for end-to-end chat lifecycle (`superadmin -> user`, attachments, read receipts, call state transitions).
+
+## Phase 20 - Service Module Hardening (Bottom Tab)
+- [x] Replaced user `serviceScreen` local mock catalog/bookings with DB-backed wiring (`services` + `service_requests`) and removed local-only booking state from runtime flow.
+- [x] Rewired user `serviceModal` submit path to real `service_requests` insert mutation with unit/community/auth actor enforcement and retained post-submit booking/payment navigation.
+- [x] Added user hooks `useListCommunityServices`, `useListMyServiceRequests`, `useGetServiceRequest`, and `useCreateServiceRequest` in `/Users/andromeda/casanirvana/user/hooks/useServiceRequests.js`.
+- [x] Fixed `serviceBookingDetailScreen` back-handler cleanup bug and added canonical request fetch by `bookingId` with DB-first fallback.
+- [x] Added module-toggle coverage for bottom-tab `serviceScreen` in `/Users/andromeda/casanirvana/user/services/moduleSettingsService.js` (`services` slug).
+- [x] Removed superadmin service-request mock fallback/debug path by rewriting `/Users/andromeda/casanirvana/superadmin/src/hooks/useServiceRequests.ts` to DB-only joined queries with profile resolution.
+- [x] Wired superadmin service-request status actions (`pending -> in_progress -> completed`) in list/details screens.
+- [x] Applied migration `supabase/migrations/20260221191500_phase20_services_and_service_bookings_rls_hardening.sql` (tightened `services` and `service_bookings` RLS scope; removed permissive legacy policies).
+- [x] Resume checkpoint validated after crash (latest service edits preserved through `2026-02-21 18:29` in user + superadmin service files).
+- [x] Removed non-functional/placeholder controls from superadmin service-request details and view pages (disabled edit/export, placeholder history/actions, static sidebar statistics, unlinked `New Request` button replaced with `Manage Services`).
+- [x] Applied migration `supabase/migrations/20260221202000_phase20_service_requests_scope_guardrail.sql` to resolve `service_requests`↔`services` community mismatch safely (24 mismatched rows backed up and detached with title preservation) and enforce future scope match by trigger (`trg_service_requests_enforce_service_scope`).
+- [x] Aligned service module presentation contract across apps (canonical status labels and GHS currency formatting in service requests list/detail surfaces).
+- [x] Added service module realtime invalidation in user app for `service_requests` and community `services` changes via `/Users/andromeda/casanirvana/user/hooks/useRealtimeSubscriptions.ts`.
+- [x] Hardened user service-create UX confirmation path so success modal only opens when `service_requests` insert returns a persisted request id (`useCreateServiceRequest` + `serviceModal`).
+- [x] Fixed service booking payment summary amount propagation (`serviceScreen -> paymentMethodScreen`) by passing canonical `amount/amountFormatted` and prioritizing booking payload totals over stale route params.
+- [ ] Manual runtime QA pending for service lifecycle (`user create -> user list/detail -> superadmin status update -> user reflects update`).
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)

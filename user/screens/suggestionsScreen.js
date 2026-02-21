@@ -19,6 +19,7 @@ import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import AwesomeButton from "react-native-really-awesome-button";
 import { useAuth } from "../contexts/AuthContext";
 import { useSubmitSuggestion } from "../hooks/useSuggestions";
+import { buildSuggestionPayload } from "../utils/inquiryPayloadMappers";
 
 const SuggestionsScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
@@ -149,22 +150,15 @@ const SuggestionsScreen = ({ navigation }) => {
       return;
     }
 
+    if (!profile?.id || !profile?.community_id) {
+      Alert.alert('Error', 'Please complete your profile before submitting suggestions.');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      const suggestionData = {
-        ...formData,
-        user_id: formData.isAnonymous ? null : profile?.id,
-        user_name: formData.isAnonymous ? null : profile?.full_name,
-        user_email: formData.isAnonymous ? null : profile?.email,
-        user_phone: formData.isAnonymous ? null : profile?.phone_number,
-        unit_number: formData.isAnonymous ? null : profile?.unit_number,
-        community_id: profile?.community_id,
-        inquiry_type: 'suggestion',
-        status: 'open',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
+      const suggestionData = buildSuggestionPayload(formData, profile);
 
       // Submit to Supabase
       const result = await submitSuggestion(suggestionData);
@@ -389,7 +383,7 @@ const SuggestionsScreen = ({ navigation }) => {
           size={24}
           color={Colors.primary}
         />
-        <Text style={styles.toggleOptionText}>I'm willing to help implement this suggestion</Text>
+        <Text style={styles.toggleOptionText}>I&apos;m willing to help implement this suggestion</Text>
       </TouchableOpacity>
 
       <TouchableOpacity

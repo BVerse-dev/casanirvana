@@ -6806,6 +6806,7 @@ export type Database = {
           description: string | null
           estimated_cost: number | null
           id: number
+          images: string[] | null
           priority: string
           request_type: string
           requested_by: string
@@ -6824,6 +6825,7 @@ export type Database = {
           description?: string | null
           estimated_cost?: number | null
           id?: never
+          images?: string[] | null
           priority?: string
           request_type: string
           requested_by: string
@@ -6842,6 +6844,7 @@ export type Database = {
           description?: string | null
           estimated_cost?: number | null
           id?: never
+          images?: string[] | null
           priority?: string
           request_type?: string
           requested_by?: string

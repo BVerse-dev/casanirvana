@@ -12,6 +12,7 @@ import { Colors, Fonts, Default } from "../constants/styles";
 import { useTranslation } from "react-i18next";
 import { ms } from "react-native-size-matters/extend";
 import { useListCommunityComplaints } from "../hooks/useSupabaseData";
+import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../utils/supabase";
 import { useQueryClient } from '@tanstack/react-query';
 import { useFocusEffect } from '@react-navigation/native';
@@ -19,31 +20,35 @@ import { getAvatarSource } from "../utils/avatarMapping";
 
 const ComplaintsCommunityTab = ({ navigation }) => {
   const { t, i18n } = useTranslation();
+  const { profile } = useAuth();
   const queryClient = useQueryClient();
-  const isRtl = i18n.dir() == "rtl";
+  const isRtl = i18n.dir() === "rtl";
 
   function tr(key) {
     return t(`complaintsCommunityTab:${key}`);
   }
   
-  // Use Supabase hook for ALL community complaints (not filtered by user)
+  // Scope community complaints to the authenticated user's community.
   const { 
     data: supabaseComplaints = [], 
     isLoading, 
     error,
     refetch
-  } = useListCommunityComplaints();
+  } = useListCommunityComplaints(profile?.community_id);
 
   // Force refetch when screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
+      if (!profile?.community_id) return;
       console.log('📱 Community complaints tab focused, refetching data...');
       refetch();
-    }, [refetch])
+    }, [profile?.community_id, refetch])
   );
 
   // Set up real-time subscription for community complaints
   useEffect(() => {
+    if (!profile?.community_id) return;
+
     const channel = supabase
       .channel('community-complaints-changes')
       .on(
@@ -67,7 +72,7 @@ const ComplaintsCommunityTab = ({ navigation }) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [queryClient]);
+  }, [profile?.community_id, queryClient]);
 
   // Use only real data from Supabase - no mock data fallback
   const complaints = supabaseComplaints;
@@ -93,15 +98,6 @@ const ComplaintsCommunityTab = ({ navigation }) => {
           navigation.push("complaintDetailScreen", {
             complaintId: item.id,
             headerTitle: tr("community"),
-            // Use Supabase field mapping
-            image: (item.images && item.images.length > 0) ? item.images[0] : null,            
-            title: item.subject, // Supabase uses 'subject' field
-            dateTime: item.created_at ? formatDateTime(item.created_at) : "N/A",
-            other: item.details, // Supabase uses 'details' field
-            name: item.profile 
-              ? `${item.profile.first_name} ${item.profile.last_name}` 
-              : "Unknown",
-            resolved: item.status === 'resolved',
           });
         }}
         style={{

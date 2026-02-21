@@ -1,7 +1,7 @@
 "use client";
 import { useParams } from "next/navigation";
 import { Card, CardBody, CardHeader, CardTitle, Row, Col, Badge, Button, Tab, Tabs } from "react-bootstrap";
-import { useGetComplaint } from "@/hooks/useComplaints";
+import { useComplaintMetrics, useGetComplaint, useUpdateComplaint } from "@/hooks/useComplaints";
 import PageTitle from "@/components/PageTitle";
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
 import { useState } from "react";
@@ -13,6 +13,8 @@ const ComplaintDetailsPage = () => {
   const params = useParams();
   const complaintId = params.id as string;
   const { data: complaint, isLoading, error } = useGetComplaint(complaintId);
+  const { data: complaintMetrics } = useComplaintMetrics();
+  const updateComplaintMutation = useUpdateComplaint(complaintId);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   // Debug logging
@@ -70,7 +72,7 @@ const ComplaintDetailsPage = () => {
     );
   }
 
-  const getStatusBadgeClass = (status: string) => {
+  const getStatusBadgeClass = (status?: string | null) => {
     switch (status) {
       case "resolved":
         return "bg-success-subtle text-success";
@@ -83,7 +85,7 @@ const ComplaintDetailsPage = () => {
     }
   };
 
-  const getPriorityBadgeClass = (priority: string) => {
+  const getPriorityBadgeClass = (priority?: string | null) => {
     switch (priority) {
       case "high":
         return "bg-danger-subtle text-danger";
@@ -110,7 +112,50 @@ const ComplaintDetailsPage = () => {
     });
   };
 
-  const complaintType = getComplaintType(complaint.category);
+  const handleStatusChange = async (
+    status: "pending" | "in_progress" | "resolved",
+    options?: { resolutionNotes?: string },
+  ) => {
+    const now = new Date().toISOString();
+    const updates: Record<string, string | null> = {
+      status,
+      updated_at: now,
+    };
+
+    if (status === "in_progress") {
+      updates.in_progress_at = now;
+      updates.resolved_at = null;
+    } else if (status === "resolved") {
+      updates.resolved_at = now;
+      if (options?.resolutionNotes) {
+        updates.resolution_notes = options.resolutionNotes;
+      }
+    } else if (status === "pending") {
+      updates.in_progress_at = null;
+    }
+
+    await updateComplaintMutation.mutateAsync(updates);
+  };
+
+  const handlePriorityChange = async (
+    priority: "low" | "medium" | "high",
+    options?: { reason?: string },
+  ) => {
+    await updateComplaintMutation.mutateAsync({
+      priority,
+      updated_at: new Date().toISOString(),
+      ...(options?.reason ? { resolution: `Priority update: ${options.reason}` } : {}),
+    });
+  };
+
+  const runSafeAction = async (action: () => Promise<void>) => {
+    try {
+      await action();
+    } catch (mutationError) {
+      console.error("Complaint action failed:", mutationError);
+      window.alert("Failed to apply complaint action. Please try again.");
+    }
+  };
 
   return (
     <>
@@ -136,28 +181,40 @@ const ComplaintDetailsPage = () => {
               Back to Complaints
             </Link>
             <div className="d-flex gap-2">
-              <Button variant="soft-primary">
+              <Button variant="soft-primary" disabled title="Coming soon">
                 <IconifyIcon icon="ri:edit-line" className="me-1" />
                 Edit
               </Button>
-              <Button variant="soft-secondary">
+              <Button variant="soft-secondary" disabled title="Coming soon">
                 <IconifyIcon icon="ri:download-line" className="me-1" />
                 Export PDF
               </Button>
               {complaint.status === "pending" && (
                 <>
-                  <Button variant="warning">
+                  <Button
+                    variant="warning"
+                    onClick={() => void runSafeAction(() => handleStatusChange("in_progress"))}
+                    disabled={updateComplaintMutation.isPending}
+                  >
                     <IconifyIcon icon="ri:play-line" className="me-1" />
                     Start Progress
                   </Button>
-                  <Button variant="success">
+                  <Button
+                    variant="success"
+                    onClick={() => void runSafeAction(() => handleStatusChange("resolved"))}
+                    disabled={updateComplaintMutation.isPending}
+                  >
                     <IconifyIcon icon="ri:check-line" className="me-1" />
                     Mark as Resolved
                   </Button>
                 </>
               )}
               {complaint.status === "in_progress" && (
-                <Button variant="success">
+                <Button
+                  variant="success"
+                  onClick={() => void runSafeAction(() => handleStatusChange("resolved"))}
+                  disabled={updateComplaintMutation.isPending}
+                >
                   <IconifyIcon icon="ri:check-line" className="me-1" />
                   Mark as Resolved
                 </Button>
@@ -179,10 +236,10 @@ const ComplaintDetailsPage = () => {
                   </CardTitle>
                   <div className="d-flex align-items-center gap-3 mt-2">
                     <Badge className={`py-1 px-2 fs-13 ${getStatusBadgeClass(complaint.status)}`}>
-                      {complaint.status.replace('_', ' ').toUpperCase()}
+                      {(complaint.status || "pending").replace("_", " ").toUpperCase()}
                     </Badge>
                     <Badge className={`py-1 px-2 fs-13 ${getPriorityBadgeClass(complaint.priority)}`}>
-                      {complaint.priority.toUpperCase()} PRIORITY
+                      {(complaint.priority || "medium").toUpperCase()} PRIORITY
                     </Badge>
                     <Badge className="bg-info-subtle text-info py-1 px-2 fs-13">
                       {complaint.category}
@@ -292,7 +349,12 @@ const ComplaintDetailsPage = () => {
                 </Tab>
                 
                 <Tab eventKey="actions" title="Actions">
-                  <ComplaintActions complaint={complaint} />
+                  <ComplaintActions
+                    complaint={complaint}
+                    isUpdating={updateComplaintMutation.isPending}
+                    onStatusChange={handleStatusChange}
+                    onPriorityChange={handlePriorityChange}
+                  />
                 </Tab>
               </Tabs>
             </CardBody>
@@ -316,11 +378,8 @@ const ComplaintDetailsPage = () => {
                 </div>
                 <div>
                   <h6 className="mb-1">
-                    {(complaint.created_by_profile as any)?.first_name || 'N/A'} {(complaint.created_by_profile as any)?.last_name || ''}
-                    {!complaint.created_by_profile && complaint.created_by_profile_id && (
-                      <small className="text-muted d-block">ID: {complaint.created_by_profile_id.substring(0, 8)}...</small>
-                    )}
-                    {!complaint.created_by_profile && !complaint.created_by_profile_id && complaint.raised_by && (
+                    {complaint.reporter_name}
+                    {!complaint.reporter_profile && complaint.raised_by && (
                       <small className="text-muted d-block">ID: {complaint.raised_by.substring(0, 8)}...</small>
                     )}
                   </h6>
@@ -332,16 +391,18 @@ const ComplaintDetailsPage = () => {
                 <div className="row g-2">
                   <div className="col-6">
                     <small className="text-muted">Unit</small>
-                    <div className="fw-medium">{(complaint.units as any)?.number || complaint.unit_id?.substring(0, 8) + '...' || 'N/A'}</div>
+                    <div className="fw-medium">
+                      {complaint.unit?.number || complaint.unit?.unit_number || "N/A"}
+                    </div>
                   </div>
                   <div className="col-6">
                     <small className="text-muted">Block</small>
-                    <div className="fw-medium">{(complaint.units as any)?.block || 'N/A'}</div>
+                    <div className="fw-medium">{complaint.unit?.block || "N/A"}</div>
                   </div>
                 </div>
                 <div className="mt-2">
                   <small className="text-muted">Community</small>
-                  <div className="fw-medium">{(complaint.units as any)?.communities?.name || 'N/A'}</div>
+                  <div className="fw-medium">{complaint.community?.name || "N/A"}</div>
                 </div>
               </div>
             </CardBody>
@@ -359,35 +420,55 @@ const ComplaintDetailsPage = () => {
               <div className="d-grid gap-2">
                 {complaint.status === "pending" && (
                   <>
-                    <Button variant="success" size="sm">
+                    <Button
+                      variant="success"
+                      size="sm"
+                      onClick={() => void runSafeAction(() => handleStatusChange("resolved"))}
+                      disabled={updateComplaintMutation.isPending}
+                    >
                       <IconifyIcon icon="ri:check-line" className="me-1" />
                       Mark as Resolved
                     </Button>
-                    <Button variant="warning" size="sm">
+                    <Button
+                      variant="warning"
+                      size="sm"
+                      onClick={() => void runSafeAction(() => handleStatusChange("in_progress"))}
+                      disabled={updateComplaintMutation.isPending}
+                    >
                       <IconifyIcon icon="ri:play-line" className="me-1" />
                       Start Progress
                     </Button>
                   </>
                 )}
                 {complaint.status === "in_progress" && (
-                  <Button variant="success" size="sm">
+                  <Button
+                    variant="success"
+                    size="sm"
+                    onClick={() => void runSafeAction(() => handleStatusChange("resolved"))}
+                    disabled={updateComplaintMutation.isPending}
+                  >
                     <IconifyIcon icon="ri:check-line" className="me-1" />
                     Mark as Resolved
                   </Button>
                 )}
-                <Button variant="outline-primary" size="sm">
+                <Button variant="outline-primary" size="sm" disabled title="Coming soon">
                   <IconifyIcon icon="ri:phone-line" className="me-1" />
                   Contact Resident
                 </Button>
-                <Button variant="outline-info" size="sm">
+                <Button variant="outline-info" size="sm" disabled title="Coming soon">
                   <IconifyIcon icon="ri:mail-line" className="me-1" />
                   Send Email
                 </Button>
-                <Button variant="outline-warning" size="sm">
+                <Button variant="outline-warning" size="sm" disabled title="Coming soon">
                   <IconifyIcon icon="ri:calendar-line" className="me-1" />
                   Schedule Visit
                 </Button>
-                <Button variant="outline-danger" size="sm">
+                <Button
+                  variant="outline-danger"
+                  size="sm"
+                  onClick={() => void runSafeAction(() => handlePriorityChange("high"))}
+                  disabled={complaint.priority === "high" || updateComplaintMutation.isPending}
+                >
                   <IconifyIcon icon="ri:arrow-up-line" className="me-1" />
                   Escalate Issue
                 </Button>
@@ -407,25 +488,25 @@ const ComplaintDetailsPage = () => {
               <div className="row g-3 text-center">
                 <div className="col-6">
                   <div className="border rounded p-2">
-                    <h5 className="mb-1 text-primary">12</h5>
+                    <h5 className="mb-1 text-primary">{complaintMetrics?.total ?? "-"}</h5>
                     <small className="text-muted">Total Complaints</small>
                   </div>
                 </div>
                 <div className="col-6">
                   <div className="border rounded p-2">
-                    <h5 className="mb-1 text-success">8</h5>
+                    <h5 className="mb-1 text-success">{complaintMetrics?.resolved ?? "-"}</h5>
                     <small className="text-muted">Resolved</small>
                   </div>
                 </div>
                 <div className="col-6">
                   <div className="border rounded p-2">
-                    <h5 className="mb-1 text-warning">3</h5>
+                    <h5 className="mb-1 text-warning">{complaintMetrics?.inProgress ?? "-"}</h5>
                     <small className="text-muted">In Progress</small>
                   </div>
                 </div>
                 <div className="col-6">
                   <div className="border rounded p-2">
-                    <h5 className="mb-1 text-danger">1</h5>
+                    <h5 className="mb-1 text-danger">{complaintMetrics?.pending ?? "-"}</h5>
                     <small className="text-muted">Pending</small>
                   </div>
                 </div>

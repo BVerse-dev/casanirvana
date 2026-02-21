@@ -62,6 +62,24 @@ const CallScreen = ({ navigation, route }) => {
     }
   }, [id]);
 
+  useEffect(() => {
+    if (!callData?.status) return;
+
+    if (callData.status === 'answered') {
+      setCallStatus('connected');
+      return;
+    }
+
+    if (callData.status === 'ringing' || callData.status === 'initiated') {
+      setCallStatus('ringing');
+      return;
+    }
+
+    if (callData.status === 'ended' || callData.status === 'rejected' || callData.status === 'missed') {
+      setCallStatus('ended');
+    }
+  }, [callData?.status]);
+
   // Handle call duration timer
   useEffect(() => {
     if (callStatus === 'connected') {
@@ -138,12 +156,8 @@ const CallScreen = ({ navigation, route }) => {
   };
   
   useEffect(() => {
-    BackHandler.addEventListener("hardwareBackPress", backAction);
-
-    return () => {
-      const subscription = BackHandler.addEventListener("hardwareBackPress", backAction); 
-      return () => subscription?.remove(); 
-    }
+    const backHandler = BackHandler.addEventListener("hardwareBackPress", backAction);
+    return () => backHandler.remove();
   }, []);
   
   const [mic, setMic] = useState(false);

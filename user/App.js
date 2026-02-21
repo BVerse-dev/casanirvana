@@ -47,6 +47,7 @@ import SuccessScreen from "./screens/successScreen";
 import BookedAmenitiesScreen from "./screens/bookedAmenitiesScreen";
 import AmenityScreen from "./screens/amenityScreen";
 import BookAmenityScreen from "./screens/bookAmenityScreen";
+import AmenityBookingReviewScreen from "./screens/amenityBookingReviewScreen";
 import HelpDeskScreen from "./screens/helpDeskScreen";
 import UserGuideScreen from "./screens/userGuideScreen";
 import GeneralInquiryScreen from "./screens/generalInquiryScreen";
@@ -256,6 +257,10 @@ const MainNavigation = () => {
         />
         <Stack.Screen name="amenityScreen" component={AmenityScreen} />
         <Stack.Screen name="bookAmenityScreen" component={BookAmenityScreen} />
+        <Stack.Screen
+          name="amenityBookingReviewScreen"
+          component={AmenityBookingReviewScreen}
+        />
         <Stack.Screen name="helpDeskScreen" component={GuardedHelpDeskScreen} />
         <Stack.Screen name="userGuideScreen" component={UserGuideScreen} />
         <Stack.Screen

@@ -24,15 +24,17 @@ import Blogs from "./components/Blogs";
 import Comments from "./components/Comments";
 import PhotoCard from "./components/PhotoCard";
 import { useGetNotice, useUpdateNotice, useDeleteNotice } from "@/hooks/useNotices";
-import { useCreateComment } from "@/hooks/useComments";
+import { useCreateComment, useListComments } from "@/hooks/useComments";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 // Notice Details Content Component
 const NoticeDetailsContent = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { data: session } = useSession();
   const noticeId = searchParams.get('id');
   const staticId = searchParams.get('staticId');
   const [commentText, setCommentText] = useState('');
@@ -54,18 +56,27 @@ const NoticeDetailsContent = () => {
   const updateNoticeMutation = useUpdateNotice();
   const deleteNoticeMutation = useDeleteNotice();
   const createCommentMutation = useCreateComment();
+  const { data: noticeComments } = useListComments(noticeId || "");
+  const currentAuthorName = session?.user?.name || session?.user?.email || "Administrator";
+  const currentAuthorAvatar = session?.user?.image || "/images/users/avatar-6.jpg";
+  const totalComments = useMemo(
+    () =>
+      (noticeComments || []).reduce(
+        (count, comment) => count + 1 + (comment.replies?.length || 0),
+        0
+      ),
+    [noticeComments]
+  );
 
   const handleCommentSubmit = async () => {
     if (!commentText.trim()) return;
-    
-    const currentNoticeId = noticeId || staticId || '';
-    if (!currentNoticeId) return;
+    if (!noticeId) return;
     
     try {
       await createCommentMutation.mutateAsync({
-        notice_id: currentNoticeId,
-        author_name: 'Administrator', // In production, get from user session
-        author_avatar: '/images/users/avatar-6.jpg',
+        notice_id: noticeId,
+        author_name: currentAuthorName,
+        author_avatar: currentAuthorAvatar,
         content: commentText.trim()
       });
       setCommentText('');
@@ -121,26 +132,6 @@ const NoticeDetailsContent = () => {
     }
   };
 
-  const handleViewAuthor = () => {
-    // Navigate to author profile or open author modal
-    console.log('View author profile:', notice?.author_name);
-  };
-
-  const handleViewStats = () => {
-    // Open analytics/stats modal for this notice
-    console.log('View notice statistics:', notice?.id);
-  };
-
-  const handleArchiveNotice = () => {
-    // Archive the notice (soft delete or status change)
-    if (window.confirm('Are you sure you want to archive this notice?')) {
-      updateNoticeMutation.mutate({
-        id: notice?.id || '',
-        // Add archived status field when available in schema
-      });
-    }
-  };
-
   // If this is a static notice (video post, article)
   if (staticData) {
     return <StaticNoticeContent staticData={staticData} />;
@@ -157,8 +148,17 @@ const NoticeDetailsContent = () => {
   }
 
   if (error || !notice) {
-    // Fallback to static content if no notice found
-    return <StaticNoticeContent staticData={null} />;
+    return (
+      <>
+        <PageTitle title="Notice Details" subName="Notice" />
+        <Alert variant="warning">
+          This notice could not be loaded. It may have been deleted or is outside your tenant scope.
+        </Alert>
+        <Button variant="primary" onClick={() => router.push('/post')}>
+          Back to Notices
+        </Button>
+      </>
+    );
   }
 
   // Format tags for display
@@ -303,27 +303,6 @@ const NoticeDetailsContent = () => {
                             />
                             Edit Notice
                           </DropdownItem>
-                          <DropdownItem onClick={handleViewAuthor}>
-                            <IconifyIcon
-                              icon="ri:user-6-line"
-                              className="me-2"
-                            />
-                            View Author
-                          </DropdownItem>
-                          <DropdownItem onClick={handleViewStats}>
-                            <IconifyIcon
-                              icon="ri:bar-chart-line"
-                              className="me-2"
-                            />
-                            View Statistics
-                          </DropdownItem>
-                          <DropdownItem onClick={handleArchiveNotice}>
-                            <IconifyIcon
-                              icon="ri:archive-line"
-                              className="me-2"
-                            />
-                            Archive Notice
-                          </DropdownItem>
                           <DropdownItem className="text-danger" onClick={handleDeleteNotice}>
                             <IconifyIcon
                               icon="ri:delete-bin-line"
@@ -371,32 +350,23 @@ const NoticeDetailsContent = () => {
                 </p>
               </div>
               <div className="d-flex bg-light border border-dashed gap-3 rounded my-4 p-3">
-                <Link
-                  href=""
-                  className="d-flex align-items-center fs-16 text-dark"
-                >
+                <span className="d-flex align-items-center fs-16 text-dark">
                   <IconifyIcon
                     icon="solar:like-bold-duotone"
                     className="me-1"
                   />{" "}
-                  3,422
-                </Link>
-                <Link
-                  href=""
-                  className="d-flex align-items-center fs-16 text-dark"
-                >
-                  <IconifyIcon icon="solar:eye-bold" className="me-1" /> 4,565
-                </Link>
-                <Link
-                  href=""
-                  className="d-flex align-items-center fs-16 text-dark"
-                >
+                  {notice.likes_count || 0}
+                </span>
+                <span className="d-flex align-items-center fs-16 text-dark">
+                  <IconifyIcon icon="solar:eye-bold" className="me-1" /> {notice.views_count || 0}
+                </span>
+                <span className="d-flex align-items-center fs-16 text-dark">
                   <IconifyIcon
                     icon="solar:chat-square-call-bold"
                     className="me-1"
                   />{" "}
-                  356
-                </Link>
+                  {totalComments}
+                </span>
               </div>
               <CardTitle as={"h4"}>Notice Comments</CardTitle>
               <textarea
@@ -437,40 +407,17 @@ const NoticeDetailsContent = () => {
 
 // Static notice content component with dynamic data
 const StaticNoticeContent = ({ staticData }: { staticData: any }) => {
-  const [commentText, setCommentText] = useState('');
-  const createCommentMutation = useCreateComment();
-  const updateNoticeMutation = useUpdateNotice();
-  
   const displayTitle = staticData?.title || "Important Community Update";
   const displayDescription = staticData?.description || "This is a community notice with important information for all community members.";
   const displayAuthor = staticData?.name || "Administrator";
   const displayDate = staticData?.date ? new Date(staticData.date) : new Date();
   const displayTags = staticData?.tags ? staticData.tags.split(',') : ['General'];
   const mediaUrl = staticData?.link || staticData?.image;
-  
-  // Use staticId as identifier for comments
-  const staticNoticeId = staticData?.staticId || 'static-notice';
-  
-  const handleCommentSubmit = async () => {
-    if (!commentText.trim()) return;
-    
-    try {
-      await createCommentMutation.mutateAsync({
-        notice_id: staticNoticeId,
-        author_name: 'Administrator', // In production, get from user session
-        author_avatar: '/images/users/avatar-6.jpg',
-        content: commentText.trim()
-      });
-      setCommentText('');
-    } catch (error) {
-      console.error('Failed to post comment:', error);
-    }
-  };
+ 
 
   const handleLike = () => {
-    // For static notices, we can update local state or track in analytics
-    console.log('Liked static notice:', staticNoticeId);
-    // In production, you might want to track this in analytics or user preferences
+    // Static placeholder interactions are intentionally non-persistent.
+    console.log('Liked static notice');
   };
 
   const handleShare = () => {
@@ -489,9 +436,8 @@ const StaticNoticeContent = ({ staticData }: { staticData: any }) => {
   };
 
   const handleStar = () => {
-    // For static notices, track as favorite
-    console.log('Starred notice:', staticNoticeId);
-    // In production, save to user favorites
+    // Static placeholder interactions are intentionally non-persistent.
+    console.log('Starred static notice');
   };
   const isVideo = staticData?.type === 'video' && staticData?.link;
   
@@ -750,22 +696,9 @@ const StaticNoticeContent = ({ staticData }: { staticData: any }) => {
                 </Link>
               </div>
               <CardTitle as={"h4"}>Notice Comments</CardTitle>
-              <textarea
-                className="form-control my-3"
-                rows={5}
-                placeholder="Write Comment ......"
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-              />
-              <div className="d-flex justify-content-end">
-                <Button 
-                  variant="primary"
-                  onClick={handleCommentSubmit}
-                  disabled={!commentText.trim() || createCommentMutation.isPending}
-                >
-                  {createCommentMutation.isPending ? 'Posting...' : 'Post Comment'}
-                </Button>
-              </div>
+              <Alert variant="info" className="mt-3">
+                Comments are disabled for static placeholder notices. Create or open a database-backed notice to use comments.
+              </Alert>
               <CardTitle as={"h4"} className="d-flex align-items-center mt-3">
                 <IconifyIcon
                   icon="solar:chat-square-like-outline"
@@ -773,7 +706,6 @@ const StaticNoticeContent = ({ staticData }: { staticData: any }) => {
                 />{" "}
                 Comment
               </CardTitle>
-              <Comments noticeId={staticNoticeId} />
             </CardBody>
           </Card>
         </Col>

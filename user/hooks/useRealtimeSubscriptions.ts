@@ -2,7 +2,12 @@ import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../utils/supabase';
 
-export const useRealtimeSubscriptions = (userId?: string, unitId?: string, communityId?: string) => {
+export const useRealtimeSubscriptions = (
+  userId?: string,
+  unitId?: string,
+  communityId?: string,
+  profileId?: string,
+) => {
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -30,23 +35,30 @@ export const useRealtimeSubscriptions = (userId?: string, unitId?: string, commu
       subscriptions.push(visitorPassesSubscription);
     }
 
-    // Subscribe to maintenance requests for user
-    const maintenanceSubscription = supabase
-      .channel('maintenance-requests-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'maintenance_requests',
-          filter: `user_id=eq.${userId}`,
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['maintenance-requests'] });
-        }
-      )
-      .subscribe();
-    subscriptions.push(maintenanceSubscription);
+    // Subscribe to maintenance requests for current profile
+    if (profileId) {
+      const maintenanceSubscription = supabase
+        .channel('maintenance-requests-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'maintenance_requests',
+            filter: `requested_by=eq.${profileId}`,
+          },
+          () => {
+            queryClient.invalidateQueries({ queryKey: ['maintenance-requests'] });
+            queryClient.invalidateQueries({
+              predicate: (query) =>
+                query.queryKey[0] === 'maintenance-requests' ||
+                query.queryKey[0] === 'maintenance',
+            });
+          }
+        )
+        .subscribe();
+      subscriptions.push(maintenanceSubscription);
+    }
 
     // Subscribe to complaints for user
     const complaintsSubscription = supabase
@@ -66,6 +78,33 @@ export const useRealtimeSubscriptions = (userId?: string, unitId?: string, commu
       .subscribe();
     subscriptions.push(complaintsSubscription);
 
+    // Subscribe to service requests for current actor
+    const serviceRequestsSubscription = supabase
+      .channel('service-requests-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'service_requests',
+        },
+        (payload) => {
+          const row = (payload.new || payload.old) as {
+            user_id?: string | null;
+            created_by?: string | null;
+            id?: string | null;
+          } | null;
+
+          if (!row) return;
+          if (row.user_id !== userId && row.created_by !== userId) return;
+
+          queryClient.invalidateQueries({ queryKey: ['service-requests'] });
+          queryClient.invalidateQueries({ queryKey: ['service-request'] });
+        }
+      )
+      .subscribe();
+    subscriptions.push(serviceRequestsSubscription);
+
     // Subscribe to amenity bookings for user
     const amenityBookingsSubscription = supabase
       .channel('amenity-bookings-changes')
@@ -78,7 +117,7 @@ export const useRealtimeSubscriptions = (userId?: string, unitId?: string, commu
           filter: `user_id=eq.${userId}`,
         },
         () => {
-          queryClient.invalidateQueries({ queryKey: ['amenity-bookings'] });
+          queryClient.invalidateQueries({ queryKey: ['amenityBookings'] });
         }
       )
       .subscribe();
@@ -104,23 +143,33 @@ export const useRealtimeSubscriptions = (userId?: string, unitId?: string, commu
       subscriptions.push(paymentsSubscription);
     }
 
-    // Subscribe to messages for user
-    const messagesSubscription = supabase
-      .channel('messages-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'messages',
-          filter: `recipient_id=eq.${userId}`,
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['messages'] });
-        }
-      )
-      .subscribe();
-    subscriptions.push(messagesSubscription);
+    // Subscribe to messages for current profile (messages table uses profile ids)
+    if (profileId) {
+      const messagesSubscription = supabase
+        .channel('messages-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'messages',
+          },
+          (payload) => {
+            const row = (payload.new || payload.old) as {
+              from_user?: string;
+              to_user?: string;
+            } | null;
+
+            if (!row) return;
+            if (row.from_user !== profileId && row.to_user !== profileId) return;
+
+            queryClient.invalidateQueries({ queryKey: ['messages'] });
+            queryClient.invalidateQueries({ queryKey: ['conversations', profileId] });
+          }
+        )
+        .subscribe();
+      subscriptions.push(messagesSubscription);
+    }
 
     // Subscribe to notices for user's community
     if (communityId) {
@@ -140,6 +189,26 @@ export const useRealtimeSubscriptions = (userId?: string, unitId?: string, commu
         )
         .subscribe();
       subscriptions.push(noticesSubscription);
+    }
+
+    // Subscribe to service catalog changes for user's community
+    if (communityId) {
+      const servicesSubscription = supabase
+        .channel('services-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'services',
+            filter: `community_id=eq.${communityId}`,
+          },
+          () => {
+            queryClient.invalidateQueries({ queryKey: ['community-services'] });
+          }
+        )
+        .subscribe();
+      subscriptions.push(servicesSubscription);
     }
 
     // Subscribe to comments for all notices
@@ -206,6 +275,7 @@ export const useRealtimeSubscriptions = (userId?: string, unitId?: string, commu
     }
 
     // Subscribe to profile changes for the user
+    const profileIdentity = profileId || userId;
     const profileSubscription = supabase
       .channel('profile-changes')
       .on(
@@ -214,7 +284,7 @@ export const useRealtimeSubscriptions = (userId?: string, unitId?: string, commu
           event: '*',
           schema: 'public',
           table: 'profiles',
-          filter: `id=eq.${userId}`,
+          filter: `id=eq.${profileIdentity}`,
         },
         () => {
           queryClient.invalidateQueries({ queryKey: ['profile'] });
@@ -229,5 +299,5 @@ export const useRealtimeSubscriptions = (userId?: string, unitId?: string, commu
         supabase.removeChannel(subscription);
       });
     };
-  }, [userId, unitId, communityId, queryClient]);
+  }, [userId, unitId, communityId, profileId, queryClient]);
 };

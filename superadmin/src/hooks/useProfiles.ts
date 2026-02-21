@@ -89,8 +89,11 @@ const transformProfileToChatUser = (profile: Profile): ChatUser => {
 
 // List all users for chat - only those that exist in both users and profiles tables
 export const useListChatUsers = () => {
+  const { data: session } = useSession();
+  const currentProfileId = session?.user?.id;
+
   return useQuery({
-    queryKey: ["chatUsers"],
+    queryKey: ["chatUsers", currentProfileId],
     queryFn: async () => {
       // First get all valid user IDs from the users table
       const { data: validUsers, error: usersError } = await supabase
@@ -99,36 +102,37 @@ export const useListChatUsers = () => {
 
       if (usersError) throw usersError;
 
-      const validUserIds = validUsers.map(user => user.id);
+      const validUserIds = new Set((validUsers || []).map((user) => user.id));
 
-      // Then get profiles that match those user IDs
+      // Then get profiles and keep those linked to a valid auth user
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
-        .in("id", validUserIds)
         .order("first_name", { ascending: true });
 
       if (error) throw error;
-      return data.map(transformProfileToChatUser);
+
+      return (data || [])
+        .filter((profile) => {
+          const authId = profile.user_id || profile.id;
+          if (!authId || !validUserIds.has(authId)) {
+            return false;
+          }
+          if (currentProfileId && profile.id === currentProfileId) {
+            return false;
+          }
+          return true;
+        })
+        .map(transformProfileToChatUser);
     },
   });
 };
 
-// Get single user by ID - only if exists in both users and profiles tables
+// Get single profile by profile ID for chat detail view
 export const useGetChatUser = (id: string) => {
   return useQuery({
     queryKey: ["chatUser", id],
     queryFn: async () => {
-      // First check if the user exists in the users table
-      const { data: validUser, error: userError } = await supabase
-        .from("users")
-        .select("id")
-        .eq("id", id)
-        .single();
-
-      if (userError) throw userError;
-
-      // Then get the profile if the user exists
       const { data, error } = await supabase
         .from("profiles")
         .select("*")

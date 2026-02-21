@@ -27,7 +27,7 @@ const OtherAmountScreen = ({ navigation, route }) => {
   const inputRef = useRef(null);
   
   // Get provider data from route params
-  const { provider, providerName, providerColor, providerLogo, packageType } = route.params || {};
+  const { provider, providerId, providerName, providerColor, providerLogo, packageType } = route.params || {};
 
   // Safe translation function that ALWAYS returns a string
   function tr(key, fallback = "Missing Translation") {
@@ -66,6 +66,7 @@ const OtherAmountScreen = ({ navigation, route }) => {
     
     navigation.navigate("accountDetailsScreen", {
       provider,
+      providerId,
       providerName,
       providerColor,
       providerLogo,

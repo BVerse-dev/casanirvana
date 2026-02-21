@@ -1,5 +1,78 @@
 import { supabase } from '../utils/supabase';
 
+const PAYMENTS_TABLE_COLUMNS = new Set([
+  'id',
+  'unit_id',
+  'amount',
+  'due_date',
+  'paid_at',
+  'status',
+  'transaction_id',
+  'notes',
+  'completed_at',
+  'failed_at',
+  'payment_type',
+  'payment_date',
+  'description',
+  'payment_method',
+  'title',
+  'payer_id',
+  'reference_number',
+  'payment_gateway',
+  'invoice_generated_at',
+  'reminder_sent_at',
+  'initiated_at',
+  'created_at',
+  'updated_at',
+  'receipt_url',
+  'metadata',
+  'booking_id',
+]);
+
+const normalizePaymentPayload = (payment = {}) => {
+  const normalized = { ...payment };
+
+  if (!normalized.transaction_id) {
+    normalized.transaction_id = `PAY-${Date.now().toString().substring(6)}-${Math.floor(Math.random() * 1000)}`;
+  }
+
+  if (!normalized.payment_date) {
+    normalized.payment_date = new Date().toISOString();
+  }
+
+  if (!normalized.status) {
+    normalized.status = 'pending';
+  }
+
+  const knownPayload = {};
+  const metadataInput =
+    normalized.metadata && typeof normalized.metadata === 'object' && !Array.isArray(normalized.metadata)
+      ? { ...normalized.metadata }
+      : {};
+
+  const extraFields = {};
+
+  Object.entries(normalized).forEach(([key, value]) => {
+    if (key === 'metadata') return;
+    if (PAYMENTS_TABLE_COLUMNS.has(key)) {
+      knownPayload[key] = value;
+    } else if (value !== undefined) {
+      extraFields[key] = value;
+    }
+  });
+
+  const mergedMetadata = {
+    ...metadataInput,
+    ...extraFields,
+  };
+
+  if (Object.keys(mergedMetadata).length > 0) {
+    knownPayload.metadata = mergedMetadata;
+  }
+
+  return knownPayload;
+};
+
 /**
  * Add a new payment record.
  * Table: payments
@@ -7,29 +80,16 @@ import { supabase } from '../utils/supabase';
  * @returns {Promise}
  */
 export const addPayment = async (payment) => {
-  // Generate a transaction ID if not provided
-  if (!payment.transaction_id) {
-    payment.transaction_id = `PAY-${Date.now().toString().substring(6)}-${Math.floor(Math.random() * 1000)}`;
-  }
-
-  // Set default payment date to now if not provided
-  if (!payment.payment_date) {
-    payment.payment_date = new Date().toISOString();
-  }
-
-  // Set default status to pending if not provided
-  if (!payment.status) {
-    payment.status = 'pending';
-  }
+  const insertPayload = normalizePaymentPayload(payment);
 
   try {
-    const { data, error } = await supabase.from('payments').insert([payment]).select();
+    const { data, error } = await supabase.from('payments').insert([insertPayload]).select();
 
     if (error) throw error;
-    return { data: data?.[0], error: null };
+    return { data: data?.[0], error: null, success: true };
   } catch (error) {
     console.error('Error creating payment:', error);
-    return { data: null, error };
+    return { data: null, error, success: false };
   }
 };
 

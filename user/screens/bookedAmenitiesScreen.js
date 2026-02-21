@@ -19,13 +19,13 @@ import DashedLine from "react-native-dashed-line";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import AwesomeButton from "react-native-really-awesome-button";
 import { useListAmenityBookings } from "../hooks/useListAmenityBookings";
-import { useAuth } from "../contexts/AuthContext";
+import { useHasJoinedCommunity } from "../hooks/useCommunityData";
 
 const { width: screenWidth } = Dimensions.get('window');
 
 const BookedAmenitiesScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
-  const { user } = useAuth();
+  const { profile } = useHasJoinedCommunity();
   const isRtl = i18n.dir() == "rtl";
 
   function tr(key) {
@@ -38,18 +38,14 @@ const BookedAmenitiesScreen = ({ navigation }) => {
   };
 
   useEffect(() => {
-    BackHandler.addEventListener("hardwareBackPress", backAction);
-
-    return () => {
-      const subscription = BackHandler.addEventListener("hardwareBackPress", backAction); 
-      return () => subscription?.remove(); 
-    };
+    const subscription = BackHandler.addEventListener("hardwareBackPress", backAction);
+    return () => subscription.remove();
   }, []);
 
   // Fetch amenity bookings for the current user
   const { data: amenityBookings, isLoading, error } = useListAmenityBookings({
-    userId: user?.id || '',
-    enabled: !!user?.id,
+    userId: profile?.id || '',
+    enabled: !!profile?.id,
   });
 
   // Transform the data to match the expected format
@@ -63,7 +59,9 @@ const BookedAmenitiesScreen = ({ navigation }) => {
     date: `${new Date(booking.start_datetime).toLocaleDateString()} - ${new Date(booking.end_datetime).toLocaleDateString()}`,
     time: `${booking.start_time} - ${booking.end_time}`,
     confirmedBy: booking.confirmed_by || 'Pending',
-    price: booking.amount > 0 ? `GH₵ ${booking.amount.toFixed(2)}` : 'Free',
+    price: Number(booking.total_amount || booking.amount || 0) > 0
+      ? `GH₵ ${Number(booking.total_amount || booking.amount || 0).toFixed(2)}`
+      : 'Free',
     confirmed: booking.status === 'confirmed',
     pending: booking.status === 'pending',
     cancelled: booking.status === 'cancelled',
@@ -79,7 +77,7 @@ const BookedAmenitiesScreen = ({ navigation }) => {
     startDateTime: booking.start_datetime,
     endDateTime: booking.end_datetime,
     totalDays: booking.total_days,
-    totalAmount: booking.total_amount || booking.amount,
+    totalAmount: Number(booking.total_amount || booking.amount || 0),
     createdAt: booking.created_at,
     updatedAt: booking.updated_at,
   })) || [];
@@ -333,7 +331,7 @@ const BookedAmenitiesScreen = ({ navigation }) => {
                 marginRight: isRtl ? Default.fixPadding * 0.5 : 0,
               }}
             >
-              {item.confirmed ? tr("paidDebitCard") : tr("noPayment")}
+              {item.payment_status === "paid" ? tr("paidDebitCard") : tr("noPayment")}
             </Text>
           </View>
 
@@ -457,7 +455,7 @@ const BookedAmenitiesScreen = ({ navigation }) => {
             marginTop: Default.fixPadding / 2,
             textAlign: 'center'
           }}>
-            You haven't booked any amenities yet.
+            You haven&apos;t booked any amenities yet.
           </Text>
         </View>
       ) : (

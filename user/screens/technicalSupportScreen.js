@@ -13,7 +13,6 @@ import {
   Image,
 } from "react-native";
 import * as ImagePicker from 'expo-image-picker';
-import * as DocumentPicker from 'expo-document-picker';
 import MyStatusBar from "../components/myStatusBar";
 import { useTranslation } from "react-i18next";
 import { Colors, Default, Fonts } from "../constants/styles";
@@ -22,6 +21,7 @@ import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import AwesomeButton from "react-native-really-awesome-button";
 import { useAuth } from "../contexts/AuthContext";
 import { useSubmitTechnicalSupport, useUploadAttachment } from "../hooks/useTechnicalSupport";
+import { buildTechnicalSupportPayload } from "../utils/inquiryPayloadMappers";
 
 const TechnicalSupportScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
@@ -43,6 +43,7 @@ const TechnicalSupportScreen = ({ navigation }) => {
     errorMessage: '',
     reproductionSteps: '',
     hasOccurredBefore: '',
+    preferredContactMethod: '',
     allowRemoteAccess: false,
     allowContact: true,
   });
@@ -211,24 +212,14 @@ const TechnicalSupportScreen = ({ navigation }) => {
       return;
     }
 
+    if (!profile?.id || !profile?.community_id) {
+      Alert.alert('Error', 'Please complete your profile before submitting support requests.');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      const supportData = {
-        ...formData,
-        attachments: attachments,
-        user_id: profile?.id,
-        user_name: profile?.full_name,
-        user_email: profile?.email,
-        user_phone: profile?.phone_number,
-        unit_number: profile?.unit_number,
-        community_id: profile?.community_id,
-        inquiry_type: 'technical_support',
-        status: 'open',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-
       // Upload attachments first if any
       let attachmentUrls = [];
       if (attachments.length > 0) {
@@ -241,8 +232,13 @@ const TechnicalSupportScreen = ({ navigation }) => {
             return;
           }
         }
-        supportData.attachments = attachmentUrls;
       }
+
+      const supportData = buildTechnicalSupportPayload(
+        formData,
+        profile,
+        attachmentUrls
+      );
 
       // Submit to Supabase
       const result = await submitTechnicalSupport(supportData);
@@ -269,6 +265,7 @@ const TechnicalSupportScreen = ({ navigation }) => {
                   errorMessage: '',
                   reproductionSteps: '',
                   hasOccurredBefore: '',
+                  preferredContactMethod: '',
                   allowRemoteAccess: false,
                   allowContact: true,
                 });
@@ -406,19 +403,19 @@ const TechnicalSupportScreen = ({ navigation }) => {
             key={method.value}
             style={[
               styles.contactMethodOption,
-              formData.preferredContact === method.value && styles.contactMethodOptionSelected,
+              formData.preferredContactMethod === method.value && styles.contactMethodOptionSelected,
             ]}
-            onPress={() => setFormData({ ...formData, preferredContact: method.value })}
+            onPress={() => setFormData({ ...formData, preferredContactMethod: method.value })}
           >
             <MaterialIcons
               name={method.icon}
               size={20}
-              color={formData.preferredContact === method.value ? Colors.white : Colors.primary}
+              color={formData.preferredContactMethod === method.value ? Colors.white : Colors.primary}
             />
             <Text
               style={[
                 styles.contactMethodOptionText,
-                formData.preferredContact === method.value && styles.contactMethodOptionTextSelected,
+                formData.preferredContactMethod === method.value && styles.contactMethodOptionTextSelected,
               ]}
             >
               {method.label}
@@ -461,7 +458,7 @@ const TechnicalSupportScreen = ({ navigation }) => {
           <Text style={styles.sectionTitle}>Issue Details</Text>
           {renderInputField('Subject', 'subject', 'Brief description of the issue')}
           {renderInputField('Detailed Description', 'description', 'Describe the technical issue in detail, including what you were trying to do when it occurred...', true)}
-          {renderInputField('Steps to Reproduce', 'stepsToReproduce', 'List the steps that led to this issue (optional)...', true)}
+          {renderInputField('Steps to Reproduce', 'reproductionSteps', 'List the steps that led to this issue (optional)...', true)}
           
           {renderPriorityPicker()}
           {renderContactMethodPicker()}

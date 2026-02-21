@@ -33,7 +33,12 @@ export const useSubmitTechnicalSupport = () => {
     }
   };
 
-  return { submitSupport, isSubmitting, error };
+  return {
+    submitSupport,
+    submitTechnicalSupport: submitSupport,
+    isSubmitting,
+    error,
+  };
 };
 
 // Hook to get user's technical support requests

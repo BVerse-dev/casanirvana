@@ -1,11 +1,10 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   Text,
   View,
   TouchableOpacity,
   StatusBar,
   Image,
-  Alert,
   StyleSheet,
   SafeAreaView,
   BackHandler,
@@ -15,18 +14,16 @@ import { Colors, Fonts, Default } from "../constants/styles";
 import { useTranslation } from "react-i18next";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
-import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import { ms } from "react-native-size-matters/extend";
 import MyStatusBar from "../components/myStatusBar";
 
 const ReviewPayScreen = ({ navigation, route }) => {
   const { t, i18n } = useTranslation();
   const isRtl = i18n.dir() === "rtl";
-  const [isLoading, setIsLoading] = useState(false);
-  
   // Get data from route params
   const { 
     provider, 
+    providerId,
     providerName,
     providerColor,
     providerLogo,
@@ -35,7 +32,20 @@ const ReviewPayScreen = ({ navigation, route }) => {
     phoneNumber,
     description,
     paymentMethod,
-    recipientInfo
+    recipientInfo,
+    transactionType,
+    dataAmount,
+    validity,
+    reference,
+    schedulePayment,
+    frequency,
+    firstPaymentNow,
+    platformFee,
+    totalAmount,
+    saveAccount,
+    savePolicy,
+    packageType,
+    amountTitle,
   } = route.params || {};
 
   // Safe translation function that ALWAYS returns a string
@@ -57,24 +67,47 @@ const ReviewPayScreen = ({ navigation, route }) => {
   }, [navigation]);
 
   const handlePayment = () => {
-    setIsLoading(true);
-    
-    // Simulate payment processing
-    setTimeout(() => {
-      setIsLoading(false);
-      
-      // Show success message and navigate to home
-      Alert.alert(
-        tr("Payment Successful"),
-        tr("Your airtime purchase was successful."),
-        [
-          {
-            text: tr("OK"),
-            onPress: () => navigation.navigate("homeScreen")
-          }
-        ]
-      );
-    }, 2000);
+    const normalizedTransactionType = transactionType || "airtime";
+    const paymentMethodTitle = paymentMethod?.title || "Credit Card";
+    const navigationParams = {
+      provider,
+      providerId: providerId || null,
+      providerName,
+      providerColor,
+      providerLogo,
+      packageType,
+      amountTitle,
+      amount,
+      amountFormatted,
+      phoneNumber,
+      description,
+      saveAccount,
+      savePolicy,
+      transactionType: normalizedTransactionType,
+      recipientInfo,
+      dataAmount,
+      validity,
+      reference,
+      schedulePayment,
+      frequency,
+      firstPaymentNow,
+      platformFee,
+      totalAmount,
+      isPersonalHubTransaction: true,
+    };
+
+    switch (paymentMethodTitle) {
+      case "Mobile Money":
+        navigation.push("mobileMoneyScreen", navigationParams);
+        break;
+      case "PayPal":
+        navigation.push("paypalScreen", navigationParams);
+        break;
+      case "Credit Card":
+      default:
+        navigation.push("creditCardScreen", navigationParams);
+        break;
+    }
   };
 
   return (
@@ -317,9 +350,8 @@ const ReviewPayScreen = ({ navigation, route }) => {
         >
           <TouchableOpacity
             onPress={handlePayment}
-            disabled={isLoading}
             style={{
-              backgroundColor: isLoading ? Colors.grey : Colors.primary,
+              backgroundColor: Colors.primary,
               borderRadius: 10,
               paddingVertical: Default.fixPadding * 1.5,
               alignItems: "center",
@@ -327,19 +359,8 @@ const ReviewPayScreen = ({ navigation, route }) => {
               justifyContent: "center",
             }}
           >
-            {isLoading && (
-              <MaterialIcons
-                name="sync"
-                size={20}
-                color={Colors.white}
-                style={{ 
-                  marginRight: isRtl ? 0 : Default.fixPadding * 0.5,
-                  marginLeft: isRtl ? Default.fixPadding * 0.5 : 0,
-                }}
-              />
-            )}
             <Text style={{ ...Fonts.SemiBold16white }}>
-              {isLoading ? tr("Processing...") : tr("Pay Now")}
+              {tr("Continue")}
             </Text>
           </TouchableOpacity>
         </View>

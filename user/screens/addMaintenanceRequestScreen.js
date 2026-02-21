@@ -4,27 +4,23 @@ import {
   TouchableOpacity,
   BackHandler,
   Dimensions,
-  StyleSheet,
   Image,
   FlatList,
   ScrollView,
   TextInput,
   Modal,
   Alert,
-  Platform,
 } from "react-native";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Colors, Default, Fonts } from "../constants/styles";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import MyStatusBar from "../components/myStatusBar";
-import { ms } from "react-native-size-matters/extend";
-import DashedLine from "react-native-dashed-line";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import CameraModule from "../components/cameraModule";
 import { Camera } from "expo-camera";
 import SnackbarToast from "../components/snackbarToast";
-import { useCreateMaintenanceRequest } from "../hooks/useSupabaseData";
+import { useCreateMaintenanceRequest, useCreateMaintenanceRequestWithImages } from "../hooks/useSupabaseData";
 import { useHasJoinedCommunity } from "../hooks/useCommunityData";
 
 const { width } = Dimensions.get("window");
@@ -32,31 +28,11 @@ const { width } = Dimensions.get("window");
 const AddMaintenanceRequestScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();  
   // Use the SAME authentication pattern as working screens
-  const { profile, isLoading: profileLoading } = useHasJoinedCommunity();
+  const { profile } = useHasJoinedCommunity();
   const createMaintenanceRequest = useCreateMaintenanceRequest();
-  
-  // Add a manual refresh mechanism for testing
-  const [refreshProfile, setRefreshProfile] = useState(0);
-  
-  // Manual profile refresh function for testing
-  const handleRefreshProfile = () => {
-    console.log('Manually refreshing profile...');
-    setRefreshProfile(prev => prev + 1);
-  };
+  const createMaintenanceRequestWithImages = useCreateMaintenanceRequestWithImages();
 
-  // Debug: log current profile to see what's available
-  useEffect(() => {
-    console.log('Current profile (FIXED):', {
-      hasProfile: !!profile,
-      profileId: profile?.id,
-      profileUserId: profile?.user_id,
-      profileUnitId: profile?.unit_id,
-      firstName: profile?.first_name,
-      lastName: profile?.last_name
-    });
-  }, [profile, refreshProfile]);
-
-  const isRtl = i18n.dir() == "rtl";
+  const isRtl = i18n.dir() === "rtl";
 
   function tr(key) {
     return t(`addMaintenanceRequestScreen:${key}`);
@@ -65,29 +41,8 @@ const AddMaintenanceRequestScreen = ({ navigation }) => {
   const [pickedImages, setPickedImages] = useState([]);
   const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
   const [showSubmissionSuccessModal, setShowSubmissionSuccessModal] = useState(false);
-
   const [camera, setShowCamera] = useState(false);
-
   const [cameraNotGranted, setCameraNotGranted] = useState(false);
-
-  useEffect(() => {
-    const requestCameraPermission = async () => {
-      // Avoid camera permission prompts on web during screen mount.
-      if (Platform.OS === "web") return;
-
-      try {
-        const { status } = await Camera.requestCameraPermissionsAsync();
-        if (status !== "granted") {
-          setCameraNotGranted(true);
-        }
-      } catch (cameraError) {
-        console.error("Camera permission error:", cameraError);
-        setCameraNotGranted(true);
-      }
-    };
-
-    requestCameraPermission();
-  }, []);
 
   useEffect(() => {
     const backAction = () => {
@@ -101,7 +56,7 @@ const AddMaintenanceRequestScreen = ({ navigation }) => {
     );
 
     return () => backHandler.remove();
-  }, []);
+  }, [navigation]);
 
   const [selectedTab, setSelectedTab] = useState(tr("personal"));
 
@@ -218,39 +173,22 @@ const AddMaintenanceRequestScreen = ({ navigation }) => {
 
   const handleImageUpload = (imageUri) => {
     if (pickedImages.length < 5) {
-      setPickedImages([...pickedImages, imageUri]);
-    } else {
-      Alert.alert("Limit Reached", "You can only upload up to 5 images.");
-    }
-  };
-
-  const handleOpenCamera = async () => {
-    // Camera module is not reliable on web in this flow.
-    if (Platform.OS === "web") {
-      Alert.alert(
-        "Not Available",
-        "Camera capture is currently available on mobile app only."
-      );
+      setPickedImages((prev) => [...prev, imageUri]);
       return;
     }
+    Alert.alert("Limit Reached", "You can only upload up to 5 images.");
+  };
 
+  const cameraHandler = async () => {
     try {
-      const currentPermission = await Camera.getCameraPermissionsAsync();
-      let finalStatus = currentPermission.status;
-
-      if (finalStatus !== "granted") {
-        const requestedPermission = await Camera.requestCameraPermissionsAsync();
-        finalStatus = requestedPermission.status;
-      }
-
-      if (finalStatus !== "granted") {
+      const { status } = await Camera.requestCameraPermissionsAsync();
+      if (status === "granted") {
+        setShowCamera(true);
+      } else {
         setCameraNotGranted(true);
-        return;
       }
-
-      setShowCamera(true);
-    } catch (cameraError) {
-      console.error("Error opening camera:", cameraError);
+    } catch (error) {
+      console.error("Camera permission error:", error);
       setCameraNotGranted(true);
     }
   };
@@ -270,23 +208,20 @@ const AddMaintenanceRequestScreen = ({ navigation }) => {
       return;
     }
 
+    if (!profile?.unit_id) {
+      Alert.alert(
+        "Unit Assignment Required",
+        "Your account is missing a unit assignment. Please contact management before submitting a maintenance request."
+      );
+      return;
+    }
+
     const handleSuccessfulSubmission = () => {
       setSubmitRequestModal(false);
       setShowSubmissionSuccessModal(true);
     };
 
     try {
-      // Detailed debug logging
-      console.log('🔍 Maintenance Request Submission Debug:', {
-        profile: profile?.id,
-        profileUserId: profile?.user_id,
-        unitId: profile?.unit_id,
-        hasTitle: !!requestTitle?.trim(),
-        hasDescription: !!briefRequest?.trim(),
-        selectedType,
-        selectedPriority
-      });
-
       const requestData = {
         title: requestTitle.trim(),
         description: briefRequest.trim(),
@@ -297,54 +232,19 @@ const AddMaintenanceRequestScreen = ({ navigation }) => {
         unit_id: profile.unit_id,
         // created_at will be set automatically by the database
       };
-
-      console.log('📝 Submitting maintenance request with data:', requestData);
-
-      // Note: Images are not supported in current database schema.
-      // Show warning if user has selected images.
-      if (pickedImages.length > 0) {
-        Alert.alert(
-          "Note", 
-          "Images are not yet supported for maintenance requests. Your request will be submitted without images.",
-          [
-            {
-              text: "Cancel",
-              style: "cancel"
-            },
-            {
-              text: "Continue",
-              onPress: async () => {
-                setIsSubmittingRequest(true);
-                try {
-                  await createMaintenanceRequest.mutateAsync(requestData);
-                  handleSuccessfulSubmission();
-                } catch (error) {
-                  console.error('Error submitting maintenance request:', error);
-                  Alert.alert("Error", error.message || "Failed to submit maintenance request");
-                } finally {
-                  setIsSubmittingRequest(false);
-                }
-              }
-            }
-          ]
-        );
-        return;
-      }
-
-      // Create request without images for now.
       setIsSubmittingRequest(true);
-      const result = await createMaintenanceRequest.mutateAsync(requestData);
-      console.log('✅ Maintenance request created successfully:', result);
+      if (pickedImages.length > 0) {
+        await createMaintenanceRequestWithImages.mutateAsync({
+          ...requestData,
+          imageUris: pickedImages,
+          storageOwnerId: profile.user_id || profile.id,
+        });
+      } else {
+        await createMaintenanceRequest.mutateAsync(requestData);
+      }
       handleSuccessfulSubmission();
 
     } catch (error) {
-      console.error('❌ Error submitting maintenance request:', error);
-      console.error('❌ Error details:', {
-        message: error.message,
-        cause: error.cause,
-        stack: error.stack
-      });
-      
       // More specific error message
       let errorMessage = "Failed to submit maintenance request";
       if (error.message) {
@@ -625,9 +525,13 @@ const AddMaintenanceRequestScreen = ({ navigation }) => {
 
           <View
             style={{
+              ...Default.shadow,
+              borderRadius: 10,
+              backgroundColor: Colors.white,
               marginTop: Default.fixPadding,
               flexDirection: isRtl ? "row-reverse" : "row",
               flexWrap: "wrap",
+              padding: Default.fixPadding,
             }}
           >
             {pickedImages.map((image, index) => (
@@ -652,7 +556,7 @@ const AddMaintenanceRequestScreen = ({ navigation }) => {
                 />
                 <TouchableOpacity
                   onPress={() => {
-                    setPickedImages(prev => prev.filter((_, i) => i !== index));
+                    setPickedImages((prev) => prev.filter((_, i) => i !== index));
                   }}
                   style={{
                     position: "absolute",
@@ -673,7 +577,7 @@ const AddMaintenanceRequestScreen = ({ navigation }) => {
 
             {pickedImages.length < 5 && (
               <TouchableOpacity
-                onPress={handleOpenCamera}
+                onPress={cameraHandler}
                 style={{
                   width: width * 0.25,
                   height: width * 0.25,
@@ -733,18 +637,6 @@ const AddMaintenanceRequestScreen = ({ navigation }) => {
           </Text>
         </TouchableOpacity>
       </View>
-
-      {/* Camera Module */}
-      {camera && (
-        <CameraModule
-          showModal={camera}
-          setShowCamera={() => setShowCamera(false)}
-          setPickedImage={(result) => {
-            handleImageUpload(result.uri);
-          }}
-          closeBottomSheet={() => setShowCamera(false)}
-        />
-      )}
 
       {/* Maintenance Type Modal */}
       <Modal animationType="fade" transparent={true} visible={maintenanceTypeModal}>
@@ -1197,12 +1089,25 @@ const AddMaintenanceRequestScreen = ({ navigation }) => {
         </TouchableOpacity>
       </Modal>
 
+      {/* Camera Module */}
+      {camera && (
+        <CameraModule
+          showModal={camera}
+          setShowCamera={() => setShowCamera(false)}
+          setPickedImage={(result) => {
+            handleImageUpload(result.uri);
+          }}
+          closeBottomSheet={() => setShowCamera(false)}
+        />
+      )}
+
       {/* Camera Permission Alert */}
       <SnackbarToast
         visible={cameraNotGranted}
         onDismiss={() => setCameraNotGranted(false)}
         title={tr("cameraPermissionDenied")}
       />
+
     </View>
   );
 };

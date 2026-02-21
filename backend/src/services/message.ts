@@ -4,22 +4,25 @@ export async function getMessagesWithUser(userId: string) {
   const { data, error } = await supabase
     .from('messages')
     .select('*')
-    .or(`sender_id.eq.${userId},recipient_id.eq.${userId}`)
-    .order('created_at', { ascending: false });
+    .or(`from_user.eq.${userId},to_user.eq.${userId}`)
+    .order('sent_at', { ascending: false });
 
   if (error) throw error;
   return data;
 }
 
 export async function createMessage(data: {
-  sender_id: string;
-  recipient_id: string;
-  message: string;
-  society_id?: string;
+  from_user: string;
+  to_user: string;
+  body: string;
+  message_type?: 'text' | 'file';
 }) {
   const { data: message, error } = await supabase
     .from('messages')
-    .insert(data)
+    .insert({
+      message_type: 'text',
+      ...data,
+    })
     .select()
     .single();
 

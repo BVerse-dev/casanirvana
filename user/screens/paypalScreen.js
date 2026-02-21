@@ -1,14 +1,12 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Text,
   View,
   BackHandler,
   TouchableOpacity,
-  Dimensions,
   TextInput,
   ScrollView,
   Alert,
-  Image,
 } from "react-native";
 import MyStatusBar from "../components/myStatusBar";
 import { useTranslation } from "react-i18next";
@@ -18,29 +16,26 @@ import { Colors, Default, Fonts } from "../constants/styles";
 import AwesomeButton from "react-native-really-awesome-button";
 import { useUpdateAmenityBooking } from "../hooks/useCreateAmenityBooking";
 import { addPayment } from "../services/paymentService";
-
-const { width } = Dimensions.get("window");
+import { useHasJoinedCommunity } from "../hooks/useCommunityData";
+import { supabase } from "../utils/supabase";
 
 const PayPalScreen = ({ navigation, route }) => {
   const { bookingId, bookingData } = route.params || {};
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const updateBookingMutation = useUpdateAmenityBooking();
+  const { profile } = useHasJoinedCommunity();
 
-  const isRtl = i18n.dir() == "rtl";
+  const isRtl = i18n.dir() === "rtl";
 
-  function tr(key) {
-    return t(`paypalScreen:${key}`);
-  }
-
-  const backAction = () => {
+  const backAction = useCallback(() => {
     navigation.pop();
     return true;
-  };
+  }, [navigation]);
 
   useEffect(() => {
     const subscription = BackHandler.addEventListener("hardwareBackPress", backAction);
     return () => subscription.remove();
-  }, []);
+  }, [backAction]);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -83,29 +78,51 @@ const PayPalScreen = ({ navigation, route }) => {
     setIsProcessing(true);
 
     try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      const payerId = user?.id || profile?.id || null;
+      const unitId = bookingData?.unit_id || profile?.unit_id || null;
+
+      if (!unitId) {
+        throw new Error('Unable to resolve unit for payment');
+      }
+
+      if (!payerId) {
+        throw new Error('Unable to resolve payer for payment');
+      }
+
       const transactionId = `PP_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const bookingType = bookingData?.type || "booking";
 
       // Create payment record
       const paymentData = {
-        booking_id: bookingId,
         amount: bookingData.totalAmount,
+        unit_id: unitId,
+        payer_id: payerId,
         payment_method: 'paypal',
         transaction_id: transactionId,
-        paypal_email: email,
+        payment_type: bookingType,
         status: 'completed', // PayPal payments are processed immediately
+        metadata: {
+          paypal_email: email,
+          source_booking_id: bookingId || null,
+          source_booking_type: bookingType,
+        },
       };
 
       const paymentResult = await addPayment(paymentData);
 
       if (paymentResult.success) {
         // Update booking status
-        await updateBookingMutation.mutateAsync({
-          id: bookingId,
-          updates: {
-            payment_status: 'paid',
-            status: 'confirmed',
-          }
-        });
+        if (bookingData?.type !== "service_booking") {
+          await updateBookingMutation.mutateAsync({
+            id: bookingId,
+            updates: {
+              payment_status: 'paid',
+            }
+          });
+        }
 
         // Navigate to success screen
         navigation.push("successScreen", {

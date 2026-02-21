@@ -17,9 +17,10 @@ import {
 } from "react-bootstrap";
 import { useForm, Controller } from "react-hook-form";
 import * as yup from "yup";
-import { useCreateNotice, type CreateNoticeData } from "@/hooks/useNotices";
+import { useCreateNotice, useGetNotice, useUpdateNotice, type CreateNoticeData } from "@/hooks/useNotices";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSession } from "next-auth/react";
 
 interface NoticeFormData {
   title: string;
@@ -32,10 +33,36 @@ interface NoticeFormData {
   video_url: string;
 }
 
-const CreatePost = () => {
+interface CreatePostProps {
+  mode?: "create" | "edit";
+  noticeId?: string;
+}
+
+const normalizeCategory = (value?: string | null) => (value || "").toLowerCase();
+
+const CreatePost = ({ mode = "create", noticeId }: CreatePostProps) => {
   const router = useRouter();
+  const { data: session } = useSession();
+  const isEditMode = mode === "edit";
   const createNoticeMutation = useCreateNotice();
+  const updateNoticeMutation = useUpdateNotice();
+  const { data: existingNotice, isLoading: isNoticeLoading, error: noticeLoadError } = useGetNotice(
+    isEditMode && noticeId ? noticeId : ""
+  );
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const scopedCommunityId = useMemo(() => {
+    const directCommunityId = session?.user?.communityId;
+    if (typeof directCommunityId === "string" && directCommunityId.length > 0) {
+      return directCommunityId;
+    }
+
+    const firstScopedCommunityId = session?.user?.scopedCommunityIds?.find(
+      (id): id is string => typeof id === "string" && id.length > 0
+    );
+
+    return firstScopedCommunityId || null;
+  }, [session?.user?.communityId, session?.user?.scopedCommunityIds]);
 
   const noticeSchema = yup.object({
     title: yup.string().required("Please enter notice title"),
@@ -62,13 +89,34 @@ const CreatePost = () => {
     }
   });
 
+  useEffect(() => {
+    if (!isEditMode || !existingNotice) return;
+
+    reset({
+      title: existingNotice.title || "",
+      body: existingNotice.body || "",
+      author_name: existingNotice.author_name || "Administrator",
+      category: normalizeCategory(existingNotice.category),
+      priority: ((existingNotice.priority || "medium") as NoticeFormData["priority"]),
+      tags: Array.isArray(existingNotice.tags) ? existingNotice.tags : [],
+      image_url: existingNotice.image_url || "",
+      video_url: existingNotice.video_url || "",
+    });
+  }, [isEditMode, existingNotice, reset]);
+
   const onSubmit = async (formData: NoticeFormData) => {
     try {
       setSubmitError(null);
+      const targetCommunityId = existingNotice?.community_id || scopedCommunityId;
+
+      if (!targetCommunityId) {
+        setSubmitError("No community scope is assigned to this admin account. Contact superadmin.");
+        return;
+      }
       
       // Prepare notice data for Supabase
       const noticeData: CreateNoticeData = {
-        community_id: 'default-community', // In production, get from user context
+        community_id: targetCommunityId,
         title: formData.title,
         body: formData.body,
         author_name: formData.author_name,
@@ -81,20 +129,53 @@ const CreatePost = () => {
         is_featured: false,
       };
 
-      await createNoticeMutation.mutateAsync(noticeData);
-      
-      // Success - redirect to notices list
-      router.push('/post');
+      if (isEditMode) {
+        if (!noticeId) {
+          setSubmitError("Missing notice ID for edit operation.");
+          return;
+        }
+
+        await updateNoticeMutation.mutateAsync({
+          id: noticeId,
+          ...noticeData,
+        });
+        router.push(`/post/details?id=${noticeId}`);
+      } else {
+        await createNoticeMutation.mutateAsync(noticeData);
+        router.push('/post');
+      }
     } catch (error) {
-      console.error('Failed to create notice:', error);
-      setSubmitError(error instanceof Error ? error.message : 'Failed to create notice');
+      console.error(`Failed to ${isEditMode ? "update" : "create"} notice:`, error);
+      setSubmitError(error instanceof Error ? error.message : `Failed to ${isEditMode ? "update" : "create"} notice`);
     }
   };
+
+  if (isEditMode && isNoticeLoading) {
+    return (
+      <Alert variant="info" className="mb-3">
+        Loading notice details...
+      </Alert>
+    );
+  }
+
+  if (isEditMode && noticeLoadError) {
+    return (
+      <Alert variant="danger" className="mb-3">
+        Failed to load notice for editing.
+      </Alert>
+    );
+  }
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} data-notice-form>
       {submitError && (
         <Alert variant="danger" className="mb-3">
           {submitError}
+        </Alert>
+      )}
+      {!isEditMode && !scopedCommunityId && (
+        <Alert variant="warning" className="mb-3">
+          No community scope was found for your admin account. Assign a community before creating notices.
         </Alert>
       )}
       
@@ -165,7 +246,7 @@ const CreatePost = () => {
                         <option value="Fire Safety">Fire Safety</option>
                         <option value="Power Backup">Power Backup</option>
                         <option value="WiFi & Internet">WiFi & Internet</option>
-                        <option value="Children's Play Area">Children's Play Area</option>
+                        <option value="Children's Play Area">Children&apos;s Play Area</option>
                         <option value="Senior Citizens">Senior Citizens</option>
                         <option value="Pet Policy">Pet Policy</option>
                         <option value="Festivals & Celebrations">Festivals & Celebrations</option>
@@ -249,26 +330,26 @@ const CreatePost = () => {
                   placeholder="Select category"
                   options={[
                     { value: '', label: 'Select Category' },
-                    { value: 'General', label: 'General Announcements' },
-                    { value: 'Maintenance', label: 'Maintenance & Repairs' },
-                    { value: 'Events', label: 'Community Events' },
-                    { value: 'Security', label: 'Security & Safety' },
-                    { value: 'Amenities', label: 'Amenities Management' },
-                    { value: 'Administrative', label: 'Administrative' },
-                    { value: 'Emergency', label: 'Emergency Alerts' },
-                    { value: 'Financial', label: 'Financial & Billing' },
-                    { value: 'Rules', label: 'Rules & Regulations' },
-                    { value: 'Social', label: 'Social Activities' },
-                    { value: 'Health', label: 'Health & Wellness' },
-                    { value: 'Environment', label: 'Environmental' },
-                    { value: 'Technology', label: 'Technology Updates' },
-                    { value: 'Parking', label: 'Parking Management' },
-                    { value: 'Visitors', label: 'Visitor Management' },
-                    { value: 'Utilities', label: 'Utilities & Services' },
-                    { value: 'Legal', label: 'Legal Matters' },
-                    { value: 'Newsletter', label: 'Newsletter' },
-                    { value: 'Feedback', label: 'Feedback & Suggestions' },
-                    { value: 'Celebration', label: 'Celebrations & Festivals' },
+                    { value: 'general', label: 'General Announcements' },
+                    { value: 'maintenance', label: 'Maintenance & Repairs' },
+                    { value: 'events', label: 'Community Events' },
+                    { value: 'security', label: 'Security & Safety' },
+                    { value: 'amenities', label: 'Amenities Management' },
+                    { value: 'administrative', label: 'Administrative' },
+                    { value: 'emergency', label: 'Emergency Alerts' },
+                    { value: 'financial', label: 'Financial & Billing' },
+                    { value: 'rules', label: 'Rules & Regulations' },
+                    { value: 'social', label: 'Social Activities' },
+                    { value: 'health', label: 'Health & Wellness' },
+                    { value: 'environment', label: 'Environmental' },
+                    { value: 'technology', label: 'Technology Updates' },
+                    { value: 'parking', label: 'Parking Management' },
+                    { value: 'visitors', label: 'Visitor Management' },
+                    { value: 'utilities', label: 'Utilities & Services' },
+                    { value: 'legal', label: 'Legal Matters' },
+                    { value: 'newsletter', label: 'Newsletter' },
+                    { value: 'feedback', label: 'Feedback & Suggestions' },
+                    { value: 'celebration', label: 'Celebrations & Festivals' },
                   ]}
                 />
               </div>
@@ -307,15 +388,15 @@ const CreatePost = () => {
               variant="outline-primary" 
               type="submit" 
               className="w-100"
-              disabled={isSubmitting}
+              disabled={isSubmitting || (!isEditMode && !scopedCommunityId)}
             >
               {isSubmitting ? (
                 <>
                   <Spinner size="sm" className="me-1" />
-                  Creating...
+                  {isEditMode ? "Updating..." : "Creating..."}
                 </>
               ) : (
-                'Create Notice'
+                isEditMode ? "Update Notice" : "Create Notice"
               )}
             </Button>
           </Col>

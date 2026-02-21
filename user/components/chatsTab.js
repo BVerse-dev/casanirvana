@@ -24,9 +24,21 @@ const formatTime = (timestamp) => {
   return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 };
 
-const formatMessage = (body) => {
-  if (!body) {
+const formatMessage = (message) => {
+  if (!message) {
     return "Tap to start a conversation";
+  }
+
+  const body = message.body;
+  const attachments = message.attachments;
+  const dbMessageType = message.message_type;
+
+  if (dbMessageType === "file") {
+    const attachmentType = attachments?.type;
+    if (attachmentType === "image") return "Photo";
+    if (attachmentType === "audio") return "Voice message";
+    if (attachmentType === "document") return attachments?.fileName || "Document";
+    return body || "Attachment";
   }
 
   try {
@@ -137,7 +149,7 @@ const ChatsTab = ({ navigation }) => {
                 marginTop: Default.fixPadding * 0.5,
               }}
             >
-              {formatMessage(item.lastMessage?.body)}
+              {formatMessage(item.lastMessage)}
             </Text>
           </View>
         </View>

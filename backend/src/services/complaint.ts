@@ -23,7 +23,7 @@ export async function createComplaint(data: {
     .from('complaints')
     .insert({
       ...data,
-      status: 'open',
+      status: 'pending',
       filed_at: new Date().toISOString(),
     })
     .select()

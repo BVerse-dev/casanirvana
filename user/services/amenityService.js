@@ -105,7 +105,12 @@ export const amenityService = {
             type,
             category,
             charges_per_hour,
-            monthly_charges
+            monthly_charges,
+            location,
+            contact_person,
+            contact_phone,
+            operating_hours,
+            capacity
           )
         `)
         .eq('user_id', userId);
@@ -155,7 +160,12 @@ export const amenityService = {
             type,
             category,
             charges_per_hour,
-            monthly_charges
+            monthly_charges,
+            location,
+            contact_person,
+            contact_phone,
+            operating_hours,
+            capacity
           )
         `)
         .single();
@@ -194,7 +204,12 @@ export const amenityService = {
             type,
             category,
             charges_per_hour,
-            monthly_charges
+            monthly_charges,
+            location,
+            contact_person,
+            contact_phone,
+            operating_hours,
+            capacity
           )
         `)
         .single();

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Text,
   View,
@@ -9,6 +9,7 @@ import {
   Dimensions,
   Share,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { Colors, Default, Fonts } from "../constants/styles";
@@ -19,12 +20,58 @@ import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityI
 import CommentSection from "../components/CommentSection";
 import { useUserProfile } from "../hooks/useCommunityData";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useGetNotice } from "../hooks/useGetNotice";
 
 const { width, height } = Dimensions.get("window");
 
+const formatNoticeForDetail = (rawNotice) => {
+  if (!rawNotice) return null;
+
+  const postedAt = rawNotice.posted_at || rawNotice.created_at || new Date().toISOString();
+  const parsedPostedAt = new Date(postedAt);
+  const isValidDate = !Number.isNaN(parsedPostedAt.getTime());
+  const effectiveDate = isValidDate ? parsedPostedAt : new Date();
+
+  const bodyText = rawNotice.body || rawNotice.fullNotice || rawNotice.notice || "";
+
+  return {
+    ...rawNotice,
+    notice: rawNotice.notice || (bodyText ? bodyText.substring(0, 300) + (bodyText.length > 300 ? "..." : "") : ""),
+    fullNotice: rawNotice.fullNotice || bodyText,
+    postBy: rawNotice.postBy || (rawNotice.author_name ? rawNotice.author_name.split(" ")[0] : "Admin"),
+    dateTime:
+      rawNotice.dateTime ||
+      `${effectiveDate.toLocaleDateString("en-US", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })}, ${effectiveDate.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      })}`,
+    new:
+      typeof rawNotice.new === "boolean"
+        ? rawNotice.new
+        : effectiveDate > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+  };
+};
+
 const NoticeDetailScreen = ({ navigation, route }) => {
   const { t, i18n } = useTranslation();
-  const { notice } = route.params;
+  const noticeFromParams = route?.params?.notice || null;
+  const routeNoticeId = route?.params?.noticeId || noticeFromParams?.id || null;
+  const shouldFetchNotice = !noticeFromParams && !!routeNoticeId;
+  const {
+    data: fetchedNotice,
+    isLoading: isNoticeLoading,
+    error: noticeLoadError,
+  } = useGetNotice(shouldFetchNotice ? String(routeNoticeId) : "");
+
+  const notice = useMemo(
+    () => formatNoticeForDetail(noticeFromParams || fetchedNotice),
+    [noticeFromParams, fetchedNotice]
+  );
   const { data: userProfile } = useUserProfile();
   const [isSaved, setIsSaved] = useState(false);
 
@@ -36,6 +83,8 @@ const NoticeDetailScreen = ({ navigation, route }) => {
 
   // Check if notice is already saved
   useEffect(() => {
+    if (!notice?.id) return;
+
     const checkSavedStatus = async () => {
       try {
         const savedNotices = await AsyncStorage.getItem('savedNotices');
@@ -48,9 +97,11 @@ const NoticeDetailScreen = ({ navigation, route }) => {
       }
     };
     checkSavedStatus();
-  }, [notice.id]);
+  }, [notice?.id]);
 
   const handleShare = async () => {
+    if (!notice) return;
+
     try {
       const shareContent = {
         message: `${notice.title}\n\n${notice.fullNotice || notice.notice}\n\nPosted by: ${notice.postBy}\nDate: ${notice.dateTime}`,
@@ -76,6 +127,8 @@ const NoticeDetailScreen = ({ navigation, route }) => {
   };
 
   const handleSave = async () => {
+    if (!notice?.id) return;
+
     try {
       const savedNotices = await AsyncStorage.getItem('savedNotices');
       let savedArray = savedNotices ? JSON.parse(savedNotices) : [];
@@ -122,6 +175,43 @@ const NoticeDetailScreen = ({ navigation, route }) => {
       ]);
     }
   }, [notice?.community_id, userProfile?.community_id, navigation]);
+
+  if (isNoticeLoading && !notice) {
+    return (
+      <View style={{ flex: 1, backgroundColor: Colors.regularGrey, justifyContent: "center", alignItems: "center" }}>
+        <MyStatusBar />
+        <ActivityIndicator size="large" color={Colors.primary} />
+        <Text style={{ ...Fonts.Medium16black, marginTop: Default.fixPadding }}>Loading notice...</Text>
+      </View>
+    );
+  }
+
+  if (!notice) {
+    return (
+      <View style={{ flex: 1, backgroundColor: Colors.regularGrey, justifyContent: "center", alignItems: "center", paddingHorizontal: Default.fixPadding * 2 }}>
+        <MyStatusBar />
+        <Text style={{ ...Fonts.SemiBold18black, marginBottom: Default.fixPadding }}>
+          Notice unavailable
+        </Text>
+        {noticeLoadError ? (
+          <Text style={{ ...Fonts.Medium14grey, textAlign: "center", marginBottom: Default.fixPadding * 2 }}>
+            Failed to load notice details. Please try again.
+          </Text>
+        ) : null}
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={{
+            backgroundColor: Colors.primary,
+            paddingHorizontal: Default.fixPadding * 2,
+            paddingVertical: Default.fixPadding,
+            borderRadius: 10,
+          }}
+        >
+          <Text style={{ ...Fonts.SemiBold14white }}>Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: Colors.regularGrey }}>

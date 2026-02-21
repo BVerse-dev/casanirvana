@@ -142,12 +142,25 @@ export const useIncrementCommentLikes = () => {
 
   return useMutation({
     mutationFn: async ({ id, noticeId }: { id: string; noticeId: string }): Promise<void> => {
-      const { error } = await supabase.rpc('increment_comment_likes' as any, {
-        comment_id: id
-      });
+      const { data: currentComment, error: fetchError } = await supabase
+        .from('comments')
+        .select('likes_count')
+        .eq('id', id)
+        .single();
 
-      if (error) {
-        throw new Error(`Failed to increment comment likes: ${error.message}`);
+      if (fetchError) {
+        throw new Error(`Failed to load comment likes: ${fetchError.message}`);
+      }
+
+      const nextLikesCount = (currentComment?.likes_count || 0) + 1;
+
+      const { error: updateError } = await supabase
+        .from('comments')
+        .update({ likes_count: nextLikesCount })
+        .eq('id', id);
+
+      if (updateError) {
+        throw new Error(`Failed to increment comment likes: ${updateError.message}`);
       }
     },
     onSuccess: (_, variables) => {

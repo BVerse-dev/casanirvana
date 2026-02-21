@@ -19,6 +19,7 @@ import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import AwesomeButton from "react-native-really-awesome-button";
 import { useAuth } from "../contexts/AuthContext";
 import { useSubmitGeneralInquiry } from "../hooks/useGeneralInquiry";
+import { buildGeneralInquiryPayload } from "../utils/inquiryPayloadMappers";
 
 const GeneralInquiryScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
@@ -27,15 +28,11 @@ const GeneralInquiryScreen = ({ navigation }) => {
   const isRtl = i18n.dir() == "rtl";
 
   const [formData, setFormData] = useState({
-    inquiryType: '',
     category: '',
     priority: '',
     subject: '',
     description: '',
-    urgency: '',
     preferredContactMethod: '',
-    bestTimeToContact: '',
-    attachments: '',
     allowContact: true,
   });
 
@@ -83,10 +80,6 @@ const GeneralInquiryScreen = ({ navigation }) => {
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData.inquiryType) {
-      newErrors.inquiryType = 'Please select an inquiry type';
-    }
-
     if (!formData.category) {
       newErrors.category = 'Please select a category';
     }
@@ -105,10 +98,6 @@ const GeneralInquiryScreen = ({ navigation }) => {
       newErrors.description = 'Description must be at least 10 characters long';
     }
 
-    if (!formData.urgency) {
-      newErrors.urgency = 'Please select an urgency level';
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -119,22 +108,15 @@ const GeneralInquiryScreen = ({ navigation }) => {
       return;
     }
 
+    if (!profile?.id || !profile?.community_id) {
+      Alert.alert('Error', 'Please complete your profile before submitting an inquiry.');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      const inquiryData = {
-        ...formData,
-        user_id: profile?.id,
-        user_name: profile?.full_name,
-        user_email: profile?.email,
-        user_phone: profile?.phone_number,
-        unit_number: profile?.unit_number,
-        community_id: profile?.community_id,
-        inquiry_type: 'general',
-        status: 'open',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
+      const inquiryData = buildGeneralInquiryPayload(formData, profile);
 
       // Submit to Supabase
       const result = await submitGeneralInquiry(inquiryData);
@@ -149,15 +131,11 @@ const GeneralInquiryScreen = ({ navigation }) => {
               onPress: () => {
                 // Reset form
                 setFormData({
-                  inquiryType: '',
                   category: '',
                   priority: '',
                   subject: '',
                   description: '',
-                  urgency: '',
                   preferredContactMethod: '',
-                  bestTimeToContact: '',
-                  attachments: '',
                   allowContact: true,
                 });
                 navigation.navigate('helpDeskScreen');
@@ -191,7 +169,7 @@ const GeneralInquiryScreen = ({ navigation }) => {
     const renderInputField = (label, key, placeholder, multiline = false, keyboardType = 'default') => (
     <View style={styles.inputGroup}>
       <Text style={styles.inputLabel}>
-        {label} {['subject', 'description', 'inquiryType', 'category', 'priority', 'urgency'].includes(key) && '*'}
+        {label} {['subject', 'description', 'category', 'priority'].includes(key) && '*'}
       </Text>
       <TextInput
         style={[
@@ -291,19 +269,19 @@ const GeneralInquiryScreen = ({ navigation }) => {
             key={method.value}
             style={[
               styles.contactMethodOption,
-              formData.preferredContact === method.value && styles.contactMethodOptionSelected,
+              formData.preferredContactMethod === method.value && styles.contactMethodOptionSelected,
             ]}
-            onPress={() => setFormData({ ...formData, preferredContact: method.value })}
+            onPress={() => setFormData({ ...formData, preferredContactMethod: method.value })}
           >
             <MaterialIcons
               name={method.icon}
               size={20}
-              color={formData.preferredContact === method.value ? Colors.white : Colors.primary}
+              color={formData.preferredContactMethod === method.value ? Colors.white : Colors.primary}
             />
             <Text
               style={[
                 styles.contactMethodOptionText,
-                formData.preferredContact === method.value && styles.contactMethodOptionTextSelected,
+                formData.preferredContactMethod === method.value && styles.contactMethodOptionTextSelected,
               ]}
             >
               {method.label}

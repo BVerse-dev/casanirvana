@@ -6,6 +6,8 @@ import {
   Image,
   ScrollView,
   Dimensions,
+  Linking,
+  Alert,
 } from "react-native";
 import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
@@ -31,12 +33,8 @@ const AmenityBookingDetailScreen = ({ navigation, route }) => {
   };
 
   useEffect(() => {
-    BackHandler.addEventListener("hardwareBackPress", backAction);
-
-    return () => {
-      const subscription = BackHandler.addEventListener("hardwareBackPress", backAction); 
-      return () => subscription?.remove(); 
-    };
+    const subscription = BackHandler.addEventListener("hardwareBackPress", backAction);
+    return () => subscription.remove();
   }, []);
 
   const getStatusColor = (status) => {
@@ -499,7 +497,7 @@ const AmenityBookingDetailScreen = ({ navigation, route }) => {
               Payment Method:
             </Text>
             <Text style={{ ...Fonts.Medium14grey }}>
-              {booking.payment_status === 'paid' ? 'Credit Card' : 'Pending Payment'}
+              {booking.payment_status === 'paid' ? 'Paid' : 'Pending Payment'}
             </Text>
           </View>
         </View>
@@ -643,8 +641,12 @@ const AmenityBookingDetailScreen = ({ navigation, route }) => {
                     marginLeft: Default.fixPadding * 0.5,
                   }}
                   onPress={() => {
-                    // Handle contact action
-                    console.log('Contact amenity manager:', booking.contactPhone);
+                    const phoneNumber = String(booking.contactPhone || '').trim();
+                    if (!phoneNumber) return;
+
+                    Linking.openURL(`tel:${phoneNumber}`).catch(() => {
+                      Alert.alert('Contact Error', 'Unable to open phone dialer.');
+                    });
                   }}
                 >
                   <Text style={{

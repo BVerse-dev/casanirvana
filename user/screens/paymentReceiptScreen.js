@@ -25,21 +25,16 @@ const PaymentReceiptScreen = ({ navigation, route }) => {
     return t(`paymentScreen:${key}`);
   }
 
-  const backAction = () => {
-    navigation.pop();
-    return true;
-  };
-
   useEffect(() => {
-    BackHandler.addEventListener("hardwareBackPress", backAction);
-    return () => {
-      const subscription = BackHandler.addEventListener(
-        "hardwareBackPress",
-        backAction
-      );
-      return () => subscription?.remove();
+    const onBackPress = () => {
+      navigation.pop();
+      return true;
     };
-  }, []);
+    const subscription = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+    return () => {
+      subscription.remove();
+    };
+  }, [navigation]);
 
   const getTransactionTypeLabel = (type) => {
     switch (type) {
@@ -79,7 +74,7 @@ const PaymentReceiptScreen = ({ navigation, route }) => {
         message,
         title: "Payment Receipt",
       });
-    } catch (error) {
+    } catch (_error) {
       Alert.alert("Error", "Unable to share receipt");
     }
   };
@@ -100,7 +95,7 @@ const PaymentReceiptScreen = ({ navigation, route }) => {
       <View style={styles.errorContainer}>
         <MaterialCommunityIcons name="receipt-off" size={70} color={Colors.grey} />
         <Text style={styles.errorText}>{tr("receiptNotFound")}</Text>
-        <TouchableOpacity style={styles.backButton} onPress={backAction}>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.pop()}>
           <Text style={styles.backButtonText}>{tr("goBack")}</Text>
         </TouchableOpacity>
       </View>
@@ -116,7 +111,7 @@ const PaymentReceiptScreen = ({ navigation, route }) => {
     <View style={{ flex: 1, backgroundColor: Colors.extraLightGrey }}>
       <MyStatusBar />
       <View style={styles.header}>
-        <TouchableOpacity onPress={backAction}>
+        <TouchableOpacity onPress={() => navigation.pop()}>
           <Ionicons
             name={isRtl ? "arrow-forward-outline" : "arrow-back-outline"}
             size={25}
@@ -125,10 +120,10 @@ const PaymentReceiptScreen = ({ navigation, route }) => {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{tr("receipt")}</Text>
         <View style={styles.headerActions}>
-          <TouchableOpacity onPress={handleShare} style={styles.actionButton}>
+          <TouchableOpacity onPress={handleShare} style={styles.headerActionButton}>
             <MaterialCommunityIcons name="share-variant" size={22} color={Colors.primary} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={handlePrint} style={styles.actionButton}>
+          <TouchableOpacity onPress={handlePrint} style={styles.headerActionButton}>
             <MaterialCommunityIcons name="printer" size={22} color={Colors.primary} />
           </TouchableOpacity>
         </View>
@@ -247,7 +242,7 @@ const PaymentReceiptScreen = ({ navigation, route }) => {
 
         <TouchableOpacity
           style={styles.doneButton}
-          onPress={() => navigation.navigate("homeScreen")}
+          onPress={() => navigation.navigate("bottomTab", { screen: "homeScreen" })}
         >
           <Text style={styles.doneButtonText}>{tr("done")}</Text>
         </TouchableOpacity>
@@ -275,7 +270,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  actionButton: {
+  headerActionButton: {
     marginLeft: Default.fixPadding,
   },
   receiptCard: {
