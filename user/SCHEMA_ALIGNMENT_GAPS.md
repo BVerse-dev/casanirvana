@@ -29,6 +29,7 @@ Date: 2026-02-07 (updated 2026-02-21)
 | Gap | Evidence | Impact | Decision |
 |---|---|---|---|
 | Invalid Supabase client import path | `/Users/andromeda/casanirvana/user/services/billPaymentService.js`, `/Users/andromeda/casanirvana/user/services/insuranceService.js` import `../supabase/client` (file not present) | Runtime import failure in those paths | `Code alignment` |
+| `family_members` had RLS enabled without active policies | `public.family_members` returned no `pg_policies` rows while table RLS was enabled | Profile module family-member reads/writes blocked at runtime for authenticated users | `Migration` (completed via `supabase/migrations/20260221220537_phase22_family_members_rls_hardening.sql`) |
 | Supabase client fragmentation | Mixed imports from `../utils/supabase` and `../lib/supabase` across hooks/services | Auth/session inconsistency risk | `Code alignment` |
 | React Query API version mismatch | `/Users/andromeda/casanirvana/user/hooks/useBillPayments.ts`, `/Users/andromeda/casanirvana/user/hooks/useInsurancePayments.ts` use `react-query` while app uses `@tanstack/react-query` elsewhere | Cache and mutation behavior drift | `Code alignment` |
 | Profile identifier strategy mismatch | `useGetProfile` uses `.eq('user_id', auth.uid())`, while notification settings/token writes use `.eq('id', user.id)` | Frequent empty reads/writes and policy edge cases | `Code alignment` |

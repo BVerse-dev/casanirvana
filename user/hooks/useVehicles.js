@@ -64,7 +64,7 @@ export const useCreateVehicle = () => {
       return data;
     },
     onSuccess: (data, variables) => {
-      queryClient.invalidateQueries(['vehicles', variables.user_id]);
+      queryClient.invalidateQueries({ queryKey: ['vehicles', variables.user_id] });
     },
   });
 };
@@ -86,7 +86,7 @@ export const useUpdateVehicle = () => {
       return data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries(['vehicles', data.user_id]);
+      queryClient.invalidateQueries({ queryKey: ['vehicles', data.user_id] });
     },
   });
 };
@@ -106,7 +106,7 @@ export const useDeleteVehicle = () => {
       return { id };
     },
     onSuccess: (data, variables) => {
-      queryClient.invalidateQueries(['vehicles', variables.userId]);
+      queryClient.invalidateQueries({ queryKey: ['vehicles', variables.userId] });
     },
   });
 };

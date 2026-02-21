@@ -64,7 +64,7 @@ export const useCreateFrequentEntry = () => {
       return data;
     },
     onSuccess: (data, variables) => {
-      queryClient.invalidateQueries(['frequent-entries', variables.user_id]);
+      queryClient.invalidateQueries({ queryKey: ['frequent-entries', variables.user_id] });
     },
   });
 };
@@ -86,7 +86,7 @@ export const useUpdateFrequentEntry = () => {
       return data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries(['frequent-entries', data.user_id]);
+      queryClient.invalidateQueries({ queryKey: ['frequent-entries', data.user_id] });
     },
   });
 };
@@ -106,7 +106,7 @@ export const useDeleteFrequentEntry = () => {
       return { id };
     },
     onSuccess: (data, variables) => {
-      queryClient.invalidateQueries(['frequent-entries', variables.userId]);
+      queryClient.invalidateQueries({ queryKey: ['frequent-entries', variables.userId] });
     },
   });
 };

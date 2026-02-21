@@ -117,7 +117,7 @@ Date: 2026-02-07
 ## 6) Profile + Settings
 | Screen/Component | Data-Bound UI Elements | Current Wiring | Status | Wiring Checklist |
 |---|---|---|---|---|
-| `profileScreen` | Family/daily help/vehicles/frequent entries/gate pass cards | Uses authenticated user ID and `useUserGatePass` (no hardcoded demo identity) | `Wired` | Keep; continue replacing remaining static copy labels with profile/community fields as needed |
+| `profileScreen` | Family/daily help/vehicles/frequent entries/gate pass cards | Uses authenticated user ID and `useUserGatePass` (no hardcoded demo identity) | `Wired` | Keep; `family_members` RLS owner policies restored via `supabase/migrations/20260221220537_phase22_family_members_rls_hardening.sql` |
 | `memberDirectoryScreen` | Members/admin/committee list with call/chat actions | Uses `useCommunityMembers`, `useCommunityAdmins`, `useCommunityCommittee` backed by `community_memberships` (community-scoped roles) | `Wired` | Keep |
 | `components/memberTab` | Member list | Uses `useCommunityMembers` sourced from `community_memberships` role `member` | `Wired` | Keep |
 | `components/adminTab` | Admin list | Uses `useCommunityAdmins` sourced from `community_memberships` role `admin` | `Wired` | Keep |

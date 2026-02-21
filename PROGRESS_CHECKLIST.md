@@ -294,6 +294,12 @@ Date: 2026-02-06
 - [x] Fixed service booking payment summary amount propagation (`serviceScreen -> paymentMethodScreen`) by passing canonical `amount/amountFormatted` and prioritizing booking payload totals over stale route params.
 - [ ] Manual runtime QA pending for service lifecycle (`user create -> user list/detail -> superadmin status update -> user reflects update`).
 
+## Phase 22 - Profile Module Hardening (Bottom Tab)
+- [x] Applied migration `supabase/migrations/20260221220537_phase22_family_members_rls_hardening.sql` to close `family_members` RLS gap (table had RLS enabled with no policies).
+- [x] Added owner-scoped authenticated policies for `family_members` (`SELECT`/`INSERT`/`UPDATE`/`DELETE` on `user_id = auth.uid()`) plus explicit `service_role` full-access policy for operational tooling.
+- [x] Normalized React Query v5 invalidation calls in profile entry hooks (`useFamilyMembers`, `useDailyHelp`, `useVehicles`, `useFrequentEntries`) to object-form query keys.
+- [ ] Manual runtime QA pending for profile lifecycle (`family/daily help/vehicle/frequent entry create -> edit -> soft delete -> gate pass modal data`).
+
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)
 - [x] Remove any `node_modules` committed to repo.

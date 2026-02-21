@@ -64,7 +64,7 @@ export const useCreateDailyHelp = () => {
       return data;
     },
     onSuccess: (data, variables) => {
-      queryClient.invalidateQueries(['daily-help', variables.user_id]);
+      queryClient.invalidateQueries({ queryKey: ['daily-help', variables.user_id] });
     },
   });
 };
@@ -86,7 +86,7 @@ export const useUpdateDailyHelp = () => {
       return data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries(['daily-help', data.user_id]);
+      queryClient.invalidateQueries({ queryKey: ['daily-help', data.user_id] });
     },
   });
 };
@@ -106,7 +106,7 @@ export const useDeleteDailyHelp = () => {
       return { id };
     },
     onSuccess: (data, variables) => {
-      queryClient.invalidateQueries(['daily-help', variables.userId]);
+      queryClient.invalidateQueries({ queryKey: ['daily-help', variables.userId] });
     },
   });
 };

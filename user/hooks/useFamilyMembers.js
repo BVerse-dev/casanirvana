@@ -64,7 +64,7 @@ export const useCreateFamilyMember = () => {
       return data;
     },
     onSuccess: (data, variables) => {
-      queryClient.invalidateQueries(['family-members', variables.user_id]);
+      queryClient.invalidateQueries({ queryKey: ['family-members', variables.user_id] });
     },
   });
 };
@@ -86,7 +86,7 @@ export const useUpdateFamilyMember = () => {
       return data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries(['family-members', data.user_id]);
+      queryClient.invalidateQueries({ queryKey: ['family-members', data.user_id] });
     },
   });
 };
@@ -106,7 +106,7 @@ export const useDeleteFamilyMember = () => {
       return { id };
     },
     onSuccess: (data, variables) => {
-      queryClient.invalidateQueries(['family-members', variables.userId]);
+      queryClient.invalidateQueries({ queryKey: ['family-members', variables.userId] });
     },
   });
 };
