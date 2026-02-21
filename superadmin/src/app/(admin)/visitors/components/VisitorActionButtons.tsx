@@ -27,8 +27,9 @@ const VisitorActionButtons = ({ visitor, mode = 'table' }: VisitorActionButtonsP
   const isCardMode = mode === 'card'
   const containerClassName = isCardMode ? 'd-flex flex-nowrap gap-2 w-100' : 'd-flex flex-wrap gap-1'
   const buttonClassName = isCardMode
-    ? 'flex-fill d-inline-flex align-items-center justify-content-center gap-1 text-nowrap px-2'
+    ? 'flex-grow-1 flex-basis-0 d-inline-flex align-items-center justify-content-center gap-1 text-nowrap px-2 overflow-hidden'
     : undefined
+  const cardButtonStyle = isCardMode ? { minWidth: 0 } : undefined
 
   const runAction = async (label: string, action: () => Promise<unknown>) => {
     try {
@@ -50,6 +51,7 @@ const VisitorActionButtons = ({ visitor, mode = 'table' }: VisitorActionButtonsP
   const stopEvent = (event: MouseEvent) => {
     event.stopPropagation()
   }
+  const renderLabel = (label: string) => (showLabels ? <span className="text-truncate">{label}</span> : null)
 
   return (
     <div className={containerClassName}>
@@ -65,9 +67,10 @@ const VisitorActionButtons = ({ visitor, mode = 'table' }: VisitorActionButtonsP
               runAction('Visitor approved', approve)
             }}
             title="Approve"
+            style={cardButtonStyle}
           >
-            <IconifyIcon icon="ri:check-line" className={showLabels ? 'me-1' : ''} />
-            {showLabels ? 'Approve' : null}
+            <IconifyIcon icon="ri:check-line" />
+            {renderLabel('Approve')}
           </Button>
           <Button
             variant="outline-danger"
@@ -79,9 +82,10 @@ const VisitorActionButtons = ({ visitor, mode = 'table' }: VisitorActionButtonsP
               runAction('Visitor denied', deny)
             }}
             title="Deny"
+            style={cardButtonStyle}
           >
-            <IconifyIcon icon="ri:close-line" className={showLabels ? 'me-1' : ''} />
-            {showLabels ? 'Deny' : null}
+            <IconifyIcon icon="ri:close-line" />
+            {renderLabel('Deny')}
           </Button>
         </>
       )}
@@ -97,9 +101,10 @@ const VisitorActionButtons = ({ visitor, mode = 'table' }: VisitorActionButtonsP
             runAction('Visitor checked in', checkIn)
           }}
           title="Check in"
+          style={cardButtonStyle}
         >
-          <IconifyIcon icon="ri:login-box-line" className={showLabels ? 'me-1' : ''} />
-          {showLabels ? 'Check In' : null}
+          <IconifyIcon icon="ri:login-box-line" />
+          {renderLabel('Check In')}
         </Button>
       )}
 
@@ -114,9 +119,10 @@ const VisitorActionButtons = ({ visitor, mode = 'table' }: VisitorActionButtonsP
             runAction('Visitor checked out', checkOut)
           }}
           title="Check out"
+          style={cardButtonStyle}
         >
-          <IconifyIcon icon="ri:logout-box-line" className={showLabels ? 'me-1' : ''} />
-          {showLabels ? 'Check Out' : null}
+          <IconifyIcon icon="ri:logout-box-line" />
+          {renderLabel('Check Out')}
         </Button>
       )}
 
@@ -128,9 +134,10 @@ const VisitorActionButtons = ({ visitor, mode = 'table' }: VisitorActionButtonsP
         className={buttonClassName}
         title="View details"
         onClick={stopEvent}
+        style={cardButtonStyle}
       >
-        <IconifyIcon icon="solar:eye-broken" className={showLabels ? 'me-1' : ''} />
-        {showLabels ? 'Details' : null}
+        <IconifyIcon icon="solar:eye-broken" />
+        {renderLabel('Details')}
       </Button>
 
       <Button
@@ -143,9 +150,10 @@ const VisitorActionButtons = ({ visitor, mode = 'table' }: VisitorActionButtonsP
           handleDelete()
         }}
         title="Delete"
+        style={cardButtonStyle}
       >
-        <IconifyIcon icon="ri:delete-bin-line" className={showLabels ? 'me-1' : ''} />
-        {showLabels ? 'Delete' : null}
+        <IconifyIcon icon="ri:delete-bin-line" />
+        {renderLabel('Delete')}
       </Button>
     </div>
   )
