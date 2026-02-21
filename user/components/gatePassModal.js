@@ -23,7 +23,6 @@ import * as Clipboard from "expo-clipboard";
 import QRCode from "react-native-qrcode-svg";
 import BarcodeMask from "react-native-barcode-mask";
 import ViewShot from "react-native-view-shot";
-import * as FileSystem from "expo-file-system";
 import * as LegacyFileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 
@@ -39,35 +38,6 @@ const GatePassModal = (props) => {
     return t(`gatePassModal:${key}`);
   }
 
-  // Debug logging to see what visitor data is being passed
-  console.log('🎫 GatePassModal - Received visitor data:', {
-    visitorData: props.visitorData,
-    hasVisitorData: !!props.visitorData,
-    visitorName: props.visitorData?.visitor_name,
-    visitorType: props.visitorData?.visitor_type,
-    entryCode: props.visitorData?.entry_code,
-    qrCodeData: props.visitorData?.qr_code_data
-  });
-  
-  // Debug logging for QR code data parsing
-  if (props.visitorData?.qr_code_data) {
-    try {
-      // Handle double-escaped JSON from Supabase
-      let qrData;
-      try {
-        qrData = JSON.parse(props.visitorData.qr_code_data);
-      } catch (parseError) {
-        const unescaped = props.visitorData.qr_code_data.replace(/\\"/g, '"').replace(/\\\\/g, '\\');
-        qrData = JSON.parse(unescaped);
-      }
-      console.log('🎫 GatePassModal - Successfully parsed QR data:', qrData);
-      console.log('🎫 GatePassModal - QR data type:', qrData.type);
-    } catch (error) {
-      console.log('🎫 GatePassModal - Failed to parse QR data:', error);
-      console.log('🎫 GatePassModal - Raw QR data string:', props.visitorData.qr_code_data);
-    }
-  }
-
   // Handle both modalClose and onClose props for backward compatibility
   const handleClose = props.modalClose || props.onClose;
 
@@ -75,7 +45,6 @@ const GatePassModal = (props) => {
   const generateEntryCode = () => {
     // Use stored entry code if available
     if (props.visitorData?.entry_code) {
-      console.log('🎫 Using database entry code:', props.visitorData.entry_code);
       return props.visitorData.entry_code;
     }
     
@@ -86,29 +55,25 @@ const GatePassModal = (props) => {
         let qrData;
         try {
           qrData = JSON.parse(props.visitorData.qr_code_data);
-        } catch (parseError) {
+        } catch (_parseError) {
           const unescaped = props.visitorData.qr_code_data.replace(/\\"/g, '"').replace(/\\\\/g, '\\');
           qrData = JSON.parse(unescaped);
         }
         if (qrData.entry_code) {
-          console.log('🎫 Using QR code entry code:', qrData.entry_code);
           return qrData.entry_code;
         }
-      } catch (error) {
-        console.warn('🎫 Failed to parse QR code data:', error);
+      } catch (_error) {
       }
     }
     
     // Fallback: use visitor ID
     if (props.visitorData?.id) {
       const fallbackCode = props.visitorData.id.slice(-8).toUpperCase();
-      console.log('🎫 Using visitor ID as entry code:', fallbackCode);
       return fallbackCode;
     }
     
     // Last resort: generate random code
     const randomCode = "VP" + Math.random().toString(36).substr(2, 6).toUpperCase();
-    console.log('🎫 Generated random entry code:', randomCode);
     return randomCode;
   };
 
@@ -151,8 +116,8 @@ const GatePassModal = (props) => {
 
       const visitorName = props.visitorData?.visitor_name || props.name || 'visitor';
       const fileName = `GatePass_${visitorName.replace(/\s+/g, '_')}_${new Date().getTime()}.png`;
-      const documentDirectory = LegacyFileSystem.documentDirectory || FileSystem.documentDirectory;
-      const copyAsync = LegacyFileSystem.copyAsync || FileSystem.copyAsync;
+      const documentDirectory = LegacyFileSystem.documentDirectory;
+      const copyAsync = LegacyFileSystem.copyAsync;
 
       if (!documentDirectory || !copyAsync) {
         throw new Error('FileSystem download APIs are not available in this runtime');
@@ -321,20 +286,16 @@ const GatePassModal = (props) => {
                             let entryType = '';
                             try {
                               if (props.visitorData?.qr_code_data) {
-                                console.log('🎫 GatePassModal - Raw QR code data:', props.visitorData.qr_code_data);
                                 // Handle double-escaped JSON from Supabase
                                 let qrData;
                                 try {
                                   // First try to parse as-is
                                   qrData = JSON.parse(props.visitorData.qr_code_data);
-                                } catch (parseError) {
-                                  console.log('🎫 GatePassModal - First parse failed, trying to unescape...');
+                                } catch (_parseError) {
                                   // If that fails, try to unescape first
                                   const unescaped = props.visitorData.qr_code_data.replace(/\\"/g, '"').replace(/\\\\/g, '\\');
                                   qrData = JSON.parse(unescaped);
                                 }
-                                console.log('🎫 GatePassModal - Parsed QR data:', qrData);
-                                console.log('🎫 GatePassModal - QR data type:', qrData.type);
                                 
                                 if (qrData.type === 'user_gate_pass') {
                                   entryType = `My Gate Pass`;
@@ -371,9 +332,7 @@ const GatePassModal = (props) => {
                                   entryType = `${tr("guestAt")} Unit`;
                                 }
                               }
-                            } catch (error) {
-                              console.log('🎫 GatePassModal - Error parsing QR data:', error);
-                              console.log('🎫 GatePassModal - Raw QR data:', props.visitorData?.qr_code_data);
+                            } catch (_error) {
                               // Fallback for visitor types
                               if (props.visitorData?.visitor_type === 'delivery') {
                                 entryType = `${props.visitorData?.company_name || 'Delivery'}`;
@@ -399,7 +358,7 @@ const GatePassModal = (props) => {
                               let qrData;
                               try {
                                 qrData = JSON.parse(props.visitorData.qr_code_data);
-                              } catch (parseError) {
+                              } catch (_parseError) {
                                 const unescaped = props.visitorData.qr_code_data.replace(/\\"/g, '"').replace(/\\\\/g, '\\');
                                 qrData = JSON.parse(unescaped);
                               }
@@ -431,7 +390,7 @@ const GatePassModal = (props) => {
                                 </Text>
                               );
                             }
-                          } catch (error) {
+                          } catch (_error) {
                             // Fallback for visitor types
                             if (props.visitorData?.visit_date || props.visitorData?.from_date) {
                               return (
@@ -458,7 +417,7 @@ const GatePassModal = (props) => {
                               let qrData;
                               try {
                                 qrData = JSON.parse(props.visitorData.qr_code_data);
-                              } catch (parseError) {
+                              } catch (_parseError) {
                                 const unescaped = props.visitorData.qr_code_data.replace(/\\"/g, '"').replace(/\\\\/g, '\\');
                                 qrData = JSON.parse(unescaped);
                               }
@@ -477,7 +436,7 @@ const GatePassModal = (props) => {
                                 </Text>
                               );
                             }
-                          } catch (error) {
+                          } catch (_error) {
                             if (props.visitorData?.visitor_phone) {
                               return (
                                 <Text style={{ ...Fonts.Regular14grey, marginTop: Default.fixPadding * 0.2 }}>
@@ -497,7 +456,7 @@ const GatePassModal = (props) => {
                               let qrData;
                               try {
                                 qrData = JSON.parse(props.visitorData.qr_code_data);
-                              } catch (parseError) {
+                              } catch (_parseError) {
                                 const unescaped = props.visitorData.qr_code_data.replace(/\\"/g, '"').replace(/\\\\/g, '\\');
                                 qrData = JSON.parse(unescaped);
                               }
@@ -569,7 +528,7 @@ const GatePassModal = (props) => {
                                 </Text>
                               );
                             }
-                          } catch (error) {
+                          } catch (_error) {
                             if (props.visitorData?.purpose) {
                               return (
                                 <Text style={{ ...Fonts.Regular14grey, marginTop: Default.fixPadding * 0.2 }}>

@@ -254,8 +254,7 @@ const AddFamilyMemberModal = (props) => {
     try {
       const { status } = await Contacts.requestPermissionsAsync();
       return status === 'granted';
-    } catch (error) {
-      console.log('Permission error:', error);
+    } catch (_error) {
       return false;
     }
   };
@@ -289,7 +288,7 @@ const AddFamilyMemberModal = (props) => {
       } else {
         Alert.alert('No Contacts', 'No contacts found on your device.');
       }
-    } catch (error) {
+    } catch (_error) {
       Alert.alert('Error', 'Failed to load contacts. Please try again.');
     }
   };

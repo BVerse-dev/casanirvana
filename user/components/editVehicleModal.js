@@ -92,15 +92,12 @@ const EditVehicleModal = (props) => {
 
   // Initialize form with existing data when modal opens
   useEffect(() => {
-    console.log('EditVehicleModal - props.entryData:', props.entryData);
-    console.log('EditVehicleModal - props.visible:', props.visible);
     if (props.entryData) {
       setVehicleNumber(props.entryData.name || ''); // vehicle_number is mapped to name
       setModel(props.entryData.model || '');
       setColor(props.entryData.color || '');
       setPlateNumber(props.entryData.plate_number || '');
       setPickedImage(props.entryData.image || null);
-      console.log('EditVehicleModal - Form initialized with data');
     }
   }, [props.entryData]);
 

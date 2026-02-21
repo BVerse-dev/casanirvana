@@ -92,13 +92,10 @@ const EditDailyHelpModal = (props) => {
 
   // Initialize form with existing data when modal opens
   useEffect(() => {
-    console.log('EditDailyHelpModal - props.entryData:', props.entryData);
-    console.log('EditDailyHelpModal - props.visible:', props.visible);
     if (props.entryData) {
       setName(props.entryData.name || '');
       setPhoneNumber(props.entryData.phone || '');
       setPickedImage(props.entryData.image || null);
-      console.log('EditDailyHelpModal - Form initialized with data');
     }
   }, [props.entryData]);
 
@@ -117,14 +114,10 @@ const EditDailyHelpModal = (props) => {
 
   // Set selected type from existing data
   useEffect(() => {
-    console.log('EditDailyHelpModal - Setting type from:', props.entryData?.other);
     if (props.entryData && props.entryData.other) {
       const type = helpTypeList.find(t => t.name === props.entryData.other);
       if (type) {
         setSelectedType(type);
-        console.log('EditDailyHelpModal - Type set to:', type.name);
-      } else {
-        console.log('EditDailyHelpModal - Type not found in list:', props.entryData.other);
       }
     }
   }, [props.entryData]);
@@ -211,7 +204,6 @@ const EditDailyHelpModal = (props) => {
     return 'Send Gate Pass to Guest';
   };
 
-  console.log('EditDailyHelpModal - Rendering with visible:', props.visible);
   return (
     <Modal
       animationType="slide"

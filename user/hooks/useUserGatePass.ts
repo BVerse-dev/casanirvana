@@ -33,9 +33,6 @@ export const useUserGatePass = () => {
         throw new Error('User profile not found');
       }
 
-      console.log('🎫 useUserGatePass - Retrieved data:', data);
-      console.log('🎫 useUserGatePass - QR code data:', data?.qr_code_data);
-
       return data;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes

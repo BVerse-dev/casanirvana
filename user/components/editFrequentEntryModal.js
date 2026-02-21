@@ -92,14 +92,11 @@ const EditFrequentEntryModal = (props) => {
 
   // Initialize form with existing data when modal opens
   useEffect(() => {
-    console.log('EditFrequentEntryModal - props.entryData:', props.entryData);
-    console.log('EditFrequentEntryModal - props.visible:', props.visible);
     if (props.entryData) {
       setName(props.entryData.name || '');
       setPhoneNumber(props.entryData.phone || '');
       setPickedImage(props.entryData.image || null);
       setRelationText(props.entryData.other || '');
-      console.log('EditFrequentEntryModal - Form initialized with data');
     }
   }, [props.entryData]);
 
@@ -183,7 +180,6 @@ const EditFrequentEntryModal = (props) => {
     return 'Send Gate Pass to Guest';
   };
 
-  console.log('EditFrequentEntryModal - Rendering with visible:', props.visible);
   return (
     <Modal
       animationType="slide"

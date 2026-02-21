@@ -578,11 +578,7 @@ const ProfileScreen = ({ navigation }) => {
 
             <TouchableOpacity
               onPress={() => {
-                console.log('🎫 ProfileScreen - userGatePass data:', userGatePass);
-                console.log('🎫 ProfileScreen - QR code data:', userGatePass?.qr_code_data);
-                
                 if (!userGatePass?.qr_code_data) {
-                  console.log('🎫 ProfileScreen - No QR code data available');
                   return;
                 }
                 
@@ -1155,12 +1151,10 @@ const ProfileScreen = ({ navigation }) => {
               entry={selectedEntry}
               entryType={selectedEntryType}
               onEditFamilyMember={(entry) => {
-                console.log('Opening edit family modal with data:', entry);
                 setOpenEntryDetailModal(false);
                 setEditEntryData(entry);
                 setEditEntryType('family_member');
                 setOpenEditFamilyModal(true);
-                console.log('Edit modal state set to true');
               }}
               onEditDailyHelp={(entry) => {
                 setOpenEntryDetailModal(false);

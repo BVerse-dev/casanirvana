@@ -98,13 +98,10 @@ const EditFamilyMemberModal = (props) => {
 
   // Initialize form with existing data when modal opens
   useEffect(() => {
-    console.log('EditFamilyMemberModal - props.entryData:', props.entryData);
-    console.log('EditFamilyMemberModal - props.visible:', props.visible);
     if (props.entryData) {
       setName(props.entryData.name || '');
       setPhoneNumber(props.entryData.phone || '');
       setPickedImage(props.entryData.image || null);
-      console.log('EditFamilyMemberModal - Form initialized with data');
     }
   }, [props.entryData]);
 
@@ -145,20 +142,15 @@ const EditFamilyMemberModal = (props) => {
 
   // Set selected relation from existing data
   useEffect(() => {
-    console.log('EditFamilyMemberModal - Setting relation from:', props.entryData?.other);
     if (props.entryData && props.entryData.other) {
       if (props.entryType === 'frequent_entry') {
         // For frequent entries, use the text directly
         setRelationText(props.entryData.other);
-        console.log('EditFamilyMemberModal - Frequent entry relation set to:', props.entryData.other);
       } else {
         // For family members and daily help, find in dropdown list
         const relation = relationList.find(r => r.name === props.entryData.other);
         if (relation) {
           setSelectedRelation(relation);
-          console.log('EditFamilyMemberModal - Relation set to:', relation.name);
-        } else {
-          console.log('EditFamilyMemberModal - Relation not found in list:', props.entryData.other);
         }
       }
     }
@@ -321,7 +313,6 @@ const EditFamilyMemberModal = (props) => {
     }
   };
 
-  console.log('EditFamilyMemberModal - Rendering with visible:', props.visible);
     return (
     <Modal
       animationType="slide"
