@@ -4,12 +4,12 @@ import { ApexOptions } from 'apexcharts'
 import Image from 'next/image'
 import Link from 'next/link'
 import ReactApexChart from 'react-apexcharts'
-import { Card, CardBody, CardTitle, Col, Row } from 'react-bootstrap'
-import { propertyFileData, reviewData, ReviewType } from '../data'
+import { Alert, Card, CardBody, CardTitle, Col, Row } from 'react-bootstrap'
 import { ResidentProfile } from '@/assets/data/residents'
 import { mapAvatarUrl } from '@/utils/avatarMapper'
 import { avatars } from '@/assets/images/users'
 import { useResidentActivityStats } from '@/hooks/useResidentActivities'
+import { useResidentDirectoryEntries } from '@/hooks/useResidentDirectoryEntries'
 
 type ResidentDetailsCardProps = {
   resident: ResidentProfile
@@ -139,82 +139,190 @@ const PropertyStatus = ({ residentId }: { residentId: string }) => {
   )
 }
 
-const Reviews = () => {
-  const ReviewCard = ({ country, day, description, image, name, userName }: ReviewType) => {
-    return (
-      <Card className="bg-light-subtle mb-0">
-        <CardBody>
-          <div className="d-flex align-items-center gap-2">
-            <Image src={image} alt="avatar" className="rounded-circle avatar-md" />
-            <div>
-              <h5 className="fw-semibold text-dark mb-1">{name}</h5>
-              <p className="m-0">
-                @{userName} <span className="ms-1">({country})</span>
-              </p>
-            </div>
-          </div>
-          <p className="my-3">&quot;{description}&quot;</p>
-          <ul className="d-flex text-warning m-0 fs-18  list-unstyled">
-            <li>
-              <IconifyIcon icon="ri:star-fill" />
-            </li>
-            <li>
-              <IconifyIcon icon="ri:star-fill" />
-            </li>
-            <li>
-              <IconifyIcon icon="ri:star-fill" />
-            </li>
-            <li>
-              <IconifyIcon icon="ri:star-fill" />
-            </li>
-            <li>
-              <IconifyIcon icon="ri:star-half-line" />
-            </li>
-          </ul>
-          <p className="fw-medium text-muted mb-0">{day} Days Ago</p>
-        </CardBody>
-      </Card>
-    )
-  }
+const formatRowDate = (value?: string | null) => {
+  if (!value) return '—'
+  return new Date(value).toLocaleDateString()
+}
+
+const StatusBadge = ({ isActive }: { isActive?: boolean | null }) => {
+  const active = isActive !== false
+  return <span className={`badge bg-${active ? 'success' : 'secondary'}-subtle text-${active ? 'success' : 'secondary'} py-1 px-2`}>{active ? 'Active' : 'Inactive'}</span>
+}
+
+const DirectorySection = ({
+  title,
+  icon,
+  columns,
+  children,
+  count,
+}: {
+  title: string
+  icon: string
+  columns: string[]
+  children: React.ReactNode
+  count: number
+}) => {
   return (
-    <div className="mt-4">
-      <CardTitle as={'h4'} className="mb-3">
-        Community Feedback :
-      </CardTitle>
-      <Row>
-        {reviewData.map((item, idx) => (
-          <Col lg={6} key={idx}>
-            <ReviewCard {...item} />
-          </Col>
-        ))}
-      </Row>
-    </div>
+    <Card className="mb-3 border shadow-none">
+      <CardBody>
+        <div className="d-flex align-items-center justify-content-between mb-3">
+          <h5 className="mb-0 d-flex align-items-center gap-2">
+            <IconifyIcon icon={icon} className="text-primary" />
+            {title}
+          </h5>
+          <span className="badge bg-primary-subtle text-primary">{count}</span>
+        </div>
+        <div className="table-responsive">
+          <table className="table table-sm align-middle mb-0">
+            <thead>
+              <tr>
+                {columns.map((column) => (
+                  <th key={column}>{column}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>{children}</tbody>
+          </table>
+        </div>
+      </CardBody>
+    </Card>
   )
 }
 
-const PropertyFile = () => {
-  return (
-    <>
-      <CardTitle as={'h4'} className="mt-4">
-        Resident Documents :
-      </CardTitle>
-      <div className="mt-3 d-flex flex-wrap gap-2">
-        {propertyFileData.map((item, idx) => (
-          <div className="d-flex p-2 gap-2 bg-light-subtle align-items-center text-start position-relative border rounded" key={idx}>
-            <IconifyIcon icon={item.icon} className={`text-${item.variant} fs-24`} />
-            <div>
-              <h4 className="fs-14 mb-1">
-                <Link href="" className="text-dark stretched-link">
-                  {item.name}
-                </Link>
-              </h4>
-              <p className="fs-12 mb-0">{item.data} MB</p>
-            </div>
-            <IconifyIcon icon="ri:download-cloud-line" className=" fs-20 text-muted" />
+const ResidentProfileDirectory = ({ resident }: { resident: ResidentProfile }) => {
+  const { data, isLoading, error } = useResidentDirectoryEntries(resident.id, resident.user_id)
+
+  if (isLoading) {
+    return (
+      <div className="mt-4">
+        <CardTitle as={'h4'} className="mb-3">
+          Resident Access Directory :
+        </CardTitle>
+        <div className="text-center py-3">
+          <div className="spinner-border spinner-border-sm text-primary" role="status">
+            <span className="visually-hidden">Loading...</span>
           </div>
-        ))}
+        </div>
       </div>
-    </>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="mt-4">
+        <CardTitle as={'h4'} className="mb-3">
+          Resident Access Directory :
+        </CardTitle>
+        <Alert variant="warning" className="mb-0">
+          Unable to load resident directory entries. Please verify profile-access policies for family, daily help, vehicles, and frequent entries.
+        </Alert>
+      </div>
+    )
+  }
+
+  const familyMembers = data?.familyMembers || []
+  const dailyHelp = data?.dailyHelp || []
+  const vehicles = data?.vehicles || []
+  const frequentEntries = data?.frequentEntries || []
+
+  return (
+    <div className="mt-4">
+      <CardTitle as={'h4'} className="mb-3">
+        Resident Access Directory :
+      </CardTitle>
+
+      <DirectorySection title="Family Members" icon="solar:users-group-two-rounded-bold-duotone" columns={['Name', 'Relation', 'Phone', 'Entry Code', 'Added On', 'Status']} count={familyMembers.length}>
+        {familyMembers.length ? (
+          familyMembers.map((member) => (
+            <tr key={member.id}>
+              <td>{member.name || '—'}</td>
+              <td>{member.relation || '—'}</td>
+              <td>{member.phone || '—'}</td>
+              <td>{member.entry_code || '—'}</td>
+              <td>{formatRowDate(member.created_at)}</td>
+              <td>
+                <StatusBadge isActive={member.is_active} />
+              </td>
+            </tr>
+          ))
+        ) : (
+          <tr>
+            <td colSpan={6} className="text-center text-muted py-3">
+              No family members added yet.
+            </td>
+          </tr>
+        )}
+      </DirectorySection>
+
+      <DirectorySection title="Daily Help" icon="solar:shield-user-bold-duotone" columns={['Name', 'Type', 'Phone', 'Entry Code', 'Added On', 'Status']} count={dailyHelp.length}>
+        {dailyHelp.length ? (
+          dailyHelp.map((helper) => (
+            <tr key={helper.id}>
+              <td>{helper.name || '—'}</td>
+              <td>{helper.type || '—'}</td>
+              <td>{helper.phone || '—'}</td>
+              <td>{helper.entry_code || '—'}</td>
+              <td>{formatRowDate(helper.created_at)}</td>
+              <td>
+                <StatusBadge isActive={helper.is_active} />
+              </td>
+            </tr>
+          ))
+        ) : (
+          <tr>
+            <td colSpan={6} className="text-center text-muted py-3">
+              No daily help records found.
+            </td>
+          </tr>
+        )}
+      </DirectorySection>
+
+      <DirectorySection title="Vehicles" icon="solar:bus-bold-duotone" columns={['Vehicle Number', 'Model', 'Color', 'Entry Code', 'Added On', 'Status']} count={vehicles.length}>
+        {vehicles.length ? (
+          vehicles.map((vehicle) => (
+            <tr key={vehicle.id}>
+              <td>{vehicle.vehicle_number || '—'}</td>
+              <td>{vehicle.model || '—'}</td>
+              <td>{vehicle.color || '—'}</td>
+              <td>{vehicle.entry_code || '—'}</td>
+              <td>{formatRowDate(vehicle.created_at)}</td>
+              <td>
+                <StatusBadge isActive={vehicle.is_active} />
+              </td>
+            </tr>
+          ))
+        ) : (
+          <tr>
+            <td colSpan={6} className="text-center text-muted py-3">
+              No vehicles registered yet.
+            </td>
+          </tr>
+        )}
+      </DirectorySection>
+
+      <DirectorySection title="Frequent Entries" icon="solar:user-check-bold-duotone" columns={['Name', 'Relation / Description', 'Phone', 'Entry Code', 'Added On', 'Status']} count={frequentEntries.length}>
+        {frequentEntries.length ? (
+          frequentEntries.map((entry) => (
+            <tr key={entry.id}>
+              <td>{entry.name || '—'}</td>
+              <td>{entry.relation || '—'}</td>
+              <td>{entry.phone || '—'}</td>
+              <td>{entry.entry_code || '—'}</td>
+              <td>{formatRowDate(entry.created_at)}</td>
+              <td>
+                <StatusBadge isActive={entry.is_active} />
+              </td>
+            </tr>
+          ))
+        ) : (
+          <tr>
+            <td colSpan={6} className="text-center text-muted py-3">
+              No frequent entry records found.
+            </td>
+          </tr>
+        )}
+      </DirectorySection>
+    </div>
   )
 }
 
@@ -350,8 +458,7 @@ const ResidentDetailsCard = ({ resident }: ResidentDetailsCardProps) => {
           </div>
         </div>
         <PropertyStatus residentId={resident.id} />
-        <Reviews />
-        <PropertyFile />
+        <ResidentProfileDirectory resident={resident} />
       </CardBody>
     </Card>
   )

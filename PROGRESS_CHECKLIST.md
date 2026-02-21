@@ -300,6 +300,8 @@ Date: 2026-02-06
 - [x] Normalized React Query v5 invalidation calls in profile entry hooks (`useFamilyMembers`, `useDailyHelp`, `useVehicles`, `useFrequentEntries`) to object-form query keys.
 - [x] Removed hardcoded demo-user IDs from profile entry create/edit/delete flows and enforced authenticated actor resolution in profile modals (`addFamilyMemberModal`, `myVehiclesModal`, `edit*` entry modals, `entryDetailModal`).
 - [x] Removed profile/gate-pass debug logging noise from runtime-critical paths (`profileScreen`, `gatePassModal`, `useUserGatePass`, and profile edit modals) while retaining error logging paths.
+- [x] Replaced superadmin resident details placeholder sections (`Community Feedback`, `Resident Documents`) with DB-backed `Resident Access Directory` tables for `family_members`, `daily_help`, `vehicles`, and `frequent_entries`.
+- [x] Applied migration `supabase/migrations/20260221224136_phase22_profile_directory_admin_read_scope.sql` to allow tenant-scoped admin `SELECT` access on resident profile-directory tables.
 - [ ] Manual runtime QA pending for profile lifecycle (`family/daily help/vehicle/frequent entry create -> edit -> soft delete -> gate pass modal data`).
 
 ## Cleanup / Hygiene
