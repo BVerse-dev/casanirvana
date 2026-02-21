@@ -26,6 +26,8 @@ const CommunityDetailsPage = () => {
   const searchParams = useSearchParams();
   const [communityId, setCommunityId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>('overview');
+  const [unitsSearchTerm, setUnitsSearchTerm] = useState("");
+  const [residentsSearchTerm, setResidentsSearchTerm] = useState("");
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [selectedProfileId, setSelectedProfileId] = useState("");
   const [selectedDirectoryRole, setSelectedDirectoryRole] = useState<CommunityDirectoryRole>("member");
@@ -48,6 +50,60 @@ const CommunityDetailsPage = () => {
     communityId: communityId || undefined,
     page: 1,
     pageSize: 1000 // Get all units for this community
+  });
+
+  const {
+    data: communityResidents = [],
+    isLoading: residentsLoading,
+    error: residentsError,
+  } = useQuery({
+    queryKey: ["community-residents", communityId],
+    queryFn: async () => {
+      if (!communityId) return [];
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select(
+          `
+          id,
+          user_id,
+          first_name,
+          last_name,
+          full_name,
+          email,
+          phone,
+          role,
+          status,
+          is_active,
+          created_at,
+          unit:unit_id(id, block, number, unit_number),
+          community:community_id(id, name)
+        `
+        )
+        .eq("community_id", communityId)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      const nonResidentRoles = new Set([
+        "superadmin",
+        "admin",
+        "agency_manager",
+        "facility_manager",
+        "guard",
+        "security_guard",
+        "staff",
+      ]);
+
+      return (data || []).filter((profile: any) => {
+        const role = typeof profile.role === "string" ? profile.role.toLowerCase() : "";
+        return !nonResidentRoles.has(role);
+      });
+    },
+    enabled: !!communityId,
+    staleTime: 60 * 1000,
   });
 
   const {
@@ -307,6 +363,78 @@ const CommunityDetailsPage = () => {
   const occupiedUnits = units.filter(unit => unit.status === 'occupied');
   const vacantUnits = units.filter(unit => unit.status === 'available' || unit.status === 'vacant');
 
+  const directoryRoleByProfileId = useMemo(() => {
+    return new Map(directoryMembers.map((entry) => [entry.profile_id, entry.membership_role]));
+  }, [directoryMembers]);
+
+  const filteredUnits = useMemo(() => {
+    const query = unitsSearchTerm.trim().toLowerCase();
+    if (!query) return units;
+
+    return units.filter((unit: any) => {
+      const unitLabel = `${unit.block || ""}-${unit.number || unit.unit_number || ""}`.toLowerCase();
+      const ownerName = unit.profiles
+        ? `${unit.profiles.first_name || ""} ${unit.profiles.last_name || ""}`.trim().toLowerCase()
+        : "";
+      const status = `${unit.status || ""}`.toLowerCase();
+
+      return (
+        unitLabel.includes(query) ||
+        ownerName.includes(query) ||
+        status.includes(query) ||
+        `${unit.number || unit.unit_number || ""}`.toLowerCase().includes(query)
+      );
+    });
+  }, [units, unitsSearchTerm]);
+
+  const residentsWithDirectory = useMemo(() => {
+    return (communityResidents as any[]).map((resident) => {
+      const displayName =
+        resident.full_name ||
+        `${resident.first_name || ""} ${resident.last_name || ""}`.trim() ||
+        resident.email ||
+        "Unknown Resident";
+
+      const unitLabel =
+        resident.unit?.block && (resident.unit?.number || resident.unit?.unit_number)
+          ? `${resident.unit.block}-${resident.unit.number || resident.unit.unit_number}`
+          : "Unassigned";
+
+      const directoryRole = directoryRoleByProfileId.get(resident.id) || "member";
+
+      return {
+        ...resident,
+        displayName,
+        unitLabel,
+        directoryRole,
+      };
+    });
+  }, [communityResidents, directoryRoleByProfileId]);
+
+  const filteredResidents = useMemo(() => {
+    const query = residentsSearchTerm.trim().toLowerCase();
+    if (!query) return residentsWithDirectory;
+
+    return residentsWithDirectory.filter((resident) => {
+      return (
+        resident.displayName.toLowerCase().includes(query) ||
+        `${resident.email || ""}`.toLowerCase().includes(query) ||
+        `${resident.phone || ""}`.toLowerCase().includes(query) ||
+        `${resident.unitLabel || ""}`.toLowerCase().includes(query)
+      );
+    });
+  }, [residentsWithDirectory, residentsSearchTerm]);
+
+  const residentsWithAssignedUnits = residentsWithDirectory.filter(
+    (resident) => resident.unitLabel !== "Unassigned"
+  ).length;
+  const residentsAdminCount = residentsWithDirectory.filter(
+    (resident) => resident.directoryRole === "admin"
+  ).length;
+  const residentsCommitteeCount = residentsWithDirectory.filter(
+    (resident) => resident.directoryRole === "committee"
+  ).length;
+
   // Loading state
   if (communityLoading) {
     return (
@@ -450,6 +578,26 @@ const CommunityDetailsPage = () => {
                   >
                     <IconifyIcon icon="solar:home-2-bold-duotone" className="me-2" />
                     Overview
+                  </NavLink>
+                </NavItem>
+                <NavItem>
+                  <NavLink 
+                    className={`px-4 py-3 ${activeTab === 'units' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('units')}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <IconifyIcon icon="solar:buildings-2-bold-duotone" className="me-2" />
+                    Units
+                  </NavLink>
+                </NavItem>
+                <NavItem>
+                  <NavLink 
+                    className={`px-4 py-3 ${activeTab === 'residents' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('residents')}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <IconifyIcon icon="solar:users-group-two-rounded-bold-duotone" className="me-2" />
+                    Residents
                   </NavLink>
                 </NavItem>
                 <NavItem>
@@ -1169,6 +1317,375 @@ const CommunityDetailsPage = () => {
                       allowFullScreen
                       src={`https://maps.google.com/maps?width=1980&height=400&hl=en&q=${encodeURIComponent(community.address || community.name)}&t=&z=14&ie=UTF8&iwloc=B&output=embed`}
                     />
+                  </div>
+                </CardBody>
+              </Card>
+            </Col>
+          </Row>
+        </>
+      )}
+
+      {activeTab === 'units' && (
+        <>
+          <Row className="mb-4">
+            <Col lg={3} md={6} className="mb-3">
+              <Card className="border-0 shadow-sm h-100 bg-gradient-primary text-white">
+                <CardBody>
+                  <div className="d-flex align-items-center justify-content-between">
+                    <div>
+                      <div className="text-white-50 mb-1">Total Units</div>
+                      <h3 className="mb-0 text-white">{units.length}</h3>
+                    </div>
+                    <div className="avatar-lg rounded-circle bg-white bg-opacity-20 d-flex align-items-center justify-content-center">
+                      <IconifyIcon icon="solar:buildings-2-bold-duotone" className="fs-24 text-white" />
+                    </div>
+                  </div>
+                </CardBody>
+              </Card>
+            </Col>
+            <Col lg={3} md={6} className="mb-3">
+              <Card className="border-0 shadow-sm h-100 bg-gradient-success text-white">
+                <CardBody>
+                  <div className="d-flex align-items-center justify-content-between">
+                    <div>
+                      <div className="text-white-50 mb-1">Occupied</div>
+                      <h3 className="mb-0 text-white">{occupiedUnits.length}</h3>
+                    </div>
+                    <div className="avatar-lg rounded-circle bg-white bg-opacity-20 d-flex align-items-center justify-content-center">
+                      <IconifyIcon icon="solar:home-bold-duotone" className="fs-24 text-white" />
+                    </div>
+                  </div>
+                </CardBody>
+              </Card>
+            </Col>
+            <Col lg={3} md={6} className="mb-3">
+              <Card className="border-0 shadow-sm h-100 bg-gradient-warning text-white">
+                <CardBody>
+                  <div className="d-flex align-items-center justify-content-between">
+                    <div>
+                      <div className="text-white-50 mb-1">Vacant</div>
+                      <h3 className="mb-0 text-white">{vacantUnits.length}</h3>
+                    </div>
+                    <div className="avatar-lg rounded-circle bg-white bg-opacity-20 d-flex align-items-center justify-content-center">
+                      <IconifyIcon icon="solar:home-broken" className="fs-24 text-white" />
+                    </div>
+                  </div>
+                </CardBody>
+              </Card>
+            </Col>
+            <Col lg={3} md={6} className="mb-3">
+              <Card className="border-0 shadow-sm h-100 bg-gradient-info text-white">
+                <CardBody>
+                  <div className="d-flex align-items-center justify-content-between">
+                    <div>
+                      <div className="text-white-50 mb-1">Occupancy Rate</div>
+                      <h3 className="mb-0 text-white">
+                        {units.length > 0 ? Math.round((occupiedUnits.length / units.length) * 100) : 0}%
+                      </h3>
+                    </div>
+                    <div className="avatar-lg rounded-circle bg-white bg-opacity-20 d-flex align-items-center justify-content-center">
+                      <IconifyIcon icon="solar:chart-square-bold-duotone" className="fs-24 text-white" />
+                    </div>
+                  </div>
+                </CardBody>
+              </Card>
+            </Col>
+          </Row>
+
+          <Row>
+            <Col xl={12}>
+              <Card className="border-0 shadow-sm">
+                <CardHeader className="bg-transparent">
+                  <div className="d-flex flex-wrap gap-2 justify-content-between align-items-center">
+                    <div>
+                      <CardTitle className="mb-1">Community Units</CardTitle>
+                      <p className="text-muted mb-0 small">Search and review all units linked to this community.</p>
+                    </div>
+                    <div className="d-flex gap-2 align-items-center">
+                      <FormControl
+                        value={unitsSearchTerm}
+                        onChange={(event) => setUnitsSearchTerm(event.target.value)}
+                        placeholder="Search by unit, owner, or status..."
+                        style={{ minWidth: 280 }}
+                      />
+                      <Link href="/property/add">
+                        <Button variant="primary">
+                          <IconifyIcon icon="solar:add-circle-bold-duotone" className="me-1" />
+                          Add Unit
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardBody>
+                  <div className="table-responsive" style={{ maxHeight: "34rem", overflow: "auto" }}>
+                    <Table className="table-centered align-middle mb-0">
+                      <thead className="table-light">
+                        <tr>
+                          <th>Unit</th>
+                          <th>Block / Floor</th>
+                          <th>Type / Area</th>
+                          <th>Status</th>
+                          <th>Owner / Tenant</th>
+                          <th>Rent</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {unitsLoading ? (
+                          <tr>
+                            <td colSpan={7} className="text-center py-4">
+                              <div className="spinner-border text-primary" role="status">
+                                <span className="visually-hidden">Loading units...</span>
+                              </div>
+                            </td>
+                          </tr>
+                        ) : unitsError ? (
+                          <tr>
+                            <td colSpan={7} className="text-center text-danger py-4">
+                              Failed to load units for this community.
+                            </td>
+                          </tr>
+                        ) : filteredUnits.length === 0 ? (
+                          <tr>
+                            <td colSpan={7} className="text-center text-muted py-4">
+                              {units.length === 0 ? "No units found." : "No units match your search."}
+                            </td>
+                          </tr>
+                        ) : (
+                          filteredUnits.map((unit: any) => {
+                            const profile =
+                              unit.profiles &&
+                              typeof unit.profiles === "object" &&
+                              "first_name" in unit.profiles
+                                ? (unit.profiles as {
+                                    first_name: string;
+                                    last_name: string;
+                                    email: string;
+                                  })
+                                : null;
+
+                            return (
+                              <tr key={unit.id}>
+                                <td>
+                                  <div className="fw-semibold">{unit.number || unit.unit_number || "N/A"}</div>
+                                </td>
+                                <td>
+                                  <div>Block {unit.block || "—"}</div>
+                                  <div className="text-muted small">Floor {unit.floor || "—"}</div>
+                                </td>
+                                <td>
+                                  <div>{unit.bedrooms || "—"} BHK</div>
+                                  <div className="text-muted small">{unit.floor_area || unit.area_sqft || "—"} sqft</div>
+                                </td>
+                                <td>
+                                  <Badge bg={unit.status === "occupied" ? "success" : "warning"}>
+                                    {unit.status === "occupied" ? "Occupied" : "Available"}
+                                  </Badge>
+                                </td>
+                                <td>
+                                  {profile?.first_name || profile?.last_name ? (
+                                    <div>
+                                      <div className="fw-medium">
+                                        {profile.first_name} {profile.last_name}
+                                      </div>
+                                      <div className="text-muted small">{profile.email || "N/A"}</div>
+                                    </div>
+                                  ) : (
+                                    <span className="text-muted">—</span>
+                                  )}
+                                </td>
+                                <td>{unit.rent_amount ? `₹${Number(unit.rent_amount).toLocaleString()}` : "—"}</td>
+                                <td>
+                                  <div className="d-flex gap-1">
+                                    <Link href={`/property/details?id=${unit.id}`}>
+                                      <Button variant="light" size="sm" title="View Unit">
+                                        <IconifyIcon icon="solar:eye-bold-duotone" />
+                                      </Button>
+                                    </Link>
+                                    <Button variant="light" size="sm" title="Edit Unit">
+                                      <IconifyIcon icon="solar:pen-bold-duotone" />
+                                    </Button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </Table>
+                  </div>
+                </CardBody>
+              </Card>
+            </Col>
+          </Row>
+        </>
+      )}
+
+      {activeTab === 'residents' && (
+        <>
+          <Row className="mb-4">
+            <Col lg={3} md={6} className="mb-3">
+              <Card className="border-0 shadow-sm h-100 bg-gradient-primary text-white">
+                <CardBody>
+                  <div className="d-flex align-items-center justify-content-between">
+                    <div>
+                      <div className="text-white-50 mb-1">Total Residents</div>
+                      <h3 className="mb-0 text-white">{residentsWithDirectory.length}</h3>
+                    </div>
+                    <div className="avatar-lg rounded-circle bg-white bg-opacity-20 d-flex align-items-center justify-content-center">
+                      <IconifyIcon icon="solar:users-group-two-rounded-bold-duotone" className="fs-24 text-white" />
+                    </div>
+                  </div>
+                </CardBody>
+              </Card>
+            </Col>
+            <Col lg={3} md={6} className="mb-3">
+              <Card className="border-0 shadow-sm h-100 bg-gradient-success text-white">
+                <CardBody>
+                  <div className="d-flex align-items-center justify-content-between">
+                    <div>
+                      <div className="text-white-50 mb-1">With Unit Assigned</div>
+                      <h3 className="mb-0 text-white">{residentsWithAssignedUnits}</h3>
+                    </div>
+                    <div className="avatar-lg rounded-circle bg-white bg-opacity-20 d-flex align-items-center justify-content-center">
+                      <IconifyIcon icon="solar:home-smile-bold-duotone" className="fs-24 text-white" />
+                    </div>
+                  </div>
+                </CardBody>
+              </Card>
+            </Col>
+            <Col lg={3} md={6} className="mb-3">
+              <Card className="border-0 shadow-sm h-100 bg-gradient-warning text-white">
+                <CardBody>
+                  <div className="d-flex align-items-center justify-content-between">
+                    <div>
+                      <div className="text-white-50 mb-1">Directory Admins</div>
+                      <h3 className="mb-0 text-white">{residentsAdminCount}</h3>
+                    </div>
+                    <div className="avatar-lg rounded-circle bg-white bg-opacity-20 d-flex align-items-center justify-content-center">
+                      <IconifyIcon icon="solar:shield-user-bold-duotone" className="fs-24 text-white" />
+                    </div>
+                  </div>
+                </CardBody>
+              </Card>
+            </Col>
+            <Col lg={3} md={6} className="mb-3">
+              <Card className="border-0 shadow-sm h-100 bg-gradient-info text-white">
+                <CardBody>
+                  <div className="d-flex align-items-center justify-content-between">
+                    <div>
+                      <div className="text-white-50 mb-1">Committee Members</div>
+                      <h3 className="mb-0 text-white">{residentsCommitteeCount}</h3>
+                    </div>
+                    <div className="avatar-lg rounded-circle bg-white bg-opacity-20 d-flex align-items-center justify-content-center">
+                      <IconifyIcon icon="solar:user-check-bold-duotone" className="fs-24 text-white" />
+                    </div>
+                  </div>
+                </CardBody>
+              </Card>
+            </Col>
+          </Row>
+
+          <Row>
+            <Col xl={12}>
+              <Card className="border-0 shadow-sm">
+                <CardHeader className="bg-transparent">
+                  <div className="d-flex flex-wrap gap-2 justify-content-between align-items-center">
+                    <div>
+                      <CardTitle className="mb-1">Community Residents</CardTitle>
+                      <p className="text-muted mb-0 small">Track all residents and their assigned units and directory roles.</p>
+                    </div>
+                    <div className="d-flex gap-2 align-items-center">
+                      <FormControl
+                        value={residentsSearchTerm}
+                        onChange={(event) => setResidentsSearchTerm(event.target.value)}
+                        placeholder="Search by resident, contact, or unit..."
+                        style={{ minWidth: 280 }}
+                      />
+                      <Link href="/residents/grid-view">
+                        <Button variant="outline-primary">
+                          <IconifyIcon icon="solar:eye-bold-duotone" className="me-1" />
+                          Open Residents Page
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardBody>
+                  <div className="table-responsive" style={{ maxHeight: "34rem", overflow: "auto" }}>
+                    <Table className="table-centered align-middle mb-0">
+                      <thead className="table-light">
+                        <tr>
+                          <th>Resident</th>
+                          <th>Contact</th>
+                          <th>Unit</th>
+                          <th>Community</th>
+                          <th>Directory Role</th>
+                          <th>Joined</th>
+                          <th>Status</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {residentsLoading ? (
+                          <tr>
+                            <td colSpan={8} className="text-center py-4">
+                              <div className="spinner-border text-primary" role="status">
+                                <span className="visually-hidden">Loading residents...</span>
+                              </div>
+                            </td>
+                          </tr>
+                        ) : residentsError ? (
+                          <tr>
+                            <td colSpan={8} className="text-center text-danger py-4">
+                              Failed to load residents for this community.
+                            </td>
+                          </tr>
+                        ) : filteredResidents.length === 0 ? (
+                          <tr>
+                            <td colSpan={8} className="text-center text-muted py-4">
+                              {residentsWithDirectory.length === 0 ? "No residents found." : "No residents match your search."}
+                            </td>
+                          </tr>
+                        ) : (
+                          filteredResidents.map((resident: any) => (
+                            <tr key={resident.id}>
+                              <td>
+                                <div className="fw-semibold">{resident.displayName}</div>
+                                <div className="text-muted small">{resident.user_id ? `Auth: ${resident.user_id.slice(0, 8)}...` : "Auth ID unavailable"}</div>
+                              </td>
+                              <td>
+                                <div>{resident.email || "N/A"}</div>
+                                <div className="text-muted small">{resident.phone || "No phone"}</div>
+                              </td>
+                              <td>{resident.unitLabel}</td>
+                              <td>{community?.name || resident.community?.name || "N/A"}</td>
+                              <td>
+                                <Badge bg={roleBadgeVariant(resident.directoryRole)}>
+                                  {roleLabel(resident.directoryRole)}
+                                </Badge>
+                              </td>
+                              <td>{resident.created_at ? new Date(resident.created_at).toLocaleDateString() : "—"}</td>
+                              <td>
+                                <Badge bg={resident.is_active === false ? "secondary" : "success"} className="rounded-pill">
+                                  {resident.is_active === false ? "Inactive" : "Active"}
+                                </Badge>
+                              </td>
+                              <td>
+                                <div className="d-flex gap-1">
+                                  <Link href={`/residents/details?id=${resident.id}`}>
+                                    <Button variant="light" size="sm" title="View Resident">
+                                      <IconifyIcon icon="solar:eye-bold-duotone" />
+                                    </Button>
+                                  </Link>
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </Table>
                   </div>
                 </CardBody>
               </Card>

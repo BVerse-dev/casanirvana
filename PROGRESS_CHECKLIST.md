@@ -151,6 +151,7 @@ Date: 2026-02-06
 - [x] Phase 10: Rewired superadmin community management tab role assignment flow to `community_memberships` (member/admin/committee with committee tenure metadata).
 - [x] Phase 10: Rewired user app member/admin/committee directories to `community_memberships` with safe legacy fallback (`profiles` + `community_admins`) and realtime invalidation.
 - [x] Phase 10: Rewired guard residents/search directories to `community_memberships` with safe legacy fallback; removed hardcoded resident ID mapping source.
+- [x] Phase 10: Added `Units` and `Residents` tabs to superadmin community details (positioned before `Analytics`) with searchable, DB-backed visibility for resident-to-unit/community mapping.
 
 ## Phase 11 - Tenant Scope + RLS Hardening (Superadmin)
 - [x] Created execution checklist: `superadmin/PRODUCTION_TENANT_RLS_REMEDIATION_CHECKLIST.md`.
