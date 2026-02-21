@@ -87,6 +87,7 @@ logs/
 *.log
 output/
 tmp-*
+maint-after-*.png
 *.tmp
 *.orig
 
@@ -103,3 +104,4 @@ SQLScripts/
 data-dumps/
 database-backups/
 *.dump
+supabase/audit/*.csv
