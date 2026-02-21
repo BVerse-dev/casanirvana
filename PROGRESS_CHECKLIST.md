@@ -298,6 +298,7 @@ Date: 2026-02-06
 - [x] Applied migration `supabase/migrations/20260221220537_phase22_family_members_rls_hardening.sql` to close `family_members` RLS gap (table had RLS enabled with no policies).
 - [x] Added owner-scoped authenticated policies for `family_members` (`SELECT`/`INSERT`/`UPDATE`/`DELETE` on `user_id = auth.uid()`) plus explicit `service_role` full-access policy for operational tooling.
 - [x] Normalized React Query v5 invalidation calls in profile entry hooks (`useFamilyMembers`, `useDailyHelp`, `useVehicles`, `useFrequentEntries`) to object-form query keys.
+- [x] Removed hardcoded demo-user IDs from profile entry create/edit/delete flows and enforced authenticated actor resolution in profile modals (`addFamilyMemberModal`, `myVehiclesModal`, `edit*` entry modals, `entryDetailModal`).
 - [ ] Manual runtime QA pending for profile lifecycle (`family/daily help/vehicle/frequent entry create -> edit -> soft delete -> gate pass modal data`).
 
 ## Cleanup / Hygiene

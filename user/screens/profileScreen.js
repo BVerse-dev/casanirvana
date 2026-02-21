@@ -45,7 +45,7 @@ const ProfileScreen = ({ navigation }) => {
 
   const shareMessage = () => {
     Share.share({
-      message: "SEVENGEN",
+      message: "Casa Nirvana",
     });
   };
 

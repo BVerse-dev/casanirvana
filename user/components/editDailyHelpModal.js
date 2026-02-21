@@ -32,10 +32,11 @@ const { width, height } = Dimensions.get("window");
 
 const EditDailyHelpModal = (props) => {
   const { t, i18n } = useTranslation();
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
   const updateDailyHelp = useUpdateDailyHelp();
 
   const isRtl = i18n.dir() == "rtl";
+  const activeUserId = user?.id || profile?.user_id || null;
 
   function tr(key) {
     return t(`addFamilyMemberModal:${key}`);
@@ -180,12 +181,17 @@ const EditDailyHelpModal = (props) => {
     }
 
     try {
+      if (!activeUserId) {
+        Alert.alert('Auth Error', 'Unable to resolve your account. Please sign in again.');
+        return;
+      }
+
       const dailyHelpData = {
         name: name,
         phone: phoneNumber,
         type: selectedType.name,
         avatar_url: pickedImage,
-        user_id: '8fcb1ff1-a385-4c26-8bb4-80c5f23477de', // Demo user ID
+        user_id: activeUserId,
       };
 
       await updateDailyHelp.mutateAsync({

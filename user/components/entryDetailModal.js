@@ -22,6 +22,7 @@ import { useDeleteFamilyMember } from '../hooks/useFamilyMembers';
 import { useDeleteDailyHelp } from '../hooks/useDailyHelp';
 import { useDeleteVehicle } from '../hooks/useVehicles';
 import { useDeleteFrequentEntry } from '../hooks/useFrequentEntries';
+import { useAuth } from '../contexts/AuthContext';
 
 const { width, height } = Dimensions.get('window');
 
@@ -46,7 +47,9 @@ const styles = StyleSheet.create({
 
 const EntryDetailModal = ({ visible, onClose, entry, entryType, onEditFamilyMember, onEditDailyHelp, onEditVehicle, onEditFrequentEntry }) => {
   const { t, i18n } = useTranslation();
+  const { user, profile } = useAuth();
   const isRtl = i18n.dir() === 'rtl';
+  const activeUserId = user?.id || profile?.user_id || null;
 
   // Delete hooks
   const deleteFamilyMember = useDeleteFamilyMember();
@@ -120,19 +123,24 @@ const EntryDetailModal = ({ visible, onClose, entry, entryType, onEditFamilyMemb
           style: 'destructive',
           onPress: async () => {
             try {
+              if (!activeUserId) {
+                Alert.alert('Auth Error', 'Unable to resolve your account. Please sign in again.');
+                return;
+              }
+
               // Call the appropriate delete function based on entry type
               switch (entryType) {
                 case 'family_member':
-                                                  await deleteFamilyMember.mutateAsync({ id: entry.key, userId: '8fcb1ff1-a385-4c26-8bb4-80c5f23477de' });
+                  await deleteFamilyMember.mutateAsync({ id: entry.key, userId: activeUserId });
                   break;
                 case 'daily_help':
-                                                  await deleteDailyHelp.mutateAsync({ id: entry.key, userId: '8fcb1ff1-a385-4c26-8bb4-80c5f23477de' });
+                  await deleteDailyHelp.mutateAsync({ id: entry.key, userId: activeUserId });
                   break;
                 case 'vehicle':
-                                                  await deleteVehicle.mutateAsync({ id: entry.key, userId: '8fcb1ff1-a385-4c26-8bb4-80c5f23477de' });
+                  await deleteVehicle.mutateAsync({ id: entry.key, userId: activeUserId });
                   break;
                 case 'frequent_entry':
-                                                  await deleteFrequentEntry.mutateAsync({ id: entry.key, userId: '8fcb1ff1-a385-4c26-8bb4-80c5f23477de' });
+                  await deleteFrequentEntry.mutateAsync({ id: entry.key, userId: activeUserId });
                   break;
                 default:
                   console.error('Unknown entry type:', entryType);

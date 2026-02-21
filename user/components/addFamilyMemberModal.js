@@ -37,12 +37,13 @@ const { width, height } = Dimensions.get("window");
 
 const AddFamilyMemberModal = (props) => {
   const { t, i18n } = useTranslation();
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
   const createFamilyMember = useCreateFamilyMember();
   const createDailyHelp = useCreateDailyHelp();
   const createFrequentEntry = useCreateFrequentEntry();
 
   const isRtl = i18n.dir() == "rtl";
+  const activeUserId = user?.id || profile?.user_id || null;
 
   function tr(key) {
     return t(`addFamilyMemberModal:${key}`);
@@ -380,8 +381,13 @@ const AddFamilyMemberModal = (props) => {
         return;
       }
 
+      if (!activeUserId) {
+        Alert.alert('Auth Error', 'Unable to resolve your account. Please sign in again.');
+        return;
+      }
+
       const commonData = {
-        user_id: '47bc141e-44e9-4b68-8da4-fc12b187ef52', // Demo user ID
+        user_id: activeUserId,
         name: name.trim(),
         phone: phoneNumber || null,
         avatar_url: pickedImage,

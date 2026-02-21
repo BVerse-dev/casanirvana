@@ -31,10 +31,11 @@ const { width, height } = Dimensions.get("window");
 
 const EditVehicleModal = (props) => {
   const { t, i18n } = useTranslation();
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
   const updateVehicle = useUpdateVehicle();
 
   const isRtl = i18n.dir() == "rtl";
+  const activeUserId = user?.id || profile?.user_id || null;
 
   function tr(key) {
     return t(`myVehiclesModal:${key}`);
@@ -110,13 +111,18 @@ const EditVehicleModal = (props) => {
     }
 
     try {
+      if (!activeUserId) {
+        Alert.alert('Auth Error', 'Unable to resolve your account. Please sign in again.');
+        return;
+      }
+
       const vehicleData = {
         vehicle_number: vehicleNumber,
         model: model,
         color: color,
         plate_number: plateNumber,
         avatar_url: pickedImage,
-        user_id: '8fcb1ff1-a385-4c26-8bb4-80c5f23477de', // Demo user ID
+        user_id: activeUserId,
       };
 
       await updateVehicle.mutateAsync({

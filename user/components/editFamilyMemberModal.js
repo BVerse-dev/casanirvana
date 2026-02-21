@@ -37,12 +37,13 @@ const { width, height } = Dimensions.get("window");
 
 const EditFamilyMemberModal = (props) => {
   const { t, i18n } = useTranslation();
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
   const updateFamilyMember = useUpdateFamilyMember();
   const updateDailyHelp = useUpdateDailyHelp();
   const updateFrequentEntry = useUpdateFrequentEntry();
 
   const isRtl = i18n.dir() == "rtl";
+  const activeUserId = user?.id || profile?.user_id || null;
 
   function tr(key) {
     return t(`addFamilyMemberModal:${key}`);
@@ -255,11 +256,16 @@ const EditFamilyMemberModal = (props) => {
     }
 
     try {
+      if (!activeUserId) {
+        Alert.alert('Auth Error', 'Unable to resolve your account. Please sign in again.');
+        return;
+      }
+
       const commonData = {
         name: name,
         phone: phoneNumber,
         avatar_url: pickedImage,
-        user_id: '8fcb1ff1-a385-4c26-8bb4-80c5f23477de', // Demo user ID
+        user_id: activeUserId,
       };
 
       // Add relation based on entry type
