@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Text,
   View,
@@ -15,60 +15,122 @@ import { ms } from "react-native-size-matters/extend";
 import AwesomeButton from "react-native-really-awesome-button";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { OtpInput } from "react-native-otp-entry";
+import { supabase } from "../../utils/supabase";
+
+const RESEND_TIMEOUT_SECONDS = 59;
 
 const VerificationScreen = ({ navigation, route }) => {
   const { t, i18n } = useTranslation();
+  const isRtl = i18n.dir() === "rtl";
 
-  const isRtl = i18n.dir() == "rtl";
+  const phone = useMemo(() => String(route?.params?.phone || "").trim(), [route?.params?.phone]);
+
+  const [otp, setOtp] = useState("");
+  const [timer, setTimer] = useState(RESEND_TIMEOUT_SECONDS);
+  const [verifying, setVerifying] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [error, setError] = useState("");
 
   function tr(key) {
     return t(`verificationScreen:${key}`);
   }
-  const backAction = () => {
-    setIntervalStop(false);
-    navigation.pop();
-    return true;
-  };
+
   useEffect(() => {
+    const backAction = () => {
+      navigation.pop();
+      return true;
+    };
     const backSub = BackHandler.addEventListener("hardwareBackPress", backAction);
     return () => backSub.remove();
-  }, []);
-
-  const [timer, setTimer] = useState(59);
-  const [intervalStop, setIntervalStop] = useState(true);
-
-  const intervalRef = useRef();
+  }, [navigation]);
 
   useEffect(() => {
-    if (intervalStop) {
-      intervalRef.current = setInterval(() => {
-        if (timer > 0) {
-          setTimer((prevTimer) => prevTimer - 1);
-        } else {
-          clearInterval(intervalRef.current);
+    if (timer <= 0) return undefined;
+    const intervalId = setInterval(() => {
+      setTimer((prev) => {
+        if (prev <= 1) {
+          clearInterval(intervalId);
+          return 0;
         }
-      }, 1000);
-    }
-
-    return () => {
-      clearInterval(intervalRef.current);
-    };
-  }, [timer, intervalStop]);
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(intervalId);
+  }, [timer]);
 
   const formatSecondsToTime = (totalSeconds) => {
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
-
-    const formattedMinutes = String(minutes).padStart(2, "0");
-    const formattedSeconds = String(seconds).padStart(2, "0");
-
-    return `${formattedMinutes}:${formattedSeconds}`;
+    return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
   };
 
-  const handleTextChange = (otp) => {
-    if (otp.length === 4) {
-      setIntervalStop(false);
-      navigation.push("bottomTab");
+  const handleVerify = async (next) => {
+    const completeProgress = () => {
+      if (typeof next === "function") {
+        next();
+      }
+    };
+
+    const token = String(otp || "").trim();
+
+    if (!phone) {
+      setError("Missing phone number. Please restart sign in.");
+      completeProgress();
+      return;
+    }
+
+    if (token.length !== 4) {
+      setError("Please enter the 4-digit code sent to your phone.");
+      completeProgress();
+      return;
+    }
+
+    try {
+      setVerifying(true);
+      setError("");
+
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        phone,
+        token,
+        type: "sms",
+      });
+
+      if (verifyError) {
+        throw verifyError;
+      }
+
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "splashScreen" }],
+      });
+    } catch (verifyErr) {
+      setError(verifyErr?.message || "Invalid verification code. Please try again.");
+    } finally {
+      setVerifying(false);
+      completeProgress();
+    }
+  };
+
+  const handleResend = async () => {
+    if (!phone || timer > 0 || resending) {
+      return;
+    }
+
+    try {
+      setResending(true);
+      setError("");
+
+      const { error: resendError } = await supabase.auth.signInWithOtp({ phone });
+      if (resendError) {
+        throw resendError;
+      }
+
+      setOtp("");
+      setTimer(RESEND_TIMEOUT_SECONDS);
+    } catch (resendErr) {
+      setError(resendErr?.message || "Could not resend code. Please try again.");
+    } finally {
+      setResending(false);
     }
   };
 
@@ -82,10 +144,7 @@ const VerificationScreen = ({ navigation, route }) => {
         style={{ flex: 1 }}
       >
         <TouchableOpacity
-          onPress={() => {
-            setIntervalStop(false);
-            navigation.pop();
-          }}
+          onPress={() => navigation.pop()}
           style={{
             alignSelf: isRtl ? "flex-end" : "flex-start",
             marginHorizontal: Default.fixPadding * 2,
@@ -100,7 +159,7 @@ const VerificationScreen = ({ navigation, route }) => {
         </TouchableOpacity>
         <ScrollView
           showsVerticalScrollIndicator={false}
-          automaticallyAdjustKeyboardInsets={true}
+          automaticallyAdjustKeyboardInsets
         >
           <View
             style={{
@@ -110,9 +169,7 @@ const VerificationScreen = ({ navigation, route }) => {
               marginHorizontal: Default.fixPadding * 3,
             }}
           >
-            <Text style={{ ...Fonts.SemiBold21primary }}>
-              {tr("otpVerification")}
-            </Text>
+            <Text style={{ ...Fonts.SemiBold21primary }}>{tr("otpVerification")}</Text>
 
             <Text
               style={{
@@ -121,7 +178,7 @@ const VerificationScreen = ({ navigation, route }) => {
                 marginTop: Default.fixPadding * 1.1,
               }}
             >
-              {`${tr("pleaseEnter")} ${route?.params?.phone ?? ''}`}
+              {`${tr("pleaseEnter")} ${phone}`}
             </Text>
           </View>
 
@@ -134,7 +191,15 @@ const VerificationScreen = ({ navigation, route }) => {
           >
             <OtpInput
               numberOfDigits={4}
-              onTextChange={(text) => handleTextChange(text)}
+              textInputProps={{
+                autoComplete: "one-time-code",
+              }}
+              onTextChange={(text) => {
+                setOtp(text);
+                if (error) {
+                  setError("");
+                }
+              }}
               theme={{
                 pinCodeContainerStyle: {
                   borderWidth: 0,
@@ -154,10 +219,10 @@ const VerificationScreen = ({ navigation, route }) => {
             />
           </View>
 
+          {!!error && <Text style={styles.errorText}>{error}</Text>}
+
           <View style={styles.timeView}>
-            <Text style={{ ...Fonts.Regular16black }}>
-              {formatSecondsToTime(timer)}
-            </Text>
+            <Text style={{ ...Fonts.Regular16black }}>{formatSecondsToTime(timer)}</Text>
           </View>
 
           <View
@@ -170,40 +235,34 @@ const VerificationScreen = ({ navigation, route }) => {
             <AwesomeButton
               progress
               height={50}
-              progressLoadingTime={1500}
-              onPress={(next) => {
-                setIntervalStop(false);
-                setTimeout(() => {
-                  next();
-                  navigation.push("bottomTab");
-                }, 1500);
-              }}
+              progressLoadingTime={700}
+              onPress={handleVerify}
               raiseLevel={1}
-              stretch={true}
+              stretch
               borderRadius={10}
               backgroundShadow={Colors.primary}
               backgroundDarker={Colors.primary}
               backgroundColor={Colors.primary}
+              disabled={verifying || otp.length !== 4}
             >
-              <Text style={{ ...Fonts.SemiBold18white }}>{tr("verify")}</Text>
+              <Text style={{ ...Fonts.SemiBold18white }}>
+                {verifying ? "Verifying..." : tr("verify")}
+              </Text>
             </AwesomeButton>
           </View>
 
-          <Text
-            disabled={timer !== 0}
-            onPress={() => {
-              if (timer === 0) {
-                setTimer(59);
-              }
-            }}
-            style={{
-              ...Fonts.Medium16primary,
-              textAlign: "center",
-              marginBottom: Default.fixPadding,
-            }}
-          >
-            {tr("resend")}
-          </Text>
+          <TouchableOpacity disabled={timer > 0 || resending} onPress={handleResend}>
+            <Text
+              style={{
+                ...Fonts.Medium16primary,
+                textAlign: "center",
+                marginBottom: Default.fixPadding,
+                opacity: timer > 0 || resending ? 0.5 : 1,
+              }}
+            >
+              {resending ? "Resending..." : tr("resend")}
+            </Text>
+          </TouchableOpacity>
         </ScrollView>
       </ImageBackground>
     </View>
@@ -221,5 +280,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: Default.fixPadding * 1.6,
     borderRadius: 40,
     backgroundColor: Colors.sky,
+  },
+  errorText: {
+    ...Fonts.Medium14black,
+    color: Colors.red,
+    textAlign: "center",
+    marginHorizontal: Default.fixPadding * 2,
+    marginBottom: Default.fixPadding,
   },
 });

@@ -1,6 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../utils/supabase';
 import { useGuardAuth } from '../contexts/GuardAuthContext';
+import {
+  buildVisitorQrPayload,
+  createVisitorPassToken,
+  generateVisitorEntryCode,
+} from '../services/visitorPassArtifacts';
 
 export const useDeliveryEntries = (status = null) => {
   const { guard, user, isAuthenticated } = useGuardAuth();
@@ -54,11 +59,15 @@ export const useDeliveryEntries = (status = null) => {
       
       // Add guard tracking fields based on status
       if (newStatus === 'checked_in') {
+        const nowIso = new Date().toISOString();
         updateData.checked_in_by = user.id;
-        updateData.actual_entry_time = new Date().toISOString();
+        updateData.checked_in_at = nowIso;
+        updateData.actual_entry_time = nowIso;
       } else if (newStatus === 'checked_out') {
+        const nowIso = new Date().toISOString();
         updateData.checked_out_by = user.id;
-        updateData.actual_exit_time = new Date().toISOString();
+        updateData.checked_out_at = nowIso;
+        updateData.actual_exit_time = nowIso;
       }
       
       const { error } = await supabase
@@ -85,14 +94,40 @@ export const useDeliveryEntries = (status = null) => {
     }
 
     try {
+      const fromDate = deliveryEntryData.from_date || new Date().toISOString();
+      const toDate =
+        deliveryEntryData.to_date ||
+        new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
+      const entryCode = generateVisitorEntryCode();
+      const visitorPassToken = createVisitorPassToken();
+      const qrCodeData = buildVisitorQrPayload({
+        token: visitorPassToken,
+        entryCode,
+        visitorName: deliveryEntryData.driver_name,
+        visitorPhone: deliveryEntryData.driver_phone || '',
+        unitId: deliveryEntryData.unit_id,
+        fromDate,
+        toDate,
+        createdBy: user.id,
+        purpose: deliveryEntryData.delivery_purpose || 'Package delivery',
+        visitorType: 'delivery',
+        companyName: deliveryEntryData.company_name || null,
+        serviceType: deliveryEntryData.service_type || 'Package delivery',
+        vehicleType: 'delivery',
+        driverName: deliveryEntryData.driver_name || null,
+        deliveryDetails: deliveryEntryData.delivery_details || 'Package delivery',
+      });
+
       // Professional delivery entry data structure (following cab pattern)
       const deliveryPassData = {
         visitor_name: deliveryEntryData.driver_name,           // Delivery person name as visitor name
         visitor_phone: deliveryEntryData.driver_phone || '',   // Driver phone if available
         unit_id: deliveryEntryData.unit_id,                   // Selected unit
         purpose: deliveryEntryData.delivery_purpose || 'Package delivery', // Delivery purpose
-        from_date: deliveryEntryData.from_date,               // Expected delivery time
-        to_date: deliveryEntryData.to_date,                   // Expected completion time
+        from_date: fromDate,               // Expected delivery time
+        to_date: toDate,                   // Expected completion time
+        entry_code: entryCode,
+        qr_code_data: qrCodeData,
         
         // Delivery-specific fields
         driver_name: deliveryEntryData.driver_name,
@@ -108,7 +143,6 @@ export const useDeliveryEntries = (status = null) => {
         community_id: guard.community_id,
         entry_method: 'walk_in',
         status: 'pending',
-        created_at: new Date().toISOString(),
         
         // Guard notes
         guard_notes: deliveryEntryData.guard_notes || `Delivery entry created by guard for ${deliveryEntryData.company_name}`

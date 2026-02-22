@@ -17,7 +17,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { Audio } from 'expo-av';
-import * as FileSystem from 'expo-file-system';
+import * as LegacyFileSystem from 'expo-file-system/legacy';
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Colors, Default, Fonts } from "../constants/styles";
@@ -75,11 +75,12 @@ const MessageScreen = ({ navigation, route }) => {
   const recordingTimeoutRef = useRef(null);
 
   // Get current guard profile at component level
-  const { user, guard } = useGuardAuth();
+  const { profile, user } = useGuardAuth();
+  const markedReadIdsRef = useRef(new Set());
 
   const backAction = () => {
     if (key === "2") {
-      navigation.navigate("homeScreen");
+      navigation.navigate("bottomTab", { screen: "homeScreen" });
     } else {
       navigation.pop();
     }
@@ -112,12 +113,32 @@ const MessageScreen = ({ navigation, route }) => {
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
-    if (flatListRef.current && transformedMessages && transformedMessages.length > 0) {
+    if (flatListRef.current && (messages?.length || 0) > 0) {
       setTimeout(() => {
         flatListRef.current.scrollToEnd({ animated: true });
       }, 50);
     }
-  }, [transformedMessages?.length]);
+  }, [messages?.length]);
+
+  // Mark incoming unread messages as read once they are rendered.
+  useEffect(() => {
+    if (!profile?.id || !Array.isArray(messages) || messages.length === 0) {
+      return;
+    }
+
+    messages.forEach((msg) => {
+      const idValue = typeof msg.id === "string" ? msg.id : "";
+      if (!idValue || idValue.startsWith("temp-")) return;
+      if (msg.to_user !== profile.id) return;
+
+      const isRead = msg.is_read ?? msg.read ?? false;
+      if (isRead) return;
+      if (markedReadIdsRef.current.has(idValue)) return;
+
+      markedReadIdsRef.current.add(idValue);
+      markAsRead(idValue);
+    });
+  }, [messages, markAsRead, profile?.id]);
 
   // Scroll to bottom function
   const scrollToBottom = useCallback(() => {
@@ -130,10 +151,17 @@ const MessageScreen = ({ navigation, route }) => {
   const uploadFileToSupabase = useCallback(async (fileUri, fileName, mimeType) => {
     try {
       setIsUploading(true);
-      
+
+      const readAsStringAsync = LegacyFileSystem.readAsStringAsync;
+      const base64Encoding = LegacyFileSystem.EncodingType?.Base64 || 'base64';
+
+      if (!readAsStringAsync) {
+        throw new Error('FileSystem readAsStringAsync is not available in this runtime');
+      }
+
       // Read file as base64
-      const fileBase64 = await FileSystem.readAsStringAsync(fileUri, {
-        encoding: FileSystem.EncodingType.Base64,
+      const fileBase64 = await readAsStringAsync(fileUri, {
+        encoding: base64Encoding,
       });
       
       // Convert base64 to ArrayBuffer (React Native compatible)
@@ -147,12 +175,16 @@ const MessageScreen = ({ navigation, route }) => {
       
       // Generate unique filename
       const timestamp = Date.now();
-      const fileExtension = fileName.split('.').pop();
-      const uniqueFileName = `chat-attachments/${user?.id}/${timestamp}-${fileName}`;
-      
+      const ownerFolderId = user?.id || profile?.user_id || profile?.id;
+      if (!ownerFolderId) {
+        throw new Error("Unable to resolve upload owner for attachment.");
+      }
+
+      const uniqueFileName = `${ownerFolderId}/chat/${timestamp}-${fileName}`;
+
       // Upload to Supabase Storage using ArrayBuffer
       const { data, error } = await supabase.storage
-        .from('attachments')
+        .from('chat-attachments')
         .upload(uniqueFileName, arrayBuffer, {
           contentType: mimeType,
         });
@@ -163,7 +195,7 @@ const MessageScreen = ({ navigation, route }) => {
       
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
-        .from('attachments')
+        .from('chat-attachments')
         .getPublicUrl(uniqueFileName);
       
       return {
@@ -180,7 +212,7 @@ const MessageScreen = ({ navigation, route }) => {
     } finally {
       setIsUploading(false);
     }
-  }, [user?.id]);
+  }, [profile?.id, profile?.user_id, user?.id]);
 
   // Handle attachment selection
   const handleAttachment = () => {
@@ -529,7 +561,7 @@ const MessageScreen = ({ navigation, route }) => {
 
   // Transform messages for display
   const transformedMessages = (messages || []).map((msg, index) => {
-    const isMe = msg.from_user === user?.id;
+    const isMe = msg.from_user === profile?.id;
     
     // Parse message body if it contains JSON (for attachments or calls)
     let messageContent = msg.body;
@@ -547,6 +579,10 @@ const MessageScreen = ({ navigation, route }) => {
       messageType = 'call';
       // Use _callData if available, otherwise try to parse from body
       attachments = msg._callData || (msg.body && msg.body.startsWith('{') ? JSON.parse(msg.body) : { type: 'call', call_type: 'voice', status: 'ended' });
+    } else if (msg.message_type === 'file' && msg.attachments) {
+      messageType = msg.attachments.type || 'document';
+      attachments = msg.attachments;
+      messageContent = msg.body || msg.attachments.fileName || 'Attachment';
     } else {
       // Try to parse JSON from body for stored messages
       try {
@@ -567,8 +603,8 @@ const MessageScreen = ({ navigation, route }) => {
       txtMsg: messageContent,
       msgTime: moment(msg.sent_at).format("h:mm A"),
       isMe: isMe,
-      messageStatus: messageStatus,
-      isRead: msg.read,
+      messageStatus: msg.message_status || messageStatus,
+      isRead: msg.is_read ?? msg.read ?? false,
       messageType: messageType,
       attachments: attachments,
     };

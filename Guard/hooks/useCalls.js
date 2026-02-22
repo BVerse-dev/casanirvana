@@ -118,7 +118,7 @@ export const useCreateCall = () => {
       queryClient.invalidateQueries({ queryKey: ['userCalls'] });
       queryClient.invalidateQueries({ queryKey: ['callHistory'] });
       queryClient.invalidateQueries({ queryKey: ['messages'] });
-      queryClient.invalidateQueries({ queryKey: ['chatEnhancements'] });
+      queryClient.invalidateQueries({ queryKey: ['conversations', user?.id] });
     },
   });
 };
@@ -126,6 +126,7 @@ export const useCreateCall = () => {
 // Hook to update call status
 export const useUpdateCall = () => {
   const queryClient = useQueryClient();
+  const { user } = useGuardAuth();
 
   return useMutation({
     mutationFn: async ({
@@ -166,7 +167,7 @@ export const useUpdateCall = () => {
       queryClient.invalidateQueries({ queryKey: ['userCalls'] });
       queryClient.invalidateQueries({ queryKey: ['callHistory'] });
       queryClient.invalidateQueries({ queryKey: ['messages'] });
-      queryClient.invalidateQueries({ queryKey: ['chatEnhancements'] });
+      queryClient.invalidateQueries({ queryKey: ['conversations', user?.id] });
     },
   });
 };
@@ -196,7 +197,7 @@ export const useCallsSubscription = () => {
           queryClient.invalidateQueries({ queryKey: ['userCalls'] });
           queryClient.invalidateQueries({ queryKey: ['callHistory'] });
           queryClient.invalidateQueries({ queryKey: ['messages'] });
-          queryClient.invalidateQueries({ queryKey: ['chatEnhancements'] });
+          queryClient.invalidateQueries({ queryKey: ['conversations', user?.id] });
         }
       )
       .subscribe();

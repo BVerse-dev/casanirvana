@@ -97,46 +97,61 @@ export const useRegisterGuard = () => {
           guard: null,
           session: authData.session,
           requiresEmailConfirmation: true,
-          message: 'Sign up successful! Please check your email to verify your account, then sign in.',
+          message: 'Sign up successful! Verify your email, then wait for admin community assignment before signing in.',
         };
       }
 
       console.log('User profile found');
 
-      // Create guard profile record
-      console.log('Creating guard profile...');
-      const guardProfileData = {
-        user_id: userData.id,
-        full_name: `${firstName.trim()} ${lastName.trim()}`,
-        first_name: firstName.trim(),
-        last_name: lastName.trim(),
-        display_name: `${firstName.trim()} ${lastName.trim()}`,
-        email: email.trim().toLowerCase(),
-        phone: mobile.trim(),
-        mobile: mobile.trim(),
-        role: 'GUARD',
-        status: 'active',
-        is_active: true,
-        shift_type: 'day', // Fixed: lowercase to match check constraint
-        experience_years: 0,
-        rating: 0,
-        total_shifts: 0,
-        completed_shifts: 0,
-        certifications: [],
-        skills: [],
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-
-      const { data: guardData, error: guardError } = await supabase
+      // Fetch guard profile created by DB trigger; insert only if trigger has not populated yet.
+      const { data: existingGuardProfile, error: existingGuardError } = await supabase
         .from('guards')
-        .insert([guardProfileData])
-        .select()
-        .single();
+        .select('*')
+        .eq('user_id', userData.id)
+        .maybeSingle();
 
-      if (guardError) {
-        console.error('Guard profile creation failed:', guardError);
-        throw new Error(`Failed to create guard profile: ${guardError.message}`);
+      if (existingGuardError) {
+        throw new Error(`Failed to fetch guard profile: ${existingGuardError.message}`);
+      }
+
+      let guardData = existingGuardProfile;
+
+      if (!guardData) {
+        console.log('Guard profile missing after trigger. Creating fallback guard profile...');
+        const guardProfileData = {
+          user_id: userData.id,
+          full_name: `${firstName.trim()} ${lastName.trim()}`,
+          first_name: firstName.trim(),
+          last_name: lastName.trim(),
+          display_name: `${firstName.trim()} ${lastName.trim()}`,
+          email: email.trim().toLowerCase(),
+          phone: mobile.trim(),
+          mobile: mobile.trim(),
+          role: 'GUARD',
+          status: 'active',
+          is_active: true,
+          shift_type: 'day',
+          experience_years: 0,
+          rating: 0,
+          total_shifts: 0,
+          completed_shifts: 0,
+          certifications: [],
+          skills: [],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+
+        const { data: insertedGuard, error: guardInsertError } = await supabase
+          .from('guards')
+          .insert([guardProfileData])
+          .select()
+          .single();
+
+        if (guardInsertError) {
+          console.error('Guard profile fallback creation failed:', guardInsertError);
+          throw new Error(`Failed to create guard profile: ${guardInsertError.message}`);
+        }
+        guardData = insertedGuard;
       }
 
       console.log('Guard profile created successfully');
@@ -145,7 +160,7 @@ export const useRegisterGuard = () => {
         user: userData,
         guard: guardData,
         session: authData.session,
-        message: 'Guard registration successful! Please check your email to verify your account.',
+        message: 'Guard registration successful. After email verification, your admin must assign you to a community before first login.',
       };
 
     } catch (err) {

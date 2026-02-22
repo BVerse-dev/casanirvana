@@ -96,10 +96,10 @@ export const getUnitResident = async (unitId) => {
     }
 
     const { data, error } = await supabase
-      .from('users')
-      .select('id, first_name, last_name, email, phone')
+      .from('profiles')
+      .select('id, user_id, full_name, first_name, last_name, email, phone, role')
       .eq('unit_id', unitId)
-      .eq('role', 'user')
+      .neq('role', 'guard')
       .limit(1);
 
     if (error || !data || data.length === 0) {
@@ -107,15 +107,74 @@ export const getUnitResident = async (unitId) => {
     }
 
     const resident = data[0];
+    const resolvedName =
+      resident.full_name ||
+      [resident.first_name, resident.last_name].filter(Boolean).join(' ').trim() ||
+      resident.email ||
+      'Resident';
 
     return {
-      residentId: resident.id,
-      name: `${resident.first_name} ${resident.last_name}`.trim(),
+      residentId: resident.user_id || resident.id,
+      name: resolvedName,
       email: resident.email,
       phone: resident.phone
     };
   } catch (err) {
     console.error('Error fetching unit resident:', err);
     return null; // Return null instead of throwing for resident lookup
+  }
+};
+
+/**
+ * Batch resident lookup for multiple units.
+ * Returns map: { [unitId]: { residentId, name, email, phone } | null }
+ */
+export const getUnitResidentsMap = async (unitIds = []) => {
+  try {
+    const normalizedIds = Array.from(
+      new Set((unitIds || []).filter(Boolean))
+    );
+
+    if (normalizedIds.length === 0) {
+      return {};
+    }
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, user_id, unit_id, full_name, first_name, last_name, email, phone, role, created_at')
+      .in('unit_id', normalizedIds)
+      .neq('role', 'guard')
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      throw error;
+    }
+
+    const map = {};
+    for (const unitId of normalizedIds) {
+      map[unitId] = null;
+    }
+
+    for (const row of data || []) {
+      if (!row.unit_id || map[row.unit_id]) continue;
+
+      const resolvedName =
+        row.full_name ||
+        [row.first_name, row.last_name].filter(Boolean).join(' ').trim() ||
+        row.email ||
+        'Resident';
+
+      map[row.unit_id] = {
+        residentId: row.user_id || row.id,
+        name: resolvedName,
+        email: row.email,
+        phone: row.phone,
+      };
+    }
+
+    return map;
+  } catch (err) {
+    console.error('Error fetching unit residents map:', err);
+    return {};
   }
 };

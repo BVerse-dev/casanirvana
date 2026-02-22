@@ -83,9 +83,16 @@ const RegisterScreen = ({ navigation }) => {
   };
 
   const handleRegister = async (next) => {
+    const completeProgress = () => {
+      if (typeof next === "function") {
+        next();
+      }
+    };
+
     setError("");
     
     if (!validateForm()) {
+      completeProgress();
       return;
     }
 
@@ -115,8 +122,10 @@ const RegisterScreen = ({ navigation }) => {
           {
             text: 'OK',
             onPress: () => {
-              next();
-              navigation.replace('emailLoginScreen');
+              navigation.reset({
+                index: 0,
+                routes: [{ name: "emailLoginScreen" }],
+              });
             },
           },
         ],
@@ -127,6 +136,7 @@ const RegisterScreen = ({ navigation }) => {
       setError(err.message || "Registration failed. Please try again.");
     } finally {
       setLoading(false);
+      completeProgress();
     }
   };
 

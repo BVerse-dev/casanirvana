@@ -1,14 +1,13 @@
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { supabase } from '../utils/supabase';
 import { useGuardAuth } from '../contexts/GuardAuthContext';
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 export const useMessages = (otherUserId) => {
   const queryClient = useQueryClient();
-  const { profile } = useGuardAuth(); // Use profile instead of user
+  const { profile } = useGuardAuth();
   const [optimisticMessages, setOptimisticMessages] = useState([]);
-  
-  // Get messages between current user and another user
+
   const {
     data: messages = [],
     isLoading,
@@ -21,37 +20,38 @@ export const useMessages = (otherUserId) => {
         return [];
       }
 
-      // Fetch regular messages
       const { data: messageData, error: messageError } = await supabase
         .from('messages')
         .select('*')
-        .or(`and(from_user.eq.${profile.id},to_user.eq.${otherUserId}),and(from_user.eq.${otherUserId},to_user.eq.${profile.id})`)
-        .order('sent_at', { ascending: true }); // Oldest first for proper chat flow
+        .or(
+          `and(from_user.eq.${profile.id},to_user.eq.${otherUserId}),and(from_user.eq.${otherUserId},to_user.eq.${profile.id})`,
+        )
+        .order('sent_at', { ascending: true });
 
       if (messageError) {
-        console.error('Error fetching messages:', messageError);
         throw messageError;
       }
 
-      // Fetch calls between users
       const { data: callsData, error: callsError } = await supabase
         .from('calls')
         .select('*')
-        .or(`and(caller_id.eq.${profile.id},callee_id.eq.${otherUserId}),and(caller_id.eq.${otherUserId},callee_id.eq.${profile.id})`)
+        .or(
+          `and(caller_id.eq.${profile.id},callee_id.eq.${otherUserId}),and(caller_id.eq.${otherUserId},callee_id.eq.${profile.id})`,
+        )
         .order('created_at', { ascending: true });
 
       if (callsError) {
-        console.error('Error fetching calls:', callsError);
+        throw callsError;
       }
 
-      // Transform calls to message-like format  
-      const callMessages = (callsData || []).map(call => ({
+      const callMessages = (callsData || []).map((call) => ({
         id: call.id,
         from_user: call.caller_id,
         to_user: call.callee_id,
-        body: `Call ${call.call_type}`, // Simple text instead of JSON
+        body: `Call ${call.call_type}`,
         sent_at: call.created_at,
-        read: true, // Calls are always considered "read"
+        read: true,
+        is_read: true,
         _messageType: 'call',
         _isCall: true,
         _callData: {
@@ -63,26 +63,21 @@ export const useMessages = (otherUserId) => {
           answered_at: call.answered_at,
           ended_at: call.ended_at,
           call_id: call.id,
-        }
+        },
       }));
 
-      // Combine and sort by timestamp
-      const allMessages = [...(messageData || []), ...callMessages].sort((a, b) => 
-        new Date(a.sent_at) - new Date(b.sent_at)
+      return [...(messageData || []), ...callMessages].sort(
+        (a, b) => new Date(a.sent_at) - new Date(b.sent_at),
       );
-
-      return allMessages;
     },
     enabled: !!profile?.id && !!otherUserId,
-    staleTime: 5 * 1000, // 5 seconds for faster updates
+    staleTime: 5 * 1000,
   });
 
-  // Combine real messages with optimistic messages
-  const allMessages = [...messages, ...optimisticMessages].sort((a, b) => 
-    new Date(a.sent_at) - new Date(b.sent_at)
+  const allMessages = [...messages, ...optimisticMessages].sort(
+    (a, b) => new Date(a.sent_at) - new Date(b.sent_at),
   );
 
-  // Send message mutation with optimistic updates
   const sendMessageMutation = useMutation({
     mutationFn: async ({ toUserId, content, messageType = 'text', attachments = null }) => {
       if (!profile?.id) {
@@ -93,33 +88,18 @@ export const useMessages = (otherUserId) => {
         throw new Error('Missing required fields: recipient or message content');
       }
 
-      // Debug logging
-      console.log('📤 Sending message to admin:', {
-        from_user: profile.id,
-        to_user: toUserId,
-        messageType
-      });
-
-      // Format message body for different types
-      let messageBody = content;
-      if (messageType !== 'text' && attachments) {
-        // Store attachment info in body as JSON for non-text messages
-        messageBody = JSON.stringify({
-          type: messageType,
-          content: content,
-          attachment: attachments
-        });
-      }
-
+      const isAttachmentMessage = messageType !== 'text' && !!attachments;
       const messageData = {
         from_user: profile.id,
         to_user: toUserId,
-        body: messageBody,
+        body: content,
+        message_type: isAttachmentMessage ? 'file' : 'text',
+        attachments: isAttachmentMessage ? { type: messageType, ...attachments } : null,
         sent_at: new Date().toISOString(),
         read: false,
+        is_read: false,
+        message_status: 'sent',
       };
-
-      console.log('📤 Message data:', messageData);
 
       const { data, error } = await supabase
         .from('messages')
@@ -128,132 +108,113 @@ export const useMessages = (otherUserId) => {
         .single();
 
       if (error) {
-        console.error('❌ Database error:', error);
         throw error;
       }
 
-      console.log('✅ Message sent successfully');
       return data;
     },
     onMutate: async ({ toUserId, content, messageType = 'text', attachments = null }) => {
-      // Format optimistic message body for different types
-      let messageBody = content;
-      if (messageType !== 'text' && attachments) {
-        messageBody = JSON.stringify({
-          type: messageType,
-          content: content,
-          attachment: attachments
-        });
-      }
+      const isAttachmentMessage = messageType !== 'text' && !!attachments;
+      const normalizedAttachments = isAttachmentMessage ? { type: messageType, ...attachments } : null;
 
-      // Create optimistic message
       const optimisticMessage = {
-        id: `temp-${Date.now()}`, // Temporary ID
+        id: `temp-${Date.now()}`,
         from_user: profile.id,
         to_user: toUserId,
-        body: messageBody,
+        body: content,
+        message_type: isAttachmentMessage ? 'file' : 'text',
+        attachments: normalizedAttachments,
         sent_at: new Date().toISOString(),
         read: false,
-        // Add temporary fields for display
+        is_read: false,
+        message_status: 'sent',
         _messageType: messageType,
-        _attachments: attachments,
+        _attachments: normalizedAttachments,
         _status: 'sending',
       };
 
-      // Add to optimistic messages immediately
-      setOptimisticMessages(prev => [...prev, optimisticMessage]);
+      setOptimisticMessages((prev) => [...prev, optimisticMessage]);
 
       return { optimisticMessage };
     },
-    onSuccess: (data, variables, context) => {
-      // Immediately update the cache with the real message to avoid disappearing
+    onSuccess: (data, _variables, context) => {
       const queryKey = ['messages', profile.id, data.to_user];
       queryClient.setQueryData(queryKey, (oldData) => {
         if (!oldData) return [data];
-        
-        // Check if message already exists to avoid duplicates
-        const messageExists = oldData.some(msg => msg.id === data.id);
+
+        const messageExists = oldData.some((msg) => msg.id === data.id);
         if (messageExists) return oldData;
-        
-        // Add the new message and sort by timestamp
+
         return [...oldData, data].sort((a, b) => new Date(a.sent_at) - new Date(b.sent_at));
       });
 
-      // Also update the reverse query key for the other participant
       const reverseQueryKey = ['messages', data.to_user, profile.id];
       queryClient.setQueryData(reverseQueryKey, (oldData) => {
         if (!oldData) return [data];
-        
-        const messageExists = oldData.some(msg => msg.id === data.id);
+
+        const messageExists = oldData.some((msg) => msg.id === data.id);
         if (messageExists) return oldData;
-        
+
         return [...oldData, data].sort((a, b) => new Date(a.sent_at) - new Date(b.sent_at));
       });
-      
-      // Remove the specific optimistic message that was sent
+
+      queryClient.invalidateQueries({ queryKey: ['conversations', profile.id] });
+
       if (context?.optimisticMessage) {
-        setOptimisticMessages(prev => 
-          prev.filter(msg => msg.id !== context.optimisticMessage.id)
+        setOptimisticMessages((prev) =>
+          prev.filter((msg) => msg.id !== context.optimisticMessage.id),
         );
       }
     },
-    onError: (error, variables, context) => {
-      // Remove failed optimistic message
+    onError: (_error, _variables, context) => {
       if (context?.optimisticMessage) {
-        setOptimisticMessages(prev => 
-          prev.filter(msg => msg.id !== context.optimisticMessage.id)
+        setOptimisticMessages((prev) =>
+          prev.filter((msg) => msg.id !== context.optimisticMessage.id),
         );
       }
-      throw error;
     },
   });
 
-  // Send a message function
-  const sendMessage = async (messageData) => {
-    return sendMessageMutation.mutateAsync(messageData);
-  };
-
-  // Mark message as read mutation
   const markAsReadMutation = useMutation({
     mutationFn: async (messageId) => {
       const { error } = await supabase
         .from('messages')
         .update({
+          read: true,
           is_read: true,
           read_at: new Date().toISOString(),
-          message_status: 'read'
+          message_status: 'read',
         })
         .eq('id', messageId);
 
       if (error) {
-        console.error('Error marking message as read:', error);
         throw error;
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['messages', profile?.id, otherUserId]);
-      queryClient.invalidateQueries(['messages', otherUserId, profile?.id]);
+      queryClient.invalidateQueries({ queryKey: ['messages', profile?.id, otherUserId] });
+      queryClient.invalidateQueries({ queryKey: ['messages', otherUserId, profile?.id] });
+      queryClient.invalidateQueries({ queryKey: ['conversations', profile?.id] });
     },
   });
 
-  // Delete message mutation
   const deleteMessageMutation = useMutation({
     mutationFn: async (messageId) => {
       const { error } = await supabase
         .from('messages')
         .update({
-          deleted_at: new Date().toISOString()
+          deleted_at: new Date().toISOString(),
         })
         .eq('id', messageId);
 
       if (error) {
-        console.error('Error deleting message:', error);
         throw error;
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['messages', profile?.id, otherUserId]);
-      queryClient.invalidateQueries(['messages', otherUserId, profile?.id]);
+      queryClient.invalidateQueries({ queryKey: ['messages', profile?.id, otherUserId] });
+      queryClient.invalidateQueries({ queryKey: ['messages', otherUserId, profile?.id] });
+      queryClient.invalidateQueries({ queryKey: ['conversations', profile?.id] });
     },
   });
 
@@ -261,47 +222,74 @@ export const useMessages = (otherUserId) => {
     messages: allMessages,
     isLoading,
     error,
-    sendMessage: sendMessage,
+    refetch,
+    sendMessage: sendMessageMutation.mutateAsync,
     markAsRead: markAsReadMutation.mutate,
     deleteMessage: deleteMessageMutation.mutate,
-    isSending: sendMessageMutation.isPending, // Use isPending from mutation
+    isSending: sendMessageMutation.isPending,
   };
 };
 
 export const useConversations = () => {
-  const queryClient = useQueryClient();
+  const { profile } = useGuardAuth();
 
-  // Fetch all conversations (latest message with each user)
   const {
     data: conversations = [],
     isLoading,
     error,
+    refetch,
   } = useQuery({
-    queryKey: ['conversations'],
+    queryKey: ['conversations', profile?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('messages')
-        .select(`
-          *,
-          from_user_profile:users!from_user(id, first_name, last_name, phone),
-          to_user_profile:users!to_user(id, first_name, last_name, phone)
-        `)
-        .order('sent_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching conversations:', error);
-        throw error;
+      if (!profile?.id) {
+        return [];
       }
 
-      // Group messages by conversation partner
-      const conversationMap = new Map();
-      const currentUserId = (await supabase.auth.getUser()).data.user?.id;
+      const { data: messageRows, error: messageError } = await supabase
+        .from('messages')
+        .select('id, from_user, to_user, body, sent_at, is_read, read, message_type, attachments, message_status')
+        .or(`from_user.eq.${profile.id},to_user.eq.${profile.id}`)
+        .order('sent_at', { ascending: false });
 
-      data?.forEach(message => {
-        const partnerId = message.from_user === currentUserId ? message.to_user : message.from_user;
-        const partnerProfile = message.from_user === currentUserId ? message.to_user_profile : message.from_user_profile;
-        
+      if (messageError) {
+        throw messageError;
+      }
+
+      const rows = messageRows || [];
+      const partnerIds = [
+        ...new Set(
+          rows
+            .map((message) =>
+              message.from_user === profile.id ? message.to_user : message.from_user,
+            )
+            .filter(Boolean),
+        ),
+      ];
+
+      if (partnerIds.length === 0) {
+        return [];
+      }
+
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, avatar_url, last_login, is_active, phone, community_id')
+        .in('id', partnerIds);
+
+      if (profilesError) {
+        throw profilesError;
+      }
+
+      const profilesById = new Map((profilesData || []).map((item) => [item.id, item]));
+      const conversationMap = new Map();
+
+      rows.forEach((message) => {
+        const partnerId = message.from_user === profile.id ? message.to_user : message.from_user;
+        if (!partnerId) {
+          return;
+        }
+
         if (!conversationMap.has(partnerId)) {
+          const partnerProfile = profilesById.get(partnerId);
           conversationMap.set(partnerId, {
             partnerId,
             partnerProfile,
@@ -310,68 +298,62 @@ export const useConversations = () => {
           });
         }
 
-        // Count unread messages
-        if (message.to_user === currentUserId && !message.is_read) {
-          conversationMap.get(partnerId).unreadCount++;
+        const isMessageRead = message.is_read ?? message.read ?? false;
+        if (message.to_user === profile.id && !isMessageRead) {
+          conversationMap.get(partnerId).unreadCount += 1;
         }
       });
 
-      return Array.from(conversationMap.values());
+      return Array.from(conversationMap.values()).sort((a, b) => {
+        const aTs = new Date(a.lastMessage?.sent_at || 0).getTime();
+        const bTs = new Date(b.lastMessage?.sent_at || 0).getTime();
+        return bTs - aTs;
+      });
     },
+    enabled: !!profile?.id,
   });
 
   return {
     conversations,
     isLoading,
     error,
+    refetch,
   };
 };
 
 export const useRealTimeMessages = (otherUserId) => {
   const queryClient = useQueryClient();
-  const { profile } = useGuardAuth(); // Use profile instead of user
+  const { profile } = useGuardAuth();
 
   useEffect(() => {
     if (!profile?.id || !otherUserId) {
       return;
     }
 
-    // Subscribe to real-time changes for messages
     const messagesSubscription = supabase
       .channel(`messages-${profile.id}-${otherUserId}`)
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'messages',
-          filter: `or(and(from_user.eq.${profile.id},to_user.eq.${otherUserId}),and(from_user.eq.${otherUserId},to_user.eq.${profile.id}))`,
         },
         (payload) => {
-          // Only update cache if this is a message from the other user (not our own sent message)
-          if (payload.new.from_user === otherUserId) {
-            const queryKey = ['messages', profile.id, otherUserId];
-            queryClient.invalidateQueries(queryKey);
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'messages',
-          filter: `or(and(from_user.eq.${profile.id},to_user.eq.${otherUserId}),and(from_user.eq.${otherUserId},to_user.eq.${profile.id}))`,
-        },
-        (payload) => {
-          // Update the specific message in cache
+          const row = payload.new || payload.old;
+          const involvesCurrentChat =
+            (row?.from_user === profile.id && row?.to_user === otherUserId) ||
+            (row?.from_user === otherUserId && row?.to_user === profile.id);
+
+          if (!involvesCurrentChat) return;
+
           const queryKey = ['messages', profile.id, otherUserId];
-          queryClient.invalidateQueries(queryKey);
-        }
+          queryClient.invalidateQueries({ queryKey });
+          queryClient.invalidateQueries({ queryKey: ['conversations', profile.id] });
+        },
       )
       .subscribe();
 
-    // Subscribe to real-time changes for calls (since they appear in message feed)
     const callsSubscription = supabase
       .channel(`calls-${profile.id}-${otherUserId}`)
       .on(
@@ -380,17 +362,19 @@ export const useRealTimeMessages = (otherUserId) => {
           event: '*',
           schema: 'public',
           table: 'calls',
-          filter: `or(and(caller_id.eq.${profile.id},callee_id.eq.${otherUserId}),and(caller_id.eq.${otherUserId},callee_id.eq.${profile.id}))`,
         },
         (payload) => {
-          console.log('🔔 Real-time call update in messages:', payload);
-          // Invalidate messages query to include new calls
+          const row = payload.new || payload.old;
+          const involvesCurrentChat =
+            (row?.caller_id === profile.id && row?.callee_id === otherUserId) ||
+            (row?.caller_id === otherUserId && row?.callee_id === profile.id);
+
+          if (!involvesCurrentChat) return;
+
           const queryKey = ['messages', profile.id, otherUserId];
-          queryClient.invalidateQueries(queryKey);
-          
-          // Also invalidate chat enhancements for call previews
-          queryClient.invalidateQueries(['chatEnhancements']);
-        }
+          queryClient.invalidateQueries({ queryKey });
+          queryClient.invalidateQueries({ queryKey: ['conversations', profile.id] });
+        },
       )
       .subscribe();
 
@@ -403,7 +387,7 @@ export const useRealTimeMessages = (otherUserId) => {
 
 export const useRealTimeCalls = () => {
   const queryClient = useQueryClient();
-  const { profile } = useGuardAuth(); // Use profile instead of user
+  const { profile } = useGuardAuth();
   const [incomingCall, setIncomingCall] = useState(null);
 
   useEffect(() => {
@@ -411,7 +395,6 @@ export const useRealTimeCalls = () => {
       return;
     }
 
-    // Subscribe to real-time changes for calls
     const subscription = supabase
       .channel('calls')
       .on(
@@ -422,11 +405,10 @@ export const useRealTimeCalls = () => {
           table: 'calls',
         },
         (payload) => {
-          // Check if this is a call for the current user
           if (payload.new.callee_id === profile.id) {
             setIncomingCall(payload.new);
           }
-        }
+        },
       )
       .on(
         'postgres_changes',
@@ -436,13 +418,13 @@ export const useRealTimeCalls = () => {
           table: 'calls',
         },
         (payload) => {
-          // Clear incoming call if it was answered/rejected/ended
           if (payload.new.status !== 'initiated' && payload.new.status !== 'ringing') {
             setIncomingCall(null);
           }
-          
-          queryClient.invalidateQueries(['calls']);
-        }
+
+          queryClient.invalidateQueries({ queryKey: ['calls'] });
+          queryClient.invalidateQueries({ queryKey: ['conversations', profile.id] });
+        },
       )
       .subscribe();
 

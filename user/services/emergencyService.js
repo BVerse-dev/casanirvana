@@ -4,6 +4,7 @@ import LocationService from "./locationService";
 
 export const EMERGENCY_TYPES = {
   fire_alert: {
+    alertType: "fire",
     title: "Fire Emergency",
     priority: "critical",
     adminMessage:
@@ -12,6 +13,7 @@ export const EMERGENCY_TYPES = {
       "Follow fire safety protocols and evacuate if in immediate danger. Emergency responders have been alerted.",
   },
   stuck_lift: {
+    alertType: "maintenance",
     title: "Elevator Emergency",
     priority: "high",
     adminMessage:
@@ -20,6 +22,7 @@ export const EMERGENCY_TYPES = {
       "Stay calm and use the lift emergency button. Help has been alerted.",
   },
   animal_threat: {
+    alertType: "security",
     title: "Animal Threat",
     priority: "high",
     adminMessage:
@@ -28,6 +31,7 @@ export const EMERGENCY_TYPES = {
       "Avoid the affected area and stay in a safe location. Help has been alerted.",
   },
   visitor_threat: {
+    alertType: "security",
     title: "Security Threat",
     priority: "critical",
     adminMessage:
@@ -82,7 +86,7 @@ const listProfilesForCommunity = async (communityId, roles = null) => {
 
   let query = supabase
     .from("profiles")
-    .select("id, first_name, last_name, email, phone, role, community_id, is_active, status")
+    .select("id, user_id, first_name, last_name, email, phone, role, community_id, is_active, status")
     .eq("community_id", communityId);
 
   if (Array.isArray(roles) && roles.length > 0) {
@@ -162,7 +166,7 @@ export const createEmergencyAlert = async (
       community_id: resolvedCommunityId,
       unit_id: reporterProfile.unit_id || null,
       user_id: reporterProfile.id,
-      alert_type: alertType,
+      alert_type: emergencyType.alertType || alertType,
       title: emergencyType.title,
       description: emergencyType.adminMessage,
       priority: emergencyType.priority,
@@ -185,17 +189,49 @@ export const createEmergencyAlert = async (
       getCommunityMembers(resolvedCommunityId),
     ]);
 
-    const stakeholderIds = new Set(
-      [...admins, ...guards, ...members]
-        .map((profile) => profile.id)
-        .filter((id) => id && id !== reporterProfile.id)
-    );
+    const stakeholderRows = [...admins, ...guards, ...members];
+    const recipientRows = [];
+    const uniqueRecipientIds = new Set();
+
+    for (const profile of stakeholderRows) {
+      const recipientUserId = profile?.user_id || profile?.id;
+      if (!recipientUserId) {
+        continue;
+      }
+      if (recipientUserId === reporterProfile.user_id || recipientUserId === reporterProfile.id) {
+        continue;
+      }
+      if (uniqueRecipientIds.has(recipientUserId)) {
+        continue;
+      }
+
+      uniqueRecipientIds.add(recipientUserId);
+      recipientRows.push({
+        alert_id: alertData.id,
+        recipient_user_id: recipientUserId,
+        recipient_role: profile?.role || null,
+        delivered_at: new Date().toISOString(),
+      });
+    }
+
+    if (recipientRows.length > 0) {
+      const { error: recipientsError } = await supabase
+        .from("emergency_alert_recipients")
+        .upsert(recipientRows, {
+          onConflict: "alert_id,recipient_user_id",
+          ignoreDuplicates: false,
+        });
+
+      if (recipientsError) {
+        console.error("Error tracking emergency recipients:", recipientsError);
+      }
+    }
 
     return {
       success: true,
       alertId: alertData.id,
       message: emergencyType.userMessage,
-      notifiedCount: stakeholderIds.size,
+      notifiedCount: uniqueRecipientIds.size,
       locationData: locationAttachment,
     };
   } catch (error) {

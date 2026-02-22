@@ -179,12 +179,15 @@
     },
     "checkedInTab": {
         "in": "IN",
-        "block": "Block"
+        "block": "Block",
+        "loading": "Loading...",
+        "noVisitorsInside": "No visitors currently inside"
     },
     "checkedOutTab": {
         "out": "OUT",
         "block": "Block",
-        "loading": "Loading..."
+        "loading": "Loading...",
+        "noVisitorsOutside": "No checked-out visitors yet"
     },
     "waitingTab": {
         "out": "OUT",
@@ -444,8 +447,21 @@
             "contact": "Contact",
             "contact_admin": "Contact Admin",
             "call_emergency": "Call Emergency",
+            "acknowledge": "Acknowledge",
             "start_investigation": "Start Investigation",
             "mark_resolved": "Mark Resolved",
+            "updating": "Updating...",
+            "confirm_update_title": "Confirm update",
+            "confirm_update_message": "Apply this status update to the alert?",
+            "status_updated_title": "Status updated",
+            "status_updated_message": "Emergency alert status updated successfully.",
+            "update_failed_title": "Update failed",
+            "status_update_error": "Unable to update alert status.",
+            "already_up_to_date_title": "No changes",
+            "already_up_to_date_message": "This alert is already in the selected status.",
+            "missing_alert_id": "Missing alert ID.",
+            "cancel": "Cancel",
+            "confirm": "Confirm",
             "timeline": "Timeline",
             "reported_at": "Reported at",
             "investigation_started": "Investigation started",

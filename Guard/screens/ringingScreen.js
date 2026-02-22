@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, Modal, BackHandler, TouchableOpacity, Alert, Image, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -68,7 +68,7 @@ const RingingScreen = ({ navigation, route }) => {
   const { createCabEntry } = useCabEntries(); // Add cab entry hook
   const { createDeliveryEntry } = useDeliveryEntries(); // Add delivery entry hook
   const { createServiceEntry } = useServiceEntries(); // Add service entry hook
-  const { guard, user, isAuthenticated } = useGuardAuth(); // Add guard context
+  const { guard } = useGuardAuth(); // Add guard context
   const { 
     hostName, 
     selectedFlatNo, 
@@ -81,7 +81,6 @@ const RingingScreen = ({ navigation, route }) => {
     companyName,        // FIXED: Add company name for delivery entries
     visitorPassId,      // NEW: visitor pass ID from guest entry creation
     visitorPhone,       // NEW: visitor phone from guest entry
-    expectedTime,       // NEW: expected time from guest entry
     entryType = 'guest', // NEW: entry type (guest, cab, delivery, service)
     unitId,             // NEW: unit ID for database operations
     cabData,            // NEW: cab-specific data
@@ -147,125 +146,98 @@ const RingingScreen = ({ navigation, route }) => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const createPassIfNeeded = async (resolvedUnitId) => {
+    if (visitorPassId) {
+      return visitorPassId;
+    }
+
+    const currentEntryType = visitorType || entryType;
+    const nowIso = new Date().toISOString();
+    let createdVisitorPassId = null;
+
+    if (currentEntryType === 'cab') {
+      const cabDetailsParts = guestDetails
+        ? guestDetails.split(' - Last 4 digits: ')
+        : ['Cab', 'N/A'];
+      const company = cabDetailsParts[0] || 'Cab';
+      const vehicleDigits = cabDetailsParts[1] || 'N/A';
+
+      const serviceType = guestMessage && guestMessage.toLowerCase().includes('pickup') && guestMessage.toLowerCase().includes('dropoff')
+        ? 'Pickup & Dropoff'
+        : guestMessage && guestMessage.toLowerCase().includes('pickup')
+        ? 'Pickup'
+        : guestMessage && guestMessage.toLowerCase().includes('dropoff')
+        ? 'Dropoff'
+        : 'Pickup';
+
+      createdVisitorPassId = await createCabEntry({
+        driver_name: guestName,
+        company_name: company,
+        service_type: serviceType,
+        vehicle_number: vehicleDigits,
+        unit_id: resolvedUnitId,
+        from_date: nowIso,
+        to_date: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(),
+        guard_notes: `${serviceType} for ${guestName} - ${company} - Last 4: ${vehicleDigits}`,
+      });
+    } else if (currentEntryType === 'delivery') {
+      const deliveryCompanyName = companyName || guestDetails || 'Delivery Service';
+
+      createdVisitorPassId = await createDeliveryEntry({
+        driver_name: guestName,
+        company_name: deliveryCompanyName,
+        unit_id: resolvedUnitId,
+        from_date: nowIso,
+        to_date: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
+        guard_notes: `Delivery from ${deliveryCompanyName} for ${hostName} - ${selectedFlatNo}`,
+      });
+    } else if (currentEntryType === 'service') {
+      const serviceName = guestDetails || guestMessage || 'Service Provider';
+
+      createdVisitorPassId = await createServiceEntry({
+        service_provider_name: guestName,
+        provider_phone: visitorPhone || phoneNumber || '',
+        unit_id: resolvedUnitId,
+        service_type: serviceName,
+        company_name: serviceName,
+        from_date: nowIso,
+        to_date: new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString(),
+        service_purpose: `${serviceName} service requested`,
+        guard_notes: `${serviceName} provider ${guestName} approved for ${hostName} - ${selectedFlatNo}`,
+      });
+    } else {
+      createdVisitorPassId = await createVisitorPass({
+        visitor_name: guestName,
+        visitor_phone: visitorPhone || phoneNumber,
+        unit_id: resolvedUnitId,
+        purpose: guestDetails || 'Guest visit',
+        from_date: nowIso,
+        to_date: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(),
+        guard_notes: guestMessage || 'Walk-in visitor approved by guard',
+      });
+    }
+
+    return createdVisitorPassId;
+  };
+
   const handleAllow = async () => {
     setShowDecisionModal(false);
     
     try {
       // Get unit information based on flat number
-      const unitId = await getUnitIdFromFlat(selectedFlatNo);
+      const resolvedUnitId = unitId || await getUnitIdFromFlat(selectedFlatNo);
       
       // If unit not found, we cannot proceed - show error
-      if (!unitId) {
+      if (!resolvedUnitId) {
         console.error('Cannot proceed without valid unit ID for flat:', selectedFlatNo);
         Alert.alert('Error', `Unit not found for flat ${selectedFlatNo}. Please contact administrator.`);
         return;
       }
 
-      // Create visitor pass for the guest entry
-      let createdVisitorPassId = visitorPassId; // Use existing ID if available
-      
-      if (!visitorPassId) {
-        // Create visitor pass based on entry type or visitorType
-        const currentEntryType = visitorType || entryType;
-        
-        if (currentEntryType === 'cab') {
-          // Parse cab details from guestDetails: "Uber - Last 4 digits: 1234"
-          const cabDetailsParts = guestDetails ? guestDetails.split(' - Last 4 digits: ') : ['Cab', 'N/A'];
-          const companyName = cabDetailsParts[0] || 'Cab';
-          const vehicleDigits = cabDetailsParts[1] || 'N/A';
-          
-          // Extract service type from guestMessage: "Pickup service for John"
-          const serviceType = guestMessage && guestMessage.toLowerCase().includes('pickup') && guestMessage.toLowerCase().includes('dropoff') 
-            ? 'Pickup & Dropoff'
-            : guestMessage && guestMessage.toLowerCase().includes('pickup')
-            ? 'Pickup'
-            : guestMessage && guestMessage.toLowerCase().includes('dropoff')
-            ? 'Dropoff'
-            : 'Pickup';
-
-          console.log('Creating cab entry with data:', {
-            driver_name: guestName,
-            company_name: companyName,
-            service_type: serviceType,
-            vehicle_number: vehicleDigits,
-            unit_id: unitId,
-            from_date: expectedTime || new Date().toISOString(),
-            to_date: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(),
-            guard_notes: `${serviceType} for ${guestName} - ${companyName} - Last 4: ${vehicleDigits}`,
-          });
-
-          const cabEntryData = {
-            driver_name: guestName,
-            company_name: companyName,
-            service_type: serviceType,
-            vehicle_number: vehicleDigits,
-            unit_id: unitId,
-            from_date: expectedTime || new Date().toISOString(),
-            to_date: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(),
-            guard_notes: `${serviceType} for ${guestName} - ${companyName} - Last 4: ${vehicleDigits}`,
-          };
-
-          createdVisitorPassId = await createCabEntry(cabEntryData);
-        } else if (currentEntryType === 'delivery') {
-          // Handle delivery entry creation - Use companyName directly from params
-          const deliveryCompanyName = companyName || guestDetails || 'Delivery Service';
-          
-          const deliveryEntryData = {
-            driver_name: guestName, // Use driver_name to match hook expectation  
-            company_name: deliveryCompanyName,
-            unit_id: unitId,
-            from_date: new Date().toISOString(),
-            to_date: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(), // 2 hours for delivery
-            guard_notes: `Delivery from ${deliveryCompanyName} for ${hostName} - ${selectedFlatNo}`,
-          };
-
-          createdVisitorPassId = await createDeliveryEntry(deliveryEntryData);
-        } else if (currentEntryType === 'service') {
-          // Handle service entry creation
-          const serviceName = guestDetails || guestMessage || 'Service Provider';
-          
-          const serviceEntryData = {
-            service_provider_name: guestName,
-            provider_phone: visitorPhone || phoneNumber || '',
-            unit_id: unitId,
-            service_type: serviceName,
-            company_name: serviceName, // Use service type as company name for consistency
-            from_date: new Date().toISOString(),
-            to_date: new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString(), // 3 hours for service
-            service_purpose: `${serviceName} service requested`,
-            guard_notes: `${serviceName} provider ${guestName} approved for ${hostName} - ${selectedFlatNo}`,
-          };
-
-          createdVisitorPassId = await createServiceEntry(serviceEntryData);
-        } else {
-          // Create regular guest visitor pass
-          console.log('Creating visitor pass with data:', {
-            visitor_name: guestName,
-            visitor_phone: visitorPhone || phoneNumber,
-            unit_id: unitId,
-            purpose: guestDetails || 'Guest visit',
-            from_date: expectedTime || new Date().toISOString(),
-            to_date: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(), // 4 hours from now
-            guard_notes: guestMessage || 'Walk-in visitor approved by guard',
-          });
-          
-          const visitorPassData = {
-            visitor_name: guestName,
-            visitor_phone: visitorPhone || phoneNumber,
-            unit_id: unitId,
-            purpose: guestDetails || 'Guest visit',
-            from_date: expectedTime || new Date().toISOString(),
-            to_date: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(), // 4 hours from now
-            guard_notes: guestMessage || 'Walk-in visitor approved by guard',
-          };
-
-          createdVisitorPassId = await createVisitorPass(visitorPassData);
-        }
-        
-        if (!createdVisitorPassId) {
-          Alert.alert('Error', `Failed to create ${entryType} entry`);
-          return;
-        }
+      const createdVisitorPassId = await createPassIfNeeded(resolvedUnitId);
+      if (!createdVisitorPassId) {
+        Alert.alert('Error', `Failed to create ${entryType} entry`);
+        return;
       }
       
       // Extract proper name and phone based on entry type
@@ -295,10 +267,9 @@ const RingingScreen = ({ navigation, route }) => {
         guestDetails,
         guestMessage,
         companyName,      // FIXED: Pass company name for delivery
-        unitId,
+        unitId: resolvedUnitId,
         visitorPassId: createdVisitorPassId,    // Pass visitor pass ID for status update
-        visitorPhone,     // Pass visitor phone  
-        expectedTime,     // Pass expected time
+        visitorPhone: displayPhone,
         entryType,        // Pass entry type for dynamic display
         cabData,          // Pass cab data
         deliveryData,     // Pass delivery data
@@ -320,8 +291,17 @@ const RingingScreen = ({ navigation, route }) => {
     setShowDecisionModal(false);
     
     try {
-      // Send cancellation notification to host
-      await sendCancellationNotification();
+      const resolvedUnitId = unitId || await getUnitIdFromFlat(selectedFlatNo);
+      if (!resolvedUnitId) {
+        Alert.alert('Error', `Unit not found for flat ${selectedFlatNo}. Please contact administrator.`);
+        return;
+      }
+
+      const createdVisitorPassId = await createPassIfNeeded(resolvedUnitId);
+      if (!createdVisitorPassId) {
+        Alert.alert('Error', `Failed to create ${entryType} entry`);
+        return;
+      }
       
       navigation.navigate('cancelledScreen', {
         guestName,
@@ -332,32 +312,16 @@ const RingingScreen = ({ navigation, route }) => {
         selectedFlatNo,
         guestDetails,
         guestMessage,
-        visitorPassId,    // Pass visitor pass ID for status update
-        visitorPhone,     // Pass visitor phone
-        expectedTime      // Pass expected time
+        visitorPassId: createdVisitorPassId,
+        visitorPhone: visitorPhone || phoneNumber,
       });
     } catch (error) {
       console.error('Error in handleCancel:', error);
-      // Still navigate even if notification fails
-      navigation.navigate('cancelledScreen', {
-        guestName,
-        hostName,
-        guestCount,
-        phoneNumber,
-        arrivalTime,
-        selectedFlatNo,
-        guestDetails,
-        guestMessage,
-        visitorPassId,    // Pass visitor pass ID for status update
-        visitorPhone,     // Pass visitor phone
-        expectedTime      // Pass expected time
-      });
+      Alert.alert('Error', 'Failed to process visitor rejection');
     }
   };
 
   const getUnitIdFromFlat = async (flatNo) => {
-    console.log('Guard context:', { guard: guard?.id, society: guard?.community_id, isAuthenticated });
-    
     if (!guard?.community_id) {
       console.error('Guard society ID not available');
       return null;
@@ -405,42 +369,6 @@ const RingingScreen = ({ navigation, route }) => {
     } catch (error) {
       console.error('Error getting unit ID:', error);
       return null;
-    }
-  };
-
-  const sendCancellationNotification = async () => {
-    try {
-      const unitId = await getUnitIdFromFlat(selectedFlatNo);
-      
-      if (!unitId) {
-        console.warn('Cannot send notification - unit not found for flat:', selectedFlatNo);
-        return; // Skip notification if unit not found
-      }
-      
-      const notificationData = {
-        title: 'Visitor Entry Declined',
-        message: `Your visitor ${guestName} was declined entry to ${selectedFlatNo}. Please contact the guard for more information.`,
-        type: 'visitor_declined',
-        recipient_id: unitId,
-        data: {
-          visitor_name: guestName,
-          flat_no: selectedFlatNo,
-          host_name: hostName,
-          declined_at: new Date().toISOString()
-        }
-      };
-
-      const { error: notificationError } = await supabase
-        .from('notifications')
-        .insert([notificationData]);
-
-      if (notificationError) {
-        console.error('Error sending cancellation notification:', notificationError);
-      } else {
-        console.log('✅ Cancellation notification sent successfully');
-      }
-    } catch (error) {
-      console.error('Error sending cancellation notification:', error);
     }
   };
 

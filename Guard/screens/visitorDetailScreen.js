@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { View, Text, Image, StyleSheet, ScrollView, TouchableOpacity, Linking, Alert, Modal } from "react-native";
 import { useTranslation } from "react-i18next";
-import { useFocusEffect } from "@react-navigation/native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
@@ -13,7 +12,7 @@ import { useVisitorPasses } from "../hooks/useVisitorPasses";
 const VisitorDetailScreen = ({ navigation, route }) => {
   const { t, i18n } = useTranslation();
   const isRtl = i18n.dir() === "rtl";
-  const { updatePassStatus, error, fetchPasses } = useVisitorPasses();
+  const { updatePassStatus, error } = useVisitorPasses();
   const [updating, setUpdating] = useState(false);
   
   // Modal states
@@ -33,10 +32,8 @@ const VisitorDetailScreen = ({ navigation, route }) => {
     phoneNumber,
     block,
     other1, // type: Guest / Delivery / Cab / Service
-    other2, // duration or pickup/dropoff
     hostName,
     hostPhone,
-    hostId, // Host profile ID (if available)
     flatNo,
     entryTime,
     exitTime,
@@ -54,6 +51,18 @@ const VisitorDetailScreen = ({ navigation, route }) => {
   const visitorType = (other1 ? other1.toLowerCase() : '') || 
                      (originalPass?.visitor_type ? originalPass.visitor_type.toLowerCase() : 'guest');
 
+  const formatDateTime = (value) => {
+    if (!value) return null;
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return null;
+    return parsed.toLocaleString();
+  };
+
+  const currentStatus = useMemo(
+    () => (originalPass?.status || status || '').toLowerCase(),
+    [originalPass?.status, status]
+  );
+
   // Map to actual database fields from originalPass
   const dbFields = originalPass ? {
     visitorName: originalPass.visitor_name || name,
@@ -68,12 +77,33 @@ const VisitorDetailScreen = ({ navigation, route }) => {
     deliveryDetails: originalPass.delivery_details,
     checkedInAt: originalPass.checked_in_at,
     checkedOutAt: originalPass.checked_out_at,
+    actualEntryTime: originalPass.actual_entry_time,
+    actualExitTime: originalPass.actual_exit_time,
     fromDate: originalPass.from_date,
     toDate: originalPass.to_date,
     hostName: originalPass.host_name || hostName,
     hostPhone: originalPass.host_phone || hostPhone,
     flatNumber: originalPass.flat_number || flatNo,
   } : {};
+
+  const scheduledFromDisplay = formatDateTime(dbFields.fromDate);
+  const scheduledToDisplay = formatDateTime(dbFields.toDate);
+  const actualEntryDisplay =
+    formatDateTime(dbFields.actualEntryTime || dbFields.checkedInAt) || entryTime || null;
+  const actualExitDisplay =
+    formatDateTime(dbFields.actualExitTime || dbFields.checkedOutAt) || exitTime || null;
+  const hasCheckedIn = Boolean(
+    currentStatus === 'checked_in' ||
+      currentStatus === 'inside' ||
+      dbFields.actualEntryTime ||
+      dbFields.checkedInAt
+  );
+  const hasCheckedOut = Boolean(
+    currentStatus === 'checked_out' ||
+      currentStatus === 'outside' ||
+      dbFields.actualExitTime ||
+      dbFields.checkedOutAt
+  );
 
   // Get proper pass ID for database operations
   const actualPassId = passId || originalPass?.id;
@@ -157,7 +187,7 @@ const VisitorDetailScreen = ({ navigation, route }) => {
       return;
     }
 
-    if (originalPass.status !== 'checked_in') {
+    if (currentStatus !== 'checked_in' && currentStatus !== 'inside') {
       Alert.alert(tr("not_inside"), tr("visitor_not_inside"));
       return;
     }
@@ -198,8 +228,11 @@ const VisitorDetailScreen = ({ navigation, route }) => {
       outside: { label: tr("status_outside"), color: Colors.grey },
       checked_in: { label: tr("status_checked_in"), color: Colors.green },
       checked_out: { label: tr("status_checked_out"), color: Colors.red },
+      pending: { label: tr("status_waiting"), color: Colors.orange },
+      approved: { label: tr("status_waiting"), color: Colors.orange },
+      denied: { label: tr("status_outside"), color: Colors.grey },
     };
-    const s = map[status] || map.waiting;
+    const s = map[currentStatus] || map.waiting;
     return (
       <View style={[styles.chip, { backgroundColor: s.color }]}> 
         <Text style={[Fonts.Medium12grey, { color: Colors.white }]}>{s.label}</Text>
@@ -259,18 +292,34 @@ const VisitorDetailScreen = ({ navigation, route }) => {
           <InfoRow
             icon={<MaterialCommunityIcons name="account-tie-outline" size={18} color={Colors.primary} />}
             label={tr("host")}
-            value={hostName}
+            value={dbFields.hostName || hostName}
           />
+          {scheduledFromDisplay && (
+            <InfoRow
+              icon={<MaterialCommunityIcons name="calendar-start" size={18} color={Colors.primary} />}
+              label={tr("scheduled_from")}
+              value={scheduledFromDisplay}
+            />
+          )}
+          {scheduledToDisplay && (
+            <InfoRow
+              icon={<MaterialCommunityIcons name="calendar-end" size={18} color={Colors.primary} />}
+              label={tr("scheduled_to")}
+              value={scheduledToDisplay}
+            />
+          )}
           <InfoRow
             icon={<MaterialCommunityIcons name="clock-time-three-outline" size={18} color={Colors.primary} />}
-            label={tr("entry_time")}
-            value={entryTime || other2}
+            label={tr("actual_entry")}
+            value={actualEntryDisplay}
           />
-          <InfoRow
-            icon={<MaterialCommunityIcons name="clock-outline" size={18} color={Colors.primary} />}
-            label={tr("exit_time")}
-            value={exitTime}
-          />
+          {hasCheckedOut && (
+            <InfoRow
+              icon={<MaterialCommunityIcons name="clock-outline" size={18} color={Colors.primary} />}
+              label={tr("actual_exit")}
+              value={actualExitDisplay}
+            />
+          )}
         </View>
 
         {/* Entry Type Specific Details */}
@@ -417,7 +466,7 @@ const VisitorDetailScreen = ({ navigation, route }) => {
             </TouchableOpacity>
             
             {/* Mark In button - only show if visitor is NOT checked in */}
-            {(status !== 'inside' && status !== 'checked_in') && (
+            {!hasCheckedIn && (
               <TouchableOpacity 
                 style={[styles.actionBtn, { borderColor: Colors.green }]} 
                 onPress={handleMarkIn}
@@ -431,7 +480,7 @@ const VisitorDetailScreen = ({ navigation, route }) => {
             )}
             
             {/* Mark Out button - only show if visitor is checked in */}
-            {(status === 'inside' || status === 'checked_in') && (
+            {hasCheckedIn && !hasCheckedOut && (
               <TouchableOpacity 
                 style={[styles.actionBtn, { borderColor: Colors.red }]} 
                 onPress={handleMarkOut}
@@ -458,21 +507,21 @@ const VisitorDetailScreen = ({ navigation, route }) => {
                 {dbFields.fromDate ? new Date(dbFields.fromDate).toLocaleDateString() : (entryTime || "--")}
               </Text>
             </View>
-            {(status === "inside" || status === "checked_in" || dbFields.checkedInAt) && (
+            {hasCheckedIn && (
               <View style={styles.timelineRow}>
                 <View style={[styles.timelineDot, { backgroundColor: Colors.green }]} />
                 <Text style={Fonts.Medium14black}>{tr("visitor_entered")}</Text>
                 <Text style={[Fonts.Medium12grey, { marginLeft: "auto" }]}>
-                  {dbFields.checkedInAt ? new Date(dbFields.checkedInAt).toLocaleString() : (other2 || "--")}
+                  {formatDateTime(dbFields.actualEntryTime || dbFields.checkedInAt) || actualEntryDisplay || "--"}
                 </Text>
               </View>
             )}
-            {(status === "checked_out" || dbFields.checkedOutAt) && (
+            {hasCheckedOut && (
               <View style={styles.timelineRow}>
                 <View style={[styles.timelineDot, { backgroundColor: Colors.red }]} />
                 <Text style={Fonts.Medium14black}>{tr("visitor_exited")}</Text>
                 <Text style={[Fonts.Medium12grey, { marginLeft: "auto" }]}>
-                  {dbFields.checkedOutAt ? new Date(dbFields.checkedOutAt).toLocaleString() : (exitTime || "--")}
+                  {formatDateTime(dbFields.actualExitTime || dbFields.checkedOutAt) || actualExitDisplay || "--"}
                 </Text>
               </View>
             )}

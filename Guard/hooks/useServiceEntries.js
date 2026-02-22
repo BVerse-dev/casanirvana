@@ -1,6 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../utils/supabase';
 import { useGuardAuth } from '../contexts/GuardAuthContext';
+import {
+  buildVisitorQrPayload,
+  createVisitorPassToken,
+  generateVisitorEntryCode,
+} from '../services/visitorPassArtifacts';
 
 export const useServiceEntries = (status = null) => {
   const { guard, user, isAuthenticated } = useGuardAuth();
@@ -54,11 +59,15 @@ export const useServiceEntries = (status = null) => {
       
       // Add guard tracking fields based on status
       if (newStatus === 'checked_in') {
+        const nowIso = new Date().toISOString();
         updateData.checked_in_by = user.id;
-        updateData.actual_entry_time = new Date().toISOString();
+        updateData.checked_in_at = nowIso;
+        updateData.actual_entry_time = nowIso;
       } else if (newStatus === 'checked_out') {
+        const nowIso = new Date().toISOString();
         updateData.checked_out_by = user.id;
-        updateData.actual_exit_time = new Date().toISOString();
+        updateData.checked_out_at = nowIso;
+        updateData.actual_exit_time = nowIso;
       }
       
       const { error } = await supabase
@@ -85,14 +94,40 @@ export const useServiceEntries = (status = null) => {
     }
 
     try {
+      const fromDate = serviceEntryData.from_date || new Date().toISOString();
+      const toDate =
+        serviceEntryData.to_date ||
+        new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString();
+      const entryCode = generateVisitorEntryCode();
+      const visitorPassToken = createVisitorPassToken();
+      const qrCodeData = buildVisitorQrPayload({
+        token: visitorPassToken,
+        entryCode,
+        visitorName: serviceEntryData.service_provider_name,
+        visitorPhone: serviceEntryData.provider_phone || '',
+        unitId: serviceEntryData.unit_id,
+        fromDate,
+        toDate,
+        createdBy: user.id,
+        purpose: serviceEntryData.service_purpose || 'Service request',
+        visitorType: 'service',
+        companyName: serviceEntryData.company_name || null,
+        serviceType: serviceEntryData.service_type || null,
+        vehicleType: 'service',
+        driverName: serviceEntryData.service_provider_name || null,
+        deliveryDetails: serviceEntryData.service_purpose || null,
+      });
+
       // Professional service entry data structure (following delivery/cab pattern)
       const servicePassData = {
         visitor_name: serviceEntryData.service_provider_name,     // Service provider name as visitor name
         visitor_phone: serviceEntryData.provider_phone || '',     // Provider phone if available
         unit_id: serviceEntryData.unit_id,                       // Selected unit
         purpose: serviceEntryData.service_purpose || 'Service request', // Service purpose
-        from_date: serviceEntryData.from_date,                   // Expected service time
-        to_date: serviceEntryData.to_date,                       // Expected completion time
+        from_date: fromDate,                   // Expected service time
+        to_date: toDate,                       // Expected completion time
+        entry_code: entryCode,
+        qr_code_data: qrCodeData,
         
         // Service-specific fields
         company_name: serviceEntryData.company_name,             // Service company name
@@ -106,7 +141,6 @@ export const useServiceEntries = (status = null) => {
         community_id: guard.community_id,
         entry_method: 'walk_in',
         status: 'pending',
-        created_at: new Date().toISOString(),
         
         // Guard notes
         guard_notes: serviceEntryData.guard_notes || `Service entry created by guard for ${serviceEntryData.service_type}`

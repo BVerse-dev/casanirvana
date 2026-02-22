@@ -20,7 +20,6 @@ import { useTranslation } from "react-i18next";
 import { ms } from "react-native-size-matters/extend";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import AwesomeButton from "react-native-really-awesome-button";
-import DateTimePicker from "@react-native-community/datetimepicker";
 import * as Contacts from "expo-contacts";
 import { useServiceEntries } from '../hooks/useServiceEntries';
 
@@ -43,8 +42,6 @@ const ServiceEntryScreen = ({ navigation, route }) => {
   // State variables
   const [servicemanName, setServicemanName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [entryTime, setEntryTime] = useState(new Date());
-  const [showTimePicker, setShowTimePicker] = useState(false);
   const [serviceTypeModal, setServiceTypeModal] = useState(false);
   const [selectedServiceType, setSelectedServiceType] = useState("");
   const [confirmServiceType, setConfirmServiceType] = useState("");
@@ -75,21 +72,6 @@ const ServiceEntryScreen = ({ navigation, route }) => {
   function tr(key) {
     return t(`serviceEntryScreen:${key}`);
   }
-  const formatTime = (time) => {
-    return time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-
-  const showTimeSelector = () => {
-    setShowTimePicker(true);
-  };
-
-  const onTimeChange = (event, selectedTime) => {
-    setShowTimePicker(false);
-    if (selectedTime) {
-      setEntryTime(selectedTime);
-    }
-  };
-
   // Contact picker functions
   const loadContacts = async () => {
     try {
@@ -269,9 +251,11 @@ const ServiceEntryScreen = ({ navigation, route }) => {
             }}
           >
             <TextInput
-              maxLength={10}
+              maxLength={15}
               value={phoneNumber}
-              onChangeText={setPhoneNumber}
+              onChangeText={(value) =>
+                setPhoneNumber(String(value || "").replace(/[^\d]/g, ""))
+              }
               keyboardType="number-pad"
               placeholder={tr("enterPhoneNumber")}
               placeholderTextColor={Colors.grey}
@@ -337,38 +321,6 @@ const ServiceEntryScreen = ({ navigation, route }) => {
             </TouchableOpacity>
           </View>
 
-          <Text
-            style={{
-              ...Fonts.Medium16grey,
-              textAlign: isRtl ? "right" : "left",
-            }}
-          >
-            {tr("timeOfEntry")}
-          </Text>
-
-          <TouchableOpacity
-            onPress={showTimeSelector}
-            style={{
-              flexDirection: isRtl ? "row-reverse" : "row",
-              ...styles.textInputView,
-            }}
-          >
-            <Text
-              style={{
-                ...Fonts.SemiBold16black,
-                flex: 1,
-                textAlign: isRtl ? "right" : "left",
-              }}
-            >
-              {formatTime(entryTime)}
-            </Text>
-
-            <Ionicons
-              name="time-outline"
-              size={20}
-              color={Colors.primary}
-            />
-          </TouchableOpacity>
         </View>
       </ScrollView>
 
@@ -380,19 +332,34 @@ const ServiceEntryScreen = ({ navigation, route }) => {
         <AwesomeButton
           height={50}
           onPress={() => {
-            // Always go to flat selection - never go to ringing screen directly
-            const encodedTitle = confirmServiceType ? `${confirmServiceType}|serviceprovider` : tr("servicemanName");
+            const cleanedName = String(servicemanName || "").trim();
+            const cleanedPhone = String(phoneNumber || "").replace(/[^\d]/g, "");
+
+            if (!cleanedName || !confirmServiceType) {
+              Alert.alert(
+                tr("missingFields") || "Missing Fields",
+                tr("fillAllFields") || "Please fill all required fields"
+              );
+              return;
+            }
+
+            if (cleanedPhone.length < 7) {
+              Alert.alert(
+                tr("invalidPhone") || "Invalid Phone Number",
+                tr("enterValidPhone") || "Please enter a valid phone number"
+              );
+              return;
+            }
             
             navigation.push("flatNoScreen", {
               headerTitle: tr("serviceEntry"),
-              title: encodedTitle,  // WORKAROUND: Encode service type in title field
+              title: tr("servicemanName"),
               placeholderTitle: tr("enterName"),
               image: require("../assets/images/visitor4.png"),
               returnScreen: 'serviceEntryScreen',
-              guestName: servicemanName,
-              phoneNumber: phoneNumber,
+              guestName: cleanedName,
+              phoneNumber: cleanedPhone,
               serviceType: confirmServiceType,
-              entryTime: formatTime(entryTime)
             });
           }}
           raiseLevel={1}
@@ -607,16 +574,6 @@ const ServiceEntryScreen = ({ navigation, route }) => {
         </TouchableOpacity>
       </Modal>
 
-      {/* Time Picker */}
-      {showTimePicker && (
-        <DateTimePicker
-          value={entryTime}
-          mode="time"
-          is24Hour={false}
-          display="default"
-          onChange={onTimeChange}
-        />
-      )}
     </View>
   );
 };

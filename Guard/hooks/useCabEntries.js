@@ -1,6 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../utils/supabase';
 import { useGuardAuth } from '../contexts/GuardAuthContext';
+import {
+  buildVisitorQrPayload,
+  createVisitorPassToken,
+  generateVisitorEntryCode,
+} from '../services/visitorPassArtifacts';
 
 export const useCabEntries = (status = null) => {
   const { guard, user, isAuthenticated } = useGuardAuth();
@@ -54,11 +59,15 @@ export const useCabEntries = (status = null) => {
       
       // Add guard tracking fields based on status
       if (newStatus === 'checked_in') {
+        const nowIso = new Date().toISOString();
         updateData.checked_in_by = user.id;
-        updateData.actual_entry_time = new Date().toISOString();
+        updateData.checked_in_at = nowIso;
+        updateData.actual_entry_time = nowIso;
       } else if (newStatus === 'checked_out') {
+        const nowIso = new Date().toISOString();
         updateData.checked_out_by = user.id;
-        updateData.actual_exit_time = new Date().toISOString();
+        updateData.checked_out_at = nowIso;
+        updateData.actual_exit_time = nowIso;
       }
       
       const { error } = await supabase
@@ -85,14 +94,40 @@ export const useCabEntries = (status = null) => {
     }
 
     try {
+      const fromDate = cabEntryData.from_date || new Date().toISOString();
+      const toDate =
+        cabEntryData.to_date ||
+        new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString();
+      const entryCode = generateVisitorEntryCode();
+      const visitorPassToken = createVisitorPassToken();
+      const qrCodeData = buildVisitorQrPayload({
+        token: visitorPassToken,
+        entryCode,
+        visitorName: cabEntryData.driver_name,
+        visitorPhone: cabEntryData.driver_phone || '',
+        unitId: cabEntryData.unit_id,
+        fromDate,
+        toDate,
+        createdBy: user.id,
+        purpose: cabEntryData.service_type || 'Cab service',
+        visitorType: 'cab',
+        companyName: cabEntryData.company_name || null,
+        serviceType: cabEntryData.service_type || null,
+        vehicleType: 'cab',
+        vehicleNumber: cabEntryData.vehicle_number || null,
+        driverName: cabEntryData.driver_name || null,
+      });
+
       // LESSON LEARNED: Use correct field names from the start
       const cabPassData = {
         visitor_name: cabEntryData.driver_name,           // Driver name as visitor name
         visitor_phone: cabEntryData.driver_phone || '',   // Driver phone if available
         unit_id: cabEntryData.unit_id,                   // Selected unit
         purpose: cabEntryData.service_type || 'Cab service', // Pickup/dropoff purpose
-        from_date: cabEntryData.from_date,               // LESSON: Use from_date not expected_entry_time
-        to_date: cabEntryData.to_date,                   // LESSON: Use to_date not expected_exit_time
+        from_date: fromDate,               // LESSON: Use from_date not expected_entry_time
+        to_date: toDate,                   // LESSON: Use to_date not expected_exit_time
+        entry_code: entryCode,
+        qr_code_data: qrCodeData,
         
         // Cab-specific fields
         driver_name: cabEntryData.driver_name,
@@ -108,7 +143,6 @@ export const useCabEntries = (status = null) => {
         community_id: guard.community_id,
         entry_method: 'walk_in',
         status: 'pending',
-        created_at: new Date().toISOString(),
         
         // Guard notes
         guard_notes: cabEntryData.guard_notes || `Cab entry created by guard for ${cabEntryData.company_name}`

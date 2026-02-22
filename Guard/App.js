@@ -8,7 +8,6 @@ import {
 } from "@react-navigation/stack";
 import { withTranslation } from "react-i18next";
 import { NavigationContainer } from "@react-navigation/native";
-import { GuardAuthProvider } from "./contexts/GuardAuthContext";
 import { AppQueryClientProvider } from "./components/QueryClientProvider";
 import SplashScreen from "./screens/splashScreen";
 import LoginScreen from "./screens/auth/loginScreen";

@@ -8,29 +8,52 @@ import {
   Alert,
   Image,
   ActivityIndicator,
-} from "react-native";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useTranslation } from "react-i18next";
-import { Colors, Default, Fonts } from "../constants/styles";
-import Ionicons from "react-native-vector-icons/Ionicons";
-import MyStatusBar from "../components/myStatusBar";
-import MaterialIcons from "react-native-vector-icons/MaterialIcons";
-import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
-import { useChatEnhancements } from "../hooks/useChats";
+} from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Colors, Default, Fonts } from '../constants/styles';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import MyStatusBar from '../components/myStatusBar';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useConversations } from '../hooks/useMessages';
 import {
   useGuardCommunityDirectoryMembers,
   useGuardCommunityDirectorySubscription,
-} from "../hooks/useCommunityDirectoryMembers";
+} from '../hooks/useCommunityDirectoryMembers';
 
 const roleLabel = (role) => {
-  if (role === "admin") return "Admin";
-  if (role === "committee") return "Committee";
-  return "Member";
+  if (role === 'admin') return 'Admin';
+  if (role === 'committee') return 'Committee';
+  return 'Member';
+};
+
+const formatMessagePreview = (message) => {
+  if (!message) return 'Tap to start a conversation';
+
+  if (message.message_type === 'file') {
+    const attachmentType = message.attachments?.type;
+    if (attachmentType === 'image') return 'Photo';
+    if (attachmentType === 'audio') return 'Voice message';
+    if (attachmentType === 'document') return message.attachments?.fileName || 'Document';
+    return message.body || 'Attachment';
+  }
+
+  try {
+    const parsed = JSON.parse(message.body || '');
+    if (parsed?.type === 'image') return 'Photo';
+    if (parsed?.type === 'audio') return 'Voice message';
+    if (parsed?.type === 'document') return parsed?.content || 'Document';
+    return parsed?.content || message.body || 'Tap to start a conversation';
+  } catch (_error) {
+    return message.body || 'Tap to start a conversation';
+  }
 };
 
 const SearchScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
-  const isRtl = i18n.dir() === "rtl";
+  const isRtl = i18n.dir() === 'rtl';
+  const { conversations = [] } = useConversations();
 
   function tr(key) {
     return t(`searchScreen:${key}`);
@@ -42,22 +65,26 @@ const SearchScreen = ({ navigation }) => {
   }, [navigation]);
 
   useEffect(() => {
-    const subscription = BackHandler.addEventListener(
-      "hardwareBackPress",
-      backAction,
-    );
+    const subscription = BackHandler.addEventListener('hardwareBackPress', backAction);
     return () => {
       subscription?.remove();
     };
   }, [backAction]);
 
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState('');
   const [clearAll, setClearAll] = useState(false);
   const [isListening, setIsListening] = useState(false);
 
-  const { enhanceChatItem } = useChatEnhancements();
   const { data: residents = [], isLoading, error } = useGuardCommunityDirectoryMembers();
   useGuardCommunityDirectorySubscription();
+
+  const conversationsByPartner = useMemo(() => {
+    const map = new Map();
+    conversations.forEach((item) => {
+      map.set(item.partnerId, item);
+    });
+    return map;
+  }, [conversations]);
 
   const allResidents = useMemo(() => {
     return residents.map((resident) => ({
@@ -66,7 +93,7 @@ const SearchScreen = ({ navigation }) => {
       name: resident.name,
       phone: resident.phone,
       unit:
-        resident.block === "N/A"
+        resident.block === 'N/A'
           ? roleLabel(resident.role)
           : `Block ${resident.block}-${resident.flatNo} (${roleLabel(resident.role)})`,
       image: resident.avatarUrl,
@@ -86,7 +113,7 @@ const SearchScreen = ({ navigation }) => {
 
   const recentSearchList = useMemo(
     () =>
-      allResidents.slice(0, 4).map((resident, index) => ({
+      allResidents.slice(0, 6).map((resident, index) => ({
         key: `${resident.id}-${index}`,
         title: `${resident.name} (${resident.unit})`,
         name: resident.name,
@@ -98,26 +125,26 @@ const SearchScreen = ({ navigation }) => {
     try {
       setIsListening(true);
       Alert.alert(
-        "Voice Search",
-        "Voice search feature coming soon! For now, please type your search.",
-        [{ text: "OK", onPress: () => setIsListening(false) }],
+        'Voice Search',
+        'Voice search feature coming soon! For now, please type your search.',
+        [{ text: 'OK', onPress: () => setIsListening(false) }],
       );
-    } catch (voiceError) {
+    } catch (_voiceError) {
       setIsListening(false);
     }
   };
 
   const renderSearchResult = ({ item }) => {
-    const enhancedChat = enhanceChatItem({
-      name: item.name,
-      message: "Tap to start conversation",
-    });
+    const conversation = conversationsByPartner.get(item.id);
+    const lastMessage = formatMessagePreview(conversation?.lastMessage);
 
     return (
       <TouchableOpacity
         onPress={() => {
-          navigation.navigate("messageScreen", {
-            image: item.image || require("../assets/images/guard.png"),
+          navigation.navigate('messageScreen', {
+            image: item.image
+              ? { uri: item.image }
+              : require('../assets/images/guard.png'),
             name: item.name,
             key: item.id,
             id: item.id,
@@ -125,8 +152,8 @@ const SearchScreen = ({ navigation }) => {
           });
         }}
         style={{
-          flexDirection: isRtl ? "row-reverse" : "row",
-          alignItems: "center",
+          flexDirection: isRtl ? 'row-reverse' : 'row',
+          alignItems: 'center',
           marginBottom: Default.fixPadding * 1.5,
           marginHorizontal: Default.fixPadding * 2,
           padding: Default.fixPadding,
@@ -137,73 +164,86 @@ const SearchScreen = ({ navigation }) => {
       >
         <Image
           source={
-            typeof item.image === "string" && item.image
+            typeof item.image === 'string' && item.image
               ? { uri: item.image }
-              : require("../assets/images/guard.png")
+              : require('../assets/images/guard.png')
           }
           style={{
             width: 50,
             height: 50,
             borderRadius: 25,
-            resizeMode: "cover",
+            resizeMode: 'cover',
           }}
         />
         <View
           style={{
             flex: 1,
-            alignItems: isRtl ? "flex-end" : "flex-start",
+            alignItems: isRtl ? 'flex-end' : 'flex-start',
             marginHorizontal: Default.fixPadding,
           }}
         >
-          <Text
-            numberOfLines={1}
-            style={{ ...Fonts.Medium16primary, overflow: "hidden" }}
-          >
+          <Text numberOfLines={1} style={{ ...Fonts.Medium16primary, overflow: 'hidden' }}>
             {item.name}
           </Text>
           <Text
             numberOfLines={1}
             style={{
               ...Fonts.Medium14grey,
-              overflow: "hidden",
+              overflow: 'hidden',
               marginTop: Default.fixPadding * 0.3,
             }}
           >
             {item.unit}
           </Text>
-          {enhancedChat.lastMessage &&
-            enhancedChat.lastMessage !== "Tap to start a conversation" && (
-              <Text
-                numberOfLines={1}
-                style={{
-                  ...Fonts.Medium12grey,
-                  overflow: "hidden",
-                  marginTop: Default.fixPadding * 0.2,
-                  fontStyle: "italic",
-                }}
-              >
-                Last: {enhancedChat.lastMessage}
-              </Text>
-            )}
+          {!!conversation?.lastMessage && (
+            <Text
+              numberOfLines={1}
+              style={{
+                ...Fonts.Medium12grey,
+                overflow: 'hidden',
+                marginTop: Default.fixPadding * 0.2,
+                fontStyle: 'italic',
+              }}
+            >
+              Last: {lastMessage}
+            </Text>
+          )}
         </View>
-        <TouchableOpacity
-          onPress={() => {
-            navigation.navigate("callScreen", {
-              image: item.image || require("../assets/images/guard.png"),
-              name: item.name,
-              phone: item.phone,
-              id: item.id,
-              memberId: item.memberId,
-            });
-          }}
-          style={{ padding: Default.fixPadding * 0.5 }}
-        >
-          <MaterialCommunityIcons
-            name="phone-outline"
-            size={20}
-            color={Colors.grey}
-          />
-        </TouchableOpacity>
+
+        <View style={{ alignItems: 'center' }}>
+          {conversation?.unreadCount > 0 ? (
+            <View
+              style={{
+                minWidth: 18,
+                height: 18,
+                borderRadius: 9,
+                backgroundColor: Colors.primary,
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 6,
+                paddingHorizontal: 4,
+              }}
+            >
+              <Text style={{ ...Fonts.Medium12white, fontSize: 10 }}>{conversation.unreadCount}</Text>
+            </View>
+          ) : null}
+          <TouchableOpacity
+            onPress={() => {
+              navigation.navigate('callScreen', {
+                image: item.image
+                  ? { uri: item.image }
+                  : require('../assets/images/guard.png'),
+                name: item.name,
+                phone: item.phone,
+                id: item.id,
+                memberId: item.memberId,
+              });
+            }}
+            style={{ padding: Default.fixPadding * 0.5 }}
+          >
+            <MaterialCommunityIcons name='phone-outline' size={20} color={Colors.grey} />
+          </TouchableOpacity>
+        </View>
       </TouchableOpacity>
     );
   };
@@ -213,7 +253,7 @@ const SearchScreen = ({ navigation }) => {
       <TouchableOpacity
         onPress={() => setSearch(item.name)}
         style={{
-          alignItems: isRtl ? "flex-end" : "flex-start",
+          alignItems: isRtl ? 'flex-end' : 'flex-start',
           marginBottom: Default.fixPadding,
           marginHorizontal: Default.fixPadding * 2,
         }}
@@ -228,15 +268,15 @@ const SearchScreen = ({ navigation }) => {
       <MyStatusBar />
       <View
         style={{
-          flexDirection: isRtl ? "row-reverse" : "row",
-          alignItems: "center",
+          flexDirection: isRtl ? 'row-reverse' : 'row',
+          alignItems: 'center',
           marginTop: Default.fixPadding * 1.2,
           marginHorizontal: Default.fixPadding * 2,
         }}
       >
         <TouchableOpacity onPress={() => navigation.pop()}>
           <Ionicons
-            name={isRtl ? "arrow-forward-outline" : "arrow-back-outline"}
+            name={isRtl ? 'arrow-forward-outline' : 'arrow-back-outline'}
             size={25}
             color={Colors.black}
           />
@@ -250,8 +290,8 @@ const SearchScreen = ({ navigation }) => {
         >
           <View
             style={{
-              flexDirection: isRtl ? "row-reverse" : "row",
-              alignItems: "center",
+              flexDirection: isRtl ? 'row-reverse' : 'row',
+              alignItems: 'center',
               paddingVertical: Default.fixPadding * 1.2,
               paddingLeft: Default.fixPadding * 2,
               paddingRight: Default.fixPadding * 1.2,
@@ -260,24 +300,24 @@ const SearchScreen = ({ navigation }) => {
               ...Default.shadow,
             }}
           >
-            <MaterialIcons name="search" size={20} color={Colors.grey} />
+            <MaterialIcons name='search' size={20} color={Colors.grey} />
             <TextInput
               autoFocus
               value={search}
               onChangeText={setSearch}
-              placeholder={tr("search")}
+              placeholder={tr('search')}
               placeholderTextColor={Colors.grey}
               selectionColor={Colors.primary}
               style={{
                 ...Fonts.SemiBold16black,
                 flex: 1,
-                textAlign: isRtl ? "right" : "left",
+                textAlign: isRtl ? 'right' : 'left',
                 marginHorizontal: Default.fixPadding,
               }}
             />
             <TouchableOpacity onPress={handleVoiceSearch}>
               <MaterialIcons
-                name={isListening ? "mic" : "mic-none"}
+                name={isListening ? 'mic' : 'mic-none'}
                 size={20}
                 color={isListening ? Colors.primary : Colors.grey}
               />
@@ -287,11 +327,11 @@ const SearchScreen = ({ navigation }) => {
       </View>
 
       {isLoading ? (
-        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-          <ActivityIndicator size="large" color={Colors.primary} />
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size='large' color={Colors.primary} />
         </View>
       ) : error ? (
-        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <Text style={{ ...Fonts.SemiBold16grey }}>Unable to load residents</Text>
         </View>
       ) : search.trim() ? (
@@ -316,20 +356,18 @@ const SearchScreen = ({ navigation }) => {
             )}
           />
         ) : (
-          <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-            <MaterialIcons name="search-off" size={40} color={Colors.grey} />
-            <Text
-              style={{ ...Fonts.SemiBold16grey, marginTop: Default.fixPadding }}
-            >
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <MaterialIcons name='search-off' size={40} color={Colors.grey} />
+            <Text style={{ ...Fonts.SemiBold16grey, marginTop: Default.fixPadding }}>
               No results found for "{search}"
             </Text>
           </View>
         )
       ) : clearAll ? (
-        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-          <MaterialIcons name="search-off" size={40} color={Colors.grey} />
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <MaterialIcons name='search-off' size={40} color={Colors.grey} />
           <Text style={{ ...Fonts.SemiBold16grey, marginTop: Default.fixPadding }}>
-            {tr("noSearch")}
+            {tr('noSearch')}
           </Text>
         </View>
       ) : (
@@ -341,8 +379,8 @@ const SearchScreen = ({ navigation }) => {
           ListHeaderComponent={() => (
             <View
               style={{
-                flexDirection: isRtl ? "row-reverse" : "row",
-                alignItems: "center",
+                flexDirection: isRtl ? 'row-reverse' : 'row',
+                alignItems: 'center',
                 marginTop: Default.fixPadding * 2,
                 marginBottom: Default.fixPadding,
                 marginHorizontal: Default.fixPadding * 2,
@@ -353,25 +391,25 @@ const SearchScreen = ({ navigation }) => {
                 style={{
                   ...Fonts.SemiBold16black,
                   flex: 7,
-                  overflow: "hidden",
+                  overflow: 'hidden',
                 }}
               >
-                {tr("recentSearch")}
+                {tr('recentSearch')}
               </Text>
               <TouchableOpacity
                 onPress={() => setClearAll(true)}
                 style={{
                   flex: 3,
-                  alignItems: isRtl ? "flex-start" : "flex-end",
+                  alignItems: isRtl ? 'flex-start' : 'flex-end',
                   marginLeft: isRtl ? 0 : Default.fixPadding,
                   marginRight: isRtl ? Default.fixPadding : 0,
                 }}
               >
                 <Text
                   numberOfLines={1}
-                  style={{ ...Fonts.SemiBold14grey, overflow: "hidden" }}
+                  style={{ ...Fonts.SemiBold14grey, overflow: 'hidden' }}
                 >
-                  {tr("clearAll")}
+                  {tr('clearAll')}
                 </Text>
               </TouchableOpacity>
             </View>

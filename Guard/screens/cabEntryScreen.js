@@ -21,7 +21,6 @@ import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityI
 import { useTranslation } from "react-i18next";
 import { ms } from "react-native-size-matters/extend";
 import AwesomeButton from "react-native-really-awesome-button";
-import DateTimePicker from '@react-native-community/datetimepicker';
 
 // LESSON LEARNED: Import all necessary services from the start
 import { useCabEntries } from '../hooks/useCabEntries';
@@ -68,8 +67,6 @@ const CabEntryScreen = ({ navigation, route }) => {
   const [capDigit, setCabDigit] = useState("");
   const [companyName, setCompanyName] = useState("Uber");
   const [pickupDropUp, setPickupDropUp] = useState("Pickup");
-  const [arrivalTime, setArrivalTime] = useState(new Date());
-  const [showTimePicker, setShowTimePicker] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [hostName, setHostName] = useState("");
   const [selectedFlatNo, setSelectedFlatNo] = useState("");
@@ -159,21 +156,6 @@ const CabEntryScreen = ({ navigation, route }) => {
     setTimeout(() => {
       setRefreshing(false);
     }, 1000);
-  };
-
-  const showTimeSelector = () => {
-    setShowTimePicker(true);
-  };
-
-  const onTimeChange = (event, selectedTime) => {
-    setShowTimePicker(false);
-    if (selectedTime) {
-      setArrivalTime(selectedTime);
-    }
-  };
-
-  const formatTime = (time) => {
-    return time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   // LESSON LEARNED: Create comprehensive cab entry function with proper error handling
@@ -359,7 +341,9 @@ const CabEntryScreen = ({ navigation, route }) => {
             <TextInput
               maxLength={4}
               value={capDigit}
-              onChangeText={setCabDigit}
+              onChangeText={(value) =>
+                setCabDigit(String(value || "").replace(/[^\d]/g, ""))
+              }
               keyboardType="number-pad"
               placeholder={tr("enterLast")}
               placeholderTextColor={Colors.grey}
@@ -442,39 +426,6 @@ const CabEntryScreen = ({ navigation, route }) => {
             />
           </TouchableOpacity>
 
-          <Text
-            style={{
-              ...Fonts.Medium16grey,
-              textAlign: isRtl ? "right" : "left",
-            }}
-          >
-            {tr("timeOfArrival") || "Time of arrival"}
-          </Text>
-
-          <TouchableOpacity
-            onPress={showTimeSelector}
-            style={{
-              flexDirection: isRtl ? "row-reverse" : "row",
-              ...styles.textInputView,
-            }}
-          >
-            <Text
-              style={{
-                ...Fonts.SemiBold16black,
-                flex: 1,
-                textAlign: isRtl ? "right" : "left",
-              }}
-            >
-              {formatTime(arrivalTime)}
-            </Text>
-
-            <Ionicons
-              name="time-outline"
-              size={20}
-              color={Colors.primary}
-            />
-          </TouchableOpacity>
-
           {selectedFlatNo ? (
             <View>
               <Text
@@ -547,15 +498,6 @@ const CabEntryScreen = ({ navigation, route }) => {
         </View>
       </ScrollView>
 
-      {showTimePicker && (
-        <DateTimePicker
-          value={arrivalTime}
-          mode="time"
-          is24Hour={false}
-          onChange={onTimeChange}
-        />
-      )}
-
       <View
         style={{
           margin: Default.fixPadding * 2,
@@ -564,18 +506,29 @@ const CabEntryScreen = ({ navigation, route }) => {
         <AwesomeButton
           height={50}
           onPress={async () => {
+            const cleanedDriverName = String(cabDriverName || "").trim();
+            const cleanedVehicleDigits = String(capDigit || "").replace(/[^\d]/g, "");
+
+            if (!cleanedDriverName || cleanedVehicleDigits.length !== 4) {
+              Alert.alert(
+                tr("missingFields") || "Missing Fields",
+                tr("fillAllFields") || "Please provide driver name and 4 vehicle digits"
+              );
+              return;
+            }
+
             if (selectedFlatNo) {
               // Follow guest entry pattern: Go directly to entry confirmation screen
               // NO visitor pass creation here - that happens only after "Allow" in ringing screen
               navigation.push("entryConfirmationScreen", {
-                name: cabDriverName,
+                name: cleanedDriverName,
                 phoneNumber: '', // Cab drivers usually don't provide phone
                 visiting: selectedFlatNo,
                 hostName,
                 insideTime: "4 hours", // Default for cabs
-                selectedTime: new Date().toISOString(),
+                unitId,
                 entryType: 'cab',
-                guestDetails: `${confirmCompanyName || 'Uber'} - Last 4 digits: ${capDigit}`,
+                guestDetails: `${confirmCompanyName || 'Uber'} - Last 4 digits: ${cleanedVehicleDigits}`,
                 guestMessage: confirmPickupDropoff || 'Pickup'  // Just the service type, no extra text
               });
             } else {
@@ -586,13 +539,13 @@ const CabEntryScreen = ({ navigation, route }) => {
                 placeholderTitle: tr("enterName"),
                 image: require("../assets/images/visitor2.png"),
                 returnScreen: 'cabEntryScreen',
-                cabName: cabDriverName,
+                cabName: cleanedDriverName,
                 // Pass all cab-specific data for later use
                 cabData: {
-                  driverName: cabDriverName,
+                  driverName: cleanedDriverName,
                   companyName: confirmCompanyName || 'Uber',
                   serviceType: confirmPickupDropoff || 'Pickup',
-                  vehicleDigits: capDigit
+                  vehicleDigits: cleanedVehicleDigits
                 }
               });
             }

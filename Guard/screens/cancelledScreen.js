@@ -12,7 +12,7 @@ import moment from "moment";
 
 const CancelledScreen = ({ navigation, route }) => {
   const { t } = useTranslation();
-  const { guard, user, isAuthenticated } = useGuardAuth();
+  const { user, isAuthenticated } = useGuardAuth();
   const { updatePassStatus } = useVisitorPasses();
   
   const { 
@@ -34,10 +34,12 @@ const CancelledScreen = ({ navigation, route }) => {
   useEffect(() => {
     updateVisitorPassStatus();
     
-    navigation.addListener("beforeRemove", (e) => {
+    const unsubscribe = navigation.addListener("beforeRemove", (e) => {
       e.preventDefault();
-      navigation.navigate("homeScreen");
+      navigation.navigate("bottomTab", { screen: "homeScreen" });
     });
+
+    return unsubscribe;
   }, []);
 
   const updateVisitorPassStatus = async () => {
@@ -50,9 +52,9 @@ const CancelledScreen = ({ navigation, route }) => {
     try {
       setLoading(true);
 
-      // Update visitor pass status to 'rejected'
-      const guardNotes = `Guest entry cancelled/rejected by guard. Host: ${hostName}, Unit: ${selectedFlatNo}`;
-      await updatePassStatus(visitorPassId, 'rejected', guardNotes);
+      // Update visitor pass status to 'denied'
+      const guardNotes = `Guest entry denied by guard. Host: ${hostName}, Unit: ${selectedFlatNo}`;
+      await updatePassStatus(visitorPassId, 'denied', guardNotes);
 
       // Send rejection notification
       await sendRejectionNotification();
@@ -67,17 +69,33 @@ const CancelledScreen = ({ navigation, route }) => {
 
   const sendRejectionNotification = async () => {
     try {
+      // Fetch pass to resolve the notification recipient
+      const { data: passRow, error: passError } = await supabase
+        .from("visitor_passes")
+        .select("id, created_by")
+        .eq("id", visitorPassId)
+        .maybeSingle();
+
+      if (passError) throw passError;
+
+      const recipientId = passRow?.created_by;
+      if (!recipientId || recipientId === user?.id) {
+        return;
+      }
+
       // Send notification to resident/host about guest rejection
       const notificationData = {
+        user_id: recipientId,
         title: 'Guest Entry Denied',
-        message: `${guestName} was denied entry to ${selectedFlatNo}`,
-        type: 'visitor_rejected',
-        visitor_pass_id: visitorPassId,
-        created_at: new Date().toISOString()
+        body: `${guestName} was denied entry to ${selectedFlatNo}.`,
+        notification_type: 'visitor_denied',
+        reference_id: visitorPassId,
+        priority: 'high',
+        created_at: new Date().toISOString(),
       };
 
-      // Insert notification (assuming notifications table exists)
-      await supabase.from('notifications').insert([notificationData]);
+      const { error } = await supabase.from('notifications').insert([notificationData]);
+      if (error) throw error;
       
     } catch (error) {
       console.error('Error sending rejection notification:', error);
@@ -199,7 +217,7 @@ const CancelledScreen = ({ navigation, route }) => {
       {!loading && (
         <View style={{ flex: 1, justifyContent: "flex-end" }}>
           <TouchableOpacity
-            onPress={() => navigation.navigate("homeScreen")}
+            onPress={() => navigation.navigate("bottomTab", { screen: "homeScreen" })}
             style={{ alignSelf: "center", padding: Default.fixPadding * 2 }}
           >
             <Text style={{ ...Fonts.SemiBold16primary }}>

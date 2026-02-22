@@ -16,20 +16,14 @@ import MyStatusBar from "../components/myStatusBar";
 import { Colors, Default, Fonts } from "../constants/styles";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useTranslation } from "react-i18next";
-import { useGuardAuth } from '../contexts/GuardAuthContext';
-import { validateAndGetUnitId, getUnitResident } from '../services/unitValidationService';
-import { supabase } from '../utils/supabase';
 import { ms } from "react-native-size-matters/extend";
-import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import AwesomeButton from "react-native-really-awesome-button";
-import DateTimePicker from "@react-native-community/datetimepicker";
 import * as Contacts from "expo-contacts";
 
 const GuestEntryScreen = ({ navigation, route }) => {
   const {
     key,
     image,
-    selectedFlatNo,
     headerTitle,
     textInputTitle,
     placeholderTitle,
@@ -38,7 +32,6 @@ const GuestEntryScreen = ({ navigation, route }) => {
   } = route.params || {};
 
   const { t, i18n } = useTranslation();
-  const { guard, user, isAuthenticated } = useGuardAuth();
 
   const isRtl = i18n.dir() == "rtl";
 
@@ -56,107 +49,15 @@ const GuestEntryScreen = ({ navigation, route }) => {
 
   const [name, setName] = useState(guestName || "");
   const [mobileNumber, setMobileNumber] = useState(phoneNumber || "");
-  const [insideTime, setInsideTime] = useState("1 hour");
-  const [visiting, setVisiting] = useState(selectedFlatNo || "");
-  const [hostName, setHostName] = useState("");
+  const [insideTime] = useState("1 hour");
+  const [visiting, setVisiting] = useState("");
+  const [hostName] = useState("Resident");
   const [submitting, setSubmitting] = useState(false);
 
   // Contact picker states
   const [contacts, setContacts] = useState([]);
   const [showContactPicker, setShowContactPicker] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-
-  // Time picker states
-  const [selectedTime, setSelectedTime] = useState(new Date());
-  const [timePickerVisible, setTimePickerVisible] = useState(false);
-
-  // Load host name from database for the selected flat
-  const loadHostName = async (flatNumber) => {
-    if (!flatNumber || !guard?.community_id) {
-      setHostName("");
-      return;
-    }
-
-    try {
-      const unitInfo = await validateAndGetUnitId(flatNumber, guard.community_id);
-      const resident = await getUnitResident(unitInfo.unitId);
-      setHostName(resident ? resident.name : "Unknown Resident");
-    } catch (err) {
-      console.error('Error loading host name:', err);
-      setHostName("Unknown Resident");
-    }
-  };
-
-  // Load host name when component mounts or selectedFlatNo changes
-  useEffect(() => {
-    if (selectedFlatNo) {
-      loadHostName(selectedFlatNo);
-    } else {
-      setHostName("");
-    }
-  }, [selectedFlatNo, guard?.community_id]);
-
-  // Load resident information for selected flat (secure database lookup)
-  const loadResidentInfo = async (flatNo) => {
-    if (!flatNo || !guard?.community_id) return;
-    
-    try {
-      const unitInfo = await validateAndGetUnitId(flatNo, guard.community_id);
-      const resident = await getUnitResident(unitInfo.unitId);
-      setHostName(resident ? resident.name : "Unknown Resident");
-    } catch (err) {
-      console.error('Error loading resident info:', err);
-      setHostName("Unknown Resident");
-    }
-  };
-
-  // Load resident info when flat is selected
-  useEffect(() => {
-    if (selectedFlatNo) {
-      loadResidentInfo(selectedFlatNo);
-    } else {
-      setHostName("");
-    }
-  }, [selectedFlatNo, guard?.community_id]);
-
-  // Direct visitor pass creation without subscription
-  const createVisitorPassDirect = async (visitorPassData) => {
-    try {
-      const { data, error } = await supabase
-        .from('visitor_passes')
-        .insert([{
-          ...visitorPassData,
-          entry_method: 'walk_in',
-          status: 'pending',
-          created_at: new Date().toISOString()
-        }])
-        .select('id')
-        .single();
-        
-      if (error) throw error;
-      return data?.id || null;
-    } catch (err) {
-      console.error('Error creating visitor pass:', err);
-      throw err;
-    }
-  };
-
-  // Industry-standard visitor pass creation with auth context
-  const handleCreateVisitorPass = async () => {
-    // This function is no longer used since we go directly to entryConfirmationScreen
-    // from flatNoScreen. The visitor pass creation now happens in entryConfirmationScreen.
-    console.log("handleCreateVisitorPass called - redirecting to flat selection");
-    
-    // Redirect to flat selection if somehow this is called
-    navigation.push("flatNoScreen", {
-      headerTitle: tr("selectFlatUnit"),
-      title: tr("guestName"),
-      placeholderTitle: tr("enterGuestName"),
-      image: require("../assets/images/visitor1.png"),
-      guestName: name,
-      phoneNumber: mobileNumber,
-    });
-  };
 
   // Contact permission and loading functions
   const requestContactsPermission = async () => {
@@ -212,24 +113,6 @@ const GuestEntryScreen = ({ navigation, route }) => {
     setName(safeName);
     setMobileNumber(safePhone.replace(/[^\d]/g, '').slice(-10)); // Extract digits and take last 10
     setShowContactPicker(false);
-  };
-
-  // Time picker functions
-  const onTimeChange = (event, selectedTime) => {
-    setTimePickerVisible(false);
-    if (selectedTime) {
-      setSelectedTime(selectedTime);
-    }
-  };
-
-  const formatTime = (time) => {
-    let hours = time.getHours();
-    const minutes = time.getMinutes();
-    const ampm = hours >= 12 ? "PM" : "AM";
-    hours = hours % 12;
-    hours = hours ? hours : 12;
-    const minutesStr = minutes < 10 ? "0" + minutes : minutes;
-    return `${hours}:${minutesStr} ${ampm}`;
   };
 
   // Filter contacts based on search query
@@ -408,10 +291,12 @@ const GuestEntryScreen = ({ navigation, route }) => {
                 }}
               >
                 <TextInput
-                  maxLength={10}
+                  maxLength={15}
                   value={mobileNumber}
-                  onChangeText={setMobileNumber}
-                  keyboardType="number-pad"
+                  onChangeText={(value) =>
+                    setMobileNumber(String(value || "").replace(/[^\d+]/g, ""))
+                  }
+                  keyboardType="phone-pad"
                   placeholder="Enter Phone Number"
                   placeholderTextColor={Colors.grey}
                   selectionColor={Colors.primary}
@@ -441,41 +326,6 @@ const GuestEntryScreen = ({ navigation, route }) => {
             </View>
           )}
 
-          <Text
-            style={{
-              ...Fonts.Medium16grey,
-              textAlign: isRtl ? "right" : "left",
-            }}
-          >
-            {tr("timeOfEntry")}
-          </Text>
-
-          <TouchableOpacity
-            onPress={() => setTimePickerVisible(true)}
-            style={{
-              flexDirection: isRtl ? "row-reverse" : "row",
-              marginBottom: Default.fixPadding * 2,
-              ...styles.textInputView,
-            }}
-          >
-            <Text
-              style={{
-                ...Fonts.SemiBold16black,
-                flex: 1,
-                textAlign: isRtl ? "right" : "left",
-                marginRight: isRtl ? 0 : Default.fixPadding,
-                marginLeft: isRtl ? Default.fixPadding : 0,
-              }}
-            >
-              {formatTime(selectedTime)}
-            </Text>
-
-            <MaterialCommunityIcons
-              name="clock-time-three-outline"
-              size={20}
-              color={Colors.primary}
-            />
-          </TouchableOpacity>
         </View>
       </ScrollView>
 
@@ -487,19 +337,32 @@ const GuestEntryScreen = ({ navigation, route }) => {
         <AwesomeButton
           height={50}
           onPress={async () => {
-            if (key === "2") {
-              // Confirmation mode: Create visitor pass and proceed
-              await handleCreateVisitorPass();
-            } else {
-              // Initial mode: Navigate to flat selection
+            const cleanedName = String(name || "").trim();
+            const cleanedPhone = String(mobileNumber || "").replace(/[^\d]/g, "");
+
+            if (!cleanedName) {
+              Alert.alert("Missing Details", "Please enter the guest name.");
+              return;
+            }
+
+            if (cleanedPhone.length < 7) {
+              Alert.alert("Invalid Phone", "Please enter a valid phone number.");
+              return;
+            }
+
+            setSubmitting(true);
+            try {
               navigation.push("flatNoScreen", {
                 headerTitle: tr("selectFlatUnit"),
                 title: tr("guestName"),
                 placeholderTitle: tr("enterGuestName"),
                 image: require("../assets/images/visitor1.png"),
-                guestName: name, // Pass the entered guest name
-                phoneNumber: mobileNumber, // Pass the phone number
+                guestName: cleanedName,
+                phoneNumber: cleanedPhone,
+                insideTime,
               });
+            } finally {
+              setSubmitting(false);
             }
           }}
           disabled={submitting}
@@ -637,16 +500,6 @@ const GuestEntryScreen = ({ navigation, route }) => {
         </TouchableOpacity>
       </Modal>
 
-      {/* Time Picker */}
-      {timePickerVisible && (
-        <DateTimePicker
-          value={selectedTime}
-          mode="time"
-          is24Hour={false}
-          onChange={onTimeChange}
-          accentColor={Colors.primary}
-        />
-      )}
     </View>
   );
 };

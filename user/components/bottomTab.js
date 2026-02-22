@@ -44,10 +44,13 @@ const BottomTab = ({ navigation }) => {
   const { t, i18n } = useTranslation();
   const { hasJoinedCommunity, profile } = useHasJoinedCommunity();
 
-  const isRtl = i18n.dir() == "rtl";
+  const isRtl = i18n.dir() === "rtl";
 
-  function tr(key) {
-    return t(`bottomTab:${key}`);
+  function tr(key, fallback, options = {}) {
+    return t(`bottomTab:${key}`, {
+      defaultValue: fallback,
+      ...options,
+    });
   }
 
   const [visibleToast, setVisibleToast] = useState(false);
@@ -97,6 +100,9 @@ const BottomTab = ({ navigation }) => {
   const [isProcessingAlert, setIsProcessingAlert] = useState(false);
   const [showEmergencyModal, setShowEmergencyModal] = useState(false);
   const [selectedEmergency, setSelectedEmergency] = useState(null);
+  const selectedEmergencyInfo = selectedEmergency
+    ? EMERGENCY_TYPES[selectedEmergency.type] || null
+    : null;
 
   const securityAlertList = [
     {
@@ -128,18 +134,22 @@ const BottomTab = ({ navigation }) => {
   // Handle emergency alert
   const handleEmergencyAlert = (emergencyType) => {
     if (!hasJoinedCommunity || !profile?.community_id) {
-      Alert.alert("Error", "You must be part of a community to send emergency alerts.");
+      Alert.alert(
+        tr("errorTitle", "Error"),
+        tr("communityRequiredForEmergency", "You must be part of a community to send emergency alerts.")
+      );
       return;
     }
 
     const emergencyInfo = EMERGENCY_TYPES[emergencyType];
     if (!emergencyInfo) {
-      Alert.alert("Error", "Invalid emergency type selected.");
+      Alert.alert(
+        tr("errorTitle", "Error"),
+        tr("invalidEmergencyType", "Invalid emergency type selected.")
+      );
       return;
     }
 
-    console.log('🚨 Setting selectedEmergency:', { type: emergencyType, info: emergencyInfo });
-    console.log('🚨 emergencyInfo:', emergencyInfo);
     setSelectedEmergency({ type: emergencyType, info: emergencyInfo });
     setShowEmergencyModal(true);
     setOpenModal(false);
@@ -148,10 +158,6 @@ const BottomTab = ({ navigation }) => {
   // Send emergency alert
   const sendEmergencyAlert = async () => {
     if (!selectedEmergency) return;
-
-    console.log('🚨 Profile data for emergency alert:', profile);
-    console.log('🚨 Profile user_id:', profile?.user_id);
-    console.log('🚨 Profile community_id:', profile?.community_id);
 
     setIsProcessingAlert(true);
     setShowEmergencyModal(false);
@@ -165,17 +171,39 @@ const BottomTab = ({ navigation }) => {
               );
 
       if (result.success) {
+        const successLines = [
+          result.message,
+          tr("notifiedCountMessage", "{{count}} people have been notified.", {
+            count: result.notifiedCount || 0,
+          }),
+        ];
+
+        if (result.locationData) {
+          successLines.push(
+            tr(
+              "locationSharedWithResponders",
+              "📍 Your location has been shared with responders."
+            )
+          );
+        }
+
         Alert.alert(
-          "Emergency Alert Sent! 🚨",
-          `${result.message}\n\n${result.notifiedCount} people have been notified.${result.locationData ? '\n\n📍 Your location has been shared with responders.' : ''}`,
-          [{ text: "OK" }]
+          tr("emergencyAlertSentTitle", "Emergency Alert Sent! 🚨"),
+          successLines.join("\n\n"),
+          [{ text: tr("okButton", "OK") }]
         );
       } else {
-        Alert.alert("Error", result.error || "Failed to send emergency alert.");
+        Alert.alert(
+          tr("errorTitle", "Error"),
+          result.error || tr("sendEmergencyFailed", "Failed to send emergency alert.")
+        );
       }
     } catch (error) {
       console.error("Emergency alert error:", error);
-      Alert.alert("Error", "Failed to send emergency alert. Please try again.");
+      Alert.alert(
+        tr("errorTitle", "Error"),
+        tr("sendEmergencyTryAgain", "Failed to send emergency alert. Please try again.")
+      );
     } finally {
       setIsProcessingAlert(false);
       setSelectedEmergency(null);
@@ -185,7 +213,10 @@ const BottomTab = ({ navigation }) => {
   // Handle admin chat - automatically connect to an admin
   const handleAdminChat = async () => {
     if (!hasJoinedCommunity || !profile?.community_id) {
-      Alert.alert("Error", "You must be part of a community to contact admin.");
+      Alert.alert(
+        tr("errorTitle", "Error"),
+        tr("communityRequiredForAdminChat", "You must be part of a community to contact admin.")
+      );
       return;
     }
 
@@ -207,18 +238,27 @@ const BottomTab = ({ navigation }) => {
           isAdmin: true
         });
       } else {
-        Alert.alert("Unavailable", "No community admin is available for chat right now.");
+        Alert.alert(
+          tr("unavailableTitle", "Unavailable"),
+          tr("noCommunityAdminAvailable", "No community admin is available for chat right now.")
+        );
       }
     } catch (error) {
       console.error("Error getting admin for chat:", error);
-      Alert.alert("Error", "Unable to open admin chat right now. Please try again.");
+      Alert.alert(
+        tr("errorTitle", "Error"),
+        tr("openAdminChatFailed", "Unable to open admin chat right now. Please try again.")
+      );
     }
   };
 
   // Handle guard chat - automatically connect to a guard
   const handleGuardChat = async () => {
     if (!hasJoinedCommunity || !profile?.community_id) {
-      Alert.alert("Error", "You must be part of a community to contact security.");
+      Alert.alert(
+        tr("errorTitle", "Error"),
+        tr("communityRequiredForSecurityChat", "You must be part of a community to contact security.")
+      );
       return;
     }
 
@@ -240,11 +280,17 @@ const BottomTab = ({ navigation }) => {
           isGuard: true
         });
       } else {
-        Alert.alert("Unavailable", "No security guard is available for chat right now.");
+        Alert.alert(
+          tr("unavailableTitle", "Unavailable"),
+          tr("noSecurityGuardAvailable", "No security guard is available for chat right now.")
+        );
       }
     } catch (error) {
       console.error("Error getting guard for chat:", error);
-      Alert.alert("Error", "Unable to open guard chat right now. Please try again.");
+      Alert.alert(
+        tr("errorTitle", "Error"),
+        tr("openSecurityChatFailed", "Unable to open guard chat right now. Please try again.")
+      );
     }
   };
 
@@ -562,16 +608,16 @@ const BottomTab = ({ navigation }) => {
                   color={Colors.primary}
                 />
                 <Text style={styles.emergencyModalTitle}>
-                  {selectedEmergency ? EMERGENCY_TYPES[selectedEmergency.type]?.title : 'Emergency Alert'}
+                  {selectedEmergencyInfo?.title || tr("emergencyAlertLabel", "Emergency Alert")}
                 </Text>
                 <Text style={styles.emergencyModalSubtitle}>
-                  Emergency Alert Confirmation
+                  {tr("emergencyConfirmationTitle", "Emergency Alert Confirmation")}
                 </Text>
               </View>
 
               <View style={styles.emergencyModalContent}>
                 <Text style={styles.emergencyModalMessage}>
-                  Are you sure you want to send this emergency alert?
+                  {tr("emergencyConfirmationPrompt", "Are you sure you want to send this emergency alert?")}
                 </Text>
                 
                 <View style={styles.emergencyWarningBox}>
@@ -581,12 +627,15 @@ const BottomTab = ({ navigation }) => {
                     color={Colors.primary}
                   />
                   <Text style={styles.emergencyWarningText}>
-                    This will immediately notify ALL community members, admins, and security personnel.
+                    {tr(
+                      "emergencyWarningAllRecipients",
+                      "This will immediately notify all community members, admins, and security personnel."
+                    )}
                   </Text>
                 </View>
 
                 <Text style={styles.emergencyDescriptionLabel}>
-                  Safety Instructions:
+                  {tr("safetyInstructionsLabel", "Safety Instructions:")}
                 </Text>
                 <View style={styles.emergencyDescriptionContainer}>
                   <MaterialCommunityIcons
@@ -596,13 +645,8 @@ const BottomTab = ({ navigation }) => {
                     style={styles.emergencyDescriptionIcon}
                   />
                   <Text style={styles.emergencyDescription}>
-                    {(() => {
-                      console.log('🚨 Modal render - selectedEmergency:', selectedEmergency);
-                      console.log('🚨 Modal render - selectedEmergency.type:', selectedEmergency?.type);
-                      console.log('🚨 Modal render - EMERGENCY_TYPES[type]:', selectedEmergency ? EMERGENCY_TYPES[selectedEmergency.type] : null);
-                      console.log('🚨 Modal render - userMessage:', selectedEmergency ? EMERGENCY_TYPES[selectedEmergency.type]?.userMessage : null);
-                      return selectedEmergency ? EMERGENCY_TYPES[selectedEmergency.type]?.userMessage || 'No message found' : 'Loading...';
-                    })()}
+                    {selectedEmergencyInfo?.userMessage ||
+                      tr("emergencyDefaultSafetyMessage", "Stay calm and wait for responders.")}
                   </Text>
                 </View>
               </View>
@@ -616,7 +660,7 @@ const BottomTab = ({ navigation }) => {
                   }}
                   disabled={isProcessingAlert}
                 >
-                  <Text style={styles.emergencyCancelButtonText}>Cancel</Text>
+                  <Text style={styles.emergencyCancelButtonText}>{tr("cancelButton", "Cancel")}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -636,7 +680,7 @@ const BottomTab = ({ navigation }) => {
                         size={18}
                         color={Colors.white}
                       />
-                      <Text style={styles.emergencySendButtonText}>Send Alert</Text>
+                      <Text style={styles.emergencySendButtonText}>{tr("sendAlertButton", "Send Alert")}</Text>
                     </>
                   )}
                 </TouchableOpacity>

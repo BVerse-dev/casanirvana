@@ -14,7 +14,7 @@ import { useVisitorPasses } from '../hooks/useVisitorPasses';
 
 const AllowedScreen = ({ navigation, route }) => {
   const { t } = useTranslation();
-  const { guard, user, isAuthenticated } = useGuardAuth();
+  const { user, isAuthenticated } = useGuardAuth();
   const { updatePassStatus } = useVisitorPasses();
   
   const { 
@@ -39,7 +39,6 @@ const AllowedScreen = ({ navigation, route }) => {
 
   const [visitorPass, setVisitorPass] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [entryCode, setEntryCode] = useState('');
 
   // Generate appropriate entry text based on entry type
   const getEntryTypeText = () => {
@@ -125,16 +124,14 @@ const AllowedScreen = ({ navigation, route }) => {
     return t(`allowedScreen:${key}`);
   }
 
-  // Generate 6-digit entry code
-  const generateEntryCode = () => {
-    return Math.floor(100000 + Math.random() * 900000).toString();
-  };
-
   // Update visitor pass status and send notification when screen loads
   useEffect(() => {
-    setEntryCode(generateEntryCode());
     updateVisitorPassStatus();
   }, []);
+
+  const navigateHome = () => {
+    navigation.navigate("bottomTab", { screen: "homeScreen" });
+  };
 
   const updateVisitorPassStatus = async () => {
     if (!isAuthenticated || !visitorPassId) {
@@ -165,7 +162,7 @@ const AllowedScreen = ({ navigation, route }) => {
       }
 
       // Send approval notification
-      await sendApprovalNotification();
+      await sendApprovalNotification(updatedPass);
 
     } catch (error) {
       console.error('Error updating visitor pass:', error);
@@ -175,19 +172,28 @@ const AllowedScreen = ({ navigation, route }) => {
     }
   };
 
-  const sendApprovalNotification = async () => {
+  const sendApprovalNotification = async (passRow) => {
     try {
+      const recipientId = passRow?.created_by;
+      if (!recipientId || recipientId === user?.id) {
+        return;
+      }
+
       // Send notification to resident/host about entry approval
       const notificationData = {
+        user_id: recipientId,
         title: `${entryTypeInfo.nameLabel} Approved`,
-        message: `${guestName} has been approved for entry to ${selectedFlatNo}`,
-        type: `${entryType}_approved`,
-        visitor_pass_id: visitorPassId,
-        created_at: new Date().toISOString()
+        body: `${guestName} has been approved for entry to ${selectedFlatNo}.`,
+        notification_type: `${entryType}_approved`,
+        reference_id: visitorPassId,
+        priority: 'medium',
+        created_at: new Date().toISOString(),
       };
 
-      // Insert notification (assuming notifications table exists)
-      await supabase.from('notifications').insert([notificationData]);
+      const { error } = await supabase.from('notifications').insert([notificationData]);
+      if (error) {
+        throw error;
+      }
       
     } catch (error) {
       console.error('Error sending approval notification:', error);
@@ -200,8 +206,7 @@ const AllowedScreen = ({ navigation, route }) => {
   };
 
   const handleBackToDashboard = () => {
-    // Navigate back to main dashboard/home screen
-    navigation.navigate('homeScreen');
+    navigateHome();
   };
 
   const generateQRCodeData = () => {
@@ -221,6 +226,9 @@ const AllowedScreen = ({ navigation, route }) => {
       type: 'visitor_pass'
     });
   };
+
+  const qrCodeValue = visitorPass?.qr_code_data || generateQRCodeData();
+  const entryCodeValue = visitorPass?.entry_code || 'N/A';
 
   if (loading) {
     return (
@@ -447,7 +455,7 @@ const AllowedScreen = ({ navigation, route }) => {
               marginBottom: Default.fixPadding
             }}>
               <QRCode
-                value={generateQRCodeData()}
+                value={qrCodeValue || '{}'}
                 size={150}
                 color={Colors.black}
                 backgroundColor={Colors.white}
@@ -480,7 +488,7 @@ const AllowedScreen = ({ navigation, route }) => {
           </Text>
           
           <Text style={{ ...Fonts.Medium16black, color: Colors.white }}>
-            Entry Code: <Text style={{ ...Fonts.Medium18black, color: Colors.white }}>{entryCode}</Text>
+            Entry Code: <Text style={{ ...Fonts.Medium18black, color: Colors.white }}>{entryCodeValue}</Text>
           </Text>
         </View>
       </ScrollView>

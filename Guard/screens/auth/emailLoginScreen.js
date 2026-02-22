@@ -18,7 +18,6 @@ import { TextInput } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import Feather from "react-native-vector-icons/Feather";
-import { useAuthGuard } from "../../hooks/useAuthGuard";
 import { useGuardAuth } from "../../contexts/GuardAuthContext";
 
 const EmailLoginScreen = ({ navigation }) => {
@@ -71,13 +70,21 @@ const EmailLoginScreen = ({ navigation }) => {
   );
 
   const handleEmailLogin = async (next) => {
+    const completeProgress = () => {
+      if (typeof next === "function") {
+        next();
+      }
+    };
+
     if (!email.trim() || !password.trim()) {
       setError("Please fill in all fields");
+      completeProgress();
       return;
     }
 
     if (!email.includes('@')) {
       setError("Please enter a valid email address");
+      completeProgress();
       return;
     }
 
@@ -88,14 +95,17 @@ const EmailLoginScreen = ({ navigation }) => {
       await signIn(email, password);
       
       // Authentication successful, navigate to main app
-      next();
-      navigation.replace("bottomTab");
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "bottomTab" }],
+      });
       
     } catch (err) {
       console.error("Login error:", err);
       setError(err.message || "Sign in failed. Please check your credentials.");
     } finally {
       setLoading(false);
+      completeProgress();
     }
   };
 

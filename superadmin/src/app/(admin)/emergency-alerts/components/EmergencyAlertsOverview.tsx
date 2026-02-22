@@ -2,6 +2,7 @@
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
 import { Card, CardBody, CardTitle, Col, Row, ProgressBar } from "react-bootstrap";
 import { useListEmergencyAlerts } from "@/hooks/useEmergencyAlerts";
+import { getEmergencyAlertTypeMeta, normalizeEmergencyAlertType } from "@/lib/emergencyAlertTypes";
 
 const EmergencyAlertsOverview = () => {
   // Fetch emergency alerts data from Supabase
@@ -10,13 +11,34 @@ const EmergencyAlertsOverview = () => {
   // Calculate emergency statistics
   const totalAlerts = alerts.length;
   const activeAlerts = alerts.filter((a) => a.status === "active").length;
-  const criticalAlerts = alerts.filter((a) => a.priority === "high").length;
+  const criticalAlerts = alerts.filter((a) => a.priority === "high" || a.priority === "critical").length;
   const pendingAlerts = alerts.filter((a) => a.status === "pending").length;
   const resolvedAlerts = alerts.filter((a) => a.status === "resolved").length;
   
-  // Calculate response metrics
-  const averageResponseTime = "4.2"; // minutes
-  const acknowledgedPercentage = 85; // Placeholder for now
+  // Calculate response metrics (DB-backed, no placeholders)
+  const acknowledgedStatuses = new Set(["investigating", "escalated", "resolved"]);
+  const acknowledgedAlerts = alerts.filter((alert) =>
+    acknowledgedStatuses.has(String(alert.status || "").toLowerCase()),
+  ).length;
+  const acknowledgedPercentage = totalAlerts > 0 ? (acknowledgedAlerts / totalAlerts) * 100 : 0;
+
+  const responseDurationsMinutes = alerts
+    .filter((alert) => alert.status === "resolved" && alert.resolved_at)
+    .map((alert) => {
+      const startedAt = new Date(alert.created_at).getTime();
+      const resolvedAt = new Date(alert.resolved_at as string).getTime();
+      const deltaMs = resolvedAt - startedAt;
+      return Number.isFinite(deltaMs) && deltaMs >= 0 ? deltaMs / 60000 : null;
+    })
+    .filter((value): value is number => typeof value === "number");
+
+  const averageResponseTimeMinutes =
+    responseDurationsMinutes.length > 0
+      ? responseDurationsMinutes.reduce((sum, value) => sum + value, 0) /
+        responseDurationsMinutes.length
+      : null;
+  const averageResponseTimeLabel =
+    averageResponseTimeMinutes === null ? "N/A" : `${averageResponseTimeMinutes.toFixed(1)}min`;
 
   // Calculate percentages for progress bars
   const activePercentage = totalAlerts > 0 ? (activeAlerts / totalAlerts) * 100 : 0;
@@ -25,7 +47,8 @@ const EmergencyAlertsOverview = () => {
 
   // Get alert type breakdown
   const alertTypeCounts = alerts.reduce((acc, alert) => {
-    acc[alert.alert_type] = (acc[alert.alert_type] || 0) + 1;
+    const normalizedType = normalizeEmergencyAlertType(alert.alert_type);
+    acc[normalizedType] = (acc[normalizedType] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
   
@@ -154,7 +177,7 @@ const EmergencyAlertsOverview = () => {
                       <span className="text-white fw-semibold">{acknowledgedPercentage.toFixed(1)}%</span>
                     </div>
                     <div className="d-flex align-items-center justify-content-between">
-                      <span className="text-white-75 small">Avg Response: {averageResponseTime}min</span>
+                      <span className="text-white-75 small">Avg Response: {averageResponseTimeLabel}</span>
                       <span className="text-light small">
                         <IconifyIcon icon="solar:clock-circle-bold" className="me-1" />
                         24/7 Monitoring
@@ -192,9 +215,9 @@ const EmergencyAlertsOverview = () => {
                         <IconifyIcon icon="solar:danger-triangle-bold" className="me-1" />
                         Alert Types
                       </h6>
-                      {topAlertTypes.map(([type, count], index) => (
+                      {topAlertTypes.map(([type, count]) => (
                         <div key={type} className="d-flex align-items-center justify-content-between mb-1">
-                          <span className="text-white-75 small text-capitalize">{type}</span>
+                          <span className="text-white-75 small">{getEmergencyAlertTypeMeta(type).label}</span>
                           <span className="text-white fw-semibold small">{count}</span>
                         </div>
                       ))}

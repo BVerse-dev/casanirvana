@@ -20,7 +20,6 @@ import { useTranslation } from "react-i18next";
 import { ms } from "react-native-size-matters/extend";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import AwesomeButton from "react-native-really-awesome-button";
-import DateTimePicker from "@react-native-community/datetimepicker";
 import * as Contacts from "expo-contacts";
 
 // PROFESSIONAL: Import all necessary services from the start
@@ -88,8 +87,6 @@ const DeliveryEntryScreen = ({ navigation, route }) => {
   const [deliverymanName, setDeliverymanName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [companyName, setCompanyName] = useState("");
-  const [entryTime, setEntryTime] = useState(new Date());
-  const [showTimePicker, setShowTimePicker] = useState(false);
 
   // Dropdown states
   const [companyNameModal, setCompanyNameModal] = useState(false);
@@ -164,21 +161,6 @@ const DeliveryEntryScreen = ({ navigation, route }) => {
     { key: "4", name: "Taxi/Bike" },
     { key: "5", name: "Other" },
   ];
-
-  const formatTime = (time) => {
-    return time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-
-  const showTimeSelector = () => {
-    setShowTimePicker(true);
-  };
-
-  const onTimeChange = (event, selectedTime) => {
-    setShowTimePicker(false);
-    if (selectedTime) {
-      setEntryTime(selectedTime);
-    }
-  };
 
   // Contact picker functions
   const loadContacts = async () => {
@@ -352,9 +334,11 @@ const DeliveryEntryScreen = ({ navigation, route }) => {
             }}
           >
             <TextInput
-              maxLength={10}
+              maxLength={15}
               value={phoneNumber}
-              onChangeText={setPhoneNumber}
+              onChangeText={(value) =>
+                setPhoneNumber(String(value || "").replace(/[^\d]/g, ""))
+              }
               keyboardType="number-pad"
               placeholder={tr("enterPhoneNumber")}
               placeholderTextColor={Colors.grey}
@@ -418,38 +402,6 @@ const DeliveryEntryScreen = ({ navigation, route }) => {
             />
           </TouchableOpacity>
 
-          <Text
-            style={{
-              ...Fonts.Medium16grey,
-              textAlign: isRtl ? "right" : "left",
-            }}
-          >
-            {tr("timeOfEntry")}
-          </Text>
-
-          <TouchableOpacity
-            onPress={showTimeSelector}
-            style={{
-              flexDirection: isRtl ? "row-reverse" : "row",
-              ...styles.textInputView,
-            }}
-          >
-            <Text
-              style={{
-                ...Fonts.SemiBold16black,
-                flex: 1,
-                textAlign: isRtl ? "right" : "left",
-              }}
-            >
-              {formatTime(entryTime)}
-            </Text>
-
-            <Ionicons
-              name="time-outline"
-              size={20}
-              color={Colors.primary}
-            />
-          </TouchableOpacity>
         </View>
       </ScrollView>
 
@@ -461,10 +413,10 @@ const DeliveryEntryScreen = ({ navigation, route }) => {
         <AwesomeButton
           height={50}
           onPress={() => {
-            // Validate required fields first
-            const isValid = deliverymanName.trim() && phoneNumber.trim() && confirmCompanyName;
-            
-            if (!isValid) {
+            const cleanedName = String(deliverymanName || '').trim();
+            const cleanedPhone = String(phoneNumber || '').replace(/[^\d]/g, '');
+
+            if (!cleanedName || !confirmCompanyName) {
               Alert.alert(
                 tr("missingFields") || "Missing Fields",
                 tr("fillAllFields") || "Please fill all required fields"
@@ -472,29 +424,38 @@ const DeliveryEntryScreen = ({ navigation, route }) => {
               return;
             }
 
+            if (cleanedPhone.length < 7) {
+              Alert.alert(
+                tr("invalidPhone") || "Invalid Phone Number",
+                tr("enterValidPhone") || "Please enter a valid phone number"
+              );
+              return;
+            }
+
             if (selectedFlat) {
               // Follow cab entry pattern: Go directly to entry confirmation screen
               navigation.push("entryConfirmationScreen", {
-                name: deliverymanName,
-                phoneNumber: phoneNumber,
+                name: cleanedName,
+                phoneNumber: cleanedPhone,
                 visiting: selectedFlat,
                 hostName,
                 insideTime: "2 hours", // Default for deliveries
-                selectedTime: new Date().toISOString(),
+                unitId,
                 entryType: 'delivery',
-                guestDetails: `${confirmCompanyName} - ${deliverymanName}`,
-                guestMessage: `Package delivery from ${confirmCompanyName}`
+                companyName: confirmCompanyName,
+                guestDetails: `${confirmCompanyName} - ${cleanedName}`,
+                guestMessage: `Package delivery from ${confirmCompanyName}`,
               });
             } else {
               // Navigate to flat selection
               const navParams = {
                 headerTitle: tr("selectFlatUnit") || "Select flat unit",
-                title: `${confirmCompanyName}|${tr("deliverymanName")}`, // FIXED: Encode company in title
+                title: tr("deliverymanName"),
                 placeholderTitle: tr("enterDeliverymanName"),
                 image: require("../assets/images/visitor3.png"),
                 returnScreen: 'deliveryEntryScreen',
-                guestName: deliverymanName,
-                phoneNumber: phoneNumber,
+                guestName: cleanedName,
+                phoneNumber: cleanedPhone,
                 deliveryCompany: confirmCompanyName,
                 companyName: confirmCompanyName, // FIXED: Add as backup parameter
                 navigationSource: 'DELIVERY_ENTRY_SCREEN' // Add unique identifier
@@ -716,16 +677,6 @@ const DeliveryEntryScreen = ({ navigation, route }) => {
         </TouchableOpacity>
       </Modal>
 
-      {/* Time Picker */}
-      {showTimePicker && (
-        <DateTimePicker
-          value={entryTime}
-          mode="time"
-          is24Hour={false}
-          display="default"
-          onChange={onTimeChange}
-        />
-      )}
     </View>
   );
 };

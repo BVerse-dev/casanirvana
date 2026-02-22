@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   StyleSheet,
   Text,
@@ -6,16 +6,24 @@ import {
   Image,
   TouchableOpacity,
   FlatList,
+  Alert,
+  TextInput,
 } from "react-native";
 import MyStatusBar from "../components/myStatusBar";
 import { Colors, Fonts, Default } from "../constants/styles";
 import { useTranslation } from "react-i18next";
 import { ms } from "react-native-size-matters/extend";
-import { OtpInput } from "react-native-otp-entry";
 import { loadModuleSettings, isScreenEnabled } from "../services/moduleSettingsService";
+import { useGuardAuth } from "../contexts/GuardAuthContext";
+import {
+  getVisitorPassByEntryCode,
+  isPassEntryActionable,
+} from "../services/visitorEntryService";
+import { supabase } from "../utils/supabase";
 
 const HomeScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
+  const { guard, user, community, isAuthenticated, loading: authLoading } = useGuardAuth();
 
   const isRtl = i18n.dir() == "rtl";
 
@@ -34,13 +42,141 @@ const HomeScreen = ({ navigation }) => {
 
   // Load module settings on mount
   const [modulesLoaded, setModulesLoaded] = useState(false);
+  const [entryCode, setEntryCode] = useState("");
+  const [resolvingEntry, setResolvingEntry] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
   useEffect(() => {
     const initModules = async () => {
-      await loadModuleSettings();
+      setModulesLoaded(false);
+      await loadModuleSettings(guard?.community_id || user?.community_id || null);
       setModulesLoaded(true);
     };
     initModules();
-  }, []);
+  }, [guard?.community_id, user?.community_id]);
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!isAuthenticated) {
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "loginScreen" }],
+      });
+    }
+  }, [authLoading, isAuthenticated, navigation]);
+
+  useEffect(() => {
+    const currentUserId = user?.id;
+    if (!currentUserId) {
+      setUnreadCount(0);
+      return undefined;
+    }
+
+    let mounted = true;
+
+    const fetchUnreadCount = async () => {
+      const { count, error } = await supabase
+        .from("notifications")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", currentUserId)
+        .eq("is_read", false);
+
+      if (!error && mounted) {
+        setUnreadCount(count || 0);
+      }
+    };
+
+    fetchUnreadCount();
+
+    const channel = supabase
+      .channel(`guard_home_notifications_${currentUserId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${currentUserId}`,
+        },
+        () => fetchUnreadCount()
+      )
+      .subscribe();
+
+    return () => {
+      mounted = false;
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
+
+  const guardDisplayName = useMemo(() => {
+    if (guard?.full_name) return guard.full_name;
+    if (guard?.display_name) return guard.display_name;
+    const composedName = [user?.first_name, user?.last_name]
+      .filter(Boolean)
+      .join(" ")
+      .trim();
+    return composedName || "Guard";
+  }, [guard?.display_name, guard?.full_name, user?.first_name, user?.last_name]);
+
+  const gateLabel = useMemo(() => {
+    if (!guard?.gate_assignment) return "Gate -";
+    return titleCase(String(guard.gate_assignment));
+  }, [guard?.gate_assignment]);
+
+  const communityLabel = useMemo(() => {
+    if (community?.name) return community.name;
+    return "Community";
+  }, [community?.name]);
+
+  const handleConfirmVisitorEntry = async () => {
+    const normalizedCode = entryCode.trim();
+
+    if (!normalizedCode || normalizedCode.length < 6) {
+      Alert.alert("Invalid Code", "Please enter a valid gate pass code.");
+      return;
+    }
+
+    if (!isAuthenticated || !guard?.community_id) {
+      Alert.alert("Authentication Required", "Guard session is not ready.");
+      return;
+    }
+
+    try {
+      setResolvingEntry(true);
+      const pass = await getVisitorPassByEntryCode({
+        entryCode: normalizedCode,
+        communityId: guard.community_id,
+      });
+
+      if (!pass) {
+        Alert.alert(
+          "Pass Not Found",
+          "No active visitor pass was found for this code in your community."
+        );
+        return;
+      }
+
+      if (!isPassEntryActionable(pass.status)) {
+        Alert.alert(
+          "Pass Not Eligible",
+          `This visitor pass is currently '${pass.status}'.`
+        );
+        return;
+      }
+
+      navigation.push("confirmScreen", {
+        entrySource: "entry_code",
+        visitorPassId: pass.id,
+        visitorPass: pass,
+        enteredEntryCode: normalizedCode,
+      });
+    } catch (error) {
+      console.error("Error validating gate pass code:", error);
+      Alert.alert("Lookup Failed", error.message || "Unable to validate gate pass code.");
+    } finally {
+      setResolvingEntry(false);
+    }
+  };
 
   const visitorList = [
     {
@@ -67,7 +203,7 @@ const HomeScreen = ({ navigation }) => {
       title: tr("serviceEntry"),
       navigateTo: "serviceEntryScreen",
     },
-  ].filter(item => isScreenEnabled(item.navigateTo));
+  ].filter((item) => !modulesLoaded || isScreenEnabled(item.navigateTo));
 
   const renderItem = ({ item, index }) => {
     return (
@@ -132,7 +268,11 @@ const HomeScreen = ({ navigation }) => {
           }}
         >
           <Image
-            source={require("../assets/images/img1.png")}
+            source={
+              guard?.avatar_url
+                ? { uri: guard.avatar_url }
+                : require("../assets/images/img1.png")
+            }
             style={{
               resizeMode: "cover",
               width: 48,
@@ -150,7 +290,7 @@ const HomeScreen = ({ navigation }) => {
             marginHorizontal: Default.fixPadding,
           }}
         >
-          <Text style={{ ...Fonts.SemiBold16black }}>Kwame Mensah</Text>
+          <Text style={{ ...Fonts.SemiBold16black }}>{guardDisplayName}</Text>
           <View
             style={{
               flexDirection: isRtl ? "row-reverse" : "row",
@@ -166,43 +306,29 @@ const HomeScreen = ({ navigation }) => {
                 paddingLeft: isRtl ? Default.fixPadding * 0.5 : 0,
               }}
             >
-              {`Gate A |  Casa Nirvana Community`}
+              {`${gateLabel} | ${communityLabel}`}
             </Text>
           </View>
         </View>
-        {(() => {
-          // Temporary mock unread count for visual consistency with user app
-          // Replace with real hook once guard notifications are wired
-          const unreadCount = 1;
-          return (
-            <TouchableOpacity
-              onPress={() => navigation.push("notificationScreen")}
-              style={{
-                alignItems: isRtl ? "flex-start" : "flex-end",
-                position: "relative",
-              }}
-            >
-              <Image
-                source={require("../assets/images/notification.png")}
-                style={{ width: 24, height: 24, resizeMode: "contain" }}
-              />
-              {unreadCount > 0 && (
-                <View
-                  style={{
-                    position: "absolute",
-                    top: -2,
-                    right: isRtl ? undefined : -2,
-                    left: isRtl ? -2 : undefined,
-                    backgroundColor: Colors.primary,
-                    borderRadius: 6,
-                    width: 12,
-                    height: 12,
-                  }}
-                />
-              )}
-            </TouchableOpacity>
-          );
-        })()}
+        <TouchableOpacity
+          onPress={() => navigation.push("notificationScreen")}
+          style={{
+            alignItems: isRtl ? "flex-start" : "flex-end",
+            position: "relative",
+          }}
+        >
+          <Image
+            source={require("../assets/images/notification.png")}
+            style={{ width: 24, height: 24, resizeMode: "contain" }}
+          />
+          {unreadCount > 0 && (
+            <View style={styles.notificationBadge}>
+              <Text style={styles.notificationBadgeText}>
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </Text>
+            </View>
+          )}
+        </TouchableOpacity>
       </View>
 
       <FlatList
@@ -246,30 +372,22 @@ const HomeScreen = ({ navigation }) => {
                     {tr("enterVisitor")}
                   </Text>
 
-                  <OtpInput
-                    numberOfDigits={6}
-                    theme={{
-                      containerStyle: {
-                        marginTop: Default.fixPadding * 2,
-                        marginBottom: Default.fixPadding * 4,
-                      },
-                      pinCodeContainerStyle: {
-                        borderWidth: 0,
-                        borderRadius: 0,
-                        width: ms(40),
-                        borderBottomWidth: 2,
-                        borderColor: Colors.extraLightGrey,
-                      },
-                      pinCodeTextStyle: { ...Fonts.SemiBold18blue },
-                      focusedPinCodeContainerStyle: {
-                        borderWidth: 0,
-                        borderRadius: 0,
-                        borderBottomWidth: 2,
-                        borderColor: Colors.primary,
-                      },
-                      focusStickStyle: { backgroundColor: Colors.primary },
-                    }}
+                  <TextInput
+                    value={entryCode}
+                    onChangeText={(text) =>
+                      setEntryCode(String(text || "").replace(/\s+/g, "").toUpperCase())
+                    }
+                    autoCapitalize="characters"
+                    autoCorrect={false}
+                    placeholder="Enter gate pass code"
+                    placeholderTextColor={Colors.grey}
+                    style={styles.entryCodeInput}
+                    maxLength={12}
                   />
+
+                  <Text style={styles.entryCodeHint}>
+                    Code is usually 8 characters (letters + numbers).
+                  </Text>
                 </View>
 
                 <View
@@ -279,18 +397,20 @@ const HomeScreen = ({ navigation }) => {
                   }}
                 >
                   <TouchableOpacity
-                    onPress={() => navigation.push("confirmScreen")}
+                    onPress={handleConfirmVisitorEntry}
+                    disabled={resolvingEntry}
                     style={{
                       marginRight: isRtl ? 0 : Default.fixPadding * 1.5,
                       marginLeft: isRtl ? Default.fixPadding * 1.5 : 0,
                       ...styles.confirmTouchOpacity,
+                      opacity: resolvingEntry ? 0.6 : 1,
                     }}
                   >
                     <Text
                       numberOfLines={1}
                       style={{ ...Fonts.SemiBold18primary, overflow: "hidden" }}
                     >
-                      {tr("confirm")}
+                      {resolvingEntry ? "Checking..." : tr("confirm")}
                     </Text>
                   </TouchableOpacity>
 
@@ -338,6 +458,43 @@ const HomeScreen = ({ navigation }) => {
 export default HomeScreen;
 
 const styles = StyleSheet.create({
+  notificationBadge: {
+    position: "absolute",
+    top: -6,
+    right: -10,
+    minWidth: 18,
+    height: 18,
+    paddingHorizontal: 4,
+    borderRadius: 9,
+    backgroundColor: Colors.primary,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  notificationBadgeText: {
+    ...Fonts.SemiBold12grey,
+    color: Colors.white,
+    fontSize: 10,
+    lineHeight: 12,
+  },
+  entryCodeInput: {
+    width: "100%",
+    marginTop: Default.fixPadding * 2,
+    marginBottom: Default.fixPadding,
+    paddingHorizontal: Default.fixPadding * 1.4,
+    paddingVertical: Default.fixPadding * 1.2,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.lightGrey,
+    backgroundColor: Colors.white,
+    ...Fonts.SemiBold18blue,
+    textAlign: "center",
+    letterSpacing: 2,
+  },
+  entryCodeHint: {
+    ...Fonts.Medium12grey,
+    marginBottom: Default.fixPadding * 3.2,
+    textAlign: "center",
+  },
   confirmTouchOpacity: {
     flex: 8,
     justifyContent: "center",

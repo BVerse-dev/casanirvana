@@ -1,219 +1,285 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '../utils/supabase';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import { supabase } from "../utils/supabase";
 
-const GuardAuthContext = createContext({});
+const GuardAuthContext = createContext(undefined);
+const GUARD_ROLE_VALUES = ["guard", "GUARD"];
 
-export const useGuardAuth = () => {
-  const context = useContext(GuardAuthContext);
-  if (!context) {
-    throw new Error('useGuardAuth must be used within a GuardAuthProvider');
+const loadGuardBundle = async (authUserId) => {
+  const { data: userData, error: userError } = await supabase
+    .from("users")
+    .select(
+      "id, email, first_name, last_name, phone, role, community_id, unit_id, created_at"
+    )
+    .eq("id", authUserId)
+    .in("role", GUARD_ROLE_VALUES)
+    .maybeSingle();
+
+  if (userError) {
+    throw userError;
   }
-  return context;
+  if (!userData) {
+    return null;
+  }
+
+  const { data: guardData, error: guardError } = await supabase
+    .from("guards")
+    .select(
+      "id, user_id, full_name, first_name, last_name, display_name, employee_id, email, phone, mobile, status, is_active, community_id, gate_assignment, avatar_url, shift_type, last_login"
+    )
+    .eq("user_id", authUserId)
+    .maybeSingle();
+
+  if (guardError) {
+    throw guardError;
+  }
+  if (!guardData) {
+    return { user: userData, guard: null, community: null };
+  }
+
+  const resolvedCommunityId = guardData.community_id || userData.community_id;
+  if (!resolvedCommunityId) {
+    return { user: userData, guard: guardData, community: null };
+  }
+
+  const { data: communityData, error: communityError } = await supabase
+    .from("communities")
+    .select("id, name, agency_id")
+    .eq("id", resolvedCommunityId)
+    .maybeSingle();
+
+  if (communityError) {
+    throw communityError;
+  }
+
+  return {
+    user: userData,
+    guard: guardData,
+    community: communityData ?? null,
+  };
 };
 
 export const GuardAuthProvider = ({ children }) => {
+  const [session, setSession] = useState(null);
+  const [authUser, setAuthUser] = useState(null);
   const [user, setUser] = useState(null);
   const [guard, setGuard] = useState(null);
-  const [session, setSession] = useState(null);
+  const [community, setCommunity] = useState(null);
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
+  const [authError, setAuthError] = useState(null);
 
-  const loadGuardProfile = async (userId) => {
-    try {
-      // Get user data with guard role verification
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('id, email, first_name, last_name, role, community_id, phone, created_at')
-        .eq('id', userId)
-        .eq('role', 'guard')
-        .single();
+  const clearAuthState = useCallback(() => {
+    setSession(null);
+    setAuthUser(null);
+    setUser(null);
+    setGuard(null);
+    setCommunity(null);
+  }, []);
 
-      if (userError || !userData) {
-        console.warn('User is not a guard or not found:', userError);
+  const hydrateFromSession = useCallback(
+    async (nextSession, { enforceGuard = true } = {}) => {
+      if (!nextSession?.user) {
+        clearAuthState();
+        setAuthError(null);
         return null;
       }
 
-      // Get guard profile
-      const { data: guardData, error: guardError } = await supabase
-        .from('guards')
-        .select(`
-          id, employee_id, full_name, first_name, last_name, shift_type, 
-          community_id, status, phone, mobile, emergency_contact_phone, 
-          rating, total_shifts, completed_shifts, gate_assignment, 
-          experience_years, is_active, last_login
-        `)
-        .eq('user_id', userData.id)
-        .single();
+      setSession(nextSession);
+      setAuthUser(nextSession.user);
+      const bundle = await loadGuardBundle(nextSession.user.id);
+      const guardStatus = String(bundle?.guard?.status || "active").toLowerCase();
+      const guardIsActive = bundle?.guard?.is_active !== false && guardStatus === "active";
+      const hasCommunityScope = Boolean(
+        bundle?.guard?.community_id || bundle?.user?.community_id
+      );
 
-      if (guardError) {
-        console.warn('Guard profile not found:', guardError);
-        return { user: userData, guard: null };
-      }
-
-      console.log('✅ Guard profile loaded successfully:', {
-        guardId: guardData?.id,
-        community_id: guardData?.community_id,
-        full_name: guardData?.full_name,
-        status: guardData?.status,
-        allKeys: Object.keys(guardData || {})
-      });
-
-      return { user: userData, guard: guardData };
-    } catch (err) {
-      console.error('Error loading guard profile:', err);
-      return null;
-    }
-  };
-
-  const initializeAuth = async () => {
-    try {
-      setLoading(true);
-      
-      // Get current session
-      const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError) {
-        console.error('Error getting session:', sessionError);
-        return;
-      }
-
-      if (currentSession?.user) {
-        setSession(currentSession);
-        
-        // Load guard profile
-        const guardProfile = await loadGuardProfile(currentSession.user.id);
-        if (guardProfile) {
-          setUser(guardProfile.user);
-          setGuard(guardProfile.guard);
-        } else {
-          // User exists but is not a guard, sign them out
+      if (!bundle?.guard || !guardIsActive || !hasCommunityScope) {
+        if (enforceGuard) {
           await supabase.auth.signOut();
-          setSession(null);
-          setUser(null);
+          clearAuthState();
+        } else {
+          setUser(bundle?.user ?? null);
           setGuard(null);
+          setCommunity(null);
         }
+        setAuthError(
+          "Access denied: Guard profile is missing, inactive, or not assigned to a community."
+        );
+        return null;
       }
-    } catch (err) {
-      console.error('Error initializing auth:', err);
+
+      setUser(bundle.user);
+      setGuard(bundle.guard);
+      setCommunity(bundle.community);
+      setAuthError(null);
+      return bundle;
+    },
+    [clearAuthState]
+  );
+
+  const initializeAuth = useCallback(async () => {
+    setLoading(true);
+    try {
+      const {
+        data: { session: currentSession },
+        error,
+      } = await supabase.auth.getSession();
+
+      if (error) {
+        throw error;
+      }
+
+      await hydrateFromSession(currentSession);
+    } catch (error) {
+      clearAuthState();
+      setAuthError(error?.message || "Failed to initialize guard session.");
     } finally {
       setLoading(false);
       setInitialized(true);
     }
-  };
-
-  const signIn = async (email, password) => {
-    try {
-      setLoading(true);
-      
-      // Authenticate with Supabase
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: email.trim().toLowerCase(),
-        password,
-      });
-
-      if (authError) {
-        throw new Error(authError.message);
-      }
-
-      // Load guard profile
-      const guardProfile = await loadGuardProfile(authData.user.id);
-      if (!guardProfile) {
-        await supabase.auth.signOut();
-        throw new Error('Access denied: Guard credentials required');
-      }
-
-      setSession(authData.session);
-      setUser(guardProfile.user);
-      setGuard(guardProfile.guard);
-
-      // Update last login if guard profile exists
-      if (guardProfile.guard) {
-        await supabase
-          .from('guards')
-          .update({ last_login: new Date().toISOString() })
-          .eq('id', guardProfile.guard.id);
-      }
-
-      return guardProfile;
-    } catch (err) {
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const signOut = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        throw new Error(error.message);
-      }
-    } catch (err) {
-      console.error('Error signing out:', err);
-      throw err;
-    }
-  };
-
-  const refreshGuardProfile = async () => {
-    if (!user?.id) return;
-    
-    const guardProfile = await loadGuardProfile(user.id);
-    if (guardProfile) {
-      setUser(guardProfile.user);
-      setGuard(guardProfile.guard);
-    }
-  };
+  }, [clearAuthState, hydrateFromSession]);
 
   useEffect(() => {
-    // Initialize authentication on mount
+    let mounted = true;
     initializeAuth();
 
-    // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event, session?.user?.email);
-      
-      if (event === 'SIGNED_IN' && session?.user) {
-        const guardProfile = await loadGuardProfile(session.user.id);
-        if (guardProfile) {
-          setSession(session);
-          setUser(guardProfile.user);
-          setGuard(guardProfile.guard);
-        } else {
-          // Not a guard, sign out
-          await supabase.auth.signOut();
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (_event, nextSession) => {
+      if (!mounted) return;
+      setLoading(true);
+      try {
+        await hydrateFromSession(nextSession);
+      } catch (error) {
+        clearAuthState();
+        setAuthError(error?.message || "Guard authentication update failed.");
+      } finally {
+        if (mounted) {
+          setLoading(false);
+          setInitialized(true);
         }
-      } else if (event === 'SIGNED_OUT') {
-        setSession(null);
-        setUser(null);
-        setGuard(null);
-      } else if (event === 'TOKEN_REFRESHED' && session) {
-        setSession(session);
       }
-      
-      setLoading(false);
     });
 
     return () => {
+      mounted = false;
       subscription?.unsubscribe();
     };
-  }, []);
+  }, [clearAuthState, hydrateFromSession, initializeAuth]);
 
-  const value = {
-    user,
-    guard,
-    session,
-    loading,
-    initialized,
-    isAuthenticated: !!user && !!session,
-    isGuard: !!user && user.role === 'guard',
-    signIn,
-    signOut,
-    refreshGuardProfile,
-  };
+  const signIn = useCallback(async (email, password) => {
+    setLoading(true);
+    try {
+      const normalizedEmail = String(email || "").trim().toLowerCase();
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: normalizedEmail,
+        password,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      const bundle = await hydrateFromSession(data.session);
+      if (!bundle) {
+        throw new Error("Access denied: Guard credentials required.");
+      }
+
+      if (bundle.guard?.id) {
+        await supabase
+          .from("guards")
+          .update({ last_login: new Date().toISOString() })
+          .eq("id", bundle.guard.id);
+      }
+
+      return bundle;
+    } catch (error) {
+      setAuthError(error?.message || "Sign in failed.");
+      throw new Error(error?.message || "Sign in failed.");
+    } finally {
+      setLoading(false);
+      setInitialized(true);
+    }
+  }, [hydrateFromSession]);
+
+  const signOut = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        throw error;
+      }
+      clearAuthState();
+      setAuthError(null);
+    } catch (error) {
+      setAuthError(error?.message || "Sign out failed.");
+      throw error;
+    } finally {
+      setLoading(false);
+      setInitialized(true);
+    }
+  }, [clearAuthState]);
+
+  const refreshGuardProfile = useCallback(async () => {
+    if (!session?.user?.id) return null;
+    setLoading(true);
+    try {
+      return await hydrateFromSession(session);
+    } finally {
+      setLoading(false);
+    }
+  }, [hydrateFromSession, session]);
+
+  const value = useMemo(
+    () => ({
+      authUser,
+      session,
+      user,
+      profile: user,
+      guard,
+      community,
+      authError,
+      loading,
+      initialized,
+      isAuthenticated: Boolean(session && user && guard),
+      isGuard: Boolean(user && guard),
+      signIn,
+      signOut,
+      refreshGuardProfile,
+      initializeAuth,
+    }),
+    [
+      authError,
+      authUser,
+      community,
+      guard,
+      initialized,
+      loading,
+      session,
+      signIn,
+      signOut,
+      refreshGuardProfile,
+      initializeAuth,
+      user,
+    ]
+  );
 
   return (
-    <GuardAuthContext.Provider value={value}>
-      {children}
-    </GuardAuthContext.Provider>
+    <GuardAuthContext.Provider value={value}>{children}</GuardAuthContext.Provider>
   );
+};
+
+export const useGuardAuth = () => {
+  const context = useContext(GuardAuthContext);
+  if (!context) {
+    throw new Error("useGuardAuth must be used within a GuardAuthProvider");
+  }
+  return context;
 };

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import {
   Text,
   View,
@@ -6,14 +6,12 @@ import {
   BackHandler,
   ScrollView,
   StyleSheet,
-  Alert,
   Image,
 } from "react-native";
 import MyStatusBar from "../components/myStatusBar";
 import { Colors, Default, Fonts } from "../constants/styles";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useTranslation } from "react-i18next";
-import { useGuardAuth } from '../contexts/GuardAuthContext';
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import AwesomeButton from "react-native-really-awesome-button";
 
@@ -24,18 +22,14 @@ const EntryConfirmationScreen = ({ navigation, route }) => {
     visiting,
     hostName,
     insideTime,
-    selectedTime,
+    unitId,
     entryType = 'guest', // Entry type: guest, cab, delivery, service
     guestDetails,        // Additional details specific to entry type
     guestMessage,        // Message/purpose for the visit
     companyName,         // Company name for delivery entries
   } = route.params || {};
 
-  // Convert selectedTime back to Date object if it's a string
-  const selectedTimeDate = selectedTime ? new Date(selectedTime) : new Date();
-
   const { t, i18n } = useTranslation();
-  const { guard, user, isAuthenticated } = useGuardAuth();
 
   const isRtl = i18n.dir() == "rtl";
 
@@ -128,8 +122,6 @@ const EntryConfirmationScreen = ({ navigation, route }) => {
     return () => backSub.remove();
   }, []);
 
-  const [submitting, setSubmitting] = useState(false);
-
   const handleConfirmAndProceed = () => {
     // Navigate to ringing screen with all entry data
     // The visitor pass will be created AFTER the call when guard clicks "Allow"
@@ -138,8 +130,8 @@ const EntryConfirmationScreen = ({ navigation, route }) => {
       selectedFlatNo: visiting,
       guestName: name,
       visitorPhone: phoneNumber, // FIXED: Use phoneNumber consistently
-      expectedTime: selectedTime || new Date().toISOString(), // Use string version
       insideTime,
+      unitId,
       entryType,           // Pass entry type
       guestDetails,        // Pass additional details
       guestMessage,        // Pass message/purpose
@@ -151,7 +143,7 @@ const EntryConfirmationScreen = ({ navigation, route }) => {
         visiting,
         hostName,
         insideTime,
-        selectedTime: selectedTime || new Date().toISOString(), // Use string version
+        unitId,
         entryType,
         guestDetails,
         guestMessage,
@@ -241,7 +233,7 @@ const EntryConfirmationScreen = ({ navigation, route }) => {
           <View style={{ flexDirection: 'row', marginBottom: Default.fixPadding }}>
             <MaterialCommunityIcons name="calendar" size={20} color={Colors.grey} />
             <Text style={{ ...Fonts.Medium16black, marginLeft: Default.fixPadding }}>
-              Time of Entry: {selectedTimeDate?.toLocaleTimeString()}
+              Time of Entry: Auto-recorded when guard approves
             </Text>
           </View>
 

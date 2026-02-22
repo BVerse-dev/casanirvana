@@ -13,7 +13,10 @@ import { useTranslation } from "react-i18next";
 import { Colors, Fonts, Default } from "../constants/styles";
 import AwesomeButton from "react-native-really-awesome-button";
 import { useGuardAuth } from '../contexts/GuardAuthContext';
-import { getValidUnitsForGuard, getUnitResident } from '../services/unitValidationService';
+import {
+  getValidUnitsForGuard,
+  getUnitResidentsMap,
+} from '../services/unitValidationService';
 
 const FlatNoTab = ({ navigation, route }) => {
   const { 
@@ -30,7 +33,8 @@ const FlatNoTab = ({ navigation, route }) => {
     cabData,
     deliveryCompany,
     companyName,
-    navigationSource
+    navigationSource,
+    insideTime,
   } = route.params;
 
   // FIXED: Decode company name from title field since navigation params are broken
@@ -147,23 +151,26 @@ const FlatNoTab = ({ navigation, route }) => {
 
   // Load resident information for all units
   const loadResidentNames = async (units) => {
-    const nameMapping = {};
-    
-    for (const unit of units) {
-      try {
-        const resident = await getUnitResident(unit.unitId);
-        nameMapping[unit.flatNumber] = resident ? resident.name : "Unknown Resident";
-      } catch (err) {
-        nameMapping[unit.flatNumber] = "Unknown Resident";
+    try {
+      const unitIds = units.map((unit) => unit.unitId).filter(Boolean);
+      const residentsByUnitId = await getUnitResidentsMap(unitIds);
+      const nameMapping = {};
+
+      for (const unit of units) {
+        const resident = residentsByUnitId?.[unit.unitId] || null;
+        nameMapping[unit.flatNumber] = resident?.name || "Resident";
       }
+
+      setHostNames(nameMapping);
+    } catch (error) {
+      console.error("Failed to load resident names:", error);
+      setHostNames({});
     }
-    
-    setHostNames(nameMapping);
   };
 
   // Get host name for a flat (from database lookup)
   const getHostName = (flatNo) => {
-    return hostNames[flatNo] || "Unknown Resident";
+    return hostNames[flatNo] || "Resident";
   };
 
   // Load units on component mount and when guard context or block filter changes
@@ -286,6 +293,10 @@ const FlatNoTab = ({ navigation, route }) => {
         <AwesomeButton
           height={50}
           onPress={() => {
+            const selectedUnit =
+              flatNoList.find((unit) => unit.flatNo === selectedFlatNo) || null;
+            const effectiveInsideTime = insideTime || "1 hour";
+
             // Determine which screen to return to based on returnScreen parameter
             if (returnScreen === 'cabEntryScreen') {
               // Follow guest entry pattern: Go to entry confirmation screen with cab data
@@ -295,7 +306,7 @@ const FlatNoTab = ({ navigation, route }) => {
                 visiting: selectedFlatNo,
                 hostName: getHostName(selectedFlatNo),
                 insideTime: "4 hours", // Default for cabs
-                selectedTime: new Date().toISOString(),
+                unitId: selectedUnit?.unitId || null,
                 entryType: 'cab',
                 guestDetails: `${cabData?.companyName || 'Cab'} - Last 4 digits: ${cabData?.vehicleDigits || 'N/A'}`,
                 guestMessage: cabData?.serviceType || 'Pickup'  // Just the service type, no extra text
@@ -308,7 +319,7 @@ const FlatNoTab = ({ navigation, route }) => {
                 visiting: selectedFlatNo,
                 hostName: getHostName(selectedFlatNo),
                 insideTime: "2 hours", // Default for deliveries
-                selectedTime: new Date().toISOString(),
+                unitId: selectedUnit?.unitId || null,
                 entryType: 'delivery',
                 companyName: actualDeliveryCompany, // FIXED: Use the actual company name
                 guestMessage: 'Package delivery' // Simple purpose, no extra text
@@ -321,7 +332,7 @@ const FlatNoTab = ({ navigation, route }) => {
                 visiting: selectedFlatNo,
                 hostName: getHostName(selectedFlatNo),
                 insideTime: "3 hours", // Service visits typically take longer
-                selectedTime: new Date().toISOString(),
+                unitId: selectedUnit?.unitId || null,
                 entryType: 'service',      // Entry type for service
                 guestDetails: actualServiceType, // Service type as guest details
                 guestMessage: actualServiceType  // Service type as message
@@ -333,8 +344,8 @@ const FlatNoTab = ({ navigation, route }) => {
                 phoneNumber: phoneNumber, // FIXED: Use phoneNumber consistently
                 visiting: selectedFlatNo,
                 hostName: getHostName(selectedFlatNo),
-                insideTime: "1 hour", // Default value
-                selectedTime: new Date().toISOString() // Convert to serializable string
+                insideTime: effectiveInsideTime,
+                unitId: selectedUnit?.unitId || null,
               });
             }
           }}

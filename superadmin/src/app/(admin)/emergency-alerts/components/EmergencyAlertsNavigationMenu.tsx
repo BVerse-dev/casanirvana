@@ -4,13 +4,14 @@ import { Button, CardBody, Nav, NavItem, NavLink, Modal, Form, Row, Col } from "
 import { useState } from "react";
 import { useListEmergencyAlerts, useCreateEmergencyAlert } from "@/hooks/useEmergencyAlerts";
 import { toast } from "react-hot-toast";
+import { EMERGENCY_ALERT_CREATE_OPTIONS } from "@/lib/emergencyAlertTypes";
 
 const EmergencyAlertsNavigationMenu = () => {
   const [showNewAlertModal, setShowNewAlertModal] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    alert_type: 'security',
+    alert_type: EMERGENCY_ALERT_CREATE_OPTIONS[0].value,
     priority: 'medium',
   });
 
@@ -22,8 +23,8 @@ const EmergencyAlertsNavigationMenu = () => {
   const activeAlertsCount = alerts.filter((alert: any) => alert.status === 'active').length;
 
   // Handle form submission
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent | React.MouseEvent) => {
+    e?.preventDefault();
     
     if (!formData.title.trim()) {
       toast.error('Please enter a title for the alert');
@@ -44,7 +45,7 @@ const EmergencyAlertsNavigationMenu = () => {
       setFormData({
         title: '',
         description: '',
-        alert_type: 'security',
+        alert_type: EMERGENCY_ALERT_CREATE_OPTIONS[0].value,
         priority: 'medium',
       });
     } catch (error) {
@@ -176,10 +177,11 @@ const EmergencyAlertsNavigationMenu = () => {
                     value={formData.alert_type}
                     onChange={(e) => handleInputChange('alert_type', e.target.value)}
                   >
-                    <option value="security">Security</option>
-                    <option value="fire">Fire Emergency</option>
-                    <option value="medical">Medical Emergency</option>
-                    <option value="maintenance">Maintenance</option>
+                    {EMERGENCY_ALERT_CREATE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
                   </Form.Select>
                 </Form.Group>
               </Col>

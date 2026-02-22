@@ -75,7 +75,7 @@ Date: 2026-02-07
 | `visitorsScreen` | Visitor list, delete, gate pass modal, realtime | Uses `useListVisitors`, `useDeleteVisitor`, realtime on `visitor_passes` | `Wired` | Keep |
 | `preApproveVisitorsScreen` | Create guest/cab/delivery/service | Uses `useListVisitors` and `useCreateService` | `Wired` | Keep |
 | `bottomTab` emergency quick actions | Emergency buttons and admin/guard chat shortcuts | Uses typed `emergencyService` helpers and passes canonical `id/memberId` params to `messageScreen` | `Wired` | Keep; add integration test for admin/guard shortcut -> chat open |
-| `services/emergencyService` | Emergency alert creation/dispatch | Canonical write to `emergency_alerts`; stakeholder resolution from `profiles` only | `Wired` | Keep; if fan-out notifications are needed, implement server-side dispatch (service role) |
+| `services/emergencyService` | Emergency alert creation/dispatch | Canonical write to `emergency_alerts` with quick-action alias normalization (`fire_alert/stuck_lift/animal_threat/visitor_threat` -> canonical superadmin types) and recipient fan-out persisted in `emergency_alert_recipients` | `Wired` | Keep; if push delivery fan-out is required, add server-side dispatcher (service role) keyed from persisted recipients |
 | `emergencyContactsScreen` | Contact list + tap to call | Reads community emergency contacts from `community_configurations.emergency_contacts` and persists user custom contacts in `profiles.preferences.custom_emergency_contacts` | `Wired` | Keep |
 
 ## 4) Payments + Personal Hub

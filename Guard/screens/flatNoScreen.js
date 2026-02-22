@@ -16,7 +16,19 @@ import FlatNoTab from "../components/flatNoTab";
 const Tab = createMaterialTopTabNavigator();
 
 const FlatNoScreen = ({ navigation, route }) => {
-  const { headerTitle, title, placeholderTitle, image, returnScreen, cabName, guestName, phoneNumber, cabData } = route.params;
+  const params = route.params || {};
+  const {
+    headerTitle,
+    title,
+    placeholderTitle,
+    image,
+    returnScreen,
+    cabName,
+    guestName,
+    phoneNumber,
+    cabData,
+    insideTime,
+  } = params;
   const { t, i18n } = useTranslation();
 
   const isRtl = i18n.dir() == "rtl";
@@ -154,7 +166,7 @@ const FlatNoScreen = ({ navigation, route }) => {
         <Tab.Screen
           name={isRtl ? "commonTab" : "blockATab"}
           component={FlatNoTab}
-          initialParams={{ headerTitle, title, placeholderTitle, image, returnScreen, cabName, guestName, phoneNumber, cabData }}
+          initialParams={{ ...params }}
           options={{
             title: title1,
           }}
@@ -163,7 +175,7 @@ const FlatNoScreen = ({ navigation, route }) => {
         <Tab.Screen
           name={isRtl ? "clubhouseTab" : "blockBTab"}
           component={FlatNoTab}
-          initialParams={{ headerTitle, title, placeholderTitle, image, returnScreen, cabName, guestName, phoneNumber, cabData }}
+          initialParams={{ ...params }}
           options={{
             title: title3,
           }}
@@ -172,7 +184,7 @@ const FlatNoScreen = ({ navigation, route }) => {
         <Tab.Screen
           name={isRtl ? "blockBTab" : "clubhouseTab"}
           component={FlatNoTab}
-          initialParams={{ headerTitle, title, placeholderTitle, image, returnScreen, cabName, guestName, phoneNumber }}
+          initialParams={{ ...params }}
           options={{
             title: title4,
           }}
@@ -181,7 +193,7 @@ const FlatNoScreen = ({ navigation, route }) => {
         <Tab.Screen
           name={isRtl ? "blockATab" : "commonTab"}
           component={FlatNoTab}
-          initialParams={{ headerTitle, title, placeholderTitle, image, returnScreen, cabName, guestName, phoneNumber }}
+          initialParams={{ ...params }}
           options={{
             title: title2,
           }}

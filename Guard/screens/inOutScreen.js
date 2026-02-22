@@ -6,19 +6,14 @@ import { useTranslation } from "react-i18next";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
 import CheckedInTab from "../components/checkedInTab";
 import CheckedOutTab from "../components/checkedOutTab";
-import { useVisitorPasses } from "../hooks/useVisitorPasses";
+import { useVisitorPassCounts } from "../hooks/useVisitorPassCounts";
 
 const Tab = createMaterialTopTabNavigator();
 
 const InOutScreen = () => {
   const { t, i18n } = useTranslation();
   
-  // Get counts for tab titles
-  const { passes: insidePasses } = useVisitorPasses('checked_in');
-  const { passes: outsidePasses } = useVisitorPasses('checked_out');
-  
-  const insideCount = insidePasses?.length || 0;
-  const outsideCount = outsidePasses?.length || 0;
+  const { insideCount, outsideCount } = useVisitorPassCounts();
 
   const isRtl = i18n.dir() == "rtl";
 

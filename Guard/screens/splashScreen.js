@@ -1,12 +1,25 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Text, View, ImageBackground, Image } from "react-native";
 import MyStatusBar from "../components/myStatusBar";
 import { Fonts, Colors, Default } from "../constants/styles";
+import { useGuardAuth } from "../contexts/GuardAuthContext";
 
 const SplashScreen = ({ navigation }) => {
-  setTimeout(() => {
-    navigation.push("loginScreen");
-  }, 2000);
+  const { initialized, loading, isAuthenticated } = useGuardAuth();
+
+  useEffect(() => {
+    if (!initialized || loading) return;
+
+    const timer = setTimeout(() => {
+      navigation.reset({
+        index: 0,
+        routes: [{ name: isAuthenticated ? "bottomTab" : "loginScreen" }],
+      });
+    }, 1200);
+
+    return () => clearTimeout(timer);
+  }, [initialized, loading, isAuthenticated, navigation]);
+
   return (
     <View style={{ flex: 1 }}>
       <MyStatusBar />
@@ -70,7 +83,7 @@ const SplashScreen = ({ navigation }) => {
                 paddingHorizontal: Default.fixPadding * 0.5,
               }}
             >
-              Society
+              Community
             </Text>
             <View
               style={{

@@ -313,6 +313,65 @@ Date: 2026-02-06
 - [x] Replaced non-functional chat-settings action buttons with explicit informational state to avoid dead-end UX.
 - [x] Targeted lint validation completed for changed settings files (no errors/warnings in touched files).
 
+## Phase 24 - Emergency Alerts Hardening
+- [x] Aligned emergency type contract across user and superadmin write/read paths (user quick-action aliases now normalize to canonical superadmin types before insert).
+- [x] Hardened superadmin emergency create mutation to auto-derive authenticated actor profile and scoped `community_id`/`user_id` payload fields required by RLS.
+- [x] Applied migration `supabase/migrations/20260222101000_phase24_emergency_contract_and_recipients_hardening.sql` (legacy alert-type normalization + `emergency_alert_recipients.alert_id` UUID/FK repair + recipient RLS policies).
+- [x] Wired user emergency create flow to persist `emergency_alert_recipients` rows (deduplicated recipient fan-out with role attribution).
+- [x] Wired remaining superadmin emergency detail actions (`Assign to Team`, `Escalate`, `Update Status`, `Reopen`, `Generate Report`, and response action controls) to functional handlers.
+- [x] Replaced superadmin emergency overview placeholder metrics (`averageResponseTime`, `acknowledgedPercentage`) with DB-derived calculations.
+- [x] Removed user-app emergency modal debug logging and replaced hardcoded emergency flow strings with `bottomTab` i18n keys + defaults.
+- [x] Added emergency i18n keys to `/Users/andromeda/casanirvana/user/languages/en.json` and ensured non-English locales use safe fallback defaults.
+- [ ] Manual runtime QA pending for emergency lifecycle (`user emergency send -> superadmin list/detail visibility -> recipient tracking row creation`).
+
+## Phase 25 - Guard App Bootstrap
+- [x] Resolved Guard Expo startup blocker (`ConfigError: Cannot determine the project's Expo SDK version ... expo is not installed`) by installing dependencies in `/Users/andromeda/casanirvana/Guard` (`npm install`).
+- [x] Verified Guard Expo runtime config resolves correctly (`npx expo --version`, `npx expo config --type public --json`).
+- [x] Upgraded Guard app to Expo SDK 54 compatibility (Expo Go 54): `expo`/`react`/`react-native` and Expo module versions aligned in `/Users/andromeda/casanirvana/Guard/package.json` and lockfile regenerated.
+- [x] Fixed Guard startup blocker introduced by SDK 54 web config validation by changing `/Users/andromeda/casanirvana/Guard/app.json` `web.output` from `static` to `single` (no `expo-router` dependency required).
+- [x] Fixed Guard runtime red-screen (`Cannot read property 'pSBCr' of undefined`) by patching `react-native-really-awesome-button` color helper to avoid invalid `this` usage under SDK 54/Hermes (`/Users/andromeda/casanirvana/Guard/scripts/patch-awesome-button.js`, wired into `postinstall`).
+- [x] Fixed Guard runtime red-screen (`Worklets mismatch 0.7.4 vs 0.5.1`) by pinning `react-native-worklets` to `0.5.1` in `/Users/andromeda/casanirvana/Guard/package.json` and reinstalling lockfile resolution.
+- [x] Created Guard audit tracking files: `/Users/andromeda/casanirvana/Guard/SCREEN_WIRING_CHECKLIST.md`, `/Users/andromeda/casanirvana/Guard/SCHEMA_ALIGNMENT_GAPS.md`.
+- [x] Started Guard module-by-module production wiring/remediation with Visitor Entry (gate-pass code + QR scan): real pass lookup service (`/Users/andromeda/casanirvana/Guard/services/visitorEntryService.js`), home/QR/confirm flow rewiring, canonical notification payload fixes, and nested home navigation fixes.
+- [x] Applied migration `supabase/migrations/20260222194000_phase25_guard_visitor_entry_rls_alignment.sql` to add guard-scoped visitor-pass and notification RLS helpers/policies.
+- [x] Applied follow-up migration `supabase/migrations/20260222195500_phase25_guard_visitor_insert_policy_fix.sql` to correct insert policy unit/community qualification.
+- [x] Applied migration `supabase/migrations/20260222201500_phase25_guard_profiles_read_scope.sql` to allow guard-scoped resident profile reads required by unit-host lookups.
+- [x] Applied migration `supabase/migrations/20260222225000_phase25_guard_profile_sync_on_users.sql` to auto-sync `users.role='guard'` into `guards` and backfill missing guard profiles (`12` rows recorded in `public.datafix_phase25_guard_profile_backfill_backup` with `cleanup_tag = phase25_guard_profile_backfill_20260222`).
+- [x] Completed Guard Guest Entry flow remediation (`guestEntryScreen`, `cabEntryScreen`, `deliveryEntryScreen`, `serviceEntryScreen`, `flatNoScreen`, `flatNoTab`, `entryConfirmationScreen`, `ringingScreen`) with required-field validation, ISO time propagation, and deterministic unit/host pass-through.
+- [x] Added canonical walk-in pass artifact generation (`entry_code`, `qr_code_data`) for all guard-created visitor types via `/Users/andromeda/casanirvana/Guard/services/visitorPassArtifacts.js` and hooked into create flows (`useVisitorPasses`, `useCabEntries`, `useDeliveryEntries`, `useServiceEntries`).
+- [x] Updated Guard approval screen to display persisted entry code/QR payload from DB instead of local random code generation.
+- [x] Applied migration `supabase/migrations/20260222213000_phase25_walkin_entry_artifacts_backfill.sql` to backfill legacy walk-in pass artifacts (`entry_code` + `qr_code_data`) with reversible backup table `public.datafix_phase25_walkin_pass_artifacts_backup` (`cleanup_tag = phase25_walkin_entry_artifacts_backfill_20260222`).
+- [x] Completed Guard auth/bootstrap hardening from splash to home: rebuilt `/Users/andromeda/casanirvana/Guard/contexts/GuardAuthContext.js` (guard-only + active + community-scoped session hydration), made `/Users/andromeda/casanirvana/Guard/screens/splashScreen.js` auth-aware, and fixed progress-safe submit behavior in `/Users/andromeda/casanirvana/Guard/screens/auth/emailLoginScreen.js` and `/Users/andromeda/casanirvana/Guard/screens/auth/registerScreen.js`.
+- [x] Replaced phone OTP placeholder flow with real Supabase verification/resend in `/Users/andromeda/casanirvana/Guard/screens/auth/verificationScreen.js` and routed success back through splash-auth decision.
+- [x] Wired home header identity and unread notification badge to DB-backed guard/user/community state (`/Users/andromeda/casanirvana/Guard/screens/homeScreen.js` + realtime count subscription) and removed hardcoded `Kwame Mensah / Gate A / Casa Nirvana` placeholder values.
+- [x] Added robust Supabase env fallback resolution in `/Users/andromeda/casanirvana/Guard/utils/supabase.js` (`expoConfig.extra` -> `process.env`) to reduce runtime config drift.
+- [x] Build check passed for this slice via `npx expo export --platform android` in `/Users/andromeda/casanirvana/Guard`.
+- [x] Completed Guard In/Out module remediation: added lightweight status count hook (`/Users/andromeda/casanirvana/Guard/hooks/useVisitorPassCounts.js`), rewired `/Users/andromeda/casanirvana/Guard/screens/inOutScreen.js`, and standardized checked-in/checked-out list payload mapping via `/Users/andromeda/casanirvana/Guard/services/inOutPassMapper.js`.
+- [x] Removed In/Out list inconsistencies (checked-out error rendering bug, static phone fallbacks, unsafe duration math) in `/Users/andromeda/casanirvana/Guard/components/checkedInTab.js` and `/Users/andromeda/casanirvana/Guard/components/checkedOutTab.js`.
+- [x] Optimized visitor host attribution by replacing per-pass N+1 queries with batched `profiles` lookup in `/Users/andromeda/casanirvana/Guard/hooks/useVisitorPasses.js`.
+- [x] Polished visitor detail UX for In/Out lifecycle: actual exit time now appears only after check-out; scheduled window and actual movement timestamps are separated in `/Users/andromeda/casanirvana/Guard/screens/visitorDetailScreen.js`.
+- [x] Build check passed for In/Out slice via `npx expo export --platform android` in `/Users/andromeda/casanirvana/Guard`.
+- [x] Hardened Guard auth session persistence in `/Users/andromeda/casanirvana/Guard/utils/supabase.js` using AsyncStorage-backed Supabase auth (`persistSession`, `autoRefreshToken`, app-state refresh handling) so guard users stay signed in across app restarts.
+- [x] Added stable Guard dev-start scripts in `/Users/andromeda/casanirvana/Guard/package.json` (`start:dev`, `start:tunnel`) to reduce manual reload friction while iterating in Expo Go.
+- [x] Build check passed for session persistence + dev-loop updates via `npx expo export --platform android --output-dir dist-test-session-persist` in `/Users/andromeda/casanirvana/Guard`.
+- [x] Fixed In/Out lifecycle split inconsistency by enforcing checked-in query guardrails (`status='checked_in'` + no exit timestamps), expanding checked-out query to include timestamp-backed exits, and aligning counters in `/Users/andromeda/casanirvana/Guard/hooks/useVisitorPasses.js` and `/Users/andromeda/casanirvana/Guard/hooks/useVisitorPassCounts.js`.
+- [x] Applied DB datafix for legacy lifecycle drift (rows marked `checked_in` with exit timestamps): backed up affected rows to `public.datafix_phase25_checked_in_exit_repair_backup` (`backup_tag = phase25_checked_in_exit_repair_20260222`) and normalized them to `status='checked_out'` with `checked_out_at` populated.
+- [x] Removed manual time pickers from all 4 guard walk-in entry modules (`guestEntryScreen`, `cabEntryScreen`, `deliveryEntryScreen`, `serviceEntryScreen`) and related param plumbing (`flatNoTab`, `entryConfirmationScreen`, `ringingScreen`) so entry timestamps are auto-recorded at approval/create time.
+- [x] Build check passed for In/Out + time-input removal pass via `npx expo export --platform android --output-dir dist-test-inout-time-removal` in `/Users/andromeda/casanirvana/Guard`.
+- [x] Completed Guard Chats module production alignment pass:
+  - Replaced static/random chat data sources in `/Users/andromeda/casanirvana/Guard/components/chatsTab.js` and `/Users/andromeda/casanirvana/Guard/screens/searchScreen.js` with DB-backed conversation + directory sources.
+  - Hardened `/Users/andromeda/casanirvana/Guard/hooks/useMessages.js` to canonical message payloads (`message_type`, `attachments`, `read/is_read`, `message_status`) and realtime invalidation for both thread + conversations.
+  - Aligned `/Users/andromeda/casanirvana/Guard/screens/messageScreen.js` attachment uploads to `chat-attachments` owner-scoped paths and added automatic read-receipt marking for incoming messages.
+  - Removed stale Guard call-cache invalidation dependency on deprecated `chatEnhancements` key in `/Users/andromeda/casanirvana/Guard/hooks/useCalls.js`.
+- [x] Completed Guard Alerts list remediation:
+  - Replaced mock emergency feed with DB-scoped query/subscription in `/Users/andromeda/casanirvana/Guard/hooks/useEmergencyAlerts.js`.
+  - Rebuilt `/Users/andromeda/casanirvana/Guard/screens/emergencyScreen.js` with In/Out-style production card layout (status filters, summary counters, unit/type/reporter/time metadata, and detail payload mapping).
+- [x] Completed Guard emergency detail lifecycle actions:
+  - Wired `/Users/andromeda/casanirvana/Guard/screens/emergencyDetailScreen.js` action buttons to real DB transitions (`active`, `investigating`, `resolved`) with confirmation/error handling and timeline/status refresh.
+  - Extended `/Users/andromeda/casanirvana/Guard/hooks/useEmergencyAlerts.js` with mutation support and `resolved_at/resolved_by` contract propagation.
+  - Applied migration `supabase/migrations/20260222234000_phase25_guard_emergency_alert_update_policy.sql` to add guard-scoped `SELECT`/`UPDATE` policies on `public.emergency_alerts`.
+- [ ] Continue Guard module-by-module production wiring/remediation (next: Residents/Directory module and end-to-end guard lifecycle QA).
+
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)
 - [x] Remove any `node_modules` committed to repo.
