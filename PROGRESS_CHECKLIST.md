@@ -370,7 +370,27 @@ Date: 2026-02-06
   - Wired `/Users/andromeda/casanirvana/Guard/screens/emergencyDetailScreen.js` action buttons to real DB transitions (`active`, `investigating`, `resolved`) with confirmation/error handling and timeline/status refresh.
   - Extended `/Users/andromeda/casanirvana/Guard/hooks/useEmergencyAlerts.js` with mutation support and `resolved_at/resolved_by` contract propagation.
   - Applied migration `supabase/migrations/20260222234000_phase25_guard_emergency_alert_update_policy.sql` to add guard-scoped `SELECT`/`UPDATE` policies on `public.emergency_alerts`.
+- [x] Replaced Guard emergency action native alerts with branded in-app modal UX in `/Users/andromeda/casanirvana/Guard/screens/emergencyDetailScreen.js` (confirm + success/error states for `contact admin`, `acknowledge`, `investigating`, `resolved`).
+- [x] Wired Guard `contact admin` emergency escalation flow:
+  - Added admin fan-out dispatch from `/Users/andromeda/casanirvana/Guard/screens/emergencyDetailScreen.js` via `/Users/andromeda/casanirvana/Guard/hooks/useEmergencyAlerts.js`.
+  - Escalation now writes canonical admin notifications (`notifications`) and recipient audit rows (`emergency_alert_recipients`) for the current incident.
+  - Applied migration `supabase/migrations/20260223000500_phase25_guard_emergency_recipient_notify_policy.sql` to allow guard-scoped recipient audit inserts.
+- [x] Fixed Guard emergency admin-notify RLS blocker:
+  - Hardened recipient resolution in `/Users/andromeda/casanirvana/Guard/hooks/useEmergencyAlerts.js` to include only profiles mapped to valid `users.id` rows before insert.
+  - Applied migration `supabase/migrations/20260223003000_phase25_guard_notify_user_profile_fallback.sql` to expand `guard_can_notify_user(uuid)` community resolution with profile fallback when `users.community_id` is null.
 - [ ] Continue Guard module-by-module production wiring/remediation (next: Residents/Directory module and end-to-end guard lifecycle QA).
+
+## Phase 26 - Guard Profile + Settings Persistence Hardening
+- [x] Added shared profile resolver utility `/Users/andromeda/casanirvana/Guard/utils/profileResolver.js` for `profiles.user_id` -> `profiles.id` fallback-safe resolution.
+- [x] Added Guard settings persistence service `/Users/andromeda/casanirvana/Guard/services/settingsPersistenceService.js` (app preferences in `profiles.preferences`, notification/chat payloads in `chat_settings.app_info_preferences`).
+- [x] Wired `/Users/andromeda/casanirvana/Guard/screens/settingScreen.js` to authenticated guard identity data, persisted toggle writes (dark/biometric), dialer-based quick contacts, and real auth signout.
+- [x] Wired `/Users/andromeda/casanirvana/Guard/screens/languageScreen.js` language updates to persisted profile preference writes.
+- [x] Wired `/Users/andromeda/casanirvana/Guard/screens/notificationSettingsScreen.js` to DB-backed load/save (removed UI-only placeholder behavior).
+- [x] Wired `/Users/andromeda/casanirvana/Guard/screens/chatSettingsScreen.js` to DB-backed load/save and reset-to-defaults contract (removed mock storage/history side-effects).
+- [x] Wired `/Users/andromeda/casanirvana/Guard/screens/editProfileScreen.js` to real `users`/`guards` hydration and update writes, including avatar upload + `refreshGuardProfile` refresh.
+- [x] Enforced Guard call policy split by actor type: residents/hosts route in-app with profile-scoped call records (`/Users/andromeda/casanirvana/Guard/hooks/useCallManager.js` + `callScreen` callers), while visitor/guest/cab/delivery/service contacts use direct dial from `/Users/andromeda/casanirvana/Guard/screens/visitorDetailScreen.js`.
+- [x] Applied migration `supabase/migrations/20260223103000_phase26_guard_profile_update_policy.sql` to allow guard-owned `public.guards` updates (`USING/WITH CHECK user_id = auth.uid()`).
+- [ ] Manual runtime QA pending for Guard settings/profile flows (`settingScreen`, `languageScreen`, `notificationSettingsScreen`, `chatSettingsScreen`, `editProfileScreen`).
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)

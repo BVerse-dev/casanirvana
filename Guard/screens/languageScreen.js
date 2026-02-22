@@ -12,11 +12,13 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import { Colors, Fonts, Default } from "../constants/styles";
 import MyStatusBar from "../components/myStatusBar";
 import AwesomeButton from "react-native-really-awesome-button";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
+import { useGuardAuth } from "../contexts/GuardAuthContext";
+import { saveGuardLanguagePreference } from "../services/settingsPersistenceService";
 
 const LanguageScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
+  const { authUser, user } = useGuardAuth();
 
   const isRtl = i18n.dir() == "rtl";
 
@@ -34,7 +36,7 @@ const LanguageScreen = ({ navigation }) => {
       backAction
     );
     return () => backHandler.remove();
-  });
+  }, []);
 
   const [selectedLanguage, setSelectedLanguage] = useState(
     i18n.resolvedLanguage
@@ -42,11 +44,7 @@ const LanguageScreen = ({ navigation }) => {
 
   async function onChangeLang(lang) {
     i18n.changeLanguage(lang);
-    try {
-      await AsyncStorage.setItem("@APP:languageCode", lang);
-    } catch (error) {
-      alert("something went wrong");
-    }
+    await saveGuardLanguagePreference(authUser?.id || user?.id || null, lang);
   }
 
   const onDisableHandler = i18n.language === selectedLanguage;
@@ -132,12 +130,15 @@ const LanguageScreen = ({ navigation }) => {
           progress
           height={50}
           progressLoadingTime={1000}
-          onPress={(next) => {
-            return setTimeout(() => {
-              next();
-              onChangeLang(selectedLanguage);
+          onPress={async (next) => {
+            try {
+              await onChangeLang(selectedLanguage);
               navigation.pop();
-            }, 1000);
+            } catch (error) {
+              console.error("Failed to update guard language:", error);
+            } finally {
+              next();
+            }
           }}
           raiseLevel={1}
           stretch={true}

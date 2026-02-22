@@ -107,20 +107,35 @@ const VisitorDetailScreen = ({ navigation, route }) => {
 
   // Get proper pass ID for database operations
   const actualPassId = passId || originalPass?.id;
+  const hostProfileId = originalPass?.host_resident?.id || null;
+  const fallbackUnitId = originalPass?.unit_id || null;
 
   // Handle calling the visitor or host
   const handleCall = () => {
     setCallModalVisible(true);
   };
 
-  // Handle call visitor (external call)
-  const handleCallVisitor = () => {
+  // Handle call visitor (direct phone call - visitors don't have app accounts)
+  const handleCallVisitor = async () => {
     setCallModalVisible(false);
     const visitorPhone = dbFields.visitorPhone || phoneNumber;
-    if (visitorPhone) {
-      Linking.openURL(`tel:${visitorPhone}`);
-    } else {
+    if (!visitorPhone) {
       Alert.alert(tr("no_phone"), tr("no_phone_message"));
+      return;
+    }
+
+    try {
+      const normalizedPhone = String(visitorPhone).replace(/[^\d+]/g, "");
+      const dialUrl = `tel:${normalizedPhone}`;
+      const canDial = await Linking.canOpenURL(dialUrl);
+      if (!canDial) {
+        Alert.alert(tr("error"), tr("no_phone_message"));
+        return;
+      }
+
+      await Linking.openURL(dialUrl);
+    } catch (_dialError) {
+      Alert.alert(tr("error"), tr("no_phone_message"));
     }
   };
 
@@ -130,7 +145,7 @@ const VisitorDetailScreen = ({ navigation, route }) => {
     setCallModalVisible(false);
     
     // Get unit information for the call
-    const unitId = originalPass?.unit_id;
+    const unitId = fallbackUnitId;
     const unitInfo = originalPass?.units;
     const unitDisplay = unitInfo ? `${unitInfo.block}-${unitInfo.number}` : (flatNo || block);
     
@@ -140,10 +155,11 @@ const VisitorDetailScreen = ({ navigation, route }) => {
     navigation.navigate('callScreen', {
       name: "", // Empty string so route.params?.name is falsy
       phone: null, // No direct phone - will find host through unit
-      hostId: unitId, // Use unit ID to find the host
+      hostId: unitId, // kept for backward compatibility in the call screen
       hostPhone: dbFields.hostPhone || hostPhone,
       unitId: unitId,
       unitDisplay: unitDisplay,
+      calleeProfileId: hostProfileId,
       visitorName: dbFields.visitorName || name,
       actualHostName: dbFields.hostName || hostName, // Pass the EXACT host name from visitor pass
       passFlatNumber: dbFields.flatNumber || flatNo, // Pass the exact flat from the pass
@@ -561,7 +577,6 @@ const VisitorDetailScreen = ({ navigation, route }) => {
               <TouchableOpacity
                 style={[styles.modalButton, { backgroundColor: Colors.lightBlue }]}
                 onPress={handleCallVisitor}
-                disabled={!(dbFields.visitorPhone || phoneNumber)}
               >
                 <MaterialIcons name="call" size={20} color={Colors.white} />
                 <Text style={styles.modalButtonText}>

@@ -38,6 +38,10 @@ Date: 2026-02-22
 | Host lookup in pass list used N+1 user queries | `/Users/andromeda/casanirvana/Guard/hooks/useVisitorPasses.js` | Performance/scalability risk and less reliable tenant-scoped host resolution | `Code alignment (completed)` |
 | Emergency alerts screen used local mock dataset (no DB scope/filter/realtime) | `/Users/andromeda/casanirvana/Guard/screens/emergencyScreen.js` | Guard app showed non-production incidents unrelated to community and stale runtime state | `Code alignment (completed)` |
 | Emergency detail triage actions (`acknowledge` / `investigating` / `resolved`) were UI-only | `/Users/andromeda/casanirvana/Guard/screens/emergencyDetailScreen.js` | Guard could not progress incidents from detail view, blocking operational response workflow | `Code + Migration alignment (completed)` |
+| Guard profile update writes blocked on `public.guards` RLS | `/Users/andromeda/casanirvana/Guard/screens/editProfileScreen.js` | Profile edit save/update would fail for authenticated guards despite valid ownership | `Migration (completed)` |
+| Guard settings screens used local-only placeholder state (no DB persistence) | `/Users/andromeda/casanirvana/Guard/screens/notificationSettingsScreen.js`, `/Users/andromeda/casanirvana/Guard/screens/chatSettingsScreen.js` | Settings reset after restart/device and produced non-production UX behavior | `Code alignment (completed)` |
+| Guard call create flow could insert `calls` with null/invalid callee and non-profile caller fallback | `/Users/andromeda/casanirvana/Guard/screens/callScreen.js`, `/Users/andromeda/casanirvana/Guard/hooks/useCallManager.js` | Violated hardened call RLS contract (`caller_id/callee_id` must map to actor-accessible `profiles.id`) and caused runtime call failures | `Code alignment (completed)` |
+| Visitor-detail call policy required split behavior (resident host in-app, visitor/personnel direct phone) | `/Users/andromeda/casanirvana/Guard/screens/visitorDetailScreen.js` | Needed explicit production rule so host/resident calls stay auditable in-app while guest/cab/delivery/service contacts use submitted phone numbers | `Code alignment (completed)` |
 
 ## Migration vs Code Alignment Plan
 ### A) Objects to Migrate
@@ -47,6 +51,9 @@ Date: 2026-02-22
 4. `supabase/migrations/20260222213000_phase25_walkin_entry_artifacts_backfill.sql`
 5. `supabase/migrations/20260222225000_phase25_guard_profile_sync_on_users.sql`
 6. `supabase/migrations/20260222234000_phase25_guard_emergency_alert_update_policy.sql`
+7. `supabase/migrations/20260223000500_phase25_guard_emergency_recipient_notify_policy.sql`
+8. `supabase/migrations/20260223003000_phase25_guard_notify_user_profile_fallback.sql`
+9. `supabase/migrations/20260223103000_phase26_guard_profile_update_policy.sql`
 
 ### B) Objects to Refactor/Remove
 1. Replace mock QR scanner path with camera + DB lookup in `/Users/andromeda/casanirvana/Guard/screens/qrScanner.js`
@@ -54,6 +61,7 @@ Date: 2026-02-22
 3. Align notification payload contract in `/Users/andromeda/casanirvana/Guard/screens/allowedScreen.js` and `/Users/andromeda/casanirvana/Guard/screens/cancelledScreen.js`
 4. Centralize gate-pass/QR pass resolution in `/Users/andromeda/casanirvana/Guard/services/visitorEntryService.js`
 5. Centralize walk-in `entry_code`/`qr_code_data` generation in `/Users/andromeda/casanirvana/Guard/services/visitorPassArtifacts.js`
+6. Replace local-only settings state in `/Users/andromeda/casanirvana/Guard/screens/notificationSettingsScreen.js` and `/Users/andromeda/casanirvana/Guard/screens/chatSettingsScreen.js` with persistence service reads/writes
 
 ### C) Storage / RPC Prerequisites
 1. None for this slice.

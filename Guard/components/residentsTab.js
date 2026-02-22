@@ -156,6 +156,7 @@ const ResidentsTab = ({ navigation }) => {
                       phone: member.phone,
                       id: member.id,
                       memberId: member.memberId,
+                      calleeProfileId: member.memberId || member.id,
                     })
                   }
                   style={{

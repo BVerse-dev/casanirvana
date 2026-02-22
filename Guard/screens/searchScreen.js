@@ -237,6 +237,7 @@ const SearchScreen = ({ navigation }) => {
                 phone: item.phone,
                 id: item.id,
                 memberId: item.memberId,
+                calleeProfileId: item.memberId || item.id,
               });
             }}
             style={{ padding: Default.fixPadding * 0.5 }}

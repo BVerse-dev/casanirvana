@@ -635,6 +635,7 @@ const MessageScreen = ({ navigation, route }) => {
       id: id || memberId,
       memberId,
       memberPhone,
+      calleeProfileId: memberId || id,
     });
   };
 

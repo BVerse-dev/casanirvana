@@ -24,7 +24,27 @@ import Animated, {
 import { useCallManager } from "../hooks/useCallManager";
 
 const CallScreen = ({ navigation, route }) => {
-  const { image, name, phone, id, hostId, hostPhone, unitDisplay: routeUnitDisplay, unitId: passedUnitId, visitorName, actualHostName, passFlatNumber, originalPass } = route.params;
+  const {
+    image,
+    name,
+    phone,
+    id,
+    hostId,
+    hostPhone,
+    unitDisplay: routeUnitDisplay,
+    unitId: passedUnitId,
+    visitorName,
+    actualHostName,
+    passFlatNumber,
+    originalPass,
+    calleeProfileId: routeCalleeProfileId,
+    callType: routeCallType,
+  } = route.params;
+
+  const resolvedCalleeProfileId =
+    routeCalleeProfileId || route.params?.memberId || id || null;
+  const resolvedUnitId = passedUnitId || hostId || null;
+  const normalizedCallType = routeCallType === "video" ? "video" : "voice";
 
   const { t, i18n } = useTranslation();
   const isRtl = i18n.dir() == "rtl";
@@ -45,6 +65,8 @@ const CallScreen = ({ navigation, route }) => {
     toggleMute,
     toggleVideo,
   } = useCallManager();
+  const resolvedUnitLabel =
+    unitDisplay || routeUnitDisplay || route.params?.flatNo || passFlatNumber || "";
 
   function tr(key) {
     return t(`callScreen:${key}`);
@@ -85,7 +107,7 @@ const CallScreen = ({ navigation, route }) => {
 
   // Start call when component mounts
   useEffect(() => {
-    if ((hostId || id) && !isInCall) {
+    if ((resolvedCalleeProfileId || resolvedUnitId) && !isInCall) {
       handleInitiateCall();
     }
     
@@ -104,13 +126,13 @@ const CallScreen = ({ navigation, route }) => {
       clearTimeout(timer2);
       stopCallTimer();
     };
-  }, [hostId, id]);
+  }, [resolvedCalleeProfileId, resolvedUnitId, isInCall]);
 
   const handleInitiateCall = async () => {
     try {
       setCallStatus('connecting');
-      // Pass the complete visitor pass information to the call manager
-      await initiateCall(null, 'voice', route.params?.unitId, {
+      // Calls must stay in-app; resolve callee profile directly when available.
+      await initiateCall(resolvedCalleeProfileId, normalizedCallType, resolvedUnitId, {
         actualHostName: actualHostName,
         passFlatNumber: passFlatNumber,
         hostPhone: hostPhone,
@@ -219,9 +241,11 @@ const CallScreen = ({ navigation, route }) => {
           <Text style={{ ...Fonts.SemiBold18black }}>
             {hostName || "Connecting to Host..."}
           </Text>
-          <Text style={{ ...Fonts.Medium16grey, marginTop: 5 }}>
-            Flat {unitDisplay || routeUnitDisplay || route.params?.flatNo || passFlatNumber || ''}
-          </Text>
+          {resolvedUnitLabel ? (
+            <Text style={{ ...Fonts.Medium16grey, marginTop: 5 }}>
+              Flat {resolvedUnitLabel}
+            </Text>
+          ) : null}
         </View>
       </View>
 

@@ -1,13 +1,14 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
+  Alert,
   Text,
   View,
   TouchableOpacity,
-  ScrollView,
   StyleSheet,
   Image,
   SectionList,
   Switch,
+  Linking,
 } from "react-native";
 import MyStatusBar from "../components/myStatusBar";
 import { Colors, Default, Fonts } from "../constants/styles";
@@ -18,9 +19,15 @@ import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityI
 import SimpleLineIcons from "react-native-vector-icons/SimpleLineIcons";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import LogoutModal from "../components/logoutModal";
+import { useGuardAuth } from "../contexts/GuardAuthContext";
+import {
+  loadGuardAppSettings,
+  updateGuardAppSettings,
+} from "../services/settingsPersistenceService";
 
 const SettingScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
+  const { authUser, user, guard, community, signOut } = useGuardAuth();
 
   const isRtl = i18n.dir() == "rtl";
 
@@ -31,6 +38,101 @@ const SettingScreen = ({ navigation }) => {
   const [openLogoutModal, setOpenLogoutModal] = useState(false);
   const [darkTheme, setDarkTheme] = useState(false);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
+  const [savingPreference, setSavingPreference] = useState(false);
+
+  const authUserId = authUser?.id || user?.id || null;
+
+  const displayName = useMemo(() => {
+    const candidate =
+      guard?.display_name ||
+      guard?.full_name ||
+      `${guard?.first_name || ""} ${guard?.last_name || ""}`.trim() ||
+      `${user?.first_name || ""} ${user?.last_name || ""}`.trim() ||
+      authUser?.email ||
+      "Guard";
+    return candidate;
+  }, [authUser?.email, guard, user]);
+
+  const communityLabel = useMemo(() => {
+    const gate = guard?.gate_assignment || "Gate not assigned";
+    const name = community?.name || "Community not assigned";
+    return `${gate} | ${name}`;
+  }, [community?.name, guard?.gate_assignment]);
+
+  const avatarSource = useMemo(() => {
+    if (typeof guard?.avatar_url === "string" && guard.avatar_url.trim()) {
+      return { uri: guard.avatar_url };
+    }
+    return require("../assets/images/img1.png");
+  }, [guard?.avatar_url]);
+
+  const adminPhone = useMemo(
+    () => community?.phone || guard?.emergency_contact_phone || user?.phone || null,
+    [community?.phone, guard?.emergency_contact_phone, user?.phone]
+  );
+
+  const secretaryPhone = useMemo(
+    () => guard?.emergency_contact_phone || user?.phone || community?.phone || null,
+    [community?.phone, guard?.emergency_contact_phone, user?.phone]
+  );
+
+  useEffect(() => {
+    let active = true;
+
+    const hydrateSettings = async () => {
+      try {
+        const persisted = await loadGuardAppSettings(
+          authUserId,
+          i18n?.resolvedLanguage || "en"
+        );
+        if (!active) return;
+        setDarkTheme(Boolean(persisted.darkMode));
+        setBiometricEnabled(Boolean(persisted.biometricEnabled));
+      } catch (error) {
+        console.error("Failed to hydrate guard settings:", error);
+      }
+    };
+
+    hydrateSettings();
+
+    return () => {
+      active = false;
+    };
+  }, [authUserId, i18n?.resolvedLanguage]);
+
+  const persistPreferencePatch = async (patch, rollback) => {
+    if (!authUserId) return;
+    setSavingPreference(true);
+    try {
+      await updateGuardAppSettings(authUserId, patch);
+    } catch (error) {
+      rollback?.();
+      Alert.alert("Update failed", error?.message || "Could not save settings.");
+    } finally {
+      setSavingPreference(false);
+    }
+  };
+
+  const handleQuickCall = async (phoneNumber, contactLabel) => {
+    if (!phoneNumber) {
+      Alert.alert(
+        "No contact configured",
+        `${contactLabel} phone is not configured for this community.`
+      );
+      return;
+    }
+
+    const normalized = String(phoneNumber).replace(/[^\d+]/g, "");
+    const url = `tel:${normalized}`;
+    const supported = await Linking.canOpenURL(url);
+
+    if (!supported) {
+      Alert.alert("Call unavailable", "Your device cannot open the dialer right now.");
+      return;
+    }
+
+    await Linking.openURL(url);
+  };
 
   // Build settings sections (excluding community management, payment & billing, service management)
   const settingSections = [
@@ -225,9 +327,19 @@ const SettingScreen = ({ navigation }) => {
             setOpenLogoutModal(true);
           } else if (item.hasToggle) {
             if (item.key === "4") {
-              setDarkTheme(!darkTheme);
+              const next = !darkTheme;
+              setDarkTheme(next);
+              persistPreferencePatch(
+                { darkMode: next, darkTheme: next },
+                () => setDarkTheme(!next)
+              );
             } else if (item.key === "8") {
-              setBiometricEnabled(!biometricEnabled);
+              const next = !biometricEnabled;
+              setBiometricEnabled(next);
+              persistPreferencePatch(
+                { biometricEnabled: next },
+                () => setBiometricEnabled(!next)
+              );
             }
           } else if (item.navigateTo) {
             navigation.push(item.navigateTo);
@@ -287,10 +399,19 @@ const SettingScreen = ({ navigation }) => {
             onValueChange={(value) => {
               if (item.key === "4") {
                 setDarkTheme(value);
+                persistPreferencePatch(
+                  { darkMode: value, darkTheme: value },
+                  () => setDarkTheme(!value)
+                );
               } else if (item.key === "8") {
                 setBiometricEnabled(value);
+                persistPreferencePatch(
+                  { biometricEnabled: value },
+                  () => setBiometricEnabled(!value)
+                );
               }
             }}
+            disabled={savingPreference}
             trackColor={{ false: Colors.red, true: Colors.green }}
             thumbColor={Colors.white}
           />
@@ -364,7 +485,7 @@ const SettingScreen = ({ navigation }) => {
                   }}
                 >
                   <Image
-                    source={require("../assets/images/img1.png")}
+                    source={avatarSource}
                     style={{
                       resizeMode: "cover",
                       width: 68,
@@ -387,7 +508,7 @@ const SettingScreen = ({ navigation }) => {
                     numberOfLines={1}
                     style={{ ...Fonts.SemiBold16black, overflow: "hidden" }}
                   >
-                    Kwame Mensah
+                    {displayName}
                   </Text>
 
                   <Text
@@ -398,7 +519,7 @@ const SettingScreen = ({ navigation }) => {
                       overflow: "hidden",
                     }}
                   >
-                    {`Gate A | Casa Nirvana Society`}
+                    {communityLabel}
                   </Text>
 
                   <Text
@@ -440,7 +561,7 @@ const SettingScreen = ({ navigation }) => {
               }}
             >
               <TouchableOpacity
-                onPress={() => navigation.push("callScreen")}
+                onPress={() => handleQuickCall(adminPhone, "Admin")}
                 style={{
                   flexDirection: isRtl ? "row-reverse" : "row",
                   ...styles.callTouchableOpacityBox,
@@ -466,7 +587,7 @@ const SettingScreen = ({ navigation }) => {
               </TouchableOpacity>
 
               <TouchableOpacity
-                onPress={() => navigation.push("callScreen")}
+                onPress={() => handleQuickCall(secretaryPhone, "Secretary")}
                 style={{
                   flexDirection: isRtl ? "row-reverse" : "row",
                   ...styles.callTouchableOpacityBox,
@@ -498,9 +619,17 @@ const SettingScreen = ({ navigation }) => {
       <LogoutModal
         visible={openLogoutModal}
         modalClose={() => setOpenLogoutModal(false)}
-        onLogoutHandle={() => {
+        onLogoutHandle={async () => {
           setOpenLogoutModal(false);
-          navigation.push("loginScreen");
+          try {
+            await signOut();
+            navigation.reset({
+              index: 0,
+              routes: [{ name: "loginScreen" }],
+            });
+          } catch (error) {
+            Alert.alert("Logout failed", error?.message || "Please try again.");
+          }
         }}
       />
     </View>

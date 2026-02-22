@@ -88,6 +88,8 @@ const getStatusColor = (status) => {
       return Colors.green;
     case 'pending':
       return Colors.orange;
+    case 'escalated':
+      return Colors.orange;
     default:
       return Colors.grey;
   }

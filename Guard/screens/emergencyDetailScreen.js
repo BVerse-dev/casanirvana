@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import React, { useMemo, useRef, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Modal } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -16,11 +16,26 @@ const formatTimestamp = (value) => {
   return date.toLocaleString();
 };
 
+const toLabelCase = (value) =>
+  String(value || '')
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+
 const EmergencyDetailScreen = ({ navigation, route }) => {
   const { t, i18n } = useTranslation();
   const isRtl = i18n.dir() === 'rtl';
   const [alertDetails, setAlertDetails] = useState(route?.params?.alert || {});
-  const { updateAlertStatus, isUpdating } = useGuardEmergencyAlertActions();
+  const { updateAlertStatus, isUpdating, notifyAdmins, isNotifyingAdmins } = useGuardEmergencyAlertActions();
+  const actionHandlerRef = useRef(null);
+  const [actionModal, setActionModal] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    variant: 'info',
+    showCancel: false,
+    confirmText: 'Okay',
+    cancelText: 'Cancel',
+  });
 
   function tr(key) {
     return t(`emergencyDetailScreen:${key}`);
@@ -29,6 +44,53 @@ const EmergencyDetailScreen = ({ navigation, route }) => {
   const trFallback = (key, fallback) => {
     const value = tr(key);
     return value === `emergencyDetailScreen:${key}` ? fallback : value;
+  };
+
+  const closeActionModal = () => {
+    setActionModal((prev) => ({ ...prev, visible: false }));
+    actionHandlerRef.current = null;
+  };
+
+  const openActionModal = ({
+    title,
+    message,
+    variant = 'info',
+    showCancel = false,
+    confirmText = trFallback('ok', 'Okay'),
+    cancelText = trFallback('cancel', 'Cancel'),
+    onConfirm = null,
+  }) => {
+    actionHandlerRef.current = onConfirm;
+    setActionModal({
+      visible: true,
+      title,
+      message,
+      variant,
+      showCancel,
+      confirmText,
+      cancelText,
+    });
+  };
+
+  const showInfoModal = (title, message, variant = 'info') => {
+    openActionModal({
+      title,
+      message,
+      variant,
+      showCancel: false,
+      confirmText: trFallback('ok', 'Okay'),
+      onConfirm: null,
+    });
+  };
+
+  const handleModalConfirm = () => {
+    const modalAction = actionHandlerRef.current;
+    closeActionModal();
+    if (typeof modalAction === 'function') {
+      setTimeout(() => {
+        modalAction();
+      }, 0);
+    }
   };
 
   const {
@@ -75,6 +137,8 @@ const EmergencyDetailScreen = ({ navigation, route }) => {
         return Colors.green;
       case 'pending':
         return Colors.orange;
+      case 'escalated':
+        return Colors.orange;
       default:
         return Colors.grey;
     }
@@ -106,48 +170,56 @@ const EmergencyDetailScreen = ({ navigation, route }) => {
 
   const runStatusChange = async (nextStatus) => {
     if (!id) {
-      Alert.alert(trFallback('update_failed_title', 'Update failed'), trFallback('missing_alert_id', 'Missing alert ID.'));
-      return;
+      return {
+        success: false,
+        title: trFallback('update_failed_title', 'Update failed'),
+        message: trFallback('missing_alert_id', 'Missing alert ID.'),
+      };
     }
 
     if (normalizeStatus(currentStatus) === normalizeStatus(nextStatus)) {
-      Alert.alert(
-        trFallback('already_up_to_date_title', 'No changes'),
-        trFallback('already_up_to_date_message', 'This alert is already in the selected status.'),
-      );
-      return;
+      return {
+        success: false,
+        title: trFallback('already_up_to_date_title', 'No changes'),
+        message: trFallback('already_up_to_date_message', 'This alert is already in the selected status.'),
+      };
     }
 
     try {
       const updatedAlert = await updateAlertStatus({ alertId: id, nextStatus });
       applyLocalStatusUpdate(nextStatus, updatedAlert);
-      Alert.alert(
-        trFallback('status_updated_title', 'Status updated'),
-        trFallback('status_updated_message', 'Emergency alert status updated successfully.'),
-      );
+      return {
+        success: true,
+        title: trFallback('status_updated_title', 'Status updated'),
+        message: trFallback('status_updated_message', 'Emergency alert status updated successfully.'),
+      };
     } catch (error) {
-      Alert.alert(
-        trFallback('update_failed_title', 'Update failed'),
-        error?.message || trFallback('status_update_error', 'Unable to update alert status.'),
-      );
+      return {
+        success: false,
+        title: trFallback('update_failed_title', 'Update failed'),
+        message: error?.message || trFallback('status_update_error', 'Unable to update alert status.'),
+      };
     }
   };
 
   const confirmStatusChange = (nextStatus) => {
-    const statusLabel = nextStatus.replace(/_/g, ' ');
-    Alert.alert(
-      trFallback('confirm_update_title', 'Confirm update'),
-      trFallback('confirm_update_message', `Set this alert to ${statusLabel}?`),
-      [
-        { text: trFallback('cancel', 'Cancel'), style: 'cancel' },
-        {
-          text: trFallback('confirm', 'Confirm'),
-          onPress: () => {
-            runStatusChange(nextStatus);
-          },
-        },
-      ],
-    );
+    const statusLabel = toLabelCase(nextStatus);
+    openActionModal({
+      title: trFallback('confirm_update_title', 'Confirm update'),
+      message: trFallback('confirm_update_message', `Set this alert to ${statusLabel}?`),
+      variant: 'warning',
+      showCancel: true,
+      confirmText: trFallback('confirm', 'Confirm'),
+      cancelText: trFallback('cancel', 'Cancel'),
+      onConfirm: async () => {
+        const result = await runStatusChange(nextStatus);
+        showInfoModal(
+          result.title,
+          result.message,
+          result.success ? 'success' : 'error',
+        );
+      },
+    });
   };
 
   const reportedTime = useMemo(() => {
@@ -171,6 +243,69 @@ const EmergencyDetailScreen = ({ navigation, route }) => {
     (currentStatus === 'pending' || currentStatus === 'escalated');
   const canInvestigate = !isUpdating && !!id && currentStatus !== 'investigating' && currentStatus !== 'resolved';
   const canResolve = !isUpdating && !!id && currentStatus !== 'resolved';
+  const canNotifyAdmins = !isNotifyingAdmins && !!id;
+
+  const handleNotifyAdmins = () => {
+    if (!id) {
+      showInfoModal(
+        trFallback('update_failed_title', 'Update failed'),
+        trFallback('missing_alert_id', 'Missing alert ID.'),
+        'error',
+      );
+      return;
+    }
+
+    openActionModal({
+      title: trFallback('confirm_contact_admin_title', 'Notify admin'),
+      message: trFallback('confirm_contact_admin_message', 'Notify all active admins in this community now?'),
+      variant: 'warning',
+      showCancel: true,
+      confirmText: trFallback('confirm', 'Confirm'),
+      cancelText: trFallback('cancel', 'Cancel'),
+      onConfirm: async () => {
+        try {
+          const result = await notifyAdmins({
+            alertId: id,
+            incidentId: incidentId || id,
+            alertType: type,
+            alertTitle: title,
+            alertDescription: description,
+            alertPriority: priority || 'high',
+            alertLocation: location,
+            reporterName: reporter,
+          });
+
+          showInfoModal(
+            trFallback('admin_notified_title', 'Admin notified'),
+            trFallback(
+              'admin_notified_message',
+              `${result?.notifiedCount || 0} admin recipients have been notified.`,
+            ),
+            'success',
+          );
+        } catch (error) {
+          showInfoModal(
+            trFallback('update_failed_title', 'Update failed'),
+            error?.message || trFallback('notify_admin_error', 'Unable to notify admins.'),
+            'error',
+          );
+        }
+      },
+    });
+  };
+
+  const modalIcon = useMemo(() => {
+    if (actionModal.variant === 'success') {
+      return { name: 'checkmark-circle', color: Colors.green };
+    }
+    if (actionModal.variant === 'error') {
+      return { name: 'alert-circle', color: Colors.red };
+    }
+    if (actionModal.variant === 'warning') {
+      return { name: 'warning', color: Colors.orange };
+    }
+    return { name: 'information-circle', color: Colors.primary };
+  }, [actionModal.variant]);
 
   return (
     <View style={{ flex: 1, backgroundColor: Colors.lightGrey }}>
@@ -302,6 +437,28 @@ const EmergencyDetailScreen = ({ navigation, route }) => {
 
         <View style={[styles.card, { paddingVertical: Default.fixPadding * 1.2 }]}>
           <View style={{ flexDirection: 'column' }}>
+            <TouchableOpacity
+              disabled={!canNotifyAdmins}
+              onPress={handleNotifyAdmins}
+              style={[
+                styles.actionBtn,
+                styles.actionBtnSpacing,
+                {
+                  borderColor: Colors.blue,
+                  opacity: canNotifyAdmins ? 1 : 0.5,
+                },
+              ]}
+            >
+              {isNotifyingAdmins ? (
+                <ActivityIndicator size='small' color={Colors.blue} />
+              ) : (
+                <MaterialCommunityIcons name='account-cog-outline' size={18} color={Colors.blue} />
+              )}
+              <Text style={[styles.actionBtnText, { color: Colors.blue }]}>
+                {isNotifyingAdmins ? trFallback('notifying_admins', 'Notifying admins...') : tr('contact_admin')}
+              </Text>
+            </TouchableOpacity>
+
             <TouchableOpacity
               disabled={!canAcknowledge}
               onPress={() => confirmStatusChange('active')}
@@ -446,6 +603,56 @@ const EmergencyDetailScreen = ({ navigation, route }) => {
 
         <View style={{ height: Default.fixPadding * 4 }} />
       </ScrollView>
+
+      <Modal
+        transparent
+        visible={actionModal.visible}
+        animationType='fade'
+        onRequestClose={closeActionModal}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Ionicons name={modalIcon.name} size={42} color={modalIcon.color} />
+            <Text style={[Fonts.SemiBold18black, styles.modalTitle]}>{actionModal.title}</Text>
+            <Text style={[Fonts.Medium14grey, styles.modalMessage]}>{actionModal.message}</Text>
+
+            <View
+              style={[
+                styles.modalButtonsRow,
+                { flexDirection: isRtl ? 'row-reverse' : 'row' },
+              ]}
+            >
+              {actionModal.showCancel ? (
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={closeActionModal}
+                  style={[
+                    styles.modalBtn,
+                    styles.modalCancelBtn,
+                    {
+                      marginRight: isRtl ? 0 : Default.fixPadding * 0.7,
+                      marginLeft: isRtl ? Default.fixPadding * 0.7 : 0,
+                    },
+                  ]}
+                >
+                  <Text style={styles.modalCancelBtnText}>{actionModal.cancelText}</Text>
+                </TouchableOpacity>
+              ) : null}
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={handleModalConfirm}
+                style={[
+                  styles.modalBtn,
+                  styles.modalConfirmBtn,
+                  actionModal.showCancel ? styles.modalBtnWithCancel : styles.modalBtnSingle,
+                ]}
+              >
+                <Text style={styles.modalConfirmBtnText}>{actionModal.confirmText}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -514,5 +721,66 @@ const styles = StyleSheet.create({
   detailValue: {
     ...Fonts.Medium14black,
     flex: 1,
+  },
+  modalBackdrop: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Default.fixPadding * 2,
+    backgroundColor: Colors.transparentBlack,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 420,
+    borderRadius: 14,
+    backgroundColor: Colors.white,
+    paddingHorizontal: Default.fixPadding * 1.6,
+    paddingTop: Default.fixPadding * 1.8,
+    paddingBottom: Default.fixPadding * 1.4,
+    alignItems: 'center',
+    ...Default.shadow,
+  },
+  modalTitle: {
+    marginTop: Default.fixPadding * 0.8,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    marginTop: Default.fixPadding * 0.4,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  modalButtonsRow: {
+    width: '100%',
+    marginTop: Default.fixPadding * 1.5,
+    alignItems: 'center',
+  },
+  modalBtn: {
+    height: 44,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalBtnWithCancel: {
+    flex: 1,
+  },
+  modalBtnSingle: {
+    width: '100%',
+  },
+  modalCancelBtn: {
+    borderWidth: 1,
+    borderColor: Colors.borderColor || '#E2E8F0',
+    backgroundColor: Colors.white,
+  },
+  modalCancelBtnText: {
+    ...Fonts.SemiBold16black,
+    fontSize: 14,
+    color: Colors.grey,
+  },
+  modalConfirmBtn: {
+    backgroundColor: Colors.primary,
+  },
+  modalConfirmBtnText: {
+    ...Fonts.SemiBold16white,
+    fontSize: 14,
   },
 });
