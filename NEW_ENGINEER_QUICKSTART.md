@@ -40,6 +40,9 @@ Last updated: February 21, 2026
 - No permissive RLS on tenant data.
 - Data fixes must be reversible (backup table + verification).
 - Keep user/superadmin contracts aligned for shared modules.
+- Guard communication routing rule: resident/guard chat + call flows are in-app (auditable).
+- Visitor/guest/cab/delivery/service phone numbers are direct dial (`tel:`).
+- Only approved direct-call shortcuts are emergency contacts + `Call Admin` / `Call Secretary` in Guard settings.
 
 ## Validation Commands (Typical)
 

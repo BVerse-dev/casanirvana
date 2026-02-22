@@ -104,6 +104,13 @@ Each slice follows the same lifecycle.
 - Avoid duplicate realtime invalidation keys.
 - Remove UI placeholders once DB-backed contract exists.
 
+## Guard Communication Routing Policy
+
+- Keep resident/guard communication in-app: chat messages and call flows between guard and residents must route through app call/chat surfaces and create app-level records.
+- Use direct dial for non-app actors only: visitor/guest/cab/delivery/service personnel numbers entered during entry flows are direct phone calls (`tel:`), not in-app calls.
+- Direct dial is explicitly allowed in Guard app for emergency contacts and `Call Admin` / `Call Secretary` quick actions in Guard Settings.
+- Do not introduce new off-platform channels (WhatsApp or external chat) for operational flows that should be auditable in-app.
+
 ## UI/UX Production Standard
 
 - No fake success flows for real transactions.
