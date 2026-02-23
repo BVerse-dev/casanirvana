@@ -79,7 +79,7 @@ const HomeScreen = ({ navigation }) => {
         .from("notifications")
         .select("id", { count: "exact", head: true })
         .eq("user_id", currentUserId)
-        .eq("is_read", false);
+        .is("read_at", null);
 
       if (!error && mounted) {
         setUnreadCount(count || 0);

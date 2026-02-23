@@ -1,15 +1,40 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, BackHandler, Dimensions, Animated, Image } from "react-native";
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  BackHandler,
+  Image,
+  RefreshControl,
+  ActivityIndicator,
+} from "react-native";
 import { useTranslation } from "react-i18next";
 import Ionicons from "react-native-vector-icons/Ionicons";
-import MyStatusBar from "../components/myStatusBar";
-import { Colors, Default, Fonts } from "../constants/styles";
-import SnackbarToast from "../components/snackbarToast";
 import { SwipeListView } from "react-native-swipe-list-view";
+import MyStatusBar from "../components/myStatusBar";
+import SnackbarToast from "../components/snackbarToast";
+import { Colors, Default, Fonts } from "../constants/styles";
+import { useGuardAuth } from "../contexts/GuardAuthContext";
+import { useNotifications } from "../hooks/useNotifications";
 
 const NotificationScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
-  const isRtl = i18n.dir() == "rtl";
+  const isRtl = i18n.dir() === "rtl";
+  const { user } = useGuardAuth();
+
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastVisible, setToastVisible] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [markingAll, setMarkingAll] = useState(false);
+
+  const {
+    notifications,
+    loading,
+    error,
+    fetchNotifications,
+    markAsRead,
+    markAllAsRead,
+  } = useNotifications(user?.id);
 
   function tr(key) {
     return t(`notificationScreen:${key}`);
@@ -27,128 +52,110 @@ const NotificationScreen = ({ navigation }) => {
     return () => subscription?.remove();
   }, [navigation]);
 
-  // Mock data in the same shape as user-app list items
-  // Each item must include id, title, body, created_at, read_at, notification_type
-  const [notificationList, setNotificationList] = useState([
-    {
-      id: "mock-1",
-      title: "Join Request Approved",
-      body: "Your request to join Casa Nirvana has been approved.",
-      created_at: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
-      read_at: null,
-      notification_type: "join_request_approved",
-      priority: "normal",
-    },
-    {
-      id: "mock-2",
-      title: "Maintenance Update",
-      body: "Elevator maintenance scheduled for 3 PM today.",
-      created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-      read_at: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
-      notification_type: "maintenance",
-      priority: "normal",
-    },
-    {
-      id: "mock-3",
-      title: "Payment Reminder",
-      body: "Monthly dues payment is due in 3 days.",
-      created_at: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-      read_at: null,
-      notification_type: "payment_reminder",
-      priority: "high",
-    },
-    {
-      id: "mock-4",
-      title: "Security Alert",
-      body: "Unauthorized access attempt detected.",
-      created_at: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
-      read_at: null,
-      notification_type: "security",
-      priority: "high",
-    },
-    {
-      id: "mock-5",
-      title: "Community Announcement",
-      body: "Annual community meeting scheduled for next week.",
-      created_at: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
-      read_at: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-      notification_type: "announcement",
-      priority: "normal",
-    },
-  ]);
-  const [removeNotificationToast, setRemoveNotificationToast] = useState(false);
-  const onDismissRemoveNotificationToast = () => setRemoveNotificationToast(false);
+  const showToast = (message) => {
+    setToastMessage(message);
+    setToastVisible(true);
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchNotifications();
+    setRefreshing(false);
+  };
+
+  const handleMarkAllAsRead = async () => {
+    if (markingAll) return;
+    try {
+      setMarkingAll(true);
+      await markAllAsRead();
+      showToast("All notifications marked as read.");
+    } catch (markError) {
+      showToast(markError?.message || "Could not update notifications.");
+    } finally {
+      setMarkingAll(false);
+    }
+  };
+
+  const handleNotificationPress = async (item) => {
+    navigation.navigate("notificationDetailScreen", {
+      notificationId: item.id,
+      notification: item,
+    });
+    if (!item.isRead) {
+      try {
+        await markAsRead(item.id);
+      } catch (markError) {
+        showToast(markError?.message || "Could not mark notification as read.");
+      }
+    }
+  };
 
   const getTimeAgo = (dateString) => {
+    if (!dateString) return "";
     const now = new Date();
     const date = new Date(dateString);
     const diffInMinutes = Math.floor((now - date) / (1000 * 60));
-    if (diffInMinutes < 1) return 'Just now';
+    if (diffInMinutes < 1) return "Just now";
     if (diffInMinutes < 60) return `${diffInMinutes} min`;
     if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)} hr`;
-    return `${Math.floor(diffInMinutes / 1440)} day${Math.floor(diffInMinutes / 1440) > 1 ? 's' : ''}`;
+    const days = Math.floor(diffInMinutes / 1440);
+    return `${days} day${days > 1 ? "s" : ""}`;
   };
 
-  // Match user-app mapping for icons
   const getNotificationIcon = (type) => {
     switch (type) {
-      case 'join_request_approved':
-        return require("../assets/images/community5.png");
-      case 'maintenance':
+      case "guest_approved":
+      case "visitor_approved":
+      case "visitor_denied":
+      case "visitor_checked_in":
+      case "visitor_checked_out":
+        return require("../assets/images/visitor1.png");
+      case "emergency":
+      case "emergency_alert":
+        return require("../assets/images/visitor4.png");
+      case "assignment":
+        return require("../assets/images/visitor3.png");
+      case "maintenance":
+      case "maintenance_scheduled":
+      case "maintenance_completed":
         return require("../assets/images/community4.png");
-      case 'notice':
-        return require("../assets/images/community3.png");
-      case 'amenity':
+      case "payment_reminder":
+      case "payment_overdue":
+      case "payment_confirmed":
         return require("../assets/images/community5.png");
+      case "notice":
+      case "announcement":
+        return require("../assets/images/community3.png");
       default:
         return require("../assets/images/s7.png");
     }
   };
 
-  const displayNotifications = notificationList.map((notification) => ({
-    key: notification.id,
-    id: notification.id,
-    title: notification.title,
-    body: notification.body,
-    time: getTimeAgo(notification.created_at),
-    isRead: !!notification.read_at,
-    notificationType: notification.notification_type,
-    priority: notification.priority || 'normal',
-    image: getNotificationIcon(notification.notification_type),
-    ...notification,
-  }));
+  const displayNotifications = useMemo(
+    () =>
+      (notifications || []).map((notification) => {
+        const isRead =
+          Boolean(notification.read_at) ||
+          Boolean(notification.is_read) ||
+          Boolean(notification.read);
+        return {
+          key: notification.id,
+          id: notification.id,
+          title: notification.title || "Notification",
+          body: notification.body || "",
+          time: getTimeAgo(notification.created_at),
+          isRead,
+          image: getNotificationIcon(notification.notification_type),
+          ...notification,
+        };
+      }),
+    [notifications]
+  );
 
-  const rowTranslateAnimatedValues = {};
-  displayNotifications.forEach((item) => {
-    rowTranslateAnimatedValues[item.key] = new Animated.Value(1);
-  });
-
-  const onSwipeValueChange = (swipeData) => {
-    const { key, value } = swipeData;
-    if (
-      value < -Dimensions.get("window").width ||
-      value > Dimensions.get("window").width
-    ) {
-      Animated.timing(rowTranslateAnimatedValues[key], {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: false,
-      }).start(() => {
-        setNotificationList((list) => list.filter((n) => n.id !== key));
-        setRemoveNotificationToast(true);
-      });
-    }
-  };
-
-  const handleNotificationPress = (item) => {
-    navigation.navigate('notificationDetailScreen', { notification: item });
-    if (!item.read_at) {
-      setNotificationList((list) => list.map((n) => n.id === item.id ? { ...n, read_at: new Date().toISOString() } : n));
-    }
-  };
+  const unreadCount = displayNotifications.filter((item) => !item.isRead).length;
 
   const renderItem = ({ item }) => (
-    <Animated.View style={{ backgroundColor: Colors.white, opacity: rowTranslateAnimatedValues[item.key] }}>
+    <View style={{ backgroundColor: Colors.white }}>
       <TouchableOpacity
         onPress={() => handleNotificationPress(item)}
         style={{
@@ -179,16 +186,7 @@ const NotificationScreen = ({ navigation }) => {
               backgroundColor: Colors.extraLightBlue,
             }}
           >
-            <Image
-              source={
-                typeof item.image === 'number' 
-                  ? item.image 
-                  : typeof item.image === 'string' && item.image.startsWith('http')
-                    ? { uri: item.image }
-                    : require("../assets/images/s7.png") // Fallback icon
-              }
-              style={{ width: 35, height: 35, resizeMode: "contain" }}
-            />
+            <Image source={item.image} style={{ width: 35, height: 35, resizeMode: "contain" }} />
           </View>
 
           <View
@@ -203,7 +201,7 @@ const NotificationScreen = ({ navigation }) => {
               style={{
                 ...Fonts.SemiBold16black,
                 overflow: "hidden",
-                fontWeight: item.isRead ? 'normal' : 'bold'
+                fontWeight: item.isRead ? "normal" : "bold",
               }}
             >
               {item.title}
@@ -213,7 +211,7 @@ const NotificationScreen = ({ navigation }) => {
               style={{
                 ...Fonts.Medium14grey,
                 overflow: "hidden",
-                fontWeight: item.isRead ? 'normal' : '500'
+                fontWeight: item.isRead ? "normal" : "500",
               }}
             >
               {item.body}
@@ -221,23 +219,19 @@ const NotificationScreen = ({ navigation }) => {
           </View>
         </View>
 
-        <View
-          style={{
-            alignItems: isRtl ? "flex-start" : "flex-end",
-          }}
-        >
+        <View style={{ alignItems: isRtl ? "flex-start" : "flex-end" }}>
           <Text
             numberOfLines={1}
             style={{
               ...Fonts.Medium14grey,
               overflow: "hidden",
-              maxWidth: 70,
+              maxWidth: 80,
               textAlign: isRtl ? "left" : "right",
             }}
           >
             {item.time}
           </Text>
-          {!item.isRead && (
+          {!item.isRead ? (
             <View
               style={{
                 width: 8,
@@ -247,15 +241,49 @@ const NotificationScreen = ({ navigation }) => {
                 marginTop: 4,
               }}
             />
-          )}
+          ) : null}
         </View>
       </TouchableOpacity>
-    </Animated.View>
+    </View>
   );
 
-  const renderHiddenItem = () => (
-    <View style={{ flex: 1, marginBottom: Default.fixPadding * 2, backgroundColor: Colors.red }} />
-  );
+  const renderHiddenItem = (rowData, rowMap) => {
+    const item = rowData.item;
+    const canMarkRead = !item.isRead;
+    return (
+      <View
+        style={{
+          flex: 1,
+          marginBottom: Default.fixPadding * 2,
+          marginHorizontal: Default.fixPadding * 2,
+          borderRadius: 10,
+          backgroundColor: canMarkRead ? Colors.primary : Colors.grey,
+          justifyContent: "center",
+          alignItems: "flex-end",
+          paddingRight: Default.fixPadding * 1.6,
+        }}
+      >
+        <TouchableOpacity
+          disabled={!canMarkRead}
+          onPress={async () => {
+            if (!canMarkRead) return;
+            try {
+              await markAsRead(item.id);
+              showToast("Notification marked as read.");
+            } catch (markError) {
+              showToast(markError?.message || "Could not mark notification as read.");
+            } finally {
+              rowMap[item.key]?.closeRow();
+            }
+          }}
+        >
+          <Text style={{ ...Fonts.SemiBold14white }}>
+            {canMarkRead ? "Mark Read" : "Read"}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: Colors.white }}>
@@ -279,13 +307,33 @@ const NotificationScreen = ({ navigation }) => {
           style={{
             ...Fonts.SemiBold18black,
             marginHorizontal: Default.fixPadding,
+            flex: 1,
           }}
         >
           {tr("notification")}
         </Text>
+        {unreadCount > 0 ? (
+          <TouchableOpacity onPress={handleMarkAllAsRead} disabled={markingAll}>
+            <Text
+              style={{
+                ...Fonts.SemiBold14primary,
+                opacity: markingAll ? 0.6 : 1,
+              }}
+            >
+              {markingAll ? "Updating..." : "Mark all read"}
+            </Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
 
-      {displayNotifications.length === 0 ? (
+      {loading && displayNotifications.length === 0 ? (
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={{ ...Fonts.Medium14grey, marginTop: Default.fixPadding }}>
+            Loading notifications...
+          </Text>
+        </View>
+      ) : displayNotifications.length === 0 ? (
         <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
           <Ionicons name="notifications-off-outline" size={48} color={Colors.grey} />
           <Text style={{ ...Fonts.SemiBold16grey, marginTop: Default.fixPadding }}>
@@ -297,19 +345,40 @@ const NotificationScreen = ({ navigation }) => {
           data={displayNotifications}
           renderItem={renderItem}
           renderHiddenItem={renderHiddenItem}
-          onSwipeValueChange={onSwipeValueChange}
+          rightOpenValue={-100}
+          disableRightSwipe
           useNativeDriver={false}
           showsVerticalScrollIndicator={false}
-          rightOpenValue={-Dimensions.get("window").width}
-          leftOpenValue={Dimensions.get("window").width}
           contentContainerStyle={{ paddingTop: Default.fixPadding * 0.8 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[Colors.primary]}
+              tintColor={Colors.primary}
+            />
+          }
         />
       )}
 
+      {error ? (
+        <View
+          style={{
+            marginHorizontal: Default.fixPadding * 2,
+            marginBottom: Default.fixPadding * 1.6,
+            padding: Default.fixPadding,
+            borderRadius: 8,
+            backgroundColor: Colors.orange + "20",
+          }}
+        >
+          <Text style={{ ...Fonts.Medium14black, color: Colors.orange }}>{error}</Text>
+        </View>
+      ) : null}
+
       <SnackbarToast
-        title={tr("remove")}
-        visible={removeNotificationToast}
-        onDismiss={onDismissRemoveNotificationToast}
+        title={toastMessage || tr("remove")}
+        visible={toastVisible}
+        onDismiss={() => setToastVisible(false)}
       />
     </View>
   );
