@@ -1,11 +1,9 @@
 "use client";
 import ComponentContainerCard from "@/components/ComponentContainerCard";
 import { Button } from "react-bootstrap";
-import { withSwal } from "react-sweetalert2";
+import Swal from "sweetalert2";
 
-const AllSweetAlerts = withSwal((props: any) => {
-  const { swal } = props;
-
+const AllSweetAlerts = () => {
   return (
     <>
       <ComponentContainerCard id="basic" title="Basic" titleClass="mb-3">
@@ -13,7 +11,7 @@ const AllSweetAlerts = withSwal((props: any) => {
           variant="primary"
           type="button"
           onClick={() =>
-            swal.fire({
+            Swal.fire({
               title: "Any fool can use a computer",
               customClass: {
                 confirmButton: `btn btn-primary w-xs mt-2`,
@@ -34,7 +32,7 @@ const AllSweetAlerts = withSwal((props: any) => {
           variant="primary"
           type="button"
           onClick={() =>
-            swal.fire({
+            Swal.fire({
               title: "The Internet?",
               text: "That thing is still around?",
               icon: "question",
@@ -53,7 +51,7 @@ const AllSweetAlerts = withSwal((props: any) => {
           <Button
             variant="success"
             onClick={() =>
-              swal.fire({
+              Swal.fire({
                 title: "Good job!",
                 text: "You clicked the button!",
                 icon: "success",
@@ -73,7 +71,7 @@ const AllSweetAlerts = withSwal((props: any) => {
           <Button
             variant="warning"
             onClick={() =>
-              swal.fire({
+              Swal.fire({
                 title: "Oops...",
                 text: "Something went wrong!",
                 icon: "warning",
@@ -91,7 +89,7 @@ const AllSweetAlerts = withSwal((props: any) => {
           <Button
             variant="info"
             onClick={() =>
-              swal.fire({
+              Swal.fire({
                 title: "Oops...",
                 text: "Something went wrong!",
                 icon: "info",
@@ -109,7 +107,7 @@ const AllSweetAlerts = withSwal((props: any) => {
           <Button
             variant="danger"
             onClick={() =>
-              swal.fire({
+              Swal.fire({
                 title: "Oops...",
                 text: "Something went wrong!",
                 icon: "error",
@@ -135,7 +133,7 @@ const AllSweetAlerts = withSwal((props: any) => {
         <Button
           variant="primary"
           onClick={() =>
-            swal.fire({
+            Swal.fire({
               imageUrl: "https://placeholder.pics/svg/300x1500",
               imageHeight: 1500,
               imageAlt: "A tall image",
@@ -160,7 +158,7 @@ const AllSweetAlerts = withSwal((props: any) => {
           variant="primary"
           type="button"
           onClick={() =>
-            swal
+            Swal
               .fire({
                 title: "Are you sure?",
                 text: "You won't be able to revert this!",
@@ -175,9 +173,9 @@ const AllSweetAlerts = withSwal((props: any) => {
                 buttonsStyling: false,
                 showCloseButton: false,
               })
-              .then(function (result: any) {
-                if (result.value) {
-                  swal.fire({
+              .then((result) => {
+                if (result.isConfirmed) {
+                  Swal.fire({
                     title: "Deleted!",
                     text: "Your file has been deleted.",
                     icon: "success",
@@ -188,9 +186,9 @@ const AllSweetAlerts = withSwal((props: any) => {
                   });
                 } else if (
                   // Read more about handling dismissals
-                  result.dismiss === swal.DismissReason.cancel
+                  result.dismiss === Swal.DismissReason.cancel
                 ) {
-                  swal.fire({
+                  Swal.fire({
                     title: "Cancelled",
                     text: "Your imaginary file is safe :)",
                     icon: "error",
@@ -208,6 +206,6 @@ const AllSweetAlerts = withSwal((props: any) => {
       </ComponentContainerCard>
     </>
   );
-});
+};
 
 export default AllSweetAlerts;
