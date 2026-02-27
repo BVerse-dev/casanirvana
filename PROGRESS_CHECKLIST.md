@@ -431,6 +431,9 @@ Date: 2026-02-06
     - reconcile status via backend `verify/status`,
     - keep personal-hub transaction rows linked by `payment_ref_id` and update terminal states (`completed`/`failed`) without client-side success simulation.
   - Updated `/Users/andromeda/casanirvana/user/screens/creditCardScreen.js` and `/Users/andromeda/casanirvana/user/screens/paypalScreen.js` to run the same hosted-checkout + reconciliation contract.
+- [x] Applied hotfix migration `supabase/migrations/20260227174500_phase27_admin_roles_rls_recursion_fix.sql` to remove recursive legacy RLS policies:
+  - Dropped old `Allow service role or superadmin ...` policies on `public.admin_roles` and `public.app_settings`.
+  - Added function-based `admin_roles` policies (`p27_admin_roles_select_admin`, `p27_admin_roles_manage_superadmin`, `p27_admin_roles_service_role_all`) to eliminate policy recursion and restore superadmin settings reads.
 - [ ] Pending: manual runtime QA for user payment checkout lifecycle (card/mobile-money/paypal) with real ExpressPay test credentials and callback timings.
 - [ ] Pending: add final callback authenticity hardening once ExpressPay signature/hash contract is confirmed in production credentials docs.
 
