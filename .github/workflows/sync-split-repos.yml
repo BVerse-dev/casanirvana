@@ -20,14 +20,19 @@ jobs:
         include:
           - prefix: backend
             repo: casanirvana-backend
+            ssh_secret: SPLIT_SYNC_KEY_BACKEND
           - prefix: superadmin
             repo: casanirvana-superadmin
+            ssh_secret: SPLIT_SYNC_KEY_SUPERADMIN
           - prefix: user
             repo: casanirvana-user-app
+            ssh_secret: SPLIT_SYNC_KEY_USER
           - prefix: Guard
             repo: casanirvana-guard-app
+            ssh_secret: SPLIT_SYNC_KEY_GUARD
           - prefix: supabase
             repo: casanirvana-platform
+            ssh_secret: SPLIT_SYNC_KEY_PLATFORM
 
     steps:
       - name: Checkout monorepo
@@ -42,5 +47,5 @@ jobs:
 
       - name: Mirror ${{ matrix.prefix }} to ${{ matrix.repo }}
         env:
-          SPLIT_REPO_PUSH_TOKEN: ${{ secrets.SPLIT_REPO_PUSH_TOKEN }}
+          SPLIT_REPO_SSH_KEY: ${{ secrets[matrix.ssh_secret] }}
         run: ./.github/scripts/sync-split-repo.sh "${{ matrix.prefix }}" "${{ matrix.repo }}"

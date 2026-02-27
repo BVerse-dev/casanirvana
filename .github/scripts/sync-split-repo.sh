@@ -10,13 +10,19 @@ PREFIX="$1"
 TARGET_REPO="$2"
 TARGET_ORG="BVerse-dev"
 
-if [ -z "${SPLIT_REPO_PUSH_TOKEN:-}" ]; then
-  echo "SPLIT_REPO_PUSH_TOKEN is required" >&2
+if [ -z "${SPLIT_REPO_SSH_KEY:-}" ]; then
+  echo "SPLIT_REPO_SSH_KEY is required" >&2
   exit 1
 fi
 
 BRANCH="split/${PREFIX}"
-REMOTE_URL="https://x-access-token:${SPLIT_REPO_PUSH_TOKEN}@github.com/${TARGET_ORG}/${TARGET_REPO}.git"
+REMOTE_URL="git@github.com:${TARGET_ORG}/${TARGET_REPO}.git"
+
+KEY_FILE="$(mktemp)"
+trap 'rm -f "$KEY_FILE"' EXIT
+printf '%s\n' "$SPLIT_REPO_SSH_KEY" > "$KEY_FILE"
+chmod 600 "$KEY_FILE"
+export GIT_SSH_COMMAND="ssh -i ${KEY_FILE} -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
 
 git branch -D "$BRANCH" >/dev/null 2>&1 || true
 git subtree split --prefix="$PREFIX" -b "$BRANCH"
