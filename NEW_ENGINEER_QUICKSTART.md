@@ -9,6 +9,7 @@ Last updated: February 21, 2026
 3. Read:
 - `/Users/andromeda/casanirvana/user/SCREEN_WIRING_CHECKLIST.md`
 - `/Users/andromeda/casanirvana/user/SCHEMA_ALIGNMENT_GAPS.md`
+- `/Users/andromeda/casanirvana/EXPRESSPAY_INTEGRATION_BLUEPRINT.md` (payment gateway architecture + API contract)
 
 ## Repo Areas
 

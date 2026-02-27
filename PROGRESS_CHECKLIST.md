@@ -393,6 +393,47 @@ Date: 2026-02-06
 - [x] Applied migration `supabase/migrations/20260223103000_phase26_guard_profile_update_policy.sql` to allow guard-owned `public.guards` updates (`USING/WITH CHECK user_id = auth.uid()`).
 - [ ] Manual runtime QA pending for Guard settings/profile flows (`settingScreen`, `languageScreen`, `notificationSettingsScreen`, `chatSettingsScreen`, `editProfileScreen`).
 
+## Phase 27 - ExpressPay Gateway Foundation
+- [x] Added canonical payment-gateway architecture lock doc: `/Users/andromeda/casanirvana/EXPRESSPAY_INTEGRATION_BLUEPRINT.md` (hosted checkout first, verification contract, security guardrails).
+- [x] Updated onboarding/playbook references for gateway standard (`/Users/andromeda/casanirvana/NEW_ENGINEER_QUICKSTART.md`, `/Users/andromeda/casanirvana/PRODUCTION_READINESS_PLAYBOOK.md`).
+- [x] Applied migration `supabase/migrations/20260227153000_phase27_expresspay_secure_gateway_config.sql`:
+  - Created `public.payment_gateway_configs` (community/global scope, test/live mode, secret refs, RLS + grants).
+  - Seeded disabled global `expresspay` rows (`test`, `live`) with hosted-checkout defaults.
+  - Removed permissive legacy `app_settings` authenticated-all/read-all policies and added explicit admin/service-role policies.
+- [x] Implemented backend ExpressPay orchestration contract:
+  - Service: `/Users/andromeda/casanirvana/backend/src/services/expresspay.ts`
+  - Controller: `/Users/andromeda/casanirvana/backend/src/controllers/expresspay.ts`
+  - Routes: `/Users/andromeda/casanirvana/backend/src/routes/expresspay.ts`
+  - Mounted in `/Users/andromeda/casanirvana/backend/src/app.ts`
+  - Validation schemas added in `/Users/andromeda/casanirvana/backend/src/validation/schemas.ts`
+  - Env template updated in `/Users/andromeda/casanirvana/backend/.env.example`
+- [x] Backend lint + build checks passed for this slice (`eslint` on touched files + `npm run build` in `/Users/andromeda/casanirvana/backend`).
+- [x] Applied migration `supabase/migrations/20260227162000_phase27_vault_secret_helper_rpcs.sql` to add backend-only Vault helper RPCs (`p27_upsert_vault_secret`, `p27_read_vault_secret`, `p27_read_vault_secret_by_id`).
+- [x] Added backend admin ExpressPay secure-config endpoints:
+  - `GET /admin/payment-gateways/expresspay/config`
+  - `PUT /admin/payment-gateways/expresspay/config`
+  - `POST /admin/payment-gateways/expresspay/test`
+  - Files: `/Users/andromeda/casanirvana/backend/src/services/adminPaymentGateway.ts`, `/Users/andromeda/casanirvana/backend/src/controllers/adminPaymentGateway.ts`, route wiring in `/Users/andromeda/casanirvana/backend/src/routes/admin.ts`.
+- [x] Rewired superadmin payment gateway page ExpressPay block to secure admin backend flow (no plaintext secret writes to `app_settings`):
+  - Added `/Users/andromeda/casanirvana/superadmin/src/hooks/useExpressPayGatewayConfig.ts`
+  - Updated `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/settings/payment/gateways/page.tsx` to:
+    - load/save/test ExpressPay through new admin endpoints,
+    - stop persisting `expresspay_*` keys through legacy `app_settings` upsert path,
+    - show configured-secret status flags and connection test feedback.
+- [x] Targeted lint/build checks passed for this pass:
+  - backend: `eslint` on changed files + `npm run build`
+  - superadmin: `npm run lint -- --file src/app/(admin)/settings/payment/gateways/page.tsx --file src/hooks/useExpressPayGatewayConfig.ts`
+- [x] Wired user app payment-method screens to backend ExpressPay endpoints (no direct client-side `payments` inserts for checkout):
+  - Added `/Users/andromeda/casanirvana/user/services/expressPayService.js` with authenticated `initiate`, `verify`, `status`, and reconciliation helpers.
+  - Updated `/Users/andromeda/casanirvana/user/screens/mobileMoneyScreen.js` to:
+    - initiate checkout through backend `POST /payments/expresspay/initiate`,
+    - open hosted checkout URL,
+    - reconcile status via backend `verify/status`,
+    - keep personal-hub transaction rows linked by `payment_ref_id` and update terminal states (`completed`/`failed`) without client-side success simulation.
+  - Updated `/Users/andromeda/casanirvana/user/screens/creditCardScreen.js` and `/Users/andromeda/casanirvana/user/screens/paypalScreen.js` to run the same hosted-checkout + reconciliation contract.
+- [ ] Pending: manual runtime QA for user payment checkout lifecycle (card/mobile-money/paypal) with real ExpressPay test credentials and callback timings.
+- [ ] Pending: add final callback authenticity hardening once ExpressPay signature/hash contract is confirmed in production credentials docs.
+
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)
 - [x] Remove any `node_modules` committed to repo.
@@ -414,6 +455,13 @@ Date: 2026-02-06
 - [x] `POST/PATCH/DELETE /admin/complaints` (admin writes)
 - [x] `POST/PUT/DELETE /admin/payments` (admin writes)
 - [x] `POST/PUT/DELETE /admin/notification-campaigns` (admin writes)
+- [x] `POST /payments/expresspay/initiate` (create gateway payment intent + checkout URL)
+- [x] `GET /payments/expresspay/status/:paymentId` (payment status polling)
+- [x] `POST /payments/expresspay/verify` (manual/server reconciliation)
+- [x] `POST/GET /payments/expresspay/callback` (provider callback ingestion)
+- [x] `GET /admin/payment-gateways/expresspay/config` (secure ExpressPay config read)
+- [x] `PUT /admin/payment-gateways/expresspay/config` (secure ExpressPay config upsert + Vault secret write)
+- [x] `POST /admin/payment-gateways/expresspay/test` (credential/connectivity test with persisted test status)
 
 ## Environment Variables (Required)
 - `ADMIN_INVITE_REDIRECT_URL`

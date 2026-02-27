@@ -14,6 +14,7 @@ import * as messagesAdminController from '../controllers/adminMessages';
 import * as adminNotificationsController from '../controllers/adminNotifications';
 import * as complaintController from '../controllers/complaint';
 import * as paymentController from '../controllers/payment';
+import * as adminPaymentGatewayController from '../controllers/adminPaymentGateway';
 
 const router = express.Router();
 
@@ -342,6 +343,27 @@ router.delete(
   requirePermission('manage:settings'),
   validateRequest({ params: schemas.adminDeleteSettingParams }),
   adminController.deleteSetting
+);
+router.get(
+  '/payment-gateways/expresspay/config',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ query: schemas.adminExpressPayConfigQuery }),
+  adminPaymentGatewayController.getExpressPayGatewayConfig
+);
+router.put(
+  '/payment-gateways/expresspay/config',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ body: schemas.adminExpressPayConfigUpsert }),
+  adminPaymentGatewayController.updateExpressPayGatewayConfig
+);
+router.post(
+  '/payment-gateways/expresspay/test',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ body: schemas.adminExpressPayConfigTest }),
+  adminPaymentGatewayController.testExpressPayGatewayConfig
 );
 router.get(
   '/system-settings',

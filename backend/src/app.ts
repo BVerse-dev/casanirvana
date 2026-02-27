@@ -12,6 +12,7 @@ import noticeRoutes from './routes/notice';
 import maintenanceRoutes from './routes/maintenance';
 import complaintRoutes from './routes/complaint';
 import paymentRoutes from './routes/payment';
+import expressPayRoutes from './routes/expresspay';
 import messageRoutes from './routes/message';
 import uploadRoutes from './routes/upload';
 import adminRoutes from './routes/admin';
@@ -86,6 +87,7 @@ app.use('/', noticeRoutes); // notices and events
 app.use('/', maintenanceRoutes);
 app.use('/', complaintRoutes);
 app.use('/', paymentRoutes);
+app.use('/', expressPayRoutes);
 app.use('/', messageRoutes);
 app.use('/', uploadRoutes);
 app.use('/admin', adminRateLimiter, adminRoutes); // Admin-specific routes

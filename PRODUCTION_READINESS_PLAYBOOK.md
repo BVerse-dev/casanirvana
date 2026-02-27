@@ -111,6 +111,14 @@ Each slice follows the same lifecycle.
 - Direct dial is explicitly allowed in Guard app for emergency contacts and `Call Admin` / `Call Secretary` quick actions in Guard Settings.
 - Do not introduce new off-platform channels (WhatsApp or external chat) for operational flows that should be auditable in-app.
 
+## Payment Gateway Standard
+
+- Use hosted checkout as default first production integration path for new gateways.
+- Do not accept/store raw card data in mobile screens or DB tables.
+- Keep gateway secrets in secure secret storage (Vault), not plain settings rows.
+- Require server-side verification before marking payments completed.
+- Follow `/Users/andromeda/casanirvana/EXPRESSPAY_INTEGRATION_BLUEPRINT.md` for ExpressPay-specific flow and API contract.
+
 ## UI/UX Production Standard
 
 - No fake success flows for real transactions.

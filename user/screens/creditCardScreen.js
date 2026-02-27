@@ -10,6 +10,7 @@ import {
   Alert,
   Modal,
 } from "react-native";
+import * as WebBrowser from "expo-web-browser";
 import MyStatusBar from "../components/myStatusBar";
 import { useTranslation } from "react-i18next";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -18,9 +19,12 @@ import AwesomeButton from "react-native-really-awesome-button";
 import CreditCard from "react-native-credit-card-ui";
 import * as cardValidator from "card-validator";
 import { useUpdateAmenityBooking } from "../hooks/useCreateAmenityBooking";
-import { addPayment } from "../services/paymentService";
 import { supabase } from "../utils/supabase";
 import { useHasJoinedCommunity } from "../hooks/useCommunityData";
+import {
+  initiateExpressPayPayment,
+  reconcileExpressPayPayment,
+} from "../services/expressPayService";
 
 const { width } = Dimensions.get("window");
 
@@ -609,50 +613,113 @@ const CreditCardScreen = ({ navigation, route }) => {
         throw new Error('Unable to resolve payer for payment');
       }
 
-      const transactionId = `TXN_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const normalizeGatewayStatus = (status) => {
+        if (!status) return 'pending';
+        const normalized = String(status).toLowerCase();
+        if (normalized === 'processing' || normalized === 'initiated') return 'pending';
+        return normalized;
+      };
 
-      if (bookingData) {
-        const bookingType = bookingData?.type || paymentData?.type || 'booking';
-        const paymentRecord = {
-          amount: bookingData.totalAmount,
-          unit_id: unitId,
-          payer_id: payerId,
-          payment_method: 'card',
-          transaction_id: transactionId,
-          status: 'completed',
-          payment_date: new Date().toISOString(),
-          payment_type: bookingType,
-          description: `Payment for ${bookingData.amenityName || bookingData.serviceTitle || 'booking'}`,
-          metadata: {
-            card_last_four: number.slice(-4),
-            cardholder_name: name,
-            card_brand: cardValidator.number(number).card?.type || 'unknown',
-            source_booking_id: bookingId || null,
-            source_booking_type: bookingType,
+      const mapBookingPaymentStatus = (status) => {
+        if (status === 'completed') return 'paid';
+        if (status === 'failed') return 'failed';
+        return 'pending';
+      };
+
+      const bookingType = bookingData?.type || paymentData?.type || 'community_dues';
+      const amountToCharge = Number(bookingData?.totalAmount ?? paymentData?.amount ?? 0);
+
+      if (!Number.isFinite(amountToCharge) || amountToCharge <= 0) {
+        throw new Error('Invalid payment amount');
+      }
+
+      const initiationResult = await initiateExpressPayPayment({
+        amount: amountToCharge,
+        currency: 'GHS',
+        payment_type: bookingType,
+        payment_method: 'card',
+        unit_id: unitId,
+        booking_id: bookingId || undefined,
+        description: bookingData
+          ? `Payment for ${bookingData.amenityName || bookingData.serviceTitle || 'booking'}`
+          : paymentData?.title || paymentData?.description || 'Community Payment',
+        idempotency_key: `card-${payerId}-${bookingType}-${Date.now()}`,
+        metadata: {
+          source: 'user-credit-card-screen',
+          source_booking_id: bookingId || null,
+          source_booking_type: bookingType,
+          entered_card_last_four: number.slice(-4),
+          entered_card_brand: cardValidator.number(number).card?.type || 'unknown',
+          entered_cardholder_name: name,
+        },
+      });
+
+      if (!initiationResult.success || !initiationResult.data?.payment_id) {
+        throw new Error(initiationResult.error || 'Failed to initiate payment');
+      }
+
+      if (bookingData?.type !== 'service_booking' && bookingId) {
+        await updateBookingMutation.mutateAsync({
+          id: bookingId,
+          updates: {
+            payment_status: 'pending',
           },
-        };
+        });
+      }
 
-        const paymentResult = await addPayment(paymentRecord);
-        if (paymentResult.error) {
-          throw new Error(paymentResult.error?.message || 'Failed to create payment');
-        }
+      const checkoutUrl = initiationResult.data.checkout_url;
+      if (!checkoutUrl) {
+        throw new Error('Checkout URL missing from payment gateway response.');
+      }
 
-        if (bookingData?.type !== 'service_booking') {
-          await updateBookingMutation.mutateAsync({
-            id: bookingId,
-            updates: {
-              payment_status: 'paid',
+      await WebBrowser.openBrowserAsync(checkoutUrl, {
+        controlsColor: Colors.primary,
+        presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN,
+      });
+
+      const reconciliation = await reconcileExpressPayPayment({
+        paymentId: initiationResult.data.payment_id,
+        token: initiationResult.data.token,
+        orderId: initiationResult.data.transaction_id,
+      });
+
+      const gatewayStatus = normalizeGatewayStatus(
+        reconciliation.status || reconciliation.payment?.status || 'pending'
+      );
+      const transactionId = initiationResult.data.transaction_id || `TXN_${Date.now()}`;
+      const maskedCard = `**** **** **** ${number.slice(-4)}`;
+
+      if (bookingData?.type !== 'service_booking' && bookingId) {
+        await updateBookingMutation.mutateAsync({
+          id: bookingId,
+          updates: {
+            payment_status: mapBookingPaymentStatus(gatewayStatus),
+          },
+        });
+      }
+
+      if (gatewayStatus === 'completed') {
+        if (bookingData) {
+          navigation.push("successScreen", {
+            bookingId,
+            paymentMethod: maskedCard,
+            transactionId,
+            bookingData: {
+              ...bookingData,
+              paymentMethod: maskedCard,
+              paymentDate: new Date().toISOString(),
+              transactionId,
             }
           });
+          return;
         }
 
         navigation.push("successScreen", {
-          bookingId,
-          paymentMethod: `**** **** **** ${number.slice(-4)}`,
+          paymentMethod: maskedCard,
           transactionId,
-          bookingData: {
-            ...bookingData,
-            paymentMethod: `**** **** **** ${number.slice(-4)}`,
+          paymentData: {
+            ...paymentData,
+            paymentMethod: maskedCard,
             paymentDate: new Date().toISOString(),
             transactionId,
           }
@@ -660,39 +727,15 @@ const CreditCardScreen = ({ navigation, route }) => {
         return;
       }
 
-      const paymentRecord = {
-        amount: paymentData.amount,
-        unit_id: unitId,
-        payer_id: payerId,
-        payment_method: 'card',
-        transaction_id: transactionId,
-        status: 'completed',
-        payment_date: new Date().toISOString(),
-        payment_type: 'community_dues',
-        description: paymentData.title || paymentData.description || 'Community Payment',
-        due_date: paymentData.dueDate,
-        metadata: {
-          card_last_four: number.slice(-4),
-          cardholder_name: name,
-          card_brand: cardValidator.number(number).card?.type || 'unknown',
-        },
-      };
-
-      const paymentResult = await addPayment(paymentRecord);
-      if (paymentResult.error) {
-        throw new Error(paymentResult.error?.message || 'Failed to create payment');
+      if (gatewayStatus === 'failed') {
+        Alert.alert('Payment Failed', reconciliation.error || 'Card payment failed. Please try again.');
+        return;
       }
 
-      navigation.push("successScreen", {
-        paymentMethod: `**** **** **** ${number.slice(-4)}`,
-        transactionId,
-        paymentData: {
-          ...paymentData,
-          paymentMethod: `**** **** **** ${number.slice(-4)}`,
-          paymentDate: new Date().toISOString(),
-          transactionId,
-        }
-      });
+      Alert.alert(
+        'Payment Initiated',
+        `Your payment is pending confirmation. Reference: ${transactionId}`
+      );
     } catch (error) {
       Alert.alert('Function Error', `Error: ${error.message}`);
     } finally {

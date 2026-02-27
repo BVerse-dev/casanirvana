@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useEffect } from 'react';
-import { Row, Col, Card, CardHeader, CardBody, Alert, Badge, Form, Button } from 'react-bootstrap';
+import React, { useEffect, useState } from 'react';
+import { Row, Col, Card, CardHeader, CardBody, Alert, Badge, Form } from 'react-bootstrap';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
@@ -15,6 +15,11 @@ import IconifyIcon from '@/components/wrappers/IconifyIcon';
 
 // Hooks
 import usePaymentGatewaySettings, { PaymentGatewaySettings } from '@/hooks/usePaymentGatewaySettings';
+import {
+  useExpressPayGatewayConfig,
+  useTestExpressPayGatewayConnection,
+  useUpdateExpressPayGatewayConfig,
+} from '@/hooks/useExpressPayGatewayConfig';
 
 const schema = yup.object({
   // Razorpay
@@ -79,21 +84,9 @@ const schema = yup.object({
 
   // ExpressPay
   expresspay_enabled: yup.boolean(),
-  expresspay_merchant_id: yup.string().when('expresspay_enabled', {
-    is: true,
-    then: (schema) => schema.required('ExpressPay Merchant ID is required'),
-    otherwise: (schema) => schema.notRequired(),
-  }),
-  expresspay_api_key: yup.string().when('expresspay_enabled', {
-    is: true,
-    then: (schema) => schema.required('ExpressPay API Key is required'),
-    otherwise: (schema) => schema.notRequired(),
-  }),
-  expresspay_secret_key: yup.string().when('expresspay_enabled', {
-    is: true,
-    then: (schema) => schema.required('ExpressPay Secret Key is required'),
-    otherwise: (schema) => schema.notRequired(),
-  }),
+  expresspay_merchant_id: yup.string(),
+  expresspay_api_key: yup.string(),
+  expresspay_secret_key: yup.string(),
   expresspay_webhook_url: yup.string(),
   expresspay_mode: yup.string(),
 
@@ -112,6 +105,11 @@ const schema = yup.object({
 });
 
 const PaymentGatewaysPage = () => {
+  const [gatewayTestFeedback, setGatewayTestFeedback] = useState<{
+    variant: 'success' | 'danger' | 'info';
+    message: string;
+  } | null>(null);
+
   // Supabase hook for payment gateway settings
   const {
     paymentGatewaySettings,
@@ -126,9 +124,10 @@ const PaymentGatewaysPage = () => {
   const {
     control,
     handleSubmit,
-    formState: { errors, isDirty },
+    formState: { isDirty },
     reset,
     watch,
+    setValue,
   } = useForm<PaymentGatewaySettings>({
     resolver: yupResolver(schema),
   });
@@ -146,13 +145,77 @@ const PaymentGatewaysPage = () => {
   const paytmEnabled = watch('paytm_enabled');
   const expresspayEnabled = watch('expresspay_enabled');
   const bankTransferEnabled = watch('bank_transfer_enabled');
+  const expresspayMode = watch('expresspay_mode') === 'live' ? 'live' : 'test';
+
+  const {
+    data: expressPayConfig,
+    isLoading: isLoadingExpressPayConfig,
+    error: expressPayConfigError,
+  } = useExpressPayGatewayConfig(expresspayMode, 'global');
+  const updateExpressPayConfig = useUpdateExpressPayGatewayConfig();
+  const testExpressPayConnection = useTestExpressPayGatewayConnection();
+
+  useEffect(() => {
+    if (!expressPayConfig) return;
+
+    setValue('expresspay_enabled', expressPayConfig.is_enabled);
+    setValue('expresspay_mode', expressPayConfig.mode);
+    setValue('expresspay_webhook_url', expressPayConfig.webhook_url || '');
+    // Never rehydrate secrets from DB/Vault into the form.
+    setValue('expresspay_merchant_id', '');
+    setValue('expresspay_api_key', '');
+    setValue('expresspay_secret_key', '');
+  }, [expressPayConfig, setValue]);
 
   const onSubmit = async (data: PaymentGatewaySettings) => {
-    updateSettings(data);
+    const legacyPayload: PaymentGatewaySettings = { ...data };
+    delete legacyPayload.expresspay_enabled;
+    delete legacyPayload.expresspay_merchant_id;
+    delete legacyPayload.expresspay_api_key;
+    delete legacyPayload.expresspay_secret_key;
+    delete legacyPayload.expresspay_webhook_url;
+    delete legacyPayload.expresspay_mode;
+
+    updateSettings(legacyPayload);
+
+    await updateExpressPayConfig.mutateAsync({
+      mode: data.expresspay_mode === 'live' ? 'live' : 'test',
+      scope: 'global',
+      is_enabled: Boolean(data.expresspay_enabled),
+      currency: data.payment_currency || 'GHS',
+      callback_path: '/payments/expresspay/callback',
+      webhook_url: data.expresspay_webhook_url || null,
+      merchant_id: data.expresspay_merchant_id || null,
+      api_key: data.expresspay_api_key || null,
+      secret_key: data.expresspay_secret_key || null,
+    });
   };
 
-  const testPaymentGateway = (gateway: string) => {
-    alert(`Testing ${gateway} payment gateway connection...`);
+  const testPaymentGateway = async (gateway: string) => {
+    if (gateway !== 'ExpressPay') {
+      setGatewayTestFeedback({
+        variant: 'info',
+        message: `${gateway} test is not wired yet in this slice.`,
+      });
+      return;
+    }
+
+    try {
+      const result = await testExpressPayConnection.mutateAsync({
+        mode: expresspayMode,
+        scope: 'global',
+      });
+
+      setGatewayTestFeedback({
+        variant: result.passed ? 'success' : 'danger',
+        message: result.message,
+      });
+    } catch (error) {
+      setGatewayTestFeedback({
+        variant: 'danger',
+        message: error instanceof Error ? error.message : 'ExpressPay connection test failed.',
+      });
+    }
   };
 
   // Loading state
@@ -213,6 +276,34 @@ const PaymentGatewaysPage = () => {
         <Alert variant="danger" dismissible>
           <IconifyIcon icon="solar:danger-triangle-line-duotone" className="fs-18 me-2" />
           Error updating payment gateway settings: {updateError.message}
+        </Alert>
+      )}
+
+      {updateExpressPayConfig.isSuccess && (
+        <Alert variant="success" dismissible>
+          <IconifyIcon icon="solar:check-circle-line-duotone" className="fs-18 me-2" />
+          ExpressPay gateway settings updated successfully.
+        </Alert>
+      )}
+
+      {updateExpressPayConfig.error && (
+        <Alert variant="danger" dismissible>
+          <IconifyIcon icon="solar:danger-triangle-line-duotone" className="fs-18 me-2" />
+          Error updating ExpressPay settings: {updateExpressPayConfig.error.message}
+        </Alert>
+      )}
+
+      {expressPayConfigError && (
+        <Alert variant="danger" dismissible>
+          <IconifyIcon icon="solar:danger-triangle-line-duotone" className="fs-18 me-2" />
+          Failed to load ExpressPay secure config: {expressPayConfigError.message}
+        </Alert>
+      )}
+
+      {gatewayTestFeedback && (
+        <Alert variant={gatewayTestFeedback.variant} dismissible onClose={() => setGatewayTestFeedback(null)}>
+          <IconifyIcon icon="solar:test-tube-line-duotone" className="fs-18 me-2" />
+          {gatewayTestFeedback.message}
         </Alert>
       )}
 
@@ -609,7 +700,7 @@ const PaymentGatewaysPage = () => {
                       control={control}
                       containerClassName="mb-3"
                       options={[
-                        { value: 'sandbox', label: 'Sandbox (Test)' },
+                        { value: 'test', label: 'Sandbox (Test)' },
                         { value: 'live', label: 'Live (Production)' }
                       ]}
                     />
@@ -623,10 +714,17 @@ const PaymentGatewaysPage = () => {
                       type="button"
                       className="btn btn-outline-primary btn-sm"
                       onClick={() => testPaymentGateway('ExpressPay')}
+                      disabled={isLoadingExpressPayConfig || testExpressPayConnection.isPending}
                     >
                       <i className="ri-test-tube-line me-1"></i>
-                      Test Connection
+                      {testExpressPayConnection.isPending ? 'Testing...' : 'Test Connection'}
                     </button>
+
+                    <div className="mt-3 small text-muted">
+                      Merchant ID configured: {expressPayConfig?.merchant_id_configured ? 'Yes' : 'No'} | API Key configured:{' '}
+                      {expressPayConfig?.api_key_configured ? 'Yes' : 'No'} | Secret Key configured:{' '}
+                      {expressPayConfig?.secret_key_configured ? 'Yes' : 'No'}
+                    </div>
                   </>
                 )}
               </CardBody>
@@ -789,9 +887,9 @@ const PaymentGatewaysPage = () => {
                   <button
                     type="submit"
                     className="btn btn-primary"
-                    disabled={isUpdating || !isDirty}
+                    disabled={isUpdating || updateExpressPayConfig.isPending || !isDirty}
                   >
-                    {isUpdating ? (
+                    {isUpdating || updateExpressPayConfig.isPending ? (
                       <>
                         <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
                         Saving...
@@ -823,4 +921,3 @@ const PaymentGatewaysPage = () => {
 };
 
 export default PaymentGatewaysPage;
-

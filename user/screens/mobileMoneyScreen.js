@@ -4,15 +4,14 @@ import {
   View,
   BackHandler,
   TouchableOpacity,
-  Dimensions,
   TextInput,
   ScrollView,
   Alert,
-  Image,
   Modal,
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
+import * as WebBrowser from "expo-web-browser";
 import MyStatusBar from "../components/myStatusBar";
 import { useTranslation } from "react-i18next";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -21,14 +20,23 @@ import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityI
 import { Colors, Default, Fonts } from "../constants/styles";
 import AwesomeButton from "react-native-really-awesome-button";
 import { useUpdateAmenityBooking } from "../hooks/useCreateAmenityBooking";
-import { addPayment } from "../services/paymentService";
 import { createPaymentNotification } from "../services/notificationService";
-import { createAirtimePurchase, createDataPurchase, createMoneyTransfer, createBillPayment, createInsurancePayment, createShoppingPayment } from "../services/personalHubService";
+import {
+  createAirtimePurchase,
+  createDataPurchase,
+  createMoneyTransfer,
+  createBillPayment,
+  createInsurancePayment,
+  createShoppingPayment,
+  updateTransactionStatus,
+} from "../services/personalHubService";
 import { saveBillAccount } from "../services/billPaymentService";
 import { savePolicy as savePolicyRecord } from "../services/insuranceService";
 import { useAuth } from "../contexts/AuthContext";
-
-const { width } = Dimensions.get("window");
+import {
+  initiateExpressPayPayment,
+  reconcileExpressPayPayment,
+} from "../services/expressPayService";
 
 const MobileMoneyScreen = ({ navigation, route }) => {
   const { 
@@ -38,9 +46,6 @@ const MobileMoneyScreen = ({ navigation, route }) => {
     provider,
     providerId,
     providerName,
-    providerColor,
-    providerLogo,
-    packageType,
     amountTitle,
     amount,
     amountFormatted,
@@ -60,7 +65,7 @@ const MobileMoneyScreen = ({ navigation, route }) => {
     totalAmount,
   } = route.params || {};
   
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const { profile, user } = useAuth();
   const updateBookingMutation = useUpdateAmenityBooking();
   const navigateHome = useCallback(() => {
@@ -70,27 +75,24 @@ const MobileMoneyScreen = ({ navigation, route }) => {
     });
   }, [navigation]);
 
-  const isRtl = i18n.dir() == "rtl";
+  const isRtl = i18n.dir() === "rtl";
 
-  function tr(key) {
-    return t(`mobileMoneyScreen:${key}`);
-  }
-
-  const backAction = () => {
+  const backAction = useCallback(() => {
     navigation.pop();
     return true;
-  };
+  }, [navigation]);
 
   useEffect(() => {
     const subscription = BackHandler.addEventListener("hardwareBackPress", backAction);
     return () => subscription.remove();
-  }, []);
+  }, [backAction]);
 
   const [selectedNetwork, setSelectedNetwork] = useState("MTN");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [isValidPhone, setIsValidPhone] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
+  const [confirmationStatus, setConfirmationStatus] = useState("pending");
   const [paymentReference, setPaymentReference] = useState("");
 
   const mobileNetworks = [
@@ -201,255 +203,284 @@ const MobileMoneyScreen = ({ navigation, route }) => {
       return;
     }
 
-    // For airtime and personal hub transactions
-    if (transactionType) {
-      setIsProcessing(true);
-      
-      try {
-        const cleanPhone = phoneNumber.replace(/\s+/g, "");
-        const transactionId = `MM_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        const authUserId = user?.id || profile?.user_id || null;
-        const profileId = profile?.id || null;
-        const numericAmount = Number(amount) || 0;
-        const numericPlatformFee = Number(platformFee) || 0;
-        const numericTotalAmount = Number(totalAmount) || numericAmount;
-        
-        // Create payment record
-        const paymentData = {
-          amount: numericAmount,
-          payment_method: 'mobile_money',
-          payment_type: transactionType || 'airtime',
-          transaction_id: transactionId,
-          title: `${transactionType ? transactionType.charAt(0).toUpperCase() + transactionType.slice(1) : 'Airtime'} Purchase`,
-          description: `${providerName || 'Mobile'} ${transactionType || 'airtime'} purchase for ${description || recipientPhone || 'user'}`,
-          payment_gateway: 'mobile_money',
-          status: 'pending',
-          // Required field - use the user's unit_id from profile
-          unit_id: profile?.unit_id || null,
-          payer_id: authUserId,
-          // Store mobile network details in metadata
-          metadata: {
-            mobile_network: selectedNetwork,
-            phone_number: cleanPhone,
-            recipient_phone: recipientPhone,
-            recipient_description: description,
-            reference,
-            schedule_payment: schedulePayment,
-            frequency,
-            first_payment_now: firstPaymentNow
-          }
-        };
-        
-        const paymentResult = await addPayment(paymentData);
-        
-        if (paymentResult.error || !paymentResult.data) {
-          throw new Error(paymentResult.error?.message || "Payment failed");
-        }
-        
-        // Create transaction record based on transaction type
-        let transactionResult;
-        
-        switch(transactionType) {
-          case 'airtime':
-            transactionResult = await createAirtimePurchase({
+    const normalizeGatewayStatus = (status) => {
+      if (!status) return "pending";
+      const normalized = String(status).toLowerCase();
+      if (normalized === "processing" || normalized === "initiated") return "pending";
+      return normalized;
+    };
+
+    const mapBookingPaymentStatus = (status) => {
+      if (status === "completed") return "paid";
+      if (status === "failed") return "failed";
+      return "pending";
+    };
+
+    setIsProcessing(true);
+
+    try {
+      const cleanPhone = phoneNumber.replace(/\s+/g, "");
+      const authUserId = user?.id || profile?.user_id || null;
+      const profileId = profile?.id || null;
+      const unitId = profile?.unit_id || bookingData?.unit_id || null;
+      const isPersonalHubTransaction = Boolean(transactionType);
+      const paymentType = isPersonalHubTransaction ? transactionType : bookingData?.type || "booking";
+      const numericAmount = Number(isPersonalHubTransaction ? amount : bookingData?.totalAmount) || 0;
+      const numericPlatformFee = Number(platformFee) || 0;
+      const numericTotalAmount = Number(totalAmount) || numericAmount;
+
+      if (!authUserId || !unitId) {
+        throw new Error("Unable to resolve payer/unit for payment.");
+      }
+
+      const initiationResult = await initiateExpressPayPayment({
+        amount: numericAmount,
+        currency: "GHS",
+        payment_type: paymentType,
+        payment_method: "mobile_money",
+        unit_id: unitId,
+        booking_id: bookingId || undefined,
+        description: isPersonalHubTransaction
+          ? `${providerName || "Mobile"} ${paymentType} for ${description || recipientPhone || "resident"}`
+          : `Payment for booking #${bookingId}`,
+        idempotency_key: `mm-${authUserId}-${paymentType}-${Date.now()}`,
+        metadata: {
+          source: "user-mobile-money-screen",
+          mobile_network: selectedNetwork,
+          payer_phone: cleanPhone,
+          recipient_phone: recipientPhone || null,
+          recipient_description: description || null,
+          reference: reference || null,
+          schedule_payment: schedulePayment || false,
+          frequency: frequency || null,
+          first_payment_now: firstPaymentNow || false,
+          source_booking_id: bookingId || null,
+          source_booking_type: bookingData?.type || null,
+        },
+      });
+
+      if (!initiationResult.success || !initiationResult.data?.payment_id) {
+        throw new Error(initiationResult.error || "Unable to initiate payment.");
+      }
+
+      const gatewayPayment = initiationResult.data;
+      const gatewayTransactionId = gatewayPayment.transaction_id || `MM-${Date.now()}`;
+      const gatewayPaymentId = gatewayPayment.payment_id;
+      let personalHubRecord = null;
+
+      if (isPersonalHubTransaction) {
+        switch (transactionType) {
+          case "airtime":
+            personalHubRecord = await createAirtimePurchase({
               user_id: authUserId,
               profile_id: profileId,
-              provider: provider || 'unknown',
+              provider: provider || "unknown",
               provider_id: providerId || null,
-              phone_number: recipientPhone || '',
-              description: description || '',
+              phone_number: recipientPhone || "",
+              description: description || "",
               amount: numericAmount,
-              status: 'pending',
-              payment_ref_id: paymentResult.data.id
+              status: "pending",
+              payment_ref_id: gatewayPaymentId,
             });
             break;
-            
-          case 'data':
-            transactionResult = await createDataPurchase({
+          case "data":
+            personalHubRecord = await createDataPurchase({
               user_id: authUserId,
               profile_id: profileId,
-              provider: provider || 'unknown',
+              provider: provider || "unknown",
               provider_id: providerId || null,
-              phone_number: recipientPhone || '',
-              description: description || '',
-              package_name: amountTitle || 'Data Bundle',
-              data_amount: dataAmount || '1GB',
-              validity_days: validity ? parseInt(validity) : 30,
+              phone_number: recipientPhone || "",
+              description: description || "",
+              package_name: amountTitle || "Data Bundle",
+              data_amount: dataAmount || "1GB",
+              validity_days: validity ? parseInt(validity, 10) : 30,
               amount: numericAmount,
-              status: 'pending',
-              payment_ref_id: paymentResult.data.id
+              status: "pending",
+              payment_ref_id: gatewayPaymentId,
             });
             break;
-            
-          case 'money_transfer':
-            transactionResult = await createMoneyTransfer({
+          case "money_transfer":
+            personalHubRecord = await createMoneyTransfer({
               user_id: authUserId,
               profile_id: profileId,
               provider_id: providerId || null,
-              recipient_name: description || 'Recipient',
-              recipient_phone: recipientPhone || '',
+              recipient_name: description || "Recipient",
+              recipient_phone: recipientPhone || "",
               amount: numericAmount,
               fee: numericPlatformFee,
               total_amount: numericTotalAmount,
-              status: 'pending',
-              payment_ref_id: paymentResult.data.id
+              status: "pending",
+              payment_ref_id: gatewayPaymentId,
             });
             break;
-            
-          case 'bill_payment':
-            transactionResult = await createBillPayment({
+          case "bill_payment":
+            personalHubRecord = await createBillPayment({
               user_id: authUserId,
               profile_id: profileId,
-              bill_type: description || 'Utility',
-              provider: provider || 'unknown',
+              bill_type: description || "Utility",
+              provider: provider || "unknown",
               provider_id: providerId || null,
-              account_number: recipientPhone || '',
-              customer_name: description || '',
+              account_number: recipientPhone || "",
+              customer_name: description || "",
               amount: numericAmount,
               fee: 0,
               total_amount: numericAmount,
-              status: 'pending',
-              payment_ref_id: paymentResult.data.id
+              status: "pending",
+              payment_ref_id: gatewayPaymentId,
             });
             break;
-            
-          case 'insurance':
-            transactionResult = await createInsurancePayment({
+          case "insurance":
+            personalHubRecord = await createInsurancePayment({
               user_id: authUserId,
               profile_id: profileId,
-              insurance_type: description || 'General',
-              provider: provider || 'unknown',
+              insurance_type: description || "General",
+              provider: provider || "unknown",
               provider_id: providerId || null,
-              policy_number: recipientPhone || '',
-              insured_name: description || '',
-              coverage_period: '1 year',
+              policy_number: recipientPhone || "",
+              insured_name: description || "",
+              coverage_period: "1 year",
               amount: numericAmount,
               fee: 0,
               total_amount: numericAmount,
-              status: 'pending',
-              payment_ref_id: paymentResult.data.id
+              status: "pending",
+              payment_ref_id: gatewayPaymentId,
             });
             break;
-            
-          case 'shopping':
-            transactionResult = await createShoppingPayment({
+          case "shopping":
+            personalHubRecord = await createShoppingPayment({
               user_id: authUserId,
               profile_id: profileId,
-              merchant: provider || 'unknown',
-              order_number: recipientPhone || '',
-              items: [{ name: description || 'Item', price: numericAmount }],
+              merchant: provider || "unknown",
+              order_number: recipientPhone || "",
+              items: [{ name: description || "Item", price: numericAmount }],
               amount: numericAmount,
               shipping_fee: 0,
               tax: 0,
               total_amount: numericAmount,
-              status: 'pending',
-              payment_ref_id: paymentResult.data.id
+              status: "pending",
+              payment_ref_id: gatewayPaymentId,
             });
             break;
-            
           default:
-            console.log(`No specific handler for transaction type: ${transactionType}`);
+            break;
         }
-        
-        if (transactionResult && !transactionResult.success) {
-          console.warn(`Warning: Transaction record creation had an issue: ${transactionResult.error}`);
-          // Continue with the flow even if transaction record creation fails
+
+        if (personalHubRecord && !personalHubRecord.success) {
+          console.warn("Personal hub transaction record warning:", personalHubRecord.error);
         }
-        
+
         await persistSavedDestination({ authUserId, profileId });
 
-        // Create pending notification
         await createPaymentNotification({
           transaction_type: transactionType,
-          transaction_id: transactionId,
+          transaction_id: gatewayTransactionId,
           amount: numericAmount,
           amount_formatted: amountFormatted,
           data_amount: dataAmount,
           validity,
           status: "pending",
         });
-
-        // Show pending confirmation modal
-        setPaymentReference(transactionId);
-        setIsProcessing(false);
-        setShowConfirmationModal(true);
-        
-      } catch (error) {
-        console.error("Mobile Money payment error:", error);
-        Alert.alert("Payment Failed", "There was an error processing your payment. Please try again.");
-        setIsProcessing(false);
-      }
-      
-      return;
-    }
-    
-    // For booking payments (original flow)
-    if (!bookingId) {
-      Alert.alert("Error", "Booking information is missing.");
-      return;
-    }
-
-    setIsProcessing(true);
-
-    try {
-      const cleanPhone = phoneNumber.replace(/\s+/g, "");
-      const transactionId = `MM_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      const bookingType = bookingData?.type || 'booking';
-
-      // Create payment record
-      const paymentData = {
-        amount: bookingData.totalAmount,
-        payment_method: 'mobile_money',
-        payment_type: bookingType,
-        transaction_id: transactionId,
-        title: `Booking Payment`,
-        description: `Payment for booking #${bookingId}`,
-        payment_gateway: 'mobile_money',
-        status: 'pending', // Mobile money payments start as pending
-        // Required field - use the user's unit_id from profile
-        unit_id: profile?.unit_id || bookingData?.unit_id || null,
-        payer_id: user?.id || profile?.user_id || null,
-        // Store mobile network details in metadata
-        metadata: {
-          mobile_network: selectedNetwork,
-          phone_number: cleanPhone,
-          source_booking_id: bookingId || null,
-          source_booking_type: bookingType,
-        }
-      };
-
-      const paymentResult = await addPayment(paymentData);
-
-      if (!paymentResult.error && paymentResult.data) {
-        // Update booking status
-        if (bookingData?.type !== 'service_booking') {
+      } else {
+        if (bookingData?.type !== "service_booking") {
           await updateBookingMutation.mutateAsync({
             id: bookingId,
             updates: {
-              payment_status: 'pending',
-              status: 'pending',
-            }
+              payment_status: "pending",
+              status: "pending",
+            },
           });
         }
-
-        // Create pending notification and show confirmation modal
-        await createPaymentNotification({
-          transaction_type: bookingType,
-          transaction_id: transactionId,
-          amount: bookingData.totalAmount,
-          amount_formatted: `GHS ${bookingData.totalAmount?.toFixed(2)}`,
-          status: "pending",
-        });
-
-        setPaymentReference(transactionId);
-        setIsProcessing(false);
-        setShowConfirmationModal(true);
-      } else {
-        throw new Error(paymentResult.error?.message || "Payment failed");
       }
+
+      const checkoutUrl = gatewayPayment.checkout_url;
+      if (!checkoutUrl) {
+        throw new Error("Checkout URL was not returned by the payment gateway.");
+      }
+
+      await WebBrowser.openBrowserAsync(checkoutUrl, {
+        controlsColor: Colors.primary,
+        presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN,
+      });
+
+      const reconciliation = await reconcileExpressPayPayment({
+        paymentId: gatewayPaymentId,
+        token: gatewayPayment.token,
+        orderId: gatewayTransactionId,
+      });
+
+      const gatewayStatus = normalizeGatewayStatus(
+        reconciliation.status || reconciliation.payment?.status || "pending"
+      );
+
+      if (isPersonalHubTransaction && personalHubRecord?.success && personalHubRecord.data?.id) {
+        if (gatewayStatus === "completed" || gatewayStatus === "failed") {
+          await updateTransactionStatus(
+            transactionType,
+            personalHubRecord.data.id,
+            gatewayStatus === "completed" ? "completed" : "failed"
+          );
+        }
+      }
+
+      if (!isPersonalHubTransaction && bookingData?.type !== "service_booking") {
+        await updateBookingMutation.mutateAsync({
+          id: bookingId,
+          updates: {
+            payment_status: mapBookingPaymentStatus(gatewayStatus),
+          },
+        });
+      }
+
+      if (gatewayStatus === "completed") {
+        if (isPersonalHubTransaction) {
+          await createPaymentNotification({
+            transaction_type: transactionType,
+            transaction_id: gatewayTransactionId,
+            amount: numericAmount,
+            amount_formatted: amountFormatted,
+            data_amount: dataAmount,
+            validity,
+            status: "completed",
+          });
+
+          setConfirmationStatus("completed");
+          setPaymentReference(gatewayTransactionId);
+          setShowConfirmationModal(true);
+          return;
+        }
+
+        navigation.push("successScreen", {
+          bookingId,
+          paymentMethod: "Mobile Money",
+          transactionId: gatewayTransactionId,
+          bookingData: {
+            ...bookingData,
+            paymentMethod: "Mobile Money",
+            paymentDate: new Date().toISOString(),
+            transactionId: gatewayTransactionId,
+          },
+        });
+        return;
+      }
+
+      if (gatewayStatus === "failed") {
+        Alert.alert(
+          "Payment Failed",
+          reconciliation.error || "Payment could not be completed. Please try again."
+        );
+        return;
+      }
+
+      setConfirmationStatus("pending");
+      setPaymentReference(gatewayTransactionId);
+      setShowConfirmationModal(true);
     } catch (error) {
       console.error("Mobile Money payment error:", error);
-      Alert.alert("Payment Failed", "There was an error processing your payment. Please try again.");
+      Alert.alert(
+        "Payment Failed",
+        error?.message || "There was an error processing your payment. Please try again."
+      );
+    } finally {
       setIsProcessing(false);
     }
   };
@@ -756,19 +787,22 @@ const MobileMoneyScreen = ({ navigation, route }) => {
                 width: 80,
                 height: 80,
                 borderRadius: 40,
-                backgroundColor: Colors.primary + '20',
+                backgroundColor:
+                  confirmationStatus === "completed"
+                    ? Colors.green + "20"
+                    : Colors.primary + "20",
                 justifyContent: 'center',
                 alignItems: 'center',
                 marginBottom: Default.fixPadding * 1.5,
               }}>
                 <MaterialCommunityIcons
-                  name="cellphone-check"
+                  name={confirmationStatus === "completed" ? "check-circle" : "cellphone-check"}
                   size={50}
-                  color={Colors.primary}
+                  color={confirmationStatus === "completed" ? Colors.green : Colors.primary}
                 />
               </View>
               <Text style={{ ...Fonts.SemiBold18black, textAlign: 'center' }}>
-                Payment Initiated
+                {confirmationStatus === "completed" ? "Payment Successful" : "Payment Initiated"}
               </Text>
               <Text style={{ 
                 ...Fonts.Medium14grey, 
@@ -776,7 +810,9 @@ const MobileMoneyScreen = ({ navigation, route }) => {
                 marginTop: Default.fixPadding,
                 marginHorizontal: Default.fixPadding,
               }}>
-                Your {getTransactionLabel(transactionType || "booking")} has been submitted and is pending mobile money confirmation.
+                {confirmationStatus === "completed"
+                  ? `Your ${getTransactionLabel(transactionType || "booking")} was completed successfully.`
+                  : `Your ${getTransactionLabel(transactionType || "booking")} has been submitted and is pending mobile money confirmation.`}
               </Text>
               {paymentReference ? (
                 <Text style={{

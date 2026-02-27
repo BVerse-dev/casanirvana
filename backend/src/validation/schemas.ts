@@ -259,6 +259,51 @@ export const schemas = {
   }),
   adminSettingsUpdate: nonEmptyObject,
   adminDeleteSettingParams: z.object({ key: nonEmptyString }),
+  adminExpressPayConfigQuery: z.object({
+    mode: z.enum(['test', 'live']).optional(),
+    scope: z.enum(['global', 'community']).optional(),
+    community_id: z.string().uuid().optional(),
+  }),
+  adminExpressPayConfigUpsert: z
+    .object({
+      mode: z.enum(['test', 'live']),
+      scope: z.enum(['global', 'community']).default('global'),
+      community_id: z.string().uuid().optional().nullable(),
+      is_enabled: z.boolean(),
+      currency: optionalString,
+      callback_path: optionalString,
+      webhook_url: z.string().optional().nullable(),
+      submit_url: z.string().optional().nullable(),
+      query_url: z.string().optional().nullable(),
+      checkout_url: z.string().optional().nullable(),
+      merchant_id: z.string().optional().nullable(),
+      api_key: z.string().optional().nullable(),
+      secret_key: z.string().optional().nullable(),
+    })
+    .superRefine((value, ctx) => {
+      if (value.scope === 'community' && !value.community_id) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['community_id'],
+          message: 'community_id is required when scope is community',
+        });
+      }
+    }),
+  adminExpressPayConfigTest: z
+    .object({
+      mode: z.enum(['test', 'live']).default('test'),
+      scope: z.enum(['global', 'community']).default('global'),
+      community_id: z.string().uuid().optional().nullable(),
+    })
+    .superRefine((value, ctx) => {
+      if (value.scope === 'community' && !value.community_id) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['community_id'],
+          message: 'community_id is required when scope is community',
+        });
+      }
+    }),
 
   systemSettingsQuery: z.object({
     category: optionalString,
@@ -393,6 +438,30 @@ export const schemas = {
     status: nonEmptyString,
     notes: z.string().optional(),
   }),
+  expressPayInitiate: z.object({
+    amount: z.coerce.number().positive(),
+    currency: optionalString,
+    payment_type: nonEmptyString,
+    payment_method: nonEmptyString,
+    unit_id: nonEmptyString,
+    description: optionalString,
+    booking_id: optionalString,
+    metadata: z.record(z.any()).optional(),
+    idempotency_key: optionalString,
+  }),
+  expressPayStatusParams: z.object({
+    paymentId: nonEmptyString,
+  }),
+  expressPayVerify: z
+    .object({
+      payment_id: optionalString,
+      token: optionalString,
+      order_id: optionalString,
+    })
+    .refine((value) => Boolean(value.payment_id || value.token || value.order_id), {
+      message: 'payment_id, token, or order_id is required',
+      path: ['payment_id'],
+    }),
 
   guardCreate: z
     .object({

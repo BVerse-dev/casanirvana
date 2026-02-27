@@ -8,6 +8,7 @@ import {
   ScrollView,
   Alert,
 } from "react-native";
+import * as WebBrowser from "expo-web-browser";
 import MyStatusBar from "../components/myStatusBar";
 import { useTranslation } from "react-i18next";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -15,12 +16,15 @@ import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import { Colors, Default, Fonts } from "../constants/styles";
 import AwesomeButton from "react-native-really-awesome-button";
 import { useUpdateAmenityBooking } from "../hooks/useCreateAmenityBooking";
-import { addPayment } from "../services/paymentService";
 import { useHasJoinedCommunity } from "../hooks/useCommunityData";
 import { supabase } from "../utils/supabase";
+import {
+  initiateExpressPayPayment,
+  reconcileExpressPayPayment,
+} from "../services/expressPayService";
 
 const PayPalScreen = ({ navigation, route }) => {
-  const { bookingId, bookingData } = route.params || {};
+  const { bookingId, bookingData, paymentData } = route.params || {};
   const { i18n } = useTranslation();
   const updateBookingMutation = useUpdateAmenityBooking();
   const { profile } = useHasJoinedCommunity();
@@ -70,8 +74,8 @@ const PayPalScreen = ({ navigation, route }) => {
       return;
     }
 
-    if (!bookingId) {
-      Alert.alert("Error", "Booking information is missing.");
+    if (!bookingData && !paymentData) {
+      Alert.alert("Error", "Payment information is missing.");
       return;
     }
 
@@ -82,7 +86,7 @@ const PayPalScreen = ({ navigation, route }) => {
         data: { user },
       } = await supabase.auth.getUser();
       const payerId = user?.id || profile?.id || null;
-      const unitId = bookingData?.unit_id || profile?.unit_id || null;
+      const unitId = bookingData?.unit_id || paymentData?.unit_id || profile?.unit_id || null;
 
       if (!unitId) {
         throw new Error('Unable to resolve unit for payment');
@@ -92,55 +96,118 @@ const PayPalScreen = ({ navigation, route }) => {
         throw new Error('Unable to resolve payer for payment');
       }
 
-      const transactionId = `PP_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      const bookingType = bookingData?.type || "booking";
+      const bookingType =
+        bookingData?.type || paymentData?.type || paymentData?.payment_type || "community_dues";
+      const amountToCharge = Number(bookingData?.totalAmount ?? paymentData?.amount ?? 0);
 
-      // Create payment record
-      const paymentData = {
-        amount: bookingData.totalAmount,
-        unit_id: unitId,
-        payer_id: payerId,
-        payment_method: 'paypal',
-        transaction_id: transactionId,
+      if (!Number.isFinite(amountToCharge) || amountToCharge <= 0) {
+        throw new Error("Invalid payment amount");
+      }
+
+      const initiationResult = await initiateExpressPayPayment({
+        amount: amountToCharge,
+        currency: "GHS",
         payment_type: bookingType,
-        status: 'completed', // PayPal payments are processed immediately
+        payment_method: "paypal",
+        unit_id: unitId,
+        booking_id: bookingId || undefined,
+        description: bookingData
+          ? `Payment for ${bookingData?.amenityName || bookingData?.serviceTitle || "booking"}`
+          : paymentData?.title || paymentData?.description || "Community Payment",
+        idempotency_key: `paypal-${payerId}-${bookingType}-${Date.now()}`,
         metadata: {
+          source: "user-paypal-screen",
           paypal_email: email,
           source_booking_id: bookingId || null,
           source_booking_type: bookingType,
         },
-      };
+      });
 
-      const paymentResult = await addPayment(paymentData);
+      if (!initiationResult.success || !initiationResult.data?.payment_id) {
+        throw new Error(initiationResult.error || "Payment initiation failed");
+      }
 
-      if (paymentResult.success) {
-        // Update booking status
-        if (bookingData?.type !== "service_booking") {
-          await updateBookingMutation.mutateAsync({
-            id: bookingId,
-            updates: {
-              payment_status: 'paid',
-            }
+      if (bookingData?.type !== "service_booking" && bookingId) {
+        await updateBookingMutation.mutateAsync({
+          id: bookingId,
+          updates: {
+            payment_status: "pending",
+          },
+        });
+      }
+
+      const checkoutUrl = initiationResult.data.checkout_url;
+      if (!checkoutUrl) {
+        throw new Error("Checkout URL missing from gateway response.");
+      }
+
+      await WebBrowser.openBrowserAsync(checkoutUrl, {
+        controlsColor: Colors.primary,
+        presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN,
+      });
+
+      const reconciliation = await reconcileExpressPayPayment({
+        paymentId: initiationResult.data.payment_id,
+        token: initiationResult.data.token,
+        orderId: initiationResult.data.transaction_id,
+      });
+
+      const status = String(reconciliation.status || reconciliation.payment?.status || "pending").toLowerCase();
+      const transactionId = initiationResult.data.transaction_id || `PP_${Date.now()}`;
+
+      if (bookingData?.type !== "service_booking" && bookingId) {
+        await updateBookingMutation.mutateAsync({
+          id: bookingId,
+          updates: {
+            payment_status:
+              status === "completed" ? "paid" : status === "failed" ? "failed" : "pending",
+          },
+        });
+      }
+
+      if (status === "completed") {
+        if (bookingData) {
+          navigation.push("successScreen", {
+            bookingId,
+            bookingData: {
+              ...bookingData,
+              paymentMethod: "PayPal",
+              paymentDate: new Date().toISOString(),
+              transactionId,
+            },
+            paymentMethod: "PayPal",
+            transactionId,
+          });
+        } else {
+          navigation.push("successScreen", {
+            paymentMethod: "PayPal",
+            transactionId,
+            paymentData: {
+              ...paymentData,
+              paymentMethod: "PayPal",
+              paymentDate: new Date().toISOString(),
+              transactionId,
+            },
           });
         }
-
-        // Navigate to success screen
-        navigation.push("successScreen", {
-          bookingId,
-          paymentData: {
-            ...paymentData,
-            id: paymentResult.data.id,
-          },
-          bookingData,
-          paymentMethod: "PayPal",
-          transactionId,
-        });
-      } else {
-        throw new Error(paymentResult.error || "Payment failed");
+        return;
       }
+
+      if (status === "failed") {
+        Alert.alert("Payment Failed", reconciliation.error || "PayPal payment failed. Please try again.");
+        return;
+      }
+
+      Alert.alert(
+        "Payment Initiated",
+        `Your payment is pending confirmation. Reference: ${transactionId}`
+      );
     } catch (error) {
       console.error("PayPal payment error:", error);
-      Alert.alert("Payment Failed", "There was an error processing your payment. Please try again.");
+      Alert.alert(
+        "Payment Failed",
+        error?.message || "There was an error processing your payment. Please try again."
+      );
     } finally {
       setIsProcessing(false);
     }
