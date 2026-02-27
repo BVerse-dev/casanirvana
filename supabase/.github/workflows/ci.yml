@@ -1,0 +1,72 @@
+name: Platform CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: platform-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  migration-sanity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Ensure migrations directory exists
+        run: test -d migrations
+
+      - name: Validate migration file naming and duplicate versions
+        run: |
+          python3 - <<'PY'
+          import re
+          import sys
+          from pathlib import Path
+
+          files = sorted(Path("migrations").glob("*.sql"))
+          if not files:
+            print("No SQL migrations found in migrations/")
+            sys.exit(1)
+
+          pattern = re.compile(r"^\d{8,14}_[a-z0-9_]+\.sql$")
+          seen = {}
+          bad = False
+
+          for f in files:
+            name = f.name
+            if not pattern.match(name):
+              print(f"Invalid migration filename: {name}")
+              bad = True
+            version = name.split("_", 1)[0]
+            seen.setdefault(version, []).append(name)
+
+          for version, names in seen.items():
+            if len(names) > 1:
+              print(f"Duplicate migration version {version}: {', '.join(names)}")
+              bad = True
+
+          if bad:
+            sys.exit(1)
+
+          print(f"Validated {len(files)} migration files.")
+          PY
+
+      - name: Ensure SQL files are not empty
+        run: |
+          for f in migrations/*.sql; do
+            test -s "$f" || { echo "Empty migration file: $f"; exit 1; }
+          done
+
+      - name: Check for merge conflict markers
+        run: |
+          if grep -R -nE '^(<<<<<<<|=======|>>>>>>>)' migrations; then
+            echo "Merge conflict markers found in migrations/"
+            exit 1
+          fi

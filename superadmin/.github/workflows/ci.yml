@@ -1,0 +1,44 @@
+name: Superadmin CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: superadmin-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://pswnlowvmdgeifhxilao.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-anon-key
+      SUPABASE_SERVICE_ROLE_KEY: ci-service-role-key
+      NEXTAUTH_SECRET: ci-nextauth-secret
+      NEXTAUTH_URL: http://localhost:3000
+      NEXT_PUBLIC_ADMIN_SIGNUP_DISABLED: "true"
+      NEXT_PUBLIC_API_URL: http://localhost:8080
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint --if-present
+
+      - name: Build check
+        run: npm run build:check --if-present
