@@ -1,4 +1,4 @@
-// Direct public path imports - works on both dev and Netlify deployment
+// Direct public path imports - works consistently in local and hosted environments.
 export const avatars = {
   avatar1: '/assets/images/users/avatar-1.jpg',
   avatar2: '/assets/images/users/avatar-2.jpg',

@@ -343,12 +343,6 @@ const BoxIcons = () => {
         </Card>
         <Card className="icon-box">
           <CardBody className="d-flex flex-column align-items-center justify-content-center">
-            <IconifyIcon icon="bxl:netlify" className="fs-2" />
-            <h5 className="mt-2 mb-0">Netlify</h5>
-          </CardBody>
-        </Card>
-        <Card className="icon-box">
-          <CardBody className="d-flex flex-column align-items-center justify-content-center">
             <IconifyIcon icon="bxl:java" className="fs-2" />
             <h5 className="mt-2 mb-0">Java</h5>
           </CardBody>

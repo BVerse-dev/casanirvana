@@ -2,7 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ['react-bootstrap'],
-  // Remove standalone output for better Netlify static asset handling
+  // Keep canonical Next.js routing behavior for Vercel deployments.
   trailingSlash: false,
   typescript: {
     // Temporary deploy guardrail while legacy TS debt is remediated in tracked slices.
