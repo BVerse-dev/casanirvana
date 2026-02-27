@@ -48,11 +48,28 @@ const defaultOrigins = [
 ];
 const allowList = corsOrigins.length > 0 ? corsOrigins : defaultOrigins;
 
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const isOriginAllowed = (origin: string) => {
+  return allowList.some((rule) => {
+    if (rule === '*') return true;
+    if (rule === origin) return true;
+
+    // Allow simple wildcard rules like https://*.vercel.app
+    if (rule.includes('*')) {
+      const regex = new RegExp(`^${rule.split('*').map(escapeRegExp).join('.*')}$`);
+      return regex.test(origin);
+    }
+
+    return false;
+  });
+};
+
 app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
-      if (allowList.includes(origin)) return callback(null, true);
+      if (isOriginAllowed(origin)) return callback(null, true);
       return callback(new Error('Not allowed by CORS'));
     },
     credentials: true,
