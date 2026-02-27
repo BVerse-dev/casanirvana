@@ -3,8 +3,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-
 export type ExpressPayGatewayConfig = {
   mode: 'test' | 'live';
   scope: 'global' | 'community';
@@ -47,19 +45,13 @@ const expressPayQueryKey = (mode: 'test' | 'live', scope: 'global' | 'community'
 ] as const;
 
 const useAdminFetch = () => {
-  const { data: session } = useSession();
-  const token = session?.accessToken as string | undefined;
+  const { status } = useSession();
 
   const fetchAdmin = async (path: string, options: RequestInit = {}) => {
-    if (!token) {
-      throw new Error('Missing admin session. Please sign in again.');
-    }
-
-    const response = await fetch(`${API_BASE_URL}${path}`, {
+    const response = await fetch(path, {
       ...options,
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
         ...options.headers,
       },
     });
@@ -74,7 +66,7 @@ const useAdminFetch = () => {
     return payload;
   };
 
-  return { fetchAdmin, hasToken: !!token };
+  return { fetchAdmin, isReady: status === 'authenticated' };
 };
 
 export const useExpressPayGatewayConfig = (
@@ -82,11 +74,11 @@ export const useExpressPayGatewayConfig = (
   scope: 'global' | 'community' = 'global',
   communityId?: string | null
 ) => {
-  const { fetchAdmin, hasToken } = useAdminFetch();
+  const { fetchAdmin, isReady } = useAdminFetch();
 
   return useQuery({
     queryKey: expressPayQueryKey(mode, scope, communityId),
-    enabled: hasToken,
+    enabled: isReady,
     queryFn: async (): Promise<ExpressPayGatewayConfig> => {
       const params = new URLSearchParams();
       params.set('mode', mode);
@@ -95,7 +87,7 @@ export const useExpressPayGatewayConfig = (
         params.set('community_id', communityId);
       }
 
-      const response = await fetchAdmin(`/admin/payment-gateways/expresspay/config?${params.toString()}`);
+      const response = await fetchAdmin(`/api/admin/payment-gateways/expresspay/config?${params.toString()}`);
       return response.data as ExpressPayGatewayConfig;
     },
   });
@@ -107,7 +99,7 @@ export const useUpdateExpressPayGatewayConfig = () => {
 
   return useMutation({
     mutationFn: async (payload: ExpressPayGatewayUpsertInput): Promise<ExpressPayGatewayConfig> => {
-      const response = await fetchAdmin('/admin/payment-gateways/expresspay/config', {
+      const response = await fetchAdmin('/api/admin/payment-gateways/expresspay/config', {
         method: 'PUT',
         body: JSON.stringify(payload),
       });
@@ -135,7 +127,7 @@ export const useTestExpressPayGatewayConnection = () => {
       scope: 'global' | 'community';
       community_id?: string | null;
     }) => {
-      const response = await fetchAdmin('/admin/payment-gateways/expresspay/test', {
+      const response = await fetchAdmin('/api/admin/payment-gateways/expresspay/test', {
         method: 'POST',
         body: JSON.stringify({ mode, scope, community_id: community_id || null }),
       });
