@@ -44,7 +44,6 @@ export const updateExpressPayGatewayConfig = async (req: Request, res: Response)
       checkout_url: (body.checkout_url as string | null | undefined) ?? null,
       merchant_id: (body.merchant_id as string | null | undefined) ?? null,
       api_key: (body.api_key as string | null | undefined) ?? null,
-      secret_key: (body.secret_key as string | null | undefined) ?? null,
       actor_profile_id: (req.userProfile?.id as string | undefined) || null,
     });
 

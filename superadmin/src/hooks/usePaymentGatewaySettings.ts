@@ -34,7 +34,6 @@ export interface PaymentGatewaySettings {
   expresspay_enabled?: boolean;
   expresspay_merchant_id?: string;
   expresspay_api_key?: string;
-  expresspay_secret_key?: string;
   expresspay_webhook_url?: string;
   expresspay_mode?: string;
 

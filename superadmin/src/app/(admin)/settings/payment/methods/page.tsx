@@ -11,7 +11,7 @@ import TextFormInput from '@/components/from/TextFormInput';
 import TextAreaFormInput from '@/components/from/TextAreaFormInput';
 
 // Hooks
-import usePaymentMethodSettings from '@/hooks/usePaymentMethodSettings';
+import usePaymentMethodSettings, { PaymentMethodSettings } from '@/hooks/usePaymentMethodSettings';
 
 const schema = yup.object({
   // Payment Methods
@@ -39,14 +39,24 @@ const schema = yup.object({
   // Payment Notes
   payment_instructions: yup.string(),
   payment_terms: yup.string(),
-});
+}).test(
+  'max-gte-min',
+  'Maximum payment amount must be greater than or equal to minimum payment amount',
+  (value) =>
+    !value ||
+    typeof value.min_payment_amount !== 'number' ||
+    typeof value.max_payment_amount !== 'number' ||
+    value.max_payment_amount >= value.min_payment_amount
+);
 
 const PaymentMethodsPage = () => {
   const { 
     paymentMethodSettings: settings, 
     isLoadingData: loadingSettings,
     updateSettings,
-    isUpdating: updatingSettings 
+    isUpdating: updatingSettings,
+    updateError,
+    updateSuccess,
   } = usePaymentMethodSettings();
 
   const {
@@ -55,14 +65,14 @@ const PaymentMethodsPage = () => {
     formState: { errors },
     reset,
     watch,
-  } = useForm({
+  } = useForm<PaymentMethodSettings>({
     resolver: yupResolver(schema),
     defaultValues: {
       // Payment Methods
       credit_card_enabled: settings?.credit_card_enabled ?? true,
       debit_card_enabled: settings?.debit_card_enabled ?? true,
       net_banking_enabled: settings?.net_banking_enabled ?? true,
-      upi_enabled: settings?.upi_enabled ?? true,
+      expresspay_enabled: settings?.expresspay_enabled ?? true,
       wallet_enabled: settings?.wallet_enabled ?? true,
       bank_transfer_enabled: settings?.bank_transfer_enabled ?? true,
       cash_enabled: settings?.cash_enabled ?? true,
@@ -129,7 +139,7 @@ const PaymentMethodsPage = () => {
     }
   }, [settings, reset]);
 
-  const onSubmit = (data: any) => {
+  const onSubmit = (data: PaymentMethodSettings) => {
     updateSettings(data);
   };
 
@@ -165,6 +175,39 @@ const PaymentMethodsPage = () => {
       </Row>
 
       <form onSubmit={handleSubmit(onSubmit)}>
+        {errors.max_payment_amount?.message && (
+          <Row>
+            <Col xs={12}>
+              <Alert variant="danger">
+                <i className="ri-alert-line me-2"></i>
+                {errors.max_payment_amount.message}
+              </Alert>
+            </Col>
+          </Row>
+        )}
+
+        {updateSuccess && !updatingSettings && (
+          <Row>
+            <Col xs={12}>
+              <Alert variant="success">
+                <i className="ri-checkbox-circle-line me-2"></i>
+                Payment methods updated successfully.
+              </Alert>
+            </Col>
+          </Row>
+        )}
+
+        {updateError && (
+          <Row>
+            <Col xs={12}>
+              <Alert variant="danger">
+                <i className="ri-alert-line me-2"></i>
+                Failed to update payment methods: {updateError.message}
+              </Alert>
+            </Col>
+          </Row>
+        )}
+
         <Row>
           {/* Available Payment Methods */}
           <Col lg={8}>

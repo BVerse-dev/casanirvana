@@ -63,7 +63,6 @@ export type ExpressPayConfigView = {
   checkout_url: string | null;
   merchant_id_configured: boolean;
   api_key_configured: boolean;
-  secret_key_configured: boolean;
   last_tested_at: string | null;
   last_test_status: string | null;
   last_test_message: string | null;
@@ -82,7 +81,6 @@ export type UpsertExpressPayConfigInput = {
   checkout_url?: string | null;
   merchant_id?: string | null;
   api_key?: string | null;
-  secret_key?: string | null;
   actor_profile_id?: string | null;
 };
 
@@ -121,7 +119,7 @@ const buildSecretName = ({
   mode: GatewayMode;
   scope: GatewayScope;
   communityId?: string | null;
-  key: 'merchant_id' | 'api_key' | 'secret_key';
+  key: 'merchant_id' | 'api_key';
 }) => {
   const communityPart = communityId ? sanitizeSecretSuffix(communityId) : 'global';
   return `expresspay_${mode}_${scope}_${communityPart}_${key}`;
@@ -229,7 +227,6 @@ const toView = (row: GatewayConfigRow | null, mode: GatewayMode, scope: GatewayS
     checkout_url: readString(publicConfig, 'checkout_url'),
     merchant_id_configured: Boolean(readString(secretRefs, 'merchant_id_secret_name')),
     api_key_configured: Boolean(readString(secretRefs, 'api_key_secret_name')),
-    secret_key_configured: Boolean(readString(secretRefs, 'secret_key_secret_name')),
     last_tested_at: row?.last_tested_at || null,
     last_test_status: row?.last_test_status || null,
     last_test_message: row?.last_test_message || null,
@@ -295,7 +292,7 @@ export const upsertExpressPayConfig = async (input: UpsertExpressPayConfigInput)
 
   const persistSecret = async (
     rawValue: string | null | undefined,
-    key: 'merchant_id' | 'api_key' | 'secret_key'
+    key: 'merchant_id' | 'api_key'
   ) => {
     const value = typeof rawValue === 'string' ? rawValue.trim() : '';
     if (!value) return;
@@ -311,7 +308,6 @@ export const upsertExpressPayConfig = async (input: UpsertExpressPayConfigInput)
 
   await persistSecret(input.merchant_id, 'merchant_id');
   await persistSecret(input.api_key, 'api_key');
-  await persistSecret(input.secret_key, 'secret_key');
 
   const payload: Record<string, unknown> = {
     provider: EXPRESSPAY_PROVIDER,

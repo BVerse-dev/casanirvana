@@ -18,7 +18,6 @@ export type ExpressPayGatewayConfig = {
   checkout_url: string | null;
   merchant_id_configured: boolean;
   api_key_configured: boolean;
-  secret_key_configured: boolean;
   last_tested_at: string | null;
   last_test_status: string | null;
   last_test_message: string | null;
@@ -37,7 +36,6 @@ export type ExpressPayGatewayUpsertInput = {
   checkout_url?: string | null;
   merchant_id?: string | null;
   api_key?: string | null;
-  secret_key?: string | null;
 };
 
 const expressPayQueryKey = (mode: 'test' | 'live', scope: 'global' | 'community', communityId?: string | null) => [

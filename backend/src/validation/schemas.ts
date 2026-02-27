@@ -278,7 +278,6 @@ export const schemas = {
       checkout_url: z.string().optional().nullable(),
       merchant_id: z.string().optional().nullable(),
       api_key: z.string().optional().nullable(),
-      secret_key: z.string().optional().nullable(),
     })
     .superRefine((value, ctx) => {
       if (value.scope === 'community' && !value.community_id) {

@@ -9,7 +9,6 @@ import * as yup from 'yup';
 // Components
 import PageTitle from '@/components/PageTitle';
 import TextFormInput from '@/components/from/TextFormInput';
-import PasswordFormInput from '@/components/from/PasswordFormInput';
 import SelectFormInput from '@/components/from/SelectFormInput';
 import IconifyIcon from '@/components/wrappers/IconifyIcon';
 
@@ -86,8 +85,11 @@ const schema = yup.object({
   expresspay_enabled: yup.boolean(),
   expresspay_merchant_id: yup.string(),
   expresspay_api_key: yup.string(),
-  expresspay_secret_key: yup.string(),
-  expresspay_webhook_url: yup.string(),
+  expresspay_webhook_url: yup
+    .string()
+    .transform((value) => (typeof value === 'string' && value.trim() === '' ? undefined : value))
+    .url('Webhook URL must be a valid URL')
+    .notRequired(),
   expresspay_mode: yup.string(),
 
   // Bank Transfer
@@ -164,7 +166,6 @@ const PaymentGatewaysPage = () => {
     // Never rehydrate secrets from DB/Vault into the form.
     setValue('expresspay_merchant_id', '');
     setValue('expresspay_api_key', '');
-    setValue('expresspay_secret_key', '');
   }, [expressPayConfig, setValue]);
 
   const onSubmit = async (data: PaymentGatewaySettings) => {
@@ -172,7 +173,6 @@ const PaymentGatewaysPage = () => {
     delete legacyPayload.expresspay_enabled;
     delete legacyPayload.expresspay_merchant_id;
     delete legacyPayload.expresspay_api_key;
-    delete legacyPayload.expresspay_secret_key;
     delete legacyPayload.expresspay_webhook_url;
     delete legacyPayload.expresspay_mode;
 
@@ -187,7 +187,6 @@ const PaymentGatewaysPage = () => {
       webhook_url: data.expresspay_webhook_url || null,
       merchant_id: data.expresspay_merchant_id || null,
       api_key: data.expresspay_api_key || null,
-      secret_key: data.expresspay_secret_key || null,
     });
   };
 
@@ -678,18 +677,10 @@ const PaymentGatewaysPage = () => {
                       containerClassName="mb-3"
                     />
 
-                    <PasswordFormInput
-                      name="expresspay_secret_key"
-                      label="Secret Key"
-                      placeholder="Enter ExpressPay Secret Key"
-                      control={control}
-                      containerClassName="mb-3"
-                    />
-
                     <TextFormInput
                       name="expresspay_webhook_url"
-                      label="Webhook URL"
-                      placeholder="https://your-domain.com/webhooks/expresspay"
+                      label="Webhook URL (Optional)"
+                      placeholder="https://your-backend-domain/payments/expresspay/callback"
                       control={control}
                       containerClassName="mb-3"
                     />
@@ -707,7 +698,7 @@ const PaymentGatewaysPage = () => {
 
                     <Alert variant="info" className="mb-3">
                       <i className="ri-information-line me-2"></i>
-                      ExpressPay enables secure payment processing with multiple payment methods including cards, mobile money, and bank transfers.
+                      ExpressPay requires Merchant ID and API Key. Secret key is not required for this integration mode.
                     </Alert>
 
                     <button
@@ -722,8 +713,7 @@ const PaymentGatewaysPage = () => {
 
                     <div className="mt-3 small text-muted">
                       Merchant ID configured: {expressPayConfig?.merchant_id_configured ? 'Yes' : 'No'} | API Key configured:{' '}
-                      {expressPayConfig?.api_key_configured ? 'Yes' : 'No'} | Secret Key configured:{' '}
-                      {expressPayConfig?.secret_key_configured ? 'Yes' : 'No'}
+                      {expressPayConfig?.api_key_configured ? 'Yes' : 'No'}
                     </div>
                   </>
                 )}
