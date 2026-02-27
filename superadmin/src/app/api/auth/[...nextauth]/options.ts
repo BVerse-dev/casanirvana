@@ -1,6 +1,7 @@
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { randomBytes } from "crypto";
+import { createClient } from "@supabase/supabase-js";
 import { UserType } from "@/types/auth";
 import { supabase } from '@/lib/supabase';
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
@@ -17,6 +18,54 @@ const UUID_PATTERN =
 
 const isUuid = (value: string | null | undefined): value is string =>
   typeof value === "string" && UUID_PATTERN.test(value);
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+const createAuthRefreshClient = () => {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY");
+  }
+
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+      detectSessionInUrl: false,
+    },
+  });
+};
+
+const getJwtExpiryMs = (jwt: string): number | null => {
+  try {
+    const [, payload] = jwt.split(".");
+    if (!payload) return null;
+
+    const decoded = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as {
+      exp?: number;
+    };
+
+    return typeof decoded.exp === "number" ? decoded.exp * 1000 : null;
+  } catch {
+    return null;
+  }
+};
+
+const refreshSupabaseAccessToken = async (refreshToken: string) => {
+  const refreshClient = createAuthRefreshClient();
+  const { data, error } = await refreshClient.auth.refreshSession({
+    refresh_token: refreshToken,
+  });
+
+  if (error || !data.session) {
+    throw new Error(error?.message || "Failed to refresh Supabase session");
+  }
+
+  return {
+    accessToken: data.session.access_token,
+    refreshToken: data.session.refresh_token || refreshToken,
+  };
+};
 
 type ScopeClaims = {
   agencyId: string | null;
@@ -243,7 +292,7 @@ export const options: NextAuthOptions = {
       }
       return Promise.resolve(session);
     },
-    jwt: ({ token, user }) => {
+    jwt: async ({ token, user }) => {
       // Store user data in JWT token
       if (user) {
         const customUser = user as UserType;
@@ -259,6 +308,25 @@ export const options: NextAuthOptions = {
         token.scopedAgencyIds = customUser.scopedAgencyIds || [];
         token.scopedCommunityIds = customUser.scopedCommunityIds || [];
       }
+
+      const accessToken = token.accessToken as string | undefined;
+      const refreshToken = token.refreshToken as string | undefined;
+
+      if (accessToken && refreshToken) {
+        const expiresAt = getJwtExpiryMs(accessToken);
+        const shouldRefresh = !expiresAt || Date.now() >= expiresAt - 60_000;
+
+        if (shouldRefresh) {
+          try {
+            const refreshed = await refreshSupabaseAccessToken(refreshToken);
+            token.accessToken = refreshed.accessToken;
+            token.refreshToken = refreshed.refreshToken;
+          } catch (error) {
+            console.error("Supabase token refresh failed:", error);
+          }
+        }
+      }
+
       return Promise.resolve(token);
     },
   },
