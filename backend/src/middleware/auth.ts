@@ -6,7 +6,7 @@ interface UserProfile {
   first_name: string;
   last_name: string;
   email: string;
-  role: 'user' | 'guard' | 'admin' | 'superadmin' | 'agency_manager' | 'facility_manager';
+  role: string | null;
   phone?: string;
   profile_pic_url?: string;
 }
@@ -36,13 +36,24 @@ const LEGACY_ROUTE_PERMISSIONS = [
   'write:all_notifications',
 ] as const;
 
-const PROFILE_ROLE_TO_USER_ROLE_NAMES: Record<UserProfile['role'], string[]> = {
+const PROFILE_ROLE_TO_USER_ROLE_NAMES: Record<string, string[]> = {
   superadmin: ['Super Admin', 'superadmin'],
   admin: ['Administrator', 'Admin', 'admin'],
   agency_manager: ['Management', 'Agency Manager', 'agency_manager'],
   facility_manager: ['Management', 'Facility Manager', 'facility_manager'],
   guard: ['Security Guard', 'Guard', 'guard'],
   user: ['Resident', 'User', 'user'],
+};
+
+const PROFILE_ROLE_FALLBACK_ALIASES: Record<string, string[]> = {
+  resident: PROFILE_ROLE_TO_USER_ROLE_NAMES.user,
+  member: PROFILE_ROLE_TO_USER_ROLE_NAMES.user,
+  community_admin: PROFILE_ROLE_TO_USER_ROLE_NAMES.admin,
+  committee_member: PROFILE_ROLE_TO_USER_ROLE_NAMES.admin,
+  committee: PROFILE_ROLE_TO_USER_ROLE_NAMES.admin,
+  security_guard: PROFILE_ROLE_TO_USER_ROLE_NAMES.guard,
+  agency_admin: PROFILE_ROLE_TO_USER_ROLE_NAMES.agency_manager,
+  facility_admin: PROFILE_ROLE_TO_USER_ROLE_NAMES.facility_manager,
 };
 
 const PERMISSION_KEY_ALIASES: Record<string, string[]> = {
@@ -79,7 +90,13 @@ const MODULE_ALIASES: Record<string, string[]> = {
 };
 
 function getRoleNameCandidates(role: UserProfile['role']) {
-  const candidates = new Set<string>([role, ...PROFILE_ROLE_TO_USER_ROLE_NAMES[role]]);
+  const normalizedRole = typeof role === 'string' && role.trim().length > 0 ? role.trim() : 'user';
+  const mappedRoleNames =
+    PROFILE_ROLE_TO_USER_ROLE_NAMES[normalizedRole] ||
+    PROFILE_ROLE_FALLBACK_ALIASES[normalizedRole] ||
+    [];
+
+  const candidates = new Set<string>([normalizedRole, ...mappedRoleNames]);
   return [...candidates];
 }
 
@@ -132,7 +149,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
       return res.status(401).json({ error: 'User profile not found' });
     }
 
-    const roleNameCandidates = getRoleNameCandidates(profile.role as UserProfile['role']);
+    const roleNameCandidates = getRoleNameCandidates(profile.role);
 
     const [
       { data: rolePermissions, error: rolePermissionsError },
