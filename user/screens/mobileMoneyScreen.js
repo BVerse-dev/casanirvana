@@ -11,7 +11,6 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import * as WebBrowser from "expo-web-browser";
 import MyStatusBar from "../components/myStatusBar";
 import { useTranslation } from "react-i18next";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -42,6 +41,7 @@ const MobileMoneyScreen = ({ navigation, route }) => {
   const { 
     bookingId, 
     bookingData,
+    paymentData,
     // Airtime purchase params
     provider,
     providerId,
@@ -167,6 +167,23 @@ const MobileMoneyScreen = ({ navigation, route }) => {
     }
   };
 
+  const buildPersonalHubSuccessPayload = ({
+    recordId,
+    paymentId,
+    transactionId,
+    paidAmount,
+  }) => ({
+    id: recordId || paymentId || null,
+    paymentId,
+    type: transactionType || "payment",
+    title: providerName || getTransactionLabel(transactionType || "payment"),
+    description: description || recipientPhone || providerName || "Personal Hub Payment",
+    amount: paidAmount,
+    paymentMethod: "Mobile Money",
+    paymentDate: new Date().toISOString(),
+    transactionId,
+  });
+
   const persistSavedDestination = async ({ authUserId, profileId }) => {
     if (!authUserId) return;
 
@@ -216,16 +233,25 @@ const MobileMoneyScreen = ({ navigation, route }) => {
       return "pending";
     };
 
+    if (!transactionType && !bookingData && !paymentData) {
+      Alert.alert("Payment Failed", "Payment information is missing.");
+      return;
+    }
+
     setIsProcessing(true);
 
     try {
       const cleanPhone = phoneNumber.replace(/\s+/g, "");
       const authUserId = user?.id || profile?.user_id || null;
       const profileId = profile?.id || null;
-      const unitId = profile?.unit_id || bookingData?.unit_id || null;
+      const unitId = profile?.unit_id || bookingData?.unit_id || paymentData?.unit_id || null;
       const isPersonalHubTransaction = Boolean(transactionType);
-      const paymentType = isPersonalHubTransaction ? transactionType : bookingData?.type || "booking";
-      const numericAmount = Number(isPersonalHubTransaction ? amount : bookingData?.totalAmount) || 0;
+      const paymentType = isPersonalHubTransaction
+        ? transactionType
+        : bookingData?.type || paymentData?.type || paymentData?.payment_type || "community_dues";
+      const numericAmount = Number(
+        isPersonalHubTransaction ? amount : bookingData?.totalAmount ?? paymentData?.amount
+      ) || 0;
       const numericPlatformFee = Number(platformFee) || 0;
       const numericTotalAmount = Number(totalAmount) || numericAmount;
 
@@ -242,7 +268,9 @@ const MobileMoneyScreen = ({ navigation, route }) => {
         booking_id: bookingId || undefined,
         description: isPersonalHubTransaction
           ? `${providerName || "Mobile"} ${paymentType} for ${description || recipientPhone || "resident"}`
-          : `Payment for booking #${bookingId}`,
+          : bookingData
+            ? `Payment for booking #${bookingId}`
+            : paymentData?.title || paymentData?.description || "Community Payment",
         idempotency_key: `mm-${authUserId}-${paymentType}-${Date.now()}`,
         metadata: {
           source: "user-mobile-money-screen",
@@ -264,7 +292,10 @@ const MobileMoneyScreen = ({ navigation, route }) => {
       }
 
       const gatewayPayment = initiationResult.data;
-      const gatewayTransactionId = gatewayPayment.transaction_id || `MM-${Date.now()}`;
+      const gatewayTransactionId =
+        gatewayPayment.provider_reference ||
+        gatewayPayment.transaction_id ||
+        `MM-${Date.now()}`;
       const gatewayPaymentId = gatewayPayment.payment_id;
       let personalHubRecord = null;
 
@@ -391,21 +422,16 @@ const MobileMoneyScreen = ({ navigation, route }) => {
           });
         }
       }
-
-      const checkoutUrl = gatewayPayment.checkout_url;
-      if (!checkoutUrl) {
-        throw new Error("Checkout URL was not returned by the payment gateway.");
-      }
-
-      await WebBrowser.openBrowserAsync(checkoutUrl, {
-        controlsColor: Colors.primary,
-        presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN,
-      });
+      setConfirmationStatus("processing");
+      setPaymentReference(gatewayTransactionId);
+      setShowConfirmationModal(true);
 
       const reconciliation = await reconcileExpressPayPayment({
         paymentId: gatewayPaymentId,
         token: gatewayPayment.token,
         orderId: gatewayTransactionId,
+        pollAttempts: 20,
+        pollDelayMs: 3000,
       });
 
       const gatewayStatus = normalizeGatewayStatus(
@@ -432,6 +458,8 @@ const MobileMoneyScreen = ({ navigation, route }) => {
       }
 
       if (gatewayStatus === "completed") {
+        setShowConfirmationModal(false);
+
         if (isPersonalHubTransaction) {
           await createPaymentNotification({
             transaction_type: transactionType,
@@ -443,18 +471,39 @@ const MobileMoneyScreen = ({ navigation, route }) => {
             status: "completed",
           });
 
-          setConfirmationStatus("completed");
-          setPaymentReference(gatewayTransactionId);
-          setShowConfirmationModal(true);
+          navigation.push("successScreen", {
+            paymentMethod: "Mobile Money",
+            transactionId: gatewayTransactionId,
+            paymentData: buildPersonalHubSuccessPayload({
+              recordId: personalHubRecord?.data?.id,
+              paymentId: gatewayPaymentId,
+              transactionId: gatewayTransactionId,
+              paidAmount: numericAmount,
+            }),
+          });
+          return;
+        }
+
+        if (bookingData) {
+          navigation.push("successScreen", {
+            bookingId,
+            paymentMethod: "Mobile Money",
+            transactionId: gatewayTransactionId,
+            bookingData: {
+              ...bookingData,
+              paymentMethod: "Mobile Money",
+              paymentDate: new Date().toISOString(),
+              transactionId: gatewayTransactionId,
+            },
+          });
           return;
         }
 
         navigation.push("successScreen", {
-          bookingId,
           paymentMethod: "Mobile Money",
           transactionId: gatewayTransactionId,
-          bookingData: {
-            ...bookingData,
+          paymentData: {
+            ...paymentData,
             paymentMethod: "Mobile Money",
             paymentDate: new Date().toISOString(),
             transactionId: gatewayTransactionId,
@@ -464,6 +513,7 @@ const MobileMoneyScreen = ({ navigation, route }) => {
       }
 
       if (gatewayStatus === "failed") {
+        setShowConfirmationModal(false);
         Alert.alert(
           "Payment Failed",
           reconciliation.error || "Payment could not be completed. Please try again."
@@ -475,6 +525,7 @@ const MobileMoneyScreen = ({ navigation, route }) => {
       setPaymentReference(gatewayTransactionId);
       setShowConfirmationModal(true);
     } catch (error) {
+      setShowConfirmationModal(false);
       console.error("Mobile Money payment error:", error);
       Alert.alert(
         "Payment Failed",
@@ -626,7 +677,14 @@ const MobileMoneyScreen = ({ navigation, route }) => {
                   textAlign: isRtl ? "left" : "right",
                 }}
               >
-                {amountFormatted || (amount ? `GHS ${amount.toFixed(2)}` : bookingData?.totalAmount ? `GHS ${bookingData.totalAmount.toFixed(2)}` : 'GHS 0.00')}
+                {amountFormatted ||
+                  (amount
+                    ? `GHS ${amount.toFixed(2)}`
+                    : bookingData?.totalAmount
+                      ? `GHS ${bookingData.totalAmount.toFixed(2)}`
+                      : paymentData?.amount
+                        ? `GHS ${Number(paymentData.amount).toFixed(2)}`
+                        : 'GHS 0.00')}
               </Text>
             </View>
           </View>
@@ -761,6 +819,9 @@ const MobileMoneyScreen = ({ navigation, route }) => {
         transparent={true}
         animationType="fade"
         onRequestClose={() => {
+          if (confirmationStatus === "processing") {
+            return;
+          }
           setShowConfirmationModal(false);
           navigateHome();
         }}
@@ -790,19 +851,37 @@ const MobileMoneyScreen = ({ navigation, route }) => {
                 backgroundColor:
                   confirmationStatus === "completed"
                     ? Colors.green + "20"
-                    : Colors.primary + "20",
+                    : confirmationStatus === "pending"
+                      ? Colors.primary + "20"
+                      : Colors.orange + "20",
                 justifyContent: 'center',
                 alignItems: 'center',
                 marginBottom: Default.fixPadding * 1.5,
               }}>
                 <MaterialCommunityIcons
-                  name={confirmationStatus === "completed" ? "check-circle" : "cellphone-check"}
+                  name={
+                    confirmationStatus === "completed"
+                      ? "check-circle"
+                      : confirmationStatus === "pending"
+                        ? "cellphone-check"
+                        : "progress-clock"
+                  }
                   size={50}
-                  color={confirmationStatus === "completed" ? Colors.green : Colors.primary}
+                  color={
+                    confirmationStatus === "completed"
+                      ? Colors.green
+                      : confirmationStatus === "pending"
+                        ? Colors.primary
+                        : Colors.orange
+                  }
                 />
               </View>
               <Text style={{ ...Fonts.SemiBold18black, textAlign: 'center' }}>
-                {confirmationStatus === "completed" ? "Payment Successful" : "Payment Initiated"}
+                {confirmationStatus === "completed"
+                  ? "Payment Successful"
+                  : confirmationStatus === "pending"
+                    ? "Awaiting Confirmation"
+                    : "Approve on Your Phone"}
               </Text>
               <Text style={{ 
                 ...Fonts.Medium14grey, 
@@ -811,8 +890,10 @@ const MobileMoneyScreen = ({ navigation, route }) => {
                 marginHorizontal: Default.fixPadding,
               }}>
                 {confirmationStatus === "completed"
-                  ? `Your ${getTransactionLabel(transactionType || "booking")} was completed successfully.`
-                  : `Your ${getTransactionLabel(transactionType || "booking")} has been submitted and is pending mobile money confirmation.`}
+                  ? `Your ${getTransactionLabel(transactionType || paymentData?.payment_type || "booking")} was completed successfully.`
+                  : confirmationStatus === "pending"
+                    ? `Your ${getTransactionLabel(transactionType || paymentData?.payment_type || "booking")} has been submitted and is pending mobile money confirmation.`
+                    : "A payment prompt has been sent to your phone. Approve it with your mobile money PIN to continue."}
               </Text>
               {paymentReference ? (
                 <Text style={{
@@ -824,23 +905,25 @@ const MobileMoneyScreen = ({ navigation, route }) => {
                 </Text>
               ) : null}
             </View>
-            
-            <TouchableOpacity
-              style={{
-                backgroundColor: Colors.primary,
-                paddingVertical: Default.fixPadding * 1.2,
-                borderRadius: 10,
-                alignItems: 'center',
-              }}
-              onPress={() => {
-                setShowConfirmationModal(false);
-                navigateHome();
-              }}
-            >
-              <Text style={{ ...Fonts.SemiBold16white }}>
-                Done
-              </Text>
-            </TouchableOpacity>
+
+            {confirmationStatus === "processing" ? null : (
+              <TouchableOpacity
+                style={{
+                  backgroundColor: Colors.primary,
+                  paddingVertical: Default.fixPadding * 1.2,
+                  borderRadius: 10,
+                  alignItems: 'center',
+                }}
+                onPress={() => {
+                  setShowConfirmationModal(false);
+                  navigateHome();
+                }}
+              >
+                <Text style={{ ...Fonts.SemiBold16white }}>
+                  Done
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </Modal>

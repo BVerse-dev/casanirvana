@@ -8,11 +8,13 @@ const DEFAULT_CURRENCY = 'GHS';
 const EXPRESSPAY_ENDPOINTS = {
   test: {
     submitUrl: 'https://sandbox.expresspaygh.com/api/submit.php',
+    directSubmitUrl: 'https://sandbox.expresspaygh.com/api/direct/submit.php',
     queryUrl: 'https://sandbox.expresspaygh.com/api/query.php',
     checkoutUrl: 'https://sandbox.expresspaygh.com/api/checkout.php',
   },
   live: {
     submitUrl: 'https://expresspaygh.com/api/submit.php',
+    directSubmitUrl: 'https://expresspaygh.com/api/direct/submit.php',
     queryUrl: 'https://expresspaygh.com/api/query.php',
     checkoutUrl: 'https://expresspaygh.com/api/checkout.php',
   },
@@ -37,6 +39,7 @@ type ExpressPayRuntimeConfig = {
   merchantId: string;
   apiKey: string;
   submitUrl: string;
+  directSubmitUrl: string;
   queryUrl: string;
   checkoutUrl: string;
   redirectUrl: string;
@@ -123,8 +126,8 @@ export type InitiateExpressPayInput = {
 export type InitiateExpressPayResult = {
   paymentId: string;
   transactionId: string;
-  checkoutUrl: string;
-  status: 'pending';
+  checkoutUrl: string | null;
+  status: 'pending' | 'completed' | 'failed';
   providerReference: string | null;
   token: string;
 };
@@ -323,6 +326,7 @@ const resolveRuntimeConfig = async (communityId?: string | null): Promise<Expres
     }
 
     const submitUrl = process.env.EXPRESSPAY_SUBMIT_URL || defaultEndpoints.submitUrl;
+    const directSubmitUrl = process.env.EXPRESSPAY_DIRECT_SUBMIT_URL || defaultEndpoints.directSubmitUrl;
     const queryUrl = process.env.EXPRESSPAY_QUERY_URL || defaultEndpoints.queryUrl;
     const checkoutUrl = process.env.EXPRESSPAY_CHECKOUT_URL || defaultEndpoints.checkoutUrl;
     const callbackPath = process.env.EXPRESSPAY_CALLBACK_PATH || '/payments/expresspay/callback';
@@ -338,6 +342,7 @@ const resolveRuntimeConfig = async (communityId?: string | null): Promise<Expres
       merchantId,
       apiKey,
       submitUrl,
+      directSubmitUrl,
       queryUrl,
       checkoutUrl,
       redirectUrl,
@@ -369,6 +374,8 @@ const resolveRuntimeConfig = async (communityId?: string | null): Promise<Expres
   const callbackPath = getNestedString(publicConfig, 'callback_path') || '/payments/expresspay/callback';
   const webhookUrl = getNestedString(publicConfig, 'webhook_url');
   const submitUrl = getNestedString(publicConfig, 'submit_url') || defaultEndpoints.submitUrl;
+  const directSubmitUrl =
+    getNestedString(publicConfig, 'direct_submit_url') || defaultEndpoints.directSubmitUrl;
   const queryUrl = getNestedString(publicConfig, 'query_url') || defaultEndpoints.queryUrl;
   const checkoutUrl = getNestedString(publicConfig, 'checkout_url') || defaultEndpoints.checkoutUrl;
 
@@ -383,6 +390,7 @@ const resolveRuntimeConfig = async (communityId?: string | null): Promise<Expres
     merchantId,
     apiKey,
     submitUrl,
+    directSubmitUrl,
     queryUrl,
     checkoutUrl,
     redirectUrl,
@@ -421,6 +429,73 @@ const invokeExpressPaySubmit = async (
 
   if (!json.token || String(json.token).trim().length === 0) {
     throw new Error(`ExpressPay submit did not return token: ${String(json['result-text'] || 'Unknown error')}`);
+  }
+
+  return json;
+};
+
+const invokeExpressPayDirectSubmit = async (
+  config: ExpressPayRuntimeConfig,
+  payload: URLSearchParams
+): Promise<SubmitResponse> => {
+  const response = await fetch(config.directSubmitUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: payload.toString(),
+  });
+
+  const rawText = await response.text();
+
+  let json: SubmitResponse;
+  try {
+    json = JSON.parse(rawText);
+  } catch {
+    throw new Error(`ExpressPay direct submit returned non-JSON response (${response.status})`);
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      `ExpressPay direct submit failed (${response.status}): ${String(json['result-text'] || 'Unknown error')}`
+    );
+  }
+
+  const numericStatus = Number((json as JsonRecord).status);
+  if (numericStatus !== 1 || !json.token || String(json.token).trim().length === 0) {
+    throw new Error(
+      `ExpressPay direct submit failed: ${String(json['result-text'] || 'Unable to create direct payment session')}`
+    );
+  }
+
+  return json;
+};
+
+const invokeExpressPayDirectCheckout = async (
+  config: ExpressPayRuntimeConfig,
+  payload: URLSearchParams
+): Promise<QueryResponse> => {
+  const response = await fetch(config.checkoutUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: payload.toString(),
+  });
+
+  const rawText = await response.text();
+
+  let json: QueryResponse;
+  try {
+    json = JSON.parse(rawText);
+  } catch {
+    throw new Error(`ExpressPay direct checkout returned non-JSON response (${response.status})`);
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      `ExpressPay direct checkout failed (${response.status}): ${String(json['result-text'] || 'Unknown error')}`
+    );
   }
 
   return json;
@@ -465,6 +540,35 @@ const mapQueryResultToStatus = (queryResult: QueryResponse): 'pending' | 'comple
   if (numeric === 1) return 'completed';
   if (numeric === 4) return 'pending';
   return 'failed';
+};
+
+const MOBILE_NETWORK_ALIASES: Record<string, string> = {
+  MTN: 'MTN_MM',
+  MTN_MM: 'MTN_MM',
+  VODAFONE: 'VODAFONE_CASH',
+  VODAFONE_CASH: 'VODAFONE_CASH',
+  AIRTELTIGO: 'AIRTEL_MM',
+  AIRTEL_MM: 'AIRTEL_MM',
+  TIGO_CASH: 'TIGO_CASH',
+};
+
+const resolveExpressPayMobileNetwork = ({
+  rawNetwork,
+  phoneNumber,
+}: {
+  rawNetwork?: string;
+  phoneNumber?: string;
+}) => {
+  const normalizedNetwork = rawNetwork ? rawNetwork.trim().toUpperCase() : '';
+
+  if (normalizedNetwork === 'AIRTELTIGO') {
+    if (phoneNumber.startsWith('027') || phoneNumber.startsWith('057')) {
+      return 'TIGO_CASH';
+    }
+    return 'AIRTEL_MM';
+  }
+
+  return MOBILE_NETWORK_ALIASES[normalizedNetwork] || null;
 };
 
 const getPaymentById = async (paymentId: string): Promise<PaymentRow | null> => {
@@ -570,12 +674,13 @@ export const initiateExpressPayPayment = async (
       const expresspayMeta = asObject(existingMetadata.expresspay);
       const token = typeof expresspayMeta.token === 'string' ? expresspayMeta.token : null;
       const checkoutUrl = typeof expresspayMeta.checkout_url === 'string' ? expresspayMeta.checkout_url : null;
+      const directFlow = expresspayMeta.direct_flow === true;
 
-      if (token && checkoutUrl && existing.status === 'pending') {
+      if (token && existing.status === 'pending' && (checkoutUrl || directFlow)) {
         return {
           paymentId: existing.id,
           transactionId: existing.transaction_id || '',
-          checkoutUrl,
+          checkoutUrl: checkoutUrl || null,
           status: 'pending',
           providerReference: existing.reference_number || null,
           token,
@@ -587,6 +692,7 @@ export const initiateExpressPayPayment = async (
   const config = await resolveRuntimeConfig(input.communityId);
   const orderId = generateOrderId();
   const createdAt = nowIso();
+  const inputMetadata = asObject(input.metadata);
 
   const paymentPayload: Record<string, unknown> = {
     amount,
@@ -603,7 +709,7 @@ export const initiateExpressPayPayment = async (
     initiated_at: createdAt,
     payment_date: createdAt,
     metadata: {
-      ...asObject(input.metadata),
+      ...inputMetadata,
       idempotency_key: idempotencyKey,
       expresspay: {
         mode: config.mode,
@@ -625,6 +731,112 @@ export const initiateExpressPayPayment = async (
   }
 
   const payment = insertedPayment as PaymentRow;
+
+  if (input.paymentMethod === 'mobile_money') {
+    try {
+      const payerPhoneRaw = getNestedString(inputMetadata, 'payer_phone') || input.payerProfile?.phone || '';
+      const payerPhone = payerPhoneRaw.replace(/\D+/g, '');
+      const requestedNetwork = getNestedString(inputMetadata, 'mobile_network');
+      const resolvedNetwork = resolveExpressPayMobileNetwork({
+        rawNetwork: requestedNetwork,
+        phoneNumber: payerPhone,
+      });
+
+      if (!payerPhone || payerPhone.length < 10) {
+        throw new Error('A valid mobile money number is required for in-app payment.');
+      }
+
+      if (!resolvedNetwork) {
+        throw new Error('Unsupported mobile money network selected for ExpressPay.');
+      }
+
+      const directSubmitParams = new URLSearchParams();
+      directSubmitParams.set('merchant-id', config.merchantId);
+      directSubmitParams.set('api-key', config.apiKey);
+      directSubmitParams.set('currency', input.currency || DEFAULT_CURRENCY);
+      directSubmitParams.set('amount', formattedAmount);
+      directSubmitParams.set('order-id', orderId);
+      directSubmitParams.set('post-url', config.postUrl);
+
+      const directSubmitResponse = await invokeExpressPayDirectSubmit(config, directSubmitParams);
+      const token = String(directSubmitResponse.token).trim();
+
+      const directCheckoutParams = new URLSearchParams();
+      directCheckoutParams.set('token', token);
+      directCheckoutParams.set('mobile-number', payerPhone);
+      directCheckoutParams.set('mobile-network', resolvedNetwork);
+
+      const mobileAuthToken = getNestedString(inputMetadata, 'mobile_auth_token');
+      if (mobileAuthToken) {
+        directCheckoutParams.set('mobile-auth-token', mobileAuthToken);
+      }
+
+      const directCheckoutResponse = await invokeExpressPayDirectCheckout(config, directCheckoutParams);
+      const immediateStatus = mapQueryResultToStatus(directCheckoutResponse);
+      const verifiedAt = nowIso();
+      const providerReference =
+        typeof directCheckoutResponse['transaction-id'] === 'string'
+          ? directCheckoutResponse['transaction-id']
+          : payment.reference_number;
+      const paymentMetadata = asObject(payment.metadata);
+      const expressPayMetadata = asObject(paymentMetadata.expresspay);
+
+      const updates: Record<string, unknown> = {
+        reference_number: providerReference || null,
+        status: immediateStatus,
+        metadata: {
+          ...paymentMetadata,
+          expresspay: {
+            ...expressPayMetadata,
+            token,
+            direct_flow: true,
+            direct_submit_result: directSubmitResponse,
+            direct_checkout_result: directCheckoutResponse,
+            mobile_network: resolvedNetwork,
+            mobile_number: payerPhone,
+            verified_at: verifiedAt,
+          },
+        },
+      };
+
+      if (immediateStatus === 'completed') {
+        updates.completed_at = verifiedAt;
+        updates.paid_at = verifiedAt;
+      }
+
+      if (immediateStatus === 'failed') {
+        updates.failed_at = verifiedAt;
+      }
+
+      const updated = await updatePaymentRecord(payment.id, updates);
+
+      return {
+        paymentId: updated.id,
+        transactionId: updated.transaction_id || orderId,
+        checkoutUrl: null,
+        status: immediateStatus,
+        providerReference: providerReference || null,
+        token,
+      };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown mobile money initiation error';
+      await updatePaymentRecord(payment.id, {
+        status: 'failed',
+        failed_at: nowIso(),
+        metadata: {
+          ...asObject(payment.metadata),
+          expresspay: {
+            ...asObject(asObject(payment.metadata).expresspay),
+            direct_flow: true,
+            initiation_error: message,
+            initiation_failed_at: nowIso(),
+          },
+        },
+      });
+
+      throw new Error(message);
+    }
+  }
 
   try {
     const submitParams = new URLSearchParams();

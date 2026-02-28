@@ -426,15 +426,17 @@ Date: 2026-02-06
 - [x] Wired user app payment-method screens to backend ExpressPay endpoints (no direct client-side `payments` inserts for checkout):
   - Added `/Users/andromeda/casanirvana/user/services/expressPayService.js` with authenticated `initiate`, `verify`, `status`, and reconciliation helpers.
   - Updated `/Users/andromeda/casanirvana/user/screens/mobileMoneyScreen.js` to:
-    - initiate checkout through backend `POST /payments/expresspay/initiate`,
-    - open hosted checkout URL,
-    - reconcile status via backend `verify/status`,
+    - initiate in-app mobile-money checkout through backend `POST /payments/expresspay/initiate`,
+    - use ExpressPay Merchant Direct flow (no external browser handoff),
+    - poll and reconcile status via backend `verify/status`,
+    - route completed payments into `successScreen`,
     - keep personal-hub transaction rows linked by `payment_ref_id` and update terminal states (`completed`/`failed`) without client-side success simulation.
-  - Updated `/Users/andromeda/casanirvana/user/screens/creditCardScreen.js` and `/Users/andromeda/casanirvana/user/screens/paypalScreen.js` to run the same hosted-checkout + reconciliation contract.
+  - Updated `/Users/andromeda/casanirvana/backend/src/services/expresspay.ts` to run direct mobile-money orchestration through `direct/submit.php` + `checkout.php`, while card remains on the hosted-checkout path pending PCI-scope review.
+  - `/Users/andromeda/casanirvana/user/screens/paypalScreen.js` remains available in code but is now intended to stay disabled via payment-method policy until future rollout.
 - [x] Applied hotfix migration `supabase/migrations/20260227174500_phase27_admin_roles_rls_recursion_fix.sql` to remove recursive legacy RLS policies:
   - Dropped old `Allow service role or superadmin ...` policies on `public.admin_roles` and `public.app_settings`.
   - Added function-based `admin_roles` policies (`p27_admin_roles_select_admin`, `p27_admin_roles_manage_superadmin`, `p27_admin_roles_service_role_all`) to eliminate policy recursion and restore superadmin settings reads.
-- [ ] Pending: manual runtime QA for user payment checkout lifecycle (card/mobile-money/paypal) with real ExpressPay test credentials and callback timings.
+- [ ] Pending: manual runtime QA for user payment checkout lifecycle (mobile-money direct first; card hosted path only if explicitly kept enabled) with real ExpressPay test credentials and callback timings.
 - [ ] Pending: add final callback authenticity hardening once ExpressPay signature/hash contract is confirmed in production credentials docs.
 
 ## Cleanup / Hygiene
