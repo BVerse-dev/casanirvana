@@ -130,16 +130,10 @@ const PaymentGatewaysPage = () => {
     reset,
     watch,
     setValue,
+    getValues,
   } = useForm<PaymentGatewaySettings>({
     resolver: yupResolver(schema),
   });
-
-  // Reset form when settings are loaded
-  useEffect(() => {
-    if (paymentGatewaySettings) {
-      reset(paymentGatewaySettings);
-    }
-  }, [paymentGatewaySettings, reset]);
 
   const razorpayEnabled = watch('razorpay_enabled');
   const stripeEnabled = watch('stripe_enabled');
@@ -156,6 +150,25 @@ const PaymentGatewaysPage = () => {
   } = useExpressPayGatewayConfig(expresspayMode, 'global');
   const updateExpressPayConfig = useUpdateExpressPayGatewayConfig();
   const testExpressPayConnection = useTestExpressPayGatewayConnection();
+
+  // Reset form when settings are loaded, while keeping ExpressPay sourced from secure config.
+  useEffect(() => {
+    if (paymentGatewaySettings) {
+      reset({
+        ...paymentGatewaySettings,
+        expresspay_enabled: expressPayConfig?.is_enabled ?? getValues('expresspay_enabled') ?? false,
+        expresspay_mode:
+          expressPayConfig?.mode ??
+          (paymentGatewaySettings.expresspay_mode === 'live' ? 'live' : 'test'),
+        expresspay_webhook_url:
+          expressPayConfig?.webhook_url ??
+          paymentGatewaySettings.expresspay_webhook_url ??
+          '',
+        expresspay_merchant_id: '',
+        expresspay_api_key: '',
+      });
+    }
+  }, [expressPayConfig, getValues, paymentGatewaySettings, reset]);
 
   useEffect(() => {
     if (!expressPayConfig) return;

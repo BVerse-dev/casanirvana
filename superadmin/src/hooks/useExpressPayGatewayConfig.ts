@@ -44,6 +44,22 @@ const expressPayQueryKey = (mode: 'test' | 'live', scope: 'global' | 'community'
   communityId || 'global',
 ] as const;
 
+const getErrorMessage = (payload: any) => {
+  if (typeof payload?.error === 'string' && payload.error.trim()) {
+    return payload.error;
+  }
+
+  if (typeof payload?.error?.message === 'string' && payload.error.message.trim()) {
+    return payload.error.message;
+  }
+
+  if (typeof payload?.message === 'string' && payload.message.trim()) {
+    return payload.message;
+  }
+
+  return 'Request failed';
+};
+
 const useAdminFetch = () => {
   const { status } = useSession();
 
@@ -59,7 +75,7 @@ const useAdminFetch = () => {
     const payload = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      const message = payload?.error || payload?.message || 'Request failed';
+      const message = getErrorMessage(payload);
       throw new Error(message);
     }
 
