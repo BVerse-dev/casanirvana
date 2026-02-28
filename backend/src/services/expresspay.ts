@@ -852,7 +852,31 @@ export const initiateExpressPayPayment = async (
       directSubmitParams.set('order-id', orderId);
       directSubmitParams.set('post-url', config.directPostUrl);
 
-      const directSubmitResponse = await invokeExpressPayDirectSubmit(config, directSubmitParams);
+      let directSubmitResponse: SubmitResponse;
+      let directSubmitTransport: 'direct_submit' | 'submit_fallback' = 'direct_submit';
+      let directSubmitPrimaryError: JsonRecord | null = null;
+
+      try {
+        directSubmitResponse = await invokeExpressPayDirectSubmit(config, directSubmitParams);
+      } catch (error: unknown) {
+        const providerErrorDetails =
+          error instanceof ExpressPayGatewayError && error.details ? error.details : null;
+        const providerStatus = Number(providerErrorDetails?.status);
+
+        // ExpressPay's Merchant Direct API docs are internally inconsistent:
+        // the endpoint table documents /api/direct/submit.php, while the sample
+        // request posts the same payload to /api/submit.php. In practice, some
+        // sandbox configs reject the direct endpoint with status 3 (Invalid Request)
+        // but accept the standard submit endpoint for the same tokenization step.
+        if (providerStatus !== 3) {
+          throw error;
+        }
+
+        directSubmitPrimaryError = providerErrorDetails;
+        directSubmitResponse = await invokeExpressPaySubmit(config, directSubmitParams);
+        directSubmitTransport = 'submit_fallback';
+      }
+
       const token = String(directSubmitResponse.token).trim();
 
       const directCheckoutParams = new URLSearchParams();
@@ -885,6 +909,8 @@ export const initiateExpressPayPayment = async (
             token,
             direct_flow: true,
             direct_submit_result: directSubmitResponse,
+            direct_submit_transport: directSubmitTransport,
+            direct_submit_primary_error: directSubmitPrimaryError,
             direct_checkout_result: directCheckoutResponse,
             direct_post_url: config.directPostUrl,
             mobile_network: resolvedNetwork,
