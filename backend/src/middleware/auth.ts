@@ -89,6 +89,8 @@ const MODULE_ALIASES: Record<string, string[]> = {
   complaints: ['create:complaints', 'update:complaints', 'delete:complaints', 'read:all_complaints'],
 };
 
+const isNotFoundError = (error?: { code?: string | null } | null) => error?.code === 'PGRST116';
+
 function getRoleNameCandidates(role: UserProfile['role']) {
   const normalizedRole = typeof role === 'string' && role.trim().length > 0 ? role.trim() : 'user';
   const mappedRoleNames =
@@ -138,14 +140,34 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
       return res.status(401).json({ error: 'Invalid or expired token' });
     }
 
-    // Get user profile with role
-    const { data: profile, error: profileError } = await supabase
+    // Resolve the canonical profile the same way the mobile/web apps do:
+    // prefer profiles.user_id, then fall back to legacy profiles.id.
+    const profileByUserId = await supabase
       .from('profiles')
       .select('*')
-      .eq('id', user.id)
-      .single();
+      .eq('user_id', user.id)
+      .maybeSingle();
 
-    if (profileError || !profile) {
+    if (profileByUserId.error && !isNotFoundError(profileByUserId.error)) {
+      return res.status(500).json({ error: 'Failed to load user profile' });
+    }
+
+    const profileById =
+      profileByUserId.data
+        ? { data: null, error: null }
+        : await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .maybeSingle();
+
+    if (profileById.error && !isNotFoundError(profileById.error)) {
+      return res.status(500).json({ error: 'Failed to load user profile' });
+    }
+
+    const profile = profileByUserId.data || profileById.data;
+
+    if (!profile) {
       return res.status(401).json({ error: 'User profile not found' });
     }
 
