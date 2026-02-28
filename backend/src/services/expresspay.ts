@@ -192,6 +192,20 @@ const formatAmount = (amount: number) => {
   return amount.toFixed(2);
 };
 
+const normalizeExpressPayMsisdn = (value: string) => {
+  const digits = value.replace(/\D+/g, '');
+
+  if (digits.startsWith('233') && digits.length === 12) {
+    return digits;
+  }
+
+  if (digits.startsWith('0') && digits.length === 10) {
+    return `233${digits.slice(1)}`;
+  }
+
+  return digits;
+};
+
 const ensureHttpsForLive = (url: string, mode: ExpressPayMode) => {
   if (mode === LIVE_MODE && !url.startsWith('https://')) {
     throw new Error('ExpressPay live mode requires HTTPS callback URLs');
@@ -663,10 +677,20 @@ const invokeExpressPayQuery = async (
 };
 
 const mapQueryResultToStatus = (queryResult: QueryResponse): 'pending' | 'completed' | 'failed' => {
+  const providerStatus = Number((queryResult as JsonRecord).status);
+  const resultText = String(queryResult['result-text'] || (queryResult as JsonRecord).message || '').toLowerCase();
   const numeric = Number(queryResult.result);
+
+  if (!Number.isNaN(providerStatus) && Number.isNaN(numeric)) {
+    if (providerStatus === 1) return 'pending';
+    return 'failed';
+  }
 
   if (numeric === 1) return 'completed';
   if (numeric === 4) return 'pending';
+  if (numeric === 3 && resultText.includes('no transaction data available')) {
+    return 'pending';
+  }
   return 'failed';
 };
 
@@ -897,6 +921,7 @@ export const initiateExpressPayPayment = async (
     try {
       const payerPhoneRaw = getNestedString(inputMetadata, 'payer_phone') || input.payerProfile?.phone || '';
       const payerPhone = payerPhoneRaw.replace(/\D+/g, '');
+      const payerPhoneForProvider = normalizeExpressPayMsisdn(payerPhone);
       const requestedNetwork = getNestedString(inputMetadata, 'mobile_network');
       const resolvedNetwork = resolveExpressPayMobileNetwork({
         rawNetwork: requestedNetwork,
@@ -954,16 +979,36 @@ export const initiateExpressPayPayment = async (
 
       const directCheckoutParams = new URLSearchParams();
       directCheckoutParams.set('token', token);
-      directCheckoutParams.set('mobile-number', payerPhone);
+      directCheckoutParams.set('mobile-number', payerPhoneForProvider);
       directCheckoutParams.set('mobile-network', resolvedNetwork);
+      directCheckoutParams.set('payment-option', resolvedNetwork);
+      directCheckoutParams.set('email', input.payerProfile?.email || 'resident@casanirvana.app');
+      directCheckoutParams.set('firstname', input.payerProfile?.first_name || 'Resident');
+      directCheckoutParams.set('lastname', input.payerProfile?.last_name || 'User');
+      directCheckoutParams.set('phonenumber', payerPhoneForProvider);
+      directCheckoutParams.set('username', input.payerProfile?.email || `user-${input.payerId}`);
 
-      const mobileAuthToken = getNestedString(inputMetadata, 'mobile_auth_token');
+      const mobileAuthToken =
+        getNestedString(inputMetadata, 'mobile_auth_network') ||
+        getNestedString(inputMetadata, 'mobile_auth_token');
       if (mobileAuthToken) {
-        directCheckoutParams.set('mobile-auth-token', mobileAuthToken);
+        directCheckoutParams.set('mobile-auth-network', mobileAuthToken);
       }
 
       const directCheckoutResponse = await invokeExpressPayDirectCheckout(config, directCheckoutParams);
       const immediateStatus = mapQueryResultToStatus(directCheckoutResponse);
+      const directCheckoutMessage = String(
+        directCheckoutResponse['result-text'] || (directCheckoutResponse as JsonRecord).message || 'Unknown error'
+      );
+
+      if (immediateStatus === 'failed') {
+        throw new ExpressPayGatewayError(`ExpressPay direct checkout failed: ${directCheckoutMessage}`, {
+          ...asObject(directCheckoutResponse),
+          mobile_number: payerPhoneForProvider,
+          mobile_network: resolvedNetwork,
+        });
+      }
+
       const verifiedAt = nowIso();
       const providerReference =
         typeof directCheckoutResponse['transaction-id'] === 'string'
@@ -987,7 +1032,7 @@ export const initiateExpressPayPayment = async (
             direct_checkout_result: directCheckoutResponse,
             direct_post_url: config.directPostUrl,
             mobile_network: resolvedNetwork,
-            mobile_number: payerPhone,
+            mobile_number: payerPhoneForProvider,
             verified_at: verifiedAt,
           },
         },
