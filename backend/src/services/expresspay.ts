@@ -199,6 +199,23 @@ const getNestedString = (record: JsonRecord, key: string): string | undefined =>
   return undefined;
 };
 
+const buildCallbackUrl = ({
+  callbackBase,
+  callbackPath,
+  overrideUrl,
+}: {
+  callbackBase: string;
+  callbackPath: string;
+  overrideUrl?: string;
+}) => {
+  if (overrideUrl && /^https?:\/\//i.test(overrideUrl)) {
+    return overrideUrl;
+  }
+
+  const normalizedPath = callbackPath.startsWith('/') ? callbackPath : `/${callbackPath}`;
+  return `${callbackBase}${normalizedPath}`;
+};
+
 const readSetting = async (key: string, category?: string): Promise<string | null> => {
   let query = adminSupabase.from('app_settings').select('value').eq('key', key).limit(1);
 
@@ -266,23 +283,11 @@ const resolveCredentialFromRefs = async (
   return readVaultSecret({ secretId, secretName });
 };
 
-const getModeFromSettings = async (): Promise<ExpressPayMode> => {
-  const envMode = normalizeMode(process.env.EXPRESSPAY_MODE);
-  const dbMode = await readSetting('expresspay_mode', 'payment_gateways');
-
-  if (dbMode) {
-    return normalizeMode(dbMode);
-  }
-
-  return envMode;
-};
-
-const getGatewayConfigs = async (mode: ExpressPayMode): Promise<GatewayConfigRow[]> => {
+const getGatewayConfigs = async (): Promise<GatewayConfigRow[]> => {
   const { data, error } = await looseDb
     .from('payment_gateway_configs')
     .select('*')
-    .eq('provider', EXPRESSPAY_PROVIDER)
-    .eq('mode', mode);
+    .eq('provider', EXPRESSPAY_PROVIDER);
 
   if (error) {
     throw new Error(`Failed to load payment gateway config: ${error.message}`);
@@ -292,8 +297,7 @@ const getGatewayConfigs = async (mode: ExpressPayMode): Promise<GatewayConfigRow
 };
 
 const resolveRuntimeConfig = async (communityId?: string | null): Promise<ExpressPayRuntimeConfig> => {
-  const mode = await getModeFromSettings();
-  const allConfigs = await getGatewayConfigs(mode);
+  const allConfigs = await getGatewayConfigs();
   const enabledConfigs = allConfigs.filter((cfg) => cfg.is_enabled);
 
   const communityConfig = communityId
@@ -303,10 +307,10 @@ const resolveRuntimeConfig = async (communityId?: string | null): Promise<Expres
   const globalConfig = enabledConfigs.find((cfg) => cfg.scope === 'global');
   const selected = communityConfig || globalConfig;
 
-  const callbackBase = getCallbackBaseUrl();
-  const defaultEndpoints = EXPRESSPAY_ENDPOINTS[mode];
-
   if (!selected) {
+    const mode = normalizeMode(process.env.EXPRESSPAY_MODE || (await readSetting('expresspay_mode', 'payment_gateways')));
+    const callbackBase = getCallbackBaseUrl();
+    const defaultEndpoints = EXPRESSPAY_ENDPOINTS[mode];
     if (allConfigs.length > 0) {
       throw new Error('ExpressPay is configured but disabled for the active mode.');
     }
@@ -321,9 +325,10 @@ const resolveRuntimeConfig = async (communityId?: string | null): Promise<Expres
     const submitUrl = process.env.EXPRESSPAY_SUBMIT_URL || defaultEndpoints.submitUrl;
     const queryUrl = process.env.EXPRESSPAY_QUERY_URL || defaultEndpoints.queryUrl;
     const checkoutUrl = process.env.EXPRESSPAY_CHECKOUT_URL || defaultEndpoints.checkoutUrl;
-    const callbackPath = '/payments/expresspay/callback';
-    const redirectUrl = `${callbackBase}${callbackPath}`;
-    const postUrl = `${callbackBase}${callbackPath}`;
+    const callbackPath = process.env.EXPRESSPAY_CALLBACK_PATH || '/payments/expresspay/callback';
+    const webhookUrl = process.env.EXPRESSPAY_WEBHOOK_URL || '';
+    const redirectUrl = buildCallbackUrl({ callbackBase, callbackPath, overrideUrl: webhookUrl });
+    const postUrl = buildCallbackUrl({ callbackBase, callbackPath, overrideUrl: webhookUrl });
 
     ensureHttpsForLive(redirectUrl, mode);
     ensureHttpsForLive(postUrl, mode);
@@ -342,6 +347,9 @@ const resolveRuntimeConfig = async (communityId?: string | null): Promise<Expres
     };
   }
 
+  const mode = selected.mode;
+  const callbackBase = getCallbackBaseUrl();
+  const defaultEndpoints = EXPRESSPAY_ENDPOINTS[mode];
   const publicConfig = asObject(selected.public_config);
   const secretRefs = asObject(selected.secret_refs);
 
@@ -359,12 +367,13 @@ const resolveRuntimeConfig = async (communityId?: string | null): Promise<Expres
   }
 
   const callbackPath = getNestedString(publicConfig, 'callback_path') || '/payments/expresspay/callback';
+  const webhookUrl = getNestedString(publicConfig, 'webhook_url');
   const submitUrl = getNestedString(publicConfig, 'submit_url') || defaultEndpoints.submitUrl;
   const queryUrl = getNestedString(publicConfig, 'query_url') || defaultEndpoints.queryUrl;
   const checkoutUrl = getNestedString(publicConfig, 'checkout_url') || defaultEndpoints.checkoutUrl;
 
-  const redirectUrl = `${callbackBase}${callbackPath.startsWith('/') ? callbackPath : `/${callbackPath}`}`;
-  const postUrl = `${callbackBase}${callbackPath.startsWith('/') ? callbackPath : `/${callbackPath}`}`;
+  const redirectUrl = buildCallbackUrl({ callbackBase, callbackPath, overrideUrl: webhookUrl });
+  const postUrl = buildCallbackUrl({ callbackBase, callbackPath, overrideUrl: webhookUrl });
 
   ensureHttpsForLive(redirectUrl, mode);
   ensureHttpsForLive(postUrl, mode);

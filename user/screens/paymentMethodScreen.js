@@ -6,6 +6,7 @@ import {
   StyleSheet,
   FlatList,
   ScrollView,
+  Alert,
 } from "react-native";
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -15,6 +16,12 @@ import MyStatusBar from "../components/myStatusBar";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import AwesomeButton from "react-native-really-awesome-button";
+import {
+  getPaymentAmountValidationMessage,
+  getPaymentMethodPolicy,
+  isPaymentMethodEnabled,
+  validatePaymentSelection,
+} from "../services/paymentMethodPolicyService";
 
 const PaymentMethodScreen = ({ navigation, route }) => {
   const { 
@@ -119,6 +126,35 @@ const PaymentMethodScreen = ({ navigation, route }) => {
 
   const [selectedPaymentMethod, setSelectedPaymentMethod] =
     useState("Credit Card");
+  const [paymentPolicy, setPaymentPolicy] = useState(null);
+  const [isLoadingPaymentPolicy, setIsLoadingPaymentPolicy] = useState(!isAddingMode);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (isAddingMode) {
+      setIsLoadingPaymentPolicy(false);
+      return () => {
+        isMounted = false;
+      };
+    }
+
+    const loadPaymentPolicy = async () => {
+      setIsLoadingPaymentPolicy(true);
+      const policy = await getPaymentMethodPolicy();
+
+      if (!isMounted) return;
+
+      setPaymentPolicy(policy);
+      setIsLoadingPaymentPolicy(false);
+    };
+
+    loadPaymentPolicy();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isAddingMode]);
 
   useEffect(() => {
     if (isPersonalHubTransaction) {
@@ -126,9 +162,57 @@ const PaymentMethodScreen = ({ navigation, route }) => {
     }
   }, [isPersonalHubTransaction]);
 
-  const availablePaymentList = isPersonalHubTransaction
-    ? paymentList.filter((method) => method.title === "Mobile Money")
-    : paymentList;
+  const resolvedPaymentAmount = React.useMemo(() => {
+    if (bookingData) {
+      const bookingAmount = Number(bookingData?.totalAmount);
+      if (Number.isFinite(bookingAmount)) {
+        return bookingAmount;
+      }
+    }
+
+    const explicitAmount = Number(amount);
+    if (Number.isFinite(explicitAmount)) {
+      return explicitAmount;
+    }
+
+    const paymentAmount = Number(paymentData?.amount);
+    if (Number.isFinite(paymentAmount)) {
+      return paymentAmount;
+    }
+
+    return 0;
+  }, [amount, bookingData, paymentData]);
+
+  const availablePaymentList = React.useMemo(() => {
+    const basePaymentList = isPersonalHubTransaction
+      ? paymentList.filter((method) => method.title === "Mobile Money")
+      : paymentList;
+
+    if (isAddingMode) {
+      return basePaymentList;
+    }
+
+    return basePaymentList.filter((method) => isPaymentMethodEnabled(paymentPolicy, method.title));
+  }, [isAddingMode, isPersonalHubTransaction, paymentList, paymentPolicy]);
+
+  const paymentAmountValidationMessage =
+    !isAddingMode && paymentPolicy
+      ? getPaymentAmountValidationMessage(paymentPolicy, resolvedPaymentAmount)
+      : null;
+
+  useEffect(() => {
+    if (availablePaymentList.length === 0) {
+      return;
+    }
+
+    const selectedStillAvailable = availablePaymentList.some(
+      (method) => method.title === selectedPaymentMethod
+    );
+
+    if (!selectedStillAvailable) {
+      setSelectedPaymentMethod(availablePaymentList[0].title);
+    }
+  }, [availablePaymentList, selectedPaymentMethod]);
 
   const renderItem = ({ item }) => {
     const isSelected = selectedPaymentMethod === item.title;
@@ -195,6 +279,32 @@ const PaymentMethodScreen = ({ navigation, route }) => {
     );
   };
   const handleContinue = () => {
+    if (!isAddingMode) {
+      if (isLoadingPaymentPolicy) {
+        Alert.alert("Please Wait", "Loading payment settings. Please try again in a moment.");
+        return;
+      }
+
+      if (availablePaymentList.length === 0) {
+        Alert.alert(
+          "Payment Unavailable",
+          "No payment methods are currently available for this transaction."
+        );
+        return;
+      }
+
+      const validationMessage = validatePaymentSelection({
+        policy: paymentPolicy,
+        methodTitle: selectedPaymentMethod,
+        amount: resolvedPaymentAmount,
+      });
+
+      if (validationMessage) {
+        Alert.alert("Payment Unavailable", validationMessage);
+        return;
+      }
+    }
+
     // Prepare parameters based on mode
     let navigationParams = {};
     
@@ -875,6 +985,40 @@ const PaymentMethodScreen = ({ navigation, route }) => {
           >
             Choose Payment Method
           </Text>
+
+          {!isAddingMode && paymentAmountValidationMessage && (
+            <View
+              style={{
+                marginHorizontal: Default.fixPadding * 2,
+                marginBottom: Default.fixPadding,
+                borderRadius: 10,
+                backgroundColor: Colors.white,
+                padding: Default.fixPadding * 1.2,
+                ...Default.shadow,
+              }}
+            >
+              <Text style={{ ...Fonts.Medium14grey, color: Colors.red }}>
+                {paymentAmountValidationMessage}
+              </Text>
+            </View>
+          )}
+
+          {!isAddingMode && !isLoadingPaymentPolicy && availablePaymentList.length === 0 && (
+            <View
+              style={{
+                marginHorizontal: Default.fixPadding * 2,
+                marginBottom: Default.fixPadding,
+                borderRadius: 10,
+                backgroundColor: Colors.white,
+                padding: Default.fixPadding * 1.2,
+                ...Default.shadow,
+              }}
+            >
+              <Text style={{ ...Fonts.Medium14grey }}>
+                No payment methods are currently enabled for this transaction.
+              </Text>
+            </View>
+          )}
           
           <FlatList
             data={availablePaymentList}

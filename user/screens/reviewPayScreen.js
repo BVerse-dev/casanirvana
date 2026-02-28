@@ -9,6 +9,7 @@ import {
   SafeAreaView,
   BackHandler,
   ScrollView,
+  Alert,
 } from "react-native";
 import { Colors, Fonts, Default } from "../constants/styles";
 import { useTranslation } from "react-i18next";
@@ -16,10 +17,16 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { ms } from "react-native-size-matters/extend";
 import MyStatusBar from "../components/myStatusBar";
+import {
+  getPaymentMethodPolicy,
+  validatePaymentSelection,
+} from "../services/paymentMethodPolicyService";
 
 const ReviewPayScreen = ({ navigation, route }) => {
   const { t, i18n } = useTranslation();
   const isRtl = i18n.dir() === "rtl";
+  const [paymentPolicy, setPaymentPolicy] = React.useState(null);
+  const [isLoadingPaymentPolicy, setIsLoadingPaymentPolicy] = React.useState(true);
   // Get data from route params
   const { 
     provider, 
@@ -66,9 +73,47 @@ const ReviewPayScreen = ({ navigation, route }) => {
     return () => backHandler.remove();
   }, [navigation]);
 
+  React.useEffect(() => {
+    let isMounted = true;
+
+    const loadPaymentPolicy = async () => {
+      setIsLoadingPaymentPolicy(true);
+      const policy = await getPaymentMethodPolicy();
+
+      if (!isMounted) return;
+
+      setPaymentPolicy(policy);
+      setIsLoadingPaymentPolicy(false);
+    };
+
+    loadPaymentPolicy();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const handlePayment = () => {
     const normalizedTransactionType = transactionType || "airtime";
     const paymentMethodTitle = paymentMethod?.title || "Credit Card";
+    const resolvedAmount = Number(totalAmount ?? amount ?? 0);
+
+    if (isLoadingPaymentPolicy) {
+      Alert.alert("Please Wait", "Loading payment settings. Please try again in a moment.");
+      return;
+    }
+
+    const validationMessage = validatePaymentSelection({
+      policy: paymentPolicy,
+      methodTitle: paymentMethodTitle,
+      amount: resolvedAmount,
+    });
+
+    if (validationMessage) {
+      Alert.alert("Payment Unavailable", validationMessage);
+      return;
+    }
+
     const navigationParams = {
       provider,
       providerId: providerId || null,

@@ -6,6 +6,7 @@ import {
   initiateExpressPayPayment,
   verifyExpressPayPayment,
 } from '../services/expresspay';
+import { assertPaymentMethodAllowed } from '../services/paymentMethodPolicy';
 
 const ADMIN_ROLES = new Set(['admin', 'superadmin', 'agency_manager', 'facility_manager']);
 
@@ -86,11 +87,26 @@ export const initiatePayment = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'amount must be a positive number' });
     }
 
+    const paymentMethod = typeof body.payment_method === 'string' ? body.payment_method : 'card';
+
+    try {
+      await assertPaymentMethodAllowed({
+        paymentMethod,
+        amount,
+        payerId: authUserId,
+      });
+    } catch (policyError: unknown) {
+      return res.status(400).json({
+        success: false,
+        error: errorMessage(policyError, 'This payment method is unavailable for the current transaction.'),
+      });
+    }
+
     const result = await initiateExpressPayPayment({
       amount,
       currency: typeof body.currency === 'string' ? body.currency : undefined,
       paymentType: typeof body.payment_type === 'string' ? body.payment_type : 'general',
-      paymentMethod: typeof body.payment_method === 'string' ? body.payment_method : 'card',
+      paymentMethod,
       unitId: requestUnitId,
       payerId: authUserId,
       payerProfile: {

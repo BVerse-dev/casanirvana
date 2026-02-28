@@ -20,6 +20,7 @@ type QueryError = { message?: string } | null;
 type LooseQuery = {
   select: (...args: unknown[]) => LooseQuery;
   eq: (...args: unknown[]) => LooseQuery;
+  neq: (...args: unknown[]) => LooseQuery;
   is: (...args: unknown[]) => LooseQuery;
   maybeSingle: () => Promise<{ data: unknown; error: QueryError }>;
   insert: (...args: unknown[]) => LooseQuery;
@@ -338,6 +339,40 @@ export const upsertExpressPayConfig = async (input: UpsertExpressPayConfigInput)
     const { error } = await db.from('payment_gateway_configs').insert(payload).single();
     if (error) {
       throw new Error(`Failed to create ExpressPay config: ${error.message}`);
+    }
+  }
+
+  if (input.is_enabled) {
+    let disableOtherModesQuery = adminSupabase
+      .from('payment_gateway_configs')
+      .select('id')
+      .eq('provider', EXPRESSPAY_PROVIDER)
+      .eq('scope', scope)
+      .neq('mode', mode);
+
+    if (scope === 'community') {
+      disableOtherModesQuery = disableOtherModesQuery.eq('community_id', communityId);
+    } else {
+      disableOtherModesQuery = disableOtherModesQuery.is('community_id', null);
+    }
+
+    const { data: disableCandidates, error: disableCandidatesError } = await disableOtherModesQuery;
+
+    if (disableCandidatesError) {
+      throw new Error(`Failed to load previous ExpressPay modes: ${disableCandidatesError.message}`);
+    }
+
+    for (const row of disableCandidates || []) {
+      const { error: disableOtherModesError } = await adminSupabase
+        .from('payment_gateway_configs')
+        .update({ is_enabled: false })
+        .eq('id', row.id)
+        .select('id')
+        .single();
+
+      if (disableOtherModesError) {
+        throw new Error(`Failed to disable previous ExpressPay mode: ${disableOtherModesError.message}`);
+      }
     }
   }
 
