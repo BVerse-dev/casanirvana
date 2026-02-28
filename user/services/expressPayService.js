@@ -1,14 +1,7 @@
-import Constants from "expo-constants";
 import { supabase } from "../utils/supabase";
-
-const API_BASE_URL =
-  Constants.expoConfig?.extra?.API_BASE_URL ||
-  process.env.API_BASE_URL ||
-  "http://localhost:8080";
+import { buildApiUrl } from "../config/api";
 
 const TERMINAL_STATUSES = new Set(["completed", "failed", "cancelled"]);
-
-const buildUrl = (path) => `${API_BASE_URL}${path}`;
 
 const normalizeStatus = (value) => {
   if (!value) return "pending";
@@ -45,7 +38,9 @@ const callExpressPayEndpoint = async ({
   }
 
   try {
-    const response = await fetch(buildUrl(path), {
+    const response = await fetch(buildApiUrl(path), {
+      // Use the resolved backend base URL from Expo config/env.
+      // This avoids falling back to device-localhost on physical devices.
       method,
       headers: {
         "Content-Type": "application/json",

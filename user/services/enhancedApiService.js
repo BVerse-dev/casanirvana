@@ -4,9 +4,7 @@
  * Includes comprehensive phone field support
  */
 
-import Constants from 'expo-constants';
-
-const API_BASE_URL = Constants.expoConfig?.extra?.API_BASE_URL || 'http://localhost:8080';
+import { API_BASE_URL } from '../config/api';
 
 /**
  * Generic API client with error handling

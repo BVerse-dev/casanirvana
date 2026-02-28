@@ -64,7 +64,10 @@ module.exports = {
     extra: {
       EXPO_PUBLIC_SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,
       EXPO_PUBLIC_SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
-      API_BASE_URL: process.env.API_BASE_URL || "http://localhost:8080",
+      API_BASE_URL:
+        process.env.API_BASE_URL ||
+        process.env.EXPO_PUBLIC_API_BASE_URL ||
+        "https://casanirvana-backend.onrender.com",
       sizemattersBaseWidth: 414,
       sizemattersBaseHeight: 896,
       eas: {
