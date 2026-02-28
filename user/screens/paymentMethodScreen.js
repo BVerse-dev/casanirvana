@@ -114,14 +114,6 @@ const PaymentMethodScreen = ({ navigation, route }) => {
       icon: "phone-android",
       color: "#FF6B35",
     },
-    {
-      key: "3",
-      image: require("../assets/images/pay3.png"),
-      title: "PayPal",
-      subtitle: "Pay securely with your PayPal account",
-      icon: "account-balance-wallet",
-      color: "#0070BA",
-    },
   ];
 
   const [selectedPaymentMethod, setSelectedPaymentMethod] =
@@ -188,12 +180,12 @@ const PaymentMethodScreen = ({ navigation, route }) => {
       ? paymentList.filter((method) => method.title === "Mobile Money")
       : paymentList;
 
-    if (isAddingMode) {
+    if (isAddingMode || isLoadingPaymentPolicy || !paymentPolicy) {
       return basePaymentList;
     }
 
     return basePaymentList.filter((method) => isPaymentMethodEnabled(paymentPolicy, method.title));
-  }, [isAddingMode, isPersonalHubTransaction, paymentList, paymentPolicy]);
+  }, [isAddingMode, isLoadingPaymentPolicy, isPersonalHubTransaction, paymentList, paymentPolicy]);
 
   const paymentAmountValidationMessage =
     !isAddingMode && paymentPolicy
@@ -377,9 +369,6 @@ const PaymentMethodScreen = ({ navigation, route }) => {
           break;
         case "Mobile Money":
           navigation.push("mobileMoneyScreen", navigationParams);
-          break;
-        case "PayPal":
-          navigation.push("paypalScreen", navigationParams);
           break;
         default:
           navigation.push("creditCardScreen", navigationParams);

@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import * as PaymentService from '../services/payment';
+import { getClientPaymentMethodPolicy } from '../services/paymentMethodPolicy';
 
 /**
  * Get payments by unit ID with filtering and pagination
@@ -152,5 +153,23 @@ export async function getPaymentStats(req: Request, res: Response) {
     res.json(stats);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
+  }
+}
+
+/**
+ * Get sanitized payment method policy for authenticated clients.
+ */
+export async function getPaymentMethodPolicy(req: Request, res: Response) {
+  try {
+    const policy = await getClientPaymentMethodPolicy();
+    res.json({
+      success: true,
+      data: policy,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to load payment policy',
+    });
   }
 }

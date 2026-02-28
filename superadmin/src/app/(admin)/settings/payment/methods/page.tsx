@@ -164,12 +164,12 @@ const PaymentMethodsPage = () => {
     },
     {
       key: 'wallet',
-      name: 'PayPal',
-      note: 'Live in user app checkout',
+      name: 'PayPal (Deferred)',
+      note: 'Saved for future rollout, not shown in the user app today',
       icon: 'ri-wallet-line',
       enabled: watchedMethods[4],
       fieldName: 'wallet_enabled' as const,
-      live: true,
+      live: false,
     },
     {
       key: 'bank_transfer',
@@ -284,8 +284,8 @@ const PaymentMethodsPage = () => {
               </CardHeader>
               <CardBody>
                 <Alert variant="info" className="mb-3">
-                  Card Payments, Mobile Money (ExpressPay), PayPal, and payment limits are the settings currently enforced in the user app.
-                  The remaining methods stay available as reserved toggles for future flows.
+                  Card Payments, Mobile Money (ExpressPay), and payment limits are the settings currently enforced in the user app.
+                  PayPal and the remaining methods stay configured here for future rollout only.
                 </Alert>
                 <div className="table-responsive">
                   <Table className="table table-hover table-nowrap mb-0">

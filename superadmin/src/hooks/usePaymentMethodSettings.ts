@@ -150,7 +150,7 @@ const getFieldDescription = (key: string): string => {
     debit_card_enabled: 'Reserved payment toggle for future debit-card-specific flows',
     net_banking_enabled: 'Reserved payment toggle for future net banking flows',
     expresspay_enabled: 'Enable Mobile Money payments through ExpressPay',
-    wallet_enabled: 'Enable PayPal payments in the user app',
+    wallet_enabled: 'Enable PayPal for future rollout (currently hidden in the user app)',
     bank_transfer_enabled: 'Enable bank transfer payments for upcoming flows',
     cash_enabled: 'Reserved payment toggle for cash collection flows',
     cheque_enabled: 'Reserved payment toggle for cheque collection flows',

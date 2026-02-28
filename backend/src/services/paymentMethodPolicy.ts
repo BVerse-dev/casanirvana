@@ -2,7 +2,7 @@ import { adminSupabase } from '../lib/supabase';
 
 type PaymentMethodKey = 'card' | 'mobile_money' | 'paypal' | 'bank_transfer' | 'cash' | 'cheque';
 
-type PaymentMethodPolicy = {
+export type PaymentMethodPolicy = {
   creditCardEnabled: boolean;
   mobileMoneyEnabled: boolean;
   payPalEnabled: boolean;
@@ -15,6 +15,11 @@ type PaymentMethodPolicy = {
   monthlyPaymentLimit: number | null;
 };
 
+export type ClientPaymentMethodPolicy = PaymentMethodPolicy & {
+  defaultCurrencyCode: string;
+  defaultCurrencySymbol: string;
+};
+
 type PaymentRow = {
   amount: number | string | null;
   status: string | null;
@@ -22,6 +27,10 @@ type PaymentRow = {
 };
 
 const INACTIVE_PAYMENT_STATUSES = new Set(['failed', 'cancelled']);
+const DEFAULT_PAYMENT_CURRENCY_CODE = (process.env.DEFAULT_PAYMENT_CURRENCY || 'GHS').trim().toUpperCase() || 'GHS';
+const DEFAULT_PAYMENT_CURRENCY_SYMBOL =
+  process.env.DEFAULT_PAYMENT_CURRENCY_SYMBOL?.trim() ||
+  (DEFAULT_PAYMENT_CURRENCY_CODE === 'GHS' ? 'GH₵' : DEFAULT_PAYMENT_CURRENCY_CODE);
 
 const parseSettingValue = (value: string | null | undefined) => {
   if (typeof value !== 'string') return '';
@@ -125,6 +134,16 @@ export const getPaymentMethodPolicy = async (): Promise<PaymentMethodPolicy> => 
     maxPaymentAmount: parseNumberSetting(settingsMap.get('max_payment_amount')),
     dailyPaymentLimit: parseNumberSetting(settingsMap.get('daily_payment_limit')),
     monthlyPaymentLimit: parseNumberSetting(settingsMap.get('monthly_payment_limit')),
+  };
+};
+
+export const getClientPaymentMethodPolicy = async (): Promise<ClientPaymentMethodPolicy> => {
+  const policy = await getPaymentMethodPolicy();
+
+  return {
+    ...policy,
+    defaultCurrencyCode: DEFAULT_PAYMENT_CURRENCY_CODE,
+    defaultCurrencySymbol: DEFAULT_PAYMENT_CURRENCY_SYMBOL,
   };
 };
 

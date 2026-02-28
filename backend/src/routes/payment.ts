@@ -7,6 +7,12 @@ import { schemas } from '../validation/schemas';
 const router = Router();
 
 router.get(
+  '/payments/policy',
+  requireAuth,
+  PaymentController.getPaymentMethodPolicy
+);
+
+router.get(
   '/payments/stats/:societyId',
   requireAuth,
   validateRequest({ params: schemas.paymentStatsParams, query: schemas.paymentStatsQuery }),

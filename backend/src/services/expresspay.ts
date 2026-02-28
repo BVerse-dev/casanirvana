@@ -4,6 +4,8 @@ const EXPRESSPAY_PROVIDER = 'expresspay';
 const TEST_MODE = 'test';
 const LIVE_MODE = 'live';
 const DEFAULT_CURRENCY = 'GHS';
+const EXPRESSPAY_DIRECT_CALLBACK_PATH = '/xp/cb';
+const MAX_EXPRESSPAY_DIRECT_POST_URL_LENGTH = 64;
 
 const EXPRESSPAY_ENDPOINTS = {
   test: {
@@ -44,6 +46,7 @@ type ExpressPayRuntimeConfig = {
   checkoutUrl: string;
   redirectUrl: string;
   postUrl: string;
+  directPostUrl: string;
   source: 'db' | 'env';
   communityId: string | null;
 };
@@ -61,6 +64,7 @@ type PaymentRow = {
 
 type SubmitResponse = {
   token?: string;
+  status?: number | string;
   result?: number | string;
   ['result-text']?: string;
   ['order-id']?: string;
@@ -102,6 +106,16 @@ type LooseSupabaseClient = LooseSchemaClient & {
 };
 
 const looseDb = adminSupabase as unknown as LooseSupabaseClient;
+
+class ExpressPayGatewayError extends Error {
+  readonly details: JsonRecord | null;
+
+  constructor(message: string, details?: JsonRecord | null) {
+    super(message);
+    this.name = 'ExpressPayGatewayError';
+    this.details = details || null;
+  }
+}
 
 export type InitiateExpressPayInput = {
   amount: number;
@@ -219,6 +233,62 @@ const buildCallbackUrl = ({
   return `${callbackBase}${normalizedPath}`;
 };
 
+const buildDirectPostUrl = ({
+  callbackBase,
+  callbackPath,
+  overrideUrl,
+  mode,
+}: {
+  callbackBase: string;
+  callbackPath: string;
+  overrideUrl?: string;
+  mode: ExpressPayMode;
+}) => {
+  const candidates: string[] = [];
+
+  if (overrideUrl && /^https?:\/\//i.test(overrideUrl) && overrideUrl.length <= MAX_EXPRESSPAY_DIRECT_POST_URL_LENGTH) {
+    candidates.push(overrideUrl);
+  }
+
+  const shortInternalCallback = buildCallbackUrl({
+    callbackBase,
+    callbackPath: EXPRESSPAY_DIRECT_CALLBACK_PATH,
+  });
+
+  if (shortInternalCallback.length <= MAX_EXPRESSPAY_DIRECT_POST_URL_LENGTH) {
+    candidates.push(shortInternalCallback);
+  }
+
+  const configuredCallback = buildCallbackUrl({
+    callbackBase,
+    callbackPath,
+    overrideUrl,
+  });
+
+  if (configuredCallback.length <= MAX_EXPRESSPAY_DIRECT_POST_URL_LENGTH) {
+    candidates.push(configuredCallback);
+  }
+
+  const selected = candidates[0];
+
+  if (!selected) {
+    throw new Error(
+      `ExpressPay direct payments require a post-url no longer than ${MAX_EXPRESSPAY_DIRECT_POST_URL_LENGTH} characters. ` +
+        `Current callback URLs are too long for the configured backend origin.`
+    );
+  }
+
+  ensureHttpsForLive(selected, mode);
+  return selected;
+};
+
+const DIRECT_SUBMIT_STATUS_MESSAGES: Record<number, string> = {
+  1: 'Success',
+  2: 'Invalid credentials. Check the configured merchant ID and API key.',
+  3: 'Invalid request. ExpressPay rejected the direct payment payload.',
+  4: 'Invalid IP. ExpressPay Direct API rejected the backend server IP. Whitelist the backend egress IP for direct payments.',
+};
+
 const readSetting = async (key: string, category?: string): Promise<string | null> => {
   let query = adminSupabase.from('app_settings').select('value').eq('key', key).limit(1);
 
@@ -333,6 +403,12 @@ const resolveRuntimeConfig = async (communityId?: string | null): Promise<Expres
     const webhookUrl = process.env.EXPRESSPAY_WEBHOOK_URL || '';
     const redirectUrl = buildCallbackUrl({ callbackBase, callbackPath, overrideUrl: webhookUrl });
     const postUrl = buildCallbackUrl({ callbackBase, callbackPath, overrideUrl: webhookUrl });
+    const directPostUrl = buildDirectPostUrl({
+      callbackBase,
+      callbackPath,
+      overrideUrl: webhookUrl,
+      mode,
+    });
 
     ensureHttpsForLive(redirectUrl, mode);
     ensureHttpsForLive(postUrl, mode);
@@ -347,6 +423,7 @@ const resolveRuntimeConfig = async (communityId?: string | null): Promise<Expres
       checkoutUrl,
       redirectUrl,
       postUrl,
+      directPostUrl,
       source: 'env',
       communityId: communityId || null,
     };
@@ -381,6 +458,12 @@ const resolveRuntimeConfig = async (communityId?: string | null): Promise<Expres
 
   const redirectUrl = buildCallbackUrl({ callbackBase, callbackPath, overrideUrl: webhookUrl });
   const postUrl = buildCallbackUrl({ callbackBase, callbackPath, overrideUrl: webhookUrl });
+  const directPostUrl = buildDirectPostUrl({
+    callbackBase,
+    callbackPath,
+    overrideUrl: webhookUrl,
+    mode,
+  });
 
   ensureHttpsForLive(redirectUrl, mode);
   ensureHttpsForLive(postUrl, mode);
@@ -395,6 +478,7 @@ const resolveRuntimeConfig = async (communityId?: string | null): Promise<Expres
     checkoutUrl,
     redirectUrl,
     postUrl,
+    directPostUrl,
     source: 'db',
     communityId: selected.community_id,
   };
@@ -456,15 +540,25 @@ const invokeExpressPayDirectSubmit = async (
   }
 
   if (!response.ok) {
-    throw new Error(
-      `ExpressPay direct submit failed (${response.status}): ${String(json['result-text'] || 'Unknown error')}`
+    throw new ExpressPayGatewayError(
+      `ExpressPay direct submit failed (${response.status}): ${String(json['result-text'] || 'Unknown error')}`,
+      asObject(json)
     );
   }
 
   const numericStatus = Number((json as JsonRecord).status);
   if (numericStatus !== 1 || !json.token || String(json.token).trim().length === 0) {
-    throw new Error(
-      `ExpressPay direct submit failed: ${String(json['result-text'] || 'Unable to create direct payment session')}`
+    const fallbackReason = DIRECT_SUBMIT_STATUS_MESSAGES[numericStatus] || 'Unable to create direct payment session.';
+    const explicitReason =
+      typeof json['result-text'] === 'string' && json['result-text'].trim().length > 0
+        ? json['result-text'].trim()
+        : null;
+    const reason = explicitReason || fallbackReason;
+    const statusLabel = Number.isFinite(numericStatus) ? `status ${numericStatus}` : 'unknown status';
+
+    throw new ExpressPayGatewayError(
+      `ExpressPay direct submit failed (${statusLabel}): ${reason}`,
+      asObject(json)
     );
   }
 
@@ -756,7 +850,7 @@ export const initiateExpressPayPayment = async (
       directSubmitParams.set('currency', input.currency || DEFAULT_CURRENCY);
       directSubmitParams.set('amount', formattedAmount);
       directSubmitParams.set('order-id', orderId);
-      directSubmitParams.set('post-url', config.postUrl);
+      directSubmitParams.set('post-url', config.directPostUrl);
 
       const directSubmitResponse = await invokeExpressPayDirectSubmit(config, directSubmitParams);
       const token = String(directSubmitResponse.token).trim();
@@ -792,6 +886,7 @@ export const initiateExpressPayPayment = async (
             direct_flow: true,
             direct_submit_result: directSubmitResponse,
             direct_checkout_result: directCheckoutResponse,
+            direct_post_url: config.directPostUrl,
             mobile_network: resolvedNetwork,
             mobile_number: payerPhone,
             verified_at: verifiedAt,
@@ -820,6 +915,9 @@ export const initiateExpressPayPayment = async (
       };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown mobile money initiation error';
+      const errorDetails =
+        error instanceof ExpressPayGatewayError && error.details ? error.details : null;
+
       await updatePaymentRecord(payment.id, {
         status: 'failed',
         failed_at: nowIso(),
@@ -829,6 +927,7 @@ export const initiateExpressPayPayment = async (
             ...asObject(asObject(payment.metadata).expresspay),
             direct_flow: true,
             initiation_error: message,
+            initiation_error_context: errorDetails,
             initiation_failed_at: nowIso(),
           },
         },
@@ -840,6 +939,9 @@ export const initiateExpressPayPayment = async (
 
   try {
     const submitParams = new URLSearchParams();
+    const providerRedirectUrl =
+      config.redirectUrl.length <= MAX_EXPRESSPAY_DIRECT_POST_URL_LENGTH ? config.redirectUrl : config.directPostUrl;
+
     submitParams.set('merchant-id', config.merchantId);
     submitParams.set('api-key', config.apiKey);
     submitParams.set('firstname', input.payerProfile?.first_name || 'Resident');
@@ -852,8 +954,8 @@ export const initiateExpressPayPayment = async (
     submitParams.set('amount', formattedAmount);
     submitParams.set('order-id', orderId);
     submitParams.set('order-desc', input.description || `Casa Nirvana ${input.paymentType} payment`);
-    submitParams.set('redirect-url', config.redirectUrl);
-    submitParams.set('post-url', config.postUrl);
+    submitParams.set('redirect-url', providerRedirectUrl);
+    submitParams.set('post-url', config.directPostUrl);
 
     const submitResponse = await invokeExpressPaySubmit(config, submitParams);
     const token = String(submitResponse.token).trim();

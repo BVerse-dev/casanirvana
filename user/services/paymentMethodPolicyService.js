@@ -1,4 +1,5 @@
 import { supabase } from "../utils/supabase";
+import { buildApiUrl } from "../config/api";
 
 const CACHE_TTL_MS = 30 * 1000;
 
@@ -8,12 +9,14 @@ let cachedAt = 0;
 const DEFAULT_POLICY = {
   creditCardEnabled: true,
   mobileMoneyEnabled: true,
-  payPalEnabled: true,
-  bankTransferEnabled: true,
+  payPalEnabled: false,
+  bankTransferEnabled: false,
   minPaymentAmount: null,
   maxPaymentAmount: null,
   dailyPaymentLimit: null,
   monthlyPaymentLimit: null,
+  defaultCurrencyCode: "GHS",
+  defaultCurrencySymbol: "GH₵",
 };
 
 const parseSettingValue = (value) => {
@@ -25,13 +28,6 @@ const parseSettingValue = (value) => {
   }
 
   return trimmed;
-};
-
-const parseBooleanSetting = (value, fallback = true) => {
-  const normalized = parseSettingValue(value).toLowerCase();
-  if (normalized === "true") return true;
-  if (normalized === "false") return false;
-  return fallback;
 };
 
 const parseNumberSetting = (value) => {
@@ -51,29 +47,73 @@ export async function getPaymentMethodPolicy(forceRefresh = false) {
   }
 
   try {
-    const { data, error } = await supabase
-      .from("app_settings")
-      .select("key, value")
-      .eq("category", "payment_methods");
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
 
-    if (error) {
-      throw error;
+    if (sessionError || !session?.access_token) {
+      throw new Error("Unable to authenticate payment settings request.");
     }
 
-    const settingsMap = new Map();
-    (data || []).forEach((row) => {
-      settingsMap.set(String(row.key), row.value ?? null);
+    const response = await fetch(buildApiUrl("/payments/policy"), {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+      },
     });
 
+    const payload = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(
+        payload?.error || payload?.message || "Failed to load payment method settings."
+      );
+    }
+
+    const policy = payload?.data ?? {};
+
     cachedPolicy = {
-      creditCardEnabled: parseBooleanSetting(settingsMap.get("credit_card_enabled"), true),
-      mobileMoneyEnabled: parseBooleanSetting(settingsMap.get("expresspay_enabled"), true),
-      payPalEnabled: parseBooleanSetting(settingsMap.get("wallet_enabled"), true),
-      bankTransferEnabled: parseBooleanSetting(settingsMap.get("bank_transfer_enabled"), true),
-      minPaymentAmount: parseNumberSetting(settingsMap.get("min_payment_amount")),
-      maxPaymentAmount: parseNumberSetting(settingsMap.get("max_payment_amount")),
-      dailyPaymentLimit: parseNumberSetting(settingsMap.get("daily_payment_limit")),
-      monthlyPaymentLimit: parseNumberSetting(settingsMap.get("monthly_payment_limit")),
+      creditCardEnabled:
+        typeof policy.creditCardEnabled === "boolean"
+          ? policy.creditCardEnabled
+          : DEFAULT_POLICY.creditCardEnabled,
+      mobileMoneyEnabled:
+        typeof policy.mobileMoneyEnabled === "boolean"
+          ? policy.mobileMoneyEnabled
+          : DEFAULT_POLICY.mobileMoneyEnabled,
+      payPalEnabled:
+        typeof policy.payPalEnabled === "boolean"
+          ? policy.payPalEnabled
+          : DEFAULT_POLICY.payPalEnabled,
+      bankTransferEnabled:
+        typeof policy.bankTransferEnabled === "boolean"
+          ? policy.bankTransferEnabled
+          : DEFAULT_POLICY.bankTransferEnabled,
+      minPaymentAmount:
+        typeof policy.minPaymentAmount === "number"
+          ? policy.minPaymentAmount
+          : parseNumberSetting(policy.minPaymentAmount),
+      maxPaymentAmount:
+        typeof policy.maxPaymentAmount === "number"
+          ? policy.maxPaymentAmount
+          : parseNumberSetting(policy.maxPaymentAmount),
+      dailyPaymentLimit:
+        typeof policy.dailyPaymentLimit === "number"
+          ? policy.dailyPaymentLimit
+          : parseNumberSetting(policy.dailyPaymentLimit),
+      monthlyPaymentLimit:
+        typeof policy.monthlyPaymentLimit === "number"
+          ? policy.monthlyPaymentLimit
+          : parseNumberSetting(policy.monthlyPaymentLimit),
+      defaultCurrencyCode:
+        typeof policy.defaultCurrencyCode === "string" && policy.defaultCurrencyCode.trim()
+          ? policy.defaultCurrencyCode.trim().toUpperCase()
+          : DEFAULT_POLICY.defaultCurrencyCode,
+      defaultCurrencySymbol:
+        typeof policy.defaultCurrencySymbol === "string" && policy.defaultCurrencySymbol.trim()
+          ? policy.defaultCurrencySymbol.trim()
+          : DEFAULT_POLICY.defaultCurrencySymbol,
     };
     cachedAt = Date.now();
 
@@ -87,7 +127,7 @@ export async function getPaymentMethodPolicy(forceRefresh = false) {
 }
 
 export const isPaymentMethodEnabled = (policy, methodTitle) => {
-  if (!policy) return true;
+  if (!policy) return false;
 
   switch (methodTitle) {
     case "Credit Card":
@@ -97,7 +137,7 @@ export const isPaymentMethodEnabled = (policy, methodTitle) => {
     case "PayPal":
       return policy.payPalEnabled;
     default:
-      return true;
+      return false;
   }
 };
 
