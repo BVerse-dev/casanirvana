@@ -18,7 +18,6 @@ import MyStatusBar from "../components/myStatusBar";
 import { ms } from "react-native-size-matters/extend";
 import moment from "moment";
 import * as Sharing from "expo-sharing";
-import RNHTMLtoPDF from "react-native-html-to-pdf";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 
 const normalizeText = (value, fallback = "N/A") => {
@@ -289,6 +288,14 @@ const SuccessScreen = ({ navigation, route }) => {
 
   const handleDownloadReceipt = async () => {
     try {
+      let htmlToPdfModule = null;
+      try {
+        htmlToPdfModule = require("react-native-html-to-pdf");
+      } catch {
+        htmlToPdfModule = null;
+      }
+
+      const RNHTMLtoPDF = htmlToPdfModule?.default || htmlToPdfModule;
       const canGeneratePdf = RNHTMLtoPDF && typeof RNHTMLtoPDF.convert === "function";
 
       if (!canGeneratePdf) {
