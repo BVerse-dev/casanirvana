@@ -573,30 +573,60 @@ const invokeExpressPayDirectCheckout = async (
   config: ExpressPayRuntimeConfig,
   payload: URLSearchParams
 ): Promise<QueryResponse> => {
-  const response = await fetch(config.checkoutUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: payload.toString(),
-  });
+  // ExpressPay's direct-payment docs are inconsistent:
+  // - the endpoint table names checkout.php for the second step
+  // - the curl examples for both card and mobile money post the second step to submit.php
+  // We follow the documented sample first, then fall back to checkout.php for compatibility.
+  const attempts = [
+    { url: config.submitUrl, label: 'submit.php' },
+    { url: config.checkoutUrl, label: 'checkout.php' },
+  ];
 
-  const rawText = await response.text();
+  let lastError: Error | null = null;
 
-  let json: QueryResponse;
-  try {
-    json = JSON.parse(rawText);
-  } catch {
-    throw new Error(`ExpressPay direct checkout returned non-JSON response (${response.status})`);
+  for (const attempt of attempts) {
+    const response = await fetch(attempt.url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: payload.toString(),
+    });
+
+    const rawText = await response.text();
+
+    let json: QueryResponse;
+    try {
+      json = JSON.parse(rawText);
+    } catch {
+      lastError = new ExpressPayGatewayError(
+        `ExpressPay direct checkout returned non-JSON response (${response.status}) from ${attempt.label}`,
+        {
+          endpoint: attempt.label,
+          http_status: response.status,
+          raw_preview: rawText.slice(0, 240),
+        }
+      );
+      continue;
+    }
+
+    if (!response.ok) {
+      throw new ExpressPayGatewayError(
+        `ExpressPay direct checkout failed (${response.status}) via ${attempt.label}: ${String(
+          json['result-text'] || (json as JsonRecord).message || 'Unknown error'
+        )}`,
+        asObject(json)
+      );
+    }
+
+    return json;
   }
 
-  if (!response.ok) {
-    throw new Error(
-      `ExpressPay direct checkout failed (${response.status}): ${String(json['result-text'] || 'Unknown error')}`
-    );
+  if (lastError) {
+    throw lastError;
   }
 
-  return json;
+  throw new Error('ExpressPay direct checkout failed before a provider response was received.');
 };
 
 const invokeExpressPayQuery = async (
