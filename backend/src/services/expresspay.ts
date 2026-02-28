@@ -506,13 +506,17 @@ const invokeExpressPaySubmit = async (
   }
 
   if (!response.ok) {
-    throw new Error(
-      `ExpressPay submit failed (${response.status}): ${String(json['result-text'] || 'Unknown error')}`
+    throw new ExpressPayGatewayError(
+      `ExpressPay submit failed (${response.status}): ${String(
+        json['result-text'] || (json as JsonRecord).message || 'Unknown error'
+      )}`,
+      asObject(json)
     );
   }
 
   if (!json.token || String(json.token).trim().length === 0) {
-    throw new Error(`ExpressPay submit did not return token: ${String(json['result-text'] || 'Unknown error')}`);
+    const reason = String(json['result-text'] || (json as JsonRecord).message || 'Unknown error');
+    throw new ExpressPayGatewayError(`ExpressPay submit did not return token: ${reason}`, asObject(json));
   }
 
   return json;
@@ -744,6 +748,39 @@ const buildCheckoutUrl = (checkoutBaseUrl: string, token: string): string => {
   return `${base}?token=${encodeURIComponent(token)}`;
 };
 
+const buildSubmitFallbackParams = ({
+  config,
+  input,
+  orderId,
+  formattedAmount,
+}: {
+  config: ExpressPayRuntimeConfig;
+  input: InitiateExpressPayInput;
+  orderId: string;
+  formattedAmount: string;
+}) => {
+  const providerRedirectUrl =
+    config.redirectUrl.length <= MAX_EXPRESSPAY_DIRECT_POST_URL_LENGTH ? config.redirectUrl : config.directPostUrl;
+  const params = new URLSearchParams();
+
+  params.set('merchant-id', config.merchantId);
+  params.set('api-key', config.apiKey);
+  params.set('firstname', input.payerProfile?.first_name || 'Resident');
+  params.set('lastname', input.payerProfile?.last_name || 'User');
+  params.set('email', input.payerProfile?.email || 'resident@casanirvana.app');
+  params.set('phonenumber', input.payerProfile?.phone || '0000000000');
+  params.set('username', input.payerProfile?.email || `user-${input.payerId}`);
+  params.set('accountnumber', input.unitId.slice(0, 32));
+  params.set('currency', input.currency || DEFAULT_CURRENCY);
+  params.set('amount', formattedAmount);
+  params.set('order-id', orderId);
+  params.set('order-desc', input.description || `Casa Nirvana ${input.paymentType} payment`);
+  params.set('redirect-url', providerRedirectUrl);
+  params.set('post-url', config.directPostUrl);
+
+  return params;
+};
+
 export const initiateExpressPayPayment = async (
   input: InitiateExpressPayInput
 ): Promise<InitiateExpressPayResult> => {
@@ -873,7 +910,13 @@ export const initiateExpressPayPayment = async (
         }
 
         directSubmitPrimaryError = providerErrorDetails;
-        directSubmitResponse = await invokeExpressPaySubmit(config, directSubmitParams);
+        const submitFallbackParams = buildSubmitFallbackParams({
+          config,
+          input,
+          orderId,
+          formattedAmount,
+        });
+        directSubmitResponse = await invokeExpressPaySubmit(config, submitFallbackParams);
         directSubmitTransport = 'submit_fallback';
       }
 
