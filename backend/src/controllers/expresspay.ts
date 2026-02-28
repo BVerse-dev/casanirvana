@@ -9,6 +9,7 @@ import {
 import { assertPaymentMethodAllowed } from '../services/paymentMethodPolicy';
 
 const ADMIN_ROLES = new Set(['admin', 'superadmin', 'agency_manager', 'facility_manager']);
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const isAdminRole = (role?: string | null) => {
   if (!role) return false;
@@ -57,6 +58,24 @@ const errorMessage = (error: unknown, fallback: string) => {
     return error.message;
   }
   return fallback;
+};
+
+const normalizeOptionalUuid = (value: unknown): string | null => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const lowered = trimmed.toLowerCase();
+  if (lowered === 'undefined' || lowered === 'null') {
+    return null;
+  }
+
+  return UUID_REGEX.test(trimmed) ? trimmed : null;
 };
 
 export const initiatePayment = async (req: Request, res: Response) => {
@@ -116,7 +135,7 @@ export const initiatePayment = async (req: Request, res: Response) => {
         phone: typeof profile.phone === 'string' ? profile.phone : null,
       },
       description: typeof body.description === 'string' ? body.description : null,
-      bookingId: typeof body.booking_id === 'string' ? body.booking_id : null,
+      bookingId: normalizeOptionalUuid(body.booking_id),
       communityId: typeof profile.community_id === 'string' ? profile.community_id : null,
       metadata:
         body.metadata && typeof body.metadata === 'object' && !Array.isArray(body.metadata)

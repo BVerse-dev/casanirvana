@@ -1,4 +1,5 @@
 import { supabase } from '../utils/supabase';
+import { normalizeOptionalUuid } from '../utils/id';
 
 /**
  * Amenity Service
@@ -189,10 +190,16 @@ export const amenityService = {
    */
   async updateAmenityBooking(id, updates) {
     try {
+      const normalizedId = normalizeOptionalUuid(id);
+
+      if (!normalizedId) {
+        throw new Error('Amenity booking id is required');
+      }
+
       const { data, error } = await supabase
         .from('amenity_bookings')
         .update(updates)
-        .eq('id', id)
+        .eq('id', normalizedId)
         .select(`
           *,
           amenity:amenities (

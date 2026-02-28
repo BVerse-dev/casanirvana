@@ -25,6 +25,7 @@ import {
   initiateExpressPayPayment,
   reconcileExpressPayPayment,
 } from "../services/expressPayService";
+import { normalizeOptionalUuid } from "../utils/id";
 
 const { width } = Dimensions.get("window");
 
@@ -36,6 +37,10 @@ const CreditCardScreen = ({ navigation, route }) => {
   // Determine if this is for adding a payment method or making a payment
   const isAddingMode = isAddingPaymentMethod === true;
   const { profile } = useHasJoinedCommunity();
+  const resolvedBookingId = React.useMemo(
+    () => normalizeOptionalUuid(bookingId) || normalizeOptionalUuid(bookingData?.id),
+    [bookingData?.id, bookingId]
+  );
 
   const isRtl = i18n.dir() === "rtl";
 
@@ -639,14 +644,14 @@ const CreditCardScreen = ({ navigation, route }) => {
         payment_type: bookingType,
         payment_method: 'card',
         unit_id: unitId,
-        booking_id: bookingId || undefined,
+        booking_id: resolvedBookingId || undefined,
         description: bookingData
           ? `Payment for ${bookingData.amenityName || bookingData.serviceTitle || 'booking'}`
           : paymentData?.title || paymentData?.description || 'Community Payment',
         idempotency_key: `card-${payerId}-${bookingType}-${Date.now()}`,
         metadata: {
           source: 'user-credit-card-screen',
-          source_booking_id: bookingId || null,
+          source_booking_id: resolvedBookingId || null,
           source_booking_type: bookingType,
           entered_card_last_four: number.slice(-4),
           entered_card_brand: cardValidator.number(number).card?.type || 'unknown',
@@ -658,9 +663,9 @@ const CreditCardScreen = ({ navigation, route }) => {
         throw new Error(initiationResult.error || 'Failed to initiate payment');
       }
 
-      if (bookingData?.type !== 'service_booking' && bookingId) {
+      if (bookingData?.type !== 'service_booking' && resolvedBookingId) {
         await updateBookingMutation.mutateAsync({
-          id: bookingId,
+          id: resolvedBookingId,
           updates: {
             payment_status: 'pending',
           },
@@ -689,9 +694,9 @@ const CreditCardScreen = ({ navigation, route }) => {
       const transactionId = initiationResult.data.transaction_id || `TXN_${Date.now()}`;
       const maskedCard = `**** **** **** ${number.slice(-4)}`;
 
-      if (bookingData?.type !== 'service_booking' && bookingId) {
+      if (bookingData?.type !== 'service_booking' && resolvedBookingId) {
         await updateBookingMutation.mutateAsync({
-          id: bookingId,
+          id: resolvedBookingId,
           updates: {
             payment_status: mapBookingPaymentStatus(gatewayStatus),
           },
@@ -701,7 +706,7 @@ const CreditCardScreen = ({ navigation, route }) => {
       if (gatewayStatus === 'completed') {
         if (bookingData) {
           navigation.push("successScreen", {
-            bookingId,
+            bookingId: resolvedBookingId,
             paymentMethod: maskedCard,
             transactionId,
             bookingData: {

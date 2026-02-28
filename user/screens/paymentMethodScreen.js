@@ -22,6 +22,7 @@ import {
   isPaymentMethodEnabled,
   validatePaymentSelection,
 } from "../services/paymentMethodPolicyService";
+import { normalizeOptionalUuid } from "../utils/id";
 
 const PaymentMethodScreen = ({ navigation, route }) => {
   const { 
@@ -174,6 +175,11 @@ const PaymentMethodScreen = ({ navigation, route }) => {
 
     return 0;
   }, [amount, bookingData, paymentData]);
+
+  const resolvedBookingId = React.useMemo(
+    () => normalizeOptionalUuid(bookingId) || normalizeOptionalUuid(bookingData?.id),
+    [bookingData?.id, bookingId]
+  );
 
   const availablePaymentList = React.useMemo(() => {
     const basePaymentList = isPersonalHubTransaction
@@ -352,7 +358,7 @@ const PaymentMethodScreen = ({ navigation, route }) => {
     } else {
       // For regular booking payment
       navigationParams = {
-        bookingId,
+        bookingId: resolvedBookingId,
         bookingData,
         paymentData
       };

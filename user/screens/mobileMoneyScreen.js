@@ -36,6 +36,7 @@ import {
   initiateExpressPayPayment,
   reconcileExpressPayPayment,
 } from "../services/expressPayService";
+import { normalizeOptionalUuid } from "../utils/id";
 
 const MobileMoneyScreen = ({ navigation, route }) => {
   const { 
@@ -94,6 +95,10 @@ const MobileMoneyScreen = ({ navigation, route }) => {
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [confirmationStatus, setConfirmationStatus] = useState("pending");
   const [paymentReference, setPaymentReference] = useState("");
+  const resolvedBookingId = React.useMemo(
+    () => normalizeOptionalUuid(bookingId) || normalizeOptionalUuid(bookingData?.id),
+    [bookingData?.id, bookingId]
+  );
 
   const mobileNetworks = [
     {
@@ -265,11 +270,11 @@ const MobileMoneyScreen = ({ navigation, route }) => {
         payment_type: paymentType,
         payment_method: "mobile_money",
         unit_id: unitId,
-        booking_id: bookingId || undefined,
+        booking_id: resolvedBookingId || undefined,
         description: isPersonalHubTransaction
           ? `${providerName || "Mobile"} ${paymentType} for ${description || recipientPhone || "resident"}`
           : bookingData
-            ? `Payment for booking #${bookingId}`
+            ? `Payment for booking #${resolvedBookingId || "amenity"}`
             : paymentData?.title || paymentData?.description || "Community Payment",
         idempotency_key: `mm-${authUserId}-${paymentType}-${Date.now()}`,
         metadata: {
@@ -282,7 +287,7 @@ const MobileMoneyScreen = ({ navigation, route }) => {
           schedule_payment: schedulePayment || false,
           frequency: frequency || null,
           first_payment_now: firstPaymentNow || false,
-          source_booking_id: bookingId || null,
+          source_booking_id: resolvedBookingId || null,
           source_booking_type: bookingData?.type || null,
         },
       });
@@ -412,9 +417,9 @@ const MobileMoneyScreen = ({ navigation, route }) => {
           status: "pending",
         });
       } else {
-        if (bookingData?.type !== "service_booking") {
+        if (bookingData?.type !== "service_booking" && resolvedBookingId) {
           await updateBookingMutation.mutateAsync({
-            id: bookingId,
+            id: resolvedBookingId,
             updates: {
               payment_status: "pending",
               status: "pending",
@@ -448,9 +453,9 @@ const MobileMoneyScreen = ({ navigation, route }) => {
         }
       }
 
-      if (!isPersonalHubTransaction && bookingData?.type !== "service_booking") {
+      if (!isPersonalHubTransaction && bookingData?.type !== "service_booking" && resolvedBookingId) {
         await updateBookingMutation.mutateAsync({
-          id: bookingId,
+          id: resolvedBookingId,
           updates: {
             payment_status: mapBookingPaymentStatus(gatewayStatus),
           },
@@ -486,7 +491,7 @@ const MobileMoneyScreen = ({ navigation, route }) => {
 
         if (bookingData) {
           navigation.push("successScreen", {
-            bookingId,
+            bookingId: resolvedBookingId,
             paymentMethod: "Mobile Money",
             transactionId: gatewayTransactionId,
             bookingData: {

@@ -22,12 +22,17 @@ import {
   initiateExpressPayPayment,
   reconcileExpressPayPayment,
 } from "../services/expressPayService";
+import { normalizeOptionalUuid } from "../utils/id";
 
 const PayPalScreen = ({ navigation, route }) => {
   const { bookingId, bookingData, paymentData } = route.params || {};
   const { i18n } = useTranslation();
   const updateBookingMutation = useUpdateAmenityBooking();
   const { profile } = useHasJoinedCommunity();
+  const resolvedBookingId = React.useMemo(
+    () => normalizeOptionalUuid(bookingId) || normalizeOptionalUuid(bookingData?.id),
+    [bookingData?.id, bookingId]
+  );
 
   const isRtl = i18n.dir() === "rtl";
 
@@ -110,7 +115,7 @@ const PayPalScreen = ({ navigation, route }) => {
         payment_type: bookingType,
         payment_method: "paypal",
         unit_id: unitId,
-        booking_id: bookingId || undefined,
+        booking_id: resolvedBookingId || undefined,
         description: bookingData
           ? `Payment for ${bookingData?.amenityName || bookingData?.serviceTitle || "booking"}`
           : paymentData?.title || paymentData?.description || "Community Payment",
@@ -118,7 +123,7 @@ const PayPalScreen = ({ navigation, route }) => {
         metadata: {
           source: "user-paypal-screen",
           paypal_email: email,
-          source_booking_id: bookingId || null,
+          source_booking_id: resolvedBookingId || null,
           source_booking_type: bookingType,
         },
       });
@@ -127,9 +132,9 @@ const PayPalScreen = ({ navigation, route }) => {
         throw new Error(initiationResult.error || "Payment initiation failed");
       }
 
-      if (bookingData?.type !== "service_booking" && bookingId) {
+      if (bookingData?.type !== "service_booking" && resolvedBookingId) {
         await updateBookingMutation.mutateAsync({
-          id: bookingId,
+          id: resolvedBookingId,
           updates: {
             payment_status: "pending",
           },
@@ -155,9 +160,9 @@ const PayPalScreen = ({ navigation, route }) => {
       const status = String(reconciliation.status || reconciliation.payment?.status || "pending").toLowerCase();
       const transactionId = initiationResult.data.transaction_id || `PP_${Date.now()}`;
 
-      if (bookingData?.type !== "service_booking" && bookingId) {
+      if (bookingData?.type !== "service_booking" && resolvedBookingId) {
         await updateBookingMutation.mutateAsync({
-          id: bookingId,
+          id: resolvedBookingId,
           updates: {
             payment_status:
               status === "completed" ? "paid" : status === "failed" ? "failed" : "pending",
@@ -168,7 +173,7 @@ const PayPalScreen = ({ navigation, route }) => {
       if (status === "completed") {
         if (bookingData) {
           navigation.push("successScreen", {
-            bookingId,
+            bookingId: resolvedBookingId,
             bookingData: {
               ...bookingData,
               paymentMethod: "PayPal",
