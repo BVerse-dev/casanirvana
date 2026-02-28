@@ -146,14 +146,14 @@ const usePaymentMethodSettings = () => {
 const getFieldDescription = (key: string): string => {
   const descriptions: Record<string, string> = {
     // Payment Methods
-    credit_card_enabled: 'Enable credit card payments',
-    debit_card_enabled: 'Enable debit card payments',
-    net_banking_enabled: 'Enable net banking payments',
-    upi_enabled: 'Enable UPI payments',
-    wallet_enabled: 'Enable digital wallet payments',
-    bank_transfer_enabled: 'Enable bank transfer payments',
-    cash_enabled: 'Enable cash payments',
-    cheque_enabled: 'Enable cheque payments',
+    credit_card_enabled: 'Enable card payments for user app checkout',
+    debit_card_enabled: 'Reserved payment toggle for future debit-card-specific flows',
+    net_banking_enabled: 'Reserved payment toggle for future net banking flows',
+    expresspay_enabled: 'Enable Mobile Money payments through ExpressPay',
+    wallet_enabled: 'Enable PayPal payments in the user app',
+    bank_transfer_enabled: 'Enable bank transfer payments for upcoming flows',
+    cash_enabled: 'Reserved payment toggle for cash collection flows',
+    cheque_enabled: 'Reserved payment toggle for cheque collection flows',
 
     // Payment Limits
     min_payment_amount: 'Minimum payment amount allowed',

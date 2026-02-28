@@ -144,14 +144,78 @@ const PaymentMethodsPage = () => {
   };
 
   const paymentMethods = [
-    { key: 'credit_card', name: 'Credit Card', icon: 'ri-bank-card-line', enabled: watchedMethods[0], fieldName: 'credit_card_enabled' as const },
-    { key: 'debit_card', name: 'Debit Card', icon: 'ri-bank-card-2-line', enabled: watchedMethods[1], fieldName: 'debit_card_enabled' as const },
-    { key: 'net_banking', name: 'Net Banking', icon: 'ri-bank-line', enabled: watchedMethods[2], fieldName: 'net_banking_enabled' as const },
-    { key: 'expresspay', name: 'ExpressPay', icon: 'ri-money-dollar-circle-line', enabled: watchedMethods[3], fieldName: 'expresspay_enabled' as const },
-    { key: 'wallet', name: 'Digital Wallet', icon: 'ri-wallet-line', enabled: watchedMethods[4], fieldName: 'wallet_enabled' as const },
-    { key: 'bank_transfer', name: 'Bank Transfer', icon: 'ri-exchange-line', enabled: watchedMethods[5], fieldName: 'bank_transfer_enabled' as const },
-    { key: 'cash', name: 'Cash', icon: 'ri-money-rupee-circle-line', enabled: watchedMethods[6], fieldName: 'cash_enabled' as const },
-    { key: 'cheque', name: 'Cheque', icon: 'ri-file-text-line', enabled: watchedMethods[7], fieldName: 'cheque_enabled' as const },
+    {
+      key: 'credit_card',
+      name: 'Card Payments',
+      note: 'Live in user app checkout',
+      icon: 'ri-bank-card-line',
+      enabled: watchedMethods[0],
+      fieldName: 'credit_card_enabled' as const,
+      live: true,
+    },
+    {
+      key: 'expresspay',
+      name: 'Mobile Money (ExpressPay)',
+      note: 'Live in user app checkout',
+      icon: 'ri-money-dollar-circle-line',
+      enabled: watchedMethods[3],
+      fieldName: 'expresspay_enabled' as const,
+      live: true,
+    },
+    {
+      key: 'wallet',
+      name: 'PayPal',
+      note: 'Live in user app checkout',
+      icon: 'ri-wallet-line',
+      enabled: watchedMethods[4],
+      fieldName: 'wallet_enabled' as const,
+      live: true,
+    },
+    {
+      key: 'bank_transfer',
+      name: 'Bank Transfer',
+      note: 'Reserved for upcoming flows',
+      icon: 'ri-exchange-line',
+      enabled: watchedMethods[5],
+      fieldName: 'bank_transfer_enabled' as const,
+      live: false,
+    },
+    {
+      key: 'debit_card',
+      name: 'Debit Card',
+      note: 'Reserved toggle',
+      icon: 'ri-bank-card-2-line',
+      enabled: watchedMethods[1],
+      fieldName: 'debit_card_enabled' as const,
+      live: false,
+    },
+    {
+      key: 'net_banking',
+      name: 'Net Banking',
+      note: 'Reserved toggle',
+      icon: 'ri-bank-line',
+      enabled: watchedMethods[2],
+      fieldName: 'net_banking_enabled' as const,
+      live: false,
+    },
+    {
+      key: 'cash',
+      name: 'Cash',
+      note: 'Reserved toggle',
+      icon: 'ri-money-rupee-circle-line',
+      enabled: watchedMethods[6],
+      fieldName: 'cash_enabled' as const,
+      live: false,
+    },
+    {
+      key: 'cheque',
+      name: 'Cheque',
+      note: 'Reserved toggle',
+      icon: 'ri-file-text-line',
+      enabled: watchedMethods[7],
+      fieldName: 'cheque_enabled' as const,
+      live: false,
+    },
   ];
 
   if (loadingSettings) {
@@ -219,6 +283,10 @@ const PaymentMethodsPage = () => {
                 </h5>
               </CardHeader>
               <CardBody>
+                <Alert variant="info" className="mb-3">
+                  Card Payments, Mobile Money (ExpressPay), PayPal, and payment limits are the settings currently enforced in the user app.
+                  The remaining methods stay available as reserved toggles for future flows.
+                </Alert>
                 <div className="table-responsive">
                   <Table className="table table-hover table-nowrap mb-0">
                     <thead className="table-light">
@@ -234,7 +302,15 @@ const PaymentMethodsPage = () => {
                           <td>
                             <div className="d-flex align-items-center">
                               <i className={`${method.icon} me-2 text-muted`}></i>
-                              {method.name}
+                              <div>
+                                <div className="d-flex align-items-center gap-2">
+                                  <span>{method.name}</span>
+                                  <Badge bg={method.live ? 'primary' : 'secondary'}>
+                                    {method.live ? 'Live' : 'Reserved'}
+                                  </Badge>
+                                </div>
+                                <div className="text-muted small">{method.note}</div>
+                              </div>
                             </div>
                           </td>
                           <td>
@@ -277,7 +353,7 @@ const PaymentMethodsPage = () => {
               <CardBody>
                 <TextFormInput
                   name="min_payment_amount"
-                  label="Minimum Amount ($)"
+                  label="Minimum Amount (GHS)"
                   type="number"
                   placeholder="1"
                   control={control}
@@ -286,7 +362,7 @@ const PaymentMethodsPage = () => {
 
                 <TextFormInput
                   name="max_payment_amount"
-                  label="Maximum Amount ($)"
+                  label="Maximum Amount (GHS)"
                   type="number"
                   placeholder="100000"
                   control={control}
@@ -295,7 +371,7 @@ const PaymentMethodsPage = () => {
 
                 <TextFormInput
                   name="daily_payment_limit"
-                  label="Daily Limit ($)"
+                  label="Daily Limit (GHS)"
                   type="number"
                   placeholder="50000"
                   control={control}
@@ -304,7 +380,7 @@ const PaymentMethodsPage = () => {
 
                 <TextFormInput
                   name="monthly_payment_limit"
-                  label="Monthly Limit ($)"
+                  label="Monthly Limit (GHS)"
                   type="number"
                   placeholder="500000"
                   control={control}
