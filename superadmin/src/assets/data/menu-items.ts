@@ -221,8 +221,20 @@ export const MENU_ITEMS: MenuItemType[] = [
       },
       {
         key: "payments-charges",
-        label: "Charges",
+        label: "Payments",
         url: "/payments/charges",
+        parentKey: "payments",
+      },
+      {
+        key: "payments-invoices",
+        label: "Invoices",
+        url: "/payments/invoices",
+        parentKey: "payments",
+      },
+      {
+        key: "payments-payouts",
+        label: "Payouts",
+        url: "/payments/payouts",
         parentKey: "payments",
       },
     ],

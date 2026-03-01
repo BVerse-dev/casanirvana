@@ -457,6 +457,7 @@ Date: 2026-02-06
   - Superadmin now has a new operational page at `/payments/charges` with the full fee/charge catalog, agency/community-scoped template management, preview-and-issue workflow, and run/invoice visibility.
   - New charge runs materialize directly into `payment_obligations`, so issued community charges flow into the user app `Pending` tab without extra client-side wiring.
   - Added API-key protected internal automation endpoint `POST /internal/payment-charges/run-due` so scheduled billing runs can be triggered by production cron infrastructure without an authenticated browser session.
+  - Normalized the Payments information architecture in superadmin: sidebar children are now `Overview`, `Payments`, `Invoices`, and `Payouts`; the `/payments/charges` workspace is tabbed (`Templates`, `Issue Payments`, `Issued Charges`, `Runs`), `/payments/invoices` is live, and `/payments/payouts` is scaffolded pending payout-engine rollout.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)
