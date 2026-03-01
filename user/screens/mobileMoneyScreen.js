@@ -34,6 +34,7 @@ import { savePolicy as savePolicyRecord } from "../services/insuranceService";
 import { useAuth } from "../contexts/AuthContext";
 import {
   initiateExpressPayPayment,
+  getExpressPayPaymentStatus,
   reconcileExpressPayPayment,
 } from "../services/expressPayService";
 import { normalizeOptionalUuid } from "../utils/id";
@@ -73,6 +74,7 @@ const MobileMoneyScreen = ({ navigation, route }) => {
   const { i18n } = useTranslation();
   const { profile, user } = useAuth();
   const updateBookingMutation = useUpdateAmenityBooking();
+  const isMountedRef = React.useRef(true);
   const navigateHome = useCallback(() => {
     navigation.navigate("bottomTab", {
       screen: "homeScreen",
@@ -108,6 +110,13 @@ const MobileMoneyScreen = ({ navigation, route }) => {
     const subscription = BackHandler.addEventListener("hardwareBackPress", backAction);
     return () => subscription.remove();
   }, [backAction]);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const [selectedNetwork, setSelectedNetwork] = useState("MTN");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -554,9 +563,16 @@ const MobileMoneyScreen = ({ navigation, route }) => {
         pollDelayMs: 3000,
       });
 
-      const gatewayStatus = normalizeGatewayStatus(
+      let gatewayStatus = normalizeGatewayStatus(
         reconciliation.status || reconciliation.payment?.status || "pending"
       );
+
+      if (gatewayStatus === "pending" && gatewayPaymentId) {
+        const latestStatusResult = await getExpressPayPaymentStatus(gatewayPaymentId);
+        if (latestStatusResult?.success) {
+          gatewayStatus = normalizeGatewayStatus(latestStatusResult.data?.status || gatewayStatus);
+        }
+      }
 
       if (isPersonalHubTransaction && personalHubRecord?.success && personalHubRecord.data?.id) {
         if (gatewayStatus === "completed" || gatewayStatus === "failed") {
@@ -578,7 +594,9 @@ const MobileMoneyScreen = ({ navigation, route }) => {
       }
 
       if (gatewayStatus === "completed") {
-        setShowConfirmationModal(false);
+        if (isMountedRef.current) {
+          setShowConfirmationModal(false);
+        }
 
         if (isPersonalHubTransaction) {
           await createPaymentNotification({
@@ -636,7 +654,9 @@ const MobileMoneyScreen = ({ navigation, route }) => {
       }
 
       if (gatewayStatus === "failed") {
-        setShowConfirmationModal(false);
+        if (isMountedRef.current) {
+          setShowConfirmationModal(false);
+        }
         Alert.alert(
           "Payment Failed",
           reconciliation.error || "Payment could not be completed. Please try again."
@@ -644,18 +664,24 @@ const MobileMoneyScreen = ({ navigation, route }) => {
         return;
       }
 
-      setConfirmationStatus("pending");
-      setPaymentReference(gatewayTransactionId);
-      setShowConfirmationModal(true);
+      if (isMountedRef.current) {
+        setConfirmationStatus("pending");
+        setPaymentReference(gatewayTransactionId);
+        setShowConfirmationModal(true);
+      }
     } catch (error) {
-      setShowConfirmationModal(false);
+      if (isMountedRef.current) {
+        setShowConfirmationModal(false);
+      }
       console.error("Mobile Money payment error:", error);
       Alert.alert(
         "Payment Failed",
         error?.message || "There was an error processing your payment. Please try again."
       );
     } finally {
-      setIsProcessing(false);
+      if (isMountedRef.current) {
+        setIsProcessing(false);
+      }
     }
   };
 
@@ -1050,7 +1076,7 @@ const MobileMoneyScreen = ({ navigation, route }) => {
               }}
             >
               <Text style={{ ...Fonts.SemiBold16white }}>
-                Okay
+                {confirmationStatus === "processing" ? "Okay" : "Done"}
               </Text>
             </TouchableOpacity>
           </View>
