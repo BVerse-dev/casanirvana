@@ -1038,23 +1038,21 @@ const MobileMoneyScreen = ({ navigation, route }) => {
               ) : null}
             </View>
 
-            {confirmationStatus === "processing" ? null : (
-              <TouchableOpacity
-                style={{
-                  backgroundColor: Colors.primary,
-                  paddingVertical: Default.fixPadding * 1.2,
-                  borderRadius: 10,
-                  alignItems: 'center',
-                }}
-                onPress={() => {
-                  returnToPaymentOrigin();
-                }}
-              >
-                <Text style={{ ...Fonts.SemiBold16white }}>
-                  Okay
-                </Text>
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity
+              style={{
+                backgroundColor: Colors.primary,
+                paddingVertical: Default.fixPadding * 1.2,
+                borderRadius: 10,
+                alignItems: 'center',
+              }}
+              onPress={() => {
+                returnToPaymentOrigin();
+              }}
+            >
+              <Text style={{ ...Fonts.SemiBold16white }}>
+                Okay
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
