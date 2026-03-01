@@ -723,6 +723,28 @@ const resolveExpressPayMobileNetwork = ({
   return MOBILE_NETWORK_ALIASES[normalizedNetwork] || null;
 };
 
+const resolveExpressPayLegacyMobileNetwork = (rawNetwork?: string) => {
+  const normalizedNetwork = rawNetwork ? rawNetwork.trim().toUpperCase() : '';
+
+  if (normalizedNetwork === 'MTN' || normalizedNetwork === 'MTN_MM') {
+    return 'MTN';
+  }
+
+  if (normalizedNetwork === 'VODAFONE' || normalizedNetwork === 'VODAFONE_CASH' || normalizedNetwork === 'TELECEL') {
+    return 'VODAFONE';
+  }
+
+  if (
+    normalizedNetwork === 'AIRTELTIGO' ||
+    normalizedNetwork === 'AIRTEL_MM' ||
+    normalizedNetwork === 'TIGO_CASH'
+  ) {
+    return 'AIRTELTIGO';
+  }
+
+  return null;
+};
+
 const getPaymentById = async (paymentId: string): Promise<PaymentRow | null> => {
   const { data, error } = await looseDb
     .from('payments')
@@ -921,18 +943,22 @@ export const initiateExpressPayPayment = async (
     try {
       const payerPhoneRaw = getNestedString(inputMetadata, 'payer_phone') || input.payerProfile?.phone || '';
       const payerPhone = payerPhoneRaw.replace(/\D+/g, '');
-      const payerPhoneForProvider = normalizeExpressPayMsisdn(payerPhone);
       const requestedNetwork = getNestedString(inputMetadata, 'mobile_network');
       const resolvedNetwork = resolveExpressPayMobileNetwork({
         rawNetwork: requestedNetwork,
         phoneNumber: payerPhone,
       });
+      const legacyNetwork = resolveExpressPayLegacyMobileNetwork(requestedNetwork);
 
       if (!payerPhone || payerPhone.length < 10) {
         throw new Error('A valid mobile money number is required for in-app payment.');
       }
 
       if (!resolvedNetwork) {
+        throw new Error('Unsupported mobile money network selected for ExpressPay.');
+      }
+
+      if (!legacyNetwork) {
         throw new Error('Unsupported mobile money network selected for ExpressPay.');
       }
 
@@ -979,20 +1005,17 @@ export const initiateExpressPayPayment = async (
 
       const directCheckoutParams = new URLSearchParams();
       directCheckoutParams.set('token', token);
-      directCheckoutParams.set('mobile-number', payerPhoneForProvider);
-      directCheckoutParams.set('mobile-network', resolvedNetwork);
-      directCheckoutParams.set('payment-option', resolvedNetwork);
-      directCheckoutParams.set('email', input.payerProfile?.email || 'resident@casanirvana.app');
-      directCheckoutParams.set('firstname', input.payerProfile?.first_name || 'Resident');
-      directCheckoutParams.set('lastname', input.payerProfile?.last_name || 'User');
-      directCheckoutParams.set('phonenumber', payerPhoneForProvider);
-      directCheckoutParams.set('username', input.payerProfile?.email || `user-${input.payerId}`);
+      // Follow the mobile money direct-payment sample contract exactly.
+      // ExpressPay's docs show legacy carrier codes here (MTN/VODAFONE/AIRTELTIGO)
+      // and a local 10-digit MSISDN for the second step.
+      directCheckoutParams.set('mobile-number', payerPhone);
+      directCheckoutParams.set('mobile-network', legacyNetwork);
 
       const mobileAuthToken =
-        getNestedString(inputMetadata, 'mobile_auth_network') ||
-        getNestedString(inputMetadata, 'mobile_auth_token');
+        getNestedString(inputMetadata, 'mobile_auth_token') ||
+        getNestedString(inputMetadata, 'mobile_auth_network');
       if (mobileAuthToken) {
-        directCheckoutParams.set('mobile-auth-network', mobileAuthToken);
+        directCheckoutParams.set('mobile-auth-token', mobileAuthToken);
       }
 
       const directCheckoutResponse = await invokeExpressPayDirectCheckout(config, directCheckoutParams);
@@ -1004,8 +1027,8 @@ export const initiateExpressPayPayment = async (
       if (immediateStatus === 'failed') {
         throw new ExpressPayGatewayError(`ExpressPay direct checkout failed: ${directCheckoutMessage}`, {
           ...asObject(directCheckoutResponse),
-          mobile_number: payerPhoneForProvider,
-          mobile_network: resolvedNetwork,
+          mobile_number: payerPhone,
+          mobile_network: legacyNetwork,
         });
       }
 
@@ -1031,8 +1054,10 @@ export const initiateExpressPayPayment = async (
             direct_submit_primary_error: directSubmitPrimaryError,
             direct_checkout_result: directCheckoutResponse,
             direct_post_url: config.directPostUrl,
-            mobile_network: resolvedNetwork,
-            mobile_number: payerPhoneForProvider,
+            mobile_network: legacyNetwork,
+            mobile_network_resolved: resolvedNetwork,
+            mobile_number: payerPhone,
+            mobile_number_normalized: normalizeExpressPayMsisdn(payerPhone),
             verified_at: verifiedAt,
           },
         },
