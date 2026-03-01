@@ -437,7 +437,9 @@ Date: 2026-02-06
   - Dropped old `Allow service role or superadmin ...` policies on `public.admin_roles` and `public.app_settings`.
   - Added function-based `admin_roles` policies (`p27_admin_roles_select_admin`, `p27_admin_roles_manage_superadmin`, `p27_admin_roles_service_role_all`) to eliminate policy recursion and restore superadmin settings reads.
 - [ ] Pending: manual runtime QA for user payment checkout lifecycle (mobile-money direct first; card hosted path only if explicitly kept enabled) with real ExpressPay test credentials and callback timings.
-- [ ] Pending: add final callback authenticity hardening once ExpressPay signature/hash contract is confirmed in production credentials docs.
+- [x] Added callback trust hardening for ExpressPay:
+  - callback now resolves an existing payment first, rejects mismatched `token` / `order-id` pairs, stores a sanitized callback audit payload in `payments.metadata.expresspay`, and only then performs authoritative provider-side verification via `query.php`.
+  - no provider signature/hash contract is documented in the current ExpressPay docs, so the hardening uses strict reference matching + server-side re-verification rather than trusting callback payload state directly.
 - [x] Phase 28 payment ledger foundation applied:
   - Migration `supabase/migrations/20260301103000_phase28_payment_domain_rebuild.sql` created `payment_obligations`, extended `payments` with source-aware ledger fields, backfilled legacy pending rows, and normalized currency/provider fields.
   - Added backend ledger feeds for user + admin (`/payments/obligations`, `/payments/history`, `/payments/statements`, `/payments/transactions/initiate`, `/admin/payments/transactions`, `/admin/payments/obligations`, `/admin/payments/statements`).

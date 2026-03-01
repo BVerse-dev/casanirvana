@@ -169,6 +169,25 @@ const asObject = (value: unknown): JsonRecord => {
   return {};
 };
 
+const sanitizeCallbackPayloadPart = (value: unknown): JsonRecord => {
+  const record = asObject(value);
+  const entries = Object.entries(record).slice(0, 24);
+  const sanitized: JsonRecord = {};
+
+  for (const [key, entryValue] of entries) {
+    if (typeof entryValue === 'string') {
+      sanitized[key] = entryValue.slice(0, 256);
+      continue;
+    }
+
+    if (typeof entryValue === 'number' || typeof entryValue === 'boolean') {
+      sanitized[key] = entryValue;
+    }
+  }
+
+  return sanitized;
+};
+
 const parseMaybeQuoted = (value?: string | null): string => {
   if (!value) return '';
   const trimmed = String(value).trim();
@@ -1644,7 +1663,66 @@ export const handleExpressPayCallback = async (payload: ExpressPayCallbackPayloa
     };
   }
 
-  return verifyExpressPayPayment({ paymentId: null, token, orderId });
+  const payment = await findPaymentByCallbackReference({ orderId, token });
+
+  if (!payment) {
+    return {
+      ok: false,
+      reason: 'payment_not_found',
+      payment: null,
+      providerResult: null,
+    };
+  }
+
+  const metadata = asObject(payment.metadata);
+  const expresspayMeta = asObject(metadata.expresspay);
+  const storedToken = typeof expresspayMeta.token === 'string' ? expresspayMeta.token : null;
+  const storedOrderId = typeof payment.transaction_id === 'string' ? payment.transaction_id : null;
+
+  if ((token && storedToken && token !== storedToken) || (orderId && storedOrderId && orderId !== storedOrderId)) {
+    await updatePaymentRecord(payment.id, {
+      metadata: {
+        ...metadata,
+        expresspay: {
+          ...expresspayMeta,
+          callback_received_at: nowIso(),
+          callback_rejected_at: nowIso(),
+          callback_rejected_reason: 'reference_mismatch',
+          callback_payload: {
+            body: sanitizeCallbackPayloadPart(asObject(payload.rawPayload).body),
+            query: sanitizeCallbackPayloadPart(asObject(payload.rawPayload).query),
+          },
+        },
+      },
+    });
+
+    return {
+      ok: false,
+      reason: 'reference_mismatch',
+      payment: null,
+      providerResult: null,
+    };
+  }
+
+  await updatePaymentRecord(payment.id, {
+    metadata: {
+      ...metadata,
+      expresspay: {
+        ...expresspayMeta,
+        callback_received_at: nowIso(),
+        callback_payload: {
+          body: sanitizeCallbackPayloadPart(asObject(payload.rawPayload).body),
+          query: sanitizeCallbackPayloadPart(asObject(payload.rawPayload).query),
+        },
+      },
+    },
+  });
+
+  return verifyExpressPayPayment({
+    paymentId: payment.id,
+    token: token || storedToken,
+    orderId: orderId || storedOrderId,
+  });
 };
 
 export const getExpressPayPaymentStatus = async (paymentId: string) => {
