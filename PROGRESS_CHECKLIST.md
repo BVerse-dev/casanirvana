@@ -457,7 +457,12 @@ Date: 2026-02-06
   - Superadmin now has a new operational page at `/payments/charges` with the full fee/charge catalog, agency/community-scoped template management, preview-and-issue workflow, and run/invoice visibility.
   - New charge runs materialize directly into `payment_obligations`, so issued community charges flow into the user app `Pending` tab without extra client-side wiring.
   - Added API-key protected internal automation endpoint `POST /internal/payment-charges/run-due` so scheduled billing runs can be triggered by production cron infrastructure without an authenticated browser session.
-  - Normalized the Payments information architecture in superadmin: sidebar children are now `Overview`, `Payments`, `Invoices`, and `Payouts`; the `/payments/charges` workspace is tabbed (`Templates`, `Issue Payments`, `Issued Charges`, `Runs`), `/payments/invoices` is live, and `/payments/payouts` is scaffolded pending payout-engine rollout.
+  - Normalized the Payments information architecture in superadmin: sidebar children are now `Overview`, `Payments`, `Invoices`, and `Payouts`; the `/payments/charges` workspace is tabbed (`Templates`, `Issue Payments`, `Issued Charges`, `Runs`), `/payments/invoices` is live, and `/payments/payouts` is ready for live payout data.
+- [x] Phase 31 payout foundation implemented:
+  - Added migration `supabase/migrations/20260301190000_phase31_payouts_foundation.sql` and applied it to the live Casa Nirvana database: `payments` now stores payout-classification snapshot fields, and the new payout tables exist (`payout_rules`, `payout_destinations`, `payout_requests`, `payout_request_items`, `payout_request_events`, `payout_ledger_entries`).
+  - Backend now classifies completed settled payments into Community Hub vs Personal Hub, computes payout eligibility snapshots, and writes `credit_available` payout ledger entries during normal payment settlement side effects.
+  - Backend now exposes admin payout APIs for summary, eligible revenue, destinations, rules, payout requests, and payout-request lifecycle actions under `/admin/payouts/*`.
+  - Superadmin `/payments/payouts` is now wired to real backend data with tabbed sections for `Overview`, `Requests`, `Destinations`, and `Rules`.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)
@@ -488,6 +493,16 @@ Date: 2026-02-06
 - [x] `PUT /admin/payment-gateways/expresspay/config` (secure ExpressPay config upsert + Vault secret write)
 - [x] `POST /admin/payment-gateways/expresspay/test` (credential/connectivity test with persisted test status)
 - [x] `POST /internal/payment-charges/run-due` (API key protected scheduled charge-issuance trigger)
+- [x] `GET /admin/payouts/summary` (payout balance + counts summary)
+- [x] `GET /admin/payouts/transactions` (eligible distributable revenue feed)
+- [x] `GET /admin/payouts/destinations` (list payout destinations)
+- [x] `POST /admin/payouts/destinations` (create payout destination)
+- [x] `PATCH /admin/payouts/destinations/:id` (update payout destination)
+- [x] `GET /admin/payouts/rules` (list payout rules)
+- [x] `POST /admin/payouts/rules` (create/update payout rule)
+- [x] `GET /admin/payouts/requests` (list payout requests)
+- [x] `POST /admin/payouts/requests` (create payout request)
+- [x] `POST /admin/payouts/requests/:id/:action` (approve/reject/process/pay/fail/cancel payout request)
 
 ## Environment Variables (Required)
 - `ADMIN_INVITE_REDIRECT_URL`

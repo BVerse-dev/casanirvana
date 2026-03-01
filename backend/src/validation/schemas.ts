@@ -57,6 +57,10 @@ const paymentChargeTargetType = z.enum([
   'exclude_unit_ids',
 ]);
 const paymentChargeRunStatus = z.enum(['draft', 'previewed', 'issued', 'cancelled']);
+const payoutDestinationType = z.enum(['bank_account', 'mobile_money']);
+const payoutRequestAction = z.enum(['cancel', 'approve', 'reject', 'mark_processing', 'mark_paid', 'fail']);
+const payoutRuleShareMode = z.enum(['fixed', 'percentage']);
+const payoutRuleAgencyShareMode = z.enum(['remainder', 'fixed', 'percentage']);
 const paymentChargeTemplateTargetSchema = z.object({
   target_type: paymentChargeTargetType,
   target_value: z.union([z.string(), z.array(z.string()), z.record(z.any())]).optional(),
@@ -536,6 +540,70 @@ export const schemas = {
   adminPaymentChargeRunDueBody: z.object({
     community_id: optionalString.nullable(),
     agency_id: optionalString.nullable(),
+  }),
+  adminPayoutScopeQuery: z.object({
+    agency_id: optionalString,
+    community_id: optionalString,
+  }),
+  adminPayoutDestinationCreate: z.object({
+    agency_id: optionalString.nullable(),
+    community_id: optionalString.nullable(),
+    destination_type: payoutDestinationType,
+    label: nonEmptyString,
+    account_name: z.string().optional().nullable(),
+    account_number: z.string().optional().nullable(),
+    bank_name: z.string().optional().nullable(),
+    bank_code: z.string().optional().nullable(),
+    mobile_network: z.string().optional().nullable(),
+    mobile_number: z.string().optional().nullable(),
+    currency_code: optionalString.nullable(),
+    is_default: z.boolean().optional(),
+    is_verified: z.boolean().optional(),
+    status: z.enum(['active', 'inactive', 'disabled']).optional(),
+    metadata: z.record(z.any()).optional().nullable(),
+  }),
+  adminPayoutDestinationUpdate: atLeastOne(
+    z.object({
+      label: z.string().optional(),
+      account_name: z.string().optional().nullable(),
+      account_number: z.string().optional().nullable(),
+      bank_name: z.string().optional().nullable(),
+      bank_code: z.string().optional().nullable(),
+      mobile_network: z.string().optional().nullable(),
+      mobile_number: z.string().optional().nullable(),
+      is_default: z.boolean().optional(),
+      is_verified: z.boolean().optional(),
+      status: z.enum(['active', 'inactive', 'disabled']).optional(),
+      metadata: z.record(z.any()).optional().nullable(),
+    })
+  ),
+  adminPayoutRuleUpsert: z.object({
+    id: optionalString.nullable(),
+    agency_id: optionalString.nullable(),
+    community_id: optionalString.nullable(),
+    effective_from: optionalString.nullable(),
+    community_share_mode: payoutRuleShareMode,
+    community_share_value: z.coerce.number().min(0),
+    agency_share_mode: payoutRuleAgencyShareMode,
+    agency_share_value: z.coerce.number().min(0).optional().nullable(),
+    platform_fee_mode: payoutRuleShareMode,
+    platform_fee_value: z.coerce.number().min(0).optional().nullable(),
+    is_active: z.boolean().optional(),
+  }),
+  adminPayoutRequestCreate: z.object({
+    agency_id: optionalString.nullable(),
+    community_id: optionalString.nullable(),
+    destination_id: nonEmptyString,
+    requested_amount: z.coerce.number().positive(),
+    notes: z.string().optional().nullable(),
+  }),
+  adminPayoutRequestActionParams: z.object({
+    id: nonEmptyString,
+    action: payoutRequestAction,
+  }),
+  adminPayoutRequestActionBody: z.object({
+    notes: z.string().optional().nullable(),
+    failure_reason: z.string().optional().nullable(),
   }),
   expressPayInitiate: z.object({
     amount: z.coerce.number().positive(),

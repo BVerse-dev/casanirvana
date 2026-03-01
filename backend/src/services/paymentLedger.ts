@@ -1,4 +1,5 @@
 import { adminSupabase } from '../lib/supabase';
+import { syncPaymentToPayoutLedger } from './payouts';
 
 type JsonRecord = Record<string, unknown>;
 type SourceStatusConfig = {
@@ -677,6 +678,8 @@ export const applyPaymentOutcomeSideEffects = async ({
       }
     }
   }
+
+  await syncPaymentToPayoutLedger(payment.id);
 
   return payment;
 };

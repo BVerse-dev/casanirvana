@@ -23,6 +23,18 @@ import {
   runDuePaymentCharges,
   updatePaymentChargeTemplate,
 } from '../services/paymentCharges';
+import {
+  createAdminPayoutDestination,
+  createAdminPayoutRequest,
+  getAdminPayoutSummary,
+  listAdminPayoutDestinations,
+  listAdminPayoutRequests,
+  listAdminPayoutRules,
+  listAdminPayoutTransactions,
+  updateAdminPayoutDestination,
+  updateAdminPayoutRequestStatus,
+  upsertAdminPayoutRule,
+} from '../services/payouts';
 
 /**
  * Get payments by unit ID with filtering and pagination
@@ -216,6 +228,23 @@ const getActorUserId = (req: Request) => {
 
   return null;
 };
+
+const getAdminPayoutScope = (req: Request) => ({
+  userProfile: req.userProfile,
+  actorUserId: getActorUserId(req),
+  agencyId:
+    typeof req.query.agency_id === 'string'
+      ? req.query.agency_id
+      : typeof req.body?.agency_id === 'string'
+        ? req.body.agency_id
+        : null,
+  communityId:
+    typeof req.query.community_id === 'string'
+      ? req.query.community_id
+      : typeof req.body?.community_id === 'string'
+        ? req.body.community_id
+        : null,
+});
 
 export async function getPaymentObligations(req: Request, res: Response) {
   try {
@@ -593,6 +622,166 @@ export async function runDueAdminPaymentCharges(req: Request, res: Response) {
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to run due payment charges',
+    });
+  }
+}
+
+export async function getAdminPayoutSummaryHandler(req: Request, res: Response) {
+  try {
+    const data = await getAdminPayoutSummary(getAdminPayoutScope(req));
+    res.json({ success: true, data });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to load payout summary',
+    });
+  }
+}
+
+export async function listAdminPayoutTransactionsHandler(req: Request, res: Response) {
+  try {
+    const items = await listAdminPayoutTransactions(getAdminPayoutScope(req));
+    res.json({
+      success: true,
+      data: {
+        items,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to load payout transactions',
+    });
+  }
+}
+
+export async function listAdminPayoutDestinationsHandler(req: Request, res: Response) {
+  try {
+    const items = await listAdminPayoutDestinations(getAdminPayoutScope(req));
+    res.json({
+      success: true,
+      data: {
+        items,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to load payout destinations',
+    });
+  }
+}
+
+export async function createAdminPayoutDestinationHandler(req: Request, res: Response) {
+  try {
+    const item = await createAdminPayoutDestination(req.body, getAdminPayoutScope(req));
+    res.status(201).json({
+      success: true,
+      data: item,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to create payout destination',
+    });
+  }
+}
+
+export async function updateAdminPayoutDestinationHandler(req: Request, res: Response) {
+  try {
+    const item = await updateAdminPayoutDestination(req.params.id, req.body || {}, getAdminPayoutScope(req));
+    res.json({
+      success: true,
+      data: item,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to update payout destination',
+    });
+  }
+}
+
+export async function listAdminPayoutRulesHandler(req: Request, res: Response) {
+  try {
+    const items = await listAdminPayoutRules(getAdminPayoutScope(req));
+    res.json({
+      success: true,
+      data: {
+        items,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to load payout rules',
+    });
+  }
+}
+
+export async function upsertAdminPayoutRuleHandler(req: Request, res: Response) {
+  try {
+    const item = await upsertAdminPayoutRule(req.body, getAdminPayoutScope(req));
+    res.status(req.body?.id ? 200 : 201).json({
+      success: true,
+      data: item,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to save payout rule',
+    });
+  }
+}
+
+export async function listAdminPayoutRequestsHandler(req: Request, res: Response) {
+  try {
+    const items = await listAdminPayoutRequests(getAdminPayoutScope(req));
+    res.json({
+      success: true,
+      data: {
+        items,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to load payout requests',
+    });
+  }
+}
+
+export async function createAdminPayoutRequestHandler(req: Request, res: Response) {
+  try {
+    const item = await createAdminPayoutRequest(req.body, getAdminPayoutScope(req));
+    res.status(201).json({
+      success: true,
+      data: item,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to create payout request',
+    });
+  }
+}
+
+export async function updateAdminPayoutRequestStatusHandler(req: Request, res: Response) {
+  try {
+    const item = await updateAdminPayoutRequestStatus(
+      req.params.id,
+      req.params.action as 'cancel' | 'approve' | 'reject' | 'mark_processing' | 'mark_paid' | 'fail',
+      getAdminPayoutScope(req),
+      req.body || {}
+    );
+    res.json({
+      success: true,
+      data: item,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to update payout request',
     });
   }
 }

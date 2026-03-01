@@ -392,6 +392,76 @@ router.post(
   validateRequest({ body: schemas.adminPaymentChargeRunDueBody }),
   paymentController.runDueAdminPaymentCharges
 );
+router.get(
+  '/payouts/summary',
+  requireAuth,
+  requirePermission('read:all_payments'),
+  validateRequest({ query: schemas.adminPayoutScopeQuery }),
+  paymentController.getAdminPayoutSummaryHandler
+);
+router.get(
+  '/payouts/transactions',
+  requireAuth,
+  requirePermission('read:all_payments'),
+  validateRequest({ query: schemas.adminPayoutScopeQuery }),
+  paymentController.listAdminPayoutTransactionsHandler
+);
+router.get(
+  '/payouts/destinations',
+  requireAuth,
+  requirePermission('read:all_payments'),
+  validateRequest({ query: schemas.adminPayoutScopeQuery }),
+  paymentController.listAdminPayoutDestinationsHandler
+);
+router.post(
+  '/payouts/destinations',
+  requireAuth,
+  requirePermission('create:payments'),
+  validateRequest({ body: schemas.adminPayoutDestinationCreate }),
+  paymentController.createAdminPayoutDestinationHandler
+);
+router.patch(
+  '/payouts/destinations/:id',
+  requireAuth,
+  requirePermission('update:payments'),
+  validateRequest({ params: schemas.idParam, body: schemas.adminPayoutDestinationUpdate }),
+  paymentController.updateAdminPayoutDestinationHandler
+);
+router.get(
+  '/payouts/rules',
+  requireAuth,
+  requirePermission('read:all_payments'),
+  validateRequest({ query: schemas.adminPayoutScopeQuery }),
+  paymentController.listAdminPayoutRulesHandler
+);
+router.post(
+  '/payouts/rules',
+  requireAuth,
+  requirePermission('update:payments'),
+  validateRequest({ body: schemas.adminPayoutRuleUpsert }),
+  paymentController.upsertAdminPayoutRuleHandler
+);
+router.get(
+  '/payouts/requests',
+  requireAuth,
+  requirePermission('read:all_payments'),
+  validateRequest({ query: schemas.adminPayoutScopeQuery }),
+  paymentController.listAdminPayoutRequestsHandler
+);
+router.post(
+  '/payouts/requests',
+  requireAuth,
+  requirePermission('create:payments'),
+  validateRequest({ body: schemas.adminPayoutRequestCreate }),
+  paymentController.createAdminPayoutRequestHandler
+);
+router.post(
+  '/payouts/requests/:id/:action',
+  requireAuth,
+  requirePermission('update:payments'),
+  validateRequest({ params: schemas.adminPayoutRequestActionParams, body: schemas.adminPayoutRequestActionBody }),
+  paymentController.updateAdminPayoutRequestStatusHandler
+);
 router.post(
   '/payments/generate',
   requireAuth,
