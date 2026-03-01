@@ -436,7 +436,10 @@ Date: 2026-02-06
 - [x] Applied hotfix migration `supabase/migrations/20260227174500_phase27_admin_roles_rls_recursion_fix.sql` to remove recursive legacy RLS policies:
   - Dropped old `Allow service role or superadmin ...` policies on `public.admin_roles` and `public.app_settings`.
   - Added function-based `admin_roles` policies (`p27_admin_roles_select_admin`, `p27_admin_roles_manage_superadmin`, `p27_admin_roles_service_role_all`) to eliminate policy recursion and restore superadmin settings reads.
-- [ ] Pending: manual runtime QA for user payment checkout lifecycle (mobile-money direct first; card hosted path only if explicitly kept enabled) with real ExpressPay test credentials and callback timings.
+- [x] Manual runtime QA completed for user payment checkout lifecycle with real ExpressPay test credentials:
+  - verified mobile-money approval prompt, pending confirmation UX, and callback/poll settlement path,
+  - verified hosted `Credit / Debit Card` checkout handoff and in-app return flow,
+  - payment phase is now in production-closeout state pending normal release monitoring only.
 - [x] Added callback trust hardening for ExpressPay:
   - callback now resolves an existing payment first, rejects mismatched `token` / `order-id` pairs, stores a sanitized callback audit payload in `payments.metadata.expresspay`, and only then performs authoritative provider-side verification via `query.php`.
   - no provider signature/hash contract is documented in the current ExpressPay docs, so the hardening uses strict reference matching + server-side re-verification rather than trusting callback payload state directly.
