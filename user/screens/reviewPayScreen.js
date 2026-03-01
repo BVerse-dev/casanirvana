@@ -94,7 +94,7 @@ const ReviewPayScreen = ({ navigation, route }) => {
 
   const handlePayment = () => {
     const normalizedTransactionType = transactionType || "airtime";
-    const paymentMethodTitle = paymentMethod?.title || "Credit Card";
+    const paymentMethodTitle = paymentMethod?.title || "Credit / Debit Card";
     const resolvedAmount = Number(totalAmount ?? amount ?? 0);
 
     if (isLoadingPaymentPolicy) {
@@ -144,7 +144,7 @@ const ReviewPayScreen = ({ navigation, route }) => {
       case "Mobile Money":
         navigation.push("mobileMoneyScreen", navigationParams);
         break;
-      case "Credit Card":
+      case "Credit / Debit Card":
         navigation.push("creditCardScreen", navigationParams);
         break;
       default:

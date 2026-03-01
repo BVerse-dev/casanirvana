@@ -1114,6 +1114,7 @@ const buildSubmitFallbackParams = ({
 };
 
 const buildDirectMobileMoneyCheckoutAttempts = ({
+  config,
   token,
   baseSubmitParams,
   cookieHeader,
@@ -1121,6 +1122,7 @@ const buildDirectMobileMoneyCheckoutAttempts = ({
   requestedNetwork,
   inputMetadata,
 }: {
+  config: ExpressPayRuntimeConfig;
   token: string;
   baseSubmitParams: URLSearchParams;
   cookieHeader?: string | null;
@@ -1335,6 +1337,7 @@ export const initiateExpressPayPayment = async (
 
       const directCheckoutResponse = await invokeExpressPayDirectCheckout(
         buildDirectMobileMoneyCheckoutAttempts({
+          config,
           token,
           baseSubmitParams: submitFallbackParams,
           cookieHeader: directSubmitCookieHeader,

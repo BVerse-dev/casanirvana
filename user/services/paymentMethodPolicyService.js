@@ -131,6 +131,7 @@ export const isPaymentMethodEnabled = (policy, methodTitle) => {
 
   switch (methodTitle) {
     case "Credit Card":
+    case "Credit / Debit Card":
       return policy.creditCardEnabled;
     case "Mobile Money":
       return policy.mobileMoneyEnabled;

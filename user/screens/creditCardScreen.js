@@ -3,6 +3,7 @@ import {
   Text,
   View,
   BackHandler,
+  ActivityIndicator,
   TouchableOpacity,
   Dimensions,
   TextInput,
@@ -37,6 +38,7 @@ const CreditCardScreen = ({ navigation, route }) => {
   
   // Determine if this is for adding a payment method or making a payment
   const isAddingMode = isAddingPaymentMethod === true;
+  const hostedCheckoutMode = !isAddingMode;
   const { profile } = useHasJoinedCommunity();
   const resolvedBookingId = React.useMemo(
     () => normalizeOptionalUuid(bookingId) || normalizeOptionalUuid(bookingData?.id),
@@ -108,6 +110,7 @@ const CreditCardScreen = ({ navigation, route }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [savedPaymentMethod, setSavedPaymentMethod] = useState(null);
+  const [hostedCheckoutError, setHostedCheckoutError] = useState(null);
 
   const [name, setName] = useState("");
   const [isValidName, setIsValidName] = useState(true);
@@ -214,6 +217,16 @@ const CreditCardScreen = ({ navigation, route }) => {
 
   const formattedNumber = number.replace(/\s/g, "");
 
+  useEffect(() => {
+    if (!hostedCheckoutMode || isProcessing || hostedCheckoutError) {
+      return;
+    }
+
+    handlePayment();
+    // Intentionally run once for hosted checkout launch.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hostedCheckoutMode]);
+
   const creditCard = () => {
     return (
       <CreditCard
@@ -237,6 +250,98 @@ const CreditCardScreen = ({ navigation, route }) => {
       />
     );
   };
+
+  if (hostedCheckoutMode) {
+    return (
+      <View style={{ flex: 1, backgroundColor: Colors.white }}>
+        <MyStatusBar />
+        <View
+          style={{
+            flexDirection: isRtl ? "row-reverse" : "row",
+            alignItems: "center",
+            paddingVertical: Default.fixPadding * 1.2,
+            paddingHorizontal: Default.fixPadding * 2,
+          }}
+        >
+          <TouchableOpacity onPress={() => navigation.pop()}>
+            <Ionicons
+              name={isRtl ? "arrow-forward-outline" : "arrow-back-outline"}
+              size={25}
+              color={Colors.black}
+            />
+          </TouchableOpacity>
+          <Text
+            style={{
+              ...Fonts.SemiBold18black,
+              marginHorizontal: Default.fixPadding,
+            }}
+          >
+            Secure Card Checkout
+          </Text>
+        </View>
+
+        <View
+          style={{
+            flex: 1,
+            justifyContent: "center",
+            alignItems: "center",
+            paddingHorizontal: Default.fixPadding * 3,
+          }}
+        >
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text
+            style={{
+              ...Fonts.SemiBold18black,
+              marginTop: Default.fixPadding * 2,
+              textAlign: "center",
+            }}
+          >
+            Redirecting to ExpressPay
+          </Text>
+          <Text
+            style={{
+              ...Fonts.Medium14grey,
+              marginTop: Default.fixPadding,
+              textAlign: "center",
+              lineHeight: 22,
+            }}
+          >
+            Complete your credit or debit card payment securely in the ExpressPay checkout.
+          </Text>
+
+          {!!hostedCheckoutError && (
+            <>
+              <Text
+                style={{
+                  ...Fonts.Medium14red,
+                  marginTop: Default.fixPadding * 2,
+                  textAlign: "center",
+                  lineHeight: 22,
+                }}
+              >
+                {hostedCheckoutError}
+              </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setHostedCheckoutError(null);
+                  handlePayment();
+                }}
+                style={{
+                  marginTop: Default.fixPadding * 2,
+                  backgroundColor: Colors.primary,
+                  borderRadius: 10,
+                  paddingVertical: Default.fixPadding * 1.2,
+                  paddingHorizontal: Default.fixPadding * 2,
+                }}
+              >
+                <Text style={{ ...Fonts.SemiBold16white }}>Try Again</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: Colors.white }}>
@@ -568,25 +673,25 @@ const CreditCardScreen = ({ navigation, route }) => {
 
   // Handle payment processing
   async function handlePayment() {
-    if (!name.trim()) {
+    if (isAddingMode && !name.trim()) {
       setIsValidName(false);
       Alert.alert('Validation Error', 'Please enter cardholder name');
       return;
     }
 
-    if (!cardValidator.number(number).isValid) {
+    if (isAddingMode && !cardValidator.number(number).isValid) {
       setIsValidNumber(false);
       Alert.alert('Validation Error', 'Please enter a valid card number');
       return;
     }
 
-    if (!cardValidator.cvv(cvvCode).isValid) {
+    if (isAddingMode && !cardValidator.cvv(cvvCode).isValid) {
       setIsValidCvv(false);
       Alert.alert('Validation Error', 'Please enter a valid CVV');
       return;
     }
 
-    if (!cardValidator.expirationDate(expiryDate).isValid) {
+    if (isAddingMode && !cardValidator.expirationDate(expiryDate).isValid) {
       setIsValidExpiry(false);
       Alert.alert('Validation Error', 'Please enter a valid expiry date');
       return;
@@ -649,6 +754,7 @@ const CreditCardScreen = ({ navigation, route }) => {
     }
 
     setIsProcessing(true);
+    setHostedCheckoutError(null);
 
     try {
       const {
@@ -712,9 +818,6 @@ const CreditCardScreen = ({ navigation, route }) => {
           source_display_title: displayTitle,
           source_display_description: paymentData?.description || null,
           app_return_url: appReturnUrl,
-          entered_card_last_four: number.slice(-4),
-          entered_card_brand: cardValidator.number(number).card?.type || 'unknown',
-          entered_cardholder_name: name,
         },
       });
 
@@ -750,7 +853,7 @@ const CreditCardScreen = ({ navigation, route }) => {
         reconciliation.status || reconciliation.payment?.status || 'pending'
       );
       const transactionId = initiationResult.data.transaction_id || `TXN_${Date.now()}`;
-      const maskedCard = `**** **** **** ${number.slice(-4)}`;
+      const maskedCard = 'ExpressPay Card Checkout';
 
       if (bookingData?.type !== 'service_booking' && resolvedBookingId) {
         await updateBookingMutation.mutateAsync({
@@ -803,7 +906,12 @@ const CreditCardScreen = ({ navigation, route }) => {
         `Your payment is pending confirmation. Reference: ${transactionId}`
       );
     } catch (error) {
-      Alert.alert('Function Error', `Error: ${error.message}`);
+      const message = error?.message || 'Unable to complete payment.';
+      if (hostedCheckoutMode) {
+        setHostedCheckoutError(message);
+      } else {
+        Alert.alert('Function Error', `Error: ${message}`);
+      }
     } finally {
       setIsProcessing(false);
     }

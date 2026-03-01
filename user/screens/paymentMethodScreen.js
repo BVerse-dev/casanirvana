@@ -29,8 +29,8 @@ const PAYMENT_METHOD_OPTIONS = [
   {
     key: "1",
     image: require("../assets/images/pay1.png"),
-    title: "Credit Card",
-    subtitle: "Pay with your credit or debit card",
+    title: "Credit / Debit Card",
+    subtitle: "Pay securely with your credit or debit card",
     icon: "credit-card",
     color: Colors.primary,
   },
@@ -122,7 +122,7 @@ const PaymentMethodScreen = ({ navigation, route }) => {
   }, [backAction]);
 
   const [selectedPaymentMethod, setSelectedPaymentMethod] =
-    useState("Credit Card");
+    useState("Credit / Debit Card");
   const [paymentPolicy, setPaymentPolicy] = useState(null);
   const [isLoadingPaymentPolicy, setIsLoadingPaymentPolicy] = useState(!isAddingMode);
 
@@ -425,7 +425,7 @@ const PaymentMethodScreen = ({ navigation, route }) => {
     } else {
       // For other transactions, go to payment processing screens
       switch (selectedPaymentMethod) {
-        case "Credit Card":
+        case "Credit / Debit Card":
           navigation.push("creditCardScreen", navigationParams);
           break;
         case "Mobile Money":
