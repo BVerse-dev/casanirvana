@@ -6,6 +6,7 @@ import { Card, CardBody, Col, ProgressBar } from 'react-bootstrap'
 
 const PaymentStatusCard = () => {
   const { data: payments = [] } = useListPayments()
+  const formatAmount = (amount: number) => `GH₵ ${Math.round(Number(amount || 0)).toLocaleString()}`
   
   // Calculate payment collection statistics
   const totalAmount = payments.reduce((sum, payment) => sum + payment.amount, 0)
@@ -14,7 +15,7 @@ const PaymentStatusCard = () => {
     .reduce((sum, payment) => sum + payment.amount, 0)
   const collectionRate = totalAmount > 0 ? (collectedAmount / totalAmount) * 100 : 0
   
-  // Calculate this month's target (assuming $50,000 monthly target)
+  // Calculate this month's target (default dashboard target in current currency)
   const monthlyTarget = 50000
   const targetProgress = totalAmount > 0 ? (collectedAmount / monthlyTarget) * 100 : 0
 
@@ -39,10 +40,10 @@ const PaymentStatusCard = () => {
             
             <div className="mb-3">
               <h2 className="text-white fw-bold mb-1">
-                ${collectedAmount.toLocaleString()}
+                {formatAmount(collectedAmount)}
               </h2>
               <p className="text-white-50 mb-0 fs-14">
-                of ${monthlyTarget.toLocaleString()} monthly target
+                of {formatAmount(monthlyTarget)} monthly target
               </p>
             </div>
 

@@ -7,6 +7,8 @@ import { Card, CardBody } from "react-bootstrap";
 type Payment = Partial<Database["public"]["Tables"]["payments"]["Row"]> & {
   id: string;
   amount: number;
+  amount_formatted?: string | null;
+  currency_symbol?: string | null;
   user_profile?: {
     full_name: string;
     avatar_url: string;
@@ -33,6 +35,8 @@ interface PaymentTimelineProps {
 // Generate timeline events from real payment data
 const generateTimelineEvents = (payment: Payment) => {
   const events = [];
+  const amountText = payment.amount_formatted || `${payment.currency_symbol || "GH₵"} ${Number(payment.amount || 0).toFixed(2)}`;
+  const normalizedStatus = String(payment.status || "").toLowerCase();
   
   // 1. Invoice Generated (from created_at or due_date - 7 days)
   const invoiceDate = payment.invoice_generated_at || payment.created_at || 
@@ -75,23 +79,23 @@ const generateTimelineEvents = (payment: Payment) => {
       events.push({
         id: 3,
         title: "Payment Initiated",
-        description: `Payment of $${payment.amount} initiated via ${payment.payment_method || 'Unknown method'}`,
+        description: `Payment of ${amountText} initiated via ${payment.payment_method || 'Unknown method'}`,
         date: new Date(initiatedDate),
         icon: "solar:card-broken",
         iconBg: "bg-primary-subtle",
         iconColor: "text-primary",
-        status: payment.status === 'completed' || payment.status === 'failed' ? "completed" : "pending"
+        status: normalizedStatus === 'completed' || normalizedStatus === 'failed' ? "completed" : "pending"
       });
     }
   }
 
   // 4. Payment Status Events
-  if (payment.status === 'completed' && (payment.completed_at || payment.paid_at || payment.payment_date)) {
+  if (normalizedStatus === 'completed' && (payment.completed_at || payment.paid_at || payment.payment_date)) {
     const completedDate = payment.completed_at || payment.paid_at || payment.payment_date;
     events.push({
       id: 4,
       title: "Payment Completed",
-      description: `Payment of $${payment.amount} was successfully processed`,
+      description: `Payment of ${amountText} was successfully processed`,
       date: new Date(completedDate!),
       icon: "solar:check-circle-broken",
       iconBg: "bg-success-subtle",
@@ -110,38 +114,49 @@ const generateTimelineEvents = (payment: Payment) => {
       iconColor: "text-success",
       status: "completed"
     });
-  } else if (payment.status === 'failed' && payment.failed_at) {
+  } else if (normalizedStatus === 'failed' && payment.failed_at) {
     events.push({
       id: 4,
       title: "Payment Failed",
-      description: `Payment of $${payment.amount} failed to process`,
+      description: `Payment of ${amountText} failed to process`,
       date: new Date(payment.failed_at),
       icon: "solar:close-circle-broken",
       iconBg: "bg-danger-subtle",
       iconColor: "text-danger",
       status: "failed"
     });
-  } else if (payment.status === 'pending' && payment.due_date) {
+  } else if ((normalizedStatus === 'initiated' || normalizedStatus === 'processing') && payment.due_date) {
     events.push({
       id: 4,
-      title: "Payment Due",
-      description: `Payment of $${payment.amount} is due for processing`,
+      title: "Payment Processing",
+      description: `Payment of ${amountText} is awaiting gateway confirmation`,
       date: new Date(payment.due_date),
       icon: "solar:hourglass-broken",
       iconBg: "bg-warning-subtle",
       iconColor: "text-warning",
       status: "pending"
     });
-  } else if (payment.status === 'overdue' && payment.due_date) {
+  } else if (normalizedStatus === 'expired' && payment.due_date) {
     events.push({
       id: 4,
-      title: "Payment Overdue",
-      description: `Payment of $${payment.amount} is now overdue`,
+      title: "Payment Expired",
+      description: `Payment of ${amountText} expired before confirmation`,
       date: new Date(payment.due_date),
       icon: "solar:alarm-broken",
       iconBg: "bg-danger-subtle",
       iconColor: "text-danger",
       status: "overdue"
+    });
+  } else if (normalizedStatus === 'cancelled' && (payment.failed_at || payment.updated_at || payment.created_at)) {
+    events.push({
+      id: 4,
+      title: "Payment Cancelled",
+      description: `Payment of ${amountText} was cancelled`,
+      date: new Date(payment.failed_at || payment.updated_at || payment.created_at || new Date().toISOString()),
+      icon: "solar:alarm-broken",
+      iconBg: "bg-danger-subtle",
+      iconColor: "text-danger",
+      status: "failed"
     });
   }
 

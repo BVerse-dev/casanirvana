@@ -55,10 +55,32 @@ const normalizePaymentRecord = (payment: Record<string, any>) => {
       }
     : payment?.payer_profile || null;
 
+  const society = payment?.community
+    ? {
+        ...payment.community,
+        address: payment.community?.address || null,
+      }
+    : payment?.society || null;
+
   return {
     ...payment,
     unit,
     payer_profile,
+    society,
+  };
+};
+
+const normalizePaymentObligationRecord = (obligation: Record<string, any>) => {
+  const unit = obligation?.unit
+    ? {
+        ...obligation.unit,
+        unit_number: obligation.unit?.unit_number || obligation.unit?.number || null,
+      }
+    : null;
+
+  return {
+    ...obligation,
+    unit,
   };
 };
 
@@ -82,6 +104,45 @@ export const useListPayments = (unitId?: string, status?: string) => {
       return (payload?.data?.items || []).map((payment: Record<string, any>) =>
         normalizePaymentRecord(payment)
       );
+    },
+  });
+};
+
+export const useListPaymentObligations = (unitId?: string, status?: string) => {
+  const { fetchAdmin } = useAdminFetch();
+
+  return useQuery({
+    queryKey: ["payment-obligations", unitId, status],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (unitId) params.set("unit_id", unitId);
+      if (status) params.set("status", status);
+
+      const payload = await fetchAdmin(
+        `/admin/payments/obligations${params.toString() ? `?${params.toString()}` : ""}`
+      );
+
+      return (payload?.data?.items || []).map((obligation: Record<string, any>) =>
+        normalizePaymentObligationRecord(obligation)
+      );
+    },
+  });
+};
+
+export const useListPaymentStatements = (unitId?: string) => {
+  const { fetchAdmin } = useAdminFetch();
+
+  return useQuery({
+    queryKey: ["payment-statements", unitId],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (unitId) params.set("unit_id", unitId);
+
+      const payload = await fetchAdmin(
+        `/admin/payments/statements${params.toString() ? `?${params.toString()}` : ""}`
+      );
+
+      return payload?.data?.items || [];
     },
   });
 };

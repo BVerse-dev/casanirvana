@@ -438,6 +438,14 @@ Date: 2026-02-06
   - Added function-based `admin_roles` policies (`p27_admin_roles_select_admin`, `p27_admin_roles_manage_superadmin`, `p27_admin_roles_service_role_all`) to eliminate policy recursion and restore superadmin settings reads.
 - [ ] Pending: manual runtime QA for user payment checkout lifecycle (mobile-money direct first; card hosted path only if explicitly kept enabled) with real ExpressPay test credentials and callback timings.
 - [ ] Pending: add final callback authenticity hardening once ExpressPay signature/hash contract is confirmed in production credentials docs.
+- [x] Phase 28 payment ledger foundation applied:
+  - Migration `supabase/migrations/20260301103000_phase28_payment_domain_rebuild.sql` created `payment_obligations`, extended `payments` with source-aware ledger fields, backfilled legacy pending rows, and normalized currency/provider fields.
+  - Added backend ledger feeds for user + admin (`/payments/obligations`, `/payments/history`, `/payments/statements`, `/payments/transactions/initiate`, `/admin/payments/transactions`, `/admin/payments/obligations`, `/admin/payments/statements`).
+  - User payment feeds now read backend ledger APIs instead of raw Supabase table assumptions.
+- [x] Phase 28 payment UI alignment pass completed:
+  - User payment entry/success flows now propagate `sourceType`, `sourceId`, and `obligationId` consistently across `paymentMethodScreen`, `mobileMoneyScreen`, `creditCardScreen`, `reviewPayScreen`, and `successScreen`.
+  - Superadmin payment detail sidebar now reads real obligations for “Open Payment Obligations” instead of misclassifying transaction rows as pending dues.
+  - Core superadmin payment cards/details now display `GH₵` formatting and recognize `initiated` / `processing` / `cancelled` / `expired` transaction states.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)

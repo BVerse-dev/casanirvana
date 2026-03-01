@@ -16,25 +16,29 @@ const PaymentHistory = ({ paymentId }: PaymentHistoryProps) => {
   // Fetch all payments
   const { data: allPayments = [], isLoading } = useListPayments();
   const deletePayment = useDeletePayment();
+  const formatAmount = (payment: any) =>
+    payment.amount_formatted || `${payment.currency_symbol || 'GH₵'} ${Number(payment.amount || 0).toFixed(2)}`;
   
   // State for table functionality
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'completed' | 'failed' | 'overdue'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'processing' | 'completed' | 'failed' | 'cancelled'>('all');
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'maintenance' | 'service' | 'amenity' | 'hoa' | 'utilities' | 'other'>('all');
   const [itemsPerPage, setItemsPerPage] = useState(15);
 
   // Get status badge variant
   const getStatusVariant = (status: string) => {
     switch (status) {
-      case "pending":
+      case "initiated":
+      case "processing":
         return "warning";
       case "completed":
         return "success";
       case "failed":
         return "danger";
-      case "overdue":
-        return "danger";
+      case "cancelled":
+      case "expired":
+        return "secondary";
       default:
         return "info";
     }
@@ -284,7 +288,13 @@ const PaymentHistory = ({ paymentId }: PaymentHistoryProps) => {
         payment.payer_profile?.full_name?.toLowerCase().includes(searchTerm.toLowerCase());
 
       // Apply status filter
-      const matchesStatus = statusFilter === 'all' || payment.status === statusFilter;
+      const matchesStatus =
+        statusFilter === 'all' ||
+        (statusFilter === 'processing'
+          ? payment.status === 'initiated' || payment.status === 'processing'
+          : statusFilter === 'cancelled'
+            ? payment.status === 'cancelled' || payment.status === 'expired'
+            : payment.status === statusFilter);
 
       // Apply category filter
       const categoryInfo = getPaymentCategoryInfo(payment.payment_type || '', payment.description || undefined);
@@ -349,7 +359,7 @@ const PaymentHistory = ({ paymentId }: PaymentHistoryProps) => {
             <Dropdown.Toggle
               as={'button'}
               className="btn btn-sm btn-outline-primary rounded">
-              Status: {statusFilter === 'all' ? 'All' : statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)} <IconifyIcon className="ms-1" width={16} height={16} icon="ri:arrow-down-s-line" />
+              Status: {statusFilter === 'all' ? 'All' : statusFilter === 'processing' ? 'In Flight' : statusFilter === 'cancelled' ? 'Cancelled / Expired' : statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)} <IconifyIcon className="ms-1" width={16} height={16} icon="ri:arrow-down-s-line" />
             </Dropdown.Toggle>
             <Dropdown.Menu>
               <Dropdown.Item onClick={() => {
@@ -357,9 +367,9 @@ const PaymentHistory = ({ paymentId }: PaymentHistoryProps) => {
                 setCurrentPage(1);
               }} active={statusFilter === 'all'}>All</Dropdown.Item>
               <Dropdown.Item onClick={() => {
-                setStatusFilter('pending');
+                setStatusFilter('processing');
                 setCurrentPage(1);
-              }} active={statusFilter === 'pending'}>Pending</Dropdown.Item>
+              }} active={statusFilter === 'processing'}>In Flight</Dropdown.Item>
               <Dropdown.Item onClick={() => {
                 setStatusFilter('completed');
                 setCurrentPage(1);
@@ -369,9 +379,9 @@ const PaymentHistory = ({ paymentId }: PaymentHistoryProps) => {
                 setCurrentPage(1);
               }} active={statusFilter === 'failed'}>Failed</Dropdown.Item>
               <Dropdown.Item onClick={() => {
-                setStatusFilter('overdue');
+                setStatusFilter('cancelled');
                 setCurrentPage(1);
-              }} active={statusFilter === 'overdue'}>Overdue</Dropdown.Item>
+              }} active={statusFilter === 'cancelled'}>Cancelled / Expired</Dropdown.Item>
             </Dropdown.Menu>
           </Dropdown>
 
@@ -508,7 +518,7 @@ const PaymentHistory = ({ paymentId }: PaymentHistoryProps) => {
                         <td>
                           <div>
                             <h6 className="mb-1 fs-16 fw-bold text-dark">
-                              ${payment.amount.toFixed(2)}
+                              {formatAmount(payment)}
                             </h6>
                             <span
                               className={`badge bg-${getStatusVariant(

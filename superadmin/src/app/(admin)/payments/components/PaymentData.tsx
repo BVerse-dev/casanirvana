@@ -30,6 +30,9 @@ type PaymentWithProfiles = Database["public"]["Tables"]["payments"]["Row"] & {
 
 const PaymentData = () => {
   const { data: payments = [], isLoading } = useListPayments();
+
+  const formatAmount = (payment: Record<string, any>) =>
+    payment.amount_formatted || `${payment.currency_symbol || "GH₵"} ${Number(payment.amount || 0).toFixed(2)}`;
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -290,17 +293,19 @@ const PaymentData = () => {
                           </div>
                         </td>
                         <td>{payment.description || "N/A"}</td>
-                        <td>${payment.amount}</td>
+                        <td>{formatAmount(payment)}</td>
                         <td>{payment.payment_method || "N/A"}</td>
                         <td>
                           <span
                             className={`badge bg-${
-                              payment.status === "pending"
+                              payment.status === "initiated" || payment.status === "processing"
                                 ? "warning"
                                 : payment.status === "completed"
                                   ? "success"
                                   : payment.status === "failed"
                                     ? "danger"
+                                    : payment.status === "cancelled" || payment.status === "expired"
+                                      ? "secondary"
                                     : "info"
                             } text-white fs-11`}
                           >

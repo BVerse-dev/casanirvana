@@ -773,6 +773,9 @@ const CreditCardScreen = ({ navigation, route }) => {
           transactionId,
           paymentData: {
             ...paymentData,
+            sourceType: resolvedSourceType || paymentData?.sourceType || null,
+            sourceId: resolvedSourceId || paymentData?.sourceId || null,
+            obligationId: resolvedObligationId || paymentData?.obligationId || null,
             paymentMethod: maskedCard,
             paymentDate: new Date().toISOString(),
             transactionId,

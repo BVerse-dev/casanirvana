@@ -19,6 +19,7 @@ import { ms } from "react-native-size-matters/extend";
 import moment from "moment";
 import * as Sharing from "expo-sharing";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
+import { formatMoney } from "../utils/money";
 
 const normalizeText = (value, fallback = "N/A") => {
   if (value === null || value === undefined) return fallback;
@@ -47,7 +48,8 @@ const SuccessScreen = ({ navigation, route }) => {
   const params = route.params || {};
   const bookingData = params.bookingData || null;
   const paymentData = params.paymentData || null;
-  const bookingType = bookingData?.type || paymentData?.type || null;
+  const resolvedSourceType = paymentData?.sourceType || bookingData?.type || paymentData?.type || null;
+  const bookingType = bookingData?.type || resolvedSourceType || null;
 
   const { t, i18n } = useTranslation();
   const isRtl = i18n.dir() === "rtl";
@@ -84,16 +86,46 @@ const SuccessScreen = ({ navigation, route }) => {
     params.paymentMethod || bookingData?.paymentMethod || paymentData?.paymentMethod
   );
   const resolvedReferenceId = normalizeText(
-    params.bookingId || paymentData?.id || paymentData?.paymentId || bookingData?.id
+    params.referenceId ||
+      params.bookingId ||
+      paymentData?.sourceId ||
+      paymentData?.id ||
+      paymentData?.paymentId ||
+      bookingData?.id
   );
   const resolvedAmountRaw = Number(bookingData?.totalAmount ?? paymentData?.amount ?? 0);
   const resolvedAmount =
     Number.isFinite(resolvedAmountRaw) && resolvedAmountRaw > 0
-      ? `GH₵ ${resolvedAmountRaw.toFixed(2)}`
+      ? formatMoney(resolvedAmountRaw)
       : "Free";
   const resolvedPaidOn = moment(
     paymentData?.paymentDate || bookingData?.paymentDate || new Date().toISOString()
   ).format("DD MMMM, YYYY");
+
+  const resolvedTransactionLabel = useMemo(() => {
+    switch (resolvedSourceType) {
+      case "payment_obligation":
+        return "Payment Obligation";
+      case "amenity_booking":
+        return "Amenity Booking";
+      case "service_booking":
+        return "Service Booking";
+      case "airtime":
+        return "Airtime Purchase";
+      case "data":
+        return "Data Purchase";
+      case "money_transfer":
+        return "Money Transfer";
+      case "bill_payment":
+        return "Bill Payment";
+      case "insurance":
+        return "Insurance Payment";
+      case "shopping":
+        return "Shopping Payment";
+      default:
+        return "Payment";
+    }
+  }, [resolvedSourceType]);
 
   const receiptData = useMemo(() => {
     if (bookingType === "service_booking") {
@@ -179,31 +211,36 @@ const SuccessScreen = ({ navigation, route }) => {
     return [
       {
         key: "1",
+        title: "Transaction Type",
+        other: resolvedTransactionLabel,
+      },
+      {
+        key: "2",
         title: "Payment For",
         other: normalizeText(paymentData?.title || paymentData?.description),
       },
       {
-        key: "2",
+        key: "3",
         title: "Reference",
         other: resolvedReferenceId,
       },
       {
-        key: "3",
+        key: "4",
         title: "Amount Paid",
         other: resolvedAmount,
       },
       {
-        key: "4",
+        key: "5",
         title: "Payment Method",
         other: resolvedPaymentMethod,
       },
       {
-        key: "5",
+        key: "6",
         title: "Transaction ID",
         other: resolvedTransactionId,
       },
       {
-        key: "6",
+        key: "7",
         title: "Paid On",
         other: resolvedPaidOn,
       },
@@ -216,6 +253,7 @@ const SuccessScreen = ({ navigation, route }) => {
     resolvedPaidOn,
     resolvedPaymentMethod,
     resolvedReferenceId,
+    resolvedTransactionLabel,
     resolvedTransactionId,
   ]);
 

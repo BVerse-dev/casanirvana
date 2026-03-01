@@ -6,12 +6,13 @@ import { Card, CardBody, Col } from 'react-bootstrap'
 
 const PaymentOverviewCard = () => {
   const { data: payments = [] } = useListPayments()
+  const formatAmount = (amount: number) => `GH₵ ${Math.round(Number(amount || 0)).toLocaleString()}`
   
   // Calculate payment overview statistics
   const totalPayments = payments.length
   const completedPayments = payments.filter(p => p.status === 'completed').length
   const completionRate = totalPayments > 0 ? (completedPayments / totalPayments) * 100 : 0
-  const pendingPayments = payments.filter(p => p.status === 'pending').length
+  const pendingPayments = payments.filter(p => p.status === 'initiated' || p.status === 'processing').length
   
   // Calculate average payment amount
   const totalAmount = payments.reduce((sum, payment) => sum + payment.amount, 0)
@@ -41,7 +42,7 @@ const PaymentOverviewCard = () => {
                 {completedPayments.toLocaleString()}
               </h2>
               <p className="text-white-50 mb-0 fs-14">
-                of {totalPayments.toLocaleString()} total payments processed
+                of {totalPayments.toLocaleString()} total transactions ({pendingPayments.toLocaleString()} in flight)
               </p>
             </div>
 
@@ -74,7 +75,7 @@ const PaymentOverviewCard = () => {
                 <span className="text-white-75 fs-13">Avg Payment</span>
               </div>
               <span className="text-white fw-medium">
-                ${Math.round(avgPaymentAmount).toLocaleString()}
+                {formatAmount(avgPaymentAmount)}
               </span>
             </div>
           </div>

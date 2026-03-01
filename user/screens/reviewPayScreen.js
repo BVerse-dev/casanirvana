@@ -3,9 +3,7 @@ import {
   Text,
   View,
   TouchableOpacity,
-  StatusBar,
   Image,
-  StyleSheet,
   SafeAreaView,
   BackHandler,
   ScrollView,
@@ -272,7 +270,7 @@ const ReviewPayScreen = ({ navigation, route }) => {
                 {tr("Total")}
               </Text>
               <Text style={{ ...Fonts.SemiBold16primary }}>
-                {amountFormatted || `GHS ${amount?.toFixed(2) || '0.00'}`}
+                {formatMoney(resolvedAmount, currency)}
               </Text>
             </View>
           </View>

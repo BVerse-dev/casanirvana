@@ -23,6 +23,26 @@ import {
   validatePaymentSelection,
 } from "../services/paymentMethodPolicyService";
 import { normalizeOptionalUuid } from "../utils/id";
+import { formatMoney, resolveCurrencyDisplay } from "../utils/money";
+
+const PAYMENT_METHOD_OPTIONS = [
+  {
+    key: "1",
+    image: require("../assets/images/pay1.png"),
+    title: "Credit Card",
+    subtitle: "Pay with your credit or debit card",
+    icon: "credit-card",
+    color: Colors.primary,
+  },
+  {
+    key: "2",
+    image: require("../assets/images/pay2.png"),
+    title: "Mobile Money",
+    subtitle: "Pay with MTN, Vodafone, or AirtelTigo",
+    icon: "phone-android",
+    color: "#FF6B35",
+  },
+];
 
 const PaymentMethodScreen = ({ navigation, route }) => {
   const { 
@@ -100,25 +120,6 @@ const PaymentMethodScreen = ({ navigation, route }) => {
     const subscription = BackHandler.addEventListener("hardwareBackPress", backAction);
     return () => subscription.remove();
   }, [backAction]);
-
-  const paymentList = [
-    {
-      key: "1",
-      image: require("../assets/images/pay1.png"),
-      title: "Credit Card",
-      subtitle: "Pay with your credit or debit card",
-      icon: "credit-card",
-      color: Colors.primary,
-    },
-    {
-      key: "2",
-      image: require("../assets/images/pay2.png"),
-      title: "Mobile Money",
-      subtitle: "Pay with MTN, Vodafone, or AirtelTigo",
-      icon: "phone-android",
-      color: "#FF6B35",
-    },
-  ];
 
   const [selectedPaymentMethod, setSelectedPaymentMethod] =
     useState("Credit Card");
@@ -233,20 +234,21 @@ const PaymentMethodScreen = ({ navigation, route }) => {
 
   const availablePaymentList = React.useMemo(() => {
     const basePaymentList = isPersonalHubTransaction
-      ? paymentList.filter((method) => method.title === "Mobile Money")
-      : paymentList;
+      ? PAYMENT_METHOD_OPTIONS.filter((method) => method.title === "Mobile Money")
+      : PAYMENT_METHOD_OPTIONS;
 
     if (isAddingMode || isLoadingPaymentPolicy || !paymentPolicy) {
       return basePaymentList;
     }
 
     return basePaymentList.filter((method) => isPaymentMethodEnabled(paymentPolicy, method.title));
-  }, [isAddingMode, isLoadingPaymentPolicy, isPersonalHubTransaction, paymentList, paymentPolicy]);
+  }, [isAddingMode, isLoadingPaymentPolicy, isPersonalHubTransaction, paymentPolicy]);
 
   const paymentAmountValidationMessage =
     !isAddingMode && paymentPolicy
       ? getPaymentAmountValidationMessage(paymentPolicy, resolvedPaymentAmount)
       : null;
+  const currency = resolveCurrencyDisplay(paymentPolicy);
 
   useEffect(() => {
     if (availablePaymentList.length === 0) {
@@ -830,7 +832,7 @@ const PaymentMethodScreen = ({ navigation, route }) => {
                           textAlign: isRtl ? "right" : "left",
                         }}
                       >
-                        <Text style={{ ...Fonts.SemiBold14black }}>Amount:</Text> {amountFormatted || (amount ? `GHS ${amount.toFixed(2)}` : 'GHS 0.00')}
+                        <Text style={{ ...Fonts.SemiBold14black }}>Amount:</Text> {formatMoney(resolvedPaymentAmount, currency)}
                       </Text>
                     </View>
                   </>
@@ -956,29 +958,7 @@ const PaymentMethodScreen = ({ navigation, route }) => {
                 }}
               >
                 {(() => {
-                  // For booking flow, prioritize booking amount to avoid stale route-param overrides.
-                  if (bookingData) {
-                    const bookingAmount = Number(bookingData?.totalAmount);
-                    if (Number.isFinite(bookingAmount)) {
-                      return `GHS ${bookingAmount.toFixed(2)}`;
-                    }
-                  }
-
-                  if (amountFormatted) {
-                    return amountFormatted;
-                  }
-
-                  const explicitAmount = Number(amount);
-                  if (Number.isFinite(explicitAmount)) {
-                    return `GHS ${explicitAmount.toFixed(2)}`;
-                  }
-
-                  const paymentAmount = Number(paymentData?.amount);
-                  if (Number.isFinite(paymentAmount)) {
-                    return `GHS ${paymentAmount.toFixed(2)}`;
-                  }
-
-                  return "GHS 0.00";
+                  return formatMoney(resolvedPaymentAmount, currency);
                 })()}
               </Text>
             </View>

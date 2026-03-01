@@ -10,6 +10,8 @@ import PaymentAnalytics from "./PaymentAnalytics";
 type Payment = Partial<Database["public"]["Tables"]["payments"]["Row"]> & {
   id: string;
   amount: number;
+  amount_formatted?: string | null;
+  currency_symbol?: string | null;
   unit?: {
     id: string;
     unit_number: string | null;
@@ -44,17 +46,25 @@ interface PaymentDetailsProps {
 }
 
 const PaymentDetails = ({ payment }: PaymentDetailsProps) => {
+  const formatAmount = () =>
+    payment.amount_formatted || `${payment.currency_symbol || "GH₵"} ${Number(payment.amount || 0).toFixed(2)}`;
+
   // Get status badge variant
   const getStatusVariant = (status: string | null | undefined) => {
     if (!status) return "info";
     switch (status) {
-      case "pending":
+      case "initiated":
+      case "processing":
         return "warning";
       case "completed":
         return "success";
       case "failed":
-        return "danger";
       case "overdue":
+        return "danger";
+      case "cancelled":
+      case "expired":
+        return "secondary";
+      case "unpaid":
         return "danger";
       default:
         return "info";
@@ -67,11 +77,14 @@ const PaymentDetails = ({ payment }: PaymentDetailsProps) => {
     switch (status) {
       case "completed":
         return 100;
-      case "pending":
+      case "processing":
+        return 75;
+      case "initiated":
         return 50;
       case "failed":
         return 25;
-      case "overdue":
+      case "cancelled":
+      case "expired":
         return 15;
       default:
         return 0;
@@ -184,7 +197,7 @@ const PaymentDetails = ({ payment }: PaymentDetailsProps) => {
               
               <Col lg={4} className="text-lg-end">
                 <div className="bg-white bg-opacity-15 rounded p-3 d-inline-block text-center">
-                  <h3 className="text-white mb-1">${Number(payment.amount).toFixed(2)}</h3>
+                    <h3 className="text-white mb-1">{formatAmount()}</h3>
                   <p className="mb-0 text-white opacity-90">Total Amount</p>
                 </div>
               </Col>
@@ -382,7 +395,7 @@ const PaymentDetails = ({ payment }: PaymentDetailsProps) => {
                         <IconifyIcon icon="solar:buildings-3-bold-duotone" className="text-primary fs-18" />
                       </div>
                       <div>
-                        <h6 className="text-muted mb-1 fs-12">Society</h6>
+                        <h6 className="text-muted mb-1 fs-12">Community</h6>
                         <p className="mb-0 fw-semibold fs-14">
                           {payment.society?.name ? (
                             <Link 
@@ -482,7 +495,7 @@ const PaymentDetails = ({ payment }: PaymentDetailsProps) => {
                     </div>
                   </Col>
                   <Col xs={6} className="text-end">
-                    <h2 className="text-primary mb-0 fw-bold">${Number(payment.amount).toFixed(2)}</h2>
+                    <h2 className="text-primary mb-0 fw-bold">{formatAmount()}</h2>
                   </Col>
                 </Row>
               </div>

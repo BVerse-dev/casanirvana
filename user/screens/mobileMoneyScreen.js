@@ -37,6 +37,7 @@ import {
   reconcileExpressPayPayment,
 } from "../services/expressPayService";
 import { normalizeOptionalUuid } from "../utils/id";
+import { formatMoney } from "../utils/money";
 
 const MobileMoneyScreen = ({ navigation, route }) => {
   const { 
@@ -230,6 +231,8 @@ const MobileMoneyScreen = ({ navigation, route }) => {
     id: recordId || paymentId || null,
     paymentId,
     type: transactionType || "payment",
+    sourceType: transactionType || "payment",
+    sourceId: recordId || null,
     title: providerName || getTransactionLabel(transactionType || "payment"),
     description: description || recipientPhone || providerName || "Personal Hub Payment",
     amount: paidAmount,
@@ -561,6 +564,9 @@ const MobileMoneyScreen = ({ navigation, route }) => {
           transactionId: gatewayTransactionId,
           paymentData: {
             ...paymentData,
+            sourceType: resolvedSourceType || paymentData?.sourceType || null,
+            sourceId: resolvedSourceId || paymentData?.sourceId || null,
+            obligationId: resolvedObligationId || paymentData?.obligationId || null,
             paymentMethod: "Mobile Money",
             paymentDate: new Date().toISOString(),
             transactionId: gatewayTransactionId,
@@ -734,14 +740,14 @@ const MobileMoneyScreen = ({ navigation, route }) => {
                   textAlign: isRtl ? "left" : "right",
                 }}
               >
-                {amountFormatted ||
-                  (amount
-                    ? `GHS ${amount.toFixed(2)}`
-                    : bookingData?.totalAmount
-                      ? `GHS ${bookingData.totalAmount.toFixed(2)}`
-                      : paymentData?.amount
-                        ? `GHS ${Number(paymentData.amount).toFixed(2)}`
-                        : 'GHS 0.00')}
+                {formatMoney(
+                  Number(
+                    amount ??
+                    bookingData?.totalAmount ??
+                    paymentData?.amount ??
+                    0
+                  )
+                )}
               </Text>
             </View>
           </View>

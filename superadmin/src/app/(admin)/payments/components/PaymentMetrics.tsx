@@ -6,6 +6,8 @@ import { useListPayments } from "@/hooks/usePayments";
 const PaymentMetrics = () => {
   const { data: payments = [], isLoading } = useListPayments();
 
+  const formatAmount = (amount: number) => `GH₵ ${Number(amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
   // Calculate real metrics from payment data
   const calculateMetrics = () => {
     if (!payments.length) return null;
@@ -147,7 +149,7 @@ const PaymentMetrics = () => {
   const metricsData = [
     {
       title: "Total Revenue",
-      value: `$${metrics.totalRevenue.toLocaleString()}`,
+      value: formatAmount(metrics.totalRevenue),
       change: `${metrics.revenueChange >= 0 ? '+' : ''}${metrics.revenueChange.toFixed(1)}%`,
       changeType: metrics.revenueChange >= 0 ? "increase" : "decrease",
       icon: "ri:money-dollar-circle-line",
@@ -156,7 +158,7 @@ const PaymentMetrics = () => {
     },
     {
       title: "Avg Payment",
-      value: `$${metrics.avgPayment.toLocaleString()}`,
+      value: formatAmount(metrics.avgPayment),
       change: `${metrics.avgPaymentChange >= 0 ? '+' : ''}${metrics.avgPaymentChange.toFixed(1)}%`,
       changeType: metrics.avgPaymentChange >= 0 ? "increase" : "decrease", 
       icon: "ri:calculator-line",
