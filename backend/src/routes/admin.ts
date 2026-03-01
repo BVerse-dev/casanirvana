@@ -304,6 +304,31 @@ router.put(
 
 // Payment management routes
 router.get('/payments/stats', requireAuth, requirePermission('read:all_payments'), adminController.getPaymentStats);
+router.get(
+  '/payments/transactions',
+  requireAuth,
+  requirePermission('read:all_payments'),
+  paymentController.listAdminTransactions
+);
+router.get(
+  '/payments/transactions/:id',
+  requireAuth,
+  requirePermission('read:all_payments'),
+  validateRequest({ params: schemas.idParam }),
+  paymentController.getAdminTransaction
+);
+router.get(
+  '/payments/obligations',
+  requireAuth,
+  requirePermission('read:all_payments'),
+  paymentController.listAdminObligations
+);
+router.get(
+  '/payments/statements',
+  requireAuth,
+  requirePermission('read:all_payments'),
+  paymentController.listAdminStatements
+);
 router.post(
   '/payments/generate',
   requireAuth,

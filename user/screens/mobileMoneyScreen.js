@@ -43,6 +43,9 @@ const MobileMoneyScreen = ({ navigation, route }) => {
     bookingId, 
     bookingData,
     paymentData,
+    sourceType,
+    sourceId,
+    obligationId,
     // Airtime purchase params
     provider,
     providerId,
@@ -99,6 +102,52 @@ const MobileMoneyScreen = ({ navigation, route }) => {
     () => normalizeOptionalUuid(bookingId) || normalizeOptionalUuid(bookingData?.id),
     [bookingData?.id, bookingId]
   );
+  const resolvedSourceType = React.useMemo(() => {
+    if (typeof sourceType === "string" && sourceType.trim()) {
+      return sourceType.trim();
+    }
+
+    if (typeof paymentData?.sourceType === "string" && paymentData.sourceType.trim()) {
+      return paymentData.sourceType.trim();
+    }
+
+    if (bookingData?.type === "amenity_booking") {
+      return "amenity_booking";
+    }
+
+    if (bookingData?.type === "service_booking") {
+      return "service_booking";
+    }
+
+    if (paymentData?.type === "payment_obligation") {
+      return "payment_obligation";
+    }
+
+    return null;
+  }, [bookingData?.type, paymentData?.sourceType, paymentData?.type, sourceType]);
+
+  const resolvedSourceId = React.useMemo(() => {
+    const explicitSourceId =
+      normalizeOptionalUuid(sourceId) || normalizeOptionalUuid(paymentData?.sourceId);
+
+    if (explicitSourceId) {
+      return explicitSourceId;
+    }
+
+    if (resolvedSourceType === "amenity_booking" || resolvedSourceType === "service_booking") {
+      return resolvedBookingId;
+    }
+
+    return null;
+  }, [paymentData?.sourceId, resolvedBookingId, resolvedSourceType, sourceId]);
+
+  const resolvedObligationId = React.useMemo(() => {
+    return (
+      normalizeOptionalUuid(obligationId) ||
+      normalizeOptionalUuid(paymentData?.obligationId) ||
+      (resolvedSourceType === "payment_obligation" ? normalizeOptionalUuid(paymentData?.sourceId) : null)
+    );
+  }, [obligationId, paymentData?.obligationId, paymentData?.sourceId, resolvedSourceType]);
 
   const mobileNetworks = [
     {
@@ -270,7 +319,10 @@ const MobileMoneyScreen = ({ navigation, route }) => {
         payment_type: paymentType,
         payment_method: "mobile_money",
         unit_id: unitId,
-        booking_id: resolvedBookingId || undefined,
+        booking_id: resolvedSourceType === "service_booking" ? resolvedBookingId || undefined : undefined,
+        source_type: !isPersonalHubTransaction ? resolvedSourceType || undefined : undefined,
+        source_id: !isPersonalHubTransaction ? resolvedSourceId || undefined : undefined,
+        obligation_id: !isPersonalHubTransaction ? resolvedObligationId || undefined : undefined,
         description: isPersonalHubTransaction
           ? `${providerName || "Mobile"} ${paymentType} for ${description || recipientPhone || "resident"}`
           : bookingData

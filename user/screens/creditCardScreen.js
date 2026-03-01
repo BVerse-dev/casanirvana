@@ -30,7 +30,7 @@ import { normalizeOptionalUuid } from "../utils/id";
 const { width } = Dimensions.get("window");
 
 const CreditCardScreen = ({ navigation, route }) => {
-  const { bookingId, bookingData, paymentData, isAddingPaymentMethod, onPaymentMethodAdded } = route.params || {};
+  const { bookingId, bookingData, paymentData, sourceType, sourceId, obligationId, isAddingPaymentMethod, onPaymentMethodAdded } = route.params || {};
   const { t, i18n } = useTranslation();
   const updateBookingMutation = useUpdateAmenityBooking();
   
@@ -41,6 +41,52 @@ const CreditCardScreen = ({ navigation, route }) => {
     () => normalizeOptionalUuid(bookingId) || normalizeOptionalUuid(bookingData?.id),
     [bookingData?.id, bookingId]
   );
+  const resolvedSourceType = React.useMemo(() => {
+    if (typeof sourceType === "string" && sourceType.trim()) {
+      return sourceType.trim();
+    }
+
+    if (typeof paymentData?.sourceType === "string" && paymentData.sourceType.trim()) {
+      return paymentData.sourceType.trim();
+    }
+
+    if (bookingData?.type === "amenity_booking") {
+      return "amenity_booking";
+    }
+
+    if (bookingData?.type === "service_booking") {
+      return "service_booking";
+    }
+
+    if (paymentData?.type === "payment_obligation") {
+      return "payment_obligation";
+    }
+
+    return null;
+  }, [bookingData?.type, paymentData?.sourceType, paymentData?.type, sourceType]);
+
+  const resolvedSourceId = React.useMemo(() => {
+    const explicitSourceId =
+      normalizeOptionalUuid(sourceId) || normalizeOptionalUuid(paymentData?.sourceId);
+
+    if (explicitSourceId) {
+      return explicitSourceId;
+    }
+
+    if (resolvedSourceType === "amenity_booking" || resolvedSourceType === "service_booking") {
+      return resolvedBookingId;
+    }
+
+    return null;
+  }, [paymentData?.sourceId, resolvedBookingId, resolvedSourceType, sourceId]);
+
+  const resolvedObligationId = React.useMemo(() => {
+    return (
+      normalizeOptionalUuid(obligationId) ||
+      normalizeOptionalUuid(paymentData?.obligationId) ||
+      (resolvedSourceType === "payment_obligation" ? normalizeOptionalUuid(paymentData?.sourceId) : null)
+    );
+  }, [obligationId, paymentData?.obligationId, paymentData?.sourceId, resolvedSourceType]);
 
   const isRtl = i18n.dir() === "rtl";
 
@@ -644,7 +690,10 @@ const CreditCardScreen = ({ navigation, route }) => {
         payment_type: bookingType,
         payment_method: 'card',
         unit_id: unitId,
-        booking_id: resolvedBookingId || undefined,
+        booking_id: resolvedSourceType === 'service_booking' ? resolvedBookingId || undefined : undefined,
+        source_type: resolvedSourceType || undefined,
+        source_id: resolvedSourceId || undefined,
+        obligation_id: resolvedObligationId || undefined,
         description: bookingData
           ? `Payment for ${bookingData.amenityName || bookingData.serviceTitle || 'booking'}`
           : paymentData?.title || paymentData?.description || 'Community Payment',

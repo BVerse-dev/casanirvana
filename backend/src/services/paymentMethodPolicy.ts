@@ -26,7 +26,7 @@ type PaymentRow = {
   created_at: string | null;
 };
 
-const INACTIVE_PAYMENT_STATUSES = new Set(['failed', 'cancelled']);
+const INACTIVE_PAYMENT_STATUSES = new Set(['failed', 'cancelled', 'expired']);
 const DEFAULT_PAYMENT_CURRENCY_CODE = (process.env.DEFAULT_PAYMENT_CURRENCY || 'GHS').trim().toUpperCase() || 'GHS';
 const DEFAULT_PAYMENT_CURRENCY_SYMBOL =
   process.env.DEFAULT_PAYMENT_CURRENCY_SYMBOL?.trim() ||

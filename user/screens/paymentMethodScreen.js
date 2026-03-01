@@ -29,6 +29,9 @@ const PaymentMethodScreen = ({ navigation, route }) => {
     bookingId, 
     bookingData, 
     paymentData, 
+    sourceType,
+    sourceId,
+    obligationId,
     isAddingPaymentMethod, 
     onPaymentMethodAdded,
     // Airtime purchase params
@@ -180,6 +183,53 @@ const PaymentMethodScreen = ({ navigation, route }) => {
     () => normalizeOptionalUuid(bookingId) || normalizeOptionalUuid(bookingData?.id),
     [bookingData?.id, bookingId]
   );
+
+  const resolvedSourceType = React.useMemo(() => {
+    if (typeof sourceType === "string" && sourceType.trim()) {
+      return sourceType.trim();
+    }
+
+    if (typeof paymentData?.sourceType === "string" && paymentData.sourceType.trim()) {
+      return paymentData.sourceType.trim();
+    }
+
+    if (bookingData?.type === "amenity_booking") {
+      return "amenity_booking";
+    }
+
+    if (bookingData?.type === "service_booking") {
+      return "service_booking";
+    }
+
+    if (paymentData?.type === "payment_obligation") {
+      return "payment_obligation";
+    }
+
+    return null;
+  }, [bookingData?.type, paymentData?.sourceType, paymentData?.type, sourceType]);
+
+  const resolvedSourceId = React.useMemo(() => {
+    const explicitSourceId =
+      normalizeOptionalUuid(sourceId) || normalizeOptionalUuid(paymentData?.sourceId);
+
+    if (explicitSourceId) {
+      return explicitSourceId;
+    }
+
+    if (resolvedSourceType === "amenity_booking" || resolvedSourceType === "service_booking") {
+      return resolvedBookingId;
+    }
+
+    return null;
+  }, [paymentData?.sourceId, resolvedBookingId, resolvedSourceType, sourceId]);
+
+  const resolvedObligationId = React.useMemo(() => {
+    return (
+      normalizeOptionalUuid(obligationId) ||
+      normalizeOptionalUuid(paymentData?.obligationId) ||
+      (resolvedSourceType === "payment_obligation" ? normalizeOptionalUuid(paymentData?.sourceId) : null)
+    );
+  }, [obligationId, paymentData?.obligationId, paymentData?.sourceId, resolvedSourceType]);
 
   const availablePaymentList = React.useMemo(() => {
     const basePaymentList = isPersonalHubTransaction
@@ -360,7 +410,10 @@ const PaymentMethodScreen = ({ navigation, route }) => {
       navigationParams = {
         bookingId: resolvedBookingId,
         bookingData,
-        paymentData
+        paymentData,
+        sourceType: resolvedSourceType,
+        sourceId: resolvedSourceId,
+        obligationId: resolvedObligationId,
       };
     }
 
@@ -377,7 +430,10 @@ const PaymentMethodScreen = ({ navigation, route }) => {
           navigation.push("mobileMoneyScreen", navigationParams);
           break;
         default:
-          navigation.push("creditCardScreen", navigationParams);
+          Alert.alert(
+            "Payment Unavailable",
+            "This payment method is not currently supported for live checkout."
+          );
       }
     }
   };

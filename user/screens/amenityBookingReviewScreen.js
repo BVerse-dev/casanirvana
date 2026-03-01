@@ -87,6 +87,8 @@ const AmenityBookingReviewScreen = ({ navigation, route }) => {
     setShowSuccessModal(false);
     navigation.push("paymentMethodScreen", {
       bookingId: createdBooking.id,
+      sourceType: "amenity_booking",
+      sourceId: createdBooking.id,
       bookingData: {
         ...bookingData,
         amenityName: amenity?.name || bookingData?.amenityName,

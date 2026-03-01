@@ -1,4 +1,5 @@
 import { adminSupabase } from '../lib/supabase';
+import { DEFAULT_PAYMENT_DISPLAY, applyPaymentOutcomeSideEffects } from './paymentLedger';
 
 const EXPRESSPAY_PROVIDER = 'expresspay';
 const TEST_MODE = 'test';
@@ -132,6 +133,9 @@ export type InitiateExpressPayInput = {
   };
   description?: string | null;
   bookingId?: string | null;
+  sourceType?: string | null;
+  sourceId?: string | null;
+  obligationId?: string | null;
   communityId?: string | null;
   metadata?: JsonRecord;
   idempotencyKey?: string | null;
@@ -141,7 +145,7 @@ export type InitiateExpressPayResult = {
   paymentId: string;
   transactionId: string;
   checkoutUrl: string | null;
-  status: 'pending' | 'completed' | 'failed';
+  status: 'initiated' | 'processing' | 'completed' | 'failed';
   providerReference: string | null;
   token: string;
 };
@@ -700,20 +704,20 @@ const invokeExpressPayQuery = async (
   return json;
 };
 
-const mapQueryResultToStatus = (queryResult: QueryResponse): 'pending' | 'completed' | 'failed' => {
+const mapQueryResultToStatus = (queryResult: QueryResponse): 'processing' | 'completed' | 'failed' => {
   const providerStatus = Number((queryResult as JsonRecord).status);
   const resultText = String(queryResult['result-text'] || (queryResult as JsonRecord).message || '').toLowerCase();
   const numeric = Number(queryResult.result);
 
   if (!Number.isNaN(providerStatus) && Number.isNaN(numeric)) {
-    if (providerStatus === 1) return 'pending';
+    if (providerStatus === 1) return 'processing';
     return 'failed';
   }
 
   if (numeric === 1) return 'completed';
-  if (numeric === 4) return 'pending';
+  if (numeric === 4) return 'processing';
   if (numeric === 3 && resultText.includes('no transaction data available')) {
-    return 'pending';
+    return 'processing';
   }
   return 'failed';
 };
@@ -767,6 +771,225 @@ const resolveExpressPayLegacyMobileNetwork = (rawNetwork?: string) => {
   }
 
   return null;
+};
+
+const PAYMENT_SOURCE_TABLES: Record<string, string | null> = {
+  payment_obligation: 'payment_obligations',
+  amenity_booking: 'amenity_bookings',
+  service_booking: 'service_bookings',
+  airtime_purchase: 'airtime_purchases',
+  data_purchase: 'data_purchases',
+  money_transfer: 'money_transfers',
+  bill_payment: 'bill_payments',
+  insurance_payment: 'insurance_payments',
+  shopping_order: 'shopping_payments',
+  manual: null,
+};
+
+type ResolvedPaymentSource = {
+  sourceType: string | null;
+  sourceId: string | null;
+  obligationId: string | null;
+  derivedTitle: string | null;
+  derivedDescription: string | null;
+  derivedAmount: number | null;
+  derivedCurrencyCode: string | null;
+};
+
+const normalizePaymentSourceType = (value?: string | null) => {
+  if (!value) return null;
+  const normalized = value.trim().toLowerCase();
+  return PAYMENT_SOURCE_TABLES[normalized] !== undefined ? normalized : null;
+};
+
+const fetchSourceRecord = async (table: string, id: string) => {
+  const { data, error } = await looseDb.from(table).select('*').eq('id', id).maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to resolve payment source from ${table}: ${error.message}`);
+  }
+
+  return (data as JsonRecord | null) || null;
+};
+
+const ensureSourceUnitMatch = ({
+  unitId,
+  sourceRecord,
+  sourceType,
+}: {
+  unitId: string;
+  sourceRecord: JsonRecord;
+  sourceType: string;
+}) => {
+  const sourceUnitId = typeof sourceRecord.unit_id === 'string' ? sourceRecord.unit_id : null;
+  if (sourceUnitId && sourceUnitId !== unitId) {
+    throw new Error(`The selected ${sourceType} does not belong to your assigned unit.`);
+  }
+};
+
+const resolvePaymentSourceContext = async (input: InitiateExpressPayInput): Promise<ResolvedPaymentSource> => {
+  const fallbackSourceType =
+    normalizePaymentSourceType(input.sourceType) ||
+    (() => {
+      if (!input.bookingId) {
+        return null;
+      }
+
+      const normalizedPaymentType = String(input.paymentType || '').toLowerCase();
+      if (normalizedPaymentType.includes('service')) {
+        return 'service_booking';
+      }
+
+      return null;
+    })();
+
+  const fallbackSourceId =
+    input.sourceId ||
+    (fallbackSourceType === 'service_booking' ? input.bookingId || null : null);
+
+  let sourceType = fallbackSourceType;
+  let sourceId = fallbackSourceId;
+  let obligationId = input.obligationId || null;
+  let derivedTitle: string | null = null;
+  let derivedDescription: string | null = null;
+  let derivedAmount: number | null = null;
+  let derivedCurrencyCode: string | null = null;
+
+  if (obligationId) {
+    const obligationRecord = await fetchSourceRecord('payment_obligations', obligationId);
+    if (!obligationRecord) {
+      throw new Error('The selected payment obligation could not be found.');
+    }
+
+    ensureSourceUnitMatch({
+      unitId: input.unitId,
+      sourceRecord: obligationRecord,
+      sourceType: 'payment_obligation',
+    });
+
+    obligationId = String(obligationRecord.id);
+    sourceType = sourceType || 'payment_obligation';
+    sourceId = sourceId || obligationId;
+    derivedTitle =
+      typeof obligationRecord.title === 'string' && obligationRecord.title.trim().length > 0
+        ? obligationRecord.title.trim()
+        : derivedTitle;
+    derivedDescription =
+      typeof obligationRecord.description === 'string' && obligationRecord.description.trim().length > 0
+        ? obligationRecord.description.trim()
+        : derivedDescription;
+    if (Number.isFinite(Number(obligationRecord.amount))) {
+      derivedAmount = Number(obligationRecord.amount);
+    }
+    if (typeof obligationRecord.currency_code === 'string' && obligationRecord.currency_code.trim().length > 0) {
+      derivedCurrencyCode = obligationRecord.currency_code.trim().toUpperCase();
+    }
+
+    if (
+      sourceType === 'payment_obligation' &&
+      typeof obligationRecord.source_type === 'string' &&
+      normalizePaymentSourceType(obligationRecord.source_type)
+    ) {
+      sourceType = normalizePaymentSourceType(obligationRecord.source_type);
+      if (typeof obligationRecord.source_id === 'string' && obligationRecord.source_id.trim().length > 0) {
+        sourceId = obligationRecord.source_id.trim();
+      }
+    }
+  }
+
+  if (!sourceType) {
+    return {
+      sourceType: null,
+      sourceId: null,
+      obligationId,
+      derivedTitle,
+      derivedDescription,
+      derivedAmount,
+      derivedCurrencyCode,
+    };
+  }
+
+  const sourceTable = PAYMENT_SOURCE_TABLES[sourceType];
+  if (!sourceTable) {
+    return {
+      sourceType,
+      sourceId,
+      obligationId,
+      derivedTitle,
+      derivedDescription,
+      derivedAmount,
+      derivedCurrencyCode,
+    };
+  }
+
+  if (!sourceId) {
+    throw new Error(`A source_id is required for ${sourceType} payments.`);
+  }
+
+  const sourceRecord = await fetchSourceRecord(sourceTable, sourceId);
+  if (!sourceRecord) {
+    throw new Error(`The selected ${sourceType} record could not be found.`);
+  }
+
+  ensureSourceUnitMatch({
+    unitId: input.unitId,
+    sourceRecord,
+    sourceType,
+  });
+
+  sourceId = String(sourceRecord.id);
+
+  const recordAmount =
+    Number.isFinite(Number(sourceRecord.total_amount))
+      ? Number(sourceRecord.total_amount)
+      : Number.isFinite(Number(sourceRecord.amount))
+        ? Number(sourceRecord.amount)
+        : Number.isFinite(Number(sourceRecord.payment_amount))
+          ? Number(sourceRecord.payment_amount)
+          : null;
+
+  if (recordAmount !== null) {
+    derivedAmount = recordAmount;
+  }
+
+  const recordTitleCandidates = [
+    sourceRecord.name,
+    sourceRecord.title,
+    sourceRecord.amenity_name,
+    sourceRecord.service_name,
+    sourceRecord.bill_type,
+    sourceRecord.package_name,
+  ];
+  const resolvedTitle = recordTitleCandidates.find(
+    (value) => typeof value === 'string' && value.trim().length > 0
+  );
+  if (typeof resolvedTitle === 'string') {
+    derivedTitle = resolvedTitle.trim();
+  }
+
+  const resolvedDescription = [sourceRecord.description, sourceRecord.notes].find(
+    (value) => typeof value === 'string' && value.trim().length > 0
+  );
+  if (typeof resolvedDescription === 'string') {
+    derivedDescription = resolvedDescription.trim();
+  }
+
+  const recordCurrency = [sourceRecord.currency_code, sourceRecord.currency].find(
+    (value) => typeof value === 'string' && value.trim().length > 0
+  );
+  if (typeof recordCurrency === 'string') {
+    derivedCurrencyCode = recordCurrency.trim().toUpperCase();
+  }
+
+  return {
+    sourceType,
+    sourceId,
+    obligationId,
+    derivedTitle,
+    derivedDescription,
+    derivedAmount,
+    derivedCurrencyCode,
+  };
 };
 
 const getPaymentById = async (paymentId: string): Promise<PaymentRow | null> => {
@@ -938,7 +1161,15 @@ const buildDirectMobileMoneyCheckoutAttempts = ({
 export const initiateExpressPayPayment = async (
   input: InitiateExpressPayInput
 ): Promise<InitiateExpressPayResult> => {
-  const amount = Number(input.amount);
+  const sourceContext = await resolvePaymentSourceContext(input);
+  const amount =
+    sourceContext.derivedAmount !== null && Number.isFinite(sourceContext.derivedAmount)
+      ? sourceContext.derivedAmount
+      : Number(input.amount);
+  const effectiveCurrency =
+    sourceContext.derivedCurrencyCode ||
+    (input.currency && input.currency.trim().length > 0 ? input.currency.trim().toUpperCase() : null) ||
+    DEFAULT_PAYMENT_CURRENCY_CODE;
   const formattedAmount = formatAmount(amount);
 
   const idempotencyKey = input.idempotencyKey?.trim() || null;
@@ -961,12 +1192,12 @@ export const initiateExpressPayPayment = async (
       const checkoutUrl = typeof expresspayMeta.checkout_url === 'string' ? expresspayMeta.checkout_url : null;
       const directFlow = expresspayMeta.direct_flow === true;
 
-      if (token && existing.status === 'pending' && (checkoutUrl || directFlow)) {
+      if (token && ['initiated', 'processing'].includes(String(existing.status || '').toLowerCase()) && (checkoutUrl || directFlow)) {
         return {
           paymentId: existing.id,
           transactionId: existing.transaction_id || '',
           checkoutUrl: checkoutUrl || null,
-          status: 'pending',
+          status: directFlow ? 'processing' : 'initiated',
           providerReference: existing.reference_number || null,
           token,
         };
@@ -983,16 +1214,27 @@ export const initiateExpressPayPayment = async (
     amount,
     unit_id: input.unitId,
     payer_id: input.payerId,
-    booking_id: input.bookingId || null,
+    booking_id: sourceContext.sourceType === 'service_booking' ? input.bookingId || sourceContext.sourceId || null : null,
+    source_type: sourceContext.sourceType,
+    source_id: sourceContext.sourceId,
+    obligation_id: sourceContext.obligationId,
+    currency_code: effectiveCurrency,
+    currency_symbol:
+      effectiveCurrency === DEFAULT_PAYMENT_DISPLAY.currencyCode
+        ? DEFAULT_PAYMENT_DISPLAY.currencySymbol
+        : effectiveCurrency,
     payment_type: input.paymentType,
     payment_method: input.paymentMethod,
     payment_gateway: EXPRESSPAY_PROVIDER,
-    status: 'pending',
-    title: 'ExpressPay Payment',
-    description: input.description || null,
+    status: 'initiated',
+    title: sourceContext.derivedTitle || 'ExpressPay Payment',
+    description: input.description || sourceContext.derivedDescription || null,
     transaction_id: orderId,
     initiated_at: createdAt,
     payment_date: createdAt,
+    provider_status_code: null,
+    provider_status_message: null,
+    provider_checked_at: null,
     metadata: {
       ...inputMetadata,
       idempotency_key: idempotencyKey,
@@ -1001,6 +1243,9 @@ export const initiateExpressPayPayment = async (
         order_id: orderId,
         config_scope_community_id: config.communityId,
         initiated_at: createdAt,
+        source_type: sourceContext.sourceType,
+        source_id: sourceContext.sourceId,
+        obligation_id: sourceContext.obligationId,
       },
     },
   };
@@ -1039,7 +1284,7 @@ export const initiateExpressPayPayment = async (
       const directSubmitParams = new URLSearchParams();
       directSubmitParams.set('merchant-id', config.merchantId);
       directSubmitParams.set('api-key', config.apiKey);
-      directSubmitParams.set('currency', input.currency || DEFAULT_CURRENCY);
+      directSubmitParams.set('currency', effectiveCurrency);
       directSubmitParams.set('amount', formattedAmount);
       directSubmitParams.set('order-id', orderId);
       directSubmitParams.set('post-url', config.directPostUrl);
@@ -1053,7 +1298,10 @@ export const initiateExpressPayPayment = async (
           config,
           buildSubmitFallbackParams({
             config,
-            input,
+            input: {
+              ...input,
+              currency: effectiveCurrency,
+            },
             orderId,
             formattedAmount,
           })
@@ -1115,6 +1363,14 @@ export const initiateExpressPayPayment = async (
       const updates: Record<string, unknown> = {
         reference_number: providerReference || null,
         status: immediateStatus,
+        provider_status_code:
+          typeof directCheckoutResponse.result !== 'undefined'
+            ? String(directCheckoutResponse.result)
+            : typeof (directCheckoutResponse as JsonRecord).status !== 'undefined'
+              ? String((directCheckoutResponse as JsonRecord).status)
+              : null,
+        provider_status_message: directCheckoutMessage,
+        provider_checked_at: verifiedAt,
         metadata: {
           ...paymentMetadata,
           expresspay: {
@@ -1145,6 +1401,10 @@ export const initiateExpressPayPayment = async (
       }
 
       const updated = await updatePaymentRecord(payment.id, updates);
+      await applyPaymentOutcomeSideEffects({
+        paymentId: updated.id,
+        status: immediateStatus,
+      });
 
       return {
         paymentId: updated.id,
@@ -1162,6 +1422,9 @@ export const initiateExpressPayPayment = async (
       await updatePaymentRecord(payment.id, {
         status: 'failed',
         failed_at: nowIso(),
+        provider_status_code: 'initiation_failed',
+        provider_status_message: message,
+        provider_checked_at: nowIso(),
         metadata: {
           ...asObject(payment.metadata),
           expresspay: {
@@ -1172,6 +1435,10 @@ export const initiateExpressPayPayment = async (
             initiation_failed_at: nowIso(),
           },
         },
+      });
+      await applyPaymentOutcomeSideEffects({
+        paymentId: payment.id,
+        status: 'failed',
       });
 
       throw new Error(message);
@@ -1191,7 +1458,7 @@ export const initiateExpressPayPayment = async (
     submitParams.set('phonenumber', input.payerProfile?.phone || '0000000000');
     submitParams.set('username', input.payerProfile?.email || `user-${input.payerId}`);
     submitParams.set('accountnumber', input.unitId.slice(0, 3));
-    submitParams.set('currency', input.currency || DEFAULT_CURRENCY);
+    submitParams.set('currency', effectiveCurrency);
     submitParams.set('amount', formattedAmount);
     submitParams.set('order-id', orderId);
     submitParams.set('order-desc', input.description || `Casa Nirvana ${input.paymentType} payment`);
@@ -1227,7 +1494,7 @@ export const initiateExpressPayPayment = async (
       paymentId: updated.id,
       transactionId: updated.transaction_id || orderId,
       checkoutUrl,
-      status: 'pending',
+      status: 'initiated',
       providerReference: providerReference || null,
       token,
     };
@@ -1236,6 +1503,9 @@ export const initiateExpressPayPayment = async (
     await updatePaymentRecord(payment.id, {
       status: 'failed',
       failed_at: nowIso(),
+      provider_status_code: 'initiation_failed',
+      provider_status_message: message,
+      provider_checked_at: nowIso(),
       metadata: {
         ...asObject(payment.metadata),
         expresspay: {
@@ -1244,6 +1514,10 @@ export const initiateExpressPayPayment = async (
           initiation_failed_at: nowIso(),
         },
       },
+    });
+    await applyPaymentOutcomeSideEffects({
+      paymentId: payment.id,
+      status: 'failed',
     });
 
     throw new Error(message);
@@ -1293,6 +1567,14 @@ export const verifyExpressPayPayment = async ({
 
   const updates: Record<string, unknown> = {
     status: mappedStatus,
+    provider_status_code:
+      typeof queryResult.result !== 'undefined'
+        ? String(queryResult.result)
+        : typeof (queryResult as JsonRecord).status !== 'undefined'
+          ? String((queryResult as JsonRecord).status)
+          : null,
+    provider_status_message: String(queryResult['result-text'] || (queryResult as JsonRecord).message || ''),
+    provider_checked_at: verifiedAt,
     metadata: {
       ...metadata,
       expresspay: {
@@ -1318,6 +1600,10 @@ export const verifyExpressPayPayment = async ({
   }
 
   const updatedPayment = await updatePaymentRecord(payment.id, updates);
+  await applyPaymentOutcomeSideEffects({
+    paymentId: updatedPayment.id,
+    status: mappedStatus,
+  });
 
   return {
     ok: true,
@@ -1352,7 +1638,7 @@ export const getExpressPayPaymentStatus = async (paymentId: string) => {
 
   return {
     id: payment.id,
-    status: payment.status || 'pending',
+    status: payment.status || 'initiated',
     transaction_id: payment.transaction_id,
     reference_number: payment.reference_number,
     payment_gateway: payment.payment_gateway,

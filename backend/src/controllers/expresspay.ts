@@ -106,7 +106,11 @@ export const initiatePayment = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'amount must be a positive number' });
     }
 
+    const paymentType = typeof body.payment_type === 'string' ? body.payment_type : 'general';
     const paymentMethod = typeof body.payment_method === 'string' ? body.payment_method : 'card';
+    const sourceType = typeof body.source_type === 'string' ? body.source_type : null;
+    const sourceId = normalizeOptionalUuid(body.source_id);
+    const obligationId = normalizeOptionalUuid(body.obligation_id);
 
     try {
       await assertPaymentMethodAllowed({
@@ -123,8 +127,13 @@ export const initiatePayment = async (req: Request, res: Response) => {
 
     const result = await initiateExpressPayPayment({
       amount,
-      currency: typeof body.currency === 'string' ? body.currency : undefined,
-      paymentType: typeof body.payment_type === 'string' ? body.payment_type : 'general',
+      currency:
+        typeof body.currency_code === 'string'
+          ? body.currency_code
+          : typeof body.currency === 'string'
+            ? body.currency
+            : undefined,
+      paymentType,
       paymentMethod,
       unitId: requestUnitId,
       payerId: authUserId,
@@ -136,6 +145,9 @@ export const initiatePayment = async (req: Request, res: Response) => {
       },
       description: typeof body.description === 'string' ? body.description : null,
       bookingId: normalizeOptionalUuid(body.booking_id),
+      sourceType,
+      sourceId,
+      obligationId,
       communityId: typeof profile.community_id === 'string' ? profile.community_id : null,
       metadata:
         body.metadata && typeof body.metadata === 'object' && !Array.isArray(body.metadata)
@@ -153,6 +165,7 @@ export const initiatePayment = async (req: Request, res: Response) => {
         provider_reference: result.providerReference,
         token: result.token,
         status: result.status,
+        client_action: result.checkoutUrl ? 'open_url' : 'poll',
       },
     });
   } catch (error: unknown) {

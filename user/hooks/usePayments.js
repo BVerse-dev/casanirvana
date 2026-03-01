@@ -1,5 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../utils/supabase';
+import {
+  fetchPaymentHistory,
+  fetchPaymentObligations,
+  fetchPaymentStatements,
+} from '../services/paymentLedgerService';
 
 // Hook to list pending payments for a unit
 export const useListPendingPayments = (unitId) => {
@@ -9,35 +14,8 @@ export const useListPendingPayments = (unitId) => {
       if (!unitId) {
         return [];
       }
-      
-      try {
-        const { data, error } = await supabase
-          .from('payments')
-          .select(`
-            *,
-            units (
-              id,
-              number,
-              type,
-              floor,
-              block
-            )
-          `)
-          .eq('unit_id', unitId)
-          .eq('status', 'pending')
-          .order('due_date', { ascending: true });
-        
-        if (error) {
-          console.error('❌ useListPendingPayments error:', error);
-          throw error;
-        }
-        
-        return data || [];
-        return data || [];
-      } catch (error) {
-        console.error('❌ useListPendingPayments: Unexpected error:', error);
-        throw error;
-      }
+
+      return fetchPaymentObligations();
     },
     enabled: !!unitId,
   });
@@ -51,35 +29,8 @@ export const useListPaymentHistory = (unitId) => {
       if (!unitId) {
         return [];
       }
-      
-      try {
-        const { data, error } = await supabase
-          .from('payments')
-          .select(`
-            *,
-            units (
-              id,
-              number,
-              type,
-              floor,
-              block
-            )
-          `)
-          .eq('unit_id', unitId)
-          .eq('status', 'completed')
-          .order('paid_at', { ascending: false });
-        
-        if (error) {
-          console.error('❌ useListPaymentHistory error:', error);
-          throw error;
-        }
-        
-        return data || [];
-        return data || [];
-      } catch (error) {
-        console.error('❌ useListPaymentHistory: Unexpected error:', error);
-        throw error;
-      }
+
+      return fetchPaymentHistory();
     },
     enabled: !!unitId,
   });
@@ -93,25 +44,8 @@ export const useListPaymentStatements = (unitId) => {
       if (!unitId) {
         return [];
       }
-      
-      try {
-        const { data, error } = await supabase
-          .from('payment_statements')
-          .select('*')
-          .eq('unit_id', unitId)
-          .order('month_year', { ascending: false });
-        
-        if (error) {
-          console.error('❌ useListPaymentStatements error:', error);
-          throw error;
-        }
-        
-        return data || [];
-        return data || [];
-      } catch (error) {
-        console.error('❌ useListPaymentStatements: Unexpected error:', error);
-        throw error;
-      }
+
+      return fetchPaymentStatements();
     },
     enabled: !!unitId,
   });

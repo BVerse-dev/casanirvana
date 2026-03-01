@@ -39,171 +39,62 @@ const useAdminFetch = () => {
   return { fetchAdmin };
 };
 
+const normalizePaymentRecord = (payment: Record<string, any>) => {
+  const unit = payment?.unit
+    ? {
+        ...payment.unit,
+        unit_number: payment.unit?.unit_number || payment.unit?.number || null,
+      }
+    : null;
+
+  const payer_profile = payment?.payer
+    ? {
+        ...payment.payer,
+        full_name: payment.payer?.name || payment.payer?.full_name || null,
+        avatar_url: payment.payer?.avatar_url || null,
+      }
+    : payment?.payer_profile || null;
+
+  return {
+    ...payment,
+    unit,
+    payer_profile,
+  };
+};
+
 // Mock data has been replaced with real database integration
 
 // List all payments  
 export const useListPayments = (unitId?: string, status?: string) => {
+  const { fetchAdmin } = useAdminFetch();
+
   return useQuery({
     queryKey: ["payments", unitId, status],
     queryFn: async () => {
-      let query = supabase
-        .from("payments")
-        .select("*")
-        .order("due_date", { ascending: false });
-      
-      if (unitId) {
-        query = query.eq("unit_id", unitId);
-      }
-      
-      if (status) {
-        query = query.eq("status", status);
-      }
-      
-      const { data, error } = await query;
-      
-      if (error) throw error;
-      
-      // Manually fetch unit and profile data for each payment
-      const paymentsWithProfiles = await Promise.all(
-        (data || []).map(async (payment) => {
-          let unit = null;
-          let payer_profile = null;
-          
-          // Fetch unit data if unit_id exists
-          if (payment.unit_id) {
-            const { data: unitData } = await supabase
-              .from("units")
-              .select("id, unit_number, block, floor_area, bedrooms, bathrooms, community_id, owner_id, tenant_id")
-              .eq("id", payment.unit_id)
-              .single();
-            
-            if (unitData) {
-              unit = unitData;
-              
-              // Fetch profile data if owner_id exists
-              if (unitData.owner_id) {
-                const { data: ownerProfile } = await supabase
-                  .from("profiles")
-                  .select("id, first_name, last_name, full_name, email, avatar_url, phone, role")
-                  .eq("id", unitData.owner_id)
-                  .single();
-                
-                if (ownerProfile) {
-                  payer_profile = ownerProfile;
-                }
-              }
-            }
-          }
-          
-          return {
-            ...payment,
-            unit,
-            payer_profile
-          };
-        })
+      const params = new URLSearchParams();
+      if (unitId) params.set("unit_id", unitId);
+      if (status) params.set("status", status);
+
+      const payload = await fetchAdmin(
+        `/admin/payments/transactions${params.toString() ? `?${params.toString()}` : ""}`
       );
-      
-      return paymentsWithProfiles;
+
+      return (payload?.data?.items || []).map((payment: Record<string, any>) =>
+        normalizePaymentRecord(payment)
+      );
     },
   });
 };
 
 // Get single payment
 export const useGetPayment = (id: string) => {
+  const { fetchAdmin } = useAdminFetch();
+
   return useQuery({
     queryKey: ["payments", id],
     queryFn: async () => {
-      try {
-        console.log("Fetching payment with ID:", id);
-        
-        // First get the payment
-        const { data: payment, error: paymentError } = await supabase
-          .from("payments")
-          .select("*")
-          .eq("id", id)
-          .single();
-
-        if (paymentError) {
-          console.error("Payment query error:", paymentError);
-          throw new Error(`Payment query failed: ${paymentError.message}`);
-        }
-        if (!payment) {
-          throw new Error("Payment not found");
-        }
-        
-        console.log("Payment found:", payment);
-        
-        // Manually fetch unit data if unit_id exists
-        let unit = null;
-        if (payment.unit_id) {
-          console.log("Fetching unit with ID:", payment.unit_id);
-          const { data: unitData, error: unitError } = await supabase
-            .from("units")
-            .select("id, unit_number, block, floor_area, bedrooms, bathrooms, community_id, owner_id, tenant_id")
-            .eq("id", payment.unit_id)
-            .single();
-          
-          if (unitError) {
-            console.error("Unit query error:", unitError);
-            // Don't throw here, just log and continue without unit data
-          } else if (unitData) {
-            unit = unitData;
-            console.log("Unit found:", unit);
-          }
-        }
-        
-        // Manually fetch profile data
-        let payer_profile = null;
-        if (unit?.owner_id) {
-          console.log("Fetching profile with ID:", unit.owner_id);
-          const { data: ownerProfile, error: profileError } = await supabase
-            .from("profiles")
-            .select("id, first_name, last_name, full_name, email, avatar_url, phone, role")
-            .eq("id", unit.owner_id)
-            .single();
-          
-          if (profileError) {
-            console.error("Profile query error:", profileError);
-            // Don't throw here, just log and continue without profile data
-          } else if (ownerProfile) {
-            payer_profile = ownerProfile;
-            console.log("Profile found:", payer_profile);
-          }
-        }
-        
-        // Manually fetch community data if needed
-        let community = null;
-        if (unit?.community_id) {
-          console.log("Fetching community with ID:", unit.community_id);
-          const { data: communityData, error: communityError } = await supabase
-            .from("communities")
-            .select("id, name, address")
-            .eq("id", unit.community_id)
-            .single();
-          
-          if (communityError) {
-            console.error("Community query error:", communityError);
-            // Don't throw here, just log and continue without community data
-          } else if (communityData) {
-            community = communityData;
-            console.log("Community found:", community);
-          }
-        }
-        
-        const result = {
-          ...payment,
-          unit,
-          payer_profile,
-          community
-        };
-        
-        console.log("Final payment result:", result);
-        return result;
-        
-      } catch (error) {
-        console.error("useGetPayment error:", error);
-        throw error;
-      }
+      const payload = await fetchAdmin(`/admin/payments/transactions/${id}`);
+      return normalizePaymentRecord(payload?.data || {});
     },
     enabled: !!id,
   });

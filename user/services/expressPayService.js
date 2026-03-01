@@ -1,7 +1,7 @@
 import { supabase } from "../utils/supabase";
 import { buildApiUrl } from "../config/api";
 
-const TERMINAL_STATUSES = new Set(["completed", "failed", "cancelled"]);
+const TERMINAL_STATUSES = new Set(["completed", "failed", "cancelled", "expired"]);
 
 const normalizeStatus = (value) => {
   if (!value) return "pending";
@@ -77,7 +77,7 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const initiateExpressPayPayment = async (payload) =>
   callExpressPayEndpoint({
-    path: "/payments/expresspay/initiate",
+    path: "/payments/transactions/initiate",
     method: "POST",
     body: payload,
     fallbackError: "Failed to initiate payment. Please try again.",

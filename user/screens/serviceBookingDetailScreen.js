@@ -653,6 +653,8 @@ const ServiceBookingDetailScreen = ({ navigation, route }) => {
               onPress={() => {
                 navigation.navigate("paymentMethodScreen", {
                   bookingId: effectiveBooking.id,
+                  sourceType: "service_booking",
+                  sourceId: effectiveBooking.id,
                   bookingType: "service",
                   bookingData: {
                     serviceName:

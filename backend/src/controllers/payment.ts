@@ -1,6 +1,17 @@
 import { Request, Response } from 'express';
 import * as PaymentService from '../services/payment';
 import { getClientPaymentMethodPolicy } from '../services/paymentMethodPolicy';
+import {
+  DEFAULT_PAYMENT_DISPLAY,
+  generatePaymentStatementForUnit,
+  getAdminPaymentTransaction,
+  listAdminPaymentObligations,
+  listAdminPaymentStatements,
+  listAdminPaymentTransactions,
+  listPaymentHistoryForUnit,
+  listPaymentObligationsForUnit,
+  listPaymentStatementsForUnit,
+} from '../services/paymentLedger';
 
 /**
  * Get payments by unit ID with filtering and pagination
@@ -170,6 +181,224 @@ export async function getPaymentMethodPolicy(req: Request, res: Response) {
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to load payment policy',
+    });
+  }
+}
+
+const getProfileUnitId = (req: Request) => {
+  const profile = (req.userProfile || {}) as Record<string, unknown>;
+  return typeof profile.unit_id === 'string' ? profile.unit_id : null;
+};
+
+export async function getPaymentObligations(req: Request, res: Response) {
+  try {
+    const unitId = getProfileUnitId(req);
+
+    if (!unitId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Your profile is missing a unit assignment.',
+      });
+    }
+
+    const obligations = await listPaymentObligationsForUnit(unitId);
+    res.json({
+      success: true,
+      data: {
+        unit_id: unitId,
+        currency_code: DEFAULT_PAYMENT_DISPLAY.currencyCode,
+        currency_symbol: DEFAULT_PAYMENT_DISPLAY.currencySymbol,
+        items: obligations,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to load payment obligations',
+    });
+  }
+}
+
+export async function getPaymentHistoryFeed(req: Request, res: Response) {
+  try {
+    const unitId = getProfileUnitId(req);
+
+    if (!unitId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Your profile is missing a unit assignment.',
+      });
+    }
+
+    const history = await listPaymentHistoryForUnit(unitId);
+    res.json({
+      success: true,
+      data: {
+        unit_id: unitId,
+        currency_code: DEFAULT_PAYMENT_DISPLAY.currencyCode,
+        currency_symbol: DEFAULT_PAYMENT_DISPLAY.currencySymbol,
+        items: history,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to load payment history',
+    });
+  }
+}
+
+export async function getPaymentStatementsFeed(req: Request, res: Response) {
+  try {
+    const unitId = getProfileUnitId(req);
+
+    if (!unitId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Your profile is missing a unit assignment.',
+      });
+    }
+
+    const statements = await listPaymentStatementsForUnit(unitId);
+    res.json({
+      success: true,
+      data: {
+        unit_id: unitId,
+        currency_code: DEFAULT_PAYMENT_DISPLAY.currencyCode,
+        currency_symbol: DEFAULT_PAYMENT_DISPLAY.currencySymbol,
+        items: statements,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to load payment statements',
+    });
+  }
+}
+
+export async function generatePaymentStatement(req: Request, res: Response) {
+  try {
+    const profile = (req.userProfile || {}) as Record<string, unknown>;
+    const unitId = getProfileUnitId(req);
+    const requestedUnitId = typeof req.body?.unit_id === 'string' ? req.body.unit_id : null;
+    const targetUnitId =
+      typeof profile.role === 'string' && ['admin', 'superadmin', 'agency_manager', 'facility_manager'].includes(profile.role)
+        ? requestedUnitId || unitId
+        : unitId;
+
+    if (!targetUnitId) {
+      return res.status(400).json({
+        success: false,
+        error: 'A target unit is required to generate a statement.',
+      });
+    }
+
+    const result = await generatePaymentStatementForUnit({
+      unitId: targetUnitId,
+      monthYear: typeof req.body?.month_year === 'string' ? req.body.month_year : null,
+    });
+
+    res.json({
+      success: true,
+      data: result,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to generate payment statement',
+    });
+  }
+}
+
+export async function listAdminTransactions(req: Request, res: Response) {
+  try {
+    const items = await listAdminPaymentTransactions({
+      status: typeof req.query.status === 'string' ? req.query.status : undefined,
+      sourceType: typeof req.query.source_type === 'string' ? req.query.source_type : undefined,
+      unitId: typeof req.query.unit_id === 'string' ? req.query.unit_id : undefined,
+    });
+
+    res.json({
+      success: true,
+      data: {
+        currency_code: DEFAULT_PAYMENT_DISPLAY.currencyCode,
+        currency_symbol: DEFAULT_PAYMENT_DISPLAY.currencySymbol,
+        items,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to load payment transactions',
+    });
+  }
+}
+
+export async function getAdminTransaction(req: Request, res: Response) {
+  try {
+    const transaction = await getAdminPaymentTransaction(req.params.id);
+
+    if (!transaction) {
+      return res.status(404).json({
+        success: false,
+        error: 'Payment transaction not found.',
+      });
+    }
+
+    res.json({
+      success: true,
+      data: transaction,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to load payment transaction',
+    });
+  }
+}
+
+export async function listAdminObligations(req: Request, res: Response) {
+  try {
+    const items = await listAdminPaymentObligations({
+      status: typeof req.query.status === 'string' ? req.query.status : undefined,
+      unitId: typeof req.query.unit_id === 'string' ? req.query.unit_id : undefined,
+    });
+
+    res.json({
+      success: true,
+      data: {
+        currency_code: DEFAULT_PAYMENT_DISPLAY.currencyCode,
+        currency_symbol: DEFAULT_PAYMENT_DISPLAY.currencySymbol,
+        items,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to load payment obligations',
+    });
+  }
+}
+
+export async function listAdminStatements(req: Request, res: Response) {
+  try {
+    const items = await listAdminPaymentStatements({
+      unitId: typeof req.query.unit_id === 'string' ? req.query.unit_id : undefined,
+    });
+
+    res.json({
+      success: true,
+      data: {
+        currency_code: DEFAULT_PAYMENT_DISPLAY.currencyCode,
+        currency_symbol: DEFAULT_PAYMENT_DISPLAY.currencySymbol,
+        items,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to load payment statements',
     });
   }
 }

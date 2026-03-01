@@ -21,6 +21,7 @@ import {
   getPaymentMethodPolicy,
   validatePaymentSelection,
 } from "../services/paymentMethodPolicyService";
+import { formatMoney, resolveCurrencyDisplay } from "../utils/money";
 
 const ReviewPayScreen = ({ navigation, route }) => {
   const { t, i18n } = useTranslation();
@@ -145,15 +146,20 @@ const ReviewPayScreen = ({ navigation, route }) => {
       case "Mobile Money":
         navigation.push("mobileMoneyScreen", navigationParams);
         break;
-      case "PayPal":
-        navigation.push("paypalScreen", navigationParams);
-        break;
       case "Credit Card":
-      default:
         navigation.push("creditCardScreen", navigationParams);
+        break;
+      default:
+        Alert.alert(
+          "Payment Unavailable",
+          "This payment method is not currently supported for live checkout."
+        );
         break;
     }
   };
+
+  const currency = resolveCurrencyDisplay(paymentPolicy);
+  const resolvedAmount = Number(totalAmount ?? amount ?? 0);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.extraLightGrey }}>
@@ -203,7 +209,7 @@ const ReviewPayScreen = ({ navigation, route }) => {
               {tr("Total Amount")}
             </Text>
             <Text style={{ ...Fonts.Bold32primary }}>
-              GHS {amount?.toFixed(2) || '0.00'}
+              {formatMoney(resolvedAmount, currency)}
             </Text>
           </View>
 
@@ -232,7 +238,7 @@ const ReviewPayScreen = ({ navigation, route }) => {
                 {tr("Amount")}
               </Text>
               <Text style={{ ...Fonts.SemiBold16black }}>
-                {amountFormatted || `GHS ${amount?.toFixed(2) || '0.00'}`}
+                {amountFormatted || formatMoney(resolvedAmount, currency)}
               </Text>
             </View>
 
@@ -250,7 +256,7 @@ const ReviewPayScreen = ({ navigation, route }) => {
                 {tr("Fee")}
               </Text>
               <Text style={{ ...Fonts.SemiBold16black }}>
-                GHS 0.00
+                {formatMoney(0, currency)}
               </Text>
             </View>
 

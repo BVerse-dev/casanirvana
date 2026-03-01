@@ -168,6 +168,8 @@ const ServiceScreen = ({ navigation }) => {
 
     navigation.navigate("paymentMethodScreen", {
       bookingId: serviceBookingDetails?.requestId || null,
+      sourceType: "service_booking",
+      sourceId: serviceBookingDetails?.requestId || null,
       bookingType: "service",
       amount: resolvedAmount,
       amountFormatted: `GHS ${resolvedAmount.toFixed(2)}`,

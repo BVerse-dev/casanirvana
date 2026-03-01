@@ -25,7 +25,6 @@ import {
   useListPaymentStatements,
   useDownloadPaymentReceipt,
   useDownloadPaymentStatement,
-  useUpdatePayment
 } from '../hooks/usePayments';
 import { useHasJoinedCommunity } from '../hooks/useCommunityData';
 
@@ -45,7 +44,7 @@ const PaymentScreen = ({ navigation }) => {
   // Use the SAME authentication pattern as working screens (maintenance requests)
   const { profile, isLoading: authLoading } = useHasJoinedCommunity();
 
-  // Supabase hooks for real-time data - using unit_id directly from profile
+  // Backend-backed payment feeds scoped to the authenticated resident
   const { data: pendingPayments = [], isLoading: loadingPending } = useListPendingPayments(profile?.unit_id);
   const { data: paymentHistory = [], isLoading: loadingHistory } = useListPaymentHistory(profile?.unit_id);
   const { data: statements = [], isLoading: loadingStatements } = useListPaymentStatements(profile?.unit_id);
@@ -54,34 +53,67 @@ const PaymentScreen = ({ navigation }) => {
   const downloadReceiptMutation = useDownloadPaymentReceipt();
   const downloadStatementMutation = useDownloadPaymentStatement();
 
+  const formatDate = (value, fallback = 'N/A') => {
+    if (!value) return fallback;
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? fallback : date.toLocaleDateString();
+  };
+
   // Format data for UI display
-  const formatPendingPayments = pendingPayments.map(payment => ({
+  const formatPendingPayments = pendingPayments.map((payment) => ({
     id: payment.id,
-    title: payment.title || `${payment.payment_type} - $${payment.amount}`,
-    amount: `$${payment.amount}`,
-    dueDate: new Date(payment.due_date).toLocaleDateString(),
-    description: payment.description || 'Monthly payment',
-    paymentType: payment.payment_type
+    title: payment.title || 'Payment Due',
+    amount: payment.amount_formatted || `${payment.currency_symbol || 'GH₵'} ${Number(payment.amount || 0).toFixed(2)}`,
+    amountValue: Number(payment.amount || 0),
+    dueDate: formatDate(payment.due_date, 'No due date'),
+    description: payment.description || 'Community payment obligation',
+    category: payment.category || 'payment',
+    sourceType: 'payment_obligation',
+    sourceId: payment.id,
+    obligationId: payment.id,
   }));
 
-  const formatPaymentHistory = paymentHistory.map(payment => ({
-    id: payment.id,
-    title: payment.title || `${payment.payment_type} - $${payment.amount}`,
-    amount: `$${payment.amount}`,
-    paidDate: new Date(payment.paid_at).toLocaleDateString(),
-    description: payment.description || 'Monthly payment',
-    transactionId: payment.transaction_id,
-    hasReceipt: !!payment.receipt_url
-  }));
+  const formatPaymentHistory = paymentHistory.map((payment) => {
+    const normalizedStatus = String(payment.status || 'completed').toLowerCase();
+    const isCompleted = normalizedStatus === 'completed';
+    const isFailed = ['failed', 'cancelled', 'expired'].includes(normalizedStatus);
 
-  const formatStatements = statements.map(statement => ({
+    return {
+      id: payment.id,
+      title: payment.title || payment.payment_type || 'Payment',
+      amount:
+        payment.amount_formatted ||
+        `${payment.currency_symbol || 'GH₵'} ${Number(payment.amount || 0).toFixed(2)}`,
+      paidDate: formatDate(payment.paid_at || payment.completed_at || payment.created_at),
+      description: payment.description || 'Payment transaction',
+      transactionId: payment.transaction_id || payment.reference_number || null,
+      hasReceipt: !!payment.receipt_url,
+      status: normalizedStatus,
+      statusLabel: isCompleted ? 'Completed' : isFailed ? 'Failed' : 'Processing',
+      statusStyle: isCompleted
+        ? styles.paidStatusBadge
+        : isFailed
+          ? styles.failedStatusBadge
+          : styles.statementNotReadyBadge,
+      statusTextStyle: isCompleted
+        ? styles.paidStatusText
+        : isFailed
+          ? styles.failedStatusText
+          : styles.statementNotReadyText,
+      amountColor: isCompleted ? Colors.green : isFailed ? Colors.red : Colors.primary,
+    };
+  });
+
+  const formatStatements = statements.map((statement) => ({
     id: statement.id,
     month: statement.month_year,
-    totalAmount: `$${statement.total_amount}`,
+    totalAmount:
+      statement.total_amount_formatted ||
+      `${statement.currency_symbol || 'GH₵'} ${Number(statement.total_amount || 0).toFixed(2)}`,
     itemsCount: statement.items_count,
     status: statement.status,
-    generatedDate: statement.generated_date ? new Date(statement.generated_date).toLocaleDateString() : 'Jan 1, 2025',
-    canDownload: statement.status === 'ready' && !!statement.statement_url
+    generatedDate: formatDate(statement.generated_date),
+    canDownload: statement.status === 'ready' && !!statement.statement_url,
   }));
 
   // Download handlers
@@ -471,7 +503,7 @@ const PaymentScreen = ({ navigation }) => {
                   <View style={styles.cardActionSection}>
                     <View style={styles.amountContainer}>
                       <MaterialCommunityIcons
-                        name="currency-usd"
+                        name="cash-multiple"
                         size={20}
                         color={Colors.primary}
                       />
@@ -483,11 +515,14 @@ const PaymentScreen = ({ navigation }) => {
                         paymentData: {
                           id: item.id,
                           title: item.title,
-                          amount: parseFloat(item.amount.replace('$', '')),
+                          amount: item.amountValue,
                           dueDate: item.dueDate,
-                          description: item.description || 'Monthly maintenance fee',
-                          type: 'payment'
-                        }
+                          description: item.description || 'Community payment obligation',
+                          type: 'payment_obligation',
+                          sourceType: item.sourceType,
+                          sourceId: item.sourceId,
+                          obligationId: item.obligationId,
+                        },
                       })}
                     >
                       <MaterialCommunityIcons
@@ -540,8 +575,8 @@ const PaymentScreen = ({ navigation }) => {
                     
                     {/* Status Badge moved to middle right */}
                     <View style={styles.rightStatusContainer}>
-                      <View style={styles.paidStatusBadge}>
-                        <Text style={styles.paidStatusText}>Paid</Text>
+                      <View style={item.statusStyle}>
+                        <Text style={item.statusTextStyle}>{item.statusLabel}</Text>
                       </View>
                     </View>
                   </View>
@@ -558,7 +593,7 @@ const PaymentScreen = ({ navigation }) => {
                         size={16}
                         color={Colors.grey}
                       />
-                      <Text style={styles.transactionId}>Transaction ID: {item.transactionId || 'TXN' + Math.random().toString(36).substr(2, 9).toUpperCase()}</Text>
+                      <Text style={styles.transactionId}>Transaction ID: {item.transactionId || 'Not assigned'}</Text>
                     </View>
                   </View>
 
@@ -573,11 +608,11 @@ const PaymentScreen = ({ navigation }) => {
                   <View style={styles.cardActionSection}>
                     <View style={styles.amountContainer}>
                       <MaterialCommunityIcons
-                        name="currency-usd"
+                        name="cash-check"
                         size={20}
-                        color={Colors.green}
+                        color={item.amountColor}
                       />
-                      <Text style={[styles.paymentAmount, { color: Colors.green }]}>{item.amount}</Text>
+                      <Text style={[styles.paymentAmount, { color: item.amountColor }]}>{item.amount}</Text>
                     </View>
                     <TouchableOpacity 
                       style={styles.receiptButton}
@@ -853,6 +888,19 @@ const styles = StyleSheet.create({
   },
   
   paidStatusText: {
+    ...Fonts.SemiBold12white,
+  },
+
+  failedStatusBadge: {
+    backgroundColor: Colors.red,
+    paddingHorizontal: Default.fixPadding * 0.8,
+    paddingVertical: Default.fixPadding * 0.4,
+    borderRadius: 8,
+    minWidth: 80,
+    alignItems: 'center',
+  },
+
+  failedStatusText: {
     ...Fonts.SemiBold12white,
   },
   
