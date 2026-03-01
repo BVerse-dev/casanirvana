@@ -584,27 +584,18 @@ const invokeExpressPayDirectSubmit = async (
 };
 
 const invokeExpressPayDirectCheckout = async (
-  config: ExpressPayRuntimeConfig,
-  payload: URLSearchParams
+  attempts: Array<{ url: string; label: string; payload: URLSearchParams }>
 ): Promise<QueryResponse> => {
-  // ExpressPay's direct-payment docs are inconsistent:
-  // - the endpoint table names checkout.php for the second step
-  // - the curl examples for both card and mobile money post the second step to submit.php
-  // We follow the documented sample first, then fall back to checkout.php for compatibility.
-  const attempts = [
-    { url: config.submitUrl, label: 'submit.php' },
-    { url: config.checkoutUrl, label: 'checkout.php' },
-  ];
-
   let lastError: Error | null = null;
 
-  for (const attempt of attempts) {
+  for (let index = 0; index < attempts.length; index += 1) {
+    const attempt = attempts[index];
     const response = await fetch(attempt.url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: payload.toString(),
+      body: attempt.payload.toString(),
     });
 
     const rawText = await response.text();
@@ -625,12 +616,45 @@ const invokeExpressPayDirectCheckout = async (
     }
 
     if (!response.ok) {
-      throw new ExpressPayGatewayError(
+      const error = new ExpressPayGatewayError(
         `ExpressPay direct checkout failed (${response.status}) via ${attempt.label}: ${String(
           json['result-text'] || (json as JsonRecord).message || 'Unknown error'
         )}`,
-        asObject(json)
+        {
+          ...asObject(json),
+          endpoint: attempt.label,
+        }
       );
+
+      if (index < attempts.length - 1) {
+        lastError = error;
+        continue;
+      }
+
+      throw error;
+    }
+
+    const numericResult = Number((json as JsonRecord).result);
+    const numericStatus = Number((json as JsonRecord).status);
+    const message = String(json['result-text'] || (json as JsonRecord).message || '').toLowerCase();
+
+    // Legacy fallback: if the documented endpoint returns a generic invalid request
+    // without a usable result payload, try the sample endpoint once before failing.
+    if (
+      index < attempts.length - 1 &&
+      (numericStatus === 3 || numericResult === 3) &&
+      (message.includes('invalid request') || message === '')
+    ) {
+      lastError = new ExpressPayGatewayError(
+        `ExpressPay direct checkout rejected by ${attempt.label}: ${String(
+          json['result-text'] || (json as JsonRecord).message || 'Invalid Request'
+        )}`,
+        {
+          ...asObject(json),
+          endpoint: attempt.label,
+        }
+      );
+      continue;
     }
 
     return json;
@@ -857,6 +881,64 @@ const buildSubmitFallbackParams = ({
   return params;
 };
 
+const buildDirectMobileMoneyCheckoutAttempts = ({
+  config,
+  token,
+  payerPhone,
+  payerPhoneForProvider,
+  resolvedNetwork,
+  requestedNetwork,
+  payerProfile,
+  inputMetadata,
+}: {
+  config: ExpressPayRuntimeConfig;
+  token: string;
+  payerPhone: string;
+  payerPhoneForProvider: string;
+  resolvedNetwork: string;
+  requestedNetwork?: string | null;
+  payerProfile?: InitiateExpressPayInput['payerProfile'];
+  inputMetadata: JsonRecord;
+}) => {
+  const mobileAuthNetwork =
+    getNestedString(inputMetadata, 'mobile_auth_network') ||
+    getNestedString(inputMetadata, 'mobile_auth_token');
+  const legacyNetwork = resolveExpressPayLegacyMobileNetwork(requestedNetwork || resolvedNetwork);
+
+  const checkoutParams = new URLSearchParams();
+  checkoutParams.set('token', token);
+  checkoutParams.set('mobile-number', payerPhoneForProvider);
+  checkoutParams.set('mobile-network', resolvedNetwork);
+  if (mobileAuthNetwork) {
+    checkoutParams.set('mobile-auth-network', mobileAuthNetwork);
+  }
+
+  const submitParams = new URLSearchParams();
+  submitParams.set('merchant-id', config.merchantId);
+  submitParams.set('api-key', config.apiKey);
+  submitParams.set('token', token);
+  submitParams.set('mobile-money-number', payerPhone);
+  submitParams.set('mobile-money-network', legacyNetwork || 'MTN');
+  submitParams.set('email', payerProfile?.email || 'resident@casanirvana.app');
+  submitParams.set('phoneNumber', payerPhone);
+  if (mobileAuthNetwork) {
+    submitParams.set('mobile-auth-token', mobileAuthNetwork);
+  }
+
+  return [
+    {
+      url: config.checkoutUrl,
+      label: 'checkout.php',
+      payload: checkoutParams,
+    },
+    {
+      url: config.submitUrl,
+      label: 'submit.php',
+      payload: submitParams,
+    },
+  ];
+};
+
 export const initiateExpressPayPayment = async (
   input: InitiateExpressPayInput
 ): Promise<InitiateExpressPayResult> => {
@@ -948,17 +1030,13 @@ export const initiateExpressPayPayment = async (
         rawNetwork: requestedNetwork,
         phoneNumber: payerPhone,
       });
-      const legacyNetwork = resolveExpressPayLegacyMobileNetwork(requestedNetwork);
+      const payerPhoneForProvider = normalizeExpressPayMsisdn(payerPhone);
 
       if (!payerPhone || payerPhone.length < 10) {
         throw new Error('A valid mobile money number is required for in-app payment.');
       }
 
       if (!resolvedNetwork) {
-        throw new Error('Unsupported mobile money network selected for ExpressPay.');
-      }
-
-      if (!legacyNetwork) {
         throw new Error('Unsupported mobile money network selected for ExpressPay.');
       }
 
@@ -1003,22 +1081,18 @@ export const initiateExpressPayPayment = async (
 
       const token = String(directSubmitResponse.token).trim();
 
-      const directCheckoutParams = new URLSearchParams();
-      directCheckoutParams.set('token', token);
-      // Follow the mobile money direct-payment sample contract exactly.
-      // ExpressPay's docs show legacy carrier codes here (MTN/VODAFONE/AIRTELTIGO)
-      // and a local 10-digit MSISDN for the second step.
-      directCheckoutParams.set('mobile-number', payerPhone);
-      directCheckoutParams.set('mobile-network', legacyNetwork);
-
-      const mobileAuthToken =
-        getNestedString(inputMetadata, 'mobile_auth_token') ||
-        getNestedString(inputMetadata, 'mobile_auth_network');
-      if (mobileAuthToken) {
-        directCheckoutParams.set('mobile-auth-token', mobileAuthToken);
-      }
-
-      const directCheckoutResponse = await invokeExpressPayDirectCheckout(config, directCheckoutParams);
+      const directCheckoutResponse = await invokeExpressPayDirectCheckout(
+        buildDirectMobileMoneyCheckoutAttempts({
+          config,
+          token,
+          payerPhone,
+          payerPhoneForProvider,
+          resolvedNetwork,
+          requestedNetwork,
+          payerProfile: input.payerProfile,
+          inputMetadata,
+        })
+      );
       const immediateStatus = mapQueryResultToStatus(directCheckoutResponse);
       const directCheckoutMessage = String(
         directCheckoutResponse['result-text'] || (directCheckoutResponse as JsonRecord).message || 'Unknown error'
@@ -1027,8 +1101,8 @@ export const initiateExpressPayPayment = async (
       if (immediateStatus === 'failed') {
         throw new ExpressPayGatewayError(`ExpressPay direct checkout failed: ${directCheckoutMessage}`, {
           ...asObject(directCheckoutResponse),
-          mobile_number: payerPhone,
-          mobile_network: legacyNetwork,
+          mobile_number: payerPhoneForProvider,
+          mobile_network: resolvedNetwork,
         });
       }
 
@@ -1054,10 +1128,10 @@ export const initiateExpressPayPayment = async (
             direct_submit_primary_error: directSubmitPrimaryError,
             direct_checkout_result: directCheckoutResponse,
             direct_post_url: config.directPostUrl,
-            mobile_network: legacyNetwork,
-            mobile_network_resolved: resolvedNetwork,
-            mobile_number: payerPhone,
-            mobile_number_normalized: normalizeExpressPayMsisdn(payerPhone),
+            mobile_network: resolvedNetwork,
+            mobile_network_legacy: resolveExpressPayLegacyMobileNetwork(requestedNetwork),
+            mobile_number: payerPhoneForProvider,
+            mobile_number_local: payerPhone,
             verified_at: verifiedAt,
           },
         },
