@@ -11,6 +11,7 @@ import {
   Modal,
 } from "react-native";
 import * as WebBrowser from "expo-web-browser";
+import * as Linking from "expo-linking";
 import MyStatusBar from "../components/myStatusBar";
 import { useTranslation } from "react-i18next";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -679,6 +680,14 @@ const CreditCardScreen = ({ navigation, route }) => {
 
       const bookingType = bookingData?.type || paymentData?.type || 'community_dues';
       const amountToCharge = Number(bookingData?.totalAmount ?? paymentData?.amount ?? 0);
+      const displayTitle =
+        bookingData?.amenityName ||
+        bookingData?.serviceName ||
+        bookingData?.serviceTitle ||
+        paymentData?.title ||
+        paymentData?.description ||
+        'Payment';
+      const appReturnUrl = Linking.createURL("payments/expresspay/return");
 
       if (!Number.isFinite(amountToCharge) || amountToCharge <= 0) {
         throw new Error('Invalid payment amount');
@@ -694,14 +703,15 @@ const CreditCardScreen = ({ navigation, route }) => {
         source_type: resolvedSourceType || undefined,
         source_id: resolvedSourceId || undefined,
         obligation_id: resolvedObligationId || undefined,
-        description: bookingData
-          ? `Payment for ${bookingData.amenityName || bookingData.serviceTitle || 'booking'}`
-          : paymentData?.title || paymentData?.description || 'Community Payment',
+        description: displayTitle,
         idempotency_key: `card-${payerId}-${bookingType}-${Date.now()}`,
         metadata: {
           source: 'user-credit-card-screen',
           source_booking_id: resolvedBookingId || null,
           source_booking_type: bookingType,
+          source_display_title: displayTitle,
+          source_display_description: paymentData?.description || null,
+          app_return_url: appReturnUrl,
           entered_card_last_four: number.slice(-4),
           entered_card_brand: cardValidator.number(number).card?.type || 'unknown',
           entered_cardholder_name: name,
@@ -726,15 +736,14 @@ const CreditCardScreen = ({ navigation, route }) => {
         throw new Error('Checkout URL missing from payment gateway response.');
       }
 
-      await WebBrowser.openBrowserAsync(checkoutUrl, {
-        controlsColor: Colors.primary,
-        presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN,
-      });
+      await WebBrowser.openAuthSessionAsync(checkoutUrl, appReturnUrl);
 
       const reconciliation = await reconcileExpressPayPayment({
         paymentId: initiationResult.data.payment_id,
         token: initiationResult.data.token,
         orderId: initiationResult.data.transaction_id,
+        pollAttempts: 6,
+        pollDelayMs: 2000,
       });
 
       const gatewayStatus = normalizeGatewayStatus(

@@ -29,6 +29,7 @@ router.get(
 
 router.post('/payments/expresspay/callback', ExpressPayController.callback);
 router.get('/payments/expresspay/callback', ExpressPayController.callback);
+router.get('/payments/expresspay/redirect', ExpressPayController.redirectToApp);
 router.post('/xp/cb', ExpressPayController.callback);
 router.get('/xp/cb', ExpressPayController.callback);
 

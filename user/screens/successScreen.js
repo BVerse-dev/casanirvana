@@ -63,14 +63,6 @@ const SuccessScreen = ({ navigation, route }) => {
   }
 
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      navigateHome();
-    }, 5000);
-
-    return () => clearTimeout(timeoutId);
-  }, [navigateHome]);
-
-  useEffect(() => {
     const backHandler = BackHandler.addEventListener("hardwareBackPress", () => {
       navigateHome();
       return true;

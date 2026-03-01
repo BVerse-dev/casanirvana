@@ -78,9 +78,32 @@ const normalizeOptionalUuid = (value: unknown): string | null => {
   return UUID_REGEX.test(trimmed) ? trimmed : null;
 };
 
+const buildSafeAppReturnUrl = ({
+  returnUrl,
+  paymentId,
+}: {
+  returnUrl?: string | null;
+  paymentId?: string | null;
+}) => {
+  if (!returnUrl || !/^(myapp|exp):\/\//i.test(returnUrl)) {
+    return null;
+  }
+
+  try {
+    const url = new URL(returnUrl);
+    if (paymentId && !url.searchParams.has('payment_id')) {
+      url.searchParams.set('payment_id', paymentId);
+    }
+    return url.toString();
+  } catch {
+    return null;
+  }
+};
+
 export const initiatePayment = async (req: Request, res: Response) => {
   try {
     const authUserId = req.user?.id as string | undefined;
+    const authUser = (req.user || {}) as Record<string, unknown>;
 
     if (!authUserId) {
       return res.status(401).json({ error: 'Authentication required' });
@@ -140,8 +163,20 @@ export const initiatePayment = async (req: Request, res: Response) => {
       payerProfile: {
         first_name: typeof profile.first_name === 'string' ? profile.first_name : null,
         last_name: typeof profile.last_name === 'string' ? profile.last_name : null,
-        email: typeof profile.email === 'string' ? profile.email : null,
-        phone: typeof profile.phone === 'string' ? profile.phone : null,
+        email:
+          typeof profile.email === 'string'
+            ? profile.email
+            : typeof authUser.email === 'string'
+              ? authUser.email
+              : null,
+        phone:
+          typeof profile.phone === 'string'
+            ? profile.phone
+            : typeof authUser.phone === 'string'
+              ? authUser.phone
+              : typeof authUser.phone_number === 'string'
+                ? authUser.phone_number
+                : null,
       },
       description: typeof body.description === 'string' ? body.description : null,
       bookingId: normalizeOptionalUuid(body.booking_id),
@@ -209,6 +244,44 @@ export const callback = async (req: Request, res: Response) => {
       error: errorMessage(error, 'ExpressPay callback processing failed'),
     });
   }
+};
+
+export const redirectToApp = async (req: Request, res: Response) => {
+  const returnUrl = pickString(req.query, ['return_url']);
+  const paymentId = pickString(req.query, ['payment_id']);
+  const targetUrl = buildSafeAppReturnUrl({ returnUrl, paymentId });
+
+  if (!targetUrl) {
+    return res
+      .status(200)
+      .type('html')
+      .send(
+        '<!doctype html><html><head><meta charset="utf-8"><title>Return to Casa Nirvana</title></head><body style="font-family:Arial,sans-serif;padding:24px;"><h2>Payment completed</h2><p>You can now return to the Casa Nirvana app.</p></body></html>'
+      );
+  }
+
+  return res
+    .status(200)
+    .type('html')
+    .send(`<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Return to Casa Nirvana</title>
+  </head>
+  <body style="font-family: Arial, sans-serif; padding: 24px;">
+    <h2>Returning to Casa Nirvana…</h2>
+    <p>If the app does not open automatically, tap the button below.</p>
+    <p><a href="${targetUrl}" style="display:inline-block;padding:12px 16px;background:#d32f2f;color:#fff;text-decoration:none;border-radius:8px;">Open App</a></p>
+    <script>
+      window.location.replace(${JSON.stringify(targetUrl)});
+      setTimeout(function () {
+        window.location.href = ${JSON.stringify(targetUrl)};
+      }, 300);
+    </script>
+  </body>
+</html>`);
 };
 
 export const getStatus = async (req: Request, res: Response) => {

@@ -7,6 +7,7 @@ const LIVE_MODE = 'live';
 const DEFAULT_CURRENCY = 'GHS';
 const EXPRESSPAY_DIRECT_CALLBACK_PATH = '/xp/cb';
 const MAX_EXPRESSPAY_DIRECT_POST_URL_LENGTH = 64;
+const MAX_EXPRESSPAY_HOSTED_REDIRECT_URL_LENGTH = 256;
 
 const EXPRESSPAY_ENDPOINTS = {
   test: {
@@ -83,6 +84,11 @@ type QueryResponse = {
   currency?: string;
   ['date-processed']?: string;
   [key: string]: unknown;
+};
+
+type SubmitCallResult = {
+  body: SubmitResponse;
+  cookieHeader: string | null;
 };
 
 type QueryError = { message?: string } | null;
@@ -502,10 +508,25 @@ const resolveRuntimeConfig = async (communityId?: string | null): Promise<Expres
   };
 };
 
+const extractExpressPaySessionCookie = (response: Response): string | null => {
+  const rawSetCookie = response.headers.get('set-cookie');
+  if (!rawSetCookie) {
+    return null;
+  }
+
+  const phpSessionMatch = rawSetCookie.match(/PHPSESSID=([^;,\s]+)/i);
+  if (phpSessionMatch) {
+    return `PHPSESSID=${phpSessionMatch[1]}`;
+  }
+
+  const firstCookie = rawSetCookie.split(',')[0]?.split(';')[0]?.trim();
+  return firstCookie || null;
+};
+
 const invokeExpressPaySubmit = async (
   config: ExpressPayRuntimeConfig,
   payload: URLSearchParams
-): Promise<SubmitResponse> => {
+): Promise<SubmitCallResult> => {
   const response = await fetch(config.submitUrl, {
     method: 'POST',
     headers: {
@@ -537,7 +558,10 @@ const invokeExpressPaySubmit = async (
     throw new ExpressPayGatewayError(`ExpressPay submit did not return token: ${reason}`, asObject(json));
   }
 
-  return json;
+  return {
+    body: json,
+    cookieHeader: extractExpressPaySessionCookie(response),
+  };
 };
 
 const invokeExpressPayDirectSubmit = async (
@@ -588,17 +612,23 @@ const invokeExpressPayDirectSubmit = async (
 };
 
 const invokeExpressPayDirectCheckout = async (
-  attempts: Array<{ url: string; label: string; payload: URLSearchParams }>
+  attempts: Array<{ url: string; label: string; payload: URLSearchParams; cookieHeader?: string | null }>
 ): Promise<QueryResponse> => {
   let lastError: Error | null = null;
 
   for (let index = 0; index < attempts.length; index += 1) {
     const attempt = attempts[index];
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    };
+
+    if (attempt.cookieHeader) {
+      headers.Cookie = attempt.cookieHeader;
+    }
+
     const response = await fetch(attempt.url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
+      headers,
       body: attempt.payload.toString(),
     });
 
@@ -1084,14 +1114,16 @@ const buildSubmitFallbackParams = ({
 };
 
 const buildDirectMobileMoneyCheckoutAttempts = ({
-  config,
   token,
+  baseSubmitParams,
+  cookieHeader,
   payerPhone,
   requestedNetwork,
   inputMetadata,
 }: {
-  config: ExpressPayRuntimeConfig;
   token: string;
+  baseSubmitParams: URLSearchParams;
+  cookieHeader?: string | null;
   payerPhone: string;
   requestedNetwork?: string | null;
   inputMetadata: JsonRecord;
@@ -1101,7 +1133,7 @@ const buildDirectMobileMoneyCheckoutAttempts = ({
     getNestedString(inputMetadata, 'mobile_auth_token');
   const legacyNetwork = resolveExpressPayLegacyMobileNetwork(requestedNetwork);
 
-  const submitParams = new URLSearchParams();
+  const submitParams = new URLSearchParams(baseSubmitParams.toString());
   submitParams.set('token', token);
   submitParams.set('mobile-number', payerPhone);
   submitParams.set('mobile-network', legacyNetwork || 'MTN');
@@ -1114,6 +1146,7 @@ const buildDirectMobileMoneyCheckoutAttempts = ({
       url: config.submitUrl,
       label: 'submit.php',
       payload: submitParams,
+      cookieHeader: cookieHeader || null,
     },
   ];
 };
@@ -1187,8 +1220,16 @@ export const initiateExpressPayPayment = async (
     payment_method: input.paymentMethod,
     payment_gateway: EXPRESSPAY_PROVIDER,
     status: 'initiated',
-    title: sourceContext.derivedTitle || 'ExpressPay Payment',
-    description: input.description || sourceContext.derivedDescription || null,
+    title:
+      sourceContext.derivedTitle ||
+      getNestedString(inputMetadata, 'source_display_title') ||
+      input.description ||
+      'ExpressPay Payment',
+    description:
+      input.description ||
+      sourceContext.derivedDescription ||
+      getNestedString(inputMetadata, 'source_display_description') ||
+      null,
     transaction_id: orderId,
     initiated_at: createdAt,
     payment_date: createdAt,
@@ -1250,22 +1291,27 @@ export const initiateExpressPayPayment = async (
       directSubmitParams.set('post-url', config.directPostUrl);
 
       let directSubmitResponse: SubmitResponse;
+      let directSubmitCookieHeader: string | null = null;
       let directSubmitTransport: 'standard_submit' | 'direct_submit' | 'submit_fallback' = 'standard_submit';
       let directSubmitPrimaryError: JsonRecord | null = null;
 
+      const submitFallbackParams = buildSubmitFallbackParams({
+        config,
+        input: {
+          ...input,
+          currency: effectiveCurrency,
+        },
+        orderId,
+        formattedAmount,
+      });
+
       try {
-        directSubmitResponse = await invokeExpressPaySubmit(
+        const submitCallResult = await invokeExpressPaySubmit(
           config,
-          buildSubmitFallbackParams({
-            config,
-            input: {
-              ...input,
-              currency: effectiveCurrency,
-            },
-            orderId,
-            formattedAmount,
-          })
+          submitFallbackParams
         );
+        directSubmitResponse = submitCallResult.body;
+        directSubmitCookieHeader = submitCallResult.cookieHeader;
       } catch (error: unknown) {
         const providerErrorDetails =
           error instanceof ExpressPayGatewayError && error.details ? error.details : null;
@@ -1289,8 +1335,9 @@ export const initiateExpressPayPayment = async (
 
       const directCheckoutResponse = await invokeExpressPayDirectCheckout(
         buildDirectMobileMoneyCheckoutAttempts({
-          config,
           token,
+          baseSubmitParams: submitFallbackParams,
+          cookieHeader: directSubmitCookieHeader,
           payerPhone,
           requestedNetwork,
           inputMetadata,
@@ -1404,8 +1451,18 @@ export const initiateExpressPayPayment = async (
 
   try {
     const submitParams = new URLSearchParams();
-    const providerRedirectUrl =
-      config.redirectUrl.length <= MAX_EXPRESSPAY_DIRECT_POST_URL_LENGTH ? config.redirectUrl : config.directPostUrl;
+    const appReturnUrl = getNestedString(inputMetadata, 'app_return_url');
+    let providerRedirectUrl = config.redirectUrl;
+
+    if (appReturnUrl && /^(myapp|exp):\/\//i.test(appReturnUrl)) {
+      const relayUrl = new URL('/payments/expresspay/redirect', getCallbackBaseUrl());
+      relayUrl.searchParams.set('payment_id', payment.id);
+      relayUrl.searchParams.set('return_url', appReturnUrl);
+
+      if (relayUrl.toString().length <= MAX_EXPRESSPAY_HOSTED_REDIRECT_URL_LENGTH) {
+        providerRedirectUrl = relayUrl.toString();
+      }
+    }
 
     submitParams.set('merchant-id', config.merchantId);
     submitParams.set('api-key', config.apiKey);
@@ -1422,7 +1479,8 @@ export const initiateExpressPayPayment = async (
     submitParams.set('redirect-url', providerRedirectUrl);
     submitParams.set('post-url', config.directPostUrl);
 
-    const submitResponse = await invokeExpressPaySubmit(config, submitParams);
+    const submitCallResult = await invokeExpressPaySubmit(config, submitParams);
+    const submitResponse = submitCallResult.body;
     const token = String(submitResponse.token).trim();
     const checkoutUrl = buildCheckoutUrl(config.checkoutUrl, token);
     const providerReference =

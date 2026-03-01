@@ -311,6 +311,13 @@ const MobileMoneyScreen = ({ navigation, route }) => {
       ) || 0;
       const numericPlatformFee = Number(platformFee) || 0;
       const numericTotalAmount = Number(totalAmount) || numericAmount;
+      const displayTitle =
+        bookingData?.amenityName ||
+        bookingData?.serviceName ||
+        bookingData?.serviceTitle ||
+        paymentData?.title ||
+        paymentData?.description ||
+        "Payment";
 
       if (!authUserId || !unitId) {
         throw new Error("Unable to resolve payer/unit for payment.");
@@ -328,12 +335,12 @@ const MobileMoneyScreen = ({ navigation, route }) => {
         obligation_id: !isPersonalHubTransaction ? resolvedObligationId || undefined : undefined,
         description: isPersonalHubTransaction
           ? `${providerName || "Mobile"} ${paymentType} for ${description || recipientPhone || "resident"}`
-          : bookingData
-            ? `Payment for booking #${resolvedBookingId || "amenity"}`
-            : paymentData?.title || paymentData?.description || "Community Payment",
+          : displayTitle,
         idempotency_key: `mm-${authUserId}-${paymentType}-${Date.now()}`,
         metadata: {
           source: "user-mobile-money-screen",
+          source_display_title: displayTitle,
+          source_display_description: paymentData?.description || null,
           mobile_network: selectedNetwork,
           payer_phone: cleanPhone,
           recipient_phone: recipientPhone || null,
