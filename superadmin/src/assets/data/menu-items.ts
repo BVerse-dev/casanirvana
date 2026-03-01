@@ -212,7 +212,20 @@ export const MENU_ITEMS: MenuItemType[] = [
     key: "payments",
     label: "Payments",
     icon: "ri:money-dollar-circle-line",
-    url: "/payments",
+    children: [
+      {
+        key: "payments-overview",
+        label: "Overview",
+        url: "/payments",
+        parentKey: "payments",
+      },
+      {
+        key: "payments-charges",
+        label: "Charges",
+        url: "/payments/charges",
+        parentKey: "payments",
+      },
+    ],
   },
   {
     key: "complaints",

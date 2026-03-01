@@ -42,6 +42,25 @@ const withSearchQuery = z.object({
 
 const idParam = z.object({ id: nonEmptyString });
 const uuidParam = z.object({ id: z.string().uuid() });
+const paymentChargeScope = z.enum(['agency', 'community']);
+const paymentChargeType = z.enum(['fixed', 'variable', 'formula']);
+const paymentChargeFrequency = z.enum(['monthly', 'quarterly', 'yearly', 'one_time', 'custom_period']);
+const paymentChargeLateFeeType = z.enum(['none', 'fixed', 'percentage']);
+const paymentChargeTargetType = z.enum([
+  'all_units',
+  'unit_ids',
+  'blocks',
+  'unit_types',
+  'occupied_only',
+  'owner_only',
+  'tenant_only',
+  'exclude_unit_ids',
+]);
+const paymentChargeRunStatus = z.enum(['draft', 'previewed', 'issued', 'cancelled']);
+const paymentChargeTemplateTargetSchema = z.object({
+  target_type: paymentChargeTargetType,
+  target_value: z.union([z.string(), z.array(z.string()), z.record(z.any())]).optional(),
+});
 
 const atLeastOne = <T extends z.ZodTypeAny>(schema: T) =>
   schema.refine((value) => Object.keys(value as Record<string, unknown>).length > 0, {
@@ -436,6 +455,87 @@ export const schemas = {
   paymentStatusUpdate: z.object({
     status: nonEmptyString,
     notes: z.string().optional(),
+  }),
+  adminPaymentChargeCatalogQuery: z.object({
+    include_inactive: booleanFromString.optional(),
+  }),
+  adminPaymentChargeTemplateListQuery: z.object({
+    scope_level: paymentChargeScope.optional(),
+    agency_id: optionalString,
+    community_id: optionalString,
+    include_inactive: booleanFromString.optional(),
+  }),
+  adminPaymentChargeTemplateTarget: paymentChargeTemplateTargetSchema,
+  adminPaymentChargeTemplateCreate: z.object({
+    scope_level: paymentChargeScope,
+    agency_id: optionalString.nullable(),
+    community_id: optionalString.nullable(),
+    name: nonEmptyString,
+    charge_code: nonEmptyString,
+    catalog_key: nonEmptyString,
+    category: nonEmptyString,
+    charge_type: paymentChargeType,
+    amount: z.coerce.number().nonnegative(),
+    currency_code: optionalString.nullable(),
+    billing_frequency: paymentChargeFrequency,
+    billing_anchor_day: z.coerce.number().int().min(1).max(31).optional().nullable(),
+    billing_anchor_month: z.coerce.number().int().min(1).max(12).optional().nullable(),
+    start_date: optionalString.nullable(),
+    due_offset_days: z.coerce.number().int().min(0).max(365).optional().nullable(),
+    grace_period_days: z.coerce.number().int().min(0).max(365).optional().nullable(),
+    late_fee_type: paymentChargeLateFeeType.optional().nullable(),
+    late_fee_value: z.coerce.number().min(0).optional().nullable(),
+    auto_issue: z.boolean().optional(),
+    requires_approval: z.boolean().optional(),
+    is_active: z.boolean().optional(),
+    description: z.string().optional().nullable(),
+    metadata: z.record(z.any()).optional().nullable(),
+    targets: z.array(paymentChargeTemplateTargetSchema).optional(),
+  }),
+  adminPaymentChargeTemplateUpdate: atLeastOne(
+    z.object({
+      scope_level: paymentChargeScope.optional(),
+      agency_id: optionalString.nullable(),
+      community_id: optionalString.nullable(),
+      name: optionalString,
+      charge_code: optionalString,
+      catalog_key: optionalString,
+      category: optionalString,
+      charge_type: paymentChargeType.optional(),
+      amount: z.coerce.number().nonnegative().optional(),
+      currency_code: optionalString.nullable(),
+      billing_frequency: paymentChargeFrequency.optional(),
+      billing_anchor_day: z.coerce.number().int().min(1).max(31).optional().nullable(),
+      billing_anchor_month: z.coerce.number().int().min(1).max(12).optional().nullable(),
+      start_date: optionalString.nullable(),
+      due_offset_days: z.coerce.number().int().min(0).max(365).optional().nullable(),
+      grace_period_days: z.coerce.number().int().min(0).max(365).optional().nullable(),
+      late_fee_type: paymentChargeLateFeeType.optional().nullable(),
+      late_fee_value: z.coerce.number().min(0).optional().nullable(),
+      auto_issue: z.boolean().optional(),
+      requires_approval: z.boolean().optional(),
+      is_active: z.boolean().optional(),
+      description: z.string().optional().nullable(),
+      metadata: z.record(z.any()).optional().nullable(),
+      targets: z.array(paymentChargeTemplateTargetSchema).optional(),
+    })
+  ),
+  adminPaymentChargeTemplatePreviewBody: z.object({
+    community_id: optionalString.nullable(),
+    unit_ids: z.array(nonEmptyString).optional(),
+    billing_period_start: optionalString.nullable(),
+    billing_period_end: optionalString.nullable(),
+    due_date: optionalString.nullable(),
+    run_mode: z.enum(['manual', 'scheduled']).optional(),
+  }),
+  adminPaymentChargeRunListQuery: z.object({
+    community_id: optionalString,
+    template_id: optionalString,
+    status: paymentChargeRunStatus.optional(),
+  }),
+  adminPaymentChargeRunDueBody: z.object({
+    community_id: optionalString.nullable(),
+    agency_id: optionalString.nullable(),
   }),
   expressPayInitiate: z.object({
     amount: z.coerce.number().positive(),

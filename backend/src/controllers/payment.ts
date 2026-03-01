@@ -12,6 +12,17 @@ import {
   listPaymentObligationsForUnit,
   listPaymentStatementsForUnit,
 } from '../services/paymentLedger';
+import {
+  createPaymentChargeTemplate,
+  getPaymentChargeCatalog,
+  getPaymentChargeRun,
+  issuePaymentChargeTemplate,
+  listPaymentChargeRuns,
+  listPaymentChargeTemplates,
+  previewPaymentChargeTemplate,
+  runDuePaymentCharges,
+  updatePaymentChargeTemplate,
+} from '../services/paymentCharges';
 
 /**
  * Get payments by unit ID with filtering and pagination
@@ -188,6 +199,22 @@ export async function getPaymentMethodPolicy(req: Request, res: Response) {
 const getProfileUnitId = (req: Request) => {
   const profile = (req.userProfile || {}) as Record<string, unknown>;
   return typeof profile.unit_id === 'string' ? profile.unit_id : null;
+};
+
+const getActorUserId = (req: Request) => {
+  if (typeof req.user?.id === 'string' && req.user.id) {
+    return req.user.id;
+  }
+
+  if (typeof req.userProfile?.user_id === 'string' && req.userProfile.user_id) {
+    return req.userProfile.user_id;
+  }
+
+  if (typeof req.userProfile?.id === 'string' && req.userProfile.id) {
+    return req.userProfile.id;
+  }
+
+  return null;
 };
 
 export async function getPaymentObligations(req: Request, res: Response) {
@@ -399,6 +426,173 @@ export async function listAdminStatements(req: Request, res: Response) {
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to load payment statements',
+    });
+  }
+}
+
+export async function listAdminPaymentChargeCatalog(req: Request, res: Response) {
+  try {
+    const items = await getPaymentChargeCatalog();
+    res.json({
+      success: true,
+      data: {
+        items,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to load payment charge catalog',
+    });
+  }
+}
+
+export async function listAdminPaymentChargeTemplates(req: Request, res: Response) {
+  try {
+    const items = await listPaymentChargeTemplates({
+      scope_level: typeof req.query.scope_level === 'string' ? req.query.scope_level as 'agency' | 'community' : undefined,
+      agency_id: typeof req.query.agency_id === 'string' ? req.query.agency_id : undefined,
+      community_id: typeof req.query.community_id === 'string' ? req.query.community_id : undefined,
+      include_inactive:
+        req.query.include_inactive === true ||
+        req.query.include_inactive === 'true',
+    });
+
+    res.json({
+      success: true,
+      data: {
+        items,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to load payment charge templates',
+    });
+  }
+}
+
+export async function createAdminPaymentChargeTemplate(req: Request, res: Response) {
+  try {
+    const item = await createPaymentChargeTemplate(req.body, getActorUserId(req));
+    res.status(201).json({
+      success: true,
+      data: item,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to create payment charge template',
+    });
+  }
+}
+
+export async function updateAdminPaymentChargeTemplate(req: Request, res: Response) {
+  try {
+    const item = await updatePaymentChargeTemplate(req.params.id, req.body, getActorUserId(req));
+    res.json({
+      success: true,
+      data: item,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to update payment charge template',
+    });
+  }
+}
+
+export async function previewAdminPaymentChargeTemplate(req: Request, res: Response) {
+  try {
+    const preview = await previewPaymentChargeTemplate(req.params.id, req.body || {});
+    res.json({
+      success: true,
+      data: preview,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to preview payment charge template',
+    });
+  }
+}
+
+export async function issueAdminPaymentChargeTemplate(req: Request, res: Response) {
+  try {
+    const issued = await issuePaymentChargeTemplate(req.params.id, req.body || {}, getActorUserId(req));
+    res.json({
+      success: true,
+      data: issued,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to issue payment charges',
+    });
+  }
+}
+
+export async function listAdminPaymentChargeRuns(req: Request, res: Response) {
+  try {
+    const items = await listPaymentChargeRuns({
+      community_id: typeof req.query.community_id === 'string' ? req.query.community_id : undefined,
+      template_id: typeof req.query.template_id === 'string' ? req.query.template_id : undefined,
+      status: typeof req.query.status === 'string' ? req.query.status as 'draft' | 'previewed' | 'issued' | 'cancelled' : undefined,
+    });
+
+    res.json({
+      success: true,
+      data: {
+        items,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to load payment charge runs',
+    });
+  }
+}
+
+export async function getAdminPaymentChargeRunDetails(req: Request, res: Response) {
+  try {
+    const run = await getPaymentChargeRun(req.params.id);
+
+    if (!run) {
+      return res.status(404).json({
+        success: false,
+        error: 'Payment charge run not found.',
+      });
+    }
+
+    res.json({
+      success: true,
+      data: run,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to load payment charge run',
+    });
+  }
+}
+
+export async function runDueAdminPaymentCharges(req: Request, res: Response) {
+  try {
+    const result = await runDuePaymentCharges({
+      communityId: typeof req.body?.community_id === 'string' ? req.body.community_id : undefined,
+      agencyId: typeof req.body?.agency_id === 'string' ? req.body.agency_id : undefined,
+      actorUserId: getActorUserId(req),
+    });
+
+    res.json({
+      success: true,
+      data: result,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to run due payment charges',
     });
   }
 }

@@ -329,6 +329,69 @@ router.get(
   requirePermission('read:all_payments'),
   paymentController.listAdminStatements
 );
+router.get(
+  '/payment-charges/catalog',
+  requireAuth,
+  requirePermission('read:all_payments'),
+  validateRequest({ query: schemas.adminPaymentChargeCatalogQuery }),
+  paymentController.listAdminPaymentChargeCatalog
+);
+router.get(
+  '/payment-charges/templates',
+  requireAuth,
+  requirePermission('read:all_payments'),
+  validateRequest({ query: schemas.adminPaymentChargeTemplateListQuery }),
+  paymentController.listAdminPaymentChargeTemplates
+);
+router.post(
+  '/payment-charges/templates',
+  requireAuth,
+  requirePermission('create:payments'),
+  validateRequest({ body: schemas.adminPaymentChargeTemplateCreate }),
+  paymentController.createAdminPaymentChargeTemplate
+);
+router.patch(
+  '/payment-charges/templates/:id',
+  requireAuth,
+  requirePermission('update:payments'),
+  validateRequest({ params: schemas.idParam, body: schemas.adminPaymentChargeTemplateUpdate }),
+  paymentController.updateAdminPaymentChargeTemplate
+);
+router.post(
+  '/payment-charges/templates/:id/preview',
+  requireAuth,
+  requirePermission('read:all_payments'),
+  validateRequest({ params: schemas.idParam, body: schemas.adminPaymentChargeTemplatePreviewBody }),
+  paymentController.previewAdminPaymentChargeTemplate
+);
+router.post(
+  '/payment-charges/templates/:id/issue',
+  requireAuth,
+  requirePermission('create:payments'),
+  validateRequest({ params: schemas.idParam, body: schemas.adminPaymentChargeTemplatePreviewBody }),
+  paymentController.issueAdminPaymentChargeTemplate
+);
+router.get(
+  '/payment-charges/runs',
+  requireAuth,
+  requirePermission('read:all_payments'),
+  validateRequest({ query: schemas.adminPaymentChargeRunListQuery }),
+  paymentController.listAdminPaymentChargeRuns
+);
+router.get(
+  '/payment-charges/runs/:id',
+  requireAuth,
+  requirePermission('read:all_payments'),
+  validateRequest({ params: schemas.idParam }),
+  paymentController.getAdminPaymentChargeRunDetails
+);
+router.post(
+  '/payment-charges/run-due',
+  requireAuth,
+  requirePermission('create:payments'),
+  validateRequest({ body: schemas.adminPaymentChargeRunDueBody }),
+  paymentController.runDueAdminPaymentCharges
+);
 router.post(
   '/payments/generate',
   requireAuth,

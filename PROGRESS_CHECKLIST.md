@@ -451,6 +451,11 @@ Date: 2026-02-06
   - User payment entry/success flows now propagate `sourceType`, `sourceId`, and `obligationId` consistently across `paymentMethodScreen`, `mobileMoneyScreen`, `creditCardScreen`, `reviewPayScreen`, and `successScreen`.
   - Superadmin payment detail sidebar now reads real obligations for “Open Payment Obligations” instead of misclassifying transaction rows as pending dues.
   - Core superadmin payment cards/details now display `GH₵` formatting and recognize `initiated` / `processing` / `cancelled` / `expired` transaction states.
+- [x] Phase 30 payment charge management foundation implemented:
+  - Added migration `supabase/migrations/20260301153000_phase30_payment_charge_management.sql` to source-control the new billing-control schema already applied in Casa Nirvana (`payment_charge_templates`, `payment_charge_template_targets`, `payment_charge_runs`, and extended `payment_obligations` invoice fields).
+  - Backend now exposes admin charge-management APIs for catalog, template CRUD, preview, issue, run history, and manual scheduled-run execution (`/admin/payment-charges/*`).
+  - Superadmin now has a new operational page at `/payments/charges` with the full fee/charge catalog, agency/community-scoped template management, preview-and-issue workflow, and run/invoice visibility.
+  - New charge runs materialize directly into `payment_obligations`, so issued community charges flow into the user app `Pending` tab without extra client-side wiring.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)
