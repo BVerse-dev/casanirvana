@@ -82,6 +82,23 @@ const MobileMoneyScreen = ({ navigation, route }) => {
 
   const isRtl = i18n.dir() === "rtl";
 
+  const returnToPaymentOrigin = useCallback(() => {
+    setShowConfirmationModal(false);
+
+    const routeCount = navigation.getState?.()?.routes?.length || 0;
+    if (routeCount >= 3) {
+      navigation.pop(2);
+      return;
+    }
+
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return;
+    }
+
+    navigateHome();
+  }, [navigateHome, navigation]);
+
   const backAction = useCallback(() => {
     navigation.pop();
     return true;
@@ -221,6 +238,42 @@ const MobileMoneyScreen = ({ navigation, route }) => {
         return "payment";
     }
   };
+
+  const getPaymentDisplayName = () => {
+    if (bookingData?.amenityName) return bookingData.amenityName;
+    if (bookingData?.serviceName) return bookingData.serviceName;
+    if (bookingData?.serviceTitle) return bookingData.serviceTitle;
+    if (paymentData?.title) return paymentData.title;
+    if (paymentData?.description) return paymentData.description;
+    if (amountTitle) return amountTitle;
+    if (description) return description;
+    if (providerName && transactionType) return providerName;
+    return getTransactionLabel(transactionType || paymentData?.payment_type || bookingData?.type || "payment");
+  };
+
+  const buildConfirmationMessage = (status) => {
+    const paymentName = getPaymentDisplayName();
+
+    if (status === "completed") {
+      return `Your payment for ${paymentName} was completed successfully.`;
+    }
+
+    if (status === "pending") {
+      return `Your payment for ${paymentName} has been submitted and is awaiting mobile money confirmation.`;
+    }
+
+    return `A mobile money prompt for ${paymentName} has been sent to your phone. Approve it with your mobile money PIN to continue.`;
+  };
+
+  const modalAmount = formatMoney(
+    Number(
+      totalAmount ??
+      amount ??
+      bookingData?.totalAmount ??
+      paymentData?.amount ??
+      0
+    )
+  );
 
   const buildPersonalHubSuccessPayload = ({
     recordId,
@@ -892,8 +945,7 @@ const MobileMoneyScreen = ({ navigation, route }) => {
           if (confirmationStatus === "processing") {
             return;
           }
-          setShowConfirmationModal(false);
-          navigateHome();
+          returnToPaymentOrigin();
         }}
       >
         <View style={{
@@ -953,17 +1005,27 @@ const MobileMoneyScreen = ({ navigation, route }) => {
                     ? "Awaiting Confirmation"
                     : "Approve on Your Phone"}
               </Text>
+              <Text style={{
+                ...Fonts.SemiBold15black,
+                textAlign: "center",
+                marginTop: Default.fixPadding,
+              }}>
+                {getPaymentDisplayName()}
+              </Text>
+              <Text style={{
+                ...Fonts.SemiBold14primary,
+                textAlign: "center",
+                marginTop: Default.fixPadding * 0.4,
+              }}>
+                {modalAmount}
+              </Text>
               <Text style={{ 
                 ...Fonts.Medium14grey, 
                 textAlign: 'center',
                 marginTop: Default.fixPadding,
                 marginHorizontal: Default.fixPadding,
               }}>
-                {confirmationStatus === "completed"
-                  ? `Your ${getTransactionLabel(transactionType || paymentData?.payment_type || "booking")} was completed successfully.`
-                  : confirmationStatus === "pending"
-                    ? `Your ${getTransactionLabel(transactionType || paymentData?.payment_type || "booking")} has been submitted and is pending mobile money confirmation.`
-                    : "A payment prompt has been sent to your phone. Approve it with your mobile money PIN to continue."}
+                {buildConfirmationMessage(confirmationStatus)}
               </Text>
               {paymentReference ? (
                 <Text style={{
@@ -985,12 +1047,11 @@ const MobileMoneyScreen = ({ navigation, route }) => {
                   alignItems: 'center',
                 }}
                 onPress={() => {
-                  setShowConfirmationModal(false);
-                  navigateHome();
+                  returnToPaymentOrigin();
                 }}
               >
                 <Text style={{ ...Fonts.SemiBold16white }}>
-                  Done
+                  Okay
                 </Text>
               </TouchableOpacity>
             )}
