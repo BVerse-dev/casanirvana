@@ -456,6 +456,7 @@ Date: 2026-02-06
   - Backend now exposes admin charge-management APIs for catalog, template CRUD, preview, issue, run history, and manual scheduled-run execution (`/admin/payment-charges/*`).
   - Superadmin now has a new operational page at `/payments/charges` with the full fee/charge catalog, agency/community-scoped template management, preview-and-issue workflow, and run/invoice visibility.
   - New charge runs materialize directly into `payment_obligations`, so issued community charges flow into the user app `Pending` tab without extra client-side wiring.
+  - Added API-key protected internal automation endpoint `POST /internal/payment-charges/run-due` so scheduled billing runs can be triggered by production cron infrastructure without an authenticated browser session.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)
@@ -485,10 +486,12 @@ Date: 2026-02-06
 - [x] `GET /admin/payment-gateways/expresspay/config` (secure ExpressPay config read)
 - [x] `PUT /admin/payment-gateways/expresspay/config` (secure ExpressPay config upsert + Vault secret write)
 - [x] `POST /admin/payment-gateways/expresspay/test` (credential/connectivity test with persisted test status)
+- [x] `POST /internal/payment-charges/run-due` (API key protected scheduled charge-issuance trigger)
 
 ## Environment Variables (Required)
 - `ADMIN_INVITE_REDIRECT_URL`
 - `ONBOARDING_REQUEST_API_KEY`
+- `PAYMENT_CHARGE_CRON_API_KEY`
 - `NEXT_PUBLIC_ADMIN_SIGNUP_DISABLED=true`
 - `NEXT_PUBLIC_API_URL`
 

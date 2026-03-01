@@ -18,6 +18,7 @@ import uploadRoutes from './routes/upload';
 import adminRoutes from './routes/admin';
 import onboardingRoutes from './routes/onboarding';
 import accountRoutes from './routes/account';
+import internalRoutes from './routes/internal';
 
 // Enhanced routes with full field support
 import guardsRoutes from './routes/guards';
@@ -118,6 +119,7 @@ app.use('/', uploadRoutes);
 app.use('/admin', adminRateLimiter, adminRoutes); // Admin-specific routes
 app.use('/onboarding', onboardingRateLimiter, onboardingRoutes); // Public onboarding requests (API key protected)
 app.use('/account', authRateLimiter, accountRoutes); // User account self-service actions
+app.use('/internal', internalRoutes); // Internal API key protected automations
 
 // Enhanced routes with full field support
 app.use('/api/guards', guardsRoutes); // Enhanced guards management
