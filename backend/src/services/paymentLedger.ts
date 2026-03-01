@@ -127,6 +127,14 @@ const SOURCE_STATUS_TABLE_MAP: Record<string, SourceStatusConfig> = {
     processing: 'pending',
     touchUpdatedAt: false,
   },
+  service_request: {
+    table: 'service_requests',
+    statusField: 'payment_status',
+    completed: 'paid',
+    failed: 'failed',
+    processing: 'pending',
+    touchUpdatedAt: true,
+  },
   airtime_purchase: {
     table: 'airtime_purchases',
     statusField: 'status',

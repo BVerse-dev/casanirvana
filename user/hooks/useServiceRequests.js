@@ -26,6 +26,7 @@ const SERVICE_REQUEST_SELECT = `
   preferred_date,
   preferred_time,
   total_amount,
+  payment_status,
   assigned_to,
   created_at,
   updated_at,
@@ -172,6 +173,7 @@ export const useCreateServiceRequest = () => {
         preferred_date: preferredDate || null,
         preferred_time: toTimeString(preferredTime),
         total_amount: Number(totalAmount || 0),
+        payment_status: Number(totalAmount || 0) > 0 ? "pending" : "not_required",
         status: "pending",
       };
 

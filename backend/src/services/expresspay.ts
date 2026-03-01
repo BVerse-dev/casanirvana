@@ -638,29 +638,6 @@ const invokeExpressPayDirectCheckout = async (
       throw error;
     }
 
-    const numericResult = Number((json as JsonRecord).result);
-    const numericStatus = Number((json as JsonRecord).status);
-    const message = String(json['result-text'] || (json as JsonRecord).message || '').toLowerCase();
-
-    // Legacy fallback: if the documented endpoint returns a generic invalid request
-    // without a usable result payload, try the sample endpoint once before failing.
-    if (
-      index < attempts.length - 1 &&
-      (numericStatus === 3 || numericResult === 3) &&
-      (message.includes('invalid request') || message === '')
-    ) {
-      lastError = new ExpressPayGatewayError(
-        `ExpressPay direct checkout rejected by ${attempt.label}: ${String(
-          json['result-text'] || (json as JsonRecord).message || 'Invalid Request'
-        )}`,
-        {
-          ...asObject(json),
-          endpoint: attempt.label,
-        }
-      );
-      continue;
-    }
-
     return json;
   }
 
@@ -777,6 +754,7 @@ const PAYMENT_SOURCE_TABLES: Record<string, string | null> = {
   payment_obligation: 'payment_obligations',
   amenity_booking: 'amenity_bookings',
   service_booking: 'service_bookings',
+  service_request: 'service_requests',
   airtime_purchase: 'airtime_purchases',
   data_purchase: 'data_purchases',
   money_transfer: 'money_transfers',
@@ -885,12 +863,13 @@ const resolvePaymentSourceContext = async (input: InitiateExpressPayInput): Prom
       derivedCurrencyCode = obligationRecord.currency_code.trim().toUpperCase();
     }
 
-    if (
-      sourceType === 'payment_obligation' &&
-      typeof obligationRecord.source_type === 'string' &&
-      normalizePaymentSourceType(obligationRecord.source_type)
-    ) {
-      sourceType = normalizePaymentSourceType(obligationRecord.source_type);
+    const linkedSourceType =
+      typeof obligationRecord.source_type === 'string'
+        ? normalizePaymentSourceType(obligationRecord.source_type)
+        : null;
+
+    if (sourceType === 'payment_obligation' && linkedSourceType && linkedSourceType !== 'payment_obligation') {
+      sourceType = linkedSourceType;
       if (typeof obligationRecord.source_id === 'string' && obligationRecord.source_id.trim().length > 0) {
         sourceId = obligationRecord.source_id.trim();
       }
@@ -1108,25 +1087,19 @@ const buildDirectMobileMoneyCheckoutAttempts = ({
   config,
   token,
   payerPhone,
-  payerPhoneForProvider,
-  resolvedNetwork,
   requestedNetwork,
-  payerProfile,
   inputMetadata,
 }: {
   config: ExpressPayRuntimeConfig;
   token: string;
   payerPhone: string;
-  payerPhoneForProvider: string;
-  resolvedNetwork: string;
   requestedNetwork?: string | null;
-  payerProfile?: InitiateExpressPayInput['payerProfile'];
   inputMetadata: JsonRecord;
 }) => {
   const mobileAuthNetwork =
     getNestedString(inputMetadata, 'mobile_auth_network') ||
     getNestedString(inputMetadata, 'mobile_auth_token');
-  const legacyNetwork = resolveExpressPayLegacyMobileNetwork(requestedNetwork || resolvedNetwork);
+  const legacyNetwork = resolveExpressPayLegacyMobileNetwork(requestedNetwork);
 
   const submitParams = new URLSearchParams();
   submitParams.set('token', token);
@@ -1136,24 +1109,11 @@ const buildDirectMobileMoneyCheckoutAttempts = ({
     submitParams.set('mobile-auth-token', mobileAuthNetwork);
   }
 
-  const checkoutParams = new URLSearchParams();
-  checkoutParams.set('token', token);
-  checkoutParams.set('mobile-number', payerPhoneForProvider);
-  checkoutParams.set('mobile-network', resolvedNetwork);
-  if (mobileAuthNetwork) {
-    checkoutParams.set('mobile-auth-network', mobileAuthNetwork);
-  }
-
   return [
     {
       url: config.submitUrl,
       label: 'submit.php',
       payload: submitParams,
-    },
-    {
-      url: config.checkoutUrl,
-      label: 'checkout.php',
-      payload: checkoutParams,
     },
   ];
 };
@@ -1332,10 +1292,7 @@ export const initiateExpressPayPayment = async (
           config,
           token,
           payerPhone,
-          payerPhoneForProvider,
-          resolvedNetwork,
           requestedNetwork,
-          payerProfile: input.payerProfile,
           inputMetadata,
         })
       );

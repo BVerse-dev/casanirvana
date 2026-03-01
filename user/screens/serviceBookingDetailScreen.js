@@ -71,7 +71,8 @@ const ServiceBookingDetailScreen = ({ navigation, route }) => {
         start_time: dbRequest.preferred_time,
         confirmedBy: dbRequest.assigned_to || "Pending",
         status: dbRequest.status || "pending",
-        payment_status: Number(dbRequest.total_amount || 0) > 0 ? "pending" : "not_required",
+        payment_status:
+          dbRequest.payment_status || (Number(dbRequest.total_amount || 0) > 0 ? "pending" : "not_required"),
         price: `GHS ${Number(dbRequest.total_amount || dbRequest?.services?.base_price || 0).toFixed(2)}`,
         totalAmount: Number(dbRequest.total_amount || dbRequest?.services?.base_price || 0),
         description: dbRequest.description || dbRequest.request_details || "",
@@ -653,7 +654,7 @@ const ServiceBookingDetailScreen = ({ navigation, route }) => {
               onPress={() => {
                 navigation.navigate("paymentMethodScreen", {
                   bookingId: effectiveBooking.id,
-                  sourceType: "service_booking",
+                  sourceType: "service_request",
                   sourceId: effectiveBooking.id,
                   bookingType: "service",
                   bookingData: {

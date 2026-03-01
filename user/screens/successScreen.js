@@ -109,6 +109,7 @@ const SuccessScreen = ({ navigation, route }) => {
       case "amenity_booking":
         return "Amenity Booking";
       case "service_booking":
+      case "service_request":
         return "Service Booking";
       case "airtime":
         return "Airtime Purchase";
@@ -128,7 +129,7 @@ const SuccessScreen = ({ navigation, route }) => {
   }, [resolvedSourceType]);
 
   const receiptData = useMemo(() => {
-    if (bookingType === "service_booking") {
+    if (bookingType === "service_booking" || resolvedSourceType === "service_request") {
       return [
         {
           key: "1",
@@ -253,6 +254,7 @@ const SuccessScreen = ({ navigation, route }) => {
     resolvedPaidOn,
     resolvedPaymentMethod,
     resolvedReferenceId,
+    resolvedSourceType,
     resolvedTransactionLabel,
     resolvedTransactionId,
   ]);
