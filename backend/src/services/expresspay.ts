@@ -905,6 +905,14 @@ const buildDirectMobileMoneyCheckoutAttempts = ({
     getNestedString(inputMetadata, 'mobile_auth_token');
   const legacyNetwork = resolveExpressPayLegacyMobileNetwork(requestedNetwork || resolvedNetwork);
 
+  const submitParams = new URLSearchParams();
+  submitParams.set('token', token);
+  submitParams.set('mobile-number', payerPhone);
+  submitParams.set('mobile-network', legacyNetwork || 'MTN');
+  if (mobileAuthNetwork) {
+    submitParams.set('mobile-auth-token', mobileAuthNetwork);
+  }
+
   const checkoutParams = new URLSearchParams();
   checkoutParams.set('token', token);
   checkoutParams.set('mobile-number', payerPhoneForProvider);
@@ -913,28 +921,16 @@ const buildDirectMobileMoneyCheckoutAttempts = ({
     checkoutParams.set('mobile-auth-network', mobileAuthNetwork);
   }
 
-  const submitParams = new URLSearchParams();
-  submitParams.set('merchant-id', config.merchantId);
-  submitParams.set('api-key', config.apiKey);
-  submitParams.set('token', token);
-  submitParams.set('mobile-money-number', payerPhone);
-  submitParams.set('mobile-money-network', legacyNetwork || 'MTN');
-  submitParams.set('email', payerProfile?.email || 'resident@casanirvana.app');
-  submitParams.set('phoneNumber', payerPhone);
-  if (mobileAuthNetwork) {
-    submitParams.set('mobile-auth-token', mobileAuthNetwork);
-  }
-
   return [
-    {
-      url: config.checkoutUrl,
-      label: 'checkout.php',
-      payload: checkoutParams,
-    },
     {
       url: config.submitUrl,
       label: 'submit.php',
       payload: submitParams,
+    },
+    {
+      url: config.checkoutUrl,
+      label: 'checkout.php',
+      payload: checkoutParams,
     },
   ];
 };
@@ -1049,34 +1045,36 @@ export const initiateExpressPayPayment = async (
       directSubmitParams.set('post-url', config.directPostUrl);
 
       let directSubmitResponse: SubmitResponse;
-      let directSubmitTransport: 'direct_submit' | 'submit_fallback' = 'direct_submit';
+      let directSubmitTransport: 'standard_submit' | 'direct_submit' | 'submit_fallback' = 'standard_submit';
       let directSubmitPrimaryError: JsonRecord | null = null;
 
       try {
-        directSubmitResponse = await invokeExpressPayDirectSubmit(config, directSubmitParams);
+        directSubmitResponse = await invokeExpressPaySubmit(
+          config,
+          buildSubmitFallbackParams({
+            config,
+            input,
+            orderId,
+            formattedAmount,
+          })
+        );
       } catch (error: unknown) {
         const providerErrorDetails =
           error instanceof ExpressPayGatewayError && error.details ? error.details : null;
         const providerStatus = Number(providerErrorDetails?.status);
 
         // ExpressPay's Merchant Direct API docs are internally inconsistent:
-        // the endpoint table documents /api/direct/submit.php, while the sample
-        // request posts the same payload to /api/submit.php. In practice, some
-        // sandbox configs reject the direct endpoint with status 3 (Invalid Request)
-        // but accept the standard submit endpoint for the same tokenization step.
+        // the endpoint table documents /api/direct/submit.php, while the official
+        // sample uses /api/submit.php for token creation. We follow the sample
+        // first because it includes the customer fields that the MoMo step
+        // subsequently validates. Keep the direct endpoint only as a last resort.
         if (providerStatus !== 3) {
           throw error;
         }
 
         directSubmitPrimaryError = providerErrorDetails;
-        const submitFallbackParams = buildSubmitFallbackParams({
-          config,
-          input,
-          orderId,
-          formattedAmount,
-        });
-        directSubmitResponse = await invokeExpressPaySubmit(config, submitFallbackParams);
-        directSubmitTransport = 'submit_fallback';
+        directSubmitResponse = await invokeExpressPayDirectSubmit(config, directSubmitParams);
+        directSubmitTransport = 'direct_submit';
       }
 
       const token = String(directSubmitResponse.token).trim();
