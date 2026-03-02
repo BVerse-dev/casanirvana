@@ -565,6 +565,10 @@ Date: 2026-02-06
   - `/settings/general` now preserves the current navigation-card UI while removing misleading hardcoded numeric badges; the cards now describe live settings workspaces instead of claiming fake counts.
   - `/settings/system` now keeps the existing route-launcher layout but uses a consistent page title and honest copy aligned to the live system overview and settings workspaces.
   - Removed stale duplicate settings artifacts that were no longer part of the active settings flow: `page.tsx.new`, `page_new.tsx`, and `page-new.tsx` variants under admin/security, app/splash, and general/integrations.
+- [x] Phase 33 tenant-settings IA cleanup completed:
+  - The Settings menu now exposes a single `Tenant Configuration` group instead of operational `Guard Settings`, `Community Settings`, and `Agency Settings` workspaces.
+  - Added `/settings/guards/configuration` as the new config-only tenant page, using backend-managed settings persistence while preserving the current settings UI patterns.
+  - Legacy operational guard, community, and agency settings routes were converted into branded relocation shells that point users to the correct operational modules and back to the surviving config-only settings pages.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)
