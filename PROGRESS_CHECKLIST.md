@@ -475,6 +475,13 @@ Date: 2026-02-06
   - A fully reserved payment cannot be reserved twice.
   - `mark_paid` moves linked payments to `paid_out` and clears reserved amounts.
   - `cancel` / `reject` / `fail` all release reserved amounts back to `available`.
+- [x] Phase 33 settings hardening slice completed (security-first, UI preserved):
+  - SMTP settings are now backend-mediated through `/admin/settings/smtp`; browser writes to `app_settings` were removed from the SMTP flow, sensitive values are masked on read, and connection tests are now real server-side socket checks instead of mock delays.
+  - Integration settings are now backend-mediated through `/admin/settings/integrations`; browser writes to `app_settings` were removed from the integrations flow, sensitive values are masked on read, and test actions now run deterministic server-side validation instead of simulated success/failure.
+  - Added secure backend settings controller/service for SMTP + integrations (`backend/src/controllers/adminSecureSettings.ts`, `backend/src/services/adminSecureSettings.ts`) and the supporting validation schemas/routes.
+  - Added shared authenticated superadmin admin-API helpers (`superadmin/src/hooks/useAdminApi.ts`) and replaced duplicated direct-fetch logic in the affected settings hooks.
+  - Application settings cleanup started without changing the existing visual design: `/settings/app`, `/settings/app/splash`, `/settings/app/onboarding`, and `/settings/app/urls` now load/save via backend-managed `system_settings` using the new shared `useSettingsCategory` hook, replacing simulated saves while preserving the current tabs/cards/layout.
+  - Production defaults in the legacy application settings flow were normalized to the current product direction (`Community`, `Africa/Accra`, `GHS`, `GH₵`) instead of older legacy placeholders.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)

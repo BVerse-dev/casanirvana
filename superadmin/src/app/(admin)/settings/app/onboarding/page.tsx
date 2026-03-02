@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardBody, CardHeader, CardTitle, Button, Alert, Row, Col, Form, Table, Badge } from 'react-bootstrap';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import PageTitle from '@/components/PageTitle';
-import { useUploadFile, useDeleteFile, StorageBucket } from '@/hooks/useFileUpload';
+import { useUploadFile, StorageBucket } from '@/hooks/useFileUpload';
+import { useSettingsCategory } from '@/hooks/useSettingsCategory';
 
 // Onboarding step validation schema
 const onboardingStepSchema = yup.object({
@@ -40,22 +41,25 @@ const animationOptions = [
 
 export default function OnboardingSettingsPage() {
   const [showAlert, setShowAlert] = useState<{ type: 'success' | 'danger'; message: string } | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // File upload hooks
-  const uploadFileMutation = useUploadFile();
-  const deleteFileMutation = useDeleteFile();
-
-  const { control, handleSubmit, watch, formState: { errors } } = useForm<OnboardingSettingsFormData>({
-    resolver: yupResolver(onboardingSettingsSchema),
-    defaultValues: {
+  const {
+    data: onboardingSettings,
+    isLoading,
+    error,
+    saveSettingsAsync,
+    isSaving,
+  } = useSettingsCategory<OnboardingSettingsFormData>({
+    queryKey: ['application-settings', 'onboarding'],
+    category: 'application',
+    subcategory: 'onboarding',
+    defaults: {
       onboarding_enabled: true,
       skip_enabled: true,
       steps: [
         {
           title: 'Welcome to Casa Nirvana',
           subtitle: 'Your Smart Community App',
-          description: 'Manage your community life with ease. Connect with community members, book amenities, and stay updated.',
+          description:
+            'Manage your community life with ease. Connect with community members, book amenities, and stay updated.',
           image_url: null,
           animation_type: 'fadeIn',
           order: 1,
@@ -83,12 +87,32 @@ export default function OnboardingSettingsPage() {
     },
   });
 
+  // File upload hooks
+  const uploadFileMutation = useUploadFile();
+
+  const { control, handleSubmit, watch, reset, setValue, formState: { errors } } = useForm<OnboardingSettingsFormData>({
+    resolver: yupResolver(onboardingSettingsSchema),
+    defaultValues: onboardingSettings,
+  });
+
   const { fields, append, remove, move } = useFieldArray({
     control,
     name: 'steps',
   });
 
   const watchedValues = watch();
+
+  useEffect(() => {
+    if (onboardingSettings) {
+      reset(onboardingSettings);
+    }
+  }, [onboardingSettings, reset]);
+
+  useEffect(() => {
+    if (error) {
+      setShowAlert({ type: 'danger', message: 'Failed to load onboarding settings. Please refresh the page.' });
+    }
+  }, [error]);
 
   const handleImageUpload = async (stepIndex: number, file: File) => {
     try {
@@ -117,19 +141,14 @@ export default function OnboardingSettingsPage() {
   };
 
   const onSubmit = async (data: OnboardingSettingsFormData) => {
-    setIsSubmitting(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      console.log('Onboarding settings:', data);
+      await saveSettingsAsync(data);
       setShowAlert({ type: 'success', message: 'Onboarding settings updated successfully!' });
       setTimeout(() => setShowAlert(null), 5000);
     } catch (error) {
       console.error('Error updating onboarding settings:', error);
       setShowAlert({ type: 'danger', message: 'Failed to update onboarding settings. Please try again.' });
       setTimeout(() => setShowAlert(null), 5000);
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -143,6 +162,14 @@ export default function OnboardingSettingsPage() {
         </Alert>
       )}
 
+      {isLoading ? (
+        <div className="text-center py-5">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+          <p className="mt-3 text-muted">Loading onboarding settings...</p>
+        </div>
+      ) : (
       <form onSubmit={handleSubmit(onSubmit)}>
         <Row>
           <Col xl={8}>
@@ -345,7 +372,26 @@ export default function OnboardingSettingsPage() {
                             <Col md={6}>
                               <Form.Group className="mb-3">
                                 <Form.Label>Step Image</Form.Label>
-                                <Form.Control type="file" accept="image/*" />
+                                <Form.Control
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={async (event) => {
+                                    const file = event.target.files?.[0];
+                                    if (!file) return;
+                                    try {
+                                      const imageUrl = await handleImageUpload(index, file);
+                                      setValue(`steps.${index}.image_url`, imageUrl, { shouldDirty: true });
+                                    } catch {
+                                      setShowAlert({
+                                        type: 'danger',
+                                        message: `Failed to upload image for Step ${index + 1}. Please try again.`,
+                                      });
+                                      setTimeout(() => setShowAlert(null), 5000);
+                                    } finally {
+                                      event.target.value = '';
+                                    }
+                                  }}
+                                />
                                 <Form.Text className="text-muted">
                                   Recommended size: 300x300 pixels
                                 </Form.Text>
@@ -461,9 +507,9 @@ export default function OnboardingSettingsPage() {
           <Button 
             type="submit" 
             variant="primary" 
-            disabled={isSubmitting}
+            disabled={isSaving}
           >
-            {isSubmitting && (
+            {isSaving && (
               <div className="spinner-border spinner-border-sm me-2" role="status">
                 <span className="visually-hidden">Loading...</span>
               </div>
@@ -472,6 +518,7 @@ export default function OnboardingSettingsPage() {
           </Button>
         </div>
       </form>
+      )}
     </>
   );
 }

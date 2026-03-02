@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardBody, CardHeader, CardTitle, Button, Alert, Row, Col, Form } from 'react-bootstrap';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -10,6 +10,7 @@ import TextFormInput from '@/components/from/TextFormInput';
 import TextAreaFormInput from '@/components/from/TextAreaFormInput';
 import SelectFormInput from '@/components/from/SelectFormInput';
 import IconifyIcon from '@/components/wrappers/IconifyIcon';
+import { useSettingsCategory } from '@/hooks/useSettingsCategory';
 
 // Form validation schema
 const appSettingsSchema = yup.object({
@@ -52,22 +53,29 @@ interface AppSettingsFormData {
 
 const AppSettingsPage = () => {
   const [showAlert, setShowAlert] = useState<{ type: 'success' | 'danger'; message: string } | null>(null);
-
-  const { control, handleSubmit, reset, formState: { isDirty, isSubmitting } } = useForm<AppSettingsFormData>({
-    resolver: yupResolver(appSettingsSchema),
-    defaultValues: {
+  const {
+    data: appSettings,
+    isLoading,
+    error,
+    saveSettingsAsync,
+    isSaving,
+  } = useSettingsCategory<AppSettingsFormData>({
+    queryKey: ['application-settings', 'legacy-app'],
+    category: 'application',
+    subcategory: 'legacy-app',
+    defaults: {
       app_name: 'Casa Nirvana',
-      app_description: 'Complete Society Management System',
+      app_description: 'Complete Community Management System',
       app_version: '1.0.0',
-      company_name: 'Casa Nirvana Technologies',
-      company_address: '123 Tech Park, Bangalore, Karnataka 560001',
-      company_phone: '+91 80 1234 5678',
+      company_name: 'Casa Nirvana',
+      company_address: 'Accra, Ghana',
+      company_phone: '+233 20 000 0000',
       company_email: 'admin@casanirvana.com',
-      timezone: 'Asia/Kolkata',
+      timezone: 'Africa/Accra',
       date_format: 'dd/MM/yyyy',
       time_format: '24h',
-      currency_code: 'INR',
-      currency_symbol: '$',
+      currency_code: 'GHS',
+      currency_symbol: 'GH₵',
       enable_analytics: true,
       enable_error_reporting: true,
       maintenance_mode: false,
@@ -75,11 +83,26 @@ const AppSettingsPage = () => {
     },
   });
 
+  const { control, handleSubmit, reset, register, formState: { isDirty } } = useForm<AppSettingsFormData>({
+    resolver: yupResolver(appSettingsSchema),
+    defaultValues: appSettings,
+  });
+
+  useEffect(() => {
+    if (appSettings) {
+      reset(appSettings);
+    }
+  }, [appSettings, reset]);
+
+  useEffect(() => {
+    if (error) {
+      setShowAlert({ type: 'danger', message: 'Failed to load app settings. Please refresh the page.' });
+    }
+  }, [error]);
+
   const onSubmit = async (data: AppSettingsFormData) => {
     try {
-      // Mock save operation - replace with actual Supabase call later
-      console.log('Saving app settings:', data);
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+      await saveSettingsAsync(data);
       
       setShowAlert({ type: 'success', message: 'App settings updated successfully!' });
       setTimeout(() => setShowAlert(null), 5000);
@@ -91,11 +114,11 @@ const AppSettingsPage = () => {
   };
 
   const timezoneOptions = [
-    { value: 'Asia/Kolkata', label: 'Asia/Kolkata (IST)' },
+    { value: 'Africa/Accra', label: 'Africa/Accra (GMT)' },
     { value: 'UTC', label: 'UTC' },
     { value: 'America/New_York', label: 'America/New_York (EST)' },
     { value: 'Europe/London', label: 'Europe/London (GMT)' },
-    { value: 'Asia/Dubai', label: 'Asia/Dubai (GST)' },
+    { value: 'Africa/Lagos', label: 'Africa/Lagos (WAT)' },
   ];
 
   const dateFormatOptions = [
@@ -111,11 +134,11 @@ const AppSettingsPage = () => {
   ];
 
   const currencyOptions = [
-    { value: 'INR', label: 'Indian Rupee ($)' },
+    { value: 'GHS', label: 'Ghana Cedi (GH₵)' },
     { value: 'USD', label: 'US Dollar ($)' },
     { value: 'EUR', label: 'Euro (€)' },
     { value: 'GBP', label: 'British Pound (£)' },
-    { value: 'AED', label: 'UAE Dirham (د.إ)' },
+    { value: 'NGN', label: 'Nigerian Naira (₦)' },
   ];
 
   return (
@@ -132,6 +155,14 @@ const AppSettingsPage = () => {
         </Alert>
       )}
 
+      {isLoading ? (
+        <div className="text-center py-5">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+          <p className="mt-3 text-muted">Loading app settings...</p>
+        </div>
+      ) : (
       <form onSubmit={handleSubmit(onSubmit)}>
         <Row>
           <Col xl={6}>
@@ -158,7 +189,7 @@ const AppSettingsPage = () => {
                       control={control}
                       name="app_description"
                       label="Application Description"
-                      placeholder="Complete Society Management System"
+                      placeholder="Complete Community Management System"
                       rows={3}
                       containerClassName="mb-3"
                     />
@@ -201,7 +232,7 @@ const AppSettingsPage = () => {
                       control={control}
                       name="company_address"
                       label="Company Address"
-                      placeholder="123 Tech Park, Bangalore, Karnataka 560001"
+                      placeholder="Accra, Ghana"
                       rows={3}
                       containerClassName="mb-3"
                     />
@@ -283,7 +314,7 @@ const AppSettingsPage = () => {
                       control={control}
                       name="currency_symbol"
                       label="Currency Symbol"
-                      placeholder="$"
+                      placeholder="GH₵"
                       containerClassName="mb-3"
                     />
                   </Col>
@@ -308,7 +339,7 @@ const AppSettingsPage = () => {
                         type="switch"
                         id="enable_analytics"
                         label="Enable Analytics"
-                        {...control.register('enable_analytics')}
+                        {...register('enable_analytics')}
                       />
                       <Form.Text className="text-muted">
                         Collect anonymous usage statistics to improve the application
@@ -321,7 +352,7 @@ const AppSettingsPage = () => {
                         type="switch"
                         id="enable_error_reporting"
                         label="Enable Error Reporting"
-                        {...control.register('enable_error_reporting')}
+                        {...register('enable_error_reporting')}
                       />
                       <Form.Text className="text-muted">
                         Automatically report errors to help improve stability
@@ -334,7 +365,7 @@ const AppSettingsPage = () => {
                         type="switch"
                         id="maintenance_mode"
                         label="Maintenance Mode"
-                        {...control.register('maintenance_mode')}
+                        {...register('maintenance_mode')}
                       />
                       <Form.Text className="text-muted">
                         <strong className="text-warning">Caution:</strong> This will make the app unavailable to users
@@ -347,7 +378,7 @@ const AppSettingsPage = () => {
                         type="switch"
                         id="debug_mode"
                         label="Debug Mode"
-                        {...control.register('debug_mode')}
+                        {...register('debug_mode')}
                       />
                       <Form.Text className="text-muted">
                         Enable detailed logging for troubleshooting (affects performance)
@@ -368,7 +399,7 @@ const AppSettingsPage = () => {
                   <Button 
                     variant="secondary" 
                     onClick={() => reset()}
-                    disabled={!isDirty || isSubmitting}
+                    disabled={!isDirty || isSaving}
                   >
                     <IconifyIcon icon="ri:refresh-line" className="me-1" />
                     Reset
@@ -376,9 +407,9 @@ const AppSettingsPage = () => {
                   <Button 
                     variant="primary" 
                     type="submit"
-                    disabled={!isDirty || isSubmitting}
+                    disabled={!isDirty || isSaving}
                   >
-                    {isSubmitting ? (
+                    {isSaving ? (
                       <>
                         <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
                         Saving...
@@ -396,6 +427,7 @@ const AppSettingsPage = () => {
           </Col>
         </Row>
       </form>
+      )}
     </>
   );
 };

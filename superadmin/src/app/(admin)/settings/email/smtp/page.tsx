@@ -38,8 +38,8 @@ const SmtpSettingsPage = () => {
     isLoadingData,
     isUpdating,
     isTesting,
-    updateSettings,
-    testConnection,
+    updateSettingsAsync,
+    testConnectionAsync,
     loadError,
     updateError,
     testError,
@@ -47,7 +47,7 @@ const SmtpSettingsPage = () => {
     testResult,
   } = useSmtpSettings();
 
-  const { control, handleSubmit, reset, getValues, formState: { isDirty, isSubmitting } } = useForm<SmtpSettingsFormData>({
+  const { control, handleSubmit, reset, getValues, register, formState: { isDirty, isSubmitting } } = useForm<SmtpSettingsFormData>({
     resolver: yupResolver(smtpSettingsSchema),
     defaultValues: {
       smtp_host: 'smtp.gmail.com',
@@ -111,7 +111,7 @@ const SmtpSettingsPage = () => {
       setShowAlert(null);
       
       // Update settings via the hook
-      updateSettings(data);
+      await updateSettingsAsync(data);
     } catch (error) {
       console.error('Error submitting SMTP settings:', error);
       setShowAlert({ type: 'danger', message: 'Failed to update SMTP settings' });
@@ -125,7 +125,7 @@ const SmtpSettingsPage = () => {
       setShowAlert(null);
       
       // Test connection via the hook
-      testConnection(currentValues as SmtpSettings);
+      await testConnectionAsync(currentValues as SmtpSettings);
     } catch (error) {
       console.error('Error testing SMTP connection:', error);
       setShowAlert({ type: 'danger', message: 'Failed to test SMTP connection' });
@@ -280,7 +280,7 @@ const SmtpSettingsPage = () => {
                         className="form-check-input"
                         type="checkbox"
                         id="smtp_enable_ssl"
-                        {...control.register('smtp_enable_ssl')}
+                        {...register('smtp_enable_ssl')}
                       />
                       <label className="form-check-label" htmlFor="smtp_enable_ssl">
                         Enable SSL
@@ -296,7 +296,7 @@ const SmtpSettingsPage = () => {
                         className="form-check-input"
                         type="checkbox"
                         id="smtp_enable_tls"
-                        {...control.register('smtp_enable_tls')}
+                        {...register('smtp_enable_tls')}
                       />
                       <label className="form-check-label" htmlFor="smtp_enable_tls">
                         Enable TLS
@@ -312,7 +312,7 @@ const SmtpSettingsPage = () => {
                         className="form-check-input"
                         type="checkbox"
                         id="smtp_test_mode"
-                        {...control.register('smtp_test_mode')}
+                        {...register('smtp_test_mode')}
                       />
                       <label className="form-check-label" htmlFor="smtp_test_mode">
                         Test Mode

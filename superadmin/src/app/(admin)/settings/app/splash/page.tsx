@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Card, CardBody, CardHeader, CardTitle, Button, Alert, Row, Col, Form, Image } from 'react-bootstrap';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import PageTitle from '@/components/PageTitle';
-import { useUploadFile, useDeleteFile, StorageBucket, getFileUrl } from '@/hooks/useFileUpload';
+import { useUploadFile, useDeleteFile, StorageBucket } from '@/hooks/useFileUpload';
+import { useSettingsCategory } from '@/hooks/useSettingsCategory';
 
 // Comprehensive form validation schema
 const splashSettingsSchema = yup.object({
@@ -23,6 +24,7 @@ const splashSettingsSchema = yup.object({
   splash_logo_enabled: yup.boolean().required('Logo setting is required'),
   splash_loading_indicator: yup.boolean().required('Loading indicator setting is required'),
   splash_image_url: yup.string().nullable(),
+  splash_image_path: yup.string().nullable(),
 });
 
 type SplashSettingsFormData = yup.InferType<typeof splashSettingsSchema>;
@@ -38,18 +40,20 @@ const animationOptions = [
 
 export default function SplashSettingsPage() {
   const [showAlert, setShowAlert] = useState<{ type: 'success' | 'danger'; message: string } | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
   const [currentImagePath, setCurrentImagePath] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // File upload hooks
-  const uploadFileMutation = useUploadFile();
-  const deleteFileMutation = useDeleteFile();
-
-  const { control, handleSubmit, watch, setValue, formState: { errors } } = useForm<SplashSettingsFormData>({
-    resolver: yupResolver(splashSettingsSchema),
-    defaultValues: {
+  const {
+    data: splashSettings,
+    isLoading,
+    error,
+    saveSettingsAsync,
+    isSaving,
+  } = useSettingsCategory<SplashSettingsFormData>({
+    queryKey: ['application-settings', 'splash'],
+    category: 'application',
+    subcategory: 'splash',
+    defaults: {
       splash_enabled: true,
       splash_duration: 3000,
       splash_title: 'Casa Nirvana',
@@ -60,10 +64,33 @@ export default function SplashSettingsPage() {
       splash_logo_enabled: true,
       splash_loading_indicator: true,
       splash_image_url: null,
+      splash_image_path: null,
     },
   });
 
+  // File upload hooks
+  const uploadFileMutation = useUploadFile();
+  const deleteFileMutation = useDeleteFile();
+
+  const { control, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm<SplashSettingsFormData>({
+    resolver: yupResolver(splashSettingsSchema),
+    defaultValues: splashSettings,
+  });
+
   const watchedValues = watch();
+
+  useEffect(() => {
+    if (!splashSettings) return;
+    reset(splashSettings);
+    setUploadedImageUrl(splashSettings.splash_image_url || null);
+    setCurrentImagePath(splashSettings.splash_image_path || null);
+  }, [splashSettings, reset]);
+
+  useEffect(() => {
+    if (error) {
+      setShowAlert({ type: 'danger', message: 'Failed to load splash settings. Please refresh the page.' });
+    }
+  }, [error]);
 
   // Handle image file selection
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -101,6 +128,7 @@ export default function SplashSettingsPage() {
       setUploadedImageUrl(result.url);
       setCurrentImagePath(result.path);
       setValue('splash_image_url', result.url);
+      setValue('splash_image_path', result.path);
       setShowAlert({ type: 'success', message: 'Image uploaded successfully!' });
       setTimeout(() => setShowAlert(null), 3000);
     } catch (error) {
@@ -123,6 +151,7 @@ export default function SplashSettingsPage() {
       setUploadedImageUrl(null);
       setCurrentImagePath(null);
       setValue('splash_image_url', null);
+      setValue('splash_image_path', null);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -136,21 +165,13 @@ export default function SplashSettingsPage() {
   };
 
   const onSubmit = async (data: SplashSettingsFormData) => {
-    setIsSubmitting(true);
     try {
-      // Include uploaded image URL in the data
       const settingsData = {
         ...data,
         splash_image_url: uploadedImageUrl || data.splash_image_url,
         splash_image_path: currentImagePath,
       };
-
-      // TODO: Replace with actual API call to save settings
-      // await updateSplashSettings(settingsData);
-      
-      // Simulate API call for now
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      console.log('Splash settings:', settingsData);
+      await saveSettingsAsync(settingsData);
       
       setShowAlert({ type: 'success', message: 'Splash screen settings updated successfully!' });
       setTimeout(() => setShowAlert(null), 5000);
@@ -158,8 +179,6 @@ export default function SplashSettingsPage() {
       console.error('Error updating splash settings:', error);
       setShowAlert({ type: 'danger', message: 'Failed to update splash screen settings. Please try again.' });
       setTimeout(() => setShowAlert(null), 5000);
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -173,6 +192,14 @@ export default function SplashSettingsPage() {
         </Alert>
       )}
 
+      {isLoading ? (
+        <div className="text-center py-5">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+          <p className="mt-3 text-muted">Loading splash settings...</p>
+        </div>
+      ) : (
       <form onSubmit={handleSubmit(onSubmit)}>
         <Row>
           <Col xl={8}>
@@ -539,9 +566,9 @@ export default function SplashSettingsPage() {
           <Button 
             type="submit" 
             variant="primary" 
-            disabled={isSubmitting}
+            disabled={isSaving}
           >
-            {isSubmitting && (
+            {isSaving && (
               <div className="spinner-border spinner-border-sm me-2" role="status">
                 <span className="visually-hidden">Loading...</span>
               </div>
@@ -550,6 +577,7 @@ export default function SplashSettingsPage() {
           </Button>
         </div>
       </form>
+      )}
     </>
   );
 }

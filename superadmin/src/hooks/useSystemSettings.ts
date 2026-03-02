@@ -1,37 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useSession } from 'next-auth/react';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-
-const useAdminFetch = () => {
-  const { data: session } = useSession();
-  const token = session?.accessToken as string | undefined;
-
-  const fetchAdmin = async (path: string, options: RequestInit = {}) => {
-    if (!token) {
-      throw new Error('Missing admin session. Please sign in again.');
-    }
-
-    const response = await fetch(`${API_BASE_URL}${path}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-        ...options.headers,
-      },
-    });
-
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      throw new Error(payload.error || payload.message || 'Request failed');
-    }
-    return payload;
-  };
-
-  return { fetchAdmin, hasToken: !!token };
-};
+import { useAdminApi } from './useAdminApi';
 
 // Types for system settings
 export interface SystemSetting {
@@ -121,7 +91,7 @@ export interface SystemConfigData {
 
 // Fetch all system settings
 export const useSystemSettings = () => {
-  const { fetchAdmin, hasToken } = useAdminFetch();
+  const { fetchAdmin, hasToken } = useAdminApi();
   return useQuery({
     queryKey: ['system-settings'],
     queryFn: async () => {
@@ -138,7 +108,7 @@ export const useSystemSettings = () => {
 
 // Fetch system settings by category
 export const useSystemSettingsByCategory = (category: string) => {
-  const { fetchAdmin, hasToken } = useAdminFetch();
+  const { fetchAdmin, hasToken } = useAdminApi();
   return useQuery({
     queryKey: ['system-settings', 'category', category],
     queryFn: async () => {
@@ -158,7 +128,7 @@ export const useSystemSettingsByCategory = (category: string) => {
 // Update system settings
 export const useUpdateSystemSettings = () => {
   const queryClient = useQueryClient();
-  const { fetchAdmin } = useAdminFetch();
+  const { fetchAdmin } = useAdminApi();
 
   return useMutation({
     mutationFn: async (settingsData: Record<string, any>) => {
@@ -178,7 +148,7 @@ export const useUpdateSystemSettings = () => {
 
 // Get specific system setting by key
 export const useSystemSetting = (key: string) => {
-  const { fetchAdmin, hasToken } = useAdminFetch();
+  const { fetchAdmin, hasToken } = useAdminApi();
   return useQuery({
     queryKey: ['system-settings', key],
     queryFn: async () => {
@@ -195,7 +165,7 @@ export const useSystemSetting = (key: string) => {
 // Update single system setting
 export const useUpdateSystemSetting = () => {
   const queryClient = useQueryClient();
-  const { fetchAdmin } = useAdminFetch();
+  const { fetchAdmin } = useAdminApi();
 
   return useMutation({
     mutationFn: async ({ 

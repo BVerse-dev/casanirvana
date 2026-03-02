@@ -1,7 +1,7 @@
 
-  'use client';
+'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
@@ -18,6 +18,7 @@ import {
   Table,
 } from 'react-bootstrap';
 import PageTitle from '@/components/PageTitle';
+import { useSettingsCategory } from '@/hooks/useSettingsCategory';
 
 // Validation schema for URL redirects
 const urlRedirectSchema = yup.object({
@@ -90,24 +91,26 @@ const availableScreens = [
 
 export default function AppUrlsSettingsPage() {
   const [showAlert, setShowAlert] = useState<{ type: 'success' | 'danger'; message: string } | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const { control, handleSubmit, watch, formState: { errors } } = useForm<UrlSettingsFormData>({
-    resolver: yupResolver(urlSettingsSchema),
-    defaultValues: {
+  const {
+    data: urlSettings,
+    isLoading,
+    error,
+    saveSettingsAsync,
+    isSaving,
+  } = useSettingsCategory<UrlSettingsFormData>({
+    queryKey: ['application-settings', 'urls'],
+    category: 'application',
+    subcategory: 'urls',
+    defaults: {
       base_url: 'https://app.casanirvana.com',
       api_url: 'https://api.casanirvana.com',
       websocket_url: 'wss://ws.casanirvana.com',
-      
       deep_linking_enabled: true,
       url_scheme: 'casanirvana',
       universal_links_enabled: true,
-      
       ios_app_store_url: 'https://apps.apple.com/app/casa-nirvana/id123456789',
       android_play_store_url: 'https://play.google.com/store/apps/details?id=com.casanirvana.app',
-      
       share_base_url: 'https://share.casanirvana.com',
-      
       url_redirects: [
         {
           name: 'Legacy Dashboard',
@@ -139,6 +142,11 @@ export default function AppUrlsSettingsPage() {
     },
   });
 
+  const { control, handleSubmit, watch, reset, formState: { errors } } = useForm<UrlSettingsFormData>({
+    resolver: yupResolver(urlSettingsSchema),
+    defaultValues: urlSettings,
+  });
+
   const {
     fields: redirectFields,
     append: appendRedirect,
@@ -159,20 +167,27 @@ export default function AppUrlsSettingsPage() {
 
   const watchedValues = watch();
 
+  useEffect(() => {
+    if (urlSettings) {
+      reset(urlSettings);
+    }
+  }, [urlSettings, reset]);
+
+  useEffect(() => {
+    if (error) {
+      setShowAlert({ type: 'danger', message: 'Failed to load URL settings. Please refresh the page.' });
+    }
+  }, [error]);
+
   const onSubmit = async (data: UrlSettingsFormData) => {
-    setIsSubmitting(true);
     try {
-      // Simulate API call for now
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      console.log('URL settings:', data);
+      await saveSettingsAsync(data);
       setShowAlert({ type: 'success', message: 'URL settings updated successfully!' });
       setTimeout(() => setShowAlert(null), 5000);
     } catch (error) {
       console.error('Error updating URL settings:', error);
       setShowAlert({ type: 'danger', message: 'Failed to update URL settings. Please try again.' });
       setTimeout(() => setShowAlert(null), 5000);
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -208,6 +223,14 @@ export default function AppUrlsSettingsPage() {
         </Alert>
       )}
 
+      {isLoading ? (
+        <div className="text-center py-5">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+          <p className="mt-3 text-muted">Loading URL settings...</p>
+        </div>
+      ) : (
       <form onSubmit={handleSubmit(onSubmit)}>
         <Row>
           <Col xl={12}>
@@ -674,9 +697,9 @@ export default function AppUrlsSettingsPage() {
           <Button 
             type="submit" 
             variant="primary" 
-            disabled={isSubmitting}
+            disabled={isSaving}
           >
-            {isSubmitting && (
+            {isSaving && (
               <div className="spinner-border spinner-border-sm me-2" role="status">
                 <span className="visually-hidden">Loading...</span>
               </div>
@@ -685,6 +708,7 @@ export default function AppUrlsSettingsPage() {
           </Button>
         </div>
       </form>
+      )}
     </>
   );
 }

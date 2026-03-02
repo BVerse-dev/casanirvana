@@ -15,6 +15,7 @@ import * as adminNotificationsController from '../controllers/adminNotifications
 import * as complaintController from '../controllers/complaint';
 import * as paymentController from '../controllers/payment';
 import * as adminPaymentGatewayController from '../controllers/adminPaymentGateway';
+import * as adminSecureSettingsController from '../controllers/adminSecureSettings';
 
 const router = express.Router();
 
@@ -488,6 +489,46 @@ router.post(
 
 // Settings routes (superadmin only)
 router.get('/settings', requireAuth, requirePermission('manage:settings'), adminController.getSettings);
+router.get(
+  '/settings/smtp',
+  requireAuth,
+  requirePermission('manage:settings'),
+  adminSecureSettingsController.getSmtpSettings
+);
+router.put(
+  '/settings/smtp',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ body: schemas.adminSmtpSettingsUpdate }),
+  adminSecureSettingsController.updateSmtpSettings
+);
+router.post(
+  '/settings/smtp/test',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ body: schemas.adminSmtpSettingsTest }),
+  adminSecureSettingsController.testSmtpSettings
+);
+router.get(
+  '/settings/integrations',
+  requireAuth,
+  requirePermission('manage:settings'),
+  adminSecureSettingsController.getIntegrationSettings
+);
+router.put(
+  '/settings/integrations',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ body: schemas.adminIntegrationSettingsUpdate }),
+  adminSecureSettingsController.updateIntegrationSettings
+);
+router.post(
+  '/settings/integrations/test',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ body: schemas.adminIntegrationSettingsTest }),
+  adminSecureSettingsController.testIntegrationSettings
+);
 router.put(
   '/settings',
   requireAuth,

@@ -302,8 +302,9 @@ const IntegrationsPage = () => {
     data: configData, 
     isLoading: isLoadingData, 
     error: dataError, 
-    updateConfig, 
-    isUpdating 
+    updateConfigAsync, 
+    isUpdating,
+    testIntegrationAsync,
   } = useIntegrationSettings();
 
   const { control, handleSubmit, watch, setValue, reset, formState: { errors, isDirty } } = useForm<IntegrationConfigFormData>({
@@ -375,14 +376,14 @@ const IntegrationsPage = () => {
 
   const onSubmit = async (data: IntegrationConfigFormData) => {
     try {
-      await updateConfig(data);
+      await updateConfigAsync(data);
     } catch (error: any) {
       console.error('Error updating integration config:', error);
     }
   };
 
-  const testIntegrationConnection = async (service: string, apiKey: string) => {
-    if (!apiKey) {
+  const testIntegrationConnection = async (service: string, configuredValue: string) => {
+    if (!configuredValue) {
       toast.error('Please enter an API key first');
       return;
     }
@@ -390,22 +391,14 @@ const IntegrationsPage = () => {
     setTestResults(prev => ({ ...prev, [service]: 'testing' }));
     
     try {
-      // Mock API test - replace with actual integration testing logic
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Simulate random success/failure for demo
-      const isSuccess = Math.random() > 0.3;
-      
-      if (isSuccess) {
+      const result = await testIntegrationAsync({ service, value: configuredValue });
+      if (result.success) {
         setTestResults(prev => ({ ...prev, [service]: 'success' }));
-        toast.success(`${service.replace('_', ' ')} connection successful!`);
       } else {
         setTestResults(prev => ({ ...prev, [service]: 'error' }));
-        toast.error(`${service.replace('_', ' ')} connection failed. Please check your API key.`);
       }
     } catch (error) {
       setTestResults(prev => ({ ...prev, [service]: 'error' }));
-      toast.error(`${service.replace('_', ' ')} connection failed. Please check your API key.`);
     }
   };
 
