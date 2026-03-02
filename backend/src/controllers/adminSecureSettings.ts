@@ -1,10 +1,16 @@
 import { Request, Response, NextFunction } from 'express';
 import {
   getAdminIntegrationSettings,
+  getAdminPaymentFeeSettings,
+  getAdminPaymentGatewaySettings,
+  getAdminPaymentMethodSettings,
   getAdminPushSettings,
   getAdminSmsSettings,
   getAdminSmtpSettings,
   saveAdminIntegrationSettings,
+  saveAdminPaymentFeeSettings,
+  saveAdminPaymentGatewaySettings,
+  saveAdminPaymentMethodSettings,
   saveAdminPushSettings,
   saveAdminSmsSettings,
   saveAdminSmtpSettings,
@@ -118,6 +124,60 @@ export async function testSmsSettings(req: Request, res: Response, next: NextFun
   try {
     const result = await testAdminSmsSettings(req.body || {});
     res.json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getPaymentGatewaySettings(req: Request, res: Response, next: NextFunction) {
+  try {
+    const settings = await getAdminPaymentGatewaySettings();
+    res.json({ settings });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updatePaymentGatewaySettings(req: Request, res: Response, next: NextFunction) {
+  try {
+    const settings = await saveAdminPaymentGatewaySettings(req.body || {}, req.user?.id ?? null);
+    res.json({ settings });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getPaymentMethodSettings(req: Request, res: Response, next: NextFunction) {
+  try {
+    const settings = await getAdminPaymentMethodSettings();
+    res.json({ settings });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updatePaymentMethodSettings(req: Request, res: Response, next: NextFunction) {
+  try {
+    const settings = await saveAdminPaymentMethodSettings(req.body || {}, req.user?.id ?? null);
+    res.json({ settings });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getPaymentFeeSettings(req: Request, res: Response, next: NextFunction) {
+  try {
+    const settings = await getAdminPaymentFeeSettings();
+    res.json({ settings });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updatePaymentFeeSettings(req: Request, res: Response, next: NextFunction) {
+  try {
+    const settings = await saveAdminPaymentFeeSettings(req.body || {}, req.user?.id ?? null);
+    res.json({ settings });
   } catch (error) {
     next(error);
   }

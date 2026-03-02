@@ -11,7 +11,7 @@ import TextFormInput from '@/components/from/TextFormInput';
 import SelectFormInput from '@/components/from/SelectFormInput';
 
 // Hooks
-import usePaymentFeeSettings from '@/hooks/usePaymentFeeSettings';
+import usePaymentFeeSettings, { PaymentFeeSettings } from '@/hooks/usePaymentFeeSettings';
 
 const schema = yup.object({
   // Transaction Fees
@@ -64,7 +64,7 @@ const PaymentFeesPage = () => {
     formState: { errors },
     reset,
     watch,
-  } = useForm({
+  } = useForm<PaymentFeeSettings>({
     resolver: yupResolver(schema),
     defaultValues: {
       // Transaction Fees
@@ -72,11 +72,11 @@ const PaymentFeesPage = () => {
       credit_card_fee_fixed: settings?.credit_card_fee_fixed ?? 0,
       debit_card_fee_percentage: settings?.debit_card_fee_percentage ?? 1.5,
       debit_card_fee_fixed: settings?.debit_card_fee_fixed ?? 0,
-      upi_fee_percentage: settings?.upi_fee_percentage ?? 0,
-      upi_fee_fixed: settings?.upi_fee_fixed ?? 0,
+      expresspay_fee_percentage: settings?.expresspay_fee_percentage ?? 0,
+      expresspay_fee_fixed: settings?.expresspay_fee_fixed ?? 0,
       net_banking_fee_percentage: settings?.net_banking_fee_percentage ?? 1.0,
       net_banking_fee_fixed: settings?.net_banking_fee_fixed ?? 0,
-      wallet_fee_percentage: settings?.wallet_fee_percentage ?? 1.0,
+      wallet_fee_percentage: settings?.wallet_fee_percentage ?? 0,
       wallet_fee_fixed: settings?.wallet_fee_fixed ?? 0,
 
       // Processing Fees
@@ -118,11 +118,11 @@ const PaymentFeesPage = () => {
         credit_card_fee_fixed: settings.credit_card_fee_fixed ?? 0,
         debit_card_fee_percentage: settings.debit_card_fee_percentage ?? 1.5,
         debit_card_fee_fixed: settings.debit_card_fee_fixed ?? 0,
-        upi_fee_percentage: settings.upi_fee_percentage ?? 0,
-        upi_fee_fixed: settings.upi_fee_fixed ?? 0,
+        expresspay_fee_percentage: settings.expresspay_fee_percentage ?? 0,
+        expresspay_fee_fixed: settings.expresspay_fee_fixed ?? 0,
         net_banking_fee_percentage: settings.net_banking_fee_percentage ?? 1.0,
         net_banking_fee_fixed: settings.net_banking_fee_fixed ?? 0,
-        wallet_fee_percentage: settings.wallet_fee_percentage ?? 1.0,
+        wallet_fee_percentage: settings.wallet_fee_percentage ?? 0,
         wallet_fee_fixed: settings.wallet_fee_fixed ?? 0,
 
         // Processing Fees
@@ -151,7 +151,7 @@ const PaymentFeesPage = () => {
     }
   }, [settings, reset]);
 
-  const onSubmit = (data: any) => {
+  const onSubmit = (data: PaymentFeeSettings) => {
     updateSettings(data);
   };
 
@@ -170,7 +170,7 @@ const PaymentFeesPage = () => {
 
   const paymentMethods = [
     { 
-      name: 'Credit Card', 
+      name: 'Credit / Debit Card', 
       percentageField: 'credit_card_fee_percentage' as const, 
       fixedField: 'credit_card_fee_fixed' as const, 
       icon: 'ri-bank-card-line' 
@@ -194,7 +194,7 @@ const PaymentFeesPage = () => {
       icon: 'ri-bank-line' 
     },
     { 
-      name: 'Digital Wallet', 
+      name: 'PayPal (Deferred)', 
       percentageField: 'wallet_fee_percentage' as const, 
       fixedField: 'wallet_fee_fixed' as const, 
       icon: 'ri-wallet-line' 
@@ -228,7 +228,7 @@ const PaymentFeesPage = () => {
             <Card>
               <CardHeader>
                 <h5 className="card-title mb-0">
-                  <i className="ri-money-rupee-circle-line me-2"></i>
+                  <i className="ri-money-dollar-circle-line me-2"></i>
                   Transaction Fees by Payment Method
                 </h5>
               </CardHeader>
@@ -239,7 +239,7 @@ const PaymentFeesPage = () => {
                       <tr>
                         <th>Payment Method</th>
                         <th>Percentage Fee (%)</th>
-                        <th>Fixed Fee ($)</th>
+                        <th>Fixed Fee (GH₵)</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -327,7 +327,7 @@ const PaymentFeesPage = () => {
 
                     <TextFormInput
                       name="processing_fee_fixed"
-                      label="Fixed Processing Fee ($)"
+                      label="Fixed Processing Fee (GH₵)"
                       type="number"
                       step="0.01"
                       min="0"
@@ -338,7 +338,7 @@ const PaymentFeesPage = () => {
 
                     <TextFormInput
                       name="processing_fee_max_amount"
-                      label="Maximum Processing Fee ($)"
+                      label="Maximum Processing Fee (GH₵)"
                       type="number"
                       step="0.01"
                       min="0"
@@ -394,7 +394,7 @@ const PaymentFeesPage = () => {
 
                     <TextFormInput
                       name="convenience_fee_fixed"
-                      label="Fixed Convenience Fee ($)"
+                      label="Fixed Convenience Fee (GH₵)"
                       type="number"
                       step="0.01"
                       min="0"
@@ -452,7 +452,7 @@ const PaymentFeesPage = () => {
 
                     <TextFormInput
                       name="late_payment_fee_fixed"
-                      label="Fixed Late Fee ($)"
+                      label="Fixed Late Fee (GH₵)"
                       type="number"
                       step="0.01"
                       min="0"
@@ -505,7 +505,7 @@ const PaymentFeesPage = () => {
 
                 <TextFormInput
                   name="minimum_fee_amount"
-                  label="Minimum Fee Amount ($)"
+                  label="Minimum Fee Amount (GH₵)"
                   type="number"
                   step="0.01"
                   min="0"
@@ -516,7 +516,7 @@ const PaymentFeesPage = () => {
 
                 <TextFormInput
                   name="maximum_fee_amount"
-                  label="Maximum Fee Amount ($)"
+                  label="Maximum Fee Amount (GH₵)"
                   type="number"
                   step="0.01"
                   min="0"

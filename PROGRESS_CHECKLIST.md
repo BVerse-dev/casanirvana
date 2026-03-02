@@ -495,6 +495,11 @@ Date: 2026-02-06
   - `/settings/notifications/sms` now uses secure backend admin routes (`/admin/settings/sms`) for load/save/test, removing direct browser writes to `app_settings`, replacing simulated test behavior, and aligning legacy defaults to the Ghana production scope (`+233`).
   - `/settings/notifications/in-app` now uses backend-managed `system_settings` (`notifications/in_app`) through the shared settings pattern instead of writing directly to the legacy `in_app_notification_settings` table.
   - `/settings/notifications/rules` now keeps the current rules/grid/tabs UI but persists rule definitions through backend-managed `system_settings` (`notification_rules/definitions`) instead of local-only mock state.
+- [x] Phase 33 payment-settings continuation completed:
+  - `/settings/payment/gateways`, `/settings/payment/methods`, and `/settings/payment/fees` now preserve the existing visual layout while loading/saving through backend admin routes instead of direct browser writes to `app_settings`.
+  - Added backend-managed payment settings endpoints for the legacy payment settings cluster: `/admin/settings/payment-gateways`, `/admin/settings/payment-methods`, and `/admin/settings/payment-fees`.
+  - Server-side saves now mirror these categories to both `system_settings` (canonical admin path) and the legacy `app_settings` categories needed by existing payment runtime services, so settings changes remain production-safe without breaking the current payment flows.
+  - `/settings/payment/fees` was cleaned up to remove stale UPI placeholders and align fee labels/icons with the current Ghana production scope (`GH₵`, `ExpressPay`, `PayPal (Deferred)`).
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)

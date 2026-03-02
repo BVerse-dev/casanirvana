@@ -569,6 +569,45 @@ router.post(
   validateRequest({ body: schemas.adminSmsSettingsTest }),
   adminSecureSettingsController.testSmsSettings
 );
+router.get(
+  '/settings/payment-gateways',
+  requireAuth,
+  requirePermission('manage:settings'),
+  adminSecureSettingsController.getPaymentGatewaySettings
+);
+router.put(
+  '/settings/payment-gateways',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ body: schemas.adminPaymentGatewaySettingsUpdate }),
+  adminSecureSettingsController.updatePaymentGatewaySettings
+);
+router.get(
+  '/settings/payment-methods',
+  requireAuth,
+  requirePermission('manage:settings'),
+  adminSecureSettingsController.getPaymentMethodSettings
+);
+router.put(
+  '/settings/payment-methods',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ body: schemas.adminPaymentMethodSettingsUpdate }),
+  adminSecureSettingsController.updatePaymentMethodSettings
+);
+router.get(
+  '/settings/payment-fees',
+  requireAuth,
+  requirePermission('manage:settings'),
+  adminSecureSettingsController.getPaymentFeeSettings
+);
+router.put(
+  '/settings/payment-fees',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ body: schemas.adminPaymentFeeSettingsUpdate }),
+  adminSecureSettingsController.updatePaymentFeeSettings
+);
 router.put(
   '/settings',
   requireAuth,

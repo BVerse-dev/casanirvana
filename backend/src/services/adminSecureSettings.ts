@@ -205,6 +205,176 @@ const SMS_DESCRIPTIONS: Record<string, string> = {
   enable_emergency_sms: 'Enable emergency SMS',
 };
 
+const PAYMENT_GATEWAY_DEFAULTS = {
+  razorpay_enabled: false,
+  razorpay_key_id: '',
+  razorpay_key_secret: '',
+  razorpay_webhook_secret: '',
+  razorpay_mode: 'test',
+  stripe_enabled: false,
+  stripe_publishable_key: '',
+  stripe_secret_key: '',
+  stripe_webhook_secret: '',
+  stripe_mode: 'test',
+  paypal_enabled: false,
+  paypal_client_id: '',
+  paypal_client_secret: '',
+  paypal_webhook_id: '',
+  paypal_mode: 'sandbox',
+  paytm_enabled: false,
+  paytm_merchant_id: '',
+  paytm_merchant_key: '',
+  paytm_website: '',
+  paytm_mode: 'test',
+  bank_transfer_enabled: false,
+  bank_name: '',
+  account_number: '',
+  ifsc_code: '',
+  account_holder_name: '',
+  payment_currency: 'GHS',
+  payment_timeout: 15,
+  auto_refund_enabled: false,
+  partial_payment_enabled: false,
+} satisfies SettingsMap;
+
+const PAYMENT_GATEWAY_SENSITIVE_KEYS = new Set<string>([
+  'razorpay_key_secret',
+  'stripe_secret_key',
+  'paypal_client_secret',
+  'paytm_merchant_key',
+  'account_number',
+]);
+
+const PAYMENT_GATEWAY_DESCRIPTIONS: Record<string, string> = {
+  razorpay_enabled: 'Enable the legacy Razorpay gateway toggle',
+  razorpay_key_id: 'Razorpay key id',
+  razorpay_key_secret: 'Razorpay key secret',
+  razorpay_webhook_secret: 'Razorpay webhook secret',
+  razorpay_mode: 'Razorpay mode (test or live)',
+  stripe_enabled: 'Enable the legacy Stripe gateway toggle',
+  stripe_publishable_key: 'Stripe publishable key',
+  stripe_secret_key: 'Stripe secret key',
+  stripe_webhook_secret: 'Stripe webhook secret',
+  stripe_mode: 'Stripe mode (test or live)',
+  paypal_enabled: 'Enable the legacy PayPal gateway toggle',
+  paypal_client_id: 'PayPal client id',
+  paypal_client_secret: 'PayPal client secret',
+  paypal_webhook_id: 'PayPal webhook id',
+  paypal_mode: 'PayPal mode (sandbox or live)',
+  paytm_enabled: 'Enable the legacy Paytm gateway toggle',
+  paytm_merchant_id: 'Paytm merchant id',
+  paytm_merchant_key: 'Paytm merchant key',
+  paytm_website: 'Paytm website parameter',
+  paytm_mode: 'Paytm mode (test or live)',
+  bank_transfer_enabled: 'Enable bank transfer instructions',
+  bank_name: 'Bank transfer bank name',
+  account_number: 'Bank transfer account number',
+  ifsc_code: 'Bank transfer routing code',
+  account_holder_name: 'Bank transfer account holder name',
+  payment_currency: 'Default payment currency',
+  payment_timeout: 'Payment timeout in minutes',
+  auto_refund_enabled: 'Automatically refund failed captures when supported',
+  partial_payment_enabled: 'Allow partial bill payments',
+};
+
+const PAYMENT_METHOD_DEFAULTS = {
+  credit_card_enabled: true,
+  debit_card_enabled: true,
+  net_banking_enabled: false,
+  expresspay_enabled: true,
+  wallet_enabled: false,
+  bank_transfer_enabled: false,
+  cash_enabled: false,
+  cheque_enabled: false,
+  min_payment_amount: 1,
+  max_payment_amount: 100000,
+  daily_payment_limit: 50000,
+  monthly_payment_limit: 500000,
+  auto_capture_enabled: true,
+  partial_payments_enabled: false,
+  recurring_payments_enabled: true,
+  refund_enabled: true,
+  payment_instructions: '',
+  payment_terms: '',
+} satisfies SettingsMap;
+
+const PAYMENT_METHOD_DESCRIPTIONS: Record<string, string> = {
+  credit_card_enabled: 'Enable Credit / Debit Card hosted checkout',
+  debit_card_enabled: 'Reserved debit card specific toggle',
+  net_banking_enabled: 'Reserved net banking toggle',
+  expresspay_enabled: 'Enable Mobile Money (ExpressPay) checkout',
+  wallet_enabled: 'Keep PayPal disabled until future rollout',
+  bank_transfer_enabled: 'Enable bank transfer method',
+  cash_enabled: 'Enable cash collection method',
+  cheque_enabled: 'Enable cheque collection method',
+  min_payment_amount: 'Minimum allowed payment amount',
+  max_payment_amount: 'Maximum allowed payment amount',
+  daily_payment_limit: 'Daily payment limit per payer',
+  monthly_payment_limit: 'Monthly payment limit per payer',
+  auto_capture_enabled: 'Automatically capture successful payments',
+  partial_payments_enabled: 'Allow partial settlement of obligations',
+  recurring_payments_enabled: 'Allow recurring payment schedules',
+  refund_enabled: 'Allow payment refunds',
+  payment_instructions: 'User-facing payment instructions',
+  payment_terms: 'User-facing payment terms',
+};
+
+const PAYMENT_FEE_DEFAULTS = {
+  credit_card_fee_percentage: 2.5,
+  credit_card_fee_fixed: 0,
+  debit_card_fee_percentage: 1.5,
+  debit_card_fee_fixed: 0,
+  expresspay_fee_percentage: 0,
+  expresspay_fee_fixed: 0,
+  net_banking_fee_percentage: 1,
+  net_banking_fee_fixed: 0,
+  wallet_fee_percentage: 0,
+  wallet_fee_fixed: 0,
+  processing_fee_enabled: false,
+  processing_fee_percentage: 1,
+  processing_fee_fixed: 5,
+  processing_fee_max_amount: 100,
+  convenience_fee_enabled: false,
+  convenience_fee_percentage: 1,
+  convenience_fee_fixed: 10,
+  late_payment_fee_enabled: true,
+  late_payment_fee_percentage: 2,
+  late_payment_fee_fixed: 50,
+  late_payment_grace_period: 7,
+  fee_bearer: 'customer',
+  fee_calculation_method: 'percentage_plus_fixed',
+  minimum_fee_amount: 1,
+  maximum_fee_amount: 500,
+} satisfies SettingsMap;
+
+const PAYMENT_FEE_DESCRIPTIONS: Record<string, string> = {
+  credit_card_fee_percentage: 'Credit / Debit Card fee percentage',
+  credit_card_fee_fixed: 'Credit / Debit Card fixed fee amount',
+  debit_card_fee_percentage: 'Reserved debit card fee percentage',
+  debit_card_fee_fixed: 'Reserved debit card fixed fee amount',
+  expresspay_fee_percentage: 'Mobile Money (ExpressPay) fee percentage',
+  expresspay_fee_fixed: 'Mobile Money (ExpressPay) fixed fee amount',
+  net_banking_fee_percentage: 'Net banking fee percentage',
+  net_banking_fee_fixed: 'Net banking fixed fee amount',
+  wallet_fee_percentage: 'Deferred wallet fee percentage',
+  wallet_fee_fixed: 'Deferred wallet fixed fee amount',
+  processing_fee_enabled: 'Enable processing fees',
+  processing_fee_percentage: 'Processing fee percentage',
+  processing_fee_fixed: 'Processing fixed fee amount',
+  processing_fee_max_amount: 'Maximum processing fee amount',
+  convenience_fee_enabled: 'Enable convenience fees',
+  convenience_fee_percentage: 'Convenience fee percentage',
+  convenience_fee_fixed: 'Convenience fixed fee amount',
+  late_payment_fee_enabled: 'Enable late payment fees',
+  late_payment_fee_percentage: 'Late fee percentage',
+  late_payment_fee_fixed: 'Fixed late fee amount',
+  late_payment_grace_period: 'Late fee grace period in days',
+  fee_bearer: 'Which party bears payment fees',
+  fee_calculation_method: 'Fee calculation method',
+  minimum_fee_amount: 'Minimum fee amount',
+  maximum_fee_amount: 'Maximum fee amount',
+};
+
 type SystemSettingRow = {
   key: string;
   value: string;
@@ -452,6 +622,24 @@ async function upsertSettingsCategory(
   return settings;
 }
 
+async function mirrorLegacyAppSettingsCategory(
+  category: string,
+  settings: SettingsMap,
+  descriptions: Record<string, string>
+) {
+  const rows = Object.entries(settings).map(([key, value]) => ({
+    category,
+    key,
+    value: serializeValue(value),
+    description: descriptions[key] ?? null,
+  }));
+
+  const { error } = await supabase.from('app_settings').upsert(rows, { onConflict: 'key' });
+  if (error) {
+    throw new Error(`Failed to mirror ${category} settings`);
+  }
+}
+
 function validateUrl(value: string) {
   try {
     new URL(value);
@@ -692,4 +880,64 @@ export async function testAdminSmsSettings(input: Record<string, unknown>) {
     success: true,
     message: 'SMS provider configuration is valid. Deliverability depends on your active provider account and sender configuration.',
   };
+}
+
+export async function getAdminPaymentGatewaySettings() {
+  const settings = await loadSettings('payment_gateways', PAYMENT_GATEWAY_DEFAULTS);
+  return maskSensitiveValues(settings, PAYMENT_GATEWAY_SENSITIVE_KEYS);
+}
+
+export async function saveAdminPaymentGatewaySettings(input: Record<string, unknown>, updatedBy?: string | null) {
+  const current = await loadSettings('payment_gateways', PAYMENT_GATEWAY_DEFAULTS);
+  const merged = mergeSubmittedSettings(
+    input,
+    current,
+    PAYMENT_GATEWAY_DEFAULTS,
+    PAYMENT_GATEWAY_SENSITIVE_KEYS
+  );
+  const saved = await upsertSettingsCategory(
+    'payment_gateways',
+    merged,
+    PAYMENT_GATEWAY_DESCRIPTIONS,
+    PAYMENT_GATEWAY_SENSITIVE_KEYS,
+    updatedBy
+  );
+  await mirrorLegacyAppSettingsCategory('payment_gateways', saved, PAYMENT_GATEWAY_DESCRIPTIONS);
+  return maskSensitiveValues(saved, PAYMENT_GATEWAY_SENSITIVE_KEYS);
+}
+
+export async function getAdminPaymentMethodSettings() {
+  return loadSettings('payment_methods', PAYMENT_METHOD_DEFAULTS);
+}
+
+export async function saveAdminPaymentMethodSettings(input: Record<string, unknown>, updatedBy?: string | null) {
+  const current = await loadSettings('payment_methods', PAYMENT_METHOD_DEFAULTS);
+  const merged = mergeSubmittedSettings(input, current, PAYMENT_METHOD_DEFAULTS, new Set<string>());
+  const saved = await upsertSettingsCategory(
+    'payment_methods',
+    merged,
+    PAYMENT_METHOD_DESCRIPTIONS,
+    new Set<string>(),
+    updatedBy
+  );
+  await mirrorLegacyAppSettingsCategory('payment_methods', saved, PAYMENT_METHOD_DESCRIPTIONS);
+  return saved;
+}
+
+export async function getAdminPaymentFeeSettings() {
+  return loadSettings('payment_fees', PAYMENT_FEE_DEFAULTS);
+}
+
+export async function saveAdminPaymentFeeSettings(input: Record<string, unknown>, updatedBy?: string | null) {
+  const current = await loadSettings('payment_fees', PAYMENT_FEE_DEFAULTS);
+  const merged = mergeSubmittedSettings(input, current, PAYMENT_FEE_DEFAULTS, new Set<string>());
+  const saved = await upsertSettingsCategory(
+    'payment_fees',
+    merged,
+    PAYMENT_FEE_DESCRIPTIONS,
+    new Set<string>(),
+    updatedBy
+  );
+  await mirrorLegacyAppSettingsCategory('payment_fees', saved, PAYMENT_FEE_DESCRIPTIONS);
+  return saved;
 }
