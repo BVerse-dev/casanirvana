@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
@@ -23,6 +23,7 @@ import {
 } from 'react-bootstrap';
 import PageTitle from '@/components/PageTitle';
 import IconifyIcon from '@/components/wrappers/IconifyIcon';
+import { useSettingsCategory } from '@/hooks/useSettingsCategory';
 
 // Validation schema for extensions
 const extensionSchema = yup.object({
@@ -58,6 +59,71 @@ const extensionsSettingsSchema = yup.object({
 
 type ExtensionsSettingsFormData = yup.InferType<typeof extensionsSettingsSchema>;
 
+const defaultInstalledExtensions: NonNullable<ExtensionsSettingsFormData['installed_extensions']> = [
+  {
+    name: 'ExpressPay Gateway Connector',
+    description: 'Official ExpressPay checkout and settlement connector',
+    version: '1.0.0',
+    author: 'Casa Nirvana Team',
+    enabled: true,
+    settings: {
+      mode: 'test',
+      provider: 'expresspay',
+    },
+    dependencies: ['payment-core'],
+  },
+  {
+    name: 'Notification Router',
+    description: 'Routes in-app, email, and SMS notifications through the platform pipeline',
+    version: '1.4.0',
+    author: 'Casa Nirvana Team',
+    enabled: true,
+    settings: {
+      channels: ['in_app', 'email', 'sms'],
+      priority: 'high',
+    },
+    dependencies: ['notification-core'],
+  },
+  {
+    name: 'Backup & Restore',
+    description: 'Automated daily backups to cloud storage',
+    version: '1.1.5',
+    author: 'Casa Nirvana Team',
+    enabled: false,
+    settings: {
+      backup_frequency: 'daily',
+      storage_provider: 'aws-s3',
+    },
+    dependencies: [],
+  },
+];
+
+const defaultExtensionsSettings: ExtensionsSettingsFormData = {
+  allow_third_party_extensions: true,
+  auto_update_extensions: false,
+  extension_security_scan: true,
+  marketplace_enabled: true,
+  marketplace_url: 'https://marketplace.casanirvana.com',
+  api_key_required: true,
+  debug_mode: false,
+  allow_custom_extensions: false,
+  extension_logging: true,
+  installed_extensions: defaultInstalledExtensions,
+};
+
+const extensionSettingDescriptions = {
+  allow_third_party_extensions: 'Allow installation of approved third-party extensions from trusted sources.',
+  auto_update_extensions: 'Automatically apply vetted extension updates during maintenance windows.',
+  extension_security_scan: 'Run automated security checks before enabling extension changes.',
+  marketplace_enabled: 'Enable the managed extension marketplace within the platform.',
+  marketplace_url: 'Marketplace endpoint used by the superadmin dashboard.',
+  api_key_required: 'Require authenticated API access for extension integrations.',
+  debug_mode: 'Expose additional extension diagnostic logging for administrators.',
+  allow_custom_extensions: 'Permit custom in-house extensions in addition to marketplace packages.',
+  extension_logging: 'Persist extension activity logs for support and audit purposes.',
+  installed_extensions: 'Installed extension inventory and enablement state.',
+};
+
 // Available extension categories
 const extensionCategories = [
   { label: 'All', value: 'all' },
@@ -72,7 +138,7 @@ const extensionCategories = [
 // Sample marketplace extensions
 const marketplaceExtensions = [
   {
-    id: 'whatsapp-integration',
+    id: 'whatsapp-business',
     name: 'WhatsApp Business Integration',
     description: 'Send automated messages and notifications via WhatsApp Business API',
     version: '2.1.0',
@@ -84,15 +150,15 @@ const marketplaceExtensions = [
     installed: false,
   },
   {
-    id: 'paytm-gateway',
-    name: 'Paytm Payment Gateway',
-    description: 'Accept payments through Paytm payment gateway',
-    version: '1.5.2',
-    author: 'Paytm',
+    id: 'expresspay-toolkit',
+    name: 'ExpressPay Gateway Toolkit',
+    description: 'Managed ExpressPay checkout, webhooks, and payout tooling for community billing',
+    version: '1.0.0',
+    author: 'Casa Nirvana Team',
     category: 'payment',
     price: 'Free',
-    rating: 4.5,
-    downloads: 890,
+    rating: 4.9,
+    downloads: 1340,
     installed: true,
   },
   {
@@ -108,13 +174,13 @@ const marketplaceExtensions = [
     installed: false,
   },
   {
-    id: 'facial-recognition',
-    name: 'Facial Recognition System',
-    description: 'Advanced facial recognition for visitor management',
+    id: 'visitor-face-verification',
+    name: 'Visitor Face Verification',
+    description: 'Face verification add-on for gated visitor and access workflows',
     version: '1.2.0',
     author: 'SecureVision',
     category: 'security',
-    price: '$2,999/month',
+    price: 'Contact Sales',
     rating: 4.6,
     downloads: 340,
     installed: false,
@@ -128,64 +194,21 @@ export default function ExtensionsSettingsPage() {
   const [showExtensionModal, setShowExtensionModal] = useState(false);
   const [selectedExtension, setSelectedExtension] = useState<any>(null);
 
-  const { control, handleSubmit, watch, formState: { errors } } = useForm<ExtensionsSettingsFormData>({
+  const {
+    data: settingsData,
+    isLoading,
+    saveSettingsAsync,
+  } = useSettingsCategory<ExtensionsSettingsFormData>({
+    queryKey: ['settings', 'application', 'extensions'],
+    category: 'application',
+    subcategory: 'extensions',
+    defaults: defaultExtensionsSettings,
+    descriptions: extensionSettingDescriptions,
+  });
+
+  const { control, handleSubmit, reset, watch, formState: { errors } } = useForm<ExtensionsSettingsFormData>({
     resolver: yupResolver(extensionsSettingsSchema),
-    defaultValues: {
-      // Global Extension Settings
-      allow_third_party_extensions: true,
-      auto_update_extensions: false,
-      extension_security_scan: true,
-      
-      // Marketplace Settings
-      marketplace_enabled: true,
-      marketplace_url: 'https://marketplace.casanirvana.com',
-      api_key_required: true,
-      
-      // Developer Settings
-      debug_mode: false,
-      allow_custom_extensions: false,
-      extension_logging: true,
-      
-      // Installed Extensions
-      installed_extensions: [
-        {
-          name: 'Razorpay Payment Gateway',
-          description: 'Official Razorpay payment integration',
-          version: '2.0.1',
-          author: 'Razorpay',
-          enabled: true,
-          settings: {
-            test_mode: false,
-            webhook_url: 'https://api.casanirvana.com/webhooks/razorpay',
-          },
-          dependencies: ['payment-core'],
-        },
-        {
-          name: 'SMS Gateway (Textlocal)',
-          description: 'Send SMS notifications via Textlocal',
-          version: '1.3.0',
-          author: 'Casa Nirvana Team',
-          enabled: true,
-          settings: {
-            sender_id: 'CASANV',
-            priority: 'high',
-          },
-          dependencies: ['notification-core'],
-        },
-        {
-          name: 'Backup & Restore',
-          description: 'Automated daily backups to cloud storage',
-          version: '1.1.5',
-          author: 'Casa Nirvana Team',
-          enabled: false,
-          settings: {
-            backup_frequency: 'daily',
-            storage_provider: 'aws-s3',
-          },
-          dependencies: [],
-        },
-      ],
-    },
+    defaultValues: defaultExtensionsSettings,
   });
 
   const {
@@ -193,32 +216,69 @@ export default function ExtensionsSettingsPage() {
     append: appendExtension,
     remove: removeExtension,
     update: updateExtension,
+    replace: replaceExtensions,
   } = useFieldArray({
     control,
     name: 'installed_extensions',
   });
 
   const watchedValues = watch();
+  const installedExtensions = watchedValues.installed_extensions || [];
 
-  const onSubmit = async (data: ExtensionsSettingsFormData) => {
+  useEffect(() => {
+    if (settingsData) {
+      reset(settingsData);
+    }
+  }, [reset, settingsData]);
+
+  const persistSettings = async (
+    nextData: ExtensionsSettingsFormData,
+    successMessage: string,
+    failureMessage: string
+  ) => {
+    const previousData = {
+      ...watchedValues,
+      installed_extensions: installedExtensions,
+    } as ExtensionsSettingsFormData;
+
     setIsSubmitting(true);
     try {
-      // Simulate API call for now
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      console.log('Extension settings:', data);
-      setShowAlert({ type: 'success', message: 'Extension settings updated successfully!' });
-      setTimeout(() => setShowAlert(null), 5000);
+      await saveSettingsAsync(nextData);
+      setShowAlert({ type: 'success', message: successMessage });
+      setTimeout(() => setShowAlert(null), 4000);
     } catch (error) {
       console.error('Error updating extension settings:', error);
-      setShowAlert({ type: 'danger', message: 'Failed to update extension settings. Please try again.' });
+      replaceExtensions(previousData.installed_extensions || []);
+      setShowAlert({ type: 'danger', message: failureMessage });
       setTimeout(() => setShowAlert(null), 5000);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleInstallExtension = (extension: any) => {
-    appendExtension({
+  const onSubmit = async (data: ExtensionsSettingsFormData) => {
+    await persistSettings(
+      {
+        ...data,
+        installed_extensions: installedExtensions,
+      },
+      'Extension settings updated successfully!',
+      'Failed to update extension settings. Please try again.'
+    );
+  };
+
+  const handleInstallExtension = async (extension: any) => {
+    const alreadyInstalled = installedExtensions.some(
+      (installedExtension) => installedExtension.name === extension.name
+    );
+
+    if (alreadyInstalled) {
+      setShowAlert({ type: 'success', message: `${extension.name} is already installed.` });
+      setTimeout(() => setShowAlert(null), 3000);
+      return;
+    }
+
+    const nextExtension = {
       name: extension.name,
       description: extension.description,
       version: extension.version,
@@ -226,24 +286,66 @@ export default function ExtensionsSettingsPage() {
       enabled: true,
       settings: {},
       dependencies: [],
-    });
-    setShowAlert({ type: 'success', message: `${extension.name} installed successfully!` });
-    setTimeout(() => setShowAlert(null), 3000);
+    };
+
+    appendExtension(nextExtension);
+
+    const nextData: ExtensionsSettingsFormData = {
+      ...watchedValues,
+      installed_extensions: [...installedExtensions, nextExtension],
+    } as ExtensionsSettingsFormData;
+
+    await persistSettings(
+      nextData,
+      `${extension.name} installed successfully!`,
+      `Failed to install ${extension.name}. Please try again.`
+    );
   };
 
-  const handleUninstallExtension = (index: number) => {
+  const handleUninstallExtension = async (index: number) => {
     const extension = extensionFields[index];
+    const nextInstalledExtensions = installedExtensions.filter((_, currentIndex) => currentIndex !== index);
+
     removeExtension(index);
-    setShowAlert({ type: 'success', message: `${extension.name} uninstalled successfully!` });
-    setTimeout(() => setShowAlert(null), 3000);
+
+    const nextData: ExtensionsSettingsFormData = {
+      ...watchedValues,
+      installed_extensions: nextInstalledExtensions,
+    } as ExtensionsSettingsFormData;
+
+    await persistSettings(
+      nextData,
+      `${extension.name} uninstalled successfully!`,
+      `Failed to uninstall ${extension.name}. Please try again.`
+    );
   };
 
-  const handleToggleExtension = (index: number) => {
-    const extension = extensionFields[index];
+  const handleToggleExtension = async (index: number) => {
+    const extension = installedExtensions[index];
+    const nextInstalledExtensions = installedExtensions.map((installedExtension, currentIndex) =>
+      currentIndex === index
+        ? {
+            ...installedExtension,
+            enabled: !installedExtension.enabled,
+          }
+        : installedExtension
+    );
+
     updateExtension(index, {
       ...extension,
       enabled: !extension.enabled,
     });
+
+    const nextData: ExtensionsSettingsFormData = {
+      ...watchedValues,
+      installed_extensions: nextInstalledExtensions,
+    } as ExtensionsSettingsFormData;
+
+    await persistSettings(
+      nextData,
+      `${extension.name} ${nextInstalledExtensions[index]?.enabled ? 'enabled' : 'disabled'} successfully!`,
+      `Failed to update ${extension.name}. Please try again.`
+    );
   };
 
   const handleViewExtension = (extension: any) => {
@@ -251,9 +353,13 @@ export default function ExtensionsSettingsPage() {
     setShowExtensionModal(true);
   };
 
-  const filteredMarketplaceExtensions = selectedCategory === 'all' 
-    ? marketplaceExtensions 
-    : marketplaceExtensions.filter(ext => ext.category === selectedCategory);
+  const filteredMarketplaceExtensions = (selectedCategory === 'all'
+    ? marketplaceExtensions
+    : marketplaceExtensions.filter((extension) => extension.category === selectedCategory)
+  ).map((extension) => ({
+    ...extension,
+    installed: installedExtensions.some((installedExtension) => installedExtension.name === extension.name),
+  }));
 
   return (
     <>
@@ -262,6 +368,12 @@ export default function ExtensionsSettingsPage() {
       {showAlert && (
         <Alert variant={showAlert.type} dismissible onClose={() => setShowAlert(null)}>
           {showAlert.message}
+        </Alert>
+      )}
+
+      {isLoading && (
+        <Alert variant="info">
+          Loading extension settings...
         </Alert>
       )}
 
@@ -514,9 +626,8 @@ export default function ExtensionsSettingsPage() {
                                 <Form.Check
                                   type="switch"
                                   checked={field.value}
-                                  onChange={(e) => {
-                                    field.onChange(e);
-                                    handleToggleExtension(index);
+                                  onChange={() => {
+                                    void handleToggleExtension(index);
                                   }}
                                   label={field.value ? 'Enabled' : 'Disabled'}
                                 />
@@ -600,7 +711,9 @@ export default function ExtensionsSettingsPage() {
                                   variant="primary"
                                   size="sm"
                                   className="flex-grow-1"
-                                  onClick={() => handleInstallExtension(extension)}
+                                  onClick={() => {
+                                    void handleInstallExtension(extension);
+                                  }}
                                 >
                                   Install
                                 </Button>
@@ -637,7 +750,7 @@ export default function ExtensionsSettingsPage() {
           <Button 
             type="submit" 
             variant="primary" 
-            disabled={isSubmitting}
+            disabled={isSubmitting || isLoading}
           >
             {isSubmitting && (
               <div className="spinner-border spinner-border-sm me-2" role="status">

@@ -482,6 +482,10 @@ Date: 2026-02-06
   - Added shared authenticated superadmin admin-API helpers (`superadmin/src/hooks/useAdminApi.ts`) and replaced duplicated direct-fetch logic in the affected settings hooks.
   - Application settings cleanup started without changing the existing visual design: `/settings/app`, `/settings/app/splash`, `/settings/app/onboarding`, and `/settings/app/urls` now load/save via backend-managed `system_settings` using the new shared `useSettingsCategory` hook, replacing simulated saves while preserving the current tabs/cards/layout.
   - Production defaults in the legacy application settings flow were normalized to the current product direction (`Community`, `Africa/Accra`, `GHS`, `GH₵`) instead of older legacy placeholders.
+- [x] Phase 33 application-settings continuation completed:
+  - `/settings/app/extensions` now preserves the existing visual layout while using backend-managed `system_settings` (`application/extensions`) instead of simulated saves.
+  - Extension install/uninstall/enable actions now persist real configuration changes instead of only mutating local UI state.
+  - The extension inventory and marketplace defaults were aligned with the current platform direction (`ExpressPay Gateway Connector`, notification routing, backup) and outdated legacy provider examples were removed.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)
