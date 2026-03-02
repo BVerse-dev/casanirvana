@@ -467,6 +467,14 @@ Date: 2026-02-06
   - Added migration `supabase/migrations/20260302101500_phase32_payout_rls_hardening.sql` and applied it live: payout tables now have function-based scoped read policies for authenticated agency managers/superadmin and service-role full access only; no direct authenticated writes bypass the backend.
   - Payout module access is now explicitly restricted to `superadmin` and `agency_manager` in the backend service layer; community-scoped admins continue using community finance reporting, not payout pages.
   - Added internal payout automation endpoints for reconciliation and stale reservation cleanup: `POST /internal/payouts/recompute-balances` and `POST /internal/payouts/release-stale-reservations`.
+- [x] Payout signoff conditions validated with isolated live code-side fixture against a real agency/community scope:
+  - Agency manager scope is restricted to assigned-agency payout data; cross-agency access is denied.
+  - Community admins are blocked from payout workflows.
+  - Superadmin can read and manage payout states.
+  - Personal Hub-classified payments are excluded from payout balances and payout transaction feeds.
+  - A fully reserved payment cannot be reserved twice.
+  - `mark_paid` moves linked payments to `paid_out` and clears reserved amounts.
+  - `cancel` / `reject` / `fail` all release reserved amounts back to `available`.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)
