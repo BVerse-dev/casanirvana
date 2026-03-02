@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardBody, CardHeader, CardTitle, Row, Col, Button, Form, Alert } from 'react-bootstrap';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -10,6 +10,7 @@ import * as yup from 'yup';
 import PageTitle from '@/components/PageTitle';
 import SelectFormInput from '@/components/from/SelectFormInput';
 import IconifyIcon from '@/components/wrappers/IconifyIcon';
+import { useBulkUpdateSettings, useSettingsCategory } from '@/hooks/useSettings';
 
 // Form validation schema
 const defaultLanguageSchema = yup.object({
@@ -36,28 +37,46 @@ interface DefaultLanguageFormData {
   timezone: string;
 }
 
+const defaultLanguageSettings: DefaultLanguageFormData = {
+  defaultLanguage: 'en',
+  fallbackLanguage: 'en',
+  autoDetect: true,
+  rtlSupport: false,
+  dateFormat: 'DD/MM/YYYY',
+  timeFormat: '12-hour',
+  numberFormat: '1,000.00',
+  currencyFormat: 'GHS (GH₵)',
+  timezone: 'Africa/Accra',
+};
+
 const DefaultLanguagePage = () => {
   const [showAlert, setShowAlert] = useState<{ type: 'success' | 'danger'; message: string } | null>(null);
+  const { data: settingsData } = useSettingsCategory('localization', 'default_language');
+  const updateSettings = useBulkUpdateSettings();
 
   const { control, handleSubmit, reset, formState: { isDirty, isSubmitting } } = useForm<DefaultLanguageFormData>({
     resolver: yupResolver(defaultLanguageSchema),
-    defaultValues: {
-      defaultLanguage: 'en',
-      fallbackLanguage: 'en',
-      autoDetect: true,
-      rtlSupport: false,
-      dateFormat: 'MM/DD/YYYY',
-      timeFormat: '12-hour',
-      numberFormat: '1,000.00',
-      currencyFormat: 'USD ($)',
-      timezone: 'UTC',
-    },
+    defaultValues: defaultLanguageSettings,
   });
+
+  useEffect(() => {
+    if (!settingsData) {
+      return;
+    }
+
+    reset({
+      ...defaultLanguageSettings,
+      ...settingsData,
+    });
+  }, [settingsData, reset]);
 
   const onSubmit = async (data: DefaultLanguageFormData) => {
     try {
-      console.log('Saving default language settings:', data);
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await updateSettings.mutateAsync({
+        category: 'localization',
+        subcategory: 'default_language',
+        settings: data,
+      });
       
       setShowAlert({ type: 'success', message: 'Default language settings updated successfully!' });
       setTimeout(() => setShowAlert(null), 5000);
@@ -69,10 +88,10 @@ const DefaultLanguagePage = () => {
   };
 
   const languageOptions = [
-    { value: 'en', label: 'English (United States)' },
+    { value: 'en', label: 'English (Ghana)' },
     { value: 'en-gb', label: 'English (United Kingdom)' },
     { value: 'es', label: 'Spanish (Spain)' },
-    { value: 'fr', label: 'French (France)' },
+    { value: 'fr', label: 'French (West Africa)' },
     { value: 'de', label: 'German (Germany)' },
     { value: 'it', label: 'Italian (Italy)' },
     { value: 'pt', label: 'Portuguese (Portugal)' },
@@ -105,15 +124,17 @@ const DefaultLanguagePage = () => {
   ];
 
   const currencyFormatOptions = [
+    { value: 'GHS (GH₵)', label: 'GHS (GH₵) - Ghana Cedi' },
     { value: 'USD ($)', label: 'USD ($) - US Dollar' },
     { value: 'EUR (€)', label: 'EUR (€) - Euro' },
     { value: 'GBP (£)', label: 'GBP (£) - British Pound' },
     { value: 'JPY (¥)', label: 'JPY (¥) - Japanese Yen' },
-    { value: 'INR ($)', label: 'INR ($) - Indian Rupee' },
+    { value: 'INR (₹)', label: 'INR (₹) - Indian Rupee' },
     { value: 'AED (د.إ)', label: 'AED (د.إ) - UAE Dirham' },
   ];
 
   const timezoneOptions = [
+    { value: 'Africa/Accra', label: 'Accra (GMT)' },
     { value: 'UTC', label: 'UTC (Coordinated Universal Time)' },
     { value: 'America/New_York', label: 'Eastern Time (US & Canada)' },
     { value: 'America/Chicago', label: 'Central Time (US & Canada)' },

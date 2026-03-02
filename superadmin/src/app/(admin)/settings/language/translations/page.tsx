@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, Row, Col, Button, Form, Tab, Tabs, Badge, Alert, Modal, Table, ProgressBar } from 'react-bootstrap';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -15,6 +15,7 @@ import TextAreaFormInput from '@/components/from/TextAreaFormInput';
 
 // Icons
 import IconifyIcon from '@/components/wrappers/IconifyIcon';
+import { useBulkUpdateSettings, useSettingsCategory } from '@/hooks/useSettings';
 
 interface Translation {
   key: string;
@@ -33,6 +34,68 @@ interface TranslationSettings {
   fallbackToEnglish: boolean;
   showMissingKeys: boolean;
 }
+
+const defaultTranslationSettings: TranslationSettings = {
+  translations: [
+    {
+      key: 'common.save',
+      category: 'Common',
+      english: 'Save',
+      translations: {
+        es: 'Guardar',
+        fr: 'Enregistrer',
+        de: 'Speichern',
+        pt: 'Salvar',
+      },
+      description: 'Save button text',
+      context: 'Used in forms and modals',
+    },
+    {
+      key: 'common.cancel',
+      category: 'Common',
+      english: 'Cancel',
+      translations: {
+        es: 'Cancelar',
+        fr: 'Annuler',
+        de: 'Abbrechen',
+        pt: 'Cancelar',
+      },
+      description: 'Cancel button text',
+      context: 'Used in forms and modals',
+    },
+    {
+      key: 'navigation.dashboard',
+      category: 'Navigation',
+      english: 'Dashboard',
+      translations: {
+        es: 'Panel de Control',
+        fr: 'Tableau de Bord',
+        de: 'Dashboard',
+        pt: 'Painel',
+      },
+      description: 'Dashboard menu item',
+      context: 'Main navigation menu',
+    },
+    {
+      key: 'units.title',
+      category: 'Units',
+      english: 'Units Management',
+      translations: {
+        es: 'Gestión de Unidades',
+        fr: 'Gestion des Unités',
+        de: '',
+        pt: 'Gestão de Unidades',
+      },
+      description: 'Units page title',
+      context: 'Page header',
+    },
+  ],
+  activeLanguages: ['en', 'es', 'fr', 'de', 'pt'],
+  translationMode: 'manual',
+  autoTranslateApi: '',
+  fallbackToEnglish: true,
+  showMissingKeys: true,
+};
 
 const translationSchema = yup.object({
   translations: yup.array().of(
@@ -54,7 +117,7 @@ const translationSchema = yup.object({
 
 const TranslationsPage = () => {
   const [loading, setLoading] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [showAlert, setShowAlert] = useState<{ type: 'success' | 'danger' | 'info'; message: string } | null>(null);
   const [activeTab, setActiveTab] = useState('translations');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -62,6 +125,8 @@ const TranslationsPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedLanguage, setSelectedLanguage] = useState('all');
+  const { data: settingsData } = useSettingsCategory('localization', 'translations');
+  const updateSettings = useBulkUpdateSettings();
 
   const {
     control,
@@ -69,70 +134,29 @@ const TranslationsPage = () => {
     watch,
     setValue,
     register,
+    reset,
     formState: { errors, isDirty }
   } = useForm<TranslationSettings>({
-    defaultValues: {
-      translations: [
-        {
-          key: 'common.save',
-          category: 'Common',
-          english: 'Save',
-          translations: {
-            es: 'Guardar',
-            fr: 'Enregistrer',
-            de: 'Speichern',
-            pt: 'Salvar'
-          },
-          description: 'Save button text',
-          context: 'Used in forms and modals'
-        },
-        {
-          key: 'common.cancel',
-          category: 'Common',
-          english: 'Cancel',
-          translations: {
-            es: 'Cancelar',
-            fr: 'Annuler',
-            de: 'Abbrechen',
-            pt: 'Cancelar'
-          },
-          description: 'Cancel button text',
-          context: 'Used in forms and modals'
-        },
-        {
-          key: 'navigation.dashboard',
-          category: 'Navigation',
-          english: 'Dashboard',
-          translations: {
-            es: 'Panel de Control',
-            fr: 'Tableau de Bord',
-            de: 'Dashboard',
-            pt: 'Painel'
-          },
-          description: 'Dashboard menu item',
-          context: 'Main navigation menu'
-        },
-        {
-          key: 'units.title',
-          category: 'Units',
-          english: 'Units Management',
-          translations: {
-            es: 'Gestión de Unidades',
-            fr: 'Gestion des Unités',
-            de: '',
-            pt: 'Gestão de Unidades'
-          },
-          description: 'Units page title',
-          context: 'Page header'
-        }
-      ],
-      activeLanguages: ['en', 'es', 'fr', 'de', 'pt'],
-      translationMode: 'manual',
-      autoTranslateApi: '',
-      fallbackToEnglish: true,
-      showMissingKeys: true,
-    }
+    defaultValues: defaultTranslationSettings
   });
+
+  useEffect(() => {
+    if (!settingsData) {
+      return;
+    }
+
+    const incoming = settingsData as Partial<TranslationSettings>;
+    reset({
+      ...defaultTranslationSettings,
+      ...incoming,
+      translations: Array.isArray(incoming.translations) && incoming.translations.length > 0
+        ? incoming.translations
+        : defaultTranslationSettings.translations,
+      activeLanguages: Array.isArray(incoming.activeLanguages) && incoming.activeLanguages.length > 0
+        ? incoming.activeLanguages
+        : defaultTranslationSettings.activeLanguages,
+    });
+  }, [reset, settingsData]);
 
   const { fields: translationFields, append: appendTranslation, remove: removeTranslation } = useFieldArray({
     control,
@@ -144,6 +168,7 @@ const TranslationsPage = () => {
   // Available languages
   const availableLanguages = [
     { value: 'en', label: 'English', flag: '🇺🇸', completion: 100 },
+    { value: 'tw', label: 'Twi', flag: '🇬🇭', completion: 20 },
     { value: 'es', label: 'Spanish', flag: '🇪🇸', completion: 95 },
     { value: 'fr', label: 'French', flag: '🇫🇷', completion: 90 },
     { value: 'de', label: 'German', flag: '🇩🇪', completion: 75 },
@@ -188,13 +213,17 @@ const TranslationsPage = () => {
   const onSubmit = async (data: TranslationSettings) => {
     setLoading(true);
     try {
-      // TODO: Implement API call to save translation settings
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      console.log('Translation settings saved:', data);
-      setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 3000);
+      await updateSettings.mutateAsync({
+        category: 'localization',
+        subcategory: 'translations',
+        settings: data,
+      });
+      setShowAlert({ type: 'success', message: 'Translation settings saved successfully!' });
+      setTimeout(() => setShowAlert(null), 3000);
     } catch (error) {
       console.error('Error saving translation settings:', error);
+      setShowAlert({ type: 'danger', message: 'Failed to save translation settings. Please try again.' });
+      setTimeout(() => setShowAlert(null), 5000);
     } finally {
       setLoading(false);
     }
@@ -252,10 +281,10 @@ const TranslationsPage = () => {
         subName="Manage multi-language translations for the application"
       />
 
-      {showSuccess && (
-        <Alert variant="success" className="d-flex align-items-center">
-          <IconifyIcon icon="material-symbols:check" className="me-2" />
-          Translation settings saved successfully!
+      {showAlert && (
+        <Alert variant={showAlert.type === 'info' ? 'info' : showAlert.type} className="d-flex align-items-center">
+          <IconifyIcon icon={showAlert.type === 'success' ? 'material-symbols:check' : showAlert.type === 'info' ? 'material-symbols:info' : 'material-symbols:error'} className="me-2" />
+          {showAlert.message}
         </Alert>
       )}
 
@@ -275,7 +304,16 @@ const TranslationsPage = () => {
                       <IconifyIcon icon="material-symbols:download" className="me-2" />
                       Export
                     </Button>
-                    <Button variant="outline-primary">
+                    <Button
+                      variant="outline-primary"
+                      onClick={() => {
+                        setShowAlert({
+                          type: 'info',
+                          message: 'Translation import is not connected to a bulk ingestion workflow yet. Use export plus manual updates until the import pipeline is wired.',
+                        });
+                        setTimeout(() => setShowAlert(null), 5000);
+                      }}
+                    >
                       <IconifyIcon icon="material-symbols:upload" className="me-2" />
                       Import
                     </Button>

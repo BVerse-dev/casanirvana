@@ -510,6 +510,10 @@ Date: 2026-02-06
   - `/settings/admin/security` now keeps its current tabs/cards UI while loading and saving through backend-managed `system_settings` (`security/admin_security`) instead of the legacy `/admin/settings` catch-all blob.
   - Admin security actions that were previously fake browser alerts now report their real integration status without claiming backend operations that do not exist.
   - `/settings/admin/users` no longer performs an unnecessary legacy settings fetch just to render the page, reducing dependency on the old settings path while keeping the existing UI intact.
+- [x] Phase 33 language-settings continuation completed:
+  - `/settings/language/default`, `/settings/language/localization`, and `/settings/language/translations` now keep their current tabs/cards/forms UI while loading and saving through backend-managed `system_settings` (`localization/default_language`, `localization/regions`, and `localization/translations`) instead of simulated local-only saves.
+  - Default language and localization defaults were aligned to the current Ghana production scope (`Africa/Accra`, `GHS`, `GH₵`, `en-GH`, Ghana-first region and currency options) while preserving the existing visual layout.
+  - Translation export remains live, while the unfinished import action now reports its real integration status instead of acting like a finished workflow.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, Row, Col, Button, Form, Tab, Tabs, Badge, Alert } from 'react-bootstrap';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -13,6 +13,7 @@ import TextFormInput from '@/components/from/TextFormInput';
 
 // Icons
 import IconifyIcon from '@/components/wrappers/IconifyIcon';
+import { useBulkUpdateSettings, useSettingsCategory } from '@/hooks/useSettings';
 
 interface LocaleRegion {
   code: string;
@@ -35,6 +36,41 @@ interface LocalizationFormData {
   syncWithBrowser?: boolean;
   regions: LocaleRegion[];
 }
+
+const defaultLocalizationSettings: LocalizationFormData = {
+  regions: [
+    {
+      code: 'en-GH',
+      name: 'Ghana',
+      language: 'en',
+      country: 'GH',
+      dateFormat: 'DD/MM/YYYY',
+      timeFormat: '12h',
+      numberFormat: 'en-GB',
+      currencyCode: 'GHS',
+      currencySymbol: 'GH₵',
+      firstDayOfWeek: '1',
+      isDefault: true,
+    },
+    {
+      code: 'en-GB',
+      name: 'United Kingdom',
+      language: 'en',
+      country: 'GB',
+      dateFormat: 'DD/MM/YYYY',
+      timeFormat: '24h',
+      numberFormat: 'en-GB',
+      currencyCode: 'GBP',
+      currencySymbol: '£',
+      firstDayOfWeek: '1',
+      isDefault: false,
+    },
+  ],
+  autoDetectRegion: true,
+  fallbackRegion: 'en-GH',
+  enableRegionalOverrides: true,
+  syncWithBrowser: false,
+};
 
 // Form validation schema
 const localizationSchema = yup.object({
@@ -61,8 +97,10 @@ const localizationSchema = yup.object({
 
 const LocalizationPage = () => {
   const [loading, setLoading] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [showAlert, setShowAlert] = useState<{ type: 'success' | 'danger'; message: string } | null>(null);
   const [activeTab, setActiveTab] = useState('regions');
+  const { data: settingsData } = useSettingsCategory('localization', 'regions');
+  const updateSettings = useBulkUpdateSettings();
 
   const {
     control,
@@ -70,44 +108,27 @@ const LocalizationPage = () => {
     watch,
     setValue,
     register,
+    reset,
     formState: { errors, isDirty }
   } = useForm<LocalizationFormData>({
     resolver: yupResolver(localizationSchema),
-    defaultValues: {
-      regions: [
-        {
-          code: 'en-US',
-          name: 'United States',
-          language: 'en',
-          country: 'US',
-          dateFormat: 'MM/DD/YYYY',
-          timeFormat: '12h',
-          numberFormat: 'en-US',
-          currencyCode: 'USD',
-          currencySymbol: '$',
-          firstDayOfWeek: '0',
-          isDefault: true,
-        },
-        {
-          code: 'en-GB',
-          name: 'United Kingdom',
-          language: 'en',
-          country: 'GB',
-          dateFormat: 'DD/MM/YYYY',
-          timeFormat: '24h',
-          numberFormat: 'en-GB',
-          currencyCode: 'GBP',
-          currencySymbol: '£',
-          firstDayOfWeek: '1',
-          isDefault: false,
-        }
-      ],
-      autoDetectRegion: true,
-      fallbackRegion: 'en-US',
-      enableRegionalOverrides: true,
-      syncWithBrowser: false,
-    }
+    defaultValues: defaultLocalizationSettings
   });
+
+  useEffect(() => {
+    if (!settingsData) {
+      return;
+    }
+
+    const incoming = settingsData as Partial<LocalizationFormData>;
+    reset({
+      ...defaultLocalizationSettings,
+      ...incoming,
+      regions: Array.isArray(incoming.regions) && incoming.regions.length > 0
+        ? incoming.regions
+        : defaultLocalizationSettings.regions,
+    });
+  }, [reset, settingsData]);
 
   const { fields, append, remove } = useFieldArray({
     control,
@@ -119,6 +140,7 @@ const LocalizationPage = () => {
   // Available options
   const languages = [
     { value: 'en', label: 'English' },
+    { value: 'tw', label: 'Twi' },
     { value: 'es', label: 'Spanish' },
     { value: 'fr', label: 'French' },
     { value: 'de', label: 'German' },
@@ -131,6 +153,7 @@ const LocalizationPage = () => {
   ];
 
   const countries = [
+    { value: 'GH', label: 'Ghana' },
     { value: 'US', label: 'United States' },
     { value: 'GB', label: 'United Kingdom' },
     { value: 'CA', label: 'Canada' },
@@ -139,7 +162,6 @@ const LocalizationPage = () => {
     { value: 'FR', label: 'France' },
     { value: 'ES', label: 'Spain' },
     { value: 'IT', label: 'Italy' },
-    { value: 'IN', label: 'India' },
     { value: 'JP', label: 'Japan' },
     { value: 'CN', label: 'China' },
     { value: 'BR', label: 'Brazil' },
@@ -165,6 +187,7 @@ const LocalizationPage = () => {
   ];
 
   const currencies = [
+    { value: 'GHS', symbol: 'GH₵', label: 'Ghana Cedi' },
     { value: 'USD', symbol: '$', label: 'US Dollar' },
     { value: 'EUR', symbol: '€', label: 'Euro' },
     { value: 'GBP', symbol: '£', label: 'British Pound' },
@@ -186,13 +209,17 @@ const LocalizationPage = () => {
   const onSubmit = async (data: LocalizationFormData) => {
     setLoading(true);
     try {
-      // TODO: Implement API call to save localization settings
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      console.log('Localization settings saved:', data);
-      setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 3000);
+      await updateSettings.mutateAsync({
+        category: 'localization',
+        subcategory: 'regions',
+        settings: data,
+      });
+      setShowAlert({ type: 'success', message: 'Localization settings saved successfully!' });
+      setTimeout(() => setShowAlert(null), 3000);
     } catch (error) {
       console.error('Error saving localization settings:', error);
+      setShowAlert({ type: 'danger', message: 'Failed to save localization settings. Please try again.' });
+      setTimeout(() => setShowAlert(null), 5000);
     } finally {
       setLoading(false);
     }
@@ -203,13 +230,13 @@ const LocalizationPage = () => {
       code: '',
       name: '',
       language: 'en',
-      country: 'US',
-      dateFormat: 'MM/DD/YYYY',
+      country: 'GH',
+      dateFormat: 'DD/MM/YYYY',
       timeFormat: '12h',
-      numberFormat: 'en-US',
-      currencyCode: 'USD',
-      currencySymbol: '$',
-      firstDayOfWeek: '0',
+      numberFormat: 'en-GB',
+      currencyCode: 'GHS',
+      currencySymbol: 'GH₵',
+      firstDayOfWeek: '1',
       isDefault: false,
     });
   };
@@ -231,10 +258,10 @@ const LocalizationPage = () => {
         subName="Configure regional and locale-specific settings"
       />
 
-      {showSuccess && (
-        <Alert variant="success" className="d-flex align-items-center">
-          <IconifyIcon icon="material-symbols:check" className="me-2" />
-          Localization settings saved successfully!
+      {showAlert && (
+        <Alert variant={showAlert.type} className="d-flex align-items-center">
+          <IconifyIcon icon={showAlert.type === 'success' ? 'material-symbols:check' : 'material-symbols:error'} className="me-2" />
+          {showAlert.message}
         </Alert>
       )}
 
