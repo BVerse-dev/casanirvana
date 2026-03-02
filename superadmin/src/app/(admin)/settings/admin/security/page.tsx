@@ -10,7 +10,7 @@ import TextFormInput from '@/components/from/TextFormInput';
 import CheckFormInput from '@/components/from/CheckFormInput';
 import SelectFormInput from '@/components/from/SelectFormInput';
 import IconifyIcon from '@/components/wrappers/IconifyIcon';
-import { useSettings, useUpdateSettings } from '@/hooks/useSettings';
+import { useBulkUpdateSettings, useSettingsCategory } from '@/hooks/useSettings';
 
 // Security settings validation schema
 const securitySettingsSchema = yup.object({
@@ -78,70 +78,73 @@ const securitySettingsSchema = yup.object({
 
 type SecuritySettingsFormData = yup.InferType<typeof securitySettingsSchema>;
 
+const defaultSecuritySettings: SecuritySettingsFormData = {
+  // Authentication
+  enable_2fa: false,
+  enforce_2fa_for_admins: false,
+  login_attempts_limit: 5,
+  lockout_duration: 30,
+  session_timeout: 120,
+  remember_me_duration: 14,
+
+  // Password Policy
+  min_password_length: 8,
+  require_uppercase: true,
+  require_lowercase: true,
+  require_numbers: true,
+  require_symbols: false,
+  password_history: 5,
+  password_expiry_days: 90,
+
+  // API Security
+  enable_api_rate_limiting: true,
+  api_rate_limit: 100,
+  api_rate_limit_window: 15,
+  enable_cors: true,
+  cors_allowed_origins: '*',
+  enable_api_logging: true,
+
+  // Application Security
+  enable_xss_protection: true,
+  enable_csrf_protection: true,
+  enable_clickjack_protection: true,
+  enable_content_security_policy: true,
+  enable_secure_cookies: true,
+
+  // CAPTCHA & Bot Protection
+  enable_captcha: false,
+  captcha_type: 'recaptcha',
+  enable_bot_detection: true,
+
+  // Audit & Monitoring
+  enable_audit_logging: true,
+  audit_log_retention_days: 90,
+  enable_anomaly_detection: true,
+
+  // Emergency Access
+  emergency_access_email: 'security@casanirvana.com',
+  enable_emergency_lockdown: false,
+};
+
+const normalizeSecuritySettings = (
+  settings: Record<string, unknown> | undefined
+): SecuritySettingsFormData => ({
+  ...defaultSecuritySettings,
+  ...(settings || {}),
+});
+
 const SecuritySettingsPage = () => {
-  const [showAlert, setShowAlert] = useState<{ type: 'success' | 'danger'; message: string } | null>(null);
+  const [showAlert, setShowAlert] = useState<{ type: 'success' | 'danger' | 'info'; message: string } | null>(null);
   const [activeTab, setActiveTab] = useState('authentication');
   const [securityScore, setSecurityScore] = useState(65); // Initial security score
-  
-  // Fetch current settings from Supabase
-  const { data: settingsData, isLoading: isLoadingSettings } = useSettings();
-  const updateSettings = useUpdateSettings();
-
-  // Create default security settings
-  const defaultSecuritySettings = {
-    // Authentication
-    enable_2fa: false,
-    enforce_2fa_for_admins: false,
-    login_attempts_limit: 5,
-    lockout_duration: 30, // minutes
-    session_timeout: 120, // minutes
-    remember_me_duration: 14, // days
-    
-    // Password Policy
-    min_password_length: 8,
-    require_uppercase: true,
-    require_lowercase: true,
-    require_numbers: true,
-    require_symbols: false,
-    password_history: 5,
-    password_expiry_days: 90,
-    
-    // API Security
-    enable_api_rate_limiting: true,
-    api_rate_limit: 100,
-    api_rate_limit_window: 15, // minutes
-    enable_cors: true,
-    cors_allowed_origins: '*', // Wildcard - should be restricted in production
-    enable_api_logging: true,
-    
-    // Application Security
-    enable_xss_protection: true,
-    enable_csrf_protection: true,
-    enable_clickjack_protection: true,
-    enable_content_security_policy: true,
-    enable_secure_cookies: true,
-    
-    // CAPTCHA & Bot Protection
-    enable_captcha: false,
-    captcha_type: 'recaptcha',
-    enable_bot_detection: true,
-    
-    // Audit & Monitoring
-    enable_audit_logging: true,
-    audit_log_retention_days: 90,
-    enable_anomaly_detection: true,
-    
-    // Emergency Access
-    emergency_access_email: 'security@casanirvana.com',
-    enable_emergency_lockdown: false,
-  };
+  const { data: settingsData, isLoading: isLoadingSettings } = useSettingsCategory('security', 'admin_security');
+  const updateSettingsMutation = useBulkUpdateSettings();
 
   // Initialize form with react-hook-form
   const {
     control,
     handleSubmit,
     watch,
-    setValue,
     reset,
     formState: { errors, isSubmitting, isDirty }
   } = useForm<SecuritySettingsFormData>({
@@ -149,7 +152,13 @@ const SecuritySettingsPage = () => {
     defaultValues: defaultSecuritySettings
   });
 
-  const updateSettingsMutation = updateSettings;
+  useEffect(() => {
+    if (!settingsData) {
+      return;
+    }
+
+    reset(normalizeSecuritySettings(settingsData));
+  }, [settingsData, reset]);
 
   // Watch for changes to calculate security score
   const watchedValues = watch();
@@ -209,11 +218,10 @@ const SecuritySettingsPage = () => {
 
   const onSubmit = async (data: SecuritySettingsFormData) => {
     try {
-      console.log('Saving security settings:', data);
-      
-      // Save to Supabase using the useUpdateSettings hook
       await updateSettingsMutation.mutateAsync({
-        security_settings: data
+        category: 'security',
+        subcategory: 'admin_security',
+        settings: data,
       });
       
       setShowAlert({ type: 'success', message: 'Security settings updated successfully!' });
@@ -223,6 +231,11 @@ const SecuritySettingsPage = () => {
       setShowAlert({ type: 'danger', message: 'Failed to update security settings. Please try again.' });
       setTimeout(() => setShowAlert(null), 5000);
     }
+  };
+
+  const showInfoMessage = (message: string) => {
+    setShowAlert({ type: 'info', message });
+    setTimeout(() => setShowAlert(null), 5000);
   };
 
   return (
@@ -615,9 +628,7 @@ const SecuritySettingsPage = () => {
                               variant="outline-secondary" 
                               size="sm"
                               type="button"
-                              onClick={() => {
-                                alert('This would force all users to reset their passwords on next login.');
-                              }}
+                                  onClick={() => showInfoMessage('Password reset enforcement is not connected to a live global action yet. Use the user-management workflow for targeted resets until the backend operation is wired.')}
                             >
                               <IconifyIcon icon="heroicons:arrow-path" className="me-1" />
                               Force Password Reset for All Users
@@ -742,9 +753,7 @@ const SecuritySettingsPage = () => {
                               variant="outline-primary" 
                               size="sm"
                               type="button"
-                              onClick={() => {
-                                alert('API Keys management would open here');
-                              }}
+                                  onClick={() => showInfoMessage('API key management is not connected to a live credential inventory on this page yet. Use the secure integrations and gateway settings pages for credential management until this control is wired.')}
                             >
                               <IconifyIcon icon="heroicons:key" className="me-1" />
                               Manage API Keys
@@ -943,9 +952,7 @@ const SecuritySettingsPage = () => {
                               variant="outline-primary" 
                               size="sm"
                               type="button"
-                              onClick={() => {
-                                alert('This would open the audit log viewer');
-                              }}
+                                  onClick={() => showInfoMessage('Audit log viewer is not connected on this page yet. Use the platform monitoring and database audit feeds until this viewer is wired.')}
                             >
                               <IconifyIcon icon="heroicons:document-magnifying-glass" className="me-1" />
                               View Audit Logs
@@ -979,9 +986,7 @@ const SecuritySettingsPage = () => {
                               variant="outline-warning"
                               size="sm"
                               type="button"
-                              onClick={() => {
-                                alert('This would open the security incident dashboard');
-                              }}
+                                  onClick={() => showInfoMessage('Security incident dashboard is not connected on this page yet. Use platform monitoring until this dashboard is wired.')}
                               className="me-2"
                             >
                               <IconifyIcon icon="heroicons:bell-alert" className="me-1" />
@@ -992,9 +997,7 @@ const SecuritySettingsPage = () => {
                               variant="outline-danger"
                               size="sm"
                               type="button"
-                              onClick={() => {
-                                alert('This would open the security dashboard');
-                              }}
+                                  onClick={() => showInfoMessage('Security dashboard is not connected on this page yet. Use platform monitoring until this dashboard is wired.')}
                             >
                               <IconifyIcon icon="heroicons:shield-exclamation" className="me-1" />
                               Security Dashboard

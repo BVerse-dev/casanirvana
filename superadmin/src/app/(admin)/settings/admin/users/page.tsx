@@ -15,7 +15,6 @@ import SelectFormInput from '@/components/from/SelectFormInput';
 import IconifyIcon from '@/components/wrappers/IconifyIcon';
 
 // Hooks
-import { useSettings } from '@/hooks/useSettings';
 import { useListProfiles } from '@/hooks/useProfiles';
 import { useSession } from 'next-auth/react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -46,7 +45,6 @@ interface AdminUserFormData {
 }
 
 const AdminUsersSettingsPage = () => {
-  const { isLoading: loadingSettings } = useSettings();
   const { data: profiles, isLoading: loadingProfiles } = useListProfiles();
   const { data: session } = useSession();
   const queryClient = useQueryClient();
@@ -227,7 +225,7 @@ const AdminUsersSettingsPage = () => {
     }
   };
 
-  if (loadingSettings || loadingProfiles) {
+  if (loadingProfiles) {
     return (
       <div className="text-center py-5">
         <div className="spinner-border text-primary" role="status">

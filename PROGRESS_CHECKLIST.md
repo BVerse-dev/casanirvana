@@ -506,6 +506,10 @@ Date: 2026-02-06
   - Server-side saves now write to namespaced `system_settings` keys (to avoid key collisions in the shared settings table) while mirroring the legacy `app_settings` categories required by older runtime code, preserving compatibility without exposing client-side writes.
   - Regional/business defaults were normalized to the current Ghana production scope (`Africa/Accra`, `GHS`, `GH₵`, Ghana-friendly format labels) while preserving the current UI.
   - `/settings/system/settings` kept the same visual layout but no longer simulates fake live metrics with random updates, and shortcut actions now report their real integration status instead of claiming successful backend operations that do not exist.
+- [x] Phase 33 admin-settings continuation completed:
+  - `/settings/admin/security` now keeps its current tabs/cards UI while loading and saving through backend-managed `system_settings` (`security/admin_security`) instead of the legacy `/admin/settings` catch-all blob.
+  - Admin security actions that were previously fake browser alerts now report their real integration status without claiming backend operations that do not exist.
+  - `/settings/admin/users` no longer performs an unnecessary legacy settings fetch just to render the page, reducing dependency on the old settings path while keeping the existing UI intact.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)
