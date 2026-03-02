@@ -115,7 +115,7 @@ const transformServiceFromDB = (service: any): CommunityService => {
     availability: service.availability || 'scheduled',
     status: service.status || 'active',
     operating_hours: service.operating_hours || { open: '09:00', close: '18:00', days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'], isAlwaysOpen: false },
-    pricing: service.pricing || { type: 'free', amount: 0, currency: 'INR' },
+    pricing: service.pricing || { type: 'free', amount: 0, currency: 'GHS' },
     contact_info: service.contact_info || { primaryContact: '', phone: '', email: '', emergencyPhone: '' },
     vendor: service.vendor || null,
     requirements: service.requirements || [],
@@ -151,7 +151,7 @@ const transformServiceToDB = (formData: CommunityServiceFormData) => ({
   pricing: {
     type: formData.pricingType,
     amount: formData.pricingAmount,
-    currency: 'INR'
+    currency: 'GHS'
   },
   contact_info: {
     primaryContact: formData.primaryContact,

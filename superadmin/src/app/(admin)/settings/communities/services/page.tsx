@@ -58,6 +58,7 @@ const serviceSchema = yup.object({
 const ServicesManagementPage = () => {
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -309,19 +310,26 @@ const ServicesManagementPage = () => {
     // Form submission handlers
   const onSubmit = async (data: CommunityServiceFormData) => {
     setLoading(true);
+    setActionError(null);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      console.log('Service data submitted:', data);
+      if (showEditModal && selectedService) {
+        await updateServiceMutation.mutateAsync({
+          id: selectedService.id,
+          serviceData: data,
+        });
+      } else {
+        await createServiceMutation.mutateAsync(data);
+      }
       setShowSuccess(true);
       setShowCreateModal(false);
       setShowEditModal(false);
+      setSelectedService(null);
       reset();
       
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (error) {
       console.error('Error submitting form:', error);
+      setActionError(error instanceof Error ? error.message : 'Failed to save service details.');
     } finally {
       setLoading(false);
     }
@@ -333,16 +341,16 @@ const ServicesManagementPage = () => {
       name: service.name,
       description: service.description,
       category: service.category,
-      communityId: service.communityId,
-      serviceType: service.serviceType,
+      communityId: service.community_id,
+      serviceType: service.service_type,
       availability: service.availability,
       status: service.status,
       pricingType: service.pricing.type,
       pricingAmount: service.pricing.amount,
-      primaryContact: service.contactInfo.primaryContact,
-      phone: service.contactInfo.phone,
-      email: service.contactInfo.email,
-      emergencyPhone: service.contactInfo.emergencyPhone,
+      primaryContact: service.contact_info.primaryContact,
+      phone: service.contact_info.phone,
+      email: service.contact_info.email,
+      emergencyPhone: service.contact_info.emergencyPhone,
       vendorName: service.vendor?.name,
       vendorPhone: service.vendor?.phone,
       vendorEmail: service.vendor?.email,
@@ -350,17 +358,17 @@ const ServicesManagementPage = () => {
       requirements: service.requirements,
       terms: service.terms,
       features: service.features,
-      responseTime: service.responseTime,
-      maxRequests: service.capacity.maxRequests,
-      isBookingRequired: service.isBookingRequired,
-      advanceBookingHours: service.advanceBookingHours,
-      cancelationPolicy: service.cancelationPolicy,
-      operatingHours: service.operatingHours,
+      responseTime: service.response_time,
+      maxRequests: service.max_requests,
+      isBookingRequired: service.is_booking_required,
+      advanceBookingHours: service.advance_booking_hours,
+      cancelationPolicy: service.cancelation_policy,
+      operatingHours: service.operating_hours,
     });
     setShowEditModal(true);
   };
 
-  const handleDelete = (service: Service) => {
+  const handleDelete = (service: CommunityService) => {
     setSelectedService(service);
     setShowDeleteModal(true);
   };
@@ -369,15 +377,16 @@ const ServicesManagementPage = () => {
     if (!selectedService) return;
     
     setLoading(true);
+    setActionError(null);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      console.log('Service deleted:', selectedService.id);
+      await deleteServiceMutation.mutateAsync(selectedService.id);
+      setShowSuccess(true);
       setShowDeleteModal(false);
       setSelectedService(null);
+      setTimeout(() => setShowSuccess(false), 3000);
     } catch (error) {
       console.error('Error deleting service:', error);
+      setActionError(error instanceof Error ? error.message : 'Failed to delete service.');
     } finally {
       setLoading(false);
     }
@@ -407,11 +416,19 @@ const ServicesManagementPage = () => {
     return <Badge bg={config.variant}>{config.text}</Badge>;
   };
 
+  const formatCurrencyAmount = (amount: number | undefined, currency = 'GHS') => {
+    const safeAmount = Number(amount || 0);
+    if (currency === 'GHS') {
+      return `GH₵${safeAmount.toLocaleString()}`;
+    }
+    return `${currency} ${safeAmount.toLocaleString()}`;
+  };
+
   const getPricingBadge = (pricing: { type: string; amount?: number; currency: string }) => {
     if (pricing.type === 'free') {
       return <Badge bg="success">Free</Badge>;
     }
-    return <Badge bg="warning">${pricing.amount}</Badge>;
+    return <Badge bg="warning">{formatCurrencyAmount(pricing.amount, pricing.currency)}</Badge>;
   };
 
   const getCategoryIcon = (category: string) => {
@@ -447,6 +464,13 @@ const ServicesManagementPage = () => {
         <Alert variant="success" className="mb-4">
           <IconifyIcon icon="ri:check-line" className="me-2" />
           Service information has been saved successfully!
+        </Alert>
+      )}
+
+      {actionError && (
+        <Alert variant="danger" className="mb-4">
+          <IconifyIcon icon="ri:error-warning-line" className="me-2" />
+          {actionError}
         </Alert>
       )}
 
@@ -551,12 +575,12 @@ const ServicesManagementPage = () => {
                   <div className="d-flex align-items-center">
                     <div className="flex-shrink-0">
                       <div className="bg-warning bg-opacity-10 rounded-circle p-3">
-                        <IconifyIcon icon="ri:money-rupee-circle-line" className="text-warning" style={{ fontSize: '28px' }} />
+                        <IconifyIcon icon="ri:money-dollar-circle-line" className="text-warning" style={{ fontSize: '28px' }} />
                       </div>
                     </div>
                     <div className="flex-grow-1 ms-3">
                       <h6 className="mb-1 text-muted fw-medium">Monthly Revenue</h6>
-                      <h3 className="mb-0 fw-bold">₹{displayStats.totalRevenue.toLocaleString()}</h3>
+                      <h3 className="mb-0 fw-bold">GH₵{displayStats.totalRevenue.toLocaleString()}</h3>
                       <small className="text-warning">
                         <IconifyIcon icon="ri:coins-line" className="me-1" />
                         From paid services
@@ -632,7 +656,7 @@ const ServicesManagementPage = () => {
                                 <span className="fw-medium">{totalRequests.toLocaleString()}</span>
                               </td>
                               <td className="border-0 text-center">
-                                <span className="fw-medium">₹{totalRevenue.toLocaleString()}</span>
+                                <span className="fw-medium">GH₵{totalRevenue.toLocaleString()}</span>
                               </td>
                               <td className="border-0 text-center">
                                 <div className="d-flex align-items-center justify-content-center">
@@ -865,7 +889,7 @@ const ServicesManagementPage = () => {
                             <div>
                               <strong>{service.name}</strong>
                               <br />
-                              <small className="text-muted">{service.contact_info?.primaryContact || service.contact_person}</small>
+                              <small className="text-muted">{service.contact_info?.primaryContact}</small>
                             </div>
                           </div>
                         </td>
@@ -876,7 +900,7 @@ const ServicesManagementPage = () => {
                           </Badge>
                         </td>
                         <td>{getServiceTypeBadge(service.service_type)}</td>
-                        <td>{getPricingBadge({type: service.pricing?.type || 'free', amount: service.pricing?.amount, currency: 'INR'})}</td>
+                        <td>{getPricingBadge({type: service.pricing?.type || 'free', amount: service.pricing?.amount, currency: service.pricing?.currency || 'GHS'})}</td>
                         <td>{getStatusBadge(service.status)}</td>
                         <td>
                           <div>
@@ -921,7 +945,7 @@ const ServicesManagementPage = () => {
                             </div>
                             <div>
                               <h5 className="mb-1">{service.name}</h5>
-                              <p className="text-muted mb-0 small">{service.contact_info?.primaryContact || service.contact_person}</p>
+                              <p className="text-muted mb-0 small">{service.contact_info?.primaryContact}</p>
                             </div>
                           </div>
                           <div className="text-end">
@@ -948,7 +972,7 @@ const ServicesManagementPage = () => {
                           </div>
                           <div className="d-flex justify-content-between mb-2">
                             <span className="text-muted small">Pricing:</span>
-                            {getPricingBadge({type: service.pricing?.type || 'free', amount: service.pricing?.amount, currency: 'INR'})}
+                            {getPricingBadge({type: service.pricing?.type || 'free', amount: service.pricing?.amount, currency: service.pricing?.currency || 'GHS'})}
                           </div>
                           <div className="d-flex justify-content-between">
                             <span className="text-muted small">Response Time:</span>
@@ -967,7 +991,7 @@ const ServicesManagementPage = () => {
                           </div>
                           <div className="d-flex justify-content-between">
                             <span className="text-muted small">Revenue:</span>
-                            <small>₹{service.monthly_revenue.toLocaleString()}</small>
+                            <small>GH₵{service.monthly_revenue.toLocaleString()}</small>
                           </div>
                         </div>
 

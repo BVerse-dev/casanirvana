@@ -525,6 +525,12 @@ Date: 2026-02-06
   - `useRecentGuardActivities` no longer mutates `Date.prototype`, and the activity feed now sorts by real timestamps while showing an honest empty state when no records exist.
   - `useGuardsStats` no longer reports fake average rating/experience placeholders; it now derives those values from live `guard_performance` and `employment_date` data where available.
   - Guard subpage data hooks no longer inject fake fallback identity values: new assignments do not write a dummy emergency number, displayed assignments no longer show a fake phone fallback, and new performance reviews no longer store a hardcoded placeholder reviewer UUID.
+- [x] Phase 33 community-settings continuation completed:
+  - `/settings/communities/services` now keeps its current cards, tabs, filters, and modal layout while using real create/update/delete mutations instead of simulated timeout-based saves and deletes.
+  - Community services now use `GHS` / `GH₵` defaults and labels in the settings workspace, removing the stale INR/rupee drift without changing the existing visual structure.
+  - `/settings/communities/configuration` now saves through the live `useUpdateCommunityConfiguration` mutation instead of the broken in-page mock path, and the page no longer references the removed `setConfiguration` placeholder state.
+  - Community configuration emergency contacts are now bound to the form and persist correctly, while the page shows honest success/error feedback and preserves the current modal-driven save flow.
+  - Community configuration defaults were normalized away from fake India-specific fallback data (`+91`, hardcoded GST placeholder values) toward honest empty or Ghana-aligned defaults while preserving the existing UI.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)

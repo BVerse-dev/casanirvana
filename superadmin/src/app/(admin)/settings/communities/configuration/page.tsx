@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, Row, Col, Button, Modal, Form, Badge, Tab, Tabs, Alert, ProgressBar, Spinner } from 'react-bootstrap';
 import { useForm } from 'react-hook-form';
 import ReactApexChart from 'react-apexcharts';
@@ -12,94 +12,18 @@ import ComponentContainerCard from '@/components/ComponentContainerCard';
 import IconifyIcon from '@/components/wrappers/IconifyIcon';
 
 // Hooks
-import { 
-  useCommunityConfigurationByCommunity, 
+import {
+  useCommunityConfigurationByCommunity,
   useUpdateCommunityConfiguration
 } from '@/hooks/useCommunityConfigurations';
 import type { CommunityConfiguration } from '@/hooks/useCommunityConfigurations';
 import { supabase } from '@/lib/supabase';
 
-// Configuration Types - now imported from hooks
-
-// Mock data
-const mockConfiguration: CommunityConfiguration = {
-  id: '1',
-  community_id: 'soc-001',
-  community_name: 'Green Valley Apartments',
-  maintenance_charges: {
-    per_sqft_rate: 4.5,
-    billing_cycle: 'monthly',
-    due_date: 5,
-    grace_period: 7,
-    late_fee_percentage: 2,
-    advance_payment_discount: 5,
-  },
-  amenity_settings: {
-    booking_advance_days: 30,
-    max_bookings_per_user: 2,
-    cancellation_hours: 24,
-    security_deposit_required: true,
-    automatic_approval: false,
-  },
-  visitor_settings: {
-    max_visitors_per_day: 10,
-    pre_approval_required: true,
-    visitor_pass_duration: 8,
-    photo_mandatory: true,
-    id_verification_required: true,
-    visiting_hours: {
-      start_time: '09:00',
-      end_time: '21:00',
-    },
-  },
-  communication: {
-    sms_notifications: true,
-    email_notifications: true,
-    push_notifications: true,
-    whatsapp_integration: false,
-    emergency_contacts: ['+91 9876543210', '+91 9876543211'],
-  },
-  security: {
-    two_factor_auth: true,
-    session_timeout: 30,
-    password_policy: {
-      min_length: 8,
-      require_uppercase: true,
-      require_lowercase: true,
-      require_numbers: true,
-      require_special_chars: true,
-    },
-    access_control: {
-      resident_portal: true,
-      guest_wifi: true,
-      mobile_app: true,
-    },
-  },
-  financial: {
-    late_payment_reminder_days: [3, 7, 15],
-    invoice_template: 'standard',
-    tax_settings: {
-      gst_applicable: true,
-      gst_percentage: 18,
-      gst_number: '29ABCDE1234F1Z5',
-    },
-    payment_methods: {
-      cash: true,
-      bank_transfer: true,
-      upi: true,
-      card: true,
-      cheque: true,
-      online: true,
-    },
-  },
-  status: 'active',
-  last_updated: '2024-01-15T00:00:00Z',
-  updated_by: 'admin',
-};
-
 const CommunityConfigurationPage = () => {
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [selectedCommunity, setSelectedCommunity] = useState('e1d40ef7-f1d5-4756-88a2-054fe30cb06a'); // Default to Green Valley Apartments
   const queryClient = useQueryClient();
 
@@ -127,8 +51,17 @@ const CommunityConfigurationPage = () => {
   useEffect(() => {
     if (configuration) {
       reset(configuration);
+      setHasChanges(false);
     }
   }, [configuration, reset]);
+
+  useEffect(() => {
+    if (!configuration) {
+      return;
+    }
+
+    setHasChanges(JSON.stringify(watchedValues) !== JSON.stringify(configuration));
+  }, [configuration, watchedValues]);
 
   // Real-time subscription
   useEffect(() => {
@@ -190,32 +123,46 @@ const CommunityConfigurationPage = () => {
     },
   ];
 
-  const handleSaveConfiguration = (data: CommunityConfiguration) => {
-    const updatedConfig = {
-      ...data,
-      last_updated: new Date().toISOString(),
-      updated_by: 'admin',
-    };
-    
-    setConfiguration(updatedConfig);
-    setHasChanges(false);
-    setShowSaveModal(false);
-    
-    // Here you would typically save to the backend
-    console.log('Saving configuration:', updatedConfig);
+  const handleSaveConfiguration = async (data: CommunityConfiguration) => {
+    if (!configuration) {
+      return;
+    }
+
+    setSaveError(null);
+
+    try {
+      const updatedConfig = await updateConfigurationMutation.mutateAsync({
+        id: configuration.id,
+        config: data,
+      });
+
+      reset(updatedConfig);
+      setHasChanges(false);
+      setShowSaveModal(false);
+      setSaveSuccess('Community configuration saved successfully.');
+      setTimeout(() => setSaveSuccess(null), 3000);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Failed to save community configuration.');
+    }
   };
 
   const getCompletionPercentage = () => {
+    const currentConfiguration = watchedValues?.community_id ? watchedValues : configuration;
+
+    if (!currentConfiguration) {
+      return 0;
+    }
+
     let completed = 0;
     let total = 6; // Total sections
     
     // Check each section for basic completion
-    if (configuration.maintenance_charges.per_sqft_rate > 0) completed++;
-    if (configuration.amenity_settings.booking_advance_days > 0) completed++;
-    if (configuration.visitor_settings.max_visitors_per_day > 0) completed++;
-    if (configuration.communication.emergency_contacts.length > 0) completed++;
-    if (configuration.security.password_policy.min_length >= 8) completed++;
-    if (Object.values(configuration.financial.payment_methods).some(Boolean)) completed++;
+    if (currentConfiguration.maintenance_charges.per_sqft_rate > 0) completed++;
+    if (currentConfiguration.amenity_settings.booking_advance_days > 0) completed++;
+    if (currentConfiguration.visitor_settings.max_visitors_per_day > 0) completed++;
+    if (currentConfiguration.communication.emergency_contacts.length > 0) completed++;
+    if (currentConfiguration.security.password_policy.min_length >= 8) completed++;
+    if (Object.values(currentConfiguration.financial.payment_methods).some(Boolean)) completed++;
     
     return (completed / total) * 100;
   };
@@ -278,6 +225,20 @@ const CommunityConfigurationPage = () => {
         title="Community Configuration" 
         subName="Configure community settings and policies"
       />
+
+      {saveSuccess && (
+        <Alert variant="success" className="mb-4">
+          <IconifyIcon icon="ri:check-line" className="me-2" />
+          {saveSuccess}
+        </Alert>
+      )}
+
+      {saveError && (
+        <Alert variant="danger" className="mb-4">
+          <IconifyIcon icon="ri:error-warning-line" className="me-2" />
+          {saveError}
+        </Alert>
+      )}
 
       <ComponentContainerCard title="Community Configuration" id="community-config">
         <Tabs defaultActiveKey="overview" className="mb-3">
@@ -350,7 +311,7 @@ const CommunityConfigurationPage = () => {
                   <Row>
                     <Col md={6}>
                       <Form.Group className="mb-3">
-                        <Form.Label>Rate per Sq.Ft ($) *</Form.Label>
+                        <Form.Label>Rate per Sq.Ft (GH₵) *</Form.Label>
                         <Form.Control 
                           type="number" 
                           step="0.01"
@@ -630,7 +591,17 @@ const CommunityConfigurationPage = () => {
                     as="textarea" 
                     rows={3}
                     placeholder="Enter emergency contact numbers (one per line)"
-                    defaultValue={configuration.communication.emergency_contacts.join('\n')}
+                    value={(watchedValues.communication?.emergency_contacts || []).join('\n')}
+                    onChange={(event) => {
+                      setValue(
+                        'communication.emergency_contacts',
+                        event.target.value
+                          .split('\n')
+                          .map((value) => value.trim())
+                          .filter(Boolean),
+                        { shouldDirty: true }
+                      );
+                    }}
                   />
                 </Form.Group>
               </Card.Body>
@@ -781,13 +752,13 @@ const CommunityConfigurationPage = () => {
                     <Form.Check
                       type="checkbox"
                       id="gst_applicable"
-                      label="GST Applicable"
+                      label="Tax Applicable"
                       {...register('financial.tax_settings.gst_applicable')}
                     />
                   </Col>
                   <Col md={4}>
                     <Form.Group className="mb-3">
-                      <Form.Label>GST Percentage</Form.Label>
+                      <Form.Label>Tax Percentage</Form.Label>
                       <Form.Control 
                         type="number" 
                         step="0.1"
@@ -797,7 +768,7 @@ const CommunityConfigurationPage = () => {
                   </Col>
                   <Col md={4}>
                     <Form.Group className="mb-3">
-                      <Form.Label>GST Number</Form.Label>
+                      <Form.Label>Tax Number</Form.Label>
                       <Form.Control {...register('financial.tax_settings.gst_number')} />
                     </Form.Group>
                   </Col>
@@ -827,7 +798,7 @@ const CommunityConfigurationPage = () => {
                     <Form.Check
                       type="checkbox"
                       id="upi"
-                      label="UPI"
+                      label="Mobile Money"
                       {...register('financial.payment_methods.upi')}
                     />
                   </Col>
@@ -863,12 +834,25 @@ const CommunityConfigurationPage = () => {
 
         <Row className="mt-4">
           <Col className="text-end">
-            <Button variant="secondary" className="me-2">
-              Reset to Defaults
+            <Button
+              variant="secondary"
+              className="me-2"
+              onClick={() => {
+                if (!configuration) {
+                  return;
+                }
+                reset(configuration);
+                setHasChanges(false);
+                setSaveError(null);
+              }}
+              disabled={!hasChanges || updateConfigurationMutation.isPending}
+            >
+              Reset to Current
             </Button>
             <Button 
               variant="primary"
               onClick={() => setShowSaveModal(true)}
+              disabled={!hasChanges}
             >
               <IconifyIcon icon="ri:save-line" className="me-1" />
               Save Configuration
@@ -894,9 +878,9 @@ const CommunityConfigurationPage = () => {
           <Button variant="secondary" onClick={() => setShowSaveModal(false)}>
             Cancel
           </Button>
-          <Button variant="primary" onClick={handleSubmit(handleSaveConfiguration)}>
+          <Button variant="primary" onClick={handleSubmit(handleSaveConfiguration)} disabled={updateConfigurationMutation.isPending}>
             <IconifyIcon icon="ri:save-line" className="me-1" />
-            Save Configuration
+            {updateConfigurationMutation.isPending ? 'Saving...' : 'Save Configuration'}
           </Button>
         </Modal.Footer>
       </Modal>

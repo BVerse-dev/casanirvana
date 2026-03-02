@@ -102,9 +102,12 @@ const mapDatabaseToUI = (raw: any): CommunityConfiguration => {
         : raw.emergency_contacts;
       emergencyContacts = contacts.contacts || [];
     } catch {
-      emergencyContacts = ['+91 9876543210'];
+      emergencyContacts = [];
     }
   }
+
+  const paymentGateways = Array.isArray(raw.payment_gateways) ? raw.payment_gateways : [];
+  const onlinePaymentsEnabled = raw.online_payments_enabled ?? true;
 
   return {
     id: raw.id,
@@ -112,7 +115,7 @@ const mapDatabaseToUI = (raw: any): CommunityConfiguration => {
     community_name: raw.community_name || 'Unknown Community',
     
     maintenance_charges: {
-      per_sqft_rate: 4.5, // Default value
+      per_sqft_rate: 0,
       billing_cycle: 'monthly',
       due_date: raw.maintenance_due_day || 5,
       grace_period: raw.grace_period_days || 7,
@@ -169,23 +172,23 @@ const mapDatabaseToUI = (raw: any): CommunityConfiguration => {
       late_payment_reminder_days: raw.payment_reminder_days || [3, 7, 15],
       invoice_template: 'standard',
       tax_settings: {
-        gst_applicable: true,
-        gst_percentage: 18,
-        gst_number: '29ABCDE1234F1Z5',
+        gst_applicable: false,
+        gst_percentage: 0,
+        gst_number: '',
       },
       payment_methods: {
         cash: raw.cash_payments_allowed ?? true,
-        bank_transfer: (raw.payment_gateways || []).includes('bank_transfer'),
-        upi: (raw.payment_gateways || []).includes('razorpay'),
-        card: (raw.payment_gateways || []).includes('stripe'),
+        bank_transfer: paymentGateways.includes('bank_transfer'),
+        upi: paymentGateways.includes('expresspay') || paymentGateways.includes('mobile_money'),
+        card: paymentGateways.includes('expresspay') || paymentGateways.includes('stripe') || onlinePaymentsEnabled,
         cheque: raw.cheque_payments_allowed ?? true,
-        online: raw.online_payments_enabled ?? true,
+        online: onlinePaymentsEnabled,
       },
     },
     
     status: 'active',
     last_updated: raw.updated_at || new Date().toISOString(),
-    updated_by: 'admin',
+    updated_by: raw.updated_by || 'System',
   };
 };
 
@@ -313,6 +316,16 @@ export const useUpdateCommunityConfiguration = () => {
           dbData.cash_payments_allowed = config.financial.payment_methods.cash;
           dbData.cheque_payments_allowed = config.financial.payment_methods.cheque;
           dbData.online_payments_enabled = config.financial.payment_methods.online;
+          dbData.payment_gateways = [
+            ...(config.financial.payment_methods.bank_transfer ? ['bank_transfer'] : []),
+            ...(
+              config.financial.payment_methods.card ||
+              config.financial.payment_methods.upi ||
+              config.financial.payment_methods.online
+                ? ['expresspay']
+                : []
+            ),
+          ];
         }
       }
       
