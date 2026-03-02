@@ -8,6 +8,7 @@ import * as yup from 'yup';
 import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiFilter, FiHome, FiKey, FiTrendingUp, FiDollarSign, FiUsers, FiCalendar, FiMapPin, FiStar, FiEye, FiSettings, FiBarChart } from 'react-icons/fi';
 import { useAgencyServices, useCreateAgencyService, useUpdateAgencyService, useDeleteAgencyService } from '@/hooks/useAgencyServices';
 import type { AgencyService } from '@/hooks/useAgencyServices';
+import { useAgencyProfiles } from '@/hooks/useAgencyProfiles';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 
@@ -45,6 +46,7 @@ const AgencyServicesPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [actionFeedback, setActionFeedback] = useState<{ variant: 'success' | 'danger'; message: string } | null>(null);
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -55,6 +57,7 @@ const AgencyServicesPage = () => {
 
   // --- Supabase hooks ---
   const { data: servicesList = [], isLoading, error } = useAgencyServices();
+  const { data: agencies = [] } = useAgencyProfiles();
   const createService = useCreateAgencyService();
   const updateService = useUpdateAgencyService();
   const deleteService = useDeleteAgencyService();
@@ -99,24 +102,46 @@ const AgencyServicesPage = () => {
   const handleAddService = () => {
     setEditingService(null);
     reset();
+    setActionFeedback(null);
     setShowModal(true);
   };
 
   const handleEditService = (service: any) => {
     setEditingService(service);
-    Object.keys(service).forEach(key => {
-      setValue(key as keyof ServiceFormData, service[key]);
-    });
+    setActionFeedback(null);
+    setValue('name', service.name);
+    setValue('category', service.category);
+    setValue('description', service.description);
+    setValue('basePrice', service.basePrice);
+    setValue('commissionRate', service.commissionRate);
+    setValue('duration', service.duration);
+    setValue('availability', service.availability);
+    setValue('requirements', service.requirements ?? '');
+    setValue('status', service.status);
+    setValue('targetMarket', service.targetMarket);
+    setValue('features', service.features ?? []);
+    setValue('tags', service.tags ?? []);
     setShowModal(true);
   };
 
-  const handleDeleteService = (serviceId: string) => {
+  const handleDeleteService = async (serviceId: string) => {
     if (window.confirm('Are you sure you want to delete this service?')) {
-      deleteService.mutate(serviceId);
+      try {
+        await deleteService.mutateAsync(serviceId);
+        setActionFeedback({ variant: 'success', message: 'Service removed successfully.' });
+      } catch (mutationError: any) {
+        setActionFeedback({ variant: 'danger', message: mutationError?.message || 'Failed to remove service.' });
+      }
     }
   };
 
-  const onSubmit = (data: ServiceFormData) => {
+  const onSubmit = async (data: ServiceFormData) => {
+    const fallbackAgencyId = editingService?.agency_id || agencies[0]?.id || '';
+    if (!fallbackAgencyId) {
+      setActionFeedback({ variant: 'danger', message: 'Create an agency profile before adding services.' });
+      return;
+    }
+
     // Map camelCase form fields to snake_case for DB
     const mappedData = {
       ...data,
@@ -130,13 +155,20 @@ const AgencyServicesPage = () => {
     delete (mappedData as any).basePrice;
     delete (mappedData as any).commissionRate;
     delete (mappedData as any).targetMarket;
-    if (editingService) {
-      updateService.mutate({ id: editingService.id, ...mappedData });
-    } else {
-      // agency_id is required; set to a default or fetch from context if available
-      createService.mutate({ ...mappedData, agency_id: editingService?.agency_id || '1' });
+
+    try {
+      if (editingService) {
+        await updateService.mutateAsync({ id: editingService.id, ...mappedData });
+        setActionFeedback({ variant: 'success', message: 'Service updated successfully.' });
+      } else {
+        await createService.mutateAsync({ ...mappedData, agency_id: fallbackAgencyId });
+        setActionFeedback({ variant: 'success', message: 'Service created successfully.' });
+      }
+      setShowModal(false);
+      reset();
+    } catch (mutationError: any) {
+      setActionFeedback({ variant: 'danger', message: mutationError?.message || 'Failed to save service.' });
     }
-    setShowModal(false);
   };
 
   const getStatusBadge = (status: string) => {
@@ -163,7 +195,18 @@ const AgencyServicesPage = () => {
   const activeServices = servicesList.filter((s: AgencyService) => s.status === 'Active').length;
   const totalRevenue = servicesList.reduce((sum: number, s: AgencyService) => sum + (s.revenue ?? 0), 0);
   const totalBookings = servicesList.reduce((sum: number, s: AgencyService) => sum + (s.bookings ?? 0), 0);
-  const avgRating = servicesList.length > 0 ? servicesList.reduce((sum: number, s: AgencyService) => sum + (s.rating ?? 0), 0) / servicesList.length : 0;
+  const averageServicePrice = totalServices > 0 ? servicesList.reduce((sum: number, s: AgencyService) => sum + (s.basePrice ?? 0), 0) / totalServices : 0;
+  const averageCommissionRate = totalServices > 0 ? servicesList.reduce((sum: number, s: AgencyService) => sum + (s.commissionRate ?? 0), 0) / totalServices : 0;
+  const revenuePerService = totalServices > 0 ? totalRevenue / totalServices : 0;
+  const bookingsPerService = totalServices > 0 ? totalBookings / totalServices : 0;
+
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat('en-GH', {
+      style: 'currency',
+      currency: 'GHS',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value || 0);
 
   return (
     <div className="container-fluid">
@@ -173,6 +216,12 @@ const AgencyServicesPage = () => {
           <p className="text-muted">Manage service offerings, pricing, and performance</p>
         </Col>
       </Row>
+
+      {actionFeedback && (
+        <Alert variant={actionFeedback.variant} onClose={() => setActionFeedback(null)} dismissible>
+          {actionFeedback.message}
+        </Alert>
+      )}
 
       <Tab.Container activeKey={activeTab} onSelect={(k) => setActiveTab(k || 'overview')}>
         <Row>
@@ -244,7 +293,7 @@ const AgencyServicesPage = () => {
                             <div className="d-flex justify-content-between align-items-center">
                               <div>
                                 <h6 className="text-white-50 mb-1">Total Revenue</h6>
-                                <h3 className="mb-0">${totalRevenue.toLocaleString()}</h3>
+                                <h3 className="mb-0">{formatCurrency(totalRevenue)}</h3>
                               </div>
                               <FiDollarSign size={32} className="text-white-50" />
                             </div>
@@ -290,7 +339,7 @@ const AgencyServicesPage = () => {
                                       <small className="text-muted ms-2">({categoryServices.length} services)</small>
                                     </div>
                                     <div className="text-end">
-                                      <div className="font-weight-bold">${categoryRevenue.toLocaleString()}</div>
+                                      <div className="font-weight-bold">{formatCurrency(categoryRevenue)}</div>
                                       <small className="text-muted">{categoryBookings} bookings</small>
                                     </div>
                                   </div>
@@ -322,7 +371,7 @@ const AgencyServicesPage = () => {
                                     <small className="text-muted">{service.category}</small>
                                   </div>
                                   <div className="text-end">
-                                    <div className="font-weight-bold">${service.revenue?.toLocaleString()}</div>
+                                    <div className="font-weight-bold">{formatCurrency(service.revenue ?? 0)}</div>
                                     <div className="d-flex align-items-center">
                                       <FiStar className="text-warning me-1" size={14} />
                                       <small>{service.rating}</small>
@@ -411,7 +460,7 @@ const AgencyServicesPage = () => {
                                 </td>
                                 <td>
                                   <div>
-                                    <div className="font-weight-bold">${service.basePrice}</div>
+                                    <div className="font-weight-bold">{formatCurrency(service.basePrice ?? 0)}</div>
                                     <small className="text-muted">{service.commissionRate}% commission</small>
                                   </div>
                                 </td>
@@ -509,7 +558,7 @@ const AgencyServicesPage = () => {
                                   <div key={service.id} className="mb-4">
                                     <div className="d-flex justify-content-between mb-2">
                                       <span className="font-weight-bold">{service.name}</span>
-                                      <span className="text-muted">${service.revenue?.toLocaleString()}</span>
+                                      <span className="text-muted">{formatCurrency(service.revenue ?? 0)}</span>
                                     </div>
                                     <div className="progress" style={{ height: '8px' }}>
                                       <div 
@@ -591,10 +640,10 @@ const AgencyServicesPage = () => {
                                             <small className="text-muted">{service.category}</small>
                                           </div>
                                         </td>
-                                        <td className="font-weight-bold">${service.basePrice}</td>
+                                        <td className="font-weight-bold">{formatCurrency(service.basePrice ?? 0)}</td>
                                         <td>{service.commissionRate}%</td>
-                                        <td>${avgTransaction.toFixed(0)}</td>
-                                        <td className="font-weight-bold text-success">${service.revenue?.toLocaleString()}</td>
+                                        <td>{formatCurrency(avgTransaction)}</td>
+                                        <td className="font-weight-bold text-success">{formatCurrency(service.revenue ?? 0)}</td>
                                       </tr>
                                     );
                                   })}
@@ -612,19 +661,19 @@ const AgencyServicesPage = () => {
                           <Card.Body>
                             <div className="mb-4">
                               <h6 className="text-muted">Average Service Price</h6>
-                              <h3 className="text-primary">${(servicesList.reduce((sum: number, s: AgencyService) => sum + (s.basePrice ?? 0), 0) / servicesList.length).toFixed(0)}</h3>
+                              <h3 className="text-primary">{formatCurrency(averageServicePrice)}</h3>
                             </div>
                             <div className="mb-4">
                               <h6 className="text-muted">Average Commission Rate</h6>
-                              <h3 className="text-success">{(servicesList.reduce((sum: number, s: AgencyService) => sum + (s.commissionRate ?? 0), 0) / servicesList.length).toFixed(1)}%</h3>
+                              <h3 className="text-success">{averageCommissionRate.toFixed(1)}%</h3>
                             </div>
                             <div className="mb-4">
                               <h6 className="text-muted">Revenue per Service</h6>
-                              <h3 className="text-info">${(totalRevenue / servicesList.length).toFixed(0)}</h3>
+                              <h3 className="text-info">{formatCurrency(revenuePerService)}</h3>
                             </div>
                             <div className="mb-4">
                               <h6 className="text-muted">Bookings per Service</h6>
-                              <h3 className="text-warning">{(totalBookings / servicesList.length).toFixed(0)}</h3>
+                              <h3 className="text-warning">{bookingsPerService.toFixed(0)}</h3>
                             </div>
                           </Card.Body>
                         </Card>
@@ -691,7 +740,7 @@ const AgencyServicesPage = () => {
             <Row>
               <Col md={6}>
                 <Form.Group className="mb-3">
-                  <Form.Label>Base Price ($) *</Form.Label>
+                  <Form.Label>Base Price (GH₵) *</Form.Label>
                   <Form.Control
                     type="number"
                     {...register('basePrice')}

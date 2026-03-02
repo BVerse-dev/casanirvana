@@ -18,6 +18,7 @@ import {
   useAgencyStaffHiringTrend,
   type CreateAgencyStaffData
 } from '@/hooks/useAgencyStaff';
+import { useAgencyProfiles } from '@/hooks/useAgencyProfiles';
 import { supabase } from '@/lib/supabase';
 import { useQueryClient } from '@tanstack/react-query';
 import './timeline.css';
@@ -43,6 +44,7 @@ const AgencyStaffPage = () => {
   const [editingStaff, setEditingStaff] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
+  const [actionFeedback, setActionFeedback] = useState<{ variant: 'success' | 'danger'; message: string } | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -50,16 +52,8 @@ const AgencyStaffPage = () => {
   const { data: staffList = [], isLoading, error, refetch } = useListAgencyStaff();
   const { data: stats } = useAgencyStaffStats();
   const { data: departmentData = [] } = useAgencyStaffDepartmentStats();
-  
-  // Extended department data with additional departments
-  const extendedDepartmentData = [
-    ...departmentData,
-    { name: 'Customer Support', count: 8, percentage: 20 },
-    { name: 'Finance', count: 5, percentage: 12.5 },
-    { name: 'Human Resources', count: 3, percentage: 7.5 },
-    { name: 'IT & Technology', count: 6, percentage: 15 }
-  ];
   const { data: monthlyHiringData = [] } = useAgencyStaffHiringTrend();
+  const { data: agencies = [] } = useAgencyProfiles();
   
   const createStaffMutation = useCreateAgencyStaff();
   const updateStaffMutation = useUpdateAgencyStaff();
@@ -114,11 +108,13 @@ const AgencyStaffPage = () => {
   const handleAddStaff = () => {
     setEditingStaff(null);
     reset();
+    setActionFeedback(null);
     setShowModal(true);
   };
 
   const handleEditStaff = (staff: any) => {
     setEditingStaff(staff);
+    setActionFeedback(null);
     Object.keys(staff).forEach(key => {
       if (key === 'first_name' || key === 'last_name' || key === 'email' || key === 'phone' || 
           key === 'role' || key === 'department' || key === 'employee_id' || 
@@ -142,6 +138,7 @@ const AgencyStaffPage = () => {
   };
 
   const onSubmit = async (data: StaffFormData) => {
+    const defaultAgencyId = editingStaff?.agency_id || agencies[0]?.id || '';
     try {
       if (editingStaff) {
         await updateStaffMutation.mutateAsync({
@@ -149,14 +146,23 @@ const AgencyStaffPage = () => {
           ...data,
         });
       } else {
-        await createStaffMutation.mutateAsync(data as CreateAgencyStaffData);
+        if (!defaultAgencyId) {
+          setActionFeedback({ variant: 'danger', message: 'Create an agency profile before adding staff members.' });
+          return;
+        }
+        await createStaffMutation.mutateAsync({
+          ...data,
+          agency_id: defaultAgencyId,
+        } as CreateAgencyStaffData);
       }
       setShowModal(false);
       reset();
+      setActionFeedback(null);
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (error) {
       console.error('Error saving staff:', error);
+      setActionFeedback({ variant: 'danger', message: 'Failed to save staff member.' });
     }
   };
 
@@ -181,6 +187,59 @@ const AgencyStaffPage = () => {
   const activeStaff = stats?.activeStaff || 0;
   const inactiveStaff = stats?.inactiveStaff || 0;
   const avgPerformance = stats?.avgPerformance || 0;
+  const avgSalary = stats?.avgSalary || 0;
+  const avgTenureMonths = totalStaff > 0
+    ? staffList.reduce((sum: number, staff: any) => {
+        const joinTime = staff.date_of_joining ? new Date(staff.date_of_joining).getTime() : Date.now();
+        const months = Math.max(0, (Date.now() - joinTime) / (1000 * 60 * 60 * 24 * 30.44));
+        return sum + months;
+      }, 0) / totalStaff
+    : 0;
+  const avgRating = totalStaff > 0 ? avgPerformance / 20 : 0;
+  const recentHires = [...staffList]
+    .filter((staff: any) => !!staff.date_of_joining)
+    .sort((a: any, b: any) => new Date(b.date_of_joining).getTime() - new Date(a.date_of_joining).getTime())
+    .slice(0, 4);
+  const performanceBuckets = [
+    staffList.filter((staff: any) => (staff.performance || 0) >= 95).length,
+    staffList.filter((staff: any) => (staff.performance || 0) >= 85 && (staff.performance || 0) < 95).length,
+    staffList.filter((staff: any) => (staff.performance || 0) >= 70 && (staff.performance || 0) < 85).length,
+    staffList.filter((staff: any) => (staff.performance || 0) < 70).length,
+  ];
+  const salaryByDepartment = departmentData.map((department) => {
+    const staffInDepartment = staffList.filter((staff: any) => staff.department === department.name);
+    const average = staffInDepartment.length > 0
+      ? staffInDepartment.reduce((sum: number, staff: any) => sum + (staff.salary || 0), 0) / staffInDepartment.length
+      : 0;
+    return { name: department.name, average: Math.round(average) };
+  });
+
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat('en-GH', {
+      style: 'currency',
+      currency: 'GHS',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value || 0);
+
+  const formatCurrencyCompact = (value: number) =>
+    new Intl.NumberFormat('en-GH', {
+      style: 'currency',
+      currency: 'GHS',
+      notation: 'compact',
+      maximumFractionDigits: 1,
+    }).format(value || 0);
+
+  const formatRelativeHireDate = (dateValue?: string) => {
+    if (!dateValue) return 'Hire date unavailable';
+    const diffDays = Math.max(0, Math.floor((Date.now() - new Date(dateValue).getTime()) / (1000 * 60 * 60 * 24)));
+    if (diffDays === 0) return 'Hired today';
+    if (diffDays === 1) return 'Hired 1 day ago';
+    if (diffDays < 7) return `Hired ${diffDays} days ago`;
+    if (diffDays < 14) return 'Hired 1 week ago';
+    if (diffDays < 30) return `Hired ${Math.floor(diffDays / 7)} weeks ago`;
+    return `Hired ${Math.floor(diffDays / 30)} months ago`;
+  };
 
   if (isLoading) {
     return (
@@ -212,6 +271,12 @@ const AgencyStaffPage = () => {
         <Alert variant="success" className="mb-4">
           <FiUserCheck className="me-2" />
           Operation completed successfully!
+        </Alert>
+      )}
+
+      {actionFeedback && (
+        <Alert variant={actionFeedback.variant} className="mb-4" dismissible onClose={() => setActionFeedback(null)}>
+          {actionFeedback.message}
         </Alert>
       )}
       
@@ -318,7 +383,7 @@ const AgencyStaffPage = () => {
                             <h5 className="mb-0">Staff by Department</h5>
                           </Card.Header>
                           <Card.Body>
-                            {extendedDepartmentData.map((dept, index) => (
+                            {departmentData.map((dept, index) => (
                               <div key={index} className="mb-3">
                                 <div className="d-flex justify-content-between mb-1">
                                   <span className="fw-medium">{dept.name}</span>
@@ -343,69 +408,29 @@ const AgencyStaffPage = () => {
                           </Card.Header>
                           <Card.Body>
                             <div className="space-y-3">
-                              {/* Recent Hire 1 */}
-                              <div className="d-flex align-items-center p-3 border rounded mb-3">
-                                <div className="bg-success rounded-circle d-flex align-items-center justify-content-center me-3" style={{ width: '40px', height: '40px' }}>
-                                  <FiUserPlus className="text-white" size={20} />
-                                </div>
-                                <div className="flex-grow-1">
-                                  <div className="fw-bold">Sarah Johnson</div>
-                                  <div className="text-muted small">Marketing Specialist</div>
-                                  <div className="text-success small">
-                                    <FiCalendar className="me-1" size={12} />
-                                    Hired 2 days ago
-                                  </div>
-                                </div>
-                                <Badge bg="success">New</Badge>
-                              </div>
-
-                              {/* Recent Hire 2 */}
-                              <div className="d-flex align-items-center p-3 border rounded mb-3">
-                                <div className="bg-primary rounded-circle d-flex align-items-center justify-content-center me-3" style={{ width: '40px', height: '40px' }}>
-                                  <FiUserPlus className="text-white" size={20} />
-                                </div>
-                                <div className="flex-grow-1">
-                                  <div className="fw-bold">Michael Chen</div>
-                                  <div className="text-muted small">Sales Manager</div>
-                                  <div className="text-primary small">
-                                    <FiCalendar className="me-1" size={12} />
-                                    Hired 1 week ago
-                                  </div>
-                                </div>
-                                <Badge bg="primary">Recent</Badge>
-                              </div>
-
-                              {/* Recent Hire 3 */}
-                              <div className="d-flex align-items-center p-3 border rounded mb-3">
-                                <div className="bg-info rounded-circle d-flex align-items-center justify-content-center me-3" style={{ width: '40px', height: '40px' }}>
-                                  <FiUserPlus className="text-white" size={20} />
-                                </div>
-                                <div className="flex-grow-1">
-                                  <div className="fw-bold">Emily Rodriguez</div>
-                                  <div className="text-muted small">Customer Support</div>
-                                  <div className="text-info small">
-                                    <FiCalendar className="me-1" size={12} />
-                                    Hired 2 weeks ago
-                                  </div>
-                                </div>
-                                <Badge bg="info">Recent</Badge>
-                              </div>
-
-                              {/* Recent Hire 4 */}
-                              <div className="d-flex align-items-center p-3 border rounded">
-                                <div className="bg-warning rounded-circle d-flex align-items-center justify-content-center me-3" style={{ width: '40px', height: '40px' }}>
-                                  <FiUserPlus className="text-white" size={20} />
-                                </div>
-                                <div className="flex-grow-1">
-                                  <div className="fw-bold">David Kim</div>
-                                  <div className="text-muted small">Operations Coordinator</div>
-                                  <div className="text-warning small">
-                                    <FiCalendar className="me-1" size={12} />
-                                    Hired 3 weeks ago
-                                  </div>
-                                </div>
-                                <Badge bg="warning">Recent</Badge>
-                              </div>
+                              {recentHires.length === 0 ? (
+                                <div className="text-muted small">No recent hires yet.</div>
+                              ) : (
+                                recentHires.map((staff, index) => {
+                                  const badgeVariant = ['success', 'primary', 'info', 'warning'][index % 4];
+                                  return (
+                                    <div key={staff.id} className={`d-flex align-items-center p-3 border rounded${index < recentHires.length - 1 ? ' mb-3' : ''}`}>
+                                      <div className={`bg-${badgeVariant} rounded-circle d-flex align-items-center justify-content-center me-3`} style={{ width: '40px', height: '40px' }}>
+                                        <FiUserPlus className="text-white" size={20} />
+                                      </div>
+                                      <div className="flex-grow-1">
+                                        <div className="fw-bold">{`${staff.first_name} ${staff.last_name}`}</div>
+                                        <div className="text-muted small">{staff.role}</div>
+                                        <div className={`text-${badgeVariant} small`}>
+                                          <FiCalendar className="me-1" size={12} />
+                                          {formatRelativeHireDate(staff.date_of_joining)}
+                                        </div>
+                                      </div>
+                                      <Badge bg={badgeVariant}>Recent</Badge>
+                                    </div>
+                                  );
+                                })
+                              )}
                             </div>
                           </Card.Body>
                         </Card>
@@ -617,7 +642,7 @@ const AgencyStaffPage = () => {
                                       <FiCalendar className="me-1" size={12} />
                                       <span className="me-3">Joined: Jun 10, 2023</span>
                                       <FiDollarSign className="me-1" size={12} />
-                                      <span>Salary: $55,000</span>
+                                      <span>Salary: {formatCurrency(55000)}</span>
                                     </div>
                                   </div>
                                   <div className="timeline-footer">
@@ -791,10 +816,10 @@ const AgencyStaffPage = () => {
                             <p className="mb-2">Annual salary review completed with merit increase based on exceptional performance and market adjustments.</p>
                             <div className="d-flex align-items-center text-muted small">
                               <span className="me-3">
-                                <strong>Previous:</strong> $65,000
+                                <strong>Previous:</strong> {formatCurrency(65000)}
                               </span>
                               <span>
-                                <strong>New:</strong> $68,500 (+5.4%)
+                                <strong>New:</strong> {formatCurrency(68500)} (+5.4%)
                                       </span>
                                     </div>
                                   </div>
@@ -852,7 +877,7 @@ const AgencyStaffPage = () => {
                         <Card className="text-center border-0 shadow-sm">
                           <Card.Body>
                             <FiDollarSign size={32} className="text-warning mb-2" />
-                            <h4 className="text-warning mb-1">$52K</h4>
+                            <h4 className="text-warning mb-1">{formatCurrencyCompact(avgSalary)}</h4>
                             <p className="text-muted mb-0">Avg Salary</p>
                             <small className="text-warning">+5.2% from last year</small>
                           </Card.Body>
@@ -968,7 +993,7 @@ const AgencyStaffPage = () => {
                                   type: 'donut',
                                   height: 300,
                                 },
-                                labels: ['Sales', 'Operations', 'Marketing', 'Administration'],
+                                labels: departmentData.map((department) => department.name),
                                 colors: ['#007bff', '#28a745', '#ffc107', '#17a2b8'],
                                 legend: {
                                   position: 'bottom',
@@ -987,7 +1012,7 @@ const AgencyStaffPage = () => {
                                   }
                                 }
                               }}
-                              series={[35, 25, 20, 20]}
+                              series={departmentData.map((department) => department.count)}
                               type="donut"
                               height={300}
                             />
@@ -1030,7 +1055,7 @@ const AgencyStaffPage = () => {
                               }}
                               series={[{
                                 name: 'Staff Count',
-                                data: [12, 18, 8, 2]
+                                data: performanceBuckets
                               }]}
                               type="bar"
                               height={300}
@@ -1055,7 +1080,7 @@ const AgencyStaffPage = () => {
                                   height: 300,
                                 },
                                 xaxis: {
-                                  categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                                  categories: monthlyHiringData.map((item) => item.month),
                                 },
                                 colors: ['#007bff'],
                                 stroke: {
@@ -1074,7 +1099,7 @@ const AgencyStaffPage = () => {
                               }}
                               series={[{
                                 name: 'New Hires',
-                                data: [2, 3, 1, 4, 2, 3, 2, 1, 3, 2, 1, 2]
+                                data: monthlyHiringData.map((item) => item.hires)
                               }]}
                               type="line"
                               height={300}
@@ -1096,7 +1121,7 @@ const AgencyStaffPage = () => {
                                   height: 300,
                                 },
                                 xaxis: {
-                                  categories: ['Sales', 'Operations', 'Marketing', 'Administration'],
+                                  categories: salaryByDepartment.map((item) => item.name),
                                 },
                                 colors: ['#28a745', '#007bff', '#ffc107', '#17a2b8'],
                                 plotOptions: {
@@ -1108,20 +1133,20 @@ const AgencyStaffPage = () => {
                                 dataLabels: {
                                   enabled: true,
                                   formatter: function (val: number) {
-                                    return '$' + (val / 1000) + 'K'
+                                    return formatCurrencyCompact(val)
                                   }
                                 },
                                 yaxis: {
                                   labels: {
                                     formatter: function (val: number) {
-                                      return '$' + (val / 1000) + 'K'
+                                      return formatCurrencyCompact(val)
                                     }
                                   }
                                 }
                               }}
                               series={[{
                                 name: 'Average Salary',
-                                data: [55000, 62000, 48000, 45000]
+                                data: salaryByDepartment.map((item) => item.average)
                               }]}
                               type="bar"
                               height={300}

@@ -85,6 +85,15 @@ const parseAgencyStaffData = (data: any): AgencyStaff => {
   };
 };
 
+const isMissingAgencyStaffTable = (error: any) => {
+  const message = String(error?.message || '').toLowerCase();
+  return (
+    message.includes('does not exist') ||
+    message.includes('relation') ||
+    message.includes('relationship')
+  );
+};
+
 // Hooks
 
 // List all agency staff
@@ -92,192 +101,22 @@ export const useListAgencyStaff = () => {
   return useQuery({
     queryKey: QUERY_KEYS.agencyStaff,
     queryFn: async () => {
-      console.log('🔍 useListAgencyStaff: Starting query...');
       try {
-        console.log('🔍 useListAgencyStaff: Attempting Supabase query...');
         const { data, error } = await (supabase as any)
           .from('agency_staff')
           .select('*')
           .order('created_at', { ascending: false });
         
         if (error) {
-          console.error('🚨 useListAgencyStaff: Database error:', error);
           throw new Error(`Failed to fetch agency staff: ${error.message}`);
         }
         
-        console.log('✅ useListAgencyStaff: Query successful, data:', data);
         return data?.map(parseAgencyStaffData) || [];
       } catch (error: any) {
-        // If table doesn't exist yet, return dummy data as fallback
-        if (error.message?.includes('does not exist') || error.message?.includes('relation') || error.message?.includes('relationship')) {
-          console.warn('🔄 useListAgencyStaff: Agency staff table not yet created, using fallback dummy data');
-          return [
-            {
-              id: '1',
-              employee_id: 'EMP001',
-              first_name: 'John',
-              last_name: 'Doe',
-              email: 'john.doe@realestate.com',
-              phone: '+1-555-0123',
-              role: 'Sales Agent',
-              department: 'Sales',
-              date_of_joining: '2023-01-15',
-              salary: 75000,
-              status: 'Active' as const,
-              performance: 92,
-              created_at: '2023-01-15T10:00:00Z',
-              updated_at: '2023-06-15T10:00:00Z'
-            },
-            {
-              id: '2',
-              employee_id: 'EMP002',
-              first_name: 'Jane',
-              last_name: 'Smith',
-              email: 'jane.smith@realestate.com',
-              phone: '+1-555-0124',
-              role: 'Property Manager',
-              department: 'Operations',
-              date_of_joining: '2023-02-20',
-              salary: 68000,
-              status: 'Active' as const,
-              performance: 88,
-              created_at: '2023-02-20T10:00:00Z',
-              updated_at: '2023-06-15T10:00:00Z'
-            },
-            {
-              id: '3',
-              employee_id: 'EMP003',
-              first_name: 'Mike',
-              last_name: 'Johnson',
-              email: 'mike.johnson@realestate.com',
-              phone: '+1-555-0125',
-              role: 'Marketing Specialist',
-              department: 'Marketing',
-              date_of_joining: '2023-03-10',
-              salary: 55000,
-              status: 'Active' as const,
-              performance: 85,
-              created_at: '2023-03-10T10:00:00Z',
-              updated_at: '2023-06-15T10:00:00Z'
-            },
-            {
-              id: '4',
-              employee_id: 'EMP004',
-              first_name: 'Sarah',
-              last_name: 'Wilson',
-              email: 'sarah.wilson@realestate.com',
-              phone: '+1-555-0126',
-              role: 'Administrative Assistant',
-              department: 'Administration',
-              date_of_joining: '2023-04-05',
-              salary: 45000,
-              status: 'On Leave' as const,
-              performance: 90,
-              created_at: '2023-04-05T10:00:00Z',
-              updated_at: '2023-06-15T10:00:00Z'
-            },
-            {
-              id: '5',
-              employee_id: 'EMP005',
-              first_name: 'David',
-              last_name: 'Brown',
-              email: 'david.brown@realestate.com',
-              phone: '+1-555-0127',
-              role: 'Sales Agent',
-              department: 'Sales',
-              date_of_joining: '2023-05-12',
-              salary: 72000,
-              status: 'Inactive' as const,
-              performance: 78,
-              created_at: '2023-05-12T10:00:00Z',
-              updated_at: '2023-06-15T10:00:00Z'
-            }
-          ];
+        if (isMissingAgencyStaffTable(error)) {
+          return [];
         }
-        console.error('🚨 useListAgencyStaff: Unexpected error, using fallback data:', error);
-        // Fallback to dummy data for any error
-        return [
-          {
-            id: '1',
-            employee_id: 'EMP001',
-            first_name: 'John',
-            last_name: 'Doe',
-            email: 'john.doe@realestate.com',
-            phone: '+1-555-0123',
-            role: 'Sales Agent',
-            department: 'Sales',
-            date_of_joining: '2023-01-15',
-            salary: 75000,
-            status: 'Active' as const,
-            performance: 92,
-            created_at: '2023-01-15T10:00:00Z',
-            updated_at: '2023-06-15T10:00:00Z'
-          },
-          {
-            id: '2',
-            employee_id: 'EMP002',
-            first_name: 'Jane',
-            last_name: 'Smith',
-            email: 'jane.smith@realestate.com',
-            phone: '+1-555-0124',
-            role: 'Property Manager',
-            department: 'Operations',
-            date_of_joining: '2023-02-20',
-            salary: 68000,
-            status: 'Active' as const,
-            performance: 88,
-            created_at: '2023-02-20T10:00:00Z',
-            updated_at: '2023-06-15T10:00:00Z'
-          },
-          {
-            id: '3',
-            employee_id: 'EMP003',
-            first_name: 'Mike',
-            last_name: 'Johnson',
-            email: 'mike.johnson@realestate.com',
-            phone: '+1-555-0125',
-            role: 'Marketing Specialist',
-            department: 'Marketing',
-            date_of_joining: '2023-03-10',
-            salary: 55000,
-            status: 'Active' as const,
-            performance: 85,
-            created_at: '2023-03-10T10:00:00Z',
-            updated_at: '2023-06-15T10:00:00Z'
-          },
-          {
-            id: '4',
-            employee_id: 'EMP004',
-            first_name: 'Sarah',
-            last_name: 'Wilson',
-            email: 'sarah.wilson@realestate.com',
-            phone: '+1-555-0126',
-            role: 'Administrative Assistant',
-            department: 'Administration',
-            date_of_joining: '2023-04-05',
-            salary: 45000,
-            status: 'On Leave' as const,
-            performance: 90,
-            created_at: '2023-04-05T10:00:00Z',
-            updated_at: '2023-06-15T10:00:00Z'
-          },
-          {
-            id: '5',
-            employee_id: 'EMP005',
-            first_name: 'David',
-            last_name: 'Brown',
-            email: 'david.brown@realestate.com',
-            phone: '+1-555-0127',
-            role: 'Sales Agent',
-            department: 'Sales',
-            date_of_joining: '2023-05-12',
-            salary: 72000,
-            status: 'Inactive' as const,
-            performance: 78,
-            created_at: '2023-05-12T10:00:00Z',
-            updated_at: '2023-06-15T10:00:00Z'
-          }
-        ];
+        throw error;
       }
     },
   });
@@ -332,58 +171,8 @@ export const useActiveAgencyStaff = () => {
 
         return data?.map(parseAgencyStaffData) || [];
       } catch (error: any) {
-        if (error.message?.includes('does not exist') || error.message?.includes('relation') || error.message?.includes('relationship')) {
-          console.warn('Agency staff table not yet created, using fallback data for active staff');
-          return [
-            {
-              id: '1',
-              employee_id: 'EMP001',
-              first_name: 'John',
-              last_name: 'Doe',
-              email: 'john.doe@realestate.com',
-              phone: '+1-555-0123',
-              role: 'Sales Agent',
-              department: 'Sales',
-              date_of_joining: '2023-01-15',
-              salary: 75000,
-              status: 'Active' as const,
-              performance: 92,
-              created_at: '2023-01-15T10:00:00Z',
-              updated_at: '2023-06-15T10:00:00Z'
-            },
-            {
-              id: '2',
-              employee_id: 'EMP002',
-              first_name: 'Jane',
-              last_name: 'Smith',
-              email: 'jane.smith@realestate.com',
-              phone: '+1-555-0124',
-              role: 'Property Manager',
-              department: 'Operations',
-              date_of_joining: '2023-02-20',
-              salary: 68000,
-              status: 'Active' as const,
-              performance: 88,
-              created_at: '2023-02-20T10:00:00Z',
-              updated_at: '2023-06-15T10:00:00Z'
-            },
-            {
-              id: '3',
-              employee_id: 'EMP003',
-              first_name: 'Mike',
-              last_name: 'Johnson',
-              email: 'mike.johnson@realestate.com',
-              phone: '+1-555-0125',
-              role: 'Marketing Specialist',
-              department: 'Marketing',
-              date_of_joining: '2023-03-10',
-              salary: 55000,
-              status: 'Active' as const,
-              performance: 85,
-              created_at: '2023-03-10T10:00:00Z',
-              updated_at: '2023-06-15T10:00:00Z'
-            }
-          ];
+        if (isMissingAgencyStaffTable(error)) {
+          return [];
         }
         throw error;
       }
@@ -410,51 +199,8 @@ export const useAgencyStaffByDepartment = (department: string) => {
 
         return data?.map(parseAgencyStaffData) || [];
       } catch (error: any) {
-        if (error.message?.includes('does not exist') || error.message?.includes('relation') || error.message?.includes('relationship')) {
-          console.warn('Agency staff table not yet created, using fallback data for department', department);
-          // Return appropriate staff for the department
-          const salesStaff = [
-            {
-              id: '1',
-              employee_id: 'EMP001',
-              first_name: 'John',
-              last_name: 'Doe',
-              email: 'john.doe@realestate.com',
-              phone: '+1-555-0123',
-              role: 'Sales Agent',
-              department: 'Sales',
-              date_of_joining: '2023-01-15',
-              salary: 75000,
-              status: 'Active' as const,
-              performance: 92,
-              created_at: '2023-01-15T10:00:00Z',
-              updated_at: '2023-06-15T10:00:00Z'
-            }
-          ];
-          const operationsStaff = [
-            {
-              id: '2',
-              employee_id: 'EMP002',
-              first_name: 'Jane',
-              last_name: 'Smith',
-              email: 'jane.smith@realestate.com',
-              phone: '+1-555-0124',
-              role: 'Property Manager',
-              department: 'Operations',
-              date_of_joining: '2023-02-20',
-              salary: 68000,
-              status: 'Active' as const,
-              performance: 88,
-              created_at: '2023-02-20T10:00:00Z',
-              updated_at: '2023-06-15T10:00:00Z'
-            }
-          ];
-          
-          switch (department) {
-            case 'Sales': return salesStaff;
-            case 'Operations': return operationsStaff;
-            default: return [];
-          }
+        if (isMissingAgencyStaffTable(error)) {
+          return [];
         }
         throw error;
       }
@@ -565,27 +311,24 @@ export const useAgencyStaffDepartmentStats = () => {
           throw new Error(`Failed to fetch department stats: ${error.message}`);
         }
 
-        // Calculate department distribution
-        const departmentCounts = data.reduce((acc: any, staff: any) => {
+        const rows = data ?? [];
+        const departmentCounts = rows.reduce((acc: any, staff: any) => {
           acc[staff.department] = (acc[staff.department] || 0) + 1;
           return acc;
         }, {});
 
-        const total = data.length;
+        const total = rows.length;
+        if (!total) {
+          return [];
+        }
         return Object.entries(departmentCounts).map(([name, count]) => ({
           name,
           count: count as number,
           percentage: total > 0 ? Math.round(((count as number) / total) * 100) : 0,
         }));
       } catch (error: any) {
-        if (error.message?.includes('does not exist') || error.message?.includes('relation') || error.message?.includes('relationship')) {
-          console.warn('Agency staff table not yet created, using default department data');
-          return [
-            { name: 'Sales', count: 2, percentage: 40 },
-            { name: 'Operations', count: 1, percentage: 20 },
-            { name: 'Marketing', count: 1, percentage: 20 },
-            { name: 'Administration', count: 1, percentage: 20 },
-          ];
+        if (isMissingAgencyStaffTable(error)) {
+          return [];
         }
         throw error;
       }
@@ -608,14 +351,15 @@ export const useAgencyStaffStats = () => {
           throw new Error(`Failed to fetch staff stats: ${error.message}`);
         }
 
-        const totalStaff = data.length;
-        const activeStaff = data.filter((s: any) => s.status === 'Active').length;
-        const inactiveStaff = data.filter((s: any) => s.status === 'Inactive' || s.status === 'On Leave').length;
+        const rows = data ?? [];
+        const totalStaff = rows.length;
+        const activeStaff = rows.filter((s: any) => s.status === 'Active').length;
+        const inactiveStaff = rows.filter((s: any) => s.status === 'Inactive' || s.status === 'On Leave').length;
         const avgPerformance = totalStaff > 0 
-          ? data.reduce((sum: number, staff: any) => sum + (staff.performance || 0), 0) / totalStaff 
+          ? rows.reduce((sum: number, staff: any) => sum + (staff.performance || 0), 0) / totalStaff 
           : 0;
         const avgSalary = totalStaff > 0 
-          ? data.reduce((sum: number, staff: any) => sum + (staff.salary || 0), 0) / totalStaff 
+          ? rows.reduce((sum: number, staff: any) => sum + (staff.salary || 0), 0) / totalStaff 
           : 0;
 
         return {
@@ -626,14 +370,13 @@ export const useAgencyStaffStats = () => {
           avgSalary: Math.round(avgSalary),
         };
       } catch (error: any) {
-        if (error.message?.includes('does not exist') || error.message?.includes('relation') || error.message?.includes('relationship')) {
-          console.warn('Agency staff table not yet created, using default stats');
+        if (isMissingAgencyStaffTable(error)) {
           return {
-            totalStaff: 5,
-            activeStaff: 3,
-            inactiveStaff: 2,
-            avgPerformance: 87.8,
-            avgSalary: 62000,
+            totalStaff: 0,
+            activeStaff: 0,
+            inactiveStaff: 0,
+            avgPerformance: 0,
+            avgSalary: 0,
           };
         }
         throw error;
@@ -658,7 +401,8 @@ export const useAgencyStaffHiringTrend = () => {
         }
 
         // Group by month and count hires
-        const monthCounts = data.reduce((acc: any, staff: any) => {
+        const rows = data ?? [];
+        const monthCounts = rows.reduce((acc: any, staff: any) => {
           if (staff.date_of_joining) {
             const month = new Date(staff.date_of_joining).toLocaleDateString('en-US', { month: 'short' });
             acc[month] = (acc[month] || 0) + 1;
@@ -672,15 +416,14 @@ export const useAgencyStaffHiringTrend = () => {
           hires: monthCounts[month] || 0,
         }));
       } catch (error: any) {
-        if (error.message?.includes('does not exist') || error.message?.includes('relation') || error.message?.includes('relationship')) {
-          console.warn('Agency staff table not yet created, using default hiring trend');
+        if (isMissingAgencyStaffTable(error)) {
           return [
-            { month: 'Jan', hires: 1 },
-            { month: 'Feb', hires: 1 },
-            { month: 'Mar', hires: 1 },
+            { month: 'Jan', hires: 0 },
+            { month: 'Feb', hires: 0 },
+            { month: 'Mar', hires: 0 },
             { month: 'Apr', hires: 0 },
             { month: 'May', hires: 0 },
-            { month: 'Jun', hires: 1 },
+            { month: 'Jun', hires: 0 },
           ];
         }
         throw error;

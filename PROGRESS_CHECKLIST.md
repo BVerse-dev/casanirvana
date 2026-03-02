@@ -547,6 +547,10 @@ Date: 2026-02-06
   - `/settings/agencies/configuration` now initializes from Ghana-aligned defaults when no saved config exists, and nested configuration forms now persist correctly through the flattened DB transform instead of silently dropping nested values.
   - `/settings/agencies/profiles` removed dead mock agency data, switched region defaults to Ghana regions, and normalized the key analytics cards away from static rupee placeholders to live `GHS` / `GH₵` values.
   - Agency profile create/edit modal flows now reset cleanly through shared helpers, and geography/top-performer sections no longer show static India-specific placeholder content.
+- [x] Phase 33 agency-settings operational flows completed:
+  - `/settings/agencies/services` now uses real create/update/delete mutations with honest success/error feedback, maps the edit form to the live agency-service schema, and uses `GHS` / `GH₵` formatting without changing the existing cards, tables, filters, or modal layout.
+  - `/settings/agencies/finance` now creates agency transactions through the real mutation path, resolves live agency IDs before saving billing or transaction records, and uses `GHS` / `GH₵` formatting across overview cards, tables, reports, and forms while preserving the current workspace UI.
+  - `/settings/agencies/staff` no longer injects fake fallback staff records or analytics; it now derives recent hires, department distribution, hiring trends, performance buckets, and salary analytics from live staff data while keeping the current tabs, charts, and cards structure intact.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)
