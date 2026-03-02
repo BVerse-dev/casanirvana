@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { Card, CardBody, CardHeader, CardTitle, Button, Alert, Row, Col } from 'react-bootstrap';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -50,33 +50,7 @@ const smsSettingsSchema = yup.object({
   enable_emergency_sms: yup.boolean().required(),
 });
 
-interface SmsSettingsFormData {
-  sms_provider: string;
-  twilio_account_sid?: string;
-  twilio_auth_token?: string;
-  twilio_phone_number?: string;
-  aws_access_key_id?: string;
-  aws_secret_access_key?: string;
-  aws_region?: string;
-  textlocal_api_key?: string;
-  textlocal_sender?: string;
-  msg91_api_key?: string;
-  msg91_sender_id?: string;
-  msg91_route?: string;
-  default_country_code: string;
-  rate_limit_per_minute: number;
-  sms_timeout: number;
-  enable_delivery_reports?: boolean;
-  test_mode?: boolean;
-  enable_otp_sms?: boolean;
-  enable_alert_sms?: boolean;
-  enable_reminder_sms?: boolean;
-  enable_emergency_sms?: boolean;
-}
-
 const SmsSettingsPage = () => {
-  const [isTestingSms, setIsTestingSms] = useState(false);
-
   const {
     smsNotificationSettings,
     isLoadingData,
@@ -85,9 +59,13 @@ const SmsSettingsPage = () => {
     updateError,
     updateSuccess,
     updateSettings,
+    isTesting,
+    testError,
+    testResult,
+    testSettingsAsync,
   } = useSmsNotificationSettings();
 
-  const { control, handleSubmit, reset, getValues, watch, formState: { isDirty } } = useForm<SmsNotificationSettings>({
+  const { control, handleSubmit, reset, getValues, watch, register, formState: { isDirty } } = useForm<SmsNotificationSettings>({
     resolver: yupResolver(smsSettingsSchema),
   });
 
@@ -105,18 +83,7 @@ const SmsSettingsPage = () => {
   };
 
   const testSms = async () => {
-    setIsTestingSms(true);
-    try {
-      // Simulate a successful test for demo purposes
-      setTimeout(() => {
-        alert('Test SMS functionality triggered! (This would send a real SMS in production)');
-        setIsTestingSms(false);
-      }, 2000);
-    } catch (error) {
-      console.error('SMS test failed:', error);
-      alert(`SMS test failed: ${error instanceof Error ? error.message : 'Please check your settings.'}`);
-      setIsTestingSms(false);
-    }
+    await testSettingsAsync(getValues());
   };
 
   const renderProviderConfig = () => {
@@ -340,6 +307,20 @@ const SmsSettingsPage = () => {
         </Alert>
       )}
 
+      {testResult && (
+        <Alert variant={testResult.success ? 'success' : 'warning'} dismissible>
+          <IconifyIcon icon="solar:shield-check-line-duotone" className="fs-18 me-2" />
+          {testResult.message}
+        </Alert>
+      )}
+
+      {testError && (
+        <Alert variant="danger" dismissible>
+          <IconifyIcon icon="solar:danger-triangle-line-duotone" className="fs-18 me-2" />
+          Error testing SMS setup: {testError.message}
+        </Alert>
+      )}
+
       <form onSubmit={handleSubmit(onSubmit)}>
           <Row>
             <Col xl={6}>
@@ -388,7 +369,7 @@ const SmsSettingsPage = () => {
                         control={control}
                         name="default_country_code"
                         label="Default Country Code"
-                        placeholder="+91"
+                        placeholder="+233"
                         containerClassName="mb-3"
                       />
                     </Col>
@@ -431,7 +412,7 @@ const SmsSettingsPage = () => {
                           className="form-check-input"
                           type="checkbox"
                           id="enable_otp_sms"
-                          {...control.register('enable_otp_sms')}
+                          {...register('enable_otp_sms')}
                         />
                         <label className="form-check-label" htmlFor="enable_otp_sms">
                           OTP SMS
@@ -447,7 +428,7 @@ const SmsSettingsPage = () => {
                           className="form-check-input"
                           type="checkbox"
                           id="enable_alert_sms"
-                          {...control.register('enable_alert_sms')}
+                          {...register('enable_alert_sms')}
                         />
                         <label className="form-check-label" htmlFor="enable_alert_sms">
                           Alert SMS
@@ -463,7 +444,7 @@ const SmsSettingsPage = () => {
                           className="form-check-input"
                           type="checkbox"
                           id="enable_reminder_sms"
-                          {...control.register('enable_reminder_sms')}
+                          {...register('enable_reminder_sms')}
                         />
                         <label className="form-check-label" htmlFor="enable_reminder_sms">
                           Reminder SMS
@@ -479,7 +460,7 @@ const SmsSettingsPage = () => {
                           className="form-check-input"
                           type="checkbox"
                           id="enable_emergency_sms"
-                          {...control.register('enable_emergency_sms')}
+                          {...register('enable_emergency_sms')}
                         />
                         <label className="form-check-label" htmlFor="enable_emergency_sms">
                           Emergency SMS
@@ -508,7 +489,7 @@ const SmsSettingsPage = () => {
                           className="form-check-input"
                           type="checkbox"
                           id="enable_delivery_reports"
-                          {...control.register('enable_delivery_reports')}
+                          {...register('enable_delivery_reports')}
                         />
                         <label className="form-check-label" htmlFor="enable_delivery_reports">
                           Delivery Reports
@@ -524,7 +505,7 @@ const SmsSettingsPage = () => {
                           className="form-check-input"
                           type="checkbox"
                           id="test_mode"
-                          {...control.register('test_mode')}
+                          {...register('test_mode')}
                         />
                         <label className="form-check-label" htmlFor="test_mode">
                           Test Mode
@@ -575,7 +556,7 @@ const SmsSettingsPage = () => {
                       <div className="mb-3">
                         <h6 className="fw-bold">TextLocal</h6>
                         <small className="text-muted">
-                          UK-focused provider<br />
+                          Regional SMS provider<br />
                           Competitive rates<br />
                           Easy integration
                         </small>
@@ -585,7 +566,7 @@ const SmsSettingsPage = () => {
                       <div className="mb-3">
                         <h6 className="fw-bold">MSG91</h6>
                         <small className="text-muted">
-                          India-focused provider<br />
+                          Regional SMS provider<br />
                           Low-cost SMS<br />
                           Transactional & Promotional
                         </small>
@@ -602,17 +583,17 @@ const SmsSettingsPage = () => {
               variant="info" 
               type="button" 
               onClick={testSms}
-              disabled={isTestingSms}
+              disabled={isTesting}
             >
-              {isTestingSms ? (
+              {isTesting ? (
                 <>
                   <span className="spinner-border spinner-border-sm me-2" role="status" />
-                  Sending Test SMS...
+                  Validating Setup...
                 </>
               ) : (
                 <>
                   <IconifyIcon icon="ri:send-plane-line" className="me-1" />
-                  Send Test SMS
+                  Validate SMS Setup
                 </>
               )}
             </Button>

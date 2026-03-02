@@ -87,6 +87,124 @@ const INTEGRATION_SENSITIVE_KEYS = new Set<string>([
   'pusher_secret',
 ]);
 
+const PUSH_DEFAULTS = {
+  firebase_enabled: false,
+  firebase_server_key: '',
+  firebase_sender_id: '',
+  firebase_api_key: '',
+  firebase_project_id: '',
+  push_maintenance_requests: true,
+  push_payment_reminders: true,
+  push_visitor_approvals: true,
+  push_emergency_alerts: true,
+  push_community_announcements: true,
+  push_complaint_updates: true,
+  push_amenity_bookings: true,
+  push_service_updates: true,
+  admin_push_new_users: true,
+  admin_push_new_complaints: true,
+  admin_push_maintenance_requests: true,
+  admin_push_payment_received: true,
+  admin_push_emergency_alerts: true,
+  push_sound_enabled: true,
+  push_vibration_enabled: true,
+  push_badge_enabled: true,
+  push_quiet_hours_enabled: false,
+  push_quiet_start_time: '22:00',
+  push_quiet_end_time: '07:00',
+  default_push_title: 'Casa Nirvana',
+  default_push_message: 'You have a new notification',
+  push_click_action: 'OPEN_APP',
+} satisfies SettingsMap;
+
+const PUSH_SENSITIVE_KEYS = new Set<string>(['firebase_server_key', 'firebase_api_key']);
+
+const PUSH_DESCRIPTIONS: Record<string, string> = {
+  firebase_enabled: 'Enable Firebase push notifications',
+  firebase_server_key: 'Firebase server key',
+  firebase_sender_id: 'Firebase sender id',
+  firebase_api_key: 'Firebase API key',
+  firebase_project_id: 'Firebase project id',
+  push_maintenance_requests: 'Send push notifications for maintenance updates',
+  push_payment_reminders: 'Send push notifications for payment reminders',
+  push_visitor_approvals: 'Send push notifications for visitor approvals',
+  push_emergency_alerts: 'Send push notifications for emergency alerts',
+  push_community_announcements: 'Send push notifications for community announcements',
+  push_complaint_updates: 'Send push notifications for complaint updates',
+  push_amenity_bookings: 'Send push notifications for amenity bookings',
+  push_service_updates: 'Send push notifications for service updates',
+  admin_push_new_users: 'Send admin push notifications for new users',
+  admin_push_new_complaints: 'Send admin push notifications for new complaints',
+  admin_push_maintenance_requests: 'Send admin push notifications for maintenance requests',
+  admin_push_payment_received: 'Send admin push notifications for payments received',
+  admin_push_emergency_alerts: 'Send admin push notifications for emergency alerts',
+  push_sound_enabled: 'Enable sound for push notifications',
+  push_vibration_enabled: 'Enable vibration for push notifications',
+  push_badge_enabled: 'Enable badge counts for push notifications',
+  push_quiet_hours_enabled: 'Enable quiet hours for push notifications',
+  push_quiet_start_time: 'Push quiet hours start time',
+  push_quiet_end_time: 'Push quiet hours end time',
+  default_push_title: 'Default push notification title',
+  default_push_message: 'Default push notification message',
+  push_click_action: 'Default push notification click action',
+};
+
+const SMS_DEFAULTS = {
+  sms_provider: 'twilio',
+  twilio_account_sid: '',
+  twilio_auth_token: '',
+  twilio_phone_number: '',
+  aws_access_key_id: '',
+  aws_secret_access_key: '',
+  aws_region: 'us-east-1',
+  textlocal_api_key: '',
+  textlocal_sender: '',
+  msg91_api_key: '',
+  msg91_sender_id: '',
+  msg91_route: '4',
+  default_country_code: '+233',
+  rate_limit_per_minute: 10,
+  sms_timeout: 30,
+  enable_delivery_reports: true,
+  test_mode: false,
+  enable_otp_sms: true,
+  enable_alert_sms: true,
+  enable_reminder_sms: true,
+  enable_emergency_sms: true,
+} satisfies SettingsMap;
+
+const SMS_SENSITIVE_KEYS = new Set<string>([
+  'twilio_auth_token',
+  'aws_access_key_id',
+  'aws_secret_access_key',
+  'textlocal_api_key',
+  'msg91_api_key',
+]);
+
+const SMS_DESCRIPTIONS: Record<string, string> = {
+  sms_provider: 'Configured SMS provider',
+  twilio_account_sid: 'Twilio account SID',
+  twilio_auth_token: 'Twilio auth token',
+  twilio_phone_number: 'Twilio phone number',
+  aws_access_key_id: 'AWS access key id',
+  aws_secret_access_key: 'AWS secret access key',
+  aws_region: 'AWS region',
+  textlocal_api_key: 'TextLocal API key',
+  textlocal_sender: 'TextLocal sender id',
+  msg91_api_key: 'MSG91 API key',
+  msg91_sender_id: 'MSG91 sender id',
+  msg91_route: 'MSG91 route',
+  default_country_code: 'Default SMS country code',
+  rate_limit_per_minute: 'Rate limit per minute',
+  sms_timeout: 'SMS timeout in seconds',
+  enable_delivery_reports: 'Enable delivery reports',
+  test_mode: 'Enable SMS test mode',
+  enable_otp_sms: 'Enable OTP SMS',
+  enable_alert_sms: 'Enable alert SMS',
+  enable_reminder_sms: 'Enable reminder SMS',
+  enable_emergency_sms: 'Enable emergency SMS',
+};
+
 type SystemSettingRow = {
   key: string;
   value: string;
@@ -476,5 +594,102 @@ export async function testAdminIntegrationSetting(service: string, value?: unkno
   return {
     success: true,
     message: `${requirements.label} configuration is valid and stored securely.`,
+  };
+}
+
+export async function getAdminPushSettings() {
+  const settings = await loadSettings('push_notifications', PUSH_DEFAULTS);
+  return maskSensitiveValues(settings, PUSH_SENSITIVE_KEYS);
+}
+
+export async function saveAdminPushSettings(input: Record<string, unknown>, updatedBy?: string | null) {
+  const current = await loadSettings('push_notifications', PUSH_DEFAULTS);
+  const merged = mergeSubmittedSettings(input, current, PUSH_DEFAULTS, PUSH_SENSITIVE_KEYS);
+  return upsertSettingsCategory(
+    'push_notifications',
+    merged,
+    PUSH_DESCRIPTIONS,
+    PUSH_SENSITIVE_KEYS,
+    updatedBy
+  );
+}
+
+export async function testAdminPushSettings(input: Record<string, unknown>) {
+  const current = await loadSettings('push_notifications', PUSH_DEFAULTS);
+  const merged = mergeSubmittedSettings(input, current, PUSH_DEFAULTS, PUSH_SENSITIVE_KEYS);
+
+  if (!merged.firebase_enabled) {
+    return {
+      success: false,
+      message: 'Enable Firebase push notifications before running a test.',
+    };
+  }
+
+  const requiredKeys = ['firebase_server_key', 'firebase_sender_id', 'firebase_api_key', 'firebase_project_id'];
+  for (const key of requiredKeys) {
+    const value = merged[key];
+    if (value === undefined || value === null || String(value).trim() === '') {
+      return {
+        success: false,
+        message: `Firebase configuration is incomplete. Set ${key.replace(/_/g, ' ')} first.`,
+      };
+    }
+  }
+
+  return {
+    success: true,
+    message: 'Push notification configuration is valid. Deliverability still depends on the linked mobile clients and Firebase project.',
+  };
+}
+
+export async function getAdminSmsSettings() {
+  const settings = await loadSettings('sms_notifications', SMS_DEFAULTS);
+  return maskSensitiveValues(settings, SMS_SENSITIVE_KEYS);
+}
+
+export async function saveAdminSmsSettings(input: Record<string, unknown>, updatedBy?: string | null) {
+  const current = await loadSettings('sms_notifications', SMS_DEFAULTS);
+  const merged = mergeSubmittedSettings(input, current, SMS_DEFAULTS, SMS_SENSITIVE_KEYS);
+  return upsertSettingsCategory(
+    'sms_notifications',
+    merged,
+    SMS_DESCRIPTIONS,
+    SMS_SENSITIVE_KEYS,
+    updatedBy
+  );
+}
+
+export async function testAdminSmsSettings(input: Record<string, unknown>) {
+  const current = await loadSettings('sms_notifications', SMS_DEFAULTS);
+  const merged = mergeSubmittedSettings(input, current, SMS_DEFAULTS, SMS_SENSITIVE_KEYS);
+  const provider = String(merged.sms_provider || '');
+
+  const requiredByProvider: Record<string, string[]> = {
+    twilio: ['twilio_account_sid', 'twilio_auth_token', 'twilio_phone_number'],
+    aws_sns: ['aws_access_key_id', 'aws_secret_access_key', 'aws_region'],
+    textlocal: ['textlocal_api_key', 'textlocal_sender'],
+    msg91: ['msg91_api_key', 'msg91_sender_id', 'msg91_route'],
+  };
+
+  if (!requiredByProvider[provider]) {
+    return {
+      success: false,
+      message: 'Select a supported SMS provider before running a test.',
+    };
+  }
+
+  for (const key of requiredByProvider[provider]) {
+    const value = merged[key];
+    if (value === undefined || value === null || String(value).trim() === '') {
+      return {
+        success: false,
+        message: `${provider.replace(/_/g, ' ')} configuration is incomplete. Set ${key.replace(/_/g, ' ')} first.`,
+      };
+    }
+  }
+
+  return {
+    success: true,
+    message: 'SMS provider configuration is valid. Deliverability depends on your active provider account and sender configuration.',
   };
 }

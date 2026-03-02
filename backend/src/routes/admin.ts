@@ -529,6 +529,46 @@ router.post(
   validateRequest({ body: schemas.adminIntegrationSettingsTest }),
   adminSecureSettingsController.testIntegrationSettings
 );
+router.get(
+  '/settings/push',
+  requireAuth,
+  requirePermission('manage:settings'),
+  adminSecureSettingsController.getPushSettings
+);
+router.put(
+  '/settings/push',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ body: schemas.adminPushSettingsUpdate }),
+  adminSecureSettingsController.updatePushSettings
+);
+router.post(
+  '/settings/push/test',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ body: schemas.adminPushSettingsTest }),
+  adminSecureSettingsController.testPushSettings
+);
+router.get(
+  '/settings/sms',
+  requireAuth,
+  requirePermission('manage:settings'),
+  adminSecureSettingsController.getSmsSettings
+);
+router.put(
+  '/settings/sms',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ body: schemas.adminSmsSettingsUpdate }),
+  adminSecureSettingsController.updateSmsSettings
+);
+router.post(
+  '/settings/sms/test',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ body: schemas.adminSmsSettingsTest }),
+  adminSecureSettingsController.testSmsSettings
+);
 router.put(
   '/settings',
   requireAuth,

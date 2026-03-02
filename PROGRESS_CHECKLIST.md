@@ -490,6 +490,11 @@ Date: 2026-02-06
   - `/settings/email/templates` now uses backend-managed `system_settings` (`email_templates`) through the shared settings pattern instead of direct browser writes to `app_settings`.
   - `/settings/email/notifications` now uses backend-managed `system_settings` (`email_notifications`) through the shared settings pattern instead of direct browser writes to `app_settings`.
   - The existing tabs/cards/layout were preserved while the underlying persistence was normalized, and legacy defaults were aligned to the current product direction (`Africa/Accra`, current communication defaults, non-legacy language options).
+- [x] Phase 33 notification-settings continuation completed:
+  - `/settings/notifications/push` now uses secure backend admin routes (`/admin/settings/push`) for load/save/test, replacing the previous fake test action while preserving the existing page layout.
+  - `/settings/notifications/sms` now uses secure backend admin routes (`/admin/settings/sms`) for load/save/test, removing direct browser writes to `app_settings`, replacing simulated test behavior, and aligning legacy defaults to the Ghana production scope (`+233`).
+  - `/settings/notifications/in-app` now uses backend-managed `system_settings` (`notifications/in_app`) through the shared settings pattern instead of writing directly to the legacy `in_app_notification_settings` table.
+  - `/settings/notifications/rules` now keeps the current rules/grid/tabs UI but persists rule definitions through backend-managed `system_settings` (`notification_rules/definitions`) instead of local-only mock state.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)

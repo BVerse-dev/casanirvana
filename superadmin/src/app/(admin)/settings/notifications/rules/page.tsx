@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Card, Row, Col, Button, Form, Tab, Tabs, Badge, Alert, Modal, Table } from 'react-bootstrap';
-import { useForm, Controller, useFieldArray } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 
@@ -14,6 +14,7 @@ import TextFormInput from '@/components/from/TextFormInput';
 import TextAreaFormInput from '@/components/from/TextAreaFormInput';
 import IconifyIcon from '@/components/wrappers/IconifyIcon';
 import useNotificationRulesSettings, { NotificationRulesSettings } from '@/hooks/useNotificationRulesSettings';
+import { useSettingsCategory } from '@/hooks/useSettingsCategory';
 
 // Constants for form options
 const priorities = [
@@ -41,46 +42,6 @@ const triggers = [
   { value: 'user.login_failed', label: 'Failed Login Attempt' },
   { value: 'amenity.booked', label: 'Amenity Booked' },
   { value: 'service.requested', label: 'Service Requested' },
-];
-
-const operators = [
-  { value: 'equals', label: 'Equals' },
-  { value: 'not_equals', label: 'Not Equals' },
-  { value: 'contains', label: 'Contains' },
-  { value: 'not_contains', label: 'Does Not Contain' },
-  { value: 'greater_than', label: 'Greater Than' },
-  { value: 'less_than', label: 'Less Than' },
-  { value: 'greater_equal', label: 'Greater Than or Equal' },
-  { value: 'less_equal', label: 'Less Than or Equal' },
-  { value: 'in', label: 'In List' },
-  { value: 'not_in', label: 'Not In List' },
-];
-
-const actionTypes = [
-  { value: 'notification', label: 'Push Notification' },
-  { value: 'email', label: 'Email' },
-  { value: 'sms', label: 'SMS' },
-  { value: 'webhook', label: 'Webhook' },
-  { value: 'internal', label: 'Internal Action' },
-];
-
-const channels = [
-  { value: 'push', label: 'Push Notification' },
-  { value: 'email', label: 'Email' },
-  { value: 'sms', label: 'SMS' },
-  { value: 'webhook', label: 'Webhook' },
-  { value: 'database', label: 'Database' },
-];
-
-const recipientGroups = [
-  { value: 'admin', label: 'Administrators' },
-  { value: 'manager', label: 'Managers' },
-  { value: 'maintenance_team', label: 'Maintenance Team' },
-  { value: 'security_team', label: 'Security Team' },
-  { value: 'finance_team', label: 'Finance Team' },
-  { value: 'unit_owners', label: 'Unit Owners' },
-  { value: 'residents', label: 'Community Members' },
-  { value: 'guards', label: 'Guards' },
 ];
 
 interface NotificationCondition {
@@ -145,8 +106,101 @@ const notificationRulesSchema = yup.object({
   default_throttle_time: yup.number().required(),
 });
 
+const defaultRules: NotificationRule[] = [
+  {
+    id: '1',
+    name: 'High Priority Complaint Alert',
+    description: 'Immediate notification for high-priority complaints',
+    trigger: 'complaint.created',
+    conditions: [
+      { field: 'priority', operator: 'equals', value: 'high' },
+      { field: 'category', operator: 'not_equals', value: 'general' }
+    ],
+    actions: [
+      {
+        type: 'notification',
+        channel: 'push',
+        recipients: ['admin', 'manager'],
+        template: 'new_complaint_alert',
+        delay: 0
+      },
+      {
+        type: 'email',
+        channel: 'email',
+        recipients: ['admin@company.com'],
+        template: 'new_complaint_email',
+        delay: 5
+      }
+    ],
+    priority: 'high',
+    isActive: true,
+    throttle: 60,
+    cooldown: 300,
+    maxExecutions: 100,
+    createdAt: '2024-01-15T10:00:00Z',
+    lastTriggered: '2024-01-29T14:30:00Z',
+    executionCount: 25
+  },
+  {
+    id: '2',
+    name: 'Maintenance Due Reminder',
+    description: 'Weekly reminder for upcoming maintenance requests',
+    trigger: 'maintenance.due_soon',
+    conditions: [
+      { field: 'daysUntilDue', operator: 'less_than', value: '7' },
+      { field: 'status', operator: 'equals', value: 'pending' }
+    ],
+    actions: [
+      {
+        type: 'notification',
+        channel: 'push',
+        recipients: ['maintenance_team'],
+        template: 'maintenance_reminder',
+        delay: 0
+      }
+    ],
+    priority: 'medium',
+    isActive: true,
+    throttle: 86400,
+    executionCount: 12,
+    createdAt: '2024-01-10T09:00:00Z',
+    lastTriggered: '2024-01-28T09:00:00Z'
+  },
+  {
+    id: '3',
+    name: 'Payment Overdue Alert',
+    description: 'Alert when payment is overdue by more than 30 days',
+    trigger: 'payment.overdue',
+    conditions: [
+      { field: 'daysPastDue', operator: 'greater_than', value: '30' }
+    ],
+    actions: [
+      {
+        type: 'notification',
+        channel: 'push',
+        recipients: ['finance_team', 'admin'],
+        template: 'payment_overdue_alert',
+        delay: 0
+      },
+      {
+        type: 'sms',
+        channel: 'sms',
+        recipients: ['unit_owner'],
+        template: 'payment_overdue_sms',
+        delay: 60
+      }
+    ],
+    priority: 'critical',
+    isActive: false,
+    throttle: 172800,
+    maxExecutions: 5,
+    executionCount: 3,
+    createdAt: '2024-01-05T08:00:00Z',
+    lastTriggered: '2024-01-25T11:20:00Z'
+  }
+];
+
 const NotificationRulesPage = () => {
-  // Supabase hook for global settings
   const {
     notificationRulesSettings,
     isLoadingData,
@@ -157,109 +211,29 @@ const NotificationRulesPage = () => {
     updateSettings,
   } = useNotificationRulesSettings();
 
-  // Component state for UI management
+  const {
+    data: ruleDefinitions,
+    isLoading: isLoadingRuleDefinitions,
+    error: ruleDefinitionsError,
+    saveSettingsAsync: saveRuleDefinitionsAsync,
+  } = useSettingsCategory<{ rules: NotificationRule[] }>({
+    queryKey: ['notificationRuleDefinitions'],
+    category: 'notification_rules',
+    subcategory: 'definitions',
+    defaults: { rules: defaultRules },
+    descriptions: {
+      rules: 'Persisted notification rule definitions used by the notification rules workspace.',
+    },
+  });
+
   const [activeTab, setActiveTab] = useState<string>('rules');
   const [showRuleModal, setShowRuleModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [currentRule, setCurrentRule] = useState<NotificationRule | null>(null);
   const [deletingRuleId, setDeletingRuleId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-
-  // Mock rules data (would come from API in real app)
-  const [mockRules, setMockRules] = useState<NotificationRule[]>([
-    {
-      id: '1',
-      name: 'High Priority Complaint Alert',
-      description: 'Immediate notification for high-priority complaints',
-      trigger: 'complaint.created',
-      conditions: [
-        { field: 'priority', operator: 'equals', value: 'high' },
-        { field: 'category', operator: 'not_equals', value: 'general' }
-      ],
-      actions: [
-        {
-          type: 'notification',
-          channel: 'push',
-          recipients: ['admin', 'manager'],
-          template: 'new_complaint_alert',
-          delay: 0
-        },
-        {
-          type: 'email',
-          channel: 'email',
-          recipients: ['admin@company.com'],
-          template: 'new_complaint_email',
-          delay: 5
-        }
-      ],
-      priority: 'high',
-      isActive: true,
-      throttle: 60,
-      cooldown: 300,
-      maxExecutions: 100,
-      createdAt: '2024-01-15T10:00:00Z',
-      lastTriggered: '2024-01-29T14:30:00Z',
-      executionCount: 25
-    },
-    {
-      id: '2',
-      name: 'Maintenance Due Reminder',
-      description: 'Weekly reminder for upcoming maintenance requests',
-      trigger: 'maintenance.due_soon',
-      conditions: [
-        { field: 'daysUntilDue', operator: 'less_than', value: '7' },
-        { field: 'status', operator: 'equals', value: 'pending' }
-      ],
-      actions: [
-        {
-          type: 'notification',
-          channel: 'push',
-          recipients: ['maintenance_team'],
-          template: 'maintenance_reminder',
-          delay: 0
-        }
-      ],
-      priority: 'medium',
-      isActive: true,
-      throttle: 86400, // 24 hours
-      executionCount: 12,
-      createdAt: '2024-01-10T09:00:00Z',
-      lastTriggered: '2024-01-28T09:00:00Z'
-    },
-    {
-      id: '3',
-      name: 'Payment Overdue Alert',
-      description: 'Alert when payment is overdue by more than 30 days',
-      trigger: 'payment.overdue',
-      conditions: [
-        { field: 'daysPastDue', operator: 'greater_than', value: '30' }
-      ],
-      actions: [
-        {
-          type: 'notification',
-          channel: 'push',
-          recipients: ['finance_team', 'admin'],
-          template: 'payment_overdue_alert',
-          delay: 0
-        },
-        {
-          type: 'sms',
-          channel: 'sms',
-          recipients: ['unit_owner'],
-          template: 'payment_overdue_sms',
-          delay: 60
-        }
-      ],
-      priority: 'critical',
-      isActive: false,
-      throttle: 172800, // 48 hours
-      maxExecutions: 5,
-      executionCount: 3,
-      createdAt: '2024-01-05T08:00:00Z',
-      lastTriggered: '2024-01-25T11:20:00Z'
-    }
-  ]);
+  const [ruleError, setRuleError] = useState<string | null>(null);
+  const [mockRules, setMockRules] = useState<NotificationRule[]>(defaultRules);
 
   // Form for global settings (Supabase data)
   const {
@@ -292,6 +266,12 @@ const NotificationRulesPage = () => {
       reset(notificationRulesSettings);
     }
   }, [notificationRulesSettings, reset]);
+
+  useEffect(() => {
+    if (ruleDefinitions?.rules) {
+      setMockRules(ruleDefinitions.rules);
+    }
+  }, [ruleDefinitions]);
 
   // Set initial rule form values when opening the modal
   useEffect(() => {
@@ -328,11 +308,25 @@ const NotificationRulesPage = () => {
     updateSettings(data);
   };
 
+  const persistRules = async (nextRules: NotificationRule[]) => {
+    setRuleError(null);
+    await saveRuleDefinitionsAsync({ rules: nextRules });
+    setMockRules(nextRules);
+    setShowSuccess(true);
+    setTimeout(() => setShowSuccess(false), 4000);
+  };
+
   // Rule management functions
-  const toggleRuleStatus = (ruleId: string) => {
-    setMockRules(prev => prev.map(rule => 
+  const toggleRuleStatus = async (ruleId: string) => {
+    const nextRules = mockRules.map(rule =>
       rule.id === ruleId ? { ...rule, isActive: !rule.isActive } : rule
-    ));
+    );
+
+    try {
+      await persistRules(nextRules);
+    } catch (error) {
+      setRuleError(error instanceof Error ? error.message : 'Failed to update the notification rule.');
+    }
   };
 
   const editRule = (rule: NotificationRule) => {
@@ -345,9 +339,14 @@ const NotificationRulesPage = () => {
     setShowDeleteModal(true);
   };
 
-  const confirmDeleteRule = () => {
+  const confirmDeleteRule = async () => {
     if (deletingRuleId) {
-      setMockRules(prev => prev.filter(rule => rule.id !== deletingRuleId));
+      const nextRules = mockRules.filter(rule => rule.id !== deletingRuleId);
+      try {
+        await persistRules(nextRules);
+      } catch (error) {
+        setRuleError(error instanceof Error ? error.message : 'Failed to delete the notification rule.');
+      }
     }
     setShowDeleteModal(false);
     setDeletingRuleId(null);
@@ -358,26 +357,28 @@ const NotificationRulesPage = () => {
     setShowRuleModal(true);
   };
 
-  const saveRule = (data: RuleFormData) => {
-    if (currentRule) {
-      // Update existing rule
-      setMockRules(prev => prev.map(rule =>
-        rule.id === currentRule.id ? { ...currentRule, ...data } : rule
-      ));
-    } else {
-      // Add new rule
-      const newRule: NotificationRule = {
-        id: Date.now().toString(),
-        ...data,
-        conditions: [],
-        actions: [],
-        executionCount: 0,
-        createdAt: new Date().toISOString()
-      };
-      setMockRules(prev => [...prev, newRule]);
+  const saveRule = async (data: RuleFormData) => {
+    const nextRules = currentRule
+      ? mockRules.map(rule => (rule.id === currentRule.id ? { ...currentRule, ...data } : rule))
+      : [
+          ...mockRules,
+          {
+            id: Date.now().toString(),
+            ...data,
+            conditions: [],
+            actions: [],
+            executionCount: 0,
+            createdAt: new Date().toISOString(),
+          },
+        ];
+
+    try {
+      await persistRules(nextRules);
+      setShowRuleModal(false);
+      setCurrentRule(null);
+    } catch (error) {
+      setRuleError(error instanceof Error ? error.message : 'Failed to save the notification rule.');
     }
-    setShowRuleModal(false);
-    setCurrentRule(null);
   };
 
   const getPriorityBadge = (priority: string) => {
@@ -394,7 +395,7 @@ const NotificationRulesPage = () => {
     return new Date(dateString).toLocaleDateString();
   };
 
-  if (isLoadingData) {
+  if (isLoadingData || isLoadingRuleDefinitions) {
     return (
       <>
         <PageTitle subName="Notifications" title="Notification Rules" />
@@ -406,13 +407,13 @@ const NotificationRulesPage = () => {
     );
   }
 
-  if (loadError) {
+  if (loadError || ruleDefinitionsError) {
     return (
       <>
         <PageTitle subName="Notifications" title="Notification Rules" />
         <Alert variant="danger">
           <IconifyIcon icon="solar:danger-triangle-line-duotone" className="fs-18 me-2" />
-          Error loading notification rules settings: {loadError.message}
+          Error loading notification rules settings: {(loadError || ruleDefinitionsError)?.message}
         </Alert>
       </>
     );
@@ -443,6 +444,13 @@ const NotificationRulesPage = () => {
         <Alert variant="success" className="d-flex align-items-center">
           <IconifyIcon icon="ri:check-line" className="me-2" />
           Notification rules saved successfully!
+        </Alert>
+      )}
+
+      {ruleError && (
+        <Alert variant="danger" dismissible onClose={() => setRuleError(null)}>
+          <IconifyIcon icon="solar:danger-triangle-line-duotone" className="fs-18 me-2" />
+          {ruleError}
         </Alert>
       )}
 

@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useEffect } from 'react';
-import { Row, Col, Card, CardHeader, CardBody, Alert, Badge, Form, Button } from 'react-bootstrap';
+import { useEffect } from 'react';
+import { Row, Col, Card, CardHeader, CardBody, Alert, Badge, Form } from 'react-bootstrap';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
@@ -61,14 +61,18 @@ const PushNotificationsPage = () => {
     updateError,
     updateSuccess,
     updateSettings,
+    isTesting,
+    testError,
+    testResult,
+    testSettingsAsync,
   } = usePushNotificationSettings();
 
   const {
     control,
     handleSubmit,
-    formState: { errors },
     reset,
     watch,
+    getValues,
   } = useForm<PushNotificationSettings>({
     resolver: yupResolver(schema),
   });
@@ -87,9 +91,8 @@ const PushNotificationsPage = () => {
     updateSettings(data);
   };
 
-  const testPushNotification = () => {
-    // Mock test push notification functionality
-    alert('Test push notification sent!');
+  const testPushNotification = async () => {
+    await testSettingsAsync(getValues());
   };
 
   if (isLoadingData) {
@@ -131,6 +134,20 @@ const PushNotificationsPage = () => {
         <Alert variant="danger" dismissible>
           <IconifyIcon icon="solar:danger-triangle-line-duotone" className="fs-18 me-2" />
           Error updating push notification setup: {updateError.message}
+        </Alert>
+      )}
+
+      {testResult && (
+        <Alert variant={testResult.success ? 'success' : 'warning'} dismissible>
+          <IconifyIcon icon="solar:shield-check-line-duotone" className="fs-18 me-2" />
+          {testResult.message}
+        </Alert>
+      )}
+
+      {testError && (
+        <Alert variant="danger" dismissible>
+          <IconifyIcon icon="solar:danger-triangle-line-duotone" className="fs-18 me-2" />
+          Error testing push notification setup: {testError.message}
         </Alert>
       )}
 
@@ -205,9 +222,19 @@ const PushNotificationsPage = () => {
                       type="button"
                       className="btn btn-outline-primary btn-sm"
                       onClick={testPushNotification}
+                      disabled={isTesting}
                     >
-                      <i className="ri-notification-3-line me-1"></i>
-                      Send Test Notification
+                      {isTesting ? (
+                        <>
+                          <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                          Validating...
+                        </>
+                      ) : (
+                        <>
+                          <i className="ri-notification-3-line me-1"></i>
+                          Validate Push Setup
+                        </>
+                      )}
                     </button>
                   </>
                 )}
