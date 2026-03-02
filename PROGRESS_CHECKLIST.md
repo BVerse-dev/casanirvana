@@ -531,6 +531,12 @@ Date: 2026-02-06
   - `/settings/communities/configuration` now saves through the live `useUpdateCommunityConfiguration` mutation instead of the broken in-page mock path, and the page no longer references the removed `setConfiguration` placeholder state.
   - Community configuration emergency contacts are now bound to the form and persist correctly, while the page shows honest success/error feedback and preserves the current modal-driven save flow.
   - Community configuration defaults were normalized away from fake India-specific fallback data (`+91`, hardcoded GST placeholder values) toward honest empty or Ghana-aligned defaults while preserving the existing UI.
+- [x] Phase 33 community-finance continuation completed:
+  - `/settings/communities/finance` now uses the real `community_financial_records` table for transaction creation instead of the broken legacy `society_financial_records` reference.
+  - The current finance workspace UI is preserved, but hardcoded community IDs (`com-001` / `com-002`) were replaced with live community options in filters and forms.
+  - `Add Income` and `Add Expense` quick actions now open the live transaction modal with preselected types instead of dead mock modals.
+  - Finance currency labels and previews were normalized to `GHS` / `GH₵`, `UPI` labels were replaced with `Mobile Money`, and reminder/report previews now reflect live financial totals instead of static rupee placeholders.
+  - The finance charts now derive trend and breakdown data from live financial and budget records instead of static demo series.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)

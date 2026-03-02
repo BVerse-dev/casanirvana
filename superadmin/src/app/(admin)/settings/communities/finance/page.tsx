@@ -18,110 +18,11 @@ import { useBudgetItems, type BudgetItem } from '@/hooks/useBudgetItems';
 import { useCreateFinancialRecord } from '@/hooks/useCreateFinancialRecord';
 import { useUpdateFinancialRecord } from '@/hooks/useUpdateFinancialRecord';
 import { useDeleteFinancialRecord } from '@/hooks/useDeleteFinancialRecord';
+import { useListCommunities } from '@/hooks/useCommunities';
 import { supabase } from '@/lib/supabase';
 import { useQueryClient } from '@tanstack/react-query';
 
 // Finance & Billing Types are imported from hooks
-
-// Mock data
-const mockFinancialData: FinancialRecord[] = [
-  {
-    id: '1',
-    community_id: 'com-001',
-    community_name: 'Green Valley Apartments',
-    type: 'income',
-    category: 'maintenance_fee',
-    description: 'Monthly Maintenance Fee - Unit A-101',
-    amount: 3500,
-    unit_id: 'unit-001',
-    unit_number: 'A-101',
-    transaction_date: '2024-01-01',
-    due_date: '2024-01-05',
-    payment_date: '2024-01-03',
-    payment_method: 'upi',
-    status: 'paid',
-    invoice_number: 'INV-2024-001',
-    tax_amount: 630,
-    created_by: 'admin',
-    created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2024-01-03T00:00:00Z',
-  },
-  {
-    id: '2',
-    community_id: 'com-001',
-    community_name: 'Green Valley Apartments',
-    type: 'expense',
-    category: 'electricity_bill',
-    description: 'Common Area Electricity Bill - December 2023',
-    amount: 15000,
-    transaction_date: '2024-01-02',
-    payment_date: '2024-01-02',
-    payment_method: 'bank_transfer',
-    status: 'paid',
-    invoice_number: 'EXP-2024-001',
-    created_by: 'admin',
-    created_at: '2024-01-02T00:00:00Z',
-    updated_at: '2024-01-02T00:00:00Z',
-  },
-  {
-    id: '3',
-    community_id: 'com-002',
-    community_name: 'Sunset Heights',
-    type: 'income',
-    category: 'maintenance_fee',
-    description: 'Monthly Maintenance Fee - Unit B-201',
-    amount: 4200,
-    unit_id: 'unit-002',
-    unit_number: 'B-201',
-    transaction_date: '2024-01-01',
-    due_date: '2024-01-05',
-    status: 'overdue',
-    invoice_number: 'INV-2024-002',
-    tax_amount: 756,
-    created_by: 'admin',
-    created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2024-01-01T00:00:00Z',
-  },
-];
-
-const mockBudgetData: BudgetItem[] = [
-  {
-    id: '1',
-    community_id: 'com-001',
-    category: 'Maintenance',
-    allocated_amount: 50000,
-    spent_amount: 35000,
-    budget_period: 'monthly',
-    budget_year: 2024,
-    budget_month: 1,
-    created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2024-01-20T00:00:00Z',
-  },
-  {
-    id: '2',
-    community_id: 'com-001',
-    category: 'Utilities',
-    allocated_amount: 25000,
-    spent_amount: 22000,
-    budget_period: 'monthly',
-    budget_year: 2024,
-    budget_month: 1,
-    created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2024-01-20T00:00:00Z',
-  },
-  {
-    id: '3',
-    community_id: 'com-001',
-    category: 'Security',
-    allocated_amount: 30000,
-    spent_amount: 30000,
-    budget_period: 'monthly',
-    budget_year: 2024,
-    budget_month: 1,
-    created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2024-01-20T00:00:00Z',
-  },
-];
 
 // Form validation schema
 const financialSchema = yup.object().shape({
@@ -148,6 +49,8 @@ const FinanceBilling = () => {
   // Real-time data hooks
   const { data: financialData = [], isLoading: financialLoading, error: financialError } = useFinancialRecords();
   const { data: budgetData = [], isLoading: budgetLoading, error: budgetError } = useBudgetItems();
+  const { data: communitiesData } = useListCommunities();
+  const communities = useMemo(() => communitiesData?.data || [], [communitiesData]);
   
   // Mutation hooks
   const createFinancialRecord = useCreateFinancialRecord();
@@ -166,11 +69,10 @@ const FinanceBilling = () => {
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [dateRange, setDateRange] = useState({ from: '', to: '' });
   
-  // Quick Actions Modal States
-  const [showAddIncomeModal, setShowAddIncomeModal] = useState(false);
-  const [showAddExpenseModal, setShowAddExpenseModal] = useState(false);
   const [showRemindersModal, setShowRemindersModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -184,6 +86,117 @@ const FinanceBilling = () => {
   } = useForm({
     resolver: yupResolver(financialSchema),
   });
+
+  const communityOptions = useMemo(
+    () =>
+      communities.map((community) => ({
+        value: community.id,
+        label: community.name,
+      })),
+    [communities]
+  );
+
+  const totalTransactions = financialData.length;
+  const paidTransactions = financialData.filter((record) => record.status === 'paid').length;
+  const pendingTransactionCount = financialData.filter((record) => record.status === 'pending').length;
+  const overdueTransactionCount = financialData.filter((record) => record.status === 'overdue').length;
+  const cancelledTransactionCount = financialData.filter((record) => record.status === 'cancelled').length;
+  const failedTransactionCount = financialData.filter((record) => record.status === ('failed' as FinancialRecord['status'])).length;
+  const failedLikeTransactionCount = overdueTransactionCount + cancelledTransactionCount + failedTransactionCount;
+
+  const recentMonthTrends = useMemo(() => {
+    const formatter = new Intl.DateTimeFormat('en-GH', { month: 'short' });
+    const buckets = Array.from({ length: 6 }, (_, index) => {
+      const date = new Date();
+      date.setMonth(date.getMonth() - (5 - index), 1);
+      date.setHours(0, 0, 0, 0);
+      return {
+        key: `${date.getFullYear()}-${date.getMonth()}`,
+        label: formatter.format(date),
+        income: 0,
+        expense: 0,
+      };
+    });
+
+    const bucketIndex = new Map(buckets.map((bucket, index) => [bucket.key, index]));
+
+    financialData.forEach((record) => {
+      const recordDate = new Date(record.transaction_date);
+      if (Number.isNaN(recordDate.getTime())) {
+        return;
+      }
+
+      const key = `${recordDate.getFullYear()}-${recordDate.getMonth()}`;
+      const targetIndex = bucketIndex.get(key);
+      if (targetIndex === undefined) {
+        return;
+      }
+
+      if (record.type === 'expense') {
+        buckets[targetIndex].expense += record.amount;
+        return;
+      }
+
+      buckets[targetIndex].income += record.amount;
+    });
+
+    return {
+      categories: buckets.map((bucket) => bucket.label),
+      incomeSeries: buckets.map((bucket) => Number(bucket.income.toFixed(2))),
+      expenseSeries: buckets.map((bucket) => Number(bucket.expense.toFixed(2))),
+    };
+  }, [financialData]);
+
+  const expenseBreakdown = useMemo(() => {
+    const fromBudget = budgetData
+      .filter((budget) => budget.spent_amount > 0)
+      .sort((a, b) => b.spent_amount - a.spent_amount)
+      .slice(0, 4)
+      .map((budget) => ({
+        label: budget.category,
+        value: Number(budget.spent_amount.toFixed(2)),
+      }));
+
+    if (fromBudget.length > 0) {
+      return fromBudget;
+    }
+
+    const expenseTotals = new Map<string, number>();
+    financialData
+      .filter((record) => record.type === 'expense')
+      .forEach((record) => {
+        expenseTotals.set(record.category, (expenseTotals.get(record.category) || 0) + record.amount);
+      });
+
+    const fallback = Array.from(expenseTotals.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 4)
+      .map(([label, value]) => ({ label, value: Number(value.toFixed(2)) }));
+
+    return fallback.length > 0 ? fallback : [{ label: 'No Expense Data', value: 1 }];
+  }, [budgetData, financialData]);
+
+  const reminderSummary = useMemo(() => {
+    const actionableRecords = financialData.filter((record) =>
+      ['pending', 'overdue', 'partial'].includes(record.status)
+    );
+    const uniqueRecipients = new Set(
+      actionableRecords
+        .map((record) => record.unit_number?.trim())
+        .filter((unit): unit is string => Boolean(unit))
+    );
+
+    return {
+      pendingAmount: actionableRecords
+        .filter((record) => record.status === 'pending' || record.status === 'partial')
+        .reduce((sum, record) => sum + record.amount, 0),
+      overdueAmount: actionableRecords
+        .filter((record) => record.status === 'overdue')
+        .reduce((sum, record) => sum + record.amount, 0),
+      recipientCount: uniqueRecipients.size,
+      totalItems: actionableRecords.length,
+    };
+  }, [financialData]);
 
   // Add real-time subscription for live updates
   useEffect(() => {
@@ -247,6 +260,17 @@ const FinanceBilling = () => {
     setCurrentPage(1);
   };
 
+  const openCreateTransaction = (type?: FinancialRecord['type']) => {
+    setEditingRecord(null);
+    setActionError(null);
+    reset({
+      type,
+      status: type === 'income' ? 'pending' : 'paid',
+      transaction_date: new Date().toISOString().split('T')[0],
+    });
+    setShowModal(true);
+  };
+
   // Calculate statistics
   const statistics = useMemo(() => {
     const totalIncome = financialData.filter(r => r.type === 'income').reduce((sum, r) => sum + r.amount, 0);
@@ -270,7 +294,7 @@ const FinanceBilling = () => {
   const revenueChartOptions = {
     chart: { type: 'area' as const },
     xaxis: {
-      categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+      categories: recentMonthTrends.categories,
     },
     colors: ['#10b981', '#ef4444'],
     stroke: { curve: 'smooth' as const },
@@ -278,7 +302,7 @@ const FinanceBilling = () => {
 
   const expenseChartOptions = {
     chart: { type: 'donut' as const },
-    labels: ['Maintenance', 'Utilities', 'Security', 'Miscellaneous'],
+    labels: expenseBreakdown.map((item) => item.label.replace('_', ' ')),
     colors: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444'],
     legend: { position: 'bottom' as const },
   };
@@ -292,6 +316,7 @@ const FinanceBilling = () => {
   };
 
   const handleCreateOrUpdate = async (data: any) => {
+    setActionError(null);
     try {
       if (editingRecord) {
         // Update existing record
@@ -303,15 +328,18 @@ const FinanceBilling = () => {
         // Create new record
         await createFinancialRecord.mutateAsync({
           ...data,
-          community_name: data.community_id === 'e1d40ef7-f1d5-4756-88a2-054fe30cb06a' ? 'Green Valley Apartments' : 'Sunset Heights',
+          community_name: communityOptions.find((community) => community.value === data.community_id)?.label || 'Unknown Community',
         });
       }
       
       setShowModal(false);
       setEditingRecord(null);
       reset();
+      setActionSuccess(`Transaction ${editingRecord ? 'updated' : 'created'} successfully.`);
+      setTimeout(() => setActionSuccess(null), 3000);
     } catch (error) {
       console.error('Error saving financial record:', error);
+      setActionError(error instanceof Error ? error.message : 'Failed to save financial record.');
     }
   };
 
@@ -323,12 +351,16 @@ const FinanceBilling = () => {
 
   const handleDelete = async () => {
     if (recordToDelete) {
+      setActionError(null);
       try {
         await deleteFinancialRecord.mutateAsync(recordToDelete);
         setRecordToDelete(null);
         setShowDeleteModal(false);
+        setActionSuccess('Transaction deleted successfully.');
+        setTimeout(() => setActionSuccess(null), 3000);
       } catch (error) {
         console.error('Error deleting financial record:', error);
+        setActionError(error instanceof Error ? error.message : 'Failed to delete financial record.');
       }
     }
   };
@@ -357,9 +389,10 @@ const FinanceBilling = () => {
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
+    return new Intl.NumberFormat('en-GH', {
       style: 'currency',
-      currency: 'INR',
+      currency: 'GHS',
+      minimumFractionDigits: 2,
     }).format(amount);
   };
 
@@ -413,6 +446,16 @@ const FinanceBilling = () => {
       />
 
       <ComponentContainerCard title="Finance & Billing Management" id="finance-billing">
+        {actionSuccess && (
+          <Alert variant="success" dismissible onClose={() => setActionSuccess(null)}>
+            {actionSuccess}
+          </Alert>
+        )}
+        {actionError && (
+          <Alert variant="danger" dismissible onClose={() => setActionError(null)}>
+            {actionError}
+          </Alert>
+        )}
         <Tabs defaultActiveKey="overview" className="mb-3">
           <Tab eventKey="overview" title="Financial Overview">
             <Row className="mb-4">
@@ -455,7 +498,8 @@ const FinanceBilling = () => {
                     <div className="mt-2">
                       <small className={statistics.netIncome >= 0 ? "text-success" : "text-danger"}>
                         <IconifyIcon icon={statistics.netIncome >= 0 ? "ri:arrow-up-line" : "ri:arrow-down-line"} className="me-1" />
-                        {statistics.netIncome >= 0 ? "+" : ""}{((statistics.netIncome / statistics.totalIncome) * 100).toFixed(1)}% margin
+                        {statistics.netIncome >= 0 ? "+" : ""}
+                        {statistics.totalIncome > 0 ? ((statistics.netIncome / statistics.totalIncome) * 100).toFixed(1) : '0.0'}% margin
                       </small>
                     </div>
                   </Card.Body>
@@ -505,13 +549,13 @@ const FinanceBilling = () => {
                     <h3 className="mb-1">{statistics.overdueCount}</h3>
                     <p className="text-muted mb-0">Overdue Payments</p>
                     <ProgressBar 
-                      now={(statistics.overdueCount / financialData.length) * 100} 
+                      now={totalTransactions > 0 ? (statistics.overdueCount / totalTransactions) * 100 : 0} 
                       variant="danger" 
                       className="mt-2"
                     />
                     <div className="mt-2">
                       <small className="text-muted">
-                        {((statistics.overdueCount / financialData.length) * 100).toFixed(1)}% of total transactions
+                        {totalTransactions > 0 ? ((statistics.overdueCount / totalTransactions) * 100).toFixed(1) : '0.0'}% of total transactions
                       </small>
                     </div>
                   </Card.Body>
@@ -524,13 +568,13 @@ const FinanceBilling = () => {
                     <h3 className="mb-1">{statistics.paidCount}</h3>
                     <p className="text-muted mb-0">Completed Payments</p>
                     <ProgressBar 
-                      now={(statistics.paidCount / financialData.length) * 100} 
+                      now={totalTransactions > 0 ? (statistics.paidCount / totalTransactions) * 100 : 0} 
                       variant="success" 
                       className="mt-2"
                     />
                     <div className="mt-2">
                       <small className="text-muted">
-                        {((statistics.paidCount / financialData.length) * 100).toFixed(1)}% of total transactions
+                        {totalTransactions > 0 ? ((statistics.paidCount / totalTransactions) * 100).toFixed(1) : '0.0'}% of total transactions
                       </small>
                     </div>
                   </Card.Body>
@@ -584,7 +628,7 @@ const FinanceBilling = () => {
                         <span className="text-success fw-medium">{statistics.paidCount}</span>
                       </div>
                       <ProgressBar 
-                        now={(statistics.paidCount / financialData.length) * 100}
+                        now={totalTransactions > 0 ? (paidTransactions / totalTransactions) * 100 : 0}
                         variant="success"
                         className="mb-2"
                       />
@@ -592,12 +636,10 @@ const FinanceBilling = () => {
                     <div className="mb-3">
                       <div className="d-flex justify-content-between align-items-center mb-1">
                         <span className="fw-medium">Pending</span>
-                        <span className="text-warning fw-medium">
-                          {financialData.filter(r => r.status === 'pending').length}
-                        </span>
+                        <span className="text-warning fw-medium">{pendingTransactionCount}</span>
                       </div>
                       <ProgressBar 
-                        now={(financialData.filter(r => r.status === 'pending').length / financialData.length) * 100}
+                        now={totalTransactions > 0 ? (pendingTransactionCount / totalTransactions) * 100 : 0}
                         variant="warning"
                         className="mb-2"
                       />
@@ -605,10 +647,10 @@ const FinanceBilling = () => {
                     <div className="mb-3">
                       <div className="d-flex justify-content-between align-items-center mb-1">
                         <span className="fw-medium">Overdue</span>
-                        <span className="text-danger fw-medium">{statistics.overdueCount}</span>
+                        <span className="text-danger fw-medium">{overdueTransactionCount}</span>
                       </div>
                       <ProgressBar 
-                        now={(statistics.overdueCount / financialData.length) * 100}
+                        now={totalTransactions > 0 ? (overdueTransactionCount / totalTransactions) * 100 : 0}
                         variant="danger"
                         className="mb-2"
                       />
@@ -616,12 +658,10 @@ const FinanceBilling = () => {
                     <div className="mb-3">
                       <div className="d-flex justify-content-between align-items-center mb-1">
                         <span className="fw-medium">Failed</span>
-                        <span className="text-danger fw-medium">
-                          {financialData.filter(r => r.status === 'failed').length}
-                        </span>
+                        <span className="text-danger fw-medium">{failedTransactionCount}</span>
                       </div>
                       <ProgressBar 
-                        now={(financialData.filter(r => r.status === 'failed').length / financialData.length) * 100}
+                        now={totalTransactions > 0 ? (failedTransactionCount / totalTransactions) * 100 : 0}
                         variant="danger"
                         className="mb-2"
                       />
@@ -629,12 +669,10 @@ const FinanceBilling = () => {
                     <div className="mb-3">
                       <div className="d-flex justify-content-between align-items-center mb-1">
                         <span className="fw-medium">Cancelled</span>
-                        <span className="text-secondary fw-medium">
-                          {financialData.filter(r => r.status === 'cancelled').length}
-                        </span>
+                        <span className="text-secondary fw-medium">{cancelledTransactionCount}</span>
                       </div>
                       <ProgressBar 
-                        now={(financialData.filter(r => r.status === 'cancelled').length / financialData.length) * 100}
+                        now={totalTransactions > 0 ? (cancelledTransactionCount / totalTransactions) * 100 : 0}
                         variant="secondary"
                         className="mb-2"
                       />
@@ -642,7 +680,7 @@ const FinanceBilling = () => {
                     <div className="mt-3 pt-3 border-top">
                       <div className="d-flex justify-content-between">
                         <span className="fw-medium">Total Transactions</span>
-                        <span className="text-primary fw-medium">{financialData.length}</span>
+                        <span className="text-primary fw-medium">{totalTransactions}</span>
                       </div>
                     </div>
                   </Card.Body>
@@ -663,7 +701,7 @@ const FinanceBilling = () => {
                         <Button 
                           variant="outline-primary" 
                           className="w-100 mb-2"
-                          onClick={() => setShowAddIncomeModal(true)}
+                          onClick={() => openCreateTransaction('income')}
                         >
                           <IconifyIcon icon="ri:add-line" className="me-2" />
                           Add Income
@@ -673,7 +711,7 @@ const FinanceBilling = () => {
                         <Button 
                           variant="outline-danger" 
                           className="w-100 mb-2"
-                          onClick={() => setShowAddExpenseModal(true)}
+                          onClick={() => openCreateTransaction('expense')}
                         >
                           <IconifyIcon icon="ri:subtract-line" className="me-2" />
                           Add Expense
@@ -719,8 +757,11 @@ const FinanceBilling = () => {
               <Col lg={2}>
                 <Form.Select value={selectedCommunity} onChange={(e) => setSelectedCommunity(e.target.value)}>
                   <option value="all">All Communities</option>
-                  <option value="com-001">Green Valley Apartments</option>
-                  <option value="com-002">Sunset Heights</option>
+                  {communityOptions.map((community) => (
+                    <option key={community.value} value={community.value}>
+                      {community.label}
+                    </option>
+                  ))}
                 </Form.Select>
               </Col>
               <Col lg={2}>
@@ -753,9 +794,7 @@ const FinanceBilling = () => {
                 <Button 
                   variant="primary"
                   onClick={() => {
-                    setEditingRecord(null);
-                    reset();
-                    setShowModal(true);
+                    openCreateTransaction();
                   }}
                 >
                   <IconifyIcon icon="ri:add-line" className="me-1" />
@@ -807,7 +846,11 @@ const FinanceBilling = () => {
                               {record.status.toUpperCase()}
                             </Badge>
                           </td>
-                          <td className="text-capitalize">{record.payment_method?.replace('_', ' ') || '-'}</td>
+                          <td className="text-capitalize">
+                            {record.payment_method === 'upi'
+                              ? 'Mobile Money'
+                              : record.payment_method?.replace('_', ' ') || '-'}
+                          </td>
                           <td>
                             <Dropdown>
                               <Dropdown.Toggle variant="light" size="sm">
@@ -975,7 +1018,7 @@ const FinanceBilling = () => {
                         name: 'Count', 
                         data: [
                           statistics.paidCount,
-                          financialData.filter(r => r.status === 'pending').length,
+                          pendingTransactionCount,
                           statistics.overdueCount,
                           financialData.filter(r => r.status === 'partial').length
                         ] 
@@ -998,8 +1041,8 @@ const FinanceBilling = () => {
                     <ReactApexChart
                       options={revenueChartOptions}
                       series={[
-                        { name: 'Income', data: [45000, 52000, 48000, 61000, 55000, 67000] },
-                        { name: 'Expenses', data: [35000, 41000, 36000, 46000, 45000, 50000] }
+                        { name: 'Income', data: recentMonthTrends.incomeSeries },
+                        { name: 'Expenses', data: recentMonthTrends.expenseSeries }
                       ]}
                       type="area"
                       height={300}
@@ -1015,7 +1058,7 @@ const FinanceBilling = () => {
                   <Card.Body>
                     <ReactApexChart
                       options={expenseChartOptions}
-                      series={[35000, 22000, 30000, 8000]}
+                      series={expenseBreakdown.map((item) => item.value)}
                       type="donut"
                       height={300}
                     />
@@ -1040,8 +1083,11 @@ const FinanceBilling = () => {
                   <Form.Label>Community *</Form.Label>
                   <Form.Select {...register('community_id')} isInvalid={!!errors.community_id}>
                     <option value="">Select Community</option>
-                    <option value="com-001">Green Valley Apartments</option>
-                    <option value="com-002">Sunset Heights</option>
+                    {communityOptions.map((community) => (
+                      <option key={community.value} value={community.value}>
+                        {community.label}
+                      </option>
+                    ))}
                   </Form.Select>
                   <Form.Control.Feedback type="invalid">{errors.community_id?.message}</Form.Control.Feedback>
                 </Form.Group>
@@ -1136,7 +1182,7 @@ const FinanceBilling = () => {
                     <option value="">Select Payment Method</option>
                     <option value="cash">Cash</option>
                     <option value="bank_transfer">Bank Transfer</option>
-                    <option value="upi">UPI</option>
+                    <option value="upi">Mobile Money</option>
                     <option value="card">Card</option>
                     <option value="cheque">Cheque</option>
                     <option value="online">Online</option>
@@ -1194,193 +1240,6 @@ const FinanceBilling = () => {
         </Modal.Footer>
       </Modal>
 
-      {/* Add Income Modal */}
-      <Modal show={showAddIncomeModal} onHide={() => setShowAddIncomeModal(false)} size="lg">
-        <Modal.Header closeButton className="bg-success text-white">
-          <Modal.Title>
-            <IconifyIcon icon="ri:add-circle-line" className="me-2" />
-            Add New Income
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Row>
-            <Col md={6}>
-              <Form.Group className="mb-3">
-                <Form.Label>Community *</Form.Label>
-                <Form.Select>
-                  <option value="">Select Community</option>
-                  <option value="com-001">Green Valley Apartments</option>
-                  <option value="com-002">Sunset Heights</option>
-                </Form.Select>
-              </Form.Group>
-            </Col>
-            <Col md={6}>
-              <Form.Group className="mb-3">
-                <Form.Label>Income Category *</Form.Label>
-                <Form.Select>
-                  <option value="">Select Category</option>
-                  <option value="maintenance_fee">Maintenance Fee</option>
-                  <option value="amenity_booking">Amenity Booking</option>
-                  <option value="parking_fee">Parking Fee</option>
-                  <option value="late_fee">Late Fee</option>
-                  <option value="penalty">Penalty</option>
-                  <option value="other">Other Income</option>
-                </Form.Select>
-              </Form.Group>
-            </Col>
-          </Row>
-          <Row>
-            <Col md={6}>
-              <Form.Group className="mb-3">
-                <Form.Label>Amount *</Form.Label>
-                <Form.Control type="number" step="0.01" placeholder="Enter amount" />
-              </Form.Group>
-            </Col>
-            <Col md={6}>
-              <Form.Group className="mb-3">
-                <Form.Label>Transaction Date *</Form.Label>
-                <Form.Control type="date" />
-              </Form.Group>
-            </Col>
-          </Row>
-          <Form.Group className="mb-3">
-            <Form.Label>Description *</Form.Label>
-            <Form.Control as="textarea" rows={3} placeholder="Enter income description" />
-          </Form.Group>
-          <Row>
-            <Col md={6}>
-              <Form.Group className="mb-3">
-                <Form.Label>Unit Number</Form.Label>
-                <Form.Control placeholder="e.g., A-101" />
-              </Form.Group>
-            </Col>
-            <Col md={6}>
-              <Form.Group className="mb-3">
-                <Form.Label>Payment Method</Form.Label>
-                <Form.Select>
-                  <option value="">Select Method</option>
-                  <option value="cash">Cash</option>
-                  <option value="bank_transfer">Bank Transfer</option>
-                  <option value="upi">UPI</option>
-                  <option value="card">Card</option>
-                  <option value="cheque">Cheque</option>
-                </Form.Select>
-              </Form.Group>
-            </Col>
-          </Row>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowAddIncomeModal(false)}>Cancel</Button>
-          <Button variant="success">
-            <IconifyIcon icon="ri:add-line" className="me-1" />
-            Add Income
-          </Button>
-        </Modal.Footer>
-      </Modal>
-
-      {/* Add Expense Modal */}
-      <Modal show={showAddExpenseModal} onHide={() => setShowAddExpenseModal(false)} size="lg">
-        <Modal.Header closeButton className="bg-danger text-white">
-          <Modal.Title>
-            <IconifyIcon icon="ri:subtract-line" className="me-2" />
-            Add New Expense
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Row>
-            <Col md={6}>
-              <Form.Group className="mb-3">
-                <Form.Label>Community *</Form.Label>
-                <Form.Select>
-                  <option value="">Select Community</option>
-                  <option value="com-001">Green Valley Apartments</option>
-                  <option value="com-002">Sunset Heights</option>
-                </Form.Select>
-              </Form.Group>
-            </Col>
-            <Col md={6}>
-              <Form.Group className="mb-3">
-                <Form.Label>Expense Category *</Form.Label>
-                <Form.Select>
-                  <option value="">Select Category</option>
-                  <option value="maintenance">Maintenance</option>
-                  <option value="utilities">Utilities</option>
-                  <option value="security">Security</option>
-                  <option value="housekeeping">Housekeeping</option>
-                  <option value="gardening">Gardening</option>
-                  <option value="repairs">Repairs</option>
-                  <option value="supplies">Supplies</option>
-                  <option value="other">Other Expense</option>
-                </Form.Select>
-              </Form.Group>
-            </Col>
-          </Row>
-          <Row>
-            <Col md={6}>
-              <Form.Group className="mb-3">
-                <Form.Label>Amount *</Form.Label>
-                <Form.Control type="number" step="0.01" placeholder="Enter amount" />
-              </Form.Group>
-            </Col>
-            <Col md={6}>
-              <Form.Group className="mb-3">
-                <Form.Label>Expense Date *</Form.Label>
-                <Form.Control type="date" />
-              </Form.Group>
-            </Col>
-          </Row>
-          <Form.Group className="mb-3">
-            <Form.Label>Description *</Form.Label>
-            <Form.Control as="textarea" rows={3} placeholder="Enter expense description" />
-          </Form.Group>
-          <Row>
-            <Col md={6}>
-              <Form.Group className="mb-3">
-                <Form.Label>Vendor/Supplier</Form.Label>
-                <Form.Control placeholder="Enter vendor name" />
-              </Form.Group>
-            </Col>
-            <Col md={6}>
-              <Form.Group className="mb-3">
-                <Form.Label>Payment Method</Form.Label>
-                <Form.Select>
-                  <option value="">Select Method</option>
-                  <option value="cash">Cash</option>
-                  <option value="bank_transfer">Bank Transfer</option>
-                  <option value="upi">UPI</option>
-                  <option value="card">Card</option>
-                  <option value="cheque">Cheque</option>
-                </Form.Select>
-              </Form.Group>
-            </Col>
-          </Row>
-          <Row>
-            <Col md={6}>
-              <Form.Group className="mb-3">
-                <Form.Label>Invoice Number</Form.Label>
-                <Form.Control placeholder="Enter invoice number" />
-              </Form.Group>
-            </Col>
-            <Col md={6}>
-              <Form.Group className="mb-3">
-                <Form.Label>Receipt Attached</Form.Label>
-                <Form.Select>
-                  <option value="no">No</option>
-                  <option value="yes">Yes</option>
-                </Form.Select>
-              </Form.Group>
-            </Col>
-          </Row>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowAddExpenseModal(false)}>Cancel</Button>
-          <Button variant="danger">
-            <IconifyIcon icon="ri:subtract-line" className="me-1" />
-            Add Expense
-          </Button>
-        </Modal.Footer>
-      </Modal>
-
       {/* Send Reminders Modal */}
       <Modal show={showRemindersModal} onHide={() => setShowRemindersModal(false)} size="lg">
         <Modal.Header closeButton className="bg-warning text-dark">
@@ -1400,10 +1259,12 @@ const FinanceBilling = () => {
               <Form.Group className="mb-3">
                 <Form.Label>Community *</Form.Label>
                 <Form.Select>
-                  <option value="">Select Community</option>
-                  <option value="com-001">Green Valley Apartments</option>
-                  <option value="com-002">Sunset Heights</option>
                   <option value="all">All Communities</option>
+                  {communityOptions.map((community) => (
+                    <option key={community.value} value={community.value}>
+                      {community.label}
+                    </option>
+                  ))}
                 </Form.Select>
               </Form.Group>
             </Col>
@@ -1428,8 +1289,8 @@ const FinanceBilling = () => {
                   <option value="">Select Method</option>
                   <option value="email">Email</option>
                   <option value="sms">SMS</option>
-                  <option value="whatsapp">WhatsApp</option>
-                  <option value="all">All Methods</option>
+                  <option value="in_app">In-App</option>
+                  <option value="all">All Available Channels</option>
                 </Form.Select>
               </Form.Group>
             </Col>
@@ -1453,18 +1314,14 @@ const FinanceBilling = () => {
           
           <div className="bg-light p-3 rounded">
             <h6 className="mb-2">Preview:</h6>
-            <p className="mb-1"><strong>Recipients:</strong> 15 community members</p>
-            <p className="mb-1"><strong>Pending Amount:</strong> ₹45,000</p>
-            <p className="mb-1"><strong>Overdue Amount:</strong> ₹12,500</p>
-            <p className="mb-0"><strong>Total Recipients:</strong> 23 members</p>
+            <p className="mb-1"><strong>Recipients:</strong> {reminderSummary.recipientCount} unit contacts</p>
+            <p className="mb-1"><strong>Pending Amount:</strong> {formatCurrency(reminderSummary.pendingAmount)}</p>
+            <p className="mb-1"><strong>Overdue Amount:</strong> {formatCurrency(reminderSummary.overdueAmount)}</p>
+            <p className="mb-0"><strong>Total Items:</strong> {reminderSummary.totalItems} outstanding transactions</p>
           </div>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowRemindersModal(false)}>Cancel</Button>
-          <Button variant="warning">
-            <IconifyIcon icon="ri:send-plane-line" className="me-1" />
-            Send Reminders
-          </Button>
+          <Button variant="secondary" onClick={() => setShowRemindersModal(false)}>Close</Button>
         </Modal.Footer>
       </Modal>
 
@@ -1500,8 +1357,11 @@ const FinanceBilling = () => {
                 <Form.Label>Community</Form.Label>
                 <Form.Select>
                   <option value="all">All Communities</option>
-                  <option value="com-001">Green Valley Apartments</option>
-                  <option value="com-002">Sunset Heights</option>
+                  {communityOptions.map((community) => (
+                    <option key={community.value} value={community.value}>
+                      {community.label}
+                    </option>
+                  ))}
                 </Form.Select>
               </Form.Group>
             </Col>
@@ -1560,20 +1420,16 @@ const FinanceBilling = () => {
           <div className="bg-light p-3 rounded">
             <h6 className="mb-2">Report Preview:</h6>
             <ul className="mb-0">
-              <li>Financial Summary (Jan 2024)</li>
-              <li>Income: ₹2,45,000 | Expenses: ₹1,89,500</li>
-              <li>Net Income: ₹55,500</li>
-              <li>Collection Rate: 87.5%</li>
-              <li>Overdue Payments: 3 transactions</li>
+              <li>Financial Summary ({new Intl.DateTimeFormat('en-GH', { month: 'short', year: 'numeric' }).format(new Date())})</li>
+              <li>Income: {formatCurrency(statistics.totalIncome)} | Expenses: {formatCurrency(statistics.totalExpense)}</li>
+              <li>Net Income: {formatCurrency(statistics.netIncome)}</li>
+              <li>Collection Rate: {statistics.collectionRate.toFixed(1)}%</li>
+              <li>Attention Items: {failedLikeTransactionCount} overdue or cancelled transactions</li>
             </ul>
           </div>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowReportModal(false)}>Cancel</Button>
-          <Button variant="info">
-            <IconifyIcon icon="ri:download-line" className="me-1" />
-            Generate Report
-          </Button>
+          <Button variant="secondary" onClick={() => setShowReportModal(false)}>Close</Button>
         </Modal.Footer>
       </Modal>
     </>

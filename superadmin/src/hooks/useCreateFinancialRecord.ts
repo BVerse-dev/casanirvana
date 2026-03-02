@@ -12,7 +12,7 @@ export const useCreateFinancialRecord = () => {
       console.log('🔄 useCreateFinancialRecord: Creating record...', newRecord);
 
       const { data, error } = await supabase
-        .from('society_financial_records' as any)
+        .from('community_financial_records' as any)
         .insert(newRecord)
         .select()
         .single();
@@ -27,8 +27,8 @@ export const useCreateFinancialRecord = () => {
     },
     onSuccess: () => {
       // Invalidate and refetch financial records
-      queryClient.invalidateQueries({ queryKey: ['society_financial_records'] });
-      console.log('🔄 useCreateFinancialRecord: Invalidated society_financial_records cache');
+      queryClient.invalidateQueries({ queryKey: ['community_financial_records'] });
+      console.log('🔄 useCreateFinancialRecord: Invalidated community_financial_records cache');
     },
     onError: (error) => {
       console.error('❌ useCreateFinancialRecord: Mutation failed:', error);
