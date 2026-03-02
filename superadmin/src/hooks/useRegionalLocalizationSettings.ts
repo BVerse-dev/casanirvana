@@ -1,30 +1,22 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+'use client';
 
-// Regional & Localization settings interface matching the form structure
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useAdminApi } from './useAdminApi';
+
 export interface RegionalLocalizationSettings {
-  // Date & Time Configuration (4 fields)
   timezone: string;
   dateFormat: string;
   timeFormat: string;
   weekStartDay: string;
-  
-  // Currency & Number Format (3 fields)
   currency: string;
   currencyPosition: string;
   numberFormat: string;
-  
-  // Language & Localization (3 fields)
   primaryLanguage: string;
   supportedLanguages: string[];
   rtlSupport: boolean;
-  
-  // Regional Format Settings (3 fields)
   addressFormat: string;
   phoneFormat: string;
   postalCodeFormat: string;
-  
-  // Regional Compliance (5 fields)
   gstEnabled: boolean;
   vatEnabled: boolean;
   gdprCompliance: boolean;
@@ -32,157 +24,88 @@ export interface RegionalLocalizationSettings {
   dataLocalization: boolean;
 }
 
-// Function to parse database values to the correct types
-function parseSettingValue(key: string, value: string): any {
-  try {
-    // Parse JSON values
-    const parsed = JSON.parse(value);
-    
-    // Handle specific field types
-    switch (key) {
-      case 'supported_languages':
-        return Array.isArray(parsed) ? parsed : [];
-      case 'rtl_support':
-      case 'gst_enabled':
-      case 'vat_enabled':
-      case 'gdpr_compliance':
-      case 'cookie_consent':
-      case 'data_localization':
-        return Boolean(parsed);
-      default:
-        return parsed;
-    }
-  } catch {
-    // Fallback for non-JSON values
-    if (value === 'true') return true;
-    if (value === 'false') return false;
-    return value;
-  }
-}
+const DEFAULT_REGIONAL_SETTINGS: RegionalLocalizationSettings = {
+  timezone: 'Africa/Accra',
+  dateFormat: 'DD/MM/YYYY',
+  timeFormat: '12',
+  weekStartDay: 'monday',
+  currency: 'GHS',
+  currencyPosition: 'before',
+  numberFormat: 'standard',
+  primaryLanguage: 'en',
+  supportedLanguages: ['en'],
+  rtlSupport: false,
+  addressFormat: 'ghana',
+  phoneFormat: 'ghana',
+  postalCodeFormat: 'ghana',
+  gstEnabled: false,
+  vatEnabled: true,
+  gdprCompliance: true,
+  cookieConsent: true,
+  dataLocalization: false,
+};
 
-// Convert camelCase keys to snake_case for database
-function camelToSnake(str: string): string {
-  return str.replace(/[A-Z]/g, (letter, index) => {
-    return index === 0 ? letter.toLowerCase() : '_' + letter.toLowerCase();
-  });
-}
+const QUERY_KEY = ['regionalLocalizationSettings'] as const;
 
-// Convert snake_case keys to camelCase for frontend
-function snakeToCamel(str: string): string {
-  return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
-}
+function normalizeRegionalSettings(
+  settings?: Partial<RegionalLocalizationSettings>
+): RegionalLocalizationSettings {
+  const merged = {
+    ...DEFAULT_REGIONAL_SETTINGS,
+    ...(settings || {}),
+  };
 
-// Fetch regional & localization settings from Supabase
-async function fetchRegionalLocalizationSettings(): Promise<RegionalLocalizationSettings> {
-  const { data, error } = await supabase
-    .from('app_settings')
-    .select('key, value')
-    .eq('category', 'regional');
-
-  if (error) {
-    console.error('Error fetching regional & localization settings:', error);
-    throw new Error('Failed to fetch regional & localization settings');
-  }
-
-  // Convert database format to RegionalLocalizationSettings interface
-  const settings: Partial<RegionalLocalizationSettings> = {};
-  
-  data?.forEach((setting) => {
-    const camelKey = snakeToCamel(setting.key) as keyof RegionalLocalizationSettings;
-    settings[camelKey] = parseSettingValue(setting.key, setting.value);
-  });
-
-  // Provide defaults for missing settings
   return {
-    timezone: 'Asia/Kolkata',
-    dateFormat: 'DD/MM/YYYY',
-    timeFormat: '12',
-    weekStartDay: 'monday',
-    currency: 'INR',
-    currencyPosition: 'before',
-    numberFormat: 'indian',
-    primaryLanguage: 'en',
-    supportedLanguages: ['en', 'hi'],
-    rtlSupport: false,
-    addressFormat: 'indian',
-    phoneFormat: 'indian',
-    postalCodeFormat: 'indian',
-    gstEnabled: true,
-    vatEnabled: false,
-    gdprCompliance: true,
-    cookieConsent: true,
-    dataLocalization: true,
-    ...settings,
-  } as RegionalLocalizationSettings;
+    ...merged,
+    timezone: merged.timezone === 'Asia/Kolkata' ? 'Africa/Accra' : merged.timezone,
+    currency: merged.currency === 'INR' ? 'GHS' : merged.currency,
+    numberFormat: merged.numberFormat === 'indian' ? 'standard' : merged.numberFormat,
+    addressFormat: merged.addressFormat === 'indian' ? 'ghana' : merged.addressFormat,
+    phoneFormat: merged.phoneFormat === 'indian' ? 'ghana' : merged.phoneFormat,
+    postalCodeFormat: merged.postalCodeFormat === 'indian' ? 'ghana' : merged.postalCodeFormat,
+    supportedLanguages:
+      merged.supportedLanguages && merged.supportedLanguages.length > 0
+        ? merged.supportedLanguages.filter(Boolean)
+        : DEFAULT_REGIONAL_SETTINGS.supportedLanguages,
+  };
 }
 
-// Update regional & localization settings in Supabase
-async function updateRegionalLocalizationSettings(settings: Partial<RegionalLocalizationSettings>): Promise<void> {
-  const updates = Object.entries(settings).map(([key, value]) => {
-    const snakeKey = camelToSnake(key);
-    return {
-      key: snakeKey,
-      value: JSON.stringify(value),
-      category: 'regional',
-    };
-  });
-
-  const { error } = await supabase
-    .from('app_settings')
-    .upsert(updates, { onConflict: 'key' });
-
-  if (error) {
-    console.error('Error updating regional & localization settings:', error);
-    throw new Error('Failed to update regional & localization settings');
-  }
-}
-
-// React Query hook for regional & localization settings
 export function useRegionalLocalizationSettings() {
   const queryClient = useQueryClient();
+  const { fetchAdmin, hasToken } = useAdminApi();
 
-  // Query to fetch regional & localization settings
-  const {
-    data: regionalSettings,
-    isLoading: isLoadingData,
-    error: loadError,
-  } = useQuery({
-    queryKey: ['regionalLocalizationSettings'],
-    queryFn: fetchRegionalLocalizationSettings,
-    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+  const query = useQuery({
+    queryKey: QUERY_KEY,
+    queryFn: async (): Promise<RegionalLocalizationSettings> => {
+      const response = await fetchAdmin<{ settings?: Partial<RegionalLocalizationSettings> }>('/admin/settings/regional');
+      return normalizeRegionalSettings(response.settings);
+    },
+    staleTime: 5 * 60 * 1000,
+    enabled: hasToken,
   });
 
-  // Mutation to update regional & localization settings
-  const {
-    mutate: updateSettings,
-    isPending: isUpdating,
-    error: updateError,
-    isSuccess: updateSuccess,
-  } = useMutation({
-    mutationFn: updateRegionalLocalizationSettings,
+  const mutation = useMutation({
+    mutationFn: async (settings: Partial<RegionalLocalizationSettings>) => {
+      const response = await fetchAdmin<{ settings?: Partial<RegionalLocalizationSettings> }>('/admin/settings/regional', {
+        method: 'PUT',
+        body: JSON.stringify(settings),
+      });
+      return normalizeRegionalSettings(response.settings);
+    },
     onSuccess: () => {
-      // Invalidate and refetch regional & localization settings
-      queryClient.invalidateQueries({ queryKey: ['regionalLocalizationSettings'] });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEY });
     },
   });
 
   return {
-    // Data
-    regionalSettings,
-    
-    // Loading states
-    isLoadingData,
-    isUpdating,
-    
-    // Error states
-    loadError,
-    updateError,
-    
-    // Success states
-    updateSuccess,
-    
-    // Actions
-    updateSettings,
+    regionalSettings: query.data,
+    isLoadingData: query.isLoading,
+    isUpdating: mutation.isPending,
+    loadError: query.error,
+    updateError: mutation.error,
+    updateSuccess: mutation.isSuccess,
+    updateSettings: mutation.mutate,
+    updateSettingsAsync: mutation.mutateAsync,
   };
 }
 

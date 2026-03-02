@@ -530,6 +530,58 @@ router.post(
   adminSecureSettingsController.testIntegrationSettings
 );
 router.get(
+  '/settings/business',
+  requireAuth,
+  requirePermission('manage:settings'),
+  adminSecureSettingsController.getBusinessSettings
+);
+router.put(
+  '/settings/business',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ body: schemas.adminBusinessSettingsUpdate }),
+  adminSecureSettingsController.updateBusinessSettings
+);
+router.get(
+  '/settings/regional',
+  requireAuth,
+  requirePermission('manage:settings'),
+  adminSecureSettingsController.getRegionalSettings
+);
+router.put(
+  '/settings/regional',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ body: schemas.adminRegionalSettingsUpdate }),
+  adminSecureSettingsController.updateRegionalSettings
+);
+router.get(
+  '/settings/security-privacy',
+  requireAuth,
+  requirePermission('manage:settings'),
+  adminSecureSettingsController.getSecurityPrivacySettings
+);
+router.put(
+  '/settings/security-privacy',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ body: schemas.adminSecurityPrivacySettingsUpdate }),
+  adminSecureSettingsController.updateSecurityPrivacySettings
+);
+router.get(
+  '/settings/general-system',
+  requireAuth,
+  requirePermission('manage:settings'),
+  adminSecureSettingsController.getGeneralSystemSettings
+);
+router.put(
+  '/settings/general-system',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ body: schemas.adminGeneralSystemSettingsUpdate }),
+  adminSecureSettingsController.updateGeneralSystemSettings
+);
+router.get(
   '/settings/push',
   requireAuth,
   requirePermission('manage:settings'),

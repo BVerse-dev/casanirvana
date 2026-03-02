@@ -500,6 +500,12 @@ Date: 2026-02-06
   - Added backend-managed payment settings endpoints for the legacy payment settings cluster: `/admin/settings/payment-gateways`, `/admin/settings/payment-methods`, and `/admin/settings/payment-fees`.
   - Server-side saves now mirror these categories to both `system_settings` (canonical admin path) and the legacy `app_settings` categories needed by existing payment runtime services, so settings changes remain production-safe without breaking the current payment flows.
   - `/settings/payment/fees` was cleaned up to remove stale UPI placeholders and align fee labels/icons with the current Ghana production scope (`GH₵`, `ExpressPay`, `PayPal (Deferred)`).
+- [x] Phase 33 platform/general/system continuation completed:
+  - `/settings/general/business`, `/settings/general/regional`, `/settings/general/security`, and `/settings/general/system` now keep their existing cards/forms/layout while loading and saving through backend admin routes instead of direct browser writes to `app_settings`.
+  - Added backend-managed settings endpoints for the remaining general/platform settings cluster: `/admin/settings/business`, `/admin/settings/regional`, `/admin/settings/security-privacy`, and `/admin/settings/general-system`.
+  - Server-side saves now write to namespaced `system_settings` keys (to avoid key collisions in the shared settings table) while mirroring the legacy `app_settings` categories required by older runtime code, preserving compatibility without exposing client-side writes.
+  - Regional/business defaults were normalized to the current Ghana production scope (`Africa/Accra`, `GHS`, `GH₵`, Ghana-friendly format labels) while preserving the current UI.
+  - `/settings/system/settings` kept the same visual layout but no longer simulates fake live metrics with random updates, and shortcut actions now report their real integration status instead of claiming successful backend operations that do not exist.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)

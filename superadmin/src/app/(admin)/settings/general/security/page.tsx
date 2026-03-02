@@ -47,7 +47,7 @@ const SecurityConfigPage = () => {
   // Use the Supabase hook for real data
   const { data: configData, isLoading: isLoadingData, error: dataError, updateConfig, isUpdating } = useSecurityPrivacyConfig();
 
-  const { control, handleSubmit, reset, watch, formState: { isDirty, isSubmitting } } = useForm<SecurityPrivacyConfigData>({
+  const { register, control, handleSubmit, reset, watch, formState: { isDirty, isSubmitting } } = useForm<SecurityPrivacyConfigData>({
     resolver: yupResolver(securityConfigSchema),
     defaultValues: configData || {
       terms_url: '',
@@ -195,7 +195,7 @@ const SecurityConfigPage = () => {
                     <input
                       className="form-check-input"
                       type="checkbox"
-                      {...control.register("password_require_uppercase")}
+                      {...register("password_require_uppercase")}
                     />
                     <label className="form-check-label">
                       Require Uppercase Letters
@@ -207,7 +207,7 @@ const SecurityConfigPage = () => {
                     <input
                       className="form-check-input"
                       type="checkbox"
-                      {...control.register("password_require_lowercase")}
+                      {...register("password_require_lowercase")}
                     />
                     <label className="form-check-label">
                       Require Lowercase Letters
@@ -219,7 +219,7 @@ const SecurityConfigPage = () => {
                     <input
                       className="form-check-input"
                       type="checkbox"
-                      {...control.register("password_require_numbers")}
+                      {...register("password_require_numbers")}
                     />
                     <label className="form-check-label">
                       Require Numbers
@@ -231,7 +231,7 @@ const SecurityConfigPage = () => {
                     <input
                       className="form-check-input"
                       type="checkbox"
-                      {...control.register("password_require_symbols")}
+                      {...register("password_require_symbols")}
                     />
                     <label className="form-check-label">
                       Require Special Characters
@@ -271,7 +271,7 @@ const SecurityConfigPage = () => {
                     <input
                       className="form-check-input"
                       type="checkbox"
-                      {...control.register("two_factor_auth_enabled")}
+                      {...register("two_factor_auth_enabled")}
                     />
                     <label className="form-check-label">
                       <IconifyIcon icon="material-symbols:verified-user" className="me-2" />
@@ -309,7 +309,7 @@ const SecurityConfigPage = () => {
                     <input
                       className="form-check-input"
                       type="checkbox"
-                      {...control.register("data_encryption_enabled")}
+                      {...register("data_encryption_enabled")}
                     />
                     <label className="form-check-label">
                       <IconifyIcon icon="material-symbols:enhanced-encryption" className="me-2" />
@@ -328,7 +328,7 @@ const SecurityConfigPage = () => {
                     <input
                       className="form-check-input"
                       type="checkbox"
-                      {...control.register("gdpr_compliance_enabled")}
+                      {...register("gdpr_compliance_enabled")}
                     />
                     <label className="form-check-label">
                       <IconifyIcon icon="material-symbols:policy" className="me-2" />

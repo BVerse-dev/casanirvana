@@ -1,17 +1,25 @@
 import { Request, Response, NextFunction } from 'express';
 import {
+  getAdminBusinessSettings,
+  getAdminGeneralSystemSettings,
   getAdminIntegrationSettings,
   getAdminPaymentFeeSettings,
   getAdminPaymentGatewaySettings,
   getAdminPaymentMethodSettings,
   getAdminPushSettings,
+  getAdminRegionalSettings,
+  getAdminSecurityPrivacySettings,
   getAdminSmsSettings,
   getAdminSmtpSettings,
+  saveAdminBusinessSettings,
+  saveAdminGeneralSystemSettings,
   saveAdminIntegrationSettings,
   saveAdminPaymentFeeSettings,
   saveAdminPaymentGatewaySettings,
   saveAdminPaymentMethodSettings,
   saveAdminPushSettings,
+  saveAdminRegionalSettings,
+  saveAdminSecurityPrivacySettings,
   saveAdminSmsSettings,
   saveAdminSmtpSettings,
   testAdminIntegrationSetting,
@@ -19,6 +27,78 @@ import {
   testAdminSmsSettings,
   testAdminSmtpSettings,
 } from '../services/adminSecureSettings';
+
+export async function getBusinessSettings(req: Request, res: Response, next: NextFunction) {
+  try {
+    const settings = await getAdminBusinessSettings();
+    res.json({ settings });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updateBusinessSettings(req: Request, res: Response, next: NextFunction) {
+  try {
+    const settings = await saveAdminBusinessSettings(req.body || {}, req.user?.id ?? null);
+    res.json({ settings });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getRegionalSettings(req: Request, res: Response, next: NextFunction) {
+  try {
+    const settings = await getAdminRegionalSettings();
+    res.json({ settings });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updateRegionalSettings(req: Request, res: Response, next: NextFunction) {
+  try {
+    const settings = await saveAdminRegionalSettings(req.body || {}, req.user?.id ?? null);
+    res.json({ settings });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getSecurityPrivacySettings(req: Request, res: Response, next: NextFunction) {
+  try {
+    const settings = await getAdminSecurityPrivacySettings();
+    res.json({ settings });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updateSecurityPrivacySettings(req: Request, res: Response, next: NextFunction) {
+  try {
+    const settings = await saveAdminSecurityPrivacySettings(req.body || {}, req.user?.id ?? null);
+    res.json({ settings });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getGeneralSystemSettings(req: Request, res: Response, next: NextFunction) {
+  try {
+    const settings = await getAdminGeneralSystemSettings();
+    res.json({ settings });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updateGeneralSystemSettings(req: Request, res: Response, next: NextFunction) {
+  try {
+    const settings = await saveAdminGeneralSystemSettings(req.body || {}, req.user?.id ?? null);
+    res.json({ settings });
+  } catch (error) {
+    next(error);
+  }
+}
 
 export async function getSmtpSettings(req: Request, res: Response, next: NextFunction) {
   try {

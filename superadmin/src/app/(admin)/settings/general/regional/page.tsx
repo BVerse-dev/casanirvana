@@ -46,9 +46,9 @@ type RegionalFormData = RegionalLocalizationSettings;
 
 // Sample data for dropdowns
 const timezones = [
-  { value: 'Asia/Kolkata', label: 'Asia/Kolkata (UTC+05:30)' },
-  { value: 'America/New_York', label: 'America/New_York (UTC-05:00)' },
+  { value: 'Africa/Accra', label: 'Africa/Accra (UTC+00:00)' },
   { value: 'Europe/London', label: 'Europe/London (UTC+00:00)' },
+  { value: 'America/New_York', label: 'America/New_York (UTC-05:00)' },
   { value: 'Asia/Dubai', label: 'Asia/Dubai (UTC+04:00)' },
   { value: 'Asia/Singapore', label: 'Asia/Singapore (UTC+08:00)' },
   { value: 'Australia/Sydney', label: 'Australia/Sydney (UTC+11:00)' },
@@ -63,17 +63,13 @@ const dateFormats = [
 
 const languages = [
   { value: 'en', label: 'English' },
-  { value: 'hi', label: 'Hindi' },
-  { value: 'mr', label: 'Marathi' },
-  { value: 'gu', label: 'Gujarati' },
-  { value: 'ta', label: 'Tamil' },
-  { value: 'te', label: 'Telugu' },
-  { value: 'kn', label: 'Kannada' },
-  { value: 'bn', label: 'Bengali' },
+  { value: 'fr', label: 'French' },
+  { value: 'ar', label: 'Arabic' },
+  { value: 'es', label: 'Spanish' },
 ];
 
 const currencies = [
-  { value: 'INR', label: 'Indian Rupee ($)' },
+  { value: 'GHS', label: 'Ghana Cedi (GH₵)' },
   { value: 'USD', label: 'US Dollar ($)' },
   { value: 'EUR', label: 'Euro (€)' },
   { value: 'GBP', label: 'British Pound (£)' },
@@ -103,24 +99,24 @@ export default function RegionalLocalizationPage() {
   } = useForm<RegionalFormData>({
     resolver: yupResolver(regionalSchema),
     defaultValues: {
-      timezone: 'Asia/Kolkata',
+      timezone: 'Africa/Accra',
       dateFormat: 'DD/MM/YYYY',
       timeFormat: '12',
       weekStartDay: 'monday',
-      currency: 'INR',
+      currency: 'GHS',
       currencyPosition: 'before',
-      numberFormat: 'indian',
+      numberFormat: 'standard',
       primaryLanguage: 'en',
-      supportedLanguages: ['en', 'hi'],
+      supportedLanguages: ['en'],
       rtlSupport: false,
-      addressFormat: 'indian',
-      phoneFormat: 'indian',
-      postalCodeFormat: 'indian',
-      gstEnabled: true,
-      vatEnabled: false,
+      addressFormat: 'ghana',
+      phoneFormat: 'ghana',
+      postalCodeFormat: 'ghana',
+      gstEnabled: false,
+      vatEnabled: true,
       gdprCompliance: true,
       cookieConsent: true,
-      dataLocalization: true,
+      dataLocalization: false,
     },
   });
 
@@ -275,7 +271,7 @@ export default function RegionalLocalizationPage() {
             <Row className="mb-4">
               <Col xs={12}>
                 <h5 className="border-bottom pb-2 mb-3">
-                  <IconifyIcon icon="material-symbols:currency-rupee" className="me-2 text-success" />
+                  <IconifyIcon icon="material-symbols:payments" className="me-2 text-success" />
                   Currency & Number Format
                 </h5>
               </Col>
@@ -318,7 +314,7 @@ export default function RegionalLocalizationPage() {
                   control={control}
                   render={({ field }) => (
                     <Form.Select {...field} className={errors.numberFormat ? 'is-invalid' : ''}>
-                      <option value="indian">Indian (1,00,000)</option>
+                      <option value="standard">Standard (100,000)</option>
                       <option value="international">International (100,000)</option>
                       <option value="european">European (100.000)</option>
                     </Form.Select>
@@ -418,7 +414,7 @@ export default function RegionalLocalizationPage() {
                   control={control}
                   render={({ field }) => (
                     <Form.Select {...field} className={errors.addressFormat ? 'is-invalid' : ''}>
-                      <option value="indian">Indian Format (Flat, Building, Area, City, State, PIN)</option>
+                      <option value="ghana">Ghana Format (House No., Street, Area, City, Region)</option>
                       <option value="us">US Format (Street, City, State, ZIP)</option>
                       <option value="uk">UK Format (Building, Street, Town, County, Postcode)</option>
                       <option value="international">International Format</option>
@@ -435,7 +431,7 @@ export default function RegionalLocalizationPage() {
                   control={control}
                   render={({ field }) => (
                     <Form.Select {...field} className={errors.phoneFormat ? 'is-invalid' : ''}>
-                      <option value="indian">Indian (+91 XXXXX XXXXX)</option>
+                      <option value="ghana">Ghana (+233 XX XXX XXXX)</option>
                       <option value="us">US (+1 XXX XXX XXXX)</option>
                       <option value="international">International</option>
                     </Form.Select>
@@ -451,7 +447,7 @@ export default function RegionalLocalizationPage() {
                   control={control}
                   render={({ field }) => (
                     <Form.Select {...field} className={errors.postalCodeFormat ? 'is-invalid' : ''}>
-                      <option value="indian">Indian (6 digits - 400001)</option>
+                      <option value="ghana">Ghana (GA-123-4567)</option>
                       <option value="us">US (5 digits - 12345)</option>
                       <option value="uk">UK (Format - SW1A 1AA)</option>
                       <option value="international">International</option>
@@ -590,7 +586,7 @@ export default function RegionalLocalizationPage() {
                 <Card className="bg-info bg-opacity-10 border-info">
                   <CardBody className="text-center">
                     <IconifyIcon icon="material-symbols:currency-rupee" className="display-6 text-info mb-2" />
-                    <h5 className="text-info mb-1">{watchedCurrency || 'INR'}</h5>
+                    <h5 className="text-info mb-1">{watchedCurrency || 'GHS'}</h5>
                     <small className="text-muted">Primary Currency</small>
                   </CardBody>
                 </Card>

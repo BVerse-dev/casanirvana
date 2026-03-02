@@ -157,8 +157,8 @@ const logLevelOptions = [
 const smsProviderOptions = [
   { value: 'twilio', label: 'Twilio' },
   { value: 'aws-sns', label: 'AWS SNS' },
-  { value: 'textlocal', label: 'TextLocal' },
-  { value: 'msg91', label: 'MSG91' },
+  { value: 'hubtel', label: 'Hubtel' },
+  { value: 'arkesel', label: 'Arkesel' },
 ];
 
 const SystemConfigSettings = () => {
@@ -168,37 +168,23 @@ const SystemConfigSettings = () => {
   const [showBackupModal, setShowBackupModal] = useState(false);
   const [showLogsModal, setShowLogsModal] = useState(false);
   const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
-  const [systemMetrics, setSystemMetrics] = useState({
+  const systemMetrics = {
     cpu: 45,
     memory: 67,
     disk: 34,
     network: 23,
     uptime: "15d 7h 32m",
     connections: 156,
-  });
-  const [logs, setLogs] = useState([
-    { timestamp: "2024-01-20 14:30:25", level: "INFO", message: "System health check completed successfully", module: "Health" },
-    { timestamp: "2024-01-20 14:25:12", level: "WARN", message: "High memory usage detected - 87%", module: "Monitor" },
-    { timestamp: "2024-01-20 14:20:08", level: "INFO", message: "Backup completed successfully", module: "Backup" },
-    { timestamp: "2024-01-20 14:15:03", level: "ERROR", message: "Failed to send SMS notification", module: "SMS" },
-  ]);
-
-  // Simulate real-time metrics updates
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setSystemMetrics(prev => ({
-        ...prev,
-        cpu: Math.max(10, Math.min(90, prev.cpu + (Math.random() - 0.5) * 10)),
-        memory: Math.max(20, Math.min(95, prev.memory + (Math.random() - 0.5) * 8)),
-        network: Math.max(5, Math.min(80, prev.network + (Math.random() - 0.5) * 15)),
-        connections: Math.max(50, Math.min(500, prev.connections + Math.floor((Math.random() - 0.5) * 20))),
-      }));
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, []);
+  };
+  const logs = [
+    { timestamp: "2026-03-02 09:30:25", level: "INFO", message: "System health check completed successfully", module: "Health" },
+    { timestamp: "2026-03-02 09:25:12", level: "WARN", message: "SMS queue latency is above the configured threshold", module: "Monitor" },
+    { timestamp: "2026-03-02 09:20:08", level: "INFO", message: "Backup policy is configured and awaiting the next scheduled run", module: "Backup" },
+    { timestamp: "2026-03-02 09:15:03", level: "INFO", message: "Notification routing configuration loaded successfully", module: "Notifications" },
+  ];
 
   const {
+    register,
     control,
     handleSubmit,
     reset,
@@ -326,27 +312,27 @@ const SystemConfigSettings = () => {
 
   const handleClearCache = async () => {
     try {
-      toast.success("Cache cleared successfully");
+      toast("Cache clear is not connected to a live maintenance job yet.");
     } catch (error) {
-      toast.error("Failed to clear cache");
+      toast.error("Unable to prepare the cache clear shortcut.");
     }
   };
 
   const handleRunBackup = async () => {
     try {
-      toast.success("Backup initiated successfully");
+      toast("Backup scheduling must be triggered through your infrastructure job runner.");
       setShowBackupModal(false);
     } catch (error) {
-      toast.error("Failed to initiate backup");
+      toast.error("Unable to prepare the backup shortcut.");
     }
   };
 
   const handleSystemMaintenance = async () => {
     try {
-      toast.success("System maintenance scheduled");
+      toast("Maintenance scheduling should be triggered through your deployment workflow.");
       setShowMaintenanceModal(false);
     } catch (error) {
-      toast.error("Failed to schedule maintenance");
+      toast.error("Unable to prepare the maintenance shortcut.");
     }
   };
 
@@ -602,7 +588,7 @@ const SystemConfigSettings = () => {
                           <input
                             className="form-check-input"
                             type="checkbox"
-                            {...control.register("debug_mode")}
+                            {...register("debug_mode")}
                           />
                           <label className="form-check-label">Debug Mode</label>
                         </div>
@@ -612,7 +598,7 @@ const SystemConfigSettings = () => {
                           <input
                             className="form-check-input"
                             type="checkbox"
-                            {...control.register("maintenance_mode")}
+                            {...register("maintenance_mode")}
                           />
                           <label className="form-check-label">Maintenance Mode</label>
                         </div>
@@ -755,7 +741,7 @@ const SystemConfigSettings = () => {
                           <input
                             className="form-check-input"
                             type="checkbox"
-                            {...control.register("enable_two_factor")}
+                            {...register("enable_two_factor")}
                           />
                           <label className="form-check-label">Enable Two-Factor Auth</label>
                         </div>
@@ -765,7 +751,7 @@ const SystemConfigSettings = () => {
                           <input
                             className="form-check-input"
                             type="checkbox"
-                            {...control.register("force_ssl")}
+                            {...register("force_ssl")}
                           />
                           <label className="form-check-label">Force SSL</label>
                         </div>
@@ -811,7 +797,7 @@ const SystemConfigSettings = () => {
                           <input
                             className="form-check-input"
                             type="checkbox"
-                            {...control.register("notification_email_enabled")}
+                            {...register("notification_email_enabled")}
                           />
                           <label className="form-check-label">Enable Email Notifications</label>
                         </div>
@@ -821,7 +807,7 @@ const SystemConfigSettings = () => {
                           <input
                             className="form-check-input"
                             type="checkbox"
-                            {...control.register("notification_sms_enabled")}
+                            {...register("notification_sms_enabled")}
                           />
                           <label className="form-check-label">Enable SMS Notifications</label>
                         </div>
@@ -831,7 +817,7 @@ const SystemConfigSettings = () => {
                           <input
                             className="form-check-input"
                             type="checkbox"
-                            {...control.register("notification_push_enabled")}
+                            {...register("notification_push_enabled")}
                           />
                           <label className="form-check-label">Enable Push Notifications</label>
                         </div>
@@ -884,7 +870,7 @@ const SystemConfigSettings = () => {
                           <input
                             className="form-check-input"
                             type="checkbox"
-                            {...control.register("enable_system_monitoring")}
+                            {...register("enable_system_monitoring")}
                           />
                           <label className="form-check-label">Enable System Monitoring</label>
                         </div>
@@ -962,7 +948,7 @@ const SystemConfigSettings = () => {
                           <input
                             className="form-check-input"
                             type="checkbox"
-                            {...control.register("enable_audit_logging")}
+                            {...register("enable_audit_logging")}
                           />
                           <label className="form-check-label">Enable Audit Logging</label>
                         </div>
@@ -972,7 +958,7 @@ const SystemConfigSettings = () => {
                           <input
                             className="form-check-input"
                             type="checkbox"
-                            {...control.register("enable_performance_logging")}
+                            {...register("enable_performance_logging")}
                           />
                           <label className="form-check-label">Enable Performance Logging</label>
                         </div>
@@ -1031,7 +1017,7 @@ const SystemConfigSettings = () => {
                           <input
                             className="form-check-input"
                             type="checkbox"
-                            {...control.register("maintenance_auto_assignment")}
+                            {...register("maintenance_auto_assignment")}
                           />
                           <label className="form-check-label">Auto-Assign Maintenance Requests</label>
                         </div>
@@ -1054,7 +1040,7 @@ const SystemConfigSettings = () => {
                           <input
                             className="form-check-input"
                             type="checkbox"
-                            {...control.register("enable_analytics")}
+                            {...register("enable_analytics")}
                           />
                           <label className="form-check-label">Enable Analytics</label>
                         </div>
@@ -1064,7 +1050,7 @@ const SystemConfigSettings = () => {
                           <input
                             className="form-check-input"
                             type="checkbox"
-                            {...control.register("enable_machine_learning")}
+                            {...register("enable_machine_learning")}
                           />
                           <label className="form-check-label">Enable Machine Learning</label>
                         </div>
@@ -1074,7 +1060,7 @@ const SystemConfigSettings = () => {
                           <input
                             className="form-check-input"
                             type="checkbox"
-                            {...control.register("enable_real_time_sync")}
+                            {...register("enable_real_time_sync")}
                           />
                           <label className="form-check-label">Enable Real-time Sync</label>
                         </div>
@@ -1086,7 +1072,7 @@ const SystemConfigSettings = () => {
                           <input
                             className="form-check-input"
                             type="checkbox"
-                            {...control.register("enable_mobile_push")}
+                            {...register("enable_mobile_push")}
                           />
                           <label className="form-check-label">Enable Mobile Push</label>
                         </div>
@@ -1096,7 +1082,7 @@ const SystemConfigSettings = () => {
                           <input
                             className="form-check-input"
                             type="checkbox"
-                            {...control.register("enable_whatsapp_integration")}
+                            {...register("enable_whatsapp_integration")}
                           />
                           <label className="form-check-label">Enable WhatsApp Integration</label>
                         </div>

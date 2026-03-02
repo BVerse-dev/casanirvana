@@ -66,7 +66,7 @@ const SystemConfigPage = () => {
   const { data: systemConfig, isLoading: isLoadingConfig, error: configError } = useSystemConfig();
   const updateSystemConfig = useUpdateSystemConfig();
 
-  const { control, handleSubmit, reset, watch, formState: { isDirty, isSubmitting } } = useForm<SystemConfigFormData>({
+  const { register, control, handleSubmit, reset, watch, formState: { isDirty, isSubmitting } } = useForm<SystemConfigFormData>({
     resolver: yupResolver(systemConfigSchema),
     defaultValues: {
       admin_dashboard_refresh_minutes: 5,
@@ -261,7 +261,7 @@ const SystemConfigPage = () => {
                     <input
                       className="form-check-input"
                       type="checkbox"
-                      {...control.register("enable_real_time_notifications")}
+                      {...register("enable_real_time_notifications")}
                     />
                     <label className="form-check-label">
                       <IconifyIcon icon="material-symbols:notifications" className="me-2" />
@@ -274,7 +274,7 @@ const SystemConfigPage = () => {
                     <input
                       className="form-check-input"
                       type="checkbox"
-                      {...control.register("enable_analytics")}
+                      {...register("enable_analytics")}
                     />
                     <label className="form-check-label">
                       <IconifyIcon icon="material-symbols:analytics" className="me-2" />
@@ -287,7 +287,7 @@ const SystemConfigPage = () => {
                     <input
                       className="form-check-input"
                       type="checkbox"
-                      {...control.register("enable_audit_logs")}
+                      {...register("enable_audit_logs")}
                     />
                     <label className="form-check-label">
                       <IconifyIcon icon="material-symbols:history" className="me-2" />
@@ -300,7 +300,7 @@ const SystemConfigPage = () => {
                     <input
                       className="form-check-input"
                       type="checkbox"
-                      {...control.register("enable_maintenance_mode")}
+                      {...register("enable_maintenance_mode")}
                     />
                     <label className="form-check-label">
                       <IconifyIcon icon="material-symbols:build" className="me-2" />

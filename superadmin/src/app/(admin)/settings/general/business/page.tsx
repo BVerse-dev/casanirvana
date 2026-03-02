@@ -57,7 +57,7 @@ interface BusinessConfigFormData {
 
 // Options for select inputs
 const currencyOptions = [
-  { value: 'INR', label: 'Indian Rupee ($)' },
+  { value: 'GHS', label: 'Ghana Cedi (GH₵)' },
   { value: 'USD', label: 'US Dollar ($)' },
   { value: 'EUR', label: 'Euro (€)' },
   { value: 'GBP', label: 'British Pound (£)' },
@@ -70,11 +70,11 @@ const BusinessConfigPage = () => {
   const { data: businessConfig, isLoading: isLoadingConfig, error: configError } = useBusinessConfig();
   const updateBusinessConfig = useUpdateBusinessConfig();
 
-  const { control, handleSubmit, reset, formState: { isDirty, isSubmitting } } = useForm<BusinessConfigFormData>({
+  const { register, control, handleSubmit, reset, formState: { isDirty, isSubmitting } } = useForm<BusinessConfigFormData>({
     resolver: yupResolver(businessConfigSchema),
     defaultValues: {
-      default_currency: 'INR',
-      maintenance_fee: 2500,
+      default_currency: 'GHS',
+      maintenance_fee: 250,
       late_payment_penalty_percentage: 5,
       payment_reminder_days: 5,
       payment_due_grace_period_days: 3,
@@ -238,7 +238,7 @@ const BusinessConfigPage = () => {
                     <input
                       className="form-check-input"
                       type="checkbox"
-                      {...control.register("visitor_pre_approval_required")}
+                      {...register("visitor_pre_approval_required")}
                     />
                     <label className="form-check-label">
                       <IconifyIcon icon="material-symbols:approval" className="me-2" />
@@ -261,7 +261,7 @@ const BusinessConfigPage = () => {
                     <input
                       className="form-check-input"
                       type="checkbox"
-                      {...control.register("maintenance_request_auto_approve")}
+                      {...register("maintenance_request_auto_approve")}
                     />
                     <label className="form-check-label">
                       <IconifyIcon icon="material-symbols:home-repair-service" className="me-2" />
@@ -274,7 +274,7 @@ const BusinessConfigPage = () => {
                     <input
                       className="form-check-input"
                       type="checkbox"
-                      {...control.register("amenity_booking_enabled")}
+                      {...register("amenity_booking_enabled")}
                     />
                     <label className="form-check-label">
                       <IconifyIcon icon="material-symbols:event-available" className="me-2" />
@@ -287,7 +287,7 @@ const BusinessConfigPage = () => {
                     <input
                       className="form-check-input"
                       type="checkbox"
-                      {...control.register("complaint_system_enabled")}
+                      {...register("complaint_system_enabled")}
                     />
                     <label className="form-check-label">
                       <IconifyIcon icon="material-symbols:report" className="me-2" />
@@ -300,7 +300,7 @@ const BusinessConfigPage = () => {
                     <input
                       className="form-check-input"
                       type="checkbox"
-                      {...control.register("emergency_contacts_enabled")}
+                      {...register("emergency_contacts_enabled")}
                     />
                     <label className="form-check-label">
                       <IconifyIcon icon="material-symbols:emergency" className="me-2" />
@@ -313,7 +313,7 @@ const BusinessConfigPage = () => {
                     <input
                       className="form-check-input"
                       type="checkbox"
-                      {...control.register("digital_notice_board_enabled")}
+                      {...register("digital_notice_board_enabled")}
                     />
                     <label className="form-check-label">
                       <IconifyIcon icon="material-symbols:dashboard" className="me-2" />

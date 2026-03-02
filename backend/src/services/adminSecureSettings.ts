@@ -375,6 +375,144 @@ const PAYMENT_FEE_DESCRIPTIONS: Record<string, string> = {
   maximum_fee_amount: 'Maximum fee amount',
 };
 
+const BUSINESS_DEFAULTS = {
+  default_currency: 'GHS',
+  maintenance_fee: 250,
+  late_payment_penalty_percentage: 5,
+  payment_reminder_days: 5,
+  payment_due_grace_period_days: 3,
+  visitor_pass_expiry_hours: 24,
+  max_visitors_per_unit: 5,
+  visitor_pre_approval_required: true,
+  maintenance_request_auto_approve: false,
+  amenity_booking_enabled: true,
+  complaint_system_enabled: true,
+  emergency_contacts_enabled: true,
+  digital_notice_board_enabled: true,
+} satisfies SettingsMap;
+
+const BUSINESS_DESCRIPTIONS: Record<string, string> = {
+  default_currency: 'Default currency (GHS/USD/EUR/GBP)',
+  maintenance_fee: 'Default monthly maintenance fee amount',
+  late_payment_penalty_percentage: 'Late payment penalty percentage',
+  payment_reminder_days: 'Days before due date to send payment reminders',
+  payment_due_grace_period_days: 'Grace period after due date',
+  visitor_pass_expiry_hours: 'Visitor pass validity in hours',
+  max_visitors_per_unit: 'Maximum visitors per unit',
+  visitor_pre_approval_required: 'Require visitor pre-approval',
+  maintenance_request_auto_approve: 'Automatically approve maintenance requests',
+  amenity_booking_enabled: 'Enable amenity booking features',
+  complaint_system_enabled: 'Enable complaint management features',
+  emergency_contacts_enabled: 'Enable emergency contacts features',
+  digital_notice_board_enabled: 'Enable notice board features',
+};
+
+const REGIONAL_DEFAULTS = {
+  timezone: 'Africa/Accra',
+  dateFormat: 'DD/MM/YYYY',
+  timeFormat: '12',
+  weekStartDay: 'monday',
+  currency: 'GHS',
+  currencyPosition: 'before',
+  numberFormat: 'standard',
+  primaryLanguage: 'en',
+  supportedLanguages: ['en'],
+  rtlSupport: false,
+  addressFormat: 'ghana',
+  phoneFormat: 'ghana',
+  postalCodeFormat: 'ghana',
+  gstEnabled: false,
+  vatEnabled: true,
+  gdprCompliance: true,
+  cookieConsent: true,
+  dataLocalization: false,
+} satisfies SettingsMap;
+
+const REGIONAL_DESCRIPTIONS: Record<string, string> = {
+  timezone: 'Default platform timezone',
+  dateFormat: 'Default date format',
+  timeFormat: 'Default time format',
+  weekStartDay: 'Default start day of the week',
+  currency: 'Default platform currency',
+  currencyPosition: 'Currency symbol position',
+  numberFormat: 'Default number format',
+  primaryLanguage: 'Primary platform language',
+  supportedLanguages: 'Supported language codes',
+  rtlSupport: 'Enable RTL layout support',
+  addressFormat: 'Preferred address format',
+  phoneFormat: 'Preferred phone number format',
+  postalCodeFormat: 'Preferred postal code format',
+  gstEnabled: 'Enable GST compliance flows',
+  vatEnabled: 'Enable VAT compliance flows',
+  gdprCompliance: 'Enable GDPR compliance features',
+  cookieConsent: 'Enable cookie consent prompts',
+  dataLocalization: 'Enable data localization requirements',
+};
+
+const SECURITY_PRIVACY_DEFAULTS = {
+  terms_url: 'https://casanirvana.com/terms',
+  privacy_url: 'https://casanirvana.com/privacy',
+  refund_policy_url: '',
+  data_retention_policy_url: '',
+  password_min_length: 8,
+  password_require_uppercase: true,
+  password_require_lowercase: true,
+  password_require_numbers: true,
+  password_require_symbols: false,
+  login_attempt_limit: 5,
+  account_lockout_duration_minutes: 30,
+  two_factor_auth_enabled: true,
+  data_encryption_enabled: true,
+  gdpr_compliance_enabled: true,
+  data_retention_days: 1095,
+} satisfies SettingsMap;
+
+const SECURITY_PRIVACY_DESCRIPTIONS: Record<string, string> = {
+  terms_url: 'Terms and conditions URL',
+  privacy_url: 'Privacy policy URL',
+  refund_policy_url: 'Refund policy URL',
+  data_retention_policy_url: 'Data retention policy URL',
+  password_min_length: 'Minimum password length',
+  password_require_uppercase: 'Require uppercase characters',
+  password_require_lowercase: 'Require lowercase characters',
+  password_require_numbers: 'Require numeric characters',
+  password_require_symbols: 'Require special characters',
+  login_attempt_limit: 'Maximum failed login attempts',
+  account_lockout_duration_minutes: 'Account lockout duration after max login attempts',
+  two_factor_auth_enabled: 'Enable two-factor authentication',
+  data_encryption_enabled: 'Enable data encryption requirements',
+  gdpr_compliance_enabled: 'Enable GDPR compliance requirements',
+  data_retention_days: 'Data retention period in days',
+};
+
+const GENERAL_SYSTEM_DEFAULTS = {
+  admin_dashboard_refresh_minutes: 5,
+  auto_logout_minutes: 60,
+  max_file_upload_size_mb: 10,
+  session_timeout_minutes: 30,
+  max_concurrent_sessions: 3,
+  data_backup_frequency: 'daily',
+  log_retention_days: 90,
+  enable_real_time_notifications: true,
+  enable_analytics: true,
+  enable_audit_logs: true,
+  enable_maintenance_mode: false,
+} satisfies SettingsMap;
+
+const GENERAL_SYSTEM_DESCRIPTIONS: Record<string, string> = {
+  admin_dashboard_refresh_minutes: 'Dashboard auto-refresh interval in minutes',
+  auto_logout_minutes: 'Auto logout timeout in minutes for inactive admins',
+  max_file_upload_size_mb: 'Maximum file upload size in megabytes',
+  session_timeout_minutes: 'Admin session timeout duration in minutes',
+  max_concurrent_sessions: 'Maximum concurrent sessions allowed per admin',
+  data_backup_frequency: 'Data backup frequency',
+  log_retention_days: 'Log retention period in days',
+  enable_real_time_notifications: 'Enable real-time notifications',
+  enable_analytics: 'Enable analytics and reporting',
+  enable_audit_logs: 'Enable audit log capture',
+  enable_maintenance_mode: 'Enable maintenance mode banner and restrictions',
+};
+
 type SystemSettingRow = {
   key: string;
   value: string;
@@ -606,6 +744,63 @@ async function upsertSettingsCategory(
   const rows = Object.entries(settings).map(([key, value]) => ({
     category,
     key,
+    value: serializeValue(value),
+    data_type: inferDataType(value),
+    description: descriptions[key] ?? null,
+    is_sensitive: sensitiveKeys.has(key),
+    updated_by: updatedBy ?? null,
+    updated_at: new Date().toISOString(),
+  }));
+
+  const { error } = await supabase.from('system_settings').upsert(rows, { onConflict: 'key' });
+  if (error) {
+    throw new Error(`Failed to save ${category} settings`);
+  }
+
+  return settings;
+}
+
+const buildNamespacedKey = (prefix: string, key: string) => `${prefix}__${key}`;
+
+async function loadNamespacedSettings(
+  category: string,
+  storageKeyPrefix: string,
+  defaults: SettingsMap,
+  legacyCategory = category
+): Promise<SettingsMap> {
+  const rows = await readSystemSettings(category);
+  const prefixedRows = rows.filter((row) => row.key.startsWith(`${storageKeyPrefix}__`));
+  const settings: SettingsMap = { ...defaults };
+
+  if (prefixedRows.length > 0) {
+    for (const row of prefixedRows) {
+      const logicalKey = row.key.replace(`${storageKeyPrefix}__`, '');
+      if (!(logicalKey in defaults)) continue;
+      settings[logicalKey] = parseStoredValue(row.value, row.data_type);
+    }
+    return settings;
+  }
+
+  const legacyRows = await readLegacySettings(legacyCategory);
+  for (const row of legacyRows) {
+    if (!(row.key in defaults)) continue;
+    settings[row.key] = parseStoredValue(row.value);
+  }
+
+  return settings;
+}
+
+async function upsertNamespacedSettingsCategory(
+  category: string,
+  storageKeyPrefix: string,
+  settings: SettingsMap,
+  descriptions: Record<string, string>,
+  sensitiveKeys: Set<string>,
+  updatedBy?: string | null
+) {
+  const rows = Object.entries(settings).map(([key, value]) => ({
+    category,
+    key: buildNamespacedKey(storageKeyPrefix, key),
     value: serializeValue(value),
     data_type: inferDataType(value),
     description: descriptions[key] ?? null,
@@ -939,5 +1134,96 @@ export async function saveAdminPaymentFeeSettings(input: Record<string, unknown>
     updatedBy
   );
   await mirrorLegacyAppSettingsCategory('payment_fees', saved, PAYMENT_FEE_DESCRIPTIONS);
+  return saved;
+}
+
+export async function getAdminBusinessSettings() {
+  return loadNamespacedSettings('business', 'business', BUSINESS_DEFAULTS);
+}
+
+export async function saveAdminBusinessSettings(input: Record<string, unknown>, updatedBy?: string | null) {
+  const current = await loadNamespacedSettings('business', 'business', BUSINESS_DEFAULTS);
+  const merged = mergeSubmittedSettings(input, current, BUSINESS_DEFAULTS, new Set<string>());
+  const saved = await upsertNamespacedSettingsCategory(
+    'business',
+    'business',
+    merged,
+    BUSINESS_DESCRIPTIONS,
+    new Set<string>(),
+    updatedBy
+  );
+  await mirrorLegacyAppSettingsCategory('business', saved, BUSINESS_DESCRIPTIONS);
+  return saved;
+}
+
+export async function getAdminRegionalSettings() {
+  return loadNamespacedSettings('regional', 'regional', REGIONAL_DEFAULTS);
+}
+
+export async function saveAdminRegionalSettings(input: Record<string, unknown>, updatedBy?: string | null) {
+  const current = await loadNamespacedSettings('regional', 'regional', REGIONAL_DEFAULTS);
+  const merged = mergeSubmittedSettings(input, current, REGIONAL_DEFAULTS, new Set<string>());
+  const saved = await upsertNamespacedSettingsCategory(
+    'regional',
+    'regional',
+    merged,
+    REGIONAL_DESCRIPTIONS,
+    new Set<string>(),
+    updatedBy
+  );
+  await mirrorLegacyAppSettingsCategory('regional', saved, REGIONAL_DESCRIPTIONS);
+  return saved;
+}
+
+export async function getAdminSecurityPrivacySettings() {
+  return loadNamespacedSettings('security_privacy', 'security_privacy', SECURITY_PRIVACY_DEFAULTS);
+}
+
+export async function saveAdminSecurityPrivacySettings(
+  input: Record<string, unknown>,
+  updatedBy?: string | null
+) {
+  const current = await loadNamespacedSettings(
+    'security_privacy',
+    'security_privacy',
+    SECURITY_PRIVACY_DEFAULTS
+  );
+  const merged = mergeSubmittedSettings(
+    input,
+    current,
+    SECURITY_PRIVACY_DEFAULTS,
+    new Set<string>()
+  );
+  const saved = await upsertNamespacedSettingsCategory(
+    'security_privacy',
+    'security_privacy',
+    merged,
+    SECURITY_PRIVACY_DESCRIPTIONS,
+    new Set<string>(),
+    updatedBy
+  );
+  await mirrorLegacyAppSettingsCategory('security_privacy', saved, SECURITY_PRIVACY_DESCRIPTIONS);
+  return saved;
+}
+
+export async function getAdminGeneralSystemSettings() {
+  return loadNamespacedSettings('system', 'general_system', GENERAL_SYSTEM_DEFAULTS, 'system');
+}
+
+export async function saveAdminGeneralSystemSettings(
+  input: Record<string, unknown>,
+  updatedBy?: string | null
+) {
+  const current = await loadNamespacedSettings('system', 'general_system', GENERAL_SYSTEM_DEFAULTS, 'system');
+  const merged = mergeSubmittedSettings(input, current, GENERAL_SYSTEM_DEFAULTS, new Set<string>());
+  const saved = await upsertNamespacedSettingsCategory(
+    'system',
+    'general_system',
+    merged,
+    GENERAL_SYSTEM_DESCRIPTIONS,
+    new Set<string>(),
+    updatedBy
+  );
+  await mirrorLegacyAppSettingsCategory('system', saved, GENERAL_SYSTEM_DESCRIPTIONS);
   return saved;
 }
