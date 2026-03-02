@@ -289,7 +289,7 @@ export const useGuardsStats = () => {
       try {
         const { data, error } = await supabase
           .from('guards')
-          .select('is_active, shift_type, salary');
+          .select('is_active, shift_type, salary, employment_date');
 
         if (error) {
           console.error('Error fetching guards stats:', error);
@@ -304,6 +304,38 @@ export const useGuardsStats = () => {
           };
         }
 
+        const { data: performanceData, error: performanceError } = await supabase
+          .from('guard_performance')
+          .select('overall_rating');
+
+        if (performanceError) {
+          console.error('Error fetching guard performance stats:', performanceError);
+        }
+
+        const ratingValues = (performanceData || [])
+          .map((performance) => Number(performance.overall_rating) || 0)
+          .filter((value) => value > 0);
+
+        const averageRating = ratingValues.length > 0
+          ? Number((ratingValues.reduce((sum, value) => sum + value, 0) / ratingValues.length).toFixed(2))
+          : 0;
+
+        const today = new Date();
+        const experienceValues = (data || [])
+          .map((guard) => {
+            if (!guard.employment_date) return 0;
+            const employmentDate = new Date(guard.employment_date);
+            if (Number.isNaN(employmentDate.getTime())) return 0;
+
+            const diffMs = today.getTime() - employmentDate.getTime();
+            return Math.max(0, diffMs / (1000 * 60 * 60 * 24 * 365.25));
+          })
+          .filter((value) => value > 0);
+
+        const averageExperience = experienceValues.length > 0
+          ? Number((experienceValues.reduce((sum, value) => sum + value, 0) / experienceValues.length).toFixed(1))
+          : 0;
+
         const stats = {
           total: data.length,
           active: data.filter(g => g.is_active).length,
@@ -313,8 +345,8 @@ export const useGuardsStats = () => {
             acc[guard.shift_type || 'unknown'] = (acc[guard.shift_type || 'unknown'] || 0) + 1;
             return acc;
           }, {}),
-          averageRating: 4.5, // Placeholder until rating column exists
-          averageExperience: 5, // Placeholder until experience column exists
+          averageRating,
+          averageExperience,
         };
 
         return stats;

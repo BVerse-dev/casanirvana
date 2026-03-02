@@ -17,6 +17,7 @@ import {
   useGuardSummary, 
   useGuardPerformanceTrends, 
   useGuardDutyDistribution,
+  useGuardShiftTrends,
   useRecentGuardActivities
 } from '@/hooks/useGuardDashboard';
 
@@ -53,26 +54,25 @@ const getGuardStatisticsData = (summaryData?: {
       icon: 'ri:team-line',
       title: 'Total Guards',
       amount: summaryData ? String(summaryData.totalGuards) : '0',
-      change: 7.34, // Keep change percentage from UI for now
+      change: 0,
     },
     {
       icon: 'ri:shield-check-line',
       title: 'On Duty',
       amount: summaryData ? String(summaryData.onDutyGuards) : '0',
-      change: 12.5,
+      change: 0,
     },
     {
       icon: 'ri:user-unfollow-line',
       title: 'Available',
       amount: summaryData ? String(summaryData.availableGuards) : '0',
-      change: -5.2,
-      variant: 'danger',
+      change: 0,
     },
     {
       icon: 'ri:alarm-warning-line',
       title: 'Need Training',
       amount: summaryData ? String(summaryData.trainingRequired) : '0',
-      change: 8.76,
+      change: 0,
       variant: 'danger',
     },
   ];
@@ -411,6 +411,7 @@ const GuardManagementPage = () => {
   const { data: guardSummary, isLoading: isSummaryLoading } = useGuardSummary();
   const { data: performanceTrends, isLoading: isPerformanceLoading } = useGuardPerformanceTrends();
   const { data: dutyDistribution, isLoading: isDutyLoading } = useGuardDutyDistribution();
+  const { data: shiftTrends, isLoading: isShiftLoading } = useGuardShiftTrends();
   const { data: guardActivities, isLoading: isActivitiesLoading } = useRecentGuardActivities();
   
   // Setup real-time subscription
@@ -475,17 +476,81 @@ const GuardManagementPage = () => {
     };
   }, [queryClient]);
 
-  // Fallback data if the API hasn't loaded yet
-  const dummyGuardSummary: GuardSummary = {
-    totalGuards: 24,
-    activeGuards: 22,
-    onDutyGuards: 16,
-    offDutyGuards: 6,
-    availableGuards: 8,
-    pendingAssignments: 3,
-    trainingRequired: 5,
-    expiredCertifications: 2,
+  const emptyGuardSummary: GuardSummary = {
+    totalGuards: 0,
+    activeGuards: 0,
+    onDutyGuards: 0,
+    offDutyGuards: 0,
+    availableGuards: 0,
+    pendingAssignments: 0,
+    trainingRequired: 0,
+    expiredCertifications: 0,
   };
+
+  const summaryData = guardSummary || emptyGuardSummary;
+  const recentActivityItems = guardActivities || [];
+  const performanceLabels = performanceTrends?.labels || [];
+  const performanceSeries = [
+    {
+      name: 'Performance',
+      data: performanceTrends?.performanceScores || [],
+    },
+    {
+      name: 'Attendance',
+      data: performanceTrends?.attendanceRates || [],
+    },
+    {
+      name: 'Training',
+      data: performanceTrends?.trainingCompletionRates || [],
+    },
+  ];
+  const dutySeries = dutyDistribution?.series || [
+    summaryData.onDutyGuards,
+    summaryData.availableGuards,
+    summaryData.offDutyGuards,
+    summaryData.trainingRequired,
+  ];
+  const dutyLabels = dutyDistribution?.labels || ['On Duty', 'Available', 'Off Duty', 'Training'];
+  const shiftTrendData = shiftTrends || {
+    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+    totalDutyHours: [0, 0, 0, 0],
+    overtimeHours: [0, 0, 0, 0],
+  };
+  const criticalAlerts = [
+    summaryData.expiredCertifications > 0
+      ? {
+          key: 'expiring-certifications',
+          variant: 'danger',
+          icon: 'ri:alarm-warning-line',
+          title: 'Certification Expiring',
+          detail: `${summaryData.expiredCertifications} guard${summaryData.expiredCertifications === 1 ? '' : 's'} need renewal`,
+        }
+      : null,
+    summaryData.pendingAssignments > 0
+      ? {
+          key: 'pending-assignments',
+          variant: 'warning',
+          icon: 'ri:time-line',
+          title: 'Assignment Gap',
+          detail: `${summaryData.pendingAssignments} active guard${summaryData.pendingAssignments === 1 ? '' : 's'} awaiting assignment`,
+        }
+      : null,
+    summaryData.trainingRequired > 0
+      ? {
+          key: 'training-required',
+          variant: 'info',
+          icon: 'ri:graduation-cap-line',
+          title: 'Training Pending',
+          detail: `${summaryData.trainingRequired} guard${summaryData.trainingRequired === 1 ? '' : 's'} need training`,
+        }
+      : null,
+  ].filter(Boolean) as Array<{
+    key: string;
+    variant: 'danger' | 'warning' | 'info';
+    icon: string;
+    title: string;
+    detail: string;
+  }>;
 
   const quickActions = [
     {
@@ -494,7 +559,7 @@ const GuardManagementPage = () => {
       icon: 'ri:user-shield-line',
       color: 'primary',
       path: '/settings/guards/profiles',
-      count: guardSummary?.totalGuards || dummyGuardSummary.totalGuards,
+      count: summaryData.totalGuards,
     },
     {
       title: 'Schedules & Shifts',
@@ -502,7 +567,7 @@ const GuardManagementPage = () => {
       icon: 'ri:calendar-schedule-line',
       color: 'success',
       path: '/settings/guards/schedules',
-      count: guardSummary?.onDutyGuards || dummyGuardSummary.onDutyGuards,
+      count: summaryData.onDutyGuards,
     },
     {
       title: 'Performance Reviews',
@@ -518,7 +583,7 @@ const GuardManagementPage = () => {
       icon: 'ri:building-line',
       color: 'warning',
       path: '/settings/guards/assignments',
-      count: guardSummary?.pendingAssignments || dummyGuardSummary.pendingAssignments,
+      count: summaryData.pendingAssignments,
     },
     {
       title: 'Training & Certification',
@@ -526,7 +591,7 @@ const GuardManagementPage = () => {
       icon: 'ri:graduation-cap-line',
       color: 'danger',
       path: '/settings/guards/training',
-      count: guardSummary?.trainingRequired || dummyGuardSummary.trainingRequired,
+      count: summaryData.trainingRequired,
     },
     {
       title: 'Equipment Management',
@@ -535,45 +600,6 @@ const GuardManagementPage = () => {
       color: 'dark',
       path: '/settings/guards/equipment',
       count: 0,
-    },
-  ];
-
-  const recentActivities = [
-    {
-      id: 1,
-      type: 'assignment',
-      title: 'New Guard Assignment',
-      description: 'John Smith assigned to Tower A - Night Shift',
-      time: '2 hours ago',
-      icon: 'ri:user-add-line',
-      color: 'success',
-    },
-    {
-      id: 2,
-      type: 'training',
-      title: 'Training Completed',
-      description: 'Mike Wilson completed Fire Safety Certification',
-      time: '4 hours ago',
-      icon: 'ri:graduation-cap-line',
-      color: 'info',
-    },
-    {
-      id: 3,
-      type: 'alert',
-      title: 'Certification Expiring',
-      description: 'Sarah Johnson\'s Security License expires in 7 days',
-      time: '6 hours ago',
-      icon: 'ri:alarm-warning-line',
-      color: 'warning',
-    },
-    {
-      id: 4,
-      type: 'performance',
-      title: 'Performance Review Due',
-      description: 'Monthly review due for 3 guards',
-      time: '1 day ago',
-      icon: 'ri:star-line',
-      color: 'primary',
     },
   ];
 
@@ -595,7 +621,7 @@ const GuardManagementPage = () => {
               <Tab eventKey="overview" title="Overview">
                 {/* Enhanced Statistics Cards */}
                 <Row className="mb-4">
-                  {getGuardStatisticsData(guardSummary).map((item: StatisticType, idx: number) => (
+                  {getGuardStatisticsData(summaryData).map((item: StatisticType, idx: number) => (
                     <Col md={6} xl={3} key={idx}>
                       <StatCard {...item} />
                     </Col>
@@ -648,18 +674,24 @@ const GuardManagementPage = () => {
                       </Card.Header>
                       <Card.Body>
                         <div className="activity-timeline">
-                          {(isActivitiesLoading || !guardActivities ? recentActivities : guardActivities).map((activity) => (
-                            <div key={activity.id} className="d-flex align-items-start mb-4">
-                              <div className={`avatar-sm rounded-circle bg-${activity.color}-subtle d-flex align-items-center justify-content-center me-3 flex-shrink-0`}>
-                                <IconifyIcon icon={activity.icon} className={`text-${activity.color}`} />
+                          {isActivitiesLoading ? (
+                            <div className="text-muted text-center py-4">Loading recent guard activity...</div>
+                          ) : recentActivityItems.length > 0 ? (
+                            recentActivityItems.map((activity) => (
+                              <div key={activity.id} className="d-flex align-items-start mb-4">
+                                <div className={`avatar-sm rounded-circle bg-${activity.color}-subtle d-flex align-items-center justify-content-center me-3 flex-shrink-0`}>
+                                  <IconifyIcon icon={activity.icon} className={`text-${activity.color}`} />
+                                </div>
+                                <div className="flex-grow-1">
+                                  <h6 className="mb-1">{activity.title}</h6>
+                                  <p className="text-muted mb-1">{activity.description}</p>
+                                  <small className="text-muted">{activity.time}</small>
+                                </div>
                               </div>
-                              <div className="flex-grow-1">
-                                <h6 className="mb-1">{activity.title}</h6>
-                                <p className="text-muted mb-1">{activity.description}</p>
-                                <small className="text-muted">{activity.time}</small>
-                              </div>
-                            </div>
-                          ))}
+                            ))
+                          ) : (
+                            <div className="text-muted text-center py-4">No recent guard activity is available yet.</div>
+                          )}
                         </div>
                         <div className="text-center">
                           <Button variant="outline-primary" size="sm">
@@ -678,19 +710,19 @@ const GuardManagementPage = () => {
                       <Card.Body>
                         <div className="d-flex justify-content-between align-items-center mb-3">
                           <span>Active Guards</span>
-                          <Badge bg="success">{guardSummary?.activeGuards || dummyGuardSummary.activeGuards}</Badge>
+                          <Badge bg="success">{summaryData.activeGuards}</Badge>
                         </div>
                         <div className="d-flex justify-content-between align-items-center mb-3">
                           <span>Pending Assignments</span>
-                          <Badge bg="warning">{guardSummary?.pendingAssignments || dummyGuardSummary.pendingAssignments}</Badge>
+                          <Badge bg="warning">{summaryData.pendingAssignments}</Badge>
                         </div>
                         <div className="d-flex justify-content-between align-items-center mb-3">
                           <span>Training Required</span>
-                          <Badge bg="danger">{guardSummary?.trainingRequired || dummyGuardSummary.trainingRequired}</Badge>
+                          <Badge bg="danger">{summaryData.trainingRequired}</Badge>
                         </div>
                         <div className="d-flex justify-content-between align-items-center">
                           <span>Expired Certifications</span>
-                          <Badge bg="secondary">{guardSummary?.expiredCertifications || dummyGuardSummary.expiredCertifications}</Badge>
+                          <Badge bg="secondary">{summaryData.expiredCertifications}</Badge>
                         </div>
                       </Card.Body>
                     </Card>
@@ -739,13 +771,8 @@ const GuardManagementPage = () => {
                                     height: 280,
                                   },
                                   colors: ['#28a745', '#17a2b8', '#ffc107', '#dc3545'],
-                                  series: [
-                                    guardSummary?.onDutyGuards || dummyGuardSummary.onDutyGuards,
-                                    guardSummary?.availableGuards || dummyGuardSummary.availableGuards,
-                                    guardSummary?.offDutyGuards || dummyGuardSummary.offDutyGuards,
-                                    guardSummary?.trainingRequired || dummyGuardSummary.trainingRequired,
-                                  ],
-                                  labels: ['On Duty', 'Available', 'Off Duty', 'Need Training'],
+                                  series: dutySeries,
+                                  labels: dutyLabels,
                                   legend: {
                                     position: 'bottom' as const,
                                   },
@@ -756,15 +783,13 @@ const GuardManagementPage = () => {
                                     },
                                   },
                                 }}
-                                series={[
-                                  guardSummary?.onDutyGuards || dummyGuardSummary.onDutyGuards,
-                                  guardSummary?.availableGuards || dummyGuardSummary.availableGuards,
-                                  guardSummary?.offDutyGuards || dummyGuardSummary.offDutyGuards,
-                                  guardSummary?.trainingRequired || dummyGuardSummary.trainingRequired,
-                                ]}
+                                series={dutySeries}
                                 type="pie"
                                 height={280}
                               />
+                              {isDutyLoading && (
+                                <div className="text-muted text-center mt-3">Refreshing distribution data...</div>
+                              )}
                             </Card.Body>
                           </Card>
                         </Col>
@@ -792,7 +817,7 @@ const GuardManagementPage = () => {
                                     },
                                   },
                                   xaxis: {
-                                    categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                                    categories: performanceLabels,
                                   },
                                   yaxis: {
                                     title: {
@@ -806,23 +831,13 @@ const GuardManagementPage = () => {
                                     position: 'top' as const,
                                   },
                                 }}
-                                series={[
-                                  {
-                                    name: 'Performance',
-                                    data: [88, 92, 87, 90, 94, 89],
-                                  },
-                                  {
-                                    name: 'Attendance',
-                                    data: [95, 93, 96, 94, 92, 95],
-                                  },
-                                  {
-                                    name: 'Training',
-                                    data: [82, 85, 80, 87, 90, 86],
-                                  },
-                                ]}
+                                series={performanceSeries}
                                 type="bar"
                                 height={280}
                               />
+                              {!isPerformanceLoading && performanceLabels.length === 0 && (
+                                <div className="text-muted text-center mt-3">No performance trend data is available yet.</div>
+                              )}
                             </Card.Body>
                           </Card>
                         </Col>
@@ -859,12 +874,7 @@ const GuardManagementPage = () => {
                                     },
                                   },
                                   xaxis: {
-                                    categories: [
-                                      'Week 1',
-                                      'Week 2',
-                                      'Week 3',
-                                      'Week 4',
-                                    ],
+                                    categories: shiftTrendData.labels,
                                   },
                                   yaxis: {
                                     title: {
@@ -881,16 +891,19 @@ const GuardManagementPage = () => {
                                 series={[
                                   {
                                     name: 'Total Duty Hours',
-                                    data: [420, 445, 398, 467],
+                                    data: shiftTrendData.totalDutyHours,
                                   },
                                   {
                                     name: 'Overtime Hours',
-                                    data: [32, 28, 45, 38],
+                                    data: shiftTrendData.overtimeHours,
                                   },
                                 ]}
                                 type="area"
                                 height={250}
                               />
+                              {isShiftLoading && (
+                                <div className="text-muted text-center mt-3">Refreshing shift trends...</div>
+                              )}
                             </Card.Body>
                           </Card>
                         </Col>
@@ -903,36 +916,24 @@ const GuardManagementPage = () => {
                               </h6>
                             </Card.Header>
                             <Card.Body>
-                              <div className="d-flex align-items-center mb-3 p-2 rounded bg-danger-subtle">
-                                <IconifyIcon
-                                  icon="ri:alarm-warning-line"
-                                  className="text-danger me-2 fs-18"
-                                />
-                                <div className="flex-grow-1">
-                                  <small className="fw-bold text-danger">Certification Expiring</small>
-                                  <div className="small text-muted">2 guards in 7 days</div>
+                              {criticalAlerts.length > 0 ? (
+                                criticalAlerts.map((alert) => (
+                                  <div key={alert.key} className={`d-flex align-items-center mb-3 p-2 rounded bg-${alert.variant}-subtle`}>
+                                    <IconifyIcon
+                                      icon={alert.icon}
+                                      className={`text-${alert.variant} me-2 fs-18`}
+                                    />
+                                    <div className="flex-grow-1">
+                                      <small className={`fw-bold text-${alert.variant}`}>{alert.title}</small>
+                                      <div className="small text-muted">{alert.detail}</div>
+                                    </div>
+                                  </div>
+                                ))
+                              ) : (
+                                <div className="text-muted text-center py-4">
+                                  {isSummaryLoading ? 'Loading alert status...' : 'No critical guard alerts at the moment.'}
                                 </div>
-                              </div>
-                              <div className="d-flex align-items-center mb-3 p-2 rounded bg-warning-subtle">
-                                <IconifyIcon
-                                  icon="ri:time-line"
-                                  className="text-warning me-2 fs-18"
-                                />
-                                <div className="flex-grow-1">
-                                  <small className="fw-bold text-warning">Overtime Alert</small>
-                                  <div className="small text-muted">3 guards exceeding limits</div>
-                                </div>
-                              </div>
-                              <div className="d-flex align-items-center mb-3 p-2 rounded bg-info-subtle">
-                                <IconifyIcon
-                                  icon="ri:graduation-cap-line"
-                                  className="text-info me-2 fs-18"
-                                />
-                                <div className="flex-grow-1">
-                                  <small className="fw-bold text-info">Training Pending</small>
-                                  <div className="small text-muted">5 guards need training</div>
-                                </div>
-                              </div>
+                              )}
                               <div className="text-center mt-3">
                                 <Button variant="outline-warning" size="sm">
                                   <IconifyIcon icon="ri:settings-line" className="me-1" />

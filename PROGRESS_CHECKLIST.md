@@ -518,6 +518,12 @@ Date: 2026-02-06
   - `/settings/users` now keeps the current user-management workspace UI while loading and saving its configuration block through backend-managed `system_settings` (`users/configuration`) instead of direct browser writes to `app_settings`.
   - `/settings/users/permissions` no longer falls back to in-page mock permissions; it now uses live permission records only, with real derived statistics and normalized permission fields (`isSystemPermission`, `roleCount`) from the permissions data source.
   - `/settings/users/groups` no longer falls back to hardcoded mock groups; when statistics are unavailable it now derives honest totals from the live groups list and shows a truthful warning instead of claiming cached fallback data.
+- [x] Phase 33 guard-settings continuation completed:
+  - `/settings/guards` now keeps its existing tabs/cards/dashboard layout while using honest live data instead of hardcoded overview fallbacks for activity, staffing, and alert states.
+  - `useGuardSummary` now computes `pendingAssignments` from real `guard_assignments` records, so assignment gaps reflect actual unassigned active guards instead of a placeholder constant.
+  - `useGuardPerformanceTrends` now uses real training completion percentages instead of random values, and `useGuardShiftTrends` provides live 30-day duty/overtime trend data for the analytics view.
+  - `useRecentGuardActivities` no longer mutates `Date.prototype`, and the activity feed now sorts by real timestamps while showing an honest empty state when no records exist.
+  - `useGuardsStats` no longer reports fake average rating/experience placeholders; it now derives those values from live `guard_performance` and `employment_date` data where available.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)
