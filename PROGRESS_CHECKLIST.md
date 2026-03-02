@@ -514,6 +514,10 @@ Date: 2026-02-06
   - `/settings/language/default`, `/settings/language/localization`, and `/settings/language/translations` now keep their current tabs/cards/forms UI while loading and saving through backend-managed `system_settings` (`localization/default_language`, `localization/regions`, and `localization/translations`) instead of simulated local-only saves.
   - Default language and localization defaults were aligned to the current Ghana production scope (`Africa/Accra`, `GHS`, `GH₵`, `en-GH`, Ghana-first region and currency options) while preserving the existing visual layout.
   - Translation export remains live, while the unfinished import action now reports its real integration status instead of acting like a finished workflow.
+- [x] Phase 33 user-settings continuation completed:
+  - `/settings/users` now keeps the current user-management workspace UI while loading and saving its configuration block through backend-managed `system_settings` (`users/configuration`) instead of direct browser writes to `app_settings`.
+  - `/settings/users/permissions` no longer falls back to in-page mock permissions; it now uses live permission records only, with real derived statistics and normalized permission fields (`isSystemPermission`, `roleCount`) from the permissions data source.
+  - `/settings/users/groups` no longer falls back to hardcoded mock groups; when statistics are unavailable it now derives honest totals from the live groups list and shows a truthful warning instead of claiming cached fallback data.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)

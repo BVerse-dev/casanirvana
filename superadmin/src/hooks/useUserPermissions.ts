@@ -14,12 +14,14 @@ export interface Permission {
   module: string;
   type: 'read' | 'write' | 'delete' | 'execute' | 'admin';
   is_system_permission: boolean;
+  isSystemPermission?: boolean;
   status: 'active' | 'inactive';
   created_at: string;
   updated_at: string;
   created_by?: string;
   updated_by?: string;
   role_count?: number; // calculated field from join
+  roleCount?: number;
 }
 
 export interface PermissionInsert {
@@ -68,36 +70,19 @@ export interface PermissionStats {
   byModule: { [key: string]: number };
 }
 
-// Mock fallback data for when Supabase is unavailable
-const mockPermissionStats: PermissionStats = {
-  total: 12,
-  active: 12,
-  inactive: 0,
-  system: 2,
-  byType: {
-    read: 5,
-    write: 3,
-    delete: 0,
-    execute: 1,
-    admin: 3
-  },
-  byCategory: {
-    System: 2,
-    Administration: 3,
-    Security: 3,
-    Operations: 2,
-    Community: 2
-  },
-  byModule: {
-    Dashboard: 1,
-    Settings: 1,
-    'User Management': 2,
-    'Visitor Management': 2,
-    'Emergency Management': 1,
-    Maintenance: 2,
-    'Amenity Management': 2,
-    Reports: 1
-  }
+const normalizePermission = (permission: any): Permission => {
+  const roleCount = Number(permission?.roleCount ?? permission?.role_count ?? 0);
+  const isSystemPermission = Boolean(
+    permission?.isSystemPermission ?? permission?.is_system_permission ?? false
+  );
+
+  return {
+    ...permission,
+    role_count: roleCount,
+    roleCount,
+    is_system_permission: isSystemPermission,
+    isSystemPermission,
+  } as Permission;
 };
 
 // List permissions with filtering, search, and pagination
@@ -166,7 +151,7 @@ export const useListPermissions = (params: ListPermissionsParams = {}) => {
         console.log(`Successfully fetched ${data?.length || 0} permissions`);
 
         return {
-          data: data || [],
+          data: (data || []).map(normalizePermission),
           count: count || 0,
           page: filters.page,
           pageSize: filters.pageSize,
@@ -197,7 +182,7 @@ export const useGetPermission = (id: string) => {
           throw error;
         }
 
-        return data;
+        return normalizePermission(data);
       } catch (error) {
         console.error('Get permission error:', error);
         throw error;
@@ -232,7 +217,7 @@ export const useCreatePermission = () => {
         }
 
         console.log('Permission created successfully:', data);
-        return data;
+        return normalizePermission(data);
       } catch (error) {
         console.error('Create permission error:', error);
         throw error;
@@ -271,7 +256,7 @@ export const useUpdatePermission = () => {
         }
 
         console.log('Permission updated successfully:', data);
-        return data;
+        return normalizePermission(data);
       } catch (error) {
         console.error('Update permission error:', error);
         throw error;
@@ -363,7 +348,7 @@ export const useTogglePermissionStatus = () => {
         }
 
         console.log('Permission status toggled successfully:', data);
-        return data;
+        return normalizePermission(data);
       } catch (error) {
         console.error('Toggle permission status error:', error);
         throw error;
@@ -426,8 +411,8 @@ export const usePermissionStats = () => {
         console.log('Permission stats calculated:', stats);
         return stats;
       } catch (error) {
-        console.error('Permission stats error, returning mock data:', error);
-        return mockPermissionStats;
+        console.error('Permission stats error:', error);
+        throw error;
       }
     }
   });
@@ -457,7 +442,7 @@ export const usePermissionsByCategory = () => {
           if (!acc[category]) {
             acc[category] = [];
           }
-          acc[category].push(permission);
+          acc[category].push(normalizePermission(permission));
           return acc;
         }, {} as { [key: string]: Permission[] });
 

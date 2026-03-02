@@ -70,139 +70,6 @@ const transformFormData = (formData: GroupFormData) => ({
   tags: formData.tags
 });
 
-// Mock data fallback (same as frontend)
-const mockGroups: UserGroup[] = [
-  {
-    id: '1',
-    name: 'Block A Residents',
-    description: 'All residents living in Block A of the community',
-    color: '#0d6efd',
-    type: 'block',
-    memberCount: 45,
-    maxMembers: 50,
-    isActive: true,
-    autoAssign: true,
-    assignmentRules: ['block_number:A'],
-    createdDate: '2024-01-01',
-    updatedDate: '2024-03-01',
-    leaderId: '1',
-    leaderName: 'John Smith',
-    tags: ['residents', 'block-a']
-  },
-  {
-    id: '2',
-    name: 'Block B Residents',
-    description: 'All residents living in Block B of the community',
-    color: '#198754',
-    type: 'block',
-    memberCount: 38,
-    maxMembers: 45,
-    isActive: true,
-    autoAssign: true,
-    assignmentRules: ['block_number:B'],
-    createdDate: '2024-01-01',
-    updatedDate: '2024-02-28',
-    leaderId: '2',
-    leaderName: 'Sarah Johnson',
-    tags: ['residents', 'block-b']
-  },
-  {
-    id: '3',
-    name: 'Security Team',
-    description: 'Security guards and safety personnel',
-    color: '#6f42c1',
-    type: 'role',
-    memberCount: 12,
-    isActive: true,
-    autoAssign: true,
-    assignmentRules: ['role:guard', 'role:security'],
-    createdDate: '2024-01-01',
-    updatedDate: '2024-02-15',
-    leaderId: '3',
-    leaderName: 'Mike Davis',
-    tags: ['security', 'staff']
-  },
-  {
-    id: '4',
-    name: 'Maintenance Team',
-    description: 'Maintenance staff and facility management',
-    color: '#fd7e14',
-    type: 'role',
-    memberCount: 8,
-    isActive: true,
-    autoAssign: true,
-    assignmentRules: ['role:maintenance'],
-    createdDate: '2024-01-01',
-    updatedDate: '2024-03-05',
-    leaderId: '4',
-    leaderName: 'Tom Wilson',
-    tags: ['maintenance', 'staff']
-  },
-  {
-    id: '5',
-    name: 'Sports Club',
-    description: 'Residents interested in sports and fitness activities',
-    color: '#20c997',
-    type: 'interest',
-    memberCount: 28,
-    isActive: true,
-    autoAssign: false,
-    createdDate: '2024-01-15',
-    updatedDate: '2024-03-10',
-    leaderId: '5',
-    leaderName: 'Alex Chen',
-    tags: ['sports', 'fitness', 'recreation']
-  },
-  {
-    id: '6',
-    name: 'Garden Committee',
-    description: 'Residents managing community gardens and landscaping',
-    color: '#198754',
-    type: 'committee',
-    memberCount: 12,
-    maxMembers: 15,
-    isActive: true,
-    autoAssign: false,
-    createdDate: '2024-01-20',
-    updatedDate: '2024-03-08',
-    leaderId: '6',
-    leaderName: 'Emma Brown',
-    tags: ['gardening', 'environment', 'committee']
-  },
-  {
-    id: '7',
-    name: 'Book Club',
-    description: 'Community book reading and discussion group',
-    color: '#6610f2',
-    type: 'interest',
-    memberCount: 18,
-    maxMembers: 25,
-    isActive: true,
-    autoAssign: false,
-    createdDate: '2024-02-01',
-    updatedDate: '2024-03-12',
-    leaderId: '7',
-    leaderName: 'Lisa Taylor',
-    tags: ['books', 'education', 'social']
-  },
-  {
-    id: '8',
-    name: 'Emergency Response Team',
-    description: 'Trained residents for emergency situations',
-    color: '#dc3545',
-    type: 'committee',
-    memberCount: 15,
-    maxMembers: 20,
-    isActive: true,
-    autoAssign: false,
-    createdDate: '2024-01-10',
-    updatedDate: '2024-02-25',
-    leaderId: '8',
-    leaderName: 'David Martinez',
-    tags: ['emergency', 'safety', 'committee']
-  }
-];
-
 // Query key factory
 const userGroupsKeys = {
   all: ['userGroups'] as const,
@@ -248,24 +115,21 @@ export const useListUserGroups = () => {
               
             if (directError) {
               console.error('❌ Error querying user_groups directly:', directError);
-              console.log('⚠️ Falling back to mock data');
-              return mockGroups;
+              throw new Error(`Failed to fetch user groups: ${directError.message}`);
             }
             
             console.log('✅ Successfully fetched user groups directly:', directData?.length);
             return directData?.map(transformUserGroup) || [];
           }
           
-          console.log('⚠️ Falling back to mock data');
-          return mockGroups; 
+          throw new Error(`Failed to fetch user groups: ${error.message}`);
         }
 
         console.log('✅ Successfully fetched user groups:', data?.length);
         return data?.map(transformUserGroup) || [];
       } catch (error) {
         console.error('❌ Error in useListUserGroups:', error);
-        console.log('⚠️ Falling back to mock data');
-        return mockGroups; // Fallback to mock data
+        throw error instanceof Error ? error : new Error('Failed to fetch user groups');
       }
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -286,13 +150,23 @@ export const useGetUserGroup = (id: string) => {
 
         if (error) {
           console.error('Error fetching user group:', error);
-          return mockGroups.find(g => g.id === id) || null;
+          const { data: directData, error: directError } = await supabase
+            .from('user_groups')
+            .select('*')
+            .eq('id', id)
+            .single();
+
+          if (directError) {
+            throw new Error(`Failed to fetch user group: ${directError.message}`);
+          }
+
+          return directData ? transformUserGroup(directData) : null;
         }
 
         return data ? transformUserGroup(data) : null;
       } catch (error) {
         console.error('Error in useGetUserGroup:', error);
-        return mockGroups.find(g => g.id === id) || null;
+        throw error instanceof Error ? error : new Error('Failed to fetch user group');
       }
     },
     enabled: !!id,
@@ -333,21 +207,7 @@ export const useUserGroupsStats = () => {
 
         if (error) {
           console.error('❌ Error fetching group stats:', error);
-          console.log('⚠️ Falling back to calculated mock stats');
-          // Fallback to calculated mock stats
-          return {
-            total: mockGroups.length,
-            active: mockGroups.filter(g => g.isActive).length,
-            totalMembers: mockGroups.reduce((sum, group) => sum + group.memberCount, 0),
-            avgMembersPerGroup: Math.round(mockGroups.reduce((sum, group) => sum + group.memberCount, 0) / mockGroups.length),
-            byType: {
-              block: mockGroups.filter(g => g.type === 'block').length,
-              role: mockGroups.filter(g => g.type === 'role').length,
-              interest: mockGroups.filter(g => g.type === 'interest').length,
-              committee: mockGroups.filter(g => g.type === 'committee').length,
-              custom: mockGroups.filter(g => g.type === 'custom').length,
-            }
-          };
+          throw new Error(`Failed to fetch group statistics: ${error.message}`);
         }
 
         const total = groups?.length || 0;
@@ -369,20 +229,7 @@ export const useUserGroupsStats = () => {
         };
       } catch (error) {
         console.error('Error in useUserGroupsStats:', error);
-        // Return mock stats on error
-        return {
-          total: mockGroups.length,
-          active: mockGroups.filter(g => g.isActive).length,
-          totalMembers: mockGroups.reduce((sum, group) => sum + group.memberCount, 0),
-          avgMembersPerGroup: Math.round(mockGroups.reduce((sum, group) => sum + group.memberCount, 0) / mockGroups.length),
-          byType: {
-            block: mockGroups.filter(g => g.type === 'block').length,
-            role: mockGroups.filter(g => g.type === 'role').length,
-            interest: mockGroups.filter(g => g.type === 'interest').length,
-            committee: mockGroups.filter(g => g.type === 'committee').length,
-            custom: mockGroups.filter(g => g.type === 'custom').length,
-          }
-        };
+        throw error instanceof Error ? error : new Error('Failed to fetch group statistics');
       }
     },
     staleTime: 5 * 60 * 1000, // 5 minutes

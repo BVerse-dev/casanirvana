@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Card, Row, Col, Button, Form, Badge, Modal, Table, Tab, Tabs, Alert, InputGroup, Dropdown, ProgressBar, Spinner } from 'react-bootstrap';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -83,7 +83,7 @@ const assignmentRuleOptions = [
 export default function UserGroupsPage() {
   // Hooks for data fetching
   const { data: groups = [], isLoading: groupsLoading, error: groupsError } = useListUserGroups();
-  const { data: groupStats, isLoading: statsLoading } = useUserGroupsStats();
+  const { data: groupStats, isLoading: statsLoading, error: statsError } = useUserGroupsStats();
   const createGroupMutation = useCreateUserGroup();
   const updateGroupMutation = useUpdateUserGroup();
   const deleteGroupMutation = useDeleteUserGroup();
@@ -128,6 +128,25 @@ export default function UserGroupsPage() {
     const matchesType = typeFilter === 'all' || group.type === typeFilter;
     return matchesSearch && matchesType;
   });
+
+  const statsDisplay = useMemo(() => {
+    if (groupStats) {
+      return groupStats;
+    }
+
+    const totalMembers = groups.reduce((sum, group) => sum + group.memberCount, 0);
+
+    return {
+      total: groups.length,
+      active: groups.filter((group) => group.isActive).length,
+      totalMembers,
+      avgMembersPerGroup: groups.length > 0 ? Math.round(totalMembers / groups.length) : 0,
+      byType: groups.reduce<Record<string, number>>((acc, group) => {
+        acc[group.type] = (acc[group.type] || 0) + 1;
+        return acc;
+      }, {}),
+    };
+  }, [groupStats, groups]);
 
   // Handler functions using mutations
   const handleCreateGroup = async (data: GroupFormData) => {
@@ -388,9 +407,16 @@ export default function UserGroupsPage() {
 
         {/* Error State */}
         {groupsError && (
+          <Alert variant="danger" className="mb-4">
+            <IconifyIcon icon="material-symbols:warning" className="me-2" />
+            Failed to load groups. Refresh to try again.
+          </Alert>
+        )}
+
+        {!groupsError && statsError && (
           <Alert variant="warning" className="mb-4">
             <IconifyIcon icon="material-symbols:warning" className="me-2" />
-            Failed to load groups. Showing cached data. Please refresh to try again.
+            Group statistics are temporarily unavailable. Showing live totals from current groups.
           </Alert>
         )}
 
@@ -400,7 +426,7 @@ export default function UserGroupsPage() {
             <Card className="border-0 bg-primary bg-opacity-10">
               <Card.Body className="text-center">
                 <IconifyIcon icon="material-symbols:groups" className="fs-1 text-primary mb-2" />
-                <h4 className="mb-1">{groupStats?.total || 0}</h4>
+                <h4 className="mb-1">{statsDisplay.total}</h4>
                 <p className="text-muted mb-0">Total Groups</p>
               </Card.Body>
             </Card>
@@ -409,7 +435,7 @@ export default function UserGroupsPage() {
             <Card className="border-0 bg-success bg-opacity-10">
               <Card.Body className="text-center">
                 <IconifyIcon icon="material-symbols:check-circle" className="fs-1 text-success mb-2" />
-                <h4 className="mb-1">{groupStats?.active || 0}</h4>
+                <h4 className="mb-1">{statsDisplay.active}</h4>
                 <p className="text-muted mb-0">Active Groups</p>
               </Card.Body>
             </Card>
@@ -418,7 +444,7 @@ export default function UserGroupsPage() {
             <Card className="border-0 bg-info bg-opacity-10">
               <Card.Body className="text-center">
                 <IconifyIcon icon="material-symbols:person" className="fs-1 text-info mb-2" />
-                <h4 className="mb-1">{groupStats?.totalMembers || 0}</h4>
+                <h4 className="mb-1">{statsDisplay.totalMembers}</h4>
                 <p className="text-muted mb-0">Total Members</p>
               </Card.Body>
             </Card>
@@ -427,7 +453,7 @@ export default function UserGroupsPage() {
             <Card className="border-0 bg-warning bg-opacity-10">
               <Card.Body className="text-center">
                 <IconifyIcon icon="material-symbols:average-pace" className="fs-1 text-warning mb-2" />
-                <h4 className="mb-1">{groupStats?.avgMembersPerGroup || 0}</h4>
+                <h4 className="mb-1">{statsDisplay.avgMembersPerGroup}</h4>
                 <p className="text-muted mb-0">Avg per Group</p>
               </Card.Body>
             </Card>
@@ -706,7 +732,7 @@ export default function UserGroupsPage() {
                           <span>{type.label}</span>
                         </div>
                         <Badge bg="light" text="dark">
-                          {groupStats?.byType?.[type.value] || 0}
+                          {statsDisplay.byType?.[type.value] || 0}
                         </Badge>
                       </div>
                     ))}
@@ -726,7 +752,7 @@ export default function UserGroupsPage() {
                           <small className="fw-semibold">{group.memberCount} members</small>
                         </div>
                         <ProgressBar 
-                          now={groupStats?.totalMembers ? (group.memberCount / groupStats.totalMembers) * 100 : 0} 
+                          now={statsDisplay.totalMembers ? (group.memberCount / statsDisplay.totalMembers) * 100 : 0} 
                           style={{ height: '6px' }}
                         />
                       </div>

@@ -20,238 +20,9 @@ import {
   useCreatePermission,
   useUpdatePermission,
   useDeletePermission,
-  usePermissionStats,
-  usePermissionsByCategory,
   type Permission,
   type PermissionInsert
 } from '@/hooks/useUserPermissions';
-
-// Mock data for fallback (matches the SQL schema data exactly)
-const mockPermissions: Permission[] = [
-  // System Category
-  {
-    id: '11111111-1111-1111-1111-111111111111',
-    name: 'View Dashboard',
-    key: 'dashboard_view',
-    description: 'Access to main dashboard and overview statistics',
-    category: 'System',
-    module: 'Dashboard',
-    type: 'read',
-    is_system_permission: true,
-    status: 'active',
-    created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2024-01-01T00:00:00Z',
-    role_count: 3
-  },
-  {
-    id: '11111111-1111-1111-1111-111111111112',
-    name: 'System Settings',
-    key: 'system_settings',
-    description: 'Modify system configuration and settings',
-    category: 'System',
-    module: 'Settings',
-    type: 'admin',
-    is_system_permission: true,
-    status: 'active',
-    created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2024-01-01T00:00:00Z',
-    role_count: 1
-  },
-  // Administration Category
-  {
-    id: '22222222-2222-2222-2222-222222222221',
-    name: 'Manage Users',
-    key: 'users_manage',
-    description: 'Create, edit, and delete user accounts',
-    category: 'Administration',
-    module: 'User Management',
-    type: 'admin',
-    is_system_permission: false,
-    status: 'active',
-    created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2024-01-01T00:00:00Z',
-    role_count: 2
-  },
-  {
-    id: '22222222-2222-2222-2222-222222222222',
-    name: 'View Users',
-    key: 'users_view',
-    description: 'View user profiles and basic information',
-    category: 'Administration',
-    module: 'User Management',
-    type: 'read',
-    is_system_permission: false,
-    status: 'active',
-    created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2024-01-01T00:00:00Z',
-    role_count: 3
-  },
-  {
-    id: '22222222-2222-2222-2222-222222222223',
-    name: 'View Reports',
-    key: 'reports_view',
-    description: 'Access system reports and analytics',
-    category: 'Administration',
-    module: 'Reports',
-    type: 'read',
-    is_system_permission: false,
-    status: 'active',
-    created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2024-01-01T00:00:00Z',
-    role_count: 3
-  },
-  // Security Category
-  {
-    id: '33333333-3333-3333-3333-333333333331',
-    name: 'Manage Visitors',
-    key: 'visitors_manage',
-    description: 'Approve, reject, and manage visitor requests',
-    category: 'Security',
-    module: 'Visitor Management',
-    type: 'write',
-    is_system_permission: false,
-    status: 'active',
-    created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2024-01-01T00:00:00Z',
-    role_count: 2
-  },
-  {
-    id: '33333333-3333-3333-3333-333333333332',
-    name: 'View Visitor Logs',
-    key: 'visitors_view',
-    description: 'View visitor entry and exit logs',
-    category: 'Security',
-    module: 'Visitor Management',
-    type: 'read',
-    is_system_permission: false,
-    status: 'active',
-    created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2024-01-01T00:00:00Z',
-    role_count: 3
-  },
-  {
-    id: '33333333-3333-3333-3333-333333333333',
-    name: 'Send Emergency Alerts',
-    key: 'emergency_alerts',
-    description: 'Create and broadcast emergency alerts',
-    category: 'Security',
-    module: 'Emergency Management',
-    type: 'execute',
-    is_system_permission: false,
-    status: 'active',
-    created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2024-01-01T00:00:00Z',
-    role_count: 2
-  },
-  // Operations Category
-  {
-    id: '44444444-4444-4444-4444-444444444441',
-    name: 'Create Maintenance Requests',
-    key: 'maintenance_create',
-    description: 'Submit new maintenance and repair requests',
-    category: 'Operations',
-    module: 'Maintenance',
-    type: 'write',
-    is_system_permission: false,
-    status: 'active',
-    created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2024-01-01T00:00:00Z',
-    role_count: 3
-  },
-  {
-    id: '44444444-4444-4444-4444-444444444442',
-    name: 'Manage Maintenance',
-    key: 'maintenance_manage',
-    description: 'Assign, update, and close maintenance requests',
-    category: 'Operations',
-    module: 'Maintenance',
-    type: 'admin',
-    is_system_permission: false,
-    status: 'active',
-    created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2024-01-01T00:00:00Z',
-    role_count: 2
-  },
-  // Community Category
-  {
-    id: '55555555-5555-5555-5555-555555555551',
-    name: 'Book Amenities',
-    key: 'amenities_book',
-    description: 'Book and reserve community amenities',
-    category: 'Community',
-    module: 'Amenity Management',
-    type: 'write',
-    is_system_permission: false,
-    status: 'active',
-    created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2024-01-01T00:00:00Z',
-    role_count: 3
-  },
-  {
-    id: '55555555-5555-5555-5555-555555555552',
-    name: 'Manage Amenities',
-    key: 'amenities_manage',
-    description: 'Configure amenity settings and availability',
-    category: 'Community',
-    module: 'Amenity Management',
-    type: 'admin',
-    is_system_permission: false,
-    status: 'active',
-    created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2024-01-01T00:00:00Z',
-    role_count: 2
-  }
-];
-
-// Mock stats calculated from mock data
-const mockPermissionStats = {
-  total: mockPermissions.length,
-  active: mockPermissions.filter(p => p.status === 'active').length,
-  inactive: mockPermissions.filter(p => p.status === 'inactive').length,
-  system: mockPermissions.filter(p => p.is_system_permission).length,
-  byType: {
-    read: mockPermissions.filter(p => p.type === 'read').length,
-    write: mockPermissions.filter(p => p.type === 'write').length,
-    delete: mockPermissions.filter(p => p.type === 'delete').length,
-    execute: mockPermissions.filter(p => p.type === 'execute').length,
-    admin: mockPermissions.filter(p => p.type === 'admin').length
-  },
-  byCategory: {
-    System: mockPermissions.filter(p => p.category === 'System').length,
-    Administration: mockPermissions.filter(p => p.category === 'Administration').length,
-    Security: mockPermissions.filter(p => p.category === 'Security').length,
-    Operations: mockPermissions.filter(p => p.category === 'Operations').length,
-    Community: mockPermissions.filter(p => p.category === 'Community').length
-  },
-  byModule: mockPermissions.reduce((acc, p) => {
-    acc[p.module] = (acc[p.module] || 0) + 1;
-    return acc;
-  }, {} as { [key: string]: number })
-};
-
-// Mock permissions by category
-const mockPermissionsByCategory = [
-  {
-    category: 'System',
-    permissions: mockPermissions.filter(p => p.category === 'System')
-  },
-  {
-    category: 'Administration', 
-    permissions: mockPermissions.filter(p => p.category === 'Administration')
-  },
-  {
-    category: 'Security',
-    permissions: mockPermissions.filter(p => p.category === 'Security')
-  },
-  {
-    category: 'Operations',
-    permissions: mockPermissions.filter(p => p.category === 'Operations')
-  },
-  {
-    category: 'Community',
-    permissions: mockPermissions.filter(p => p.category === 'Community')
-  }
-];
 
 interface PermissionFormData {
   name: string;
@@ -326,16 +97,41 @@ export default function PermissionsManagementPage() {
 
   // Supabase hooks
   const { data: permissionsResponse, isLoading, error } = useListPermissions(filters);
-  const { data: permissionStats } = usePermissionStats();
-  const { data: permissionsByCategory } = usePermissionsByCategory();
   const createPermissionMutation = useCreatePermission();
   const updatePermissionMutation = useUpdatePermission();
   const deletePermissionMutation = useDeletePermission();
 
-  // Derived data with fallbacks
-  const permissions = permissionsResponse?.data || mockPermissions;
-  const permissionStatsData = permissionStats || mockPermissionStats;
-  const permissionsByCategoryData = permissionsByCategory || mockPermissionsByCategory;
+  const permissions = useMemo(
+    () => permissionsResponse?.data || [],
+    [permissionsResponse?.data]
+  );
+
+  const permissionStatsData = useMemo(() => {
+    const byType = permissionTypes.reduce<Record<string, number>>((acc, type) => {
+      acc[type.value] = permissions.filter((permission) => permission.type === type.value).length;
+      return acc;
+    }, {});
+
+    const byCategory = permissions.reduce<Record<string, number>>((acc, permission) => {
+      acc[permission.category] = (acc[permission.category] || 0) + 1;
+      return acc;
+    }, {});
+
+    const byModule = permissions.reduce<Record<string, number>>((acc, permission) => {
+      acc[permission.module] = (acc[permission.module] || 0) + 1;
+      return acc;
+    }, {});
+
+    return {
+      total: permissions.length,
+      active: permissions.filter((permission) => permission.status === 'active').length,
+      inactive: permissions.filter((permission) => permission.status === 'inactive').length,
+      system: permissions.filter((permission) => permission.isSystemPermission).length,
+      byType,
+      byCategory,
+      byModule,
+    };
+  }, [permissions]);
 
   // Filtered permissions based on current search and filters
   const filteredPermissions = permissions.filter(permission => {
@@ -367,7 +163,6 @@ export default function PermissionsManagementPage() {
     }
   });
 
-  // Use the fallback data
   const statsDisplay = permissionStatsData;
 
   const handleCreatePermission = async (data: PermissionFormData) => {
