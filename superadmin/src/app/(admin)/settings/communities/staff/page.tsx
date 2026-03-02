@@ -19,6 +19,7 @@ import IconifyIcon from '@/components/wrappers/IconifyIcon';
 
 // Hooks
 import { useListStaff, StaffMember } from '@/hooks/useListStaff';
+import { useCommunityProfiles } from '@/hooks/useCommunityProfiles';
 import { useCreateStaff, CreateStaffData } from '@/hooks/useCreateStaff';
 import { useUpdateStaff } from '@/hooks/useUpdateStaff';
 import { useDeleteStaff } from '@/hooks/useDeleteStaff';
@@ -56,18 +57,11 @@ const StaffManagement = () => {
 
   // Hooks for data management
   const { data: staffData = [], isLoading, error } = useListStaff();
+  const { data: communities = [] } = useCommunityProfiles();
   const createStaffMutation = useCreateStaff();
   const updateStaffMutation = useUpdateStaff();
   const deleteStaffMutation = useDeleteStaff();
   const queryClient = useQueryClient();
-
-  // Debug logging
-  console.log('🏢 StaffManagement: Component rendered');
-  console.log('📊 StaffManagement: Data state:', { 
-    staffData: staffData?.length, 
-    isLoading, 
-    error: error?.message 
-  });
 
   // UI state
   const [showModal, setShowModal] = useState(false);
@@ -218,6 +212,26 @@ const StaffManagement = () => {
       avgAttendance: avgAttendance.toFixed(1),
       onLeave: staffData.filter(s => s.status === 'on_leave').length,
     };
+  }, [staffData]);
+
+  const communityOptions = useMemo(() => communities.map((community) => ({
+    value: community.id,
+    label: community.name,
+  })), [communities]);
+
+  const averageTenure = useMemo(() => {
+    if (!staffData.length) return '0 months';
+    const totalMonths = staffData.reduce((sum, member) => {
+      if (!member.joining_date) return sum;
+      const joined = new Date(member.joining_date);
+      const months = (new Date().getFullYear() - joined.getFullYear()) * 12 + (new Date().getMonth() - joined.getMonth());
+      return sum + Math.max(0, months);
+    }, 0);
+    const avgMonths = totalMonths / staffData.length;
+    if (avgMonths >= 12) {
+      return `${(avgMonths / 12).toFixed(1)} years`;
+    }
+    return `${Math.round(avgMonths)} months`;
   }, [staffData]);
 
   // Chart configurations
@@ -546,7 +560,7 @@ const StaffManagement = () => {
                   </Card.Header>
                   <Card.Body>
                     <div className="d-grid gap-2">
-                      <Button variant="primary" size="sm">
+                      <Button variant="primary" size="sm" onClick={() => setShowModal(true)}>
                         <IconifyIcon icon="ri:add-line" className="me-1" />
                         Add New Staff
                       </Button>
@@ -581,7 +595,7 @@ const StaffManagement = () => {
                       </div>
                       <div className="d-flex justify-content-between align-items-center mb-1">
                         <small className="text-muted">Avg Tenure</small>
-                        <small className="fw-bold">2.3 years</small>
+                        <small className="fw-bold">{averageTenure}</small>
                       </div>
                       <div className="d-flex justify-content-between align-items-center">
                         <small className="text-muted">On Leave</small>
@@ -607,8 +621,9 @@ const StaffManagement = () => {
               <Col lg={2}>
                 <Form.Select value={selectedCommunity} onChange={(e) => setSelectedCommunity(e.target.value)}>
                   <option value="all">All Communities</option>
-                  <option value="com-001">Green Valley Apartments</option>
-                  <option value="com-002">Sunset Heights</option>
+                  {communityOptions.map((community) => (
+                    <option key={community.value} value={community.value}>{community.label}</option>
+                  ))}
                 </Form.Select>
               </Col>
               <Col lg={2}>
@@ -1013,8 +1028,9 @@ const StaffManagement = () => {
                   <Form.Label>Community *</Form.Label>
                   <Form.Select {...register('community_id')} isInvalid={!!errors.community_id}>
                     <option value="">Select Community</option>
-                    <option value="com-001">Green Valley Apartments</option>
-                    <option value="com-002">Sunset Heights</option>
+                    {communityOptions.map((community) => (
+                      <option key={community.value} value={community.value}>{community.label}</option>
+                    ))}
                   </Form.Select>
                   <Form.Control.Feedback type="invalid">{errors.community_id?.message}</Form.Control.Feedback>
                 </Form.Group>

@@ -16,6 +16,7 @@ import { useCommunityDocuments, useDocumentCategories, type CommunityDocument, t
 import { useCreateCommunityDocument } from '@/hooks/useCreateCommunityDocument';
 import { useUpdateCommunityDocument } from '@/hooks/useUpdateCommunityDocument';
 import { useDeleteCommunityDocument } from '@/hooks/useDeleteCommunityDocument';
+import { useCommunityProfiles } from '@/hooks/useCommunityProfiles';
 import { supabase } from '@/lib/supabase';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -36,6 +37,7 @@ const documentSchema = yup.object().shape({
 const DocumentsRecords = () => {
   // Hooks for data fetching
   const { data: documents = [], isLoading: documentsLoading, error: documentsError } = useCommunityDocuments();
+  const { data: communities = [] } = useCommunityProfiles();
   const { data: documentCategories = [], isLoading: categoriesLoading } = useDocumentCategories();
   const createDocument = useCreateCommunityDocument();
   const updateDocument = useUpdateCommunityDocument();
@@ -94,10 +96,13 @@ const DocumentsRecords = () => {
   // Filter documents
   const filteredDocuments = useMemo(() => {
     return documents.filter(doc => {
+      const searchableTitle = (doc.title || doc.name || '').toLowerCase();
+      const searchableCategory = (doc.category || '').toLowerCase();
+      const searchableTags = doc.tags || [];
       const matchesSearch = searchTerm === '' || 
-        doc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        doc.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        doc.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+        searchableTitle.includes(searchTerm.toLowerCase()) ||
+        searchableCategory.includes(searchTerm.toLowerCase()) ||
+        searchableTags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
       
       const matchesCommunity = selectedCommunity === 'all' || doc.community_id === selectedCommunity;
       const matchesType = selectedType === 'all' || doc.document_type === selectedType;
@@ -115,6 +120,16 @@ const DocumentsRecords = () => {
   const paginatedDocuments = filteredDocuments.slice(startIndex, endIndex);
   const showingFrom = totalItems > 0 ? startIndex + 1 : 0;
   const showingTo = Math.min(endIndex, totalItems);
+
+  const communityOptions = useMemo(() => communities.map((community) => ({
+    value: community.id,
+    label: community.name,
+  })), [communities]);
+
+  const communityNameById = useMemo(() => Object.fromEntries(communities.map((community) => [community.id, community.name])), [communities]);
+
+  const resolveCommunityName = (document: CommunityDocument) =>
+    document.community_name || (document.community_id ? communityNameById[document.community_id] : undefined) || 'Unknown Community';
 
   // Calculate statistics
   const statistics = useMemo(() => {
@@ -376,8 +391,9 @@ const DocumentsRecords = () => {
               <Col lg={2}>
                 <Form.Select value={selectedCommunity} onChange={(e) => setSelectedCommunity(e.target.value)}>
                   <option value="all">All Communities</option>
-                  <option value="soc-001">Green Valley Apartments</option>
-                  <option value="soc-002">Sunset Heights</option>
+                  {communityOptions.map((community) => (
+                    <option key={community.value} value={community.value}>{community.label}</option>
+                  ))}
                 </Form.Select>
               </Col>
               <Col lg={2}>
@@ -457,7 +473,7 @@ const DocumentsRecords = () => {
                                 </div>
                               </div>
                             </td>
-                            <td>{document.community_name || 'Unknown Community'}</td>
+                            <td>{resolveCommunityName(document)}</td>
                             <td>
                               <Badge bg={getTypeBadge(document.document_type || document.type || 'other')}>
                                 {(document.document_type || document.type || 'other').replace('_', ' ').toUpperCase()}
@@ -551,7 +567,7 @@ const DocumentsRecords = () => {
                         </div>
                         
                         <div className="mb-3">
-                          <small className="text-muted d-block">{document.community_name}</small>
+                          <small className="text-muted d-block">{resolveCommunityName(document)}</small>
                           <small className="text-muted d-block">{formatFileSize(document.file_size)}</small>
                           <small className="text-muted d-block">
                             Uploaded: {new Date(document.upload_date).toLocaleDateString()}
@@ -776,8 +792,9 @@ const DocumentsRecords = () => {
                   <Form.Label>Community *</Form.Label>
                   <Form.Select {...register('community_id')} isInvalid={!!errors.community_id}>
                     <option value="">Select Community</option>
-                    <option value="soc-001">Green Valley Apartments</option>
-                    <option value="soc-002">Sunset Heights</option>
+                    {communityOptions.map((community) => (
+                      <option key={community.value} value={community.value}>{community.label}</option>
+                    ))}
                   </Form.Select>
                   <Form.Control.Feedback type="invalid">{errors.community_id?.message}</Form.Control.Feedback>
                 </Form.Group>

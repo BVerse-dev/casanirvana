@@ -200,7 +200,7 @@ const AmenitiesManagementPage = () => {
       name: 'Total Bookings',
       data: amenities.map((amenity: any) => amenity.total_bookings || 0),
     }, {
-      name: 'Monthly Revenue (₹K)',
+      name: 'Monthly Revenue (GH₵K)',
       data: amenities.map((amenity: any) => (amenity.monthly_revenue || 0) / 1000), // Scale down for chart
     }],
     options: {
@@ -477,12 +477,12 @@ const AmenitiesManagementPage = () => {
                   <div className="d-flex align-items-center">
                     <div className="flex-shrink-0">
                       <div className="bg-warning bg-opacity-10 rounded-circle p-3">
-                        <IconifyIcon icon="ri:money-rupee-circle-line" className="text-warning" style={{ fontSize: '28px' }} />
+                        <IconifyIcon icon="ri:money-dollar-circle-line" className="text-warning" style={{ fontSize: '28px' }} />
                       </div>
                     </div>
                     <div className="flex-grow-1 ms-3">
                       <h6 className="mb-1 text-muted fw-medium">Monthly Revenue</h6>
-                      <h3 className="mb-0 fw-bold">₹{displayStats.totalRevenue.toLocaleString()}</h3>
+                      <h3 className="mb-0 fw-bold">GH₵ {displayStats.totalRevenue.toLocaleString()}</h3>
                       <small className="text-warning">
                         <IconifyIcon icon="ri:coins-line" className="me-1" />
                         From paid amenities
@@ -563,7 +563,7 @@ const AmenitiesManagementPage = () => {
                                 <span className="fw-medium">{totalBookings}</span>
                               </td>
                               <td className="border-0 text-center">
-                                <span className="fw-medium">₹{totalRevenue.toLocaleString()}</span>
+                                <span className="fw-medium">GH₵ {totalRevenue.toLocaleString()}</span>
                               </td>
                               <td className="border-0 text-center">
                                 <div className="d-flex align-items-center justify-content-center">
@@ -694,7 +694,7 @@ const AmenitiesManagementPage = () => {
             
             {!isLoading && !error && amenities.length === 0 && (
               <Alert variant="info">
-                <strong>No amenities found.</strong> Click "Add Amenity" to create your first amenity.
+                <strong>No amenities found.</strong> Click &quot;Add Amenity&quot; to create your first amenity.
               </Alert>
             )}
             <div className="d-flex justify-content-between align-items-center mb-4">
@@ -824,7 +824,7 @@ const AmenitiesManagementPage = () => {
                         <small className="text-muted">⭐ {amenity.average_rating}/5</small>
                           </div>
                         </td>
-                                                  <td>₹{amenity.monthly_revenue.toLocaleString()}</td>
+                                                  <td>GH₵ {amenity.monthly_revenue.toLocaleString()}</td>
                         <td>
                           <div className="d-flex gap-1">
                             <Button
@@ -901,7 +901,7 @@ const AmenitiesManagementPage = () => {
                           </div>
                           <div className="d-flex justify-content-between mb-1">
                             <span className="text-muted small">Revenue:</span>
-                                                          <small>₹{amenity.monthly_revenue.toLocaleString()}</small>
+                                                          <small>GH₵ {amenity.monthly_revenue.toLocaleString()}</small>
                           </div>
                           <div className="d-flex justify-content-between">
                             <span className="text-muted small">Rating:</span>
@@ -1064,7 +1064,7 @@ const AmenitiesManagementPage = () => {
                           categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
                         },
                         yaxis: {
-                          title: { text: 'Revenue (₹K)' }
+                          title: { text: 'Revenue (GH₵K)' }
                         },
                         dataLabels: { enabled: false },
                         legend: { position: 'top' },

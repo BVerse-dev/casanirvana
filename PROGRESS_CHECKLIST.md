@@ -542,6 +542,12 @@ Date: 2026-02-06
   - The units workspace now shows maintenance and related financial values in `GHS` / `GH₵`, removing stale rupee/dollar formatting drift without changing the existing cards, tables, or grid UI.
   - Create and edit actions now reset and close cleanly through one shared modal flow, preventing stale form state from leaking between operations.
   - Unit transformation now respects real unit schema fields (`deposit_amount`, `description`, `balconies`) and preserves live unit statuses instead of collapsing everything non-occupied into `vacant`.
+- [x] Phase 33 remaining community-settings pages completed:
+  - `/settings/communities` now uses live community, unit, amenity, service, staff, and document hooks for overview metrics, activity, analytics, and management shortcuts instead of stale mock dashboard content, while preserving the current tabs, cards, and chart layout.
+  - `/settings/communities/staff` now uses live community filter options and staff-derived tenure metrics, removes debug logging, and keeps the current staffing workspace intact while replacing hardcoded community options.
+  - `/settings/communities/amenities` now keeps the current amenities UI but removes the last stale rupee formatting drift in revenue cards, lists, and charts, aligning visible financial labels to `GHS` / `GH₵`.
+  - `/settings/communities/documents` now resolves community names from live community profiles for filters, tables, and forms, and the search path is null-safe for optional title/category/tag fields while preserving the current document workspace layout.
+  - `/settings/communities/profiles` now uses Ghana-aligned postal and region defaults, replaces stale dollar labels with `GHS` / `GH₵`, and removes India-specific state and copy drift while keeping the existing profile cards and create/edit modal structure.
 - [x] Phase 33 agency-settings core flows completed:
   - `/settings/agencies` now uses honest live-derived summary metrics and activity content from real agency records instead of stale hardcoded finance placeholders, while preserving the current dashboard cards and charts layout.
   - `/settings/agencies/configuration` now initializes from Ghana-aligned defaults when no saved config exists, and nested configuration forms now persist correctly through the flattened DB transform instead of silently dropping nested values.

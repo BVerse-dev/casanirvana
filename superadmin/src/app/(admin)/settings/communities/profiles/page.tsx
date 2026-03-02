@@ -38,7 +38,7 @@ const communitySchema = yup.object({
   address: yup.string().required('Address is required'),
   city: yup.string().required('City is required'),
   state: yup.string().required('State is required'),
-  pincode: yup.string().required('Pincode is required').matches(/^[0-9]{6}$/, 'Invalid pincode'),
+  pincode: yup.string().required('Postal code is required').max(16, 'Postal code is too long'),
   phone: yup.string().optional(),
   email: yup.string().email('Invalid email address').optional(),
   website: yup.string().url('Invalid website URL').optional(),
@@ -150,14 +150,16 @@ const CommunityProfilesPage = () => {
   ];
 
   const stateOptions = [
-    { value: 'haryana', label: 'Haryana' },
-    { value: 'delhi', label: 'Delhi' },
-    { value: 'uttar_pradesh', label: 'Uttar Pradesh' },
-    { value: 'maharashtra', label: 'Maharashtra' },
-    { value: 'karnataka', label: 'Karnataka' },
-    { value: 'tamil_nadu', label: 'Tamil Nadu' },
-    { value: 'gujarat', label: 'Gujarat' },
-    { value: 'rajasthan', label: 'Rajasthan' },
+    { value: 'greater_accra', label: 'Greater Accra' },
+    { value: 'ashanti', label: 'Ashanti' },
+    { value: 'western', label: 'Western' },
+    { value: 'eastern', label: 'Eastern' },
+    { value: 'central', label: 'Central' },
+    { value: 'volta', label: 'Volta' },
+    { value: 'northern', label: 'Northern' },
+    { value: 'western_north', label: 'Western North' },
+    { value: 'upper_east', label: 'Upper East' },
+    { value: 'upper_west', label: 'Upper West' },
   ];
 
   const handleCreateCommunity = async (data: CommunityFormData) => {
@@ -420,7 +422,7 @@ const CommunityProfilesPage = () => {
                             <td>
                               <div>
                                 <div>{community.city}, {community.state}</div>
-                                <small className="text-muted">{community.pincode}</small>
+                                <small className="text-muted">{community.pincode || 'N/A'}</small>
                               </div>
                             </td>
                             <td>
@@ -501,7 +503,7 @@ const CommunityProfilesPage = () => {
                             </div>
                             <div className="mb-3">
                               <small className="text-muted">Maintenance</small>
-                              <div>${community.maintenanceCharge.toLocaleString()}/month</div>
+                              <div>GH₵ {community.maintenanceCharge.toLocaleString()}/month</div>
                             </div>
                           </Card.Body>
                         </Card>
@@ -553,7 +555,7 @@ const CommunityProfilesPage = () => {
                             <p className="text-muted mb-0">Total Communities</p>
                             <small className="text-success">
                               <IconifyIcon icon="ri:arrow-up-line" className="me-1" />
-                              12% from last month
+                              Live platform total
                             </small>
                           </div>
                         </div>
@@ -608,10 +610,10 @@ const CommunityProfilesPage = () => {
                             <IconifyIcon icon="ri:money-dollar-circle-line" className="fs-24 text-warning" />
                           </div>
                           <div className="flex-grow-1">
-                            <h3 className="mb-0">${((stats?.totalMaintenanceRevenue || 0) / 1000000).toFixed(1)}M</h3>
+                            <h3 className="mb-0">{new Intl.NumberFormat('en-GH', { style: 'currency', currency: 'GHS', maximumFractionDigits: 0 }).format(stats?.totalMaintenanceRevenue || 0)}</h3>
                             <p className="text-muted mb-0">Monthly Revenue</p>
                             <small className="text-warning">
-                              ${stats?.maintenancePerUnit || 0} per unit
+                              GH₵ {stats?.maintenancePerUnit || 0} per unit
                             </small>
                           </div>
                         </div>
@@ -1103,8 +1105,8 @@ const CommunityProfilesPage = () => {
                   render={({ field }) => (
                     <TextFormInput
                       {...field}
-                      label="Pincode"
-                      placeholder="Enter pincode"
+                      label="Postal Code"
+                      placeholder="Enter postal code"
                       error={errors.pincode?.message}
                     />
                   )}
@@ -1275,7 +1277,7 @@ const CommunityProfilesPage = () => {
                   render={({ field }) => (
                     <TextFormInput
                       {...field}
-                      label="Maintenance Charge ($)"
+                      label="Maintenance Charge (GH₵)"
                       type="number"
                       placeholder="Enter monthly charge"
                       error={errors.maintenanceCharge?.message}
@@ -1305,7 +1307,7 @@ const CommunityProfilesPage = () => {
                   render={({ field }) => (
                     <TextFormInput
                       {...field}
-                      label="Security Deposit ($)"
+                      label="Security Deposit (GH₵)"
                       type="number"
                       placeholder="Enter security deposit"
                       error={errors.securityDeposit?.message}
@@ -1458,7 +1460,7 @@ const CommunityProfilesPage = () => {
                   render={({ field }) => (
                     <TextFormInput
                       {...field}
-                      label="Maintenance Charge ($)"
+                      label="Maintenance Charge (GH₵)"
                       type="number"
                       placeholder="Enter monthly charge"
                       error={errors.maintenanceCharge?.message}
@@ -1488,7 +1490,7 @@ const CommunityProfilesPage = () => {
                   render={({ field }) => (
                     <TextFormInput
                       {...field}
-                      label="Security Deposit ($)"
+                      label="Security Deposit (GH₵)"
                       type="number"
                       placeholder="Enter security deposit"
                       error={errors.securityDeposit?.message}

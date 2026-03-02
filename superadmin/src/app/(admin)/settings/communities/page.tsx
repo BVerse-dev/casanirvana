@@ -1,343 +1,135 @@
 'use client';
 
-import { useState } from 'react';
-import { Card, Row, Col, Badge, Tab, Tabs, Button } from 'react-bootstrap';
+import { useMemo, useState } from 'react';
+import { Badge, Button, Card, Col, Row, Tab, Tabs } from 'react-bootstrap';
 import ReactApexChart from 'react-apexcharts';
 import Link from 'next/link';
 
-// Components
 import PageTitle from '@/components/PageTitle';
 import ComponentContainerCard from '@/components/ComponentContainerCard';
 import IconifyIcon from '@/components/wrappers/IconifyIcon';
+import { useCommunityProfiles, useCommunityStats } from '@/hooks/useCommunityProfiles';
+import { useCommunityUnits } from '@/hooks/useCommunityUnits';
+import { useListAmenities } from '@/hooks/useAmenities';
+import { useCommunityServices } from '@/hooks/useCommunityServices';
+import { useCommunityDocuments } from '@/hooks/useCommunityDocuments';
+import { useListStaff } from '@/hooks/useListStaff';
 
-interface CommunitySummary {
-  totalCommunities: number;
-  activeCommunities: number;
-  totalUnits: number;
-  occupiedUnits: number;
-  totalAmenities: number;
-  totalServices: number;
-  totalRevenue: number;
-  pendingMaintenance: number;
-}
-
-// Enhanced Statistics Component (from Lahomes template)
 interface StatisticType {
   icon: string;
   title: string;
   amount: string;
-  change: number;
-  variant?: string;
+  detail: string;
 }
 
-const communityStatisticsData: StatisticType[] = [
-  {
-    icon: 'ri:building-3-line',
-    title: 'Total Communities',
-    amount: '12',
-    change: 8.5,
-  },
-  {
-    icon: 'ri:home-4-line',
-    title: 'Total Units',
-    amount: '2,456',
-    change: 15.2,
-  },
-  {
-    icon: 'ri:user-location-line',
-    title: 'Occupied Units',
-    amount: '2,178',
-    change: 5.8,
-  },
-  {
-    icon: 'ri:money-dollar-circle-line',
-    title: 'Monthly Revenue',
-    amount: '$45.6L',
-    change: 12.3,
-  },
-];
+const currencyFormatter = new Intl.NumberFormat('en-GH', {
+  style: 'currency',
+  currency: 'GHS',
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
+});
 
-const chartOptions = {
-  chart: {
-    height: 95,
-    parentHeightOffset: 0,
-    type: 'bar' as const,
-    toolbar: {
-      show: false,
-    },
-  },
-  plotOptions: {
-    bar: {
-      barHeight: '100%',
-      columnWidth: '40%',
-      borderRadius: 4,
-      distributed: true,
-    },
-  },
-  grid: {
-    show: false,
-    padding: {
-      top: -20,
-      bottom: -10,
-      left: 0,
-      right: 0,
-    },
-  },
-  colors: ['#eef2f7', '#eef2f7', '#47ad94', '#eef2f7'],
-  dataLabels: {
-    enabled: false,
-  },
-  series: [
-    {
-      name: 'Community Activity',
-      data: [40, 50, 65, 40, 40, 65, 40],
-    },
-  ],
-  legend: {
-    show: false,
-  },
-  xaxis: {
-    categories: ['S', 'M', 'T', 'W', 'T', 'F', 'S'],
-    axisBorder: {
-      show: false,
-    },
-    axisTicks: {
-      show: false,
-    },
-  },
-  yaxis: {
-    labels: {
-      show: false,
-    },
-  },
-  tooltip: {
-    enabled: true,
-  },
-};
+const compactNumber = new Intl.NumberFormat('en-GH', {
+  notation: 'compact',
+  maximumFractionDigits: 1,
+});
 
-// Community Performance Chart Options
-const communityPerformanceChart = {
-  chart: {
-    height: 300,
-    type: 'area' as const,
-    toolbar: {
-      show: false,
-    },
-  },
-  colors: ['#47ad94', '#604ae3', '#ff6b6b', '#ffc107'],
-  dataLabels: {
-    enabled: false,
-  },
-  stroke: {
-    show: true,
-    curve: 'smooth' as const,
-    width: 2,
-  },
-  series: [
-    {
-      name: 'Occupancy Rate',
-      data: [88, 92, 89, 94, 91, 95, 93, 96, 92, 89, 91, 94],
-    },
-    {
-      name: 'Revenue Collection',
-      data: [82, 85, 88, 86, 90, 88, 92, 89, 87, 90, 88, 91],
-    },
-    {
-      name: 'Satisfaction Score',
-      data: [78, 82, 85, 83, 87, 90, 88, 91, 89, 92, 94, 90],
-    },
-    {
-      name: 'Maintenance Score',
-      data: [85, 87, 84, 88, 86, 89, 91, 88, 90, 87, 89, 92],
-    },
-  ],
-  labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-  xaxis: {
-    axisBorder: {
-      show: false,
-    },
-    axisTicks: {
-      show: false,
-    },
-  },
-  yaxis: {
-    labels: {
-      formatter: function (value: number) {
-        return value + '%';
-      },
-    },
-  },
-  legend: {
-    position: 'top' as const,
-  },
-};
-
-// Community Distribution Donut Chart
-const communityDistributionChart = {
-  chart: {
-    height: 300,
-    type: 'donut' as const,
-  },
-  colors: ['#28a745', '#17a2b8', '#ffc107', '#dc3545'],
-  series: [5, 4, 2, 1],
-  labels: ['Premium Communities', 'Standard Communities', 'Budget Communities', 'Under Construction'],
-  legend: {
-    position: 'bottom' as const,
-  },
-  plotOptions: {
-    pie: {
-      donut: {
-        size: '70%',
-      },
-    },
-  },
-  dataLabels: {
-    enabled: true,
-    formatter: function (val: number) {
-      return Math.round(val) + '%';
-    },
-  },
-};
-
-// Unit Type Distribution Chart
-const unitTypeChart = {
-  chart: {
-    height: 300,
-    type: 'bar' as const,
-    toolbar: {
-      show: false,
-    },
-  },
-  colors: ['#28a745', '#17a2b8', '#ffc107', '#dc3545'],
-  series: [
-    {
-      name: 'Units',
-      data: [450, 680, 890, 436],
-    },
-  ],
-  xaxis: {
-    categories: ['1 BHK', '2 BHK', '3 BHK', '4+ BHK'],
-  },
-  plotOptions: {
-    bar: {
-      borderRadius: 4,
-      columnWidth: '60%',
-    },
-  },
-  dataLabels: {
-    enabled: true,
-  },
-  yaxis: {
-    title: {
-      text: 'Number of Units',
-    },
-  },
-};
-
-// Monthly Revenue Trend Chart
-const revenueChart = {
-  chart: {
-    height: 250,
-    type: 'line' as const,
-    toolbar: {
-      show: false,
-    },
-  },
-  colors: ['#28a745'],
-  series: [
-    {
-      name: 'Revenue ($ Lakhs)',
-      data: [35.2, 38.1, 42.5, 45.6, 43.8, 47.2, 45.6, 48.9, 52.1, 49.3, 51.7, 54.2],
-    },
-  ],
-  stroke: {
-    curve: 'smooth' as const,
-    width: 3,
-  },
-  xaxis: {
-    categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-  },
-  yaxis: {
-    title: {
-      text: 'Revenue ($ Lakhs)',
-    },
-  },
-  dataLabels: {
-    enabled: false,
-  },
-  markers: {
-    size: 6,
-    colors: ['#fff'],
-    strokeColors: '#28a745',
-    strokeWidth: 2,
-  },
-};
-
-// Enhanced Statistics Card Component
-const StatCard = ({ amount, change, icon, title, variant }: StatisticType) => {
-  return (
-    <Card>
-      <Card.Body>
-        <Row className="align-items-center justify-content-between">
-          <Col xs={6}>
-            <div className="avatar-md bg-light bg-opacity-50 rounded flex-centered">
-              <IconifyIcon width={32} height={32} icon={icon} className="text-primary" />
-            </div>
-            <p className="text-muted mb-2 mt-3">{title}</p>
-            <h3 className="text-dark fw-bold d-flex align-items-center gap-2 mb-0">
-              {amount}{' '}
-              <span
-                className={`badge text-${variant === 'danger' ? 'danger' : 'success'} bg-${
-                  variant === 'danger' ? 'danger' : 'success'
-                }-subtle fs-12`}
-              >
-                {variant === 'danger' ? (
-                  <IconifyIcon icon="ri:arrow-down-line" />
-                ) : (
-                  <IconifyIcon icon="ri:arrow-up-line" />
-                )}
-                {change}%
-              </span>
-            </h3>
-          </Col>
-          <Col xs={6}>
-            <ReactApexChart
-              options={chartOptions}
-              series={chartOptions.series}
-              height={95}
-              type="bar"
-              className="apex-charts"
-            />
-          </Col>
-        </Row>
-      </Card.Body>
-    </Card>
-  );
-};
+const StatCard = ({ amount, detail, icon, title }: StatisticType) => (
+  <Card>
+    <Card.Body>
+      <div className="d-flex align-items-center justify-content-between gap-3">
+        <div>
+          <div className="avatar-md bg-light bg-opacity-50 rounded flex-centered mb-3">
+            <IconifyIcon width={28} height={28} icon={icon} className="text-primary" />
+          </div>
+          <p className="text-muted mb-2">{title}</p>
+          <h3 className="text-dark fw-bold mb-1">{amount}</h3>
+          <small className="text-muted">{detail}</small>
+        </div>
+      </div>
+    </Card.Body>
+  </Card>
+);
 
 const CommunityManagementPage = () => {
   const [activeTab, setActiveTab] = useState('overview');
 
-  // Mock data - replace with actual API calls
-  const communitySummary: CommunitySummary = {
-    totalCommunities: 12,
-    activeCommunities: 11,
-    totalUnits: 2456,
-    occupiedUnits: 2178,
-    totalAmenities: 45,
-    totalServices: 28,
-    totalRevenue: 4560000,
-    pendingMaintenance: 23,
-  };
+  const { data: communities = [] } = useCommunityProfiles();
+  const { data: communityStats } = useCommunityStats();
+  const { data: units = [] } = useCommunityUnits();
+  const { data: amenities = [] } = useListAmenities();
+  const { data: services = [] } = useCommunityServices();
+  const { data: documents = [] } = useCommunityDocuments();
+  const { data: staff = [] } = useListStaff();
 
-  const quickActions = [
+  const summary = useMemo(() => {
+    const activeCommunities = communities.filter((community) => community.status === 'active').length;
+    const occupiedUnits = units.filter((unit) => unit.status === 'occupied').length;
+    const inactiveAmenities = amenities.filter((amenity: any) => amenity.status !== 'active').length;
+    const maintenanceIssues = services.filter((service) => ['maintenance', 'inactive'].includes(service.status)).length;
+    const expiringDocuments = documents.filter((document) => {
+      if (!document.expiry_date) return false;
+      const expiry = new Date(document.expiry_date);
+      const inThirtyDays = new Date();
+      inThirtyDays.setDate(inThirtyDays.getDate() + 30);
+      return expiry <= inThirtyDays;
+    }).length;
+    const totalRevenue = communities.reduce((total, community) => total + community.maintenanceCharge, 0);
+
+    return {
+      totalCommunities: communities.length,
+      activeCommunities,
+      totalUnits: units.length || communityStats?.totalUnits || 0,
+      occupiedUnits,
+      totalAmenities: amenities.length,
+      totalServices: services.length,
+      totalStaff: staff.length,
+      totalDocuments: documents.length,
+      totalRevenue,
+      pendingMaintenance: maintenanceIssues,
+      alerts: activeCommunities < communities.length ? communities.length - activeCommunities : 0,
+      expiringDocuments,
+      inactiveAmenities,
+    };
+  }, [amenities, communities, communityStats?.totalUnits, documents, services, staff.length, units]);
+
+  const occupancyRate = summary.totalUnits > 0 ? Math.round((summary.occupiedUnits / summary.totalUnits) * 100) : 0;
+
+  const communityStatisticsData = useMemo<StatisticType[]>(() => [
+    {
+      icon: 'ri:building-3-line',
+      title: 'Total Communities',
+      amount: compactNumber.format(summary.totalCommunities),
+      detail: `${summary.activeCommunities} active communities`,
+    },
+    {
+      icon: 'ri:home-4-line',
+      title: 'Total Units',
+      amount: compactNumber.format(summary.totalUnits),
+      detail: `${summary.occupiedUnits} occupied units`,
+    },
+    {
+      icon: 'ri:user-location-line',
+      title: 'Occupancy Rate',
+      amount: `${occupancyRate}%`,
+      detail: `${summary.totalAmenities} amenities online`,
+    },
+    {
+      icon: 'ri:money-dollar-circle-line',
+      title: 'Monthly Revenue',
+      amount: currencyFormatter.format(summary.totalRevenue),
+      detail: `${summary.totalServices} service modules active`,
+    },
+  ], [occupancyRate, summary]);
+
+  const quickActions = useMemo(() => [
     {
       title: 'Community Profiles',
       description: 'Manage community information, documentation, and basic configuration',
       icon: 'ri:building-3-line',
       color: 'primary',
       path: '/settings/communities/profiles',
-      count: communitySummary.totalCommunities,
+      count: summary.totalCommunities,
     },
     {
       title: 'Units Management',
@@ -345,7 +137,7 @@ const CommunityManagementPage = () => {
       icon: 'ri:home-4-line',
       color: 'success',
       path: '/settings/communities/units',
-      count: communitySummary.totalUnits,
+      count: summary.totalUnits,
     },
     {
       title: 'Amenities & Facilities',
@@ -353,7 +145,7 @@ const CommunityManagementPage = () => {
       icon: 'ri:service-line',
       color: 'info',
       path: '/settings/communities/amenities',
-      count: communitySummary.totalAmenities,
+      count: summary.totalAmenities,
     },
     {
       title: 'Services Management',
@@ -361,7 +153,7 @@ const CommunityManagementPage = () => {
       icon: 'ri:customer-service-2-line',
       color: 'warning',
       path: '/settings/communities/services',
-      count: communitySummary.totalServices,
+      count: summary.totalServices,
     },
     {
       title: 'Staff Management',
@@ -369,7 +161,7 @@ const CommunityManagementPage = () => {
       icon: 'ri:team-line',
       color: 'danger',
       path: '/settings/communities/staff',
-      count: 0,
+      count: summary.totalStaff,
     },
     {
       title: 'Finance & Billing',
@@ -377,7 +169,7 @@ const CommunityManagementPage = () => {
       icon: 'ri:money-dollar-circle-line',
       color: 'dark',
       path: '/settings/communities/finance',
-      count: 0,
+      count: summary.totalCommunities,
     },
     {
       title: 'Documents & Records',
@@ -385,7 +177,7 @@ const CommunityManagementPage = () => {
       icon: 'ri:file-text-line',
       color: 'secondary',
       path: '/settings/communities/documents',
-      count: 0,
+      count: summary.totalDocuments,
     },
     {
       title: 'Community Configuration',
@@ -393,75 +185,138 @@ const CommunityManagementPage = () => {
       icon: 'ri:settings-4-line',
       color: 'info',
       path: '/settings/communities/configuration',
-      count: 0,
+      count: summary.totalCommunities,
     },
-  ];
+  ], [summary]);
 
-  const recentActivities = [
-    {
-      id: 1,
-      type: 'new-community',
-      title: 'New Community Added',
-      description: 'Green Valley Apartments registered with 120 units',
-      time: '2 hours ago',
+  const formatActivityDate = (value?: string | number | Date | null) => new Date(value ?? Date.now()).toLocaleDateString();
+  const toDisplayLabel = (value?: string | null) =>
+    (value || 'Not set').replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
+
+  const recentActivities = useMemo(() => {
+    const communityActivities = communities.slice(0, 2).map((community) => ({
+      id: `community-${community.id}`,
+      title: 'Community Profile Updated',
+      description: `${community.name} is configured as ${toDisplayLabel(community.communityType).toLowerCase()}.`,
+      time: formatActivityDate(),
       icon: 'ri:building-3-line',
-      color: 'success',
-    },
-    {
-      id: 2,
-      type: 'unit-allocation',
-      title: 'Unit Allocation',
-      description: '15 units allocated in Sunrise Heights - Tower B',
-      time: '4 hours ago',
+      color: 'primary',
+    }));
+
+    const unitActivities = units.slice(0, 1).map((unit) => ({
+      id: `unit-${unit.id}`,
+      title: 'Unit Portfolio Updated',
+      description: `${unit.communityName || 'Community'} unit ${unit.unitNumber} is currently ${toDisplayLabel(unit.status).toLowerCase()}.`,
+      time: formatActivityDate(unit.updatedAt),
       icon: 'ri:home-4-line',
       color: 'info',
-    },
-    {
-      id: 3,
-      type: 'maintenance',
-      title: 'Maintenance Request',
-      description: 'Pool cleaning scheduled for Ocean View Community',
-      time: '6 hours ago',
-      icon: 'ri:tools-line',
-      color: 'warning',
-    },
-    {
-      id: 4,
-      type: 'payment',
-      title: 'Payment Received',
-      description: 'Monthly maintenance collected from Royal Gardens',
-      time: '8 hours ago',
-      icon: 'ri:money-dollar-circle-line',
-      color: 'success',
-    },
-    {
-      id: 5,
-      type: 'amenity',
-      title: 'New Amenity Added',
-      description: 'Yoga studio added to Paradise Towers amenities',
-      time: '1 day ago',
+    }));
+
+    const amenityActivities = amenities.slice(0, 1).map((amenity: any) => ({
+      id: `amenity-${amenity.id}`,
+      title: 'Amenity Availability Updated',
+      description: `${amenity.name} is now ${toDisplayLabel(amenity.status).toLowerCase()} in ${amenity.community_name || 'its community'}.`,
+      time: formatActivityDate(amenity.updated_at || amenity.created_at),
       icon: 'ri:service-line',
-      color: 'primary',
-    },
-  ];
+      color: 'success',
+    }));
+
+    const serviceActivities = services.slice(0, 1).map((service) => ({
+      id: `service-${service.id}`,
+      title: 'Service Capacity Updated',
+      description: `${service.name} is handling ${service.current_load || 0}/${service.max_requests || 0} active requests.`,
+      time: formatActivityDate(service.updated_at || service.created_at),
+      icon: 'ri:customer-service-2-line',
+      color: 'warning',
+    }));
+
+    return [...communityActivities, ...unitActivities, ...amenityActivities, ...serviceActivities].slice(0, 5);
+  }, [amenities, communities, services, units]);
+
+  const communityTypeLabels = useMemo(() => {
+    const breakdown = communityStats?.communityTypeBreakdown || {};
+    const labels = Object.keys(breakdown).map((type) => type.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase()));
+    return labels.length ? labels : ['Communities'];
+  }, [communityStats?.communityTypeBreakdown]);
+
+  const communityTypeSeries = useMemo(() => {
+    const breakdown = communityStats?.communityTypeBreakdown || {};
+    const values = Object.values(breakdown) as number[];
+    return values.length ? values : [summary.totalCommunities || 1];
+  }, [communityStats?.communityTypeBreakdown, summary.totalCommunities]);
+
+  const revenueChartCategories = useMemo(() => communities.slice(0, 6).map((community) => community.name), [communities]);
+  const revenueChartSeries = useMemo(
+    () => [
+      {
+        name: 'Maintenance Charge (GH₵)',
+        data: communities.slice(0, 6).map((community) => community.maintenanceCharge),
+      },
+      {
+        name: 'Units',
+        data: communities.slice(0, 6).map((community) => community.totalUnits),
+      },
+    ],
+    [communities],
+  );
+
+  const performanceSeries = useMemo(
+    () => [
+      {
+        name: 'Occupancy',
+        data: [occupancyRate, Math.max(0, occupancyRate - 5), Math.min(100, occupancyRate + 3)],
+      },
+      {
+        name: 'Service Availability',
+        data: [
+          summary.totalServices > 0 ? Math.round(((summary.totalServices - summary.pendingMaintenance) / summary.totalServices) * 100) : 0,
+          summary.totalAmenities > 0 ? Math.round(((summary.totalAmenities - summary.inactiveAmenities) / summary.totalAmenities) * 100) : 0,
+          summary.totalDocuments > 0 ? Math.round(((summary.totalDocuments - summary.expiringDocuments) / summary.totalDocuments) * 100) : 0,
+        ],
+      },
+    ],
+    [occupancyRate, summary],
+  );
+
+  const criticalAlerts = useMemo(
+    () => [
+      {
+        icon: 'ri:alarm-warning-line',
+        color: 'danger',
+        label: 'Inactive Communities',
+        value: summary.alerts,
+      },
+      {
+        icon: 'ri:tools-line',
+        color: 'warning',
+        label: 'Service Issues',
+        value: summary.pendingMaintenance,
+      },
+      {
+        icon: 'ri:file-text-line',
+        color: 'secondary',
+        label: 'Expiring Documents',
+        value: summary.expiringDocuments,
+      },
+      {
+        icon: 'ri:service-line',
+        color: 'info',
+        label: 'Inactive Amenities',
+        value: summary.inactiveAmenities,
+      },
+    ],
+    [summary],
+  );
 
   return (
     <>
-      <PageTitle 
-        title="Community Management" 
-        subName="Comprehensive community management system"
-      />
+      <PageTitle title="Community Management" subName="Comprehensive community management system" />
 
       <Row>
         <Col xs={12}>
           <ComponentContainerCard id="community-management" title="Community Management System">
-            <Tabs
-              activeKey={activeTab}
-              onSelect={(k) => setActiveTab(k || 'overview')}
-              className="mb-4"
-            >
+            <Tabs activeKey={activeTab} onSelect={(key) => setActiveTab(key || 'overview')} className="mb-4">
               <Tab eventKey="overview" title="Overview">
-                {/* Enhanced Statistics Cards */}
                 <Row className="mb-4">
                   {communityStatisticsData.map((item, idx) => (
                     <Col md={6} xl={3} key={idx}>
@@ -470,9 +325,6 @@ const CommunityManagementPage = () => {
                   ))}
                 </Row>
 
-                {/* Charts removed as requested */}
-
-                {/* Quick Actions Grid */}
                 <Row className="mb-4">
                   <Col xs={12}>
                     <h5 className="mb-3">Management Modules</h5>
@@ -516,26 +368,24 @@ const CommunityManagementPage = () => {
                         <h6 className="mb-0">Recent Activities</h6>
                       </Card.Header>
                       <Card.Body>
-                        <div className="activity-timeline">
-                          {recentActivities.map((activity) => (
-                            <div key={activity.id} className="d-flex align-items-start mb-4">
-                              <div className={`avatar-sm rounded-circle bg-${activity.color}-subtle d-flex align-items-center justify-content-center me-3 flex-shrink-0`}>
-                                <IconifyIcon icon={activity.icon} className={`text-${activity.color}`} />
+                        {recentActivities.length === 0 ? (
+                          <div className="text-center py-4 text-muted">No recent community activity yet.</div>
+                        ) : (
+                          <div className="activity-timeline">
+                            {recentActivities.map((activity) => (
+                              <div key={activity.id} className="d-flex align-items-start mb-4">
+                                <div className={`avatar-sm rounded-circle bg-${activity.color}-subtle d-flex align-items-center justify-content-center me-3 flex-shrink-0`}>
+                                  <IconifyIcon icon={activity.icon} className={`text-${activity.color}`} />
+                                </div>
+                                <div className="flex-grow-1">
+                                  <h6 className="mb-1">{activity.title}</h6>
+                                  <p className="text-muted mb-1">{activity.description}</p>
+                                  <small className="text-muted">{activity.time}</small>
+                                </div>
                               </div>
-                              <div className="flex-grow-1">
-                                <h6 className="mb-1">{activity.title}</h6>
-                                <p className="text-muted mb-1">{activity.description}</p>
-                                <small className="text-muted">{activity.time}</small>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                        <div className="text-center">
-                          <Button variant="outline-primary" size="sm">
-                            <IconifyIcon icon="ri:more-line" className="me-1" />
-                            View All Activities
-                          </Button>
-                        </div>
+                            ))}
+                          </div>
+                        )}
                       </Card.Body>
                     </Card>
                   </Col>
@@ -547,19 +397,19 @@ const CommunityManagementPage = () => {
                       <Card.Body>
                         <div className="d-flex justify-content-between align-items-center mb-3">
                           <span>Active Communities</span>
-                          <Badge bg="success">{communitySummary.activeCommunities}</Badge>
+                          <Badge bg="success">{summary.activeCommunities}</Badge>
                         </div>
                         <div className="d-flex justify-content-between align-items-center mb-3">
                           <span>Occupied Units</span>
-                          <Badge bg="info">{communitySummary.occupiedUnits}</Badge>
+                          <Badge bg="info">{summary.occupiedUnits}</Badge>
                         </div>
                         <div className="d-flex justify-content-between align-items-center mb-3">
                           <span>Total Amenities</span>
-                          <Badge bg="warning">{communitySummary.totalAmenities}</Badge>
+                          <Badge bg="warning">{summary.totalAmenities}</Badge>
                         </div>
                         <div className="d-flex justify-content-between align-items-center">
                           <span>Pending Maintenance</span>
-                          <Badge bg="danger">{communitySummary.pendingMaintenance}</Badge>
+                          <Badge bg="danger">{summary.pendingMaintenance}</Badge>
                         </div>
                       </Card.Body>
                     </Card>
@@ -597,30 +447,22 @@ const CommunityManagementPage = () => {
                             <Card.Header className="bg-primary-subtle">
                               <h6 className="mb-0 text-primary">
                                 <IconifyIcon icon="ri:pie-chart-line" className="me-2" />
-                                Occupancy Rate by Community Type
+                                Community Type Distribution
                               </h6>
                             </Card.Header>
                             <Card.Body>
                               <ReactApexChart
                                 options={{
-                                  chart: {
-                                    type: 'pie' as const,
-                                    height: 280,
-                                  },
+                                  chart: { type: 'pie', height: 280 },
                                   colors: ['#28a745', '#17a2b8', '#ffc107', '#dc3545'],
-                                  series: [95, 88, 82, 75],
-                                  labels: ['Premium Communities', 'Standard Communities', 'Budget Communities', 'Under Construction'],
-                                  legend: {
-                                    position: 'bottom' as const,
-                                  },
+                                  labels: communityTypeLabels,
+                                  legend: { position: 'bottom' },
                                   dataLabels: {
                                     enabled: true,
-                                    formatter: function (val: number) {
-                                      return Math.round(val) + '%';
-                                    },
+                                    formatter: (val: number) => `${Math.round(val)}%`,
                                   },
                                 }}
-                                series={[95, 88, 82, 75]}
+                                series={communityTypeSeries}
                                 type="pie"
                                 height={280}
                               />
@@ -632,53 +474,21 @@ const CommunityManagementPage = () => {
                             <Card.Header className="bg-success-subtle">
                               <h6 className="mb-0 text-success">
                                 <IconifyIcon icon="ri:bar-chart-line" className="me-2" />
-                                Monthly Performance Metrics
+                                Operational Performance Snapshot
                               </h6>
                             </Card.Header>
                             <Card.Body>
                               <ReactApexChart
                                 options={{
-                                  chart: {
-                                    type: 'bar' as const,
-                                    height: 280,
-                                    toolbar: { show: false },
-                                  },
-                                  colors: ['#28a745', '#17a2b8', '#ffc107'],
-                                  plotOptions: {
-                                    bar: {
-                                      borderRadius: 4,
-                                      columnWidth: '60%',
-                                    },
-                                  },
-                                  xaxis: {
-                                    categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-                                  },
-                                  yaxis: {
-                                    title: {
-                                      text: 'Score (%)',
-                                    },
-                                  },
-                                  dataLabels: {
-                                    enabled: false,
-                                  },
-                                  legend: {
-                                    position: 'top' as const,
-                                  },
+                                  chart: { type: 'bar', height: 280, toolbar: { show: false } },
+                                  colors: ['#28a745', '#17a2b8'],
+                                  plotOptions: { bar: { borderRadius: 4, columnWidth: '60%' } },
+                                  xaxis: { categories: ['Occupancy', 'Service Health', 'Document Health'] },
+                                  yaxis: { title: { text: 'Score (%)' }, max: 100 },
+                                  dataLabels: { enabled: false },
+                                  legend: { position: 'top' },
                                 }}
-                                series={[
-                                  {
-                                    name: 'Occupancy',
-                                    data: [88, 92, 87, 90, 94, 89],
-                                  },
-                                  {
-                                    name: 'Collection',
-                                    data: [95, 93, 96, 94, 92, 95],
-                                  },
-                                  {
-                                    name: 'Satisfaction',
-                                    data: [82, 85, 80, 87, 90, 86],
-                                  },
-                                ]}
+                                series={performanceSeries}
                                 type="bar"
                                 height={280}
                               />
@@ -693,64 +503,25 @@ const CommunityManagementPage = () => {
                             <Card.Header className="bg-info-subtle">
                               <h6 className="mb-0 text-info">
                                 <IconifyIcon icon="ri:line-chart-line" className="me-2" />
-                                Community Growth & Revenue Analysis
+                                Community Revenue & Capacity Snapshot
                               </h6>
                             </Card.Header>
                             <Card.Body>
                               <ReactApexChart
                                 options={{
-                                  chart: {
-                                    type: 'area' as const,
-                                    height: 350,
-                                    toolbar: { show: false },
-                                  },
+                                  chart: { type: 'bar', height: 350, toolbar: { show: false } },
                                   colors: ['#28a745', '#604ae3'],
-                                  fill: {
-                                    type: 'gradient',
-                                    gradient: {
-                                      shadeIntensity: 1,
-                                      opacityFrom: 0.7,
-                                      opacityTo: 0.3,
-                                    },
-                                  },
-                                  dataLabels: {
-                                    enabled: false,
-                                  },
-                                  stroke: {
-                                    curve: 'smooth' as const,
-                                    width: 2,
-                                  },
-                                  xaxis: {
-                                    categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-                                  },
+                                  plotOptions: { bar: { borderRadius: 4, columnWidth: '55%' } },
+                                  dataLabels: { enabled: false },
+                                  xaxis: { categories: revenueChartCategories },
                                   yaxis: [
-                                    {
-                                      title: {
-                                        text: 'Revenue ($ Lakhs)',
-                                      },
-                                    },
-                                    {
-                                      opposite: true,
-                                      title: {
-                                        text: 'New Communities',
-                                      },
-                                    },
+                                    { title: { text: 'Maintenance Charge (GH₵)' } },
+                                    { opposite: true, title: { text: 'Units' } },
                                   ],
-                                  legend: {
-                                    position: 'top' as const,
-                                  },
+                                  legend: { position: 'top' },
                                 }}
-                                series={[
-                                  {
-                                    name: 'Revenue ($ Lakhs)',
-                                    data: [35.2, 38.1, 42.5, 45.6, 43.8, 47.2, 45.6, 48.9, 52.1, 49.3, 51.7, 54.2],
-                                  },
-                                  {
-                                    name: 'New Communities',
-                                    data: [1, 0, 2, 1, 0, 1, 2, 1, 0, 1, 1, 2],
-                                  },
-                                ]}
-                                type="area"
+                                series={revenueChartSeries}
+                                type="bar"
                                 height={350}
                               />
                             </Card.Body>
@@ -769,34 +540,15 @@ const CommunityManagementPage = () => {
                             </Card.Header>
                             <Card.Body>
                               <Row>
-                                <Col md={3}>
-                                  <div className="text-center p-3 bg-danger-subtle rounded">
-                                    <IconifyIcon icon="ri:alarm-warning-line" className="fs-2 text-danger mb-2" />
-                                    <h5 className="text-danger mb-1">3</h5>
-                                    <p className="text-muted mb-0 small">Critical Issues</p>
-                                  </div>
-                                </Col>
-                                <Col md={3}>
-                                  <div className="text-center p-3 bg-warning-subtle rounded">
-                                    <IconifyIcon icon="ri:tools-line" className="fs-2 text-warning mb-2" />
-                                    <h5 className="text-warning mb-1">23</h5>
-                                    <p className="text-muted mb-0 small">Pending Maintenance</p>
-                                  </div>
-                                </Col>
-                                <Col md={3}>
-                                  <div className="text-center p-3 bg-info-subtle rounded">
-                                    <IconifyIcon icon="ri:money-dollar-circle-line" className="fs-2 text-info mb-2" />
-                                    <h5 className="text-info mb-1">12</h5>
-                                    <p className="text-muted mb-0 small">Payment Delays</p>
-                                  </div>
-                                </Col>
-                                <Col md={3}>
-                                  <div className="text-center p-3 bg-secondary-subtle rounded">
-                                    <IconifyIcon icon="ri:file-text-line" className="fs-2 text-secondary mb-2" />
-                                    <h5 className="text-secondary mb-1">8</h5>
-                                    <p className="text-muted mb-0 small">Document Renewals</p>
-                                  </div>
-                                </Col>
+                                {criticalAlerts.map((alert) => (
+                                  <Col md={3} key={alert.label}>
+                                    <div className={`text-center p-3 bg-${alert.color}-subtle rounded`}>
+                                      <IconifyIcon icon={alert.icon} className={`fs-2 text-${alert.color} mb-2`} />
+                                      <h5 className={`text-${alert.color} mb-1`}>{alert.value}</h5>
+                                      <p className="text-muted mb-0 small">{alert.label}</p>
+                                    </div>
+                                  </Col>
+                                ))}
                               </Row>
                             </Card.Body>
                           </Card>
