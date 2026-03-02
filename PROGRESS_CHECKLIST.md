@@ -542,6 +542,11 @@ Date: 2026-02-06
   - The units workspace now shows maintenance and related financial values in `GHS` / `GH₵`, removing stale rupee/dollar formatting drift without changing the existing cards, tables, or grid UI.
   - Create and edit actions now reset and close cleanly through one shared modal flow, preventing stale form state from leaking between operations.
   - Unit transformation now respects real unit schema fields (`deposit_amount`, `description`, `balconies`) and preserves live unit statuses instead of collapsing everything non-occupied into `vacant`.
+- [x] Phase 33 agency-settings core flows completed:
+  - `/settings/agencies` now uses honest live-derived summary metrics and activity content from real agency records instead of stale hardcoded finance placeholders, while preserving the current dashboard cards and charts layout.
+  - `/settings/agencies/configuration` now initializes from Ghana-aligned defaults when no saved config exists, and nested configuration forms now persist correctly through the flattened DB transform instead of silently dropping nested values.
+  - `/settings/agencies/profiles` removed dead mock agency data, switched region defaults to Ghana regions, and normalized the key analytics cards away from static rupee placeholders to live `GHS` / `GH₵` values.
+  - Agency profile create/edit modal flows now reset cleanly through shared helpers, and geography/top-performer sections no longer show static India-specific placeholder content.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)

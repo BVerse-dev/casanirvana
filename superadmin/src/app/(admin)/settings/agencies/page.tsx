@@ -33,34 +33,6 @@ interface StatisticType {
   variant?: string;
 }
 
-// Mock statistics data - will be replaced with dynamic data inside component
-const mockAgencyStatisticsData: StatisticType[] = [
-  {
-    icon: 'ri:building-4-line',
-    title: 'Total Agencies',
-    amount: '8',
-    change: 12.5,
-  },
-  {
-    icon: 'ri:home-5-line',
-    title: 'Properties Listed',
-    amount: '1,234',
-    change: 18.2,
-  },
-  {
-    icon: 'ri:user-3-line',
-    title: 'Active Clients',
-    amount: '890',
-    change: 8.7,
-  },
-  {
-    icon: 'ri:money-dollar-circle-line',
-    title: 'Monthly Commission',
-    amount: '$12.4L',
-    change: 15.3,
-  },
-];
-
 const statCardChartOptions = {
   chart: {
     height: 95,
@@ -250,7 +222,7 @@ const commissionChart = {
   colors: ['#604ae3'],
   series: [
     {
-      name: 'Commission ($ Lakhs)',
+      name: 'Estimated Commission (GH₵)',
       data: [8.2, 9.1, 10.5, 12.4, 11.8, 13.2, 12.4, 14.9, 16.1, 15.3, 17.7, 18.2],
     },
   ],
@@ -263,7 +235,7 @@ const commissionChart = {
   },
   yaxis: {
     title: {
-      text: 'Commission ($ Lakhs)',
+      text: 'Estimated Commission (GH₵)',
     },
   },
   dataLabels: {
@@ -321,6 +293,34 @@ const StatCard = ({ amount, change, icon, title, variant }: StatisticType) => {
   );
 };
 
+const formatCurrencyCompact = (amount: number) =>
+  new Intl.NumberFormat('en-GH', {
+    style: 'currency',
+    currency: 'GHS',
+    notation: 'compact',
+    maximumFractionDigits: 1,
+  }).format(amount);
+
+const formatRelativeTime = (value?: string | null) => {
+  if (!value) return 'Recently updated';
+  const timestamp = new Date(value).getTime();
+  if (Number.isNaN(timestamp)) return 'Recently updated';
+
+  const diffMs = Date.now() - timestamp;
+  const hour = 60 * 60 * 1000;
+  const day = 24 * hour;
+
+  if (diffMs < hour) {
+    return `${Math.max(1, Math.floor(diffMs / (60 * 1000)))} minutes ago`;
+  }
+
+  if (diffMs < day) {
+    return `${Math.floor(diffMs / hour)} hours ago`;
+  }
+
+  return `${Math.floor(diffMs / day)} days ago`;
+};
+
 const AgencyManagementPage = () => {
   const [activeTab, setActiveTab] = useState('overview');
 
@@ -329,15 +329,20 @@ const AgencyManagementPage = () => {
   const { data: agencies, isLoading: agenciesLoading } = useAgencyProfiles();
 
   // Transform real data to match UI interface
+  const estimatedCommission = agencies.reduce(
+    (sum, agency) => sum + ((agency.average_deal_value || 0) * ((agency.commission_rate || 0) / 100)),
+    0
+  );
+
   const agencySummary: AgencySummary = {
     totalAgencies: agencyStats?.totalAgencies || 0,
     activeAgencies: agencyStats?.activeAgencies || 0,
     totalProperties: agencyStats?.totalProperties || 0,
     totalClients: agencyStats?.totalClients || 0,
-    totalCommission: 1240000, // TODO: Calculate from finance data
-    totalServices: 18, // TODO: Calculate from services data
-    monthlyRevenue: 1240000, // TODO: Calculate from finance data
-    pendingDeals: 15, // TODO: Calculate from deals data
+    totalCommission: estimatedCommission,
+    totalServices: agencies.reduce((sum, agency) => sum + (agency.services?.length || 0), 0),
+    monthlyRevenue: estimatedCommission,
+    pendingDeals: agencies.filter((agency) => agency.status === 'pending_approval').length,
   };
 
   // Dynamic statistics data using real database values
@@ -346,25 +351,25 @@ const AgencyManagementPage = () => {
       icon: 'ri:building-4-line',
       title: 'Total Agencies',
       amount: agencySummary.totalAgencies.toString(),
-      change: 12.5, // TODO: Calculate actual change percentage
+      change: 0,
     },
     {
       icon: 'ri:home-5-line',
       title: 'Properties Listed',
       amount: agencySummary.totalProperties.toLocaleString(),
-      change: 18.2, // TODO: Calculate actual change percentage
+      change: 0,
     },
     {
       icon: 'ri:user-3-line',
       title: 'Active Clients',
       amount: agencySummary.totalClients.toLocaleString(),
-      change: 8.7, // TODO: Calculate actual change percentage
+      change: 0,
     },
     {
       icon: 'ri:money-dollar-circle-line',
       title: 'Monthly Commission',
-      amount: `$${(agencySummary.totalCommission / 100000).toFixed(1)}L`,
-      change: 15.3, // TODO: Calculate actual change percentage
+      amount: formatCurrencyCompact(agencySummary.totalCommission),
+      change: 0,
     },
   ];
 
@@ -419,53 +424,15 @@ const AgencyManagementPage = () => {
     },
   ];
 
-  const recentActivities = [
-    {
-      id: 1,
-      type: 'new-agency',
-      title: 'New Agency Registered',
-      description: 'Elite Properties registered with premium tier access',
-      time: '2 hours ago',
-      icon: 'ri:building-4-line',
-      color: 'success',
-    },
-    {
-      id: 2,
-      type: 'property-listing',
-      title: 'New Property Listed',
-      description: '3 BHK Apartment listed by Dream Homes in Whitefield',
-      time: '4 hours ago',
-      icon: 'ri:home-5-line',
-      color: 'info',
-    },
-    {
-      id: 3,
-      type: 'deal-closed',
-      title: 'Deal Closed',
-      description: 'Villa sale completed by Premium Realty - $2.5Cr',
-      time: '6 hours ago',
-      icon: 'ri:handshake-line',
-      color: 'success',
-    },
-    {
-      id: 4,
-      type: 'commission',
-      title: 'Commission Payment',
-      description: 'Monthly commission paid to Urban Properties',
-      time: '8 hours ago',
-      icon: 'ri:money-dollar-circle-line',
-      color: 'warning',
-    },
-    {
-      id: 5,
-      type: 'staff-update',
-      title: 'Staff Assignment',
-      description: 'New sales executive assigned to Skyline Realty',
-      time: '1 day ago',
-      icon: 'ri:team-line',
-      color: 'primary',
-    },
-  ];
+  const recentActivities = agencies.slice(0, 5).map((agency, index) => ({
+    id: index + 1,
+    type: agency.status === 'pending_approval' ? 'pending-agency' : 'agency-update',
+    title: agency.created_at === agency.updated_at ? 'New Agency Registered' : 'Agency Profile Updated',
+    description: `${agency.name} (${agency.city}) is ${agency.status.replace('_', ' ')}`,
+    time: formatRelativeTime(agency.updated_at || agency.created_at),
+    icon: agency.created_at === agency.updated_at ? 'ri:building-4-line' : 'ri:settings-4-line',
+    color: agency.status === 'active' ? 'success' : agency.status === 'pending_approval' ? 'warning' : 'info',
+  }));
 
   return (
     <>

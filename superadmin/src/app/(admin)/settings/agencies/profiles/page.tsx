@@ -62,7 +62,7 @@ const agencySchema = yup.object({
   address: yup.string().required('Address is required'),
   city: yup.string().required('City is required'),
   state: yup.string().required('State is required'),
-  pincode: yup.string().required('Pincode is required').matches(/^[0-9]{6}$/, 'Invalid pincode'),
+  pincode: yup.string().required('Postal code is required').matches(/^[A-Za-z0-9 -]{3,10}$/, 'Invalid postal code'),
   phone: yup.string().optional(),
   email: yup.string().email('Invalid email address').optional(),
   website: yup.string().url('Invalid website URL').optional(),
@@ -85,6 +85,42 @@ const agencySchema = yup.object({
   accountHolderName: yup.string().optional(),
 });
 
+const defaultAgencyValues: AgencyFormData = {
+  name: '',
+  address: '',
+  city: '',
+  state: '',
+  pincode: '',
+  phone: '',
+  email: '',
+  website: '',
+  agencyType: 'residential',
+  category: 'standard',
+  status: 'active',
+  totalProperties: 0,
+  totalAgents: 1,
+  totalClients: 0,
+  establishedYear: new Date().getFullYear(),
+  licenseNumber: '',
+  ownerName: '',
+  managerName: '',
+  commissionRate: 2.5,
+  averageDealValue: 0,
+  description: '',
+  bankName: '',
+  accountNumber: '',
+  ifscCode: '',
+  accountHolderName: '',
+};
+
+const formatCurrencyCompact = (amount: number) =>
+  new Intl.NumberFormat('en-GH', {
+    style: 'currency',
+    currency: 'GHS',
+    notation: 'compact',
+    maximumFractionDigits: 1,
+  }).format(amount);
+
 const AgencyProfilesPage = () => {
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -106,179 +142,11 @@ const AgencyProfilesPage = () => {
     control,
     handleSubmit,
     reset,
-    watch,
     formState: { errors }
   } = useForm<AgencyFormData>({
     resolver: yupResolver(agencySchema),
-    defaultValues: {
-      name: '',
-      address: '',
-      city: '',
-      state: '',
-      pincode: '',
-      phone: '',
-      email: '',
-      website: '',
-      agencyType: 'residential',
-      category: 'standard',
-      status: 'active',
-      totalProperties: 0,
-      totalAgents: 1,
-      totalClients: 0,
-      establishedYear: new Date().getFullYear(),
-      licenseNumber: '',
-      ownerName: '',
-      managerName: '',
-      commissionRate: 2.5,
-      averageDealValue: 0,
-      description: '',
-      bankName: '',
-      accountNumber: '',
-      ifscCode: '',
-      accountHolderName: '',
-    }
+    defaultValues: defaultAgencyValues
   });
-
-  // Mock data
-  const mockAgencies: AgencyProfile[] = [
-    {
-      id: '1',
-      name: 'Elite Properties',
-      address: '456 Business District, Sector 18',
-      city: 'Gurgaon',
-      state: 'Haryana',
-      pincode: '122015',
-      phone: '+91 9876543210',
-      email: 'info@eliteproperties.com',
-      website: 'https://eliteproperties.com',
-      agencyType: 'luxury',
-      category: 'premium',
-      status: 'active',
-      totalProperties: 150,
-      totalAgents: 12,
-      totalClients: 280,
-      services: ['Property Sales', 'Rental Services', 'Property Management', 'Investment Advisory'],
-      establishedYear: 2015,
-      licenseNumber: 'RERA12345678',
-      ownerName: 'Mr. Vikash Sharma',
-      managerName: 'Ms. Neha Gupta',
-      commissionRate: 3.0,
-      averageDealValue: 8500000,
-      description: 'Premium real estate agency specializing in luxury properties',
-      specializations: ['Luxury Apartments', 'Villas', 'Commercial Properties'],
-      documents: {
-        licenseDocument: 'license_elite.pdf',
-        registrationCertificate: 'cert_elite.pdf',
-        taxDocuments: 'tax_elite.pdf',
-      },
-      bankDetails: {
-        bankName: 'HDFC Bank',
-        accountNumber: '12345678901',
-        ifscCode: 'HDFC0001234',
-        accountHolderName: 'Elite Properties Pvt Ltd',
-      },
-      contactPersons: [
-        {
-          name: 'Mr. Vikash Sharma',
-          designation: 'Owner',
-          phone: '+91 9876543210',
-          email: 'vikash@eliteproperties.com',
-        },
-        {
-          name: 'Ms. Neha Gupta',
-          designation: 'Manager',
-          phone: '+91 9876543211',
-          email: 'neha@eliteproperties.com',
-        },
-      ],
-    },
-    {
-      id: '2',
-      name: 'Dream Homes Realty',
-      address: '789 Commercial Complex, Sector 10',
-      city: 'Noida',
-      state: 'Uttar Pradesh',
-      pincode: '201301',
-      phone: '+91 9876543212',
-      email: 'contact@dreamhomes.com',
-      website: 'https://dreamhomes.com',
-      agencyType: 'residential',
-      category: 'standard',
-      status: 'active',
-      totalProperties: 85,
-      totalAgents: 8,
-      totalClients: 150,
-      services: ['Property Sales', 'Rental Services', 'Home Loans'],
-      establishedYear: 2018,
-      licenseNumber: 'RERA87654321',
-      ownerName: 'Mr. Rajesh Kumar',
-      managerName: 'Mr. Amit Singh',
-      commissionRate: 2.5,
-      averageDealValue: 4500000,
-      description: 'Trusted real estate agency for residential properties',
-      specializations: ['2-3 BHK Apartments', 'Builder Floors', 'Independent Houses'],
-      documents: {
-        licenseDocument: 'license_dream.pdf',
-        registrationCertificate: 'cert_dream.pdf',
-      },
-      bankDetails: {
-        bankName: 'State Bank of India',
-        accountNumber: '98765432101',
-        ifscCode: 'SBIN0001234',
-        accountHolderName: 'Dream Homes Realty',
-      },
-      contactPersons: [
-        {
-          name: 'Mr. Rajesh Kumar',
-          designation: 'Owner',
-          phone: '+91 9876543212',
-          email: 'rajesh@dreamhomes.com',
-        },
-      ],
-    },
-    {
-      id: '3',
-      name: 'Urban Properties',
-      address: '321 Metro Plaza, Sector 32',
-      city: 'Gurgaon',
-      state: 'Haryana',
-      pincode: '122003',
-      phone: '+91 9876543213',
-      email: 'info@urbanproperties.com',
-      agencyType: 'commercial',
-      category: 'standard',
-      status: 'active',
-      totalProperties: 45,
-      totalAgents: 6,
-      totalClients: 90,
-      services: ['Commercial Sales', 'Lease Management', 'Investment Advisory'],
-      establishedYear: 2020,
-      licenseNumber: 'RERA11223344',
-      ownerName: 'Ms. Priya Jain',
-      managerName: 'Mr. Suresh Patel',
-      commissionRate: 2.0,
-      averageDealValue: 12000000,
-      description: 'Specialized in commercial real estate solutions',
-      specializations: ['Office Spaces', 'Retail Outlets', 'Warehouses'],
-      documents: {
-        licenseDocument: 'license_urban.pdf',
-      },
-      bankDetails: {
-        bankName: 'ICICI Bank',
-        accountNumber: '55667788901',
-        ifscCode: 'ICIC0001234',
-        accountHolderName: 'Urban Properties',
-      },
-      contactPersons: [
-        {
-          name: 'Ms. Priya Jain',
-          designation: 'Owner',
-          phone: '+91 9876543213',
-          email: 'priya@urbanproperties.com',
-        },
-      ],
-    },
-  ];
 
   // Real data from database hooks
   const { data: agencies = [], isLoading: agenciesLoading, error: agenciesError } = useAgencyProfiles();
@@ -307,14 +175,14 @@ const AgencyProfilesPage = () => {
   ];
 
   const stateOptions = [
-    { value: 'haryana', label: 'Haryana' },
-    { value: 'delhi', label: 'Delhi' },
-    { value: 'uttar_pradesh', label: 'Uttar Pradesh' },
-    { value: 'maharashtra', label: 'Maharashtra' },
-    { value: 'karnataka', label: 'Karnataka' },
-    { value: 'tamil_nadu', label: 'Tamil Nadu' },
-    { value: 'gujarat', label: 'Gujarat' },
-    { value: 'rajasthan', label: 'Rajasthan' },
+    { value: 'greater_accra', label: 'Greater Accra' },
+    { value: 'ashanti', label: 'Ashanti' },
+    { value: 'western', label: 'Western' },
+    { value: 'eastern', label: 'Eastern' },
+    { value: 'central', label: 'Central' },
+    { value: 'northern', label: 'Northern' },
+    { value: 'volta', label: 'Volta' },
+    { value: 'western_north', label: 'Western North' },
   ];
 
   const handleCreateAgency = async (data: AgencyFormData) => {
@@ -353,9 +221,8 @@ const AgencyProfilesPage = () => {
       };
 
       await createAgencyMutation.mutateAsync(createData);
-      setShowCreateModal(false);
+      closeCreateModal();
       setShowSuccess(true);
-      reset();
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (error) {
       console.error('Error creating agency:', error);
@@ -399,8 +266,7 @@ const AgencyProfilesPage = () => {
       };
 
       await updateAgencyMutation.mutateAsync(updateData);
-      setShowEditModal(false);
-      setSelectedAgency(null);
+      closeEditModal();
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (error) {
@@ -480,6 +346,68 @@ const AgencyProfilesPage = () => {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const paginatedAgencies = filteredAgencies.slice(startIndex, endIndex);
+
+  const totalRevenue = agencies.reduce((sum, agency) => sum + (agency.average_deal_value || 0), 0);
+  const averageDealValue = agencies.length ? totalRevenue / agencies.length : 0;
+  const commissionEarned = agencies.reduce(
+    (sum, agency) => sum + ((agency.average_deal_value || 0) * ((agency.commission_rate || 0) / 100)),
+    0
+  );
+
+  const toPercentage = (value: number, total: number) =>
+    total > 0 ? Math.round((value / total) * 1000) / 10 : 0;
+
+  const totalAgenciesCount = agencies.length;
+  const luxuryShare = toPercentage(
+    agencies.filter((agency) => agency.agency_type === 'luxury' || agency.category === 'premium').length,
+    totalAgenciesCount
+  );
+  const residentialShare = toPercentage(
+    agencies.filter((agency) => agency.agency_type === 'residential').length,
+    totalAgenciesCount
+  );
+  const commercialShare = toPercentage(
+    agencies.filter((agency) => agency.agency_type === 'commercial').length,
+    totalAgenciesCount
+  );
+
+  const topLocations = Object.values(
+    agencies.reduce<Record<string, { label: string; count: number }>>((acc, agency) => {
+      const label = [agency.city, agency.state].filter(Boolean).join(', ');
+      if (!label) return acc;
+      acc[label] = acc[label]
+        ? { ...acc[label], count: acc[label].count + 1 }
+        : { label, count: 1 };
+      return acc;
+    }, {})
+  )
+    .sort((left, right) => right.count - left.count)
+    .slice(0, 2);
+
+  const cityCoverage = new Set(agencies.map((agency) => agency.city).filter(Boolean)).size;
+  const regionCoverage = new Set(agencies.map((agency) => agency.state).filter(Boolean)).size;
+
+  const topAgencies = [...agencies]
+    .sort((left, right) => (right.total_properties || 0) - (left.total_properties || 0))
+    .slice(0, 3);
+
+  const openCreateModal = () => {
+    setSelectedAgency(null);
+    reset(defaultAgencyValues);
+    setShowCreateModal(true);
+  };
+
+  const closeCreateModal = () => {
+    setShowCreateModal(false);
+    setSelectedAgency(null);
+    reset(defaultAgencyValues);
+  };
+
+  const closeEditModal = () => {
+    setShowEditModal(false);
+    setSelectedAgency(null);
+    reset(defaultAgencyValues);
+  };
 
   // Reset to first page when filters change
   useEffect(() => {
@@ -575,7 +503,7 @@ const AgencyProfilesPage = () => {
                   <Col md={4} className="text-end">
                     <Button
                       variant="primary"
-                      onClick={() => setShowCreateModal(true)}
+                      onClick={openCreateModal}
                     >
                       <IconifyIcon icon="ri:add-line" className="me-2" />
                       Add New Agency
@@ -745,7 +673,7 @@ const AgencyProfilesPage = () => {
                   <Col md={4} className="text-end">
                     <Button
                       variant="primary"
-                      onClick={() => setShowCreateModal(true)}
+                      onClick={openCreateModal}
                     >
                       <IconifyIcon icon="ri:add-line" className="me-2" />
                       Add New Agency
@@ -967,7 +895,7 @@ const AgencyProfilesPage = () => {
                                 <div className="mb-3">
                                   <div className="d-flex justify-content-between align-items-center mb-2">
                                     <span className="text-muted small">Total Revenue</span>
-                                    <span className="fw-bold text-success">₹2.85 Cr</span>
+                                    <span className="fw-bold text-success">{formatCurrencyCompact(totalRevenue)}</span>
                                   </div>
                                   <div className="progress" style={{ height: '6px' }}>
                                     <div className="progress-bar bg-success" style={{ width: '85%' }}></div>
@@ -976,7 +904,7 @@ const AgencyProfilesPage = () => {
                                 <div className="mb-3">
                                   <div className="d-flex justify-content-between align-items-center mb-2">
                                     <span className="text-muted small">Avg Deal Value</span>
-                                    <span className="fw-bold text-info">₹67.5 L</span>
+                                    <span className="fw-bold text-info">{formatCurrencyCompact(averageDealValue)}</span>
                                   </div>
                                   <div className="progress" style={{ height: '6px' }}>
                                     <div className="progress-bar bg-info" style={{ width: '72%' }}></div>
@@ -985,7 +913,7 @@ const AgencyProfilesPage = () => {
                                 <div className="mb-3">
                                   <div className="d-flex justify-content-between align-items-center mb-2">
                                     <span className="text-muted small">Commission Earned</span>
-                                    <span className="fw-bold text-warning">₹7.2 L</span>
+                                    <span className="fw-bold text-warning">{formatCurrencyCompact(commissionEarned)}</span>
                                   </div>
                                   <div className="progress" style={{ height: '6px' }}>
                                     <div className="progress-bar bg-warning" style={{ width: '68%' }}></div>
@@ -1012,11 +940,11 @@ const AgencyProfilesPage = () => {
                                 <div className="mb-3">
                                   <div className="d-flex justify-content-between align-items-center mb-2">
                                     <span className="text-muted small">Luxury Agencies</span>
-                                    <span className="fw-bold">33.3%</span>
+                                    <span className="fw-bold">{luxuryShare}%</span>
                                   </div>
                                   <div className="progress" style={{ height: '8px' }}>
                                     <div className="progress-bar" style={{ 
-                                      width: '33.3%',
+                                      width: `${luxuryShare}%`,
                                       background: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)'
                                     }}></div>
                                   </div>
@@ -1024,11 +952,11 @@ const AgencyProfilesPage = () => {
                                 <div className="mb-3">
                                   <div className="d-flex justify-content-between align-items-center mb-2">
                                     <span className="text-muted small">Residential</span>
-                                    <span className="fw-bold">33.3%</span>
+                                    <span className="fw-bold">{residentialShare}%</span>
                                   </div>
                                   <div className="progress" style={{ height: '8px' }}>
                                     <div className="progress-bar" style={{ 
-                                      width: '33.3%',
+                                      width: `${residentialShare}%`,
                                       background: 'linear-gradient(90deg, #f093fb 0%, #f5576c 100%)'
                                     }}></div>
                                   </div>
@@ -1036,11 +964,11 @@ const AgencyProfilesPage = () => {
                                 <div className="mb-3">
                                   <div className="d-flex justify-content-between align-items-center mb-2">
                                     <span className="text-muted small">Commercial</span>
-                                    <span className="fw-bold">33.3%</span>
+                                    <span className="fw-bold">{commercialShare}%</span>
                                   </div>
                                   <div className="progress" style={{ height: '8px' }}>
                                     <div className="progress-bar" style={{ 
-                                      width: '33.3%',
+                                      width: `${commercialShare}%`,
                                       background: 'linear-gradient(90deg, #4facfe 0%, #00f2fe 100%)'
                                     }}></div>
                                   </div>
@@ -1068,8 +996,8 @@ const AgencyProfilesPage = () => {
                                       <IconifyIcon icon="ri:medal-line" className="text-white" />
                                     </div>
                                     <div className="flex-grow-1">
-                                      <h6 className="mb-0">Elite Properties</h6>
-                                      <small className="text-muted">150 Properties</small>
+                                      <h6 className="mb-0">{topAgencies[0]?.name || 'No agencies yet'}</h6>
+                                      <small className="text-muted">{topAgencies[0]?.total_properties || 0} Properties</small>
                                     </div>
                                     <Badge bg="warning" className="rounded-pill">Top</Badge>
                                   </div>
@@ -1080,8 +1008,8 @@ const AgencyProfilesPage = () => {
                                       <IconifyIcon icon="ri:medal-line" className="text-white" />
                                     </div>
                                     <div className="flex-grow-1">
-                                      <h6 className="mb-0">Dream Homes</h6>
-                                      <small className="text-muted">85 Properties</small>
+                                      <h6 className="mb-0">{topAgencies[1]?.name || '—'}</h6>
+                                      <small className="text-muted">{topAgencies[1]?.total_properties || 0} Properties</small>
                                     </div>
                                     <Badge bg="secondary" className="rounded-pill">2nd</Badge>
                                   </div>
@@ -1092,8 +1020,8 @@ const AgencyProfilesPage = () => {
                                       <IconifyIcon icon="ri:medal-line" className="text-white" />
                                     </div>
                                     <div className="flex-grow-1">
-                                      <h6 className="mb-0">Urban Properties</h6>
-                                      <small className="text-muted">45 Properties</small>
+                                      <h6 className="mb-0">{topAgencies[2]?.name || '—'}</h6>
+                                      <small className="text-muted">{topAgencies[2]?.total_properties || 0} Properties</small>
                                     </div>
                                     <Badge bg="info" className="rounded-pill">3rd</Badge>
                                   </div>
@@ -1123,38 +1051,38 @@ const AgencyProfilesPage = () => {
                                   <div className="d-flex justify-content-between align-items-center mb-2">
                                     <div className="d-flex align-items-center">
                                       <div className="bg-primary rounded me-2" style={{ width: '12px', height: '12px' }}></div>
-                                      <span>Gurgaon, Haryana</span>
+                                      <span>{topLocations[0]?.label || 'No active coverage yet'}</span>
                                     </div>
-                                    <span className="fw-bold">66.7%</span>
+                                    <span className="fw-bold">{toPercentage(topLocations[0]?.count || 0, totalAgenciesCount)}%</span>
                                   </div>
                                   <div className="progress" style={{ height: '6px' }}>
-                                    <div className="progress-bar bg-primary" style={{ width: '66.7%' }}></div>
+                                    <div className="progress-bar bg-primary" style={{ width: `${toPercentage(topLocations[0]?.count || 0, totalAgenciesCount)}%` }}></div>
                                   </div>
                                 </div>
                                 <div className="mb-3">
                                   <div className="d-flex justify-content-between align-items-center mb-2">
                                     <div className="d-flex align-items-center">
                                       <div className="bg-success rounded me-2" style={{ width: '12px', height: '12px' }}></div>
-                                      <span>Noida, UP</span>
+                                      <span>{topLocations[1]?.label || 'No secondary coverage yet'}</span>
                                     </div>
-                                    <span className="fw-bold">33.3%</span>
+                                    <span className="fw-bold">{toPercentage(topLocations[1]?.count || 0, totalAgenciesCount)}%</span>
                                   </div>
                                   <div className="progress" style={{ height: '6px' }}>
-                                    <div className="progress-bar bg-success" style={{ width: '33.3%' }}></div>
+                                    <div className="progress-bar bg-success" style={{ width: `${toPercentage(topLocations[1]?.count || 0, totalAgenciesCount)}%` }}></div>
                                   </div>
                                 </div>
                                 <div className="row text-center mt-3">
                                   <div className="col-4">
-                                    <h6 className="text-primary mb-1">2</h6>
+                                    <h6 className="text-primary mb-1">{cityCoverage}</h6>
                                     <small className="text-muted">Cities</small>
                                   </div>
                                   <div className="col-4">
-                                    <h6 className="text-success mb-1">2</h6>
-                                    <small className="text-muted">States</small>
+                                    <h6 className="text-success mb-1">{regionCoverage}</h6>
+                                    <small className="text-muted">Regions</small>
                                   </div>
                                   <div className="col-4">
-                                    <h6 className="text-info mb-1">100%</h6>
-                                    <small className="text-muted">Coverage</small>
+                                    <h6 className="text-info mb-1">{totalAgenciesCount > 0 ? 'Live' : '—'}</h6>
+                                    <small className="text-muted">Status</small>
                                   </div>
                                 </div>
                               </Card.Body>
@@ -1228,7 +1156,7 @@ const AgencyProfilesPage = () => {
       </Row>
 
       {/* Create Agency Modal */}
-      <Modal show={showCreateModal} onHide={() => setShowCreateModal(false)} size="lg">
+      <Modal show={showCreateModal} onHide={closeCreateModal} size="lg">
         <Modal.Header closeButton>
           <Modal.Title>Add New Agency</Modal.Title>
         </Modal.Header>
@@ -1307,8 +1235,8 @@ const AgencyProfilesPage = () => {
               <Col md={4}>
                 <TextFormInput
                   name="pincode"
-                  label="Pincode"
-                  placeholder="Enter pincode"
+                  label="Postal Code"
+                  placeholder="Enter postal code"
                   control={control}
                   className="mb-3"
                 />
@@ -1400,7 +1328,7 @@ const AgencyProfilesPage = () => {
           <Modal.Footer>
             <Button 
               variant="secondary" 
-              onClick={() => setShowCreateModal(false)}
+              onClick={closeCreateModal}
               disabled={loading}
             >
               Cancel
@@ -1424,7 +1352,7 @@ const AgencyProfilesPage = () => {
       </Modal>
 
       {/* Edit Agency Modal */}
-      <Modal show={showEditModal} onHide={() => setShowEditModal(false)} size="lg">
+      <Modal show={showEditModal} onHide={closeEditModal} size="lg">
         <Modal.Header closeButton>
           <Modal.Title>Edit Agency</Modal.Title>
         </Modal.Header>
@@ -1503,8 +1431,8 @@ const AgencyProfilesPage = () => {
               <Col md={4}>
                 <TextFormInput
                   name="pincode"
-                  label="Pincode"
-                  placeholder="Enter pincode"
+                  label="Postal Code"
+                  placeholder="Enter postal code"
                   control={control}
                   className="mb-3"
                 />
@@ -1596,7 +1524,7 @@ const AgencyProfilesPage = () => {
           <Modal.Footer>
             <Button 
               variant="secondary" 
-              onClick={() => setShowEditModal(false)}
+              onClick={closeEditModal}
               disabled={loading}
             >
               Cancel

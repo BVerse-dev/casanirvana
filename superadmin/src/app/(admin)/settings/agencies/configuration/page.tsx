@@ -143,11 +143,10 @@ interface AgencyConfiguration {
   updated_by: string;
 }
 
-// Mock data
-const mockConfiguration: AgencyConfiguration = {
-  id: '1',
-  agency_id: 'agency-001',
-  agency_name: 'Elite Properties',
+const createDefaultConfiguration = (agencyId = '', agencyName = ''): AgencyConfigurationUI => ({
+  id: '',
+  agency_id: agencyId,
+  agency_name: agencyName,
   commission_settings: {
     default_rate: 2.5,
     property_type_rates: {
@@ -180,7 +179,7 @@ const mockConfiguration: AgencyConfiguration = {
     max_leads_per_agent: 25,
     lead_expiry_days: 30,
     hot_lead_criteria: {
-      budget_range: '50L-1Cr',
+      budget_range: 'GH₵ 50k-100k',
       response_time_hours: 2,
       engagement_score: 80,
     },
@@ -224,10 +223,10 @@ const mockConfiguration: AgencyConfiguration = {
     },
     tax_settings: {
       gst_applicable: true,
-      gst_percentage: 18,
-      gst_number: '29ABCDE1234F1Z5',
+      gst_percentage: 15,
+      gst_number: '',
       tds_applicable: true,
-      tds_percentage: 10,
+      tds_percentage: 5,
     },
   },
   compliance: {
@@ -248,9 +247,9 @@ const mockConfiguration: AgencyConfiguration = {
     },
   },
   status: 'active',
-  last_updated: '2024-01-15T10:30:00Z',
+  last_updated: new Date().toISOString(),
   updated_by: 'Admin User',
-};
+});
 
 const AgencyConfigurationPage = () => {
   const [loading, setLoading] = useState(false);
@@ -269,7 +268,7 @@ const AgencyConfigurationPage = () => {
   useAgencyConfigurationsRealtime();
 
   const { handleSubmit, reset, setValue, watch, register } = useForm<AgencyConfigurationUI>({
-    defaultValues: configuration || mockConfiguration,
+    defaultValues: createDefaultConfiguration(),
   });
 
   // Set default agency if available and none selected
@@ -284,13 +283,12 @@ const AgencyConfigurationPage = () => {
     if (configuration) {
       reset(configuration);
     } else if (!configLoading && selectedAgencyId) {
-      // No configuration exists, reset to defaults for the selected agency
-      const defaultConfig = {
-        ...mockConfiguration,
-        agency_id: selectedAgencyId,
-        agency_name: agencies?.find(a => a.id === selectedAgencyId)?.name || '',
-      };
-      reset(defaultConfig);
+      reset(
+        createDefaultConfiguration(
+          selectedAgencyId,
+          agencies?.find((agency) => agency.id === selectedAgencyId)?.name || ''
+        )
+      );
     }
   }, [configuration, configLoading, selectedAgencyId, agencies, reset]);
 
@@ -662,7 +660,7 @@ const AgencyConfigurationPage = () => {
                         </div>
 
                         <div className="mb-3">
-                          <label className="form-label">Featured Listing Fee ($)</label>
+                          <label className="form-label">Featured Listing Fee (GH₵)</label>
                           <input
                             type="number"
                             className="form-control"
@@ -789,7 +787,7 @@ const AgencyConfigurationPage = () => {
                             type="text"
                             className="form-control"
                             value={configuration.lead_settings.hot_lead_criteria.budget_range}
-                            placeholder="e.g., 50L-1Cr"
+                            placeholder="e.g., GH₵ 50k-100k"
                           />
                         </div>
 
@@ -1002,7 +1000,7 @@ const AgencyConfigurationPage = () => {
                               checked={configuration.financial.tax_settings.gst_applicable}
                             />
                             <label className="form-check-label">
-                              GST Applicable
+                              Tax Applicable
                             </label>
                           </div>
                         </div>
@@ -1010,7 +1008,7 @@ const AgencyConfigurationPage = () => {
                         {configuration.financial.tax_settings.gst_applicable && (
                           <>
                             <div className="mb-3">
-                              <label className="form-label">GST Percentage (%)</label>
+                              <label className="form-label">Tax Percentage (%)</label>
                               <input
                                 type="number"
                                 className="form-control"
@@ -1021,12 +1019,12 @@ const AgencyConfigurationPage = () => {
                             </div>
 
                             <div className="mb-3">
-                              <label className="form-label">GST Number</label>
+                              <label className="form-label">Tax Reference</label>
                               <input
                                 type="text"
                                 className="form-control"
                                 value={configuration.financial.tax_settings.gst_number || ''}
-                                placeholder="Enter GST number"
+                                placeholder="Enter tax reference"
                               />
                             </div>
                           </>
