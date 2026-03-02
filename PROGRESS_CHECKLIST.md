@@ -551,6 +551,10 @@ Date: 2026-02-06
   - `/settings/agencies/services` now uses real create/update/delete mutations with honest success/error feedback, maps the edit form to the live agency-service schema, and uses `GHS` / `GH₵` formatting without changing the existing cards, tables, filters, or modal layout.
   - `/settings/agencies/finance` now creates agency transactions through the real mutation path, resolves live agency IDs before saving billing or transaction records, and uses `GHS` / `GH₵` formatting across overview cards, tables, reports, and forms while preserving the current workspace UI.
   - `/settings/agencies/staff` no longer injects fake fallback staff records or analytics; it now derives recent hires, department distribution, hiring trends, performance buckets, and salary analytics from live staff data while keeping the current tabs, charts, and cards structure intact.
+- [x] Phase 33 agency-documents continuation completed:
+  - `/settings/agencies/documents` now keeps its existing tabs, cards, tables, and modal layout while using a corrected live documents hook instead of the broken hardcoded-agency implementation.
+  - Agency document create/update flows now require a real agency profile, reuse the live agency ID, and show honest page-level success/error feedback without relying only on toast notifications.
+  - Agency document storage and retention cost displays now use `GHS` / `GH₵`, and the document hook no longer references invalid archive/download fields that are not present in the live `agency_documents` schema.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)

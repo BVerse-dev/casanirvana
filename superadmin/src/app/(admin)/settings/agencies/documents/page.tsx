@@ -7,6 +7,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiFilter, FiDownload, FiUpload, FiFile, FiFileText, FiFolder, FiEye, FiShare2, FiLock, FiUnlock, FiCalendar, FiUser, FiArchive, FiClock, FiCheckCircle, FiAlertTriangle } from 'react-icons/fi';
 import { useListAgencyDocuments, useCreateAgencyDocument, useUpdateAgencyDocument, useDeleteAgencyDocument, UIDocument } from '@/hooks/useAgencyDocuments';
+import { useAgencyProfiles } from '@/hooks/useAgencyProfiles';
 import { supabase } from '@/lib/supabase';
 import { useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
@@ -43,6 +44,14 @@ const accessOptions = ['Public', 'Internal', 'Restricted', 'Confidential'];
 const retentionOptions = ['1 Year', '3 Years', '5 Years', '7 Years', '10 Years', 'Permanent'];
 const statusOptions = ['Active', 'Under Review', 'Expired', 'Archived', 'Draft'];
 
+const formatCurrency = (amount: number) =>
+  new Intl.NumberFormat('en-GH', {
+    style: 'currency',
+    currency: 'GHS',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+
 const AgencyDocumentsPage = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [showModal, setShowModal] = useState(false);
@@ -55,9 +64,14 @@ const AgencyDocumentsPage = () => {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [actionFeedback, setActionFeedback] = useState<{
+    variant: 'success' | 'danger' | 'warning';
+    message: string;
+  } | null>(null);
 
   // Use Supabase hooks
   const { data: documentsList = [], isLoading, error } = useListAgencyDocuments();
+  const { data: agencies = [] } = useAgencyProfiles();
   const createDocumentMutation = useCreateAgencyDocument();
   const updateDocumentMutation = useUpdateAgencyDocument();
   const deleteDocumentMutation = useDeleteAgencyDocument();
@@ -90,12 +104,14 @@ const AgencyDocumentsPage = () => {
 
   const handleAddDocument = () => {
     setEditingDocument(null);
+    setActionFeedback(null);
     reset();
     setShowModal(true);
   };
 
   const handleEditDocument = (document: UIDocument) => {
     setEditingDocument(document);
+    setActionFeedback(null);
     setValue('name', document.name);
     setValue('category', document.category);
     setValue('type', document.type);
@@ -112,41 +128,56 @@ const AgencyDocumentsPage = () => {
   };
 
   const handleDeleteDocument = (documentId: string) => {
+    setActionFeedback(null);
     if (window.confirm('Are you sure you want to delete this document?')) {
       deleteDocumentMutation.mutate(documentId, {
         onSuccess: () => {
+          setActionFeedback({ variant: 'success', message: 'Document deleted successfully.' });
           toast.success('Document deleted successfully');
         },
         onError: (error) => {
+          setActionFeedback({ variant: 'danger', message: `Failed to delete document: ${error.message}` });
           toast.error(`Failed to delete document: ${error.message}`);
         }
       });
     }
   };
 
-  const onSubmit = (data: DocumentFormData) => {
+  const onSubmit = async (data: DocumentFormData) => {
+    setActionFeedback(null);
+    const agencyId = editingDocument?.agencyId || agencies[0]?.id || '';
+
+    if (!agencyId) {
+      const message = 'Create an agency profile before adding or updating agency documents.';
+      setActionFeedback({ variant: 'warning', message });
+      toast.error(message);
+      return;
+    }
+
     if (editingDocument) {
-      updateDocumentMutation.mutate({ id: editingDocument.id, data }, {
-        onSuccess: () => {
-          toast.success('Document updated successfully');
-          setShowModal(false);
-          reset();
-        },
-        onError: (error) => {
-          toast.error(`Failed to update document: ${error.message}`);
-        }
-      });
+      try {
+        await updateDocumentMutation.mutateAsync({ id: editingDocument.id, data, agencyId });
+        setActionFeedback({ variant: 'success', message: 'Document updated successfully.' });
+        toast.success('Document updated successfully');
+        setShowModal(false);
+        reset();
+      } catch (mutationError) {
+        const message = mutationError instanceof Error ? mutationError.message : 'Failed to update document.';
+        setActionFeedback({ variant: 'danger', message });
+        toast.error(`Failed to update document: ${message}`);
+      }
     } else {
-      createDocumentMutation.mutate(data, {
-        onSuccess: () => {
-          toast.success('Document created successfully');
-          setShowModal(false);
-          reset();
-        },
-        onError: (error) => {
-          toast.error(`Failed to create document: ${error.message}`);
-        }
-      });
+      try {
+        await createDocumentMutation.mutateAsync({ formData: data, agencyId });
+        setActionFeedback({ variant: 'success', message: 'Document created successfully.' });
+        toast.success('Document created successfully');
+        setShowModal(false);
+        reset();
+      } catch (mutationError) {
+        const message = mutationError instanceof Error ? mutationError.message : 'Failed to create document.';
+        setActionFeedback({ variant: 'danger', message });
+        toast.error(`Failed to create document: ${message}`);
+      }
     }
   };
 
@@ -257,6 +288,20 @@ const AgencyDocumentsPage = () => {
           <p className="text-muted">Manage documents, templates, and record retention</p>
         </Col>
       </Row>
+
+      {actionFeedback && (
+        <Row className="mb-4">
+          <Col>
+            <Alert
+              variant={actionFeedback.variant}
+              dismissible
+              onClose={() => setActionFeedback(null)}
+            >
+              {actionFeedback.message}
+            </Alert>
+          </Col>
+        </Row>
+      )}
 
       <Tab.Container activeKey={activeTab} onSelect={(k) => setActiveTab(k || 'overview')}>
         <Row>
@@ -780,7 +825,7 @@ const AgencyDocumentsPage = () => {
                           <Card.Body>
                             <div className="mb-4">
                               <h6 className="text-muted">Total Retention Cost</h6>
-                              <h3 className="text-primary">${(totalFileSize * 0.10).toFixed(2)}/month</h3>
+                              <h3 className="text-primary">{formatCurrency(totalFileSize * 0.1)}/month</h3>
                               <small className="text-muted">Based on storage usage</small>
                             </div>
                             <div className="mb-4">

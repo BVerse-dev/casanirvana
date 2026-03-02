@@ -1,14 +1,13 @@
 'use client';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Tables, TablesInsert, TablesUpdate } from '@/lib/database.types';
 
-// Use the actual database type
 export type AgencyDocument = Tables<'agency_documents'>;
 export type CreateAgencyDocumentData = TablesInsert<'agency_documents'>;
 export type UpdateAgencyDocumentData = TablesUpdate<'agency_documents'>;
 
-// Document form data interface (matching UI exactly)
 export interface DocumentFormData {
   name: string;
   category: string;
@@ -24,9 +23,9 @@ export interface DocumentFormData {
   autoArchive: boolean;
 }
 
-// UI Document interface (matching the sample data structure)
 export interface UIDocument {
   id: string;
+  agencyId: string;
   name: string;
   category: string;
   type: string;
@@ -50,66 +49,113 @@ export interface UIDocument {
   views: number;
 }
 
-// Helper function to convert database record to UI format
-const mapDatabaseToUI = (dbRecord: AgencyDocument): UIDocument => {
-  return {
-    id: dbRecord.id,
-    name: dbRecord.name,
-    category: dbRecord.category,
-    type: dbRecord.type,
-    description: dbRecord.description || '',
-    fileUrl: dbRecord.file_url || '',
-    fileSize: dbRecord.file_size ? formatFileSize(dbRecord.file_size) : '0 KB',
-    uploadedBy: 'Unknown', // Will be populated from UI
-    uploadDate: dbRecord.upload_date || new Date().toISOString().split('T')[0],
-    lastModified: dbRecord.last_modified || new Date().toISOString().split('T')[0],
-    expiryDate: dbRecord.expiry_date,
-    access: dbRecord.access || 'Internal',
-    retention: dbRecord.retention || '5 Years',
-    status: dbRecord.status || 'Active',
-    version: dbRecord.version || '1.0',
-    tags: dbRecord.tags || [],
-    reminderDays: dbRecord.reminder_days || 0,
-    isConfidential: dbRecord.is_confidential || false,
-    requiresApproval: dbRecord.requires_approval || false,
-    autoArchive: dbRecord.auto_archive || false,
-    downloads: dbRecord.downloads || 0,
-    views: dbRecord.views || 0,
-  };
+const QUERY_KEYS = {
+  agencyDocuments: ['agency_documents'] as const,
+  agencyDocument: (id: string) => ['agency_documents', id] as const,
+  currentAgencyDocuments: ['agency_documents', 'current'] as const,
+  agencyDocumentsByAgency: (agencyId: string) => ['agency_documents', 'agency', agencyId] as const,
+  agencyDocumentsByType: (documentType: string) => ['agency_documents', 'type', documentType] as const,
+  agencyDocumentsByCategory: (category: string) => ['agency_documents', 'category', category] as const,
+  expiringAgencyDocuments: (days: number) => ['agency_documents', 'expiring', days] as const,
 };
 
-// Helper function to convert UI form data to database format
-const mapUIToDatabase = (formData: DocumentFormData): CreateAgencyDocumentData => {
-  return {
-    name: formData.name,
-    category: formData.category,
-    type: formData.type,
-    description: formData.description,
-    access: formData.access,
-    retention: formData.retention,
-    status: formData.status,
-    tags: formData.tags,
-    reminder_days: formData.reminderDays,
-    is_confidential: formData.isConfidential,
-    requires_approval: formData.requiresApproval,
-    auto_archive: formData.autoArchive,
-    agency_id: 'cba1d1ff-0ff1-415b-a6c2-c47a5467996a', // Default agency ID
-  };
-};
-
-// Helper function to format file size
 const formatFileSize = (bytes: number): string => {
-  if (bytes === 0) return '0 KB';
-  const k = 1024;
+  if (!bytes) {
+    return '0 KB';
+  }
+
+  const threshold = 1024;
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  const sizeIndex = Math.min(
+    Math.floor(Math.log(bytes) / Math.log(threshold)),
+    sizes.length - 1
+  );
+
+  const value = bytes / Math.pow(threshold, sizeIndex);
+  return `${parseFloat(value.toFixed(1))} ${sizes[sizeIndex]}`;
 };
 
-// List all agency documents (returns UI format)
-export const useListAgencyDocuments = () => {
-  return useQuery({
-    queryKey: ['agency_documents'],
+const toDisplayDate = (value?: string | null) => {
+  if (!value) {
+    return new Date().toISOString().split('T')[0];
+  }
+
+  return value.includes('T') ? value.split('T')[0] : value;
+};
+
+const mapDatabaseToUI = (dbRecord: AgencyDocument): UIDocument => ({
+  id: dbRecord.id,
+  agencyId: dbRecord.agency_id,
+  name: dbRecord.name,
+  category: dbRecord.category,
+  type: dbRecord.type,
+  description: dbRecord.description || '',
+  fileUrl: dbRecord.file_url || '',
+  fileSize: formatFileSize(dbRecord.file_size || 0),
+  uploadedBy: dbRecord.uploaded_by_name || 'Unassigned',
+  uploadDate: toDisplayDate(dbRecord.upload_date || dbRecord.created_at),
+  lastModified: toDisplayDate(dbRecord.last_modified || dbRecord.updated_at || dbRecord.created_at),
+  expiryDate: dbRecord.expiry_date,
+  access: dbRecord.access || 'Internal',
+  retention: dbRecord.retention || '5 Years',
+  status: dbRecord.status || 'Active',
+  version: dbRecord.version || '1.0',
+  tags: dbRecord.tags || [],
+  reminderDays: dbRecord.reminder_days || 0,
+  isConfidential: dbRecord.is_confidential || false,
+  requiresApproval: dbRecord.requires_approval || false,
+  autoArchive: dbRecord.auto_archive || false,
+  downloads: dbRecord.downloads || 0,
+  views: dbRecord.views || 0,
+});
+
+const parseAgencyDocumentData = (dbRecord: AgencyDocument): UIDocument =>
+  mapDatabaseToUI(dbRecord);
+
+const mapFormToCreate = (
+  formData: DocumentFormData,
+  agencyId: string
+): CreateAgencyDocumentData => ({
+  agency_id: agencyId,
+  name: formData.name,
+  category: formData.category,
+  type: formData.type,
+  description: formData.description,
+  access: formData.access,
+  retention: formData.retention,
+  status: formData.status,
+  tags: formData.tags,
+  reminder_days: formData.reminderDays,
+  is_confidential: formData.isConfidential,
+  requires_approval: formData.requiresApproval,
+  auto_archive: formData.autoArchive,
+  upload_date: new Date().toISOString(),
+  last_modified: new Date().toISOString(),
+});
+
+const mapFormToUpdate = (
+  formData: DocumentFormData,
+  agencyId: string
+): UpdateAgencyDocumentData => ({
+  agency_id: agencyId,
+  name: formData.name,
+  category: formData.category,
+  type: formData.type,
+  description: formData.description,
+  access: formData.access,
+  retention: formData.retention,
+  status: formData.status,
+  tags: formData.tags,
+  reminder_days: formData.reminderDays,
+  is_confidential: formData.isConfidential,
+  requires_approval: formData.requiresApproval,
+  auto_archive: formData.autoArchive,
+  last_modified: new Date().toISOString(),
+});
+
+export const useListAgencyDocuments = () =>
+  useQuery({
+    queryKey: QUERY_KEYS.agencyDocuments,
     queryFn: async (): Promise<UIDocument[]> => {
       const { data, error } = await supabase
         .from('agency_documents')
@@ -121,17 +167,17 @@ export const useListAgencyDocuments = () => {
         throw new Error(`Failed to fetch agency documents: ${error.message}`);
       }
 
-      return (data || []).map(mapDatabaseToUI);
+      return (data || []).map(parseAgencyDocumentData);
     },
   });
-};
 
-// Get a single agency document (returns UI format)
-export const useGetAgencyDocument = (id: string) => {
-  return useQuery({
-    queryKey: ['agency_documents', id],
+export const useGetAgencyDocument = (id: string) =>
+  useQuery({
+    queryKey: QUERY_KEYS.agencyDocument(id),
     queryFn: async (): Promise<UIDocument | null> => {
-      if (!id) return null;
+      if (!id) {
+        return null;
+      }
 
       const { data, error } = await supabase
         .from('agency_documents')
@@ -144,24 +190,28 @@ export const useGetAgencyDocument = (id: string) => {
         throw new Error(`Failed to fetch agency document: ${error.message}`);
       }
 
-      return data ? mapDatabaseToUI(data) : null;
+      return data ? parseAgencyDocumentData(data) : null;
     },
-    enabled: !!id,
+    enabled: Boolean(id),
   });
-};
 
-// Create a new agency document
 export const useCreateAgencyDocument = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (formData: DocumentFormData): Promise<UIDocument> => {
-      const dbData = mapUIToDatabase(formData);
-      
-      const { data: result, error } = await supabase
+    mutationFn: async ({
+      formData,
+      agencyId,
+    }: {
+      formData: DocumentFormData;
+      agencyId: string;
+    }): Promise<UIDocument> => {
+      const payload = mapFormToCreate(formData, agencyId);
+
+      const { data, error } = await supabase
         .from('agency_documents')
-        .insert(dbData)
-        .select()
+        .insert(payload)
+        .select('*')
         .single();
 
       if (error) {
@@ -169,27 +219,37 @@ export const useCreateAgencyDocument = () => {
         throw new Error(`Failed to create agency document: ${error.message}`);
       }
 
-      return mapDatabaseToUI(result);
+      return parseAgencyDocumentData(data);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['agency_documents'] });
+    onSuccess: (document) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.agencyDocuments });
+      queryClient.invalidateQueries({
+        queryKey: QUERY_KEYS.agencyDocumentsByAgency(document.agencyId),
+      });
     },
   });
 };
 
-// Update an agency document
 export const useUpdateAgencyDocument = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: DocumentFormData }): Promise<UIDocument> => {
-      const dbData = mapUIToDatabase(data);
-      
+    mutationFn: async ({
+      id,
+      data,
+      agencyId,
+    }: {
+      id: string;
+      data: DocumentFormData;
+      agencyId: string;
+    }): Promise<UIDocument> => {
+      const payload = mapFormToUpdate(data, agencyId);
+
       const { data: result, error } = await supabase
         .from('agency_documents')
-        .update(dbData)
+        .update(payload)
         .eq('id', id)
-        .select()
+        .select('*')
         .single();
 
       if (error) {
@@ -197,25 +257,26 @@ export const useUpdateAgencyDocument = () => {
         throw new Error(`Failed to update agency document: ${error.message}`);
       }
 
-      return mapDatabaseToUI(result);
+      return parseAgencyDocumentData(result);
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['agency_documents'] });
-      queryClient.invalidateQueries({ queryKey: ['agency_documents', data.id] });
+    onSuccess: (document) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.agencyDocuments });
+      queryClient.invalidateQueries({
+        queryKey: QUERY_KEYS.agencyDocument(document.id),
+      });
+      queryClient.invalidateQueries({
+        queryKey: QUERY_KEYS.agencyDocumentsByAgency(document.agencyId),
+      });
     },
   });
 };
 
-// Delete an agency document
 export const useDeleteAgencyDocument = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (id: string): Promise<void> => {
-      const { error } = await supabase
-        .from('agency_documents')
-        .delete()
-        .eq('id', id);
+      const { error } = await supabase.from('agency_documents').delete().eq('id', id);
 
       if (error) {
         console.error('Error deleting agency document:', error);
@@ -223,25 +284,19 @@ export const useDeleteAgencyDocument = () => {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['agency_documents'] });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.agencyDocuments });
     },
   });
 };
 
-// Get current agency documents (not archived)
-export const useCurrentAgencyDocuments = () => {
-  return useQuery({
+export const useCurrentAgencyDocuments = () =>
+  useQuery({
     queryKey: QUERY_KEYS.currentAgencyDocuments,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('agency_documents')
-        .select(`
-          *,
-          agency:agencies(id, name, agency_type, contact_person, email, phone),
-          uploader:profiles!agency_documents_uploaded_by_fkey(id, first_name, last_name, email)
-        `)
-        .eq('is_archived', false)
-        .eq('is_current', true)
+        .select('*')
+        .neq('status', 'Archived')
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -249,14 +304,12 @@ export const useCurrentAgencyDocuments = () => {
         throw new Error(`Failed to fetch current agency documents: ${error.message}`);
       }
 
-      return data?.map(parseAgencyDocumentData) || [];
+      return (data || []).map(parseAgencyDocumentData);
     },
   });
-};
 
-// Get agency documents by agency
-export const useGetAgencyDocumentsByAgency = (agencyId: string) => {
-  return useQuery({
+export const useGetAgencyDocumentsByAgency = (agencyId: string) =>
+  useQuery({
     queryKey: QUERY_KEYS.agencyDocumentsByAgency(agencyId),
     queryFn: async () => {
       const { data, error } = await supabase
@@ -270,23 +323,18 @@ export const useGetAgencyDocumentsByAgency = (agencyId: string) => {
         throw new Error(`Failed to fetch agency documents: ${error.message}`);
       }
 
-      return data?.map(parseAgencyDocumentData) || [];
+      return (data || []).map(parseAgencyDocumentData);
     },
-    enabled: !!agencyId,
+    enabled: Boolean(agencyId),
   });
-};
 
-// Get agency documents by type
-export const useGetAgencyDocumentsByType = (documentType: string) => {
-  return useQuery({
+export const useGetAgencyDocumentsByType = (documentType: string) =>
+  useQuery({
     queryKey: QUERY_KEYS.agencyDocumentsByType(documentType),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('agency_documents')
-        .select(`
-          *,
-          agency:agencies(id, name, agency_type, contact_person, email, phone)
-        `)
+        .select('*')
         .eq('type', documentType)
         .order('created_at', { ascending: false });
 
@@ -295,23 +343,18 @@ export const useGetAgencyDocumentsByType = (documentType: string) => {
         throw new Error(`Failed to fetch agency documents: ${error.message}`);
       }
 
-      return data?.map(parseAgencyDocumentData) || [];
+      return (data || []).map(parseAgencyDocumentData);
     },
-    enabled: !!documentType,
+    enabled: Boolean(documentType),
   });
-};
 
-// Get agency documents by category
-export const useGetAgencyDocumentsByCategory = (category: string) => {
-  return useQuery({
+export const useGetAgencyDocumentsByCategory = (category: string) =>
+  useQuery({
     queryKey: QUERY_KEYS.agencyDocumentsByCategory(category),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('agency_documents')
-        .select(`
-          *,
-          agency:agencies(id, name, agency_type, contact_person, email, phone)
-        `)
+        .select('*')
         .eq('category', category)
         .order('created_at', { ascending: false });
 
@@ -320,15 +363,13 @@ export const useGetAgencyDocumentsByCategory = (category: string) => {
         throw new Error(`Failed to fetch agency documents: ${error.message}`);
       }
 
-      return data?.map(parseAgencyDocumentData) || [];
+      return (data || []).map(parseAgencyDocumentData);
     },
-    enabled: !!category,
+    enabled: Boolean(category),
   });
-};
 
-// Get expiring agency documents
-export const useGetExpiringAgencyDocuments = (days: number = 30) => {
-  return useQuery({
+export const useGetExpiringAgencyDocuments = (days = 30) =>
+  useQuery({
     queryKey: QUERY_KEYS.expiringAgencyDocuments(days),
     queryFn: async () => {
       const futureDate = new Date();
@@ -336,46 +377,34 @@ export const useGetExpiringAgencyDocuments = (days: number = 30) => {
 
       const { data, error } = await supabase
         .from('agency_documents')
-        .select(`
-          *,
-          agency:agencies(id, name, agency_type, contact_person, email, phone),
-          uploader:profiles!agency_documents_uploaded_by_fkey(id, first_name, last_name, email)
-        `)
+        .select('*')
         .not('expiry_date', 'is', null)
         .lte('expiry_date', futureDate.toISOString())
-        .eq('is_archived', false)
-        .eq('is_current', true)
-        .order('expiry_date');
+        .neq('status', 'Archived')
+        .order('expiry_date', { ascending: true });
 
       if (error) {
         console.error('Error fetching expiring agency documents:', error);
         throw new Error(`Failed to fetch expiring agency documents: ${error.message}`);
       }
 
-      return data?.map(parseAgencyDocumentData) || [];
+      return (data || []).map(parseAgencyDocumentData);
     },
   });
-};
 
-// Archive agency document
 export const useArchiveAgencyDocument = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, archivedBy }: { id: string; archivedBy: string }) => {
+    mutationFn: async ({ id }: { id: string; archivedBy?: string }) => {
       const { data, error } = await supabase
         .from('agency_documents')
-        .update({ 
-          is_archived: true,
-          archived_date: new Date().toISOString(),
-          archived_by: archivedBy
+        .update({
+          status: 'Archived',
+          last_modified: new Date().toISOString(),
         })
         .eq('id', id)
-        .select(`
-          *,
-          agency:agencies(id, name, agency_type, contact_person, email, phone),
-          uploader:profiles!agency_documents_uploaded_by_fkey(id, first_name, last_name, email)
-        `)
+        .select('*')
         .single();
 
       if (error) {
@@ -385,29 +414,49 @@ export const useArchiveAgencyDocument = () => {
 
       return parseAgencyDocumentData(data);
     },
-    onSuccess: (data) => {
+    onSuccess: (document) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.agencyDocuments });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.agencyDocument(data.id) });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.currentAgencyDocuments });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.agencyDocumentsByAgency(data.agency_id) });
+      queryClient.invalidateQueries({
+        queryKey: QUERY_KEYS.agencyDocument(document.id),
+      });
+      queryClient.invalidateQueries({
+        queryKey: QUERY_KEYS.currentAgencyDocuments,
+      });
+      queryClient.invalidateQueries({
+        queryKey: QUERY_KEYS.agencyDocumentsByAgency(document.agencyId),
+      });
     },
   });
 };
 
-// Track document download
 export const useTrackAgencyDocumentDownload = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (id: string) => {
+      const { data: currentDocument, error: fetchError } = await supabase
+        .from('agency_documents')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching agency document for download tracking:', fetchError);
+        throw new Error(`Failed to track document download: ${fetchError.message}`);
+      }
+
+      const nextDownloads = (currentDocument.downloads || 0) + 1;
+      const nextViews = Math.max(currentDocument.views || 0, nextDownloads);
+
       const { data, error } = await supabase
         .from('agency_documents')
-        .update({ 
-          download_count: supabase.raw('download_count + 1'),
-          last_accessed: new Date().toISOString()
+        .update({
+          downloads: nextDownloads,
+          views: nextViews,
+          last_modified: new Date().toISOString(),
         })
         .eq('id', id)
-        .select()
+        .select('*')
         .single();
 
       if (error) {
@@ -417,45 +466,47 @@ export const useTrackAgencyDocumentDownload = () => {
 
       return parseAgencyDocumentData(data);
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.agencyDocument(data.id) });
+    onSuccess: (document) => {
+      queryClient.invalidateQueries({
+        queryKey: QUERY_KEYS.agencyDocument(document.id),
+      });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.agencyDocuments });
     },
   });
 };
 
-// Bulk update agency documents
 export const useBulkUpdateAgencyDocuments = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (updates: Array<{ id: string; data: DocumentFormData }>) => {
-      const promises = updates.map(({ id, data }) =>
-        supabase
-          .from('agency_documents')
-          .update(data)
-          .eq('id', id)
-          .select(`
-            *,
-            agency:agencies(id, name, agency_type, contact_person, email, phone),
-            uploader:profiles!agency_documents_uploaded_by_fkey(id, first_name, last_name, email)
-          `)
-          .single()
-      );
+    mutationFn: async (
+      updates: Array<{ id: string; data: DocumentFormData; agencyId: string }>
+    ) => {
+      const results: UIDocument[] = [];
 
-      const results = await Promise.all(promises);
-      
-      // Check for errors
-      const errors = results.filter(result => result.error);
-      if (errors.length > 0) {
-        console.error('Errors in bulk update:', errors);
-        throw new Error(`Failed to update some agency documents`);
+      for (const update of updates) {
+        const { data, error } = await supabase
+          .from('agency_documents')
+          .update(mapFormToUpdate(update.data, update.agencyId))
+          .eq('id', update.id)
+          .select('*')
+          .single();
+
+        if (error) {
+          console.error('Error in bulk agency document update:', error);
+          throw new Error(`Failed to update some agency documents: ${error.message}`);
+        }
+
+        results.push(parseAgencyDocumentData(data));
       }
 
-      return results.map(result => parseAgencyDocumentData(result.data));
+      return results;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.agencyDocuments });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.currentAgencyDocuments });
+      queryClient.invalidateQueries({
+        queryKey: QUERY_KEYS.currentAgencyDocuments,
+      });
     },
   });
 };
