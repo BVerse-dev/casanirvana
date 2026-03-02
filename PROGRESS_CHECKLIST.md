@@ -486,6 +486,10 @@ Date: 2026-02-06
   - `/settings/app/extensions` now preserves the existing visual layout while using backend-managed `system_settings` (`application/extensions`) instead of simulated saves.
   - Extension install/uninstall/enable actions now persist real configuration changes instead of only mutating local UI state.
   - The extension inventory and marketplace defaults were aligned with the current platform direction (`ExpressPay Gateway Connector`, notification routing, backup) and outdated legacy provider examples were removed.
+- [x] Phase 33 communications continuation completed:
+  - `/settings/email/templates` now uses backend-managed `system_settings` (`email_templates`) through the shared settings pattern instead of direct browser writes to `app_settings`.
+  - `/settings/email/notifications` now uses backend-managed `system_settings` (`email_notifications`) through the shared settings pattern instead of direct browser writes to `app_settings`.
+  - The existing tabs/cards/layout were preserved while the underlying persistence was normalized, and legacy defaults were aligned to the current product direction (`Africa/Accra`, current communication defaults, non-legacy language options).
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)

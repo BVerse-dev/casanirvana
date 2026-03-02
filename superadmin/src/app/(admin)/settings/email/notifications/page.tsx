@@ -137,7 +137,7 @@ const EmailNotificationsPage = () => {
       enable_bounce_handling: true,
       enable_unsubscribe_link: true,
       auto_retry_failed_emails: true,
-      notification_time_zone: 'Asia/Kolkata',
+      notification_time_zone: 'Africa/Accra',
       quiet_hours_start: '22:00',
       quiet_hours_end: '07:00',
     },

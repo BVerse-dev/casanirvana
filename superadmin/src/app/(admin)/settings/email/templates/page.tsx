@@ -44,7 +44,7 @@ const EmailTemplatesPage = () => {
     isUpdating
   } = useEmailTemplateSettings();
 
-  const { control, handleSubmit, reset, formState: { isDirty } } = useForm<TemplateSettingsFormData>({
+  const { control, handleSubmit, register, reset, formState: { isDirty } } = useForm<TemplateSettingsFormData>({
     resolver: yupResolver(templateSettingsSchema),
     defaultValues: {
       welcome_email_subject: '',
@@ -149,7 +149,7 @@ const EmailTemplatesPage = () => {
                         className="form-check-input"
                         type="checkbox"
                         id="enable_email_templates"
-                        {...control.register('enable_email_templates')}
+                        {...register('enable_email_templates')}
                       />
                       <label className="form-check-label" htmlFor="enable_email_templates">
                         Enable Email Templates
@@ -166,11 +166,8 @@ const EmailTemplatesPage = () => {
                       label="Template Language"
                       options={[
                         { value: 'en', label: 'English' },
-                        { value: 'hi', label: 'Hindi' },
-                        { value: 'mr', label: 'Marathi' },
-                        { value: 'gu', label: 'Gujarati' },
-                        { value: 'ta', label: 'Tamil' },
-                        { value: 'te', label: 'Telugu' },
+                        { value: 'fr', label: 'French' },
+                        { value: 'tw', label: 'Twi' },
                       ]}
                       containerClassName="mb-3"
                     />
