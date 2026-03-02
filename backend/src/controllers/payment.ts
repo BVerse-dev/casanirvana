@@ -31,6 +31,8 @@ import {
   listAdminPayoutRequests,
   listAdminPayoutRules,
   listAdminPayoutTransactions,
+  recomputePayoutBalances,
+  releaseStalePayoutReservations,
   updateAdminPayoutDestination,
   updateAdminPayoutRequestStatus,
   upsertAdminPayoutRule,
@@ -782,6 +784,47 @@ export async function updateAdminPayoutRequestStatusHandler(req: Request, res: R
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to update payout request',
+    });
+  }
+}
+
+export async function recomputeInternalPayoutBalancesHandler(req: Request, res: Response) {
+  try {
+    const data = await recomputePayoutBalances({
+      agencyId: typeof req.body?.agency_id === 'string' ? req.body.agency_id : undefined,
+      communityId: typeof req.body?.community_id === 'string' ? req.body.community_id : undefined,
+      limit: typeof req.body?.limit === 'number' ? req.body.limit : undefined,
+    });
+
+    res.json({
+      success: true,
+      data,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to recompute payout balances',
+    });
+  }
+}
+
+export async function releaseInternalStalePayoutReservationsHandler(req: Request, res: Response) {
+  try {
+    const data = await releaseStalePayoutReservations({
+      agencyId: typeof req.body?.agency_id === 'string' ? req.body.agency_id : undefined,
+      communityId: typeof req.body?.community_id === 'string' ? req.body.community_id : undefined,
+      staleHours: typeof req.body?.stale_hours === 'number' ? req.body.stale_hours : undefined,
+      limit: typeof req.body?.limit === 'number' ? req.body.limit : undefined,
+    });
+
+    res.json({
+      success: true,
+      data,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to release stale payout reservations',
     });
   }
 }

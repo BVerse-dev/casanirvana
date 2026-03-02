@@ -541,6 +541,17 @@ export const schemas = {
     community_id: optionalString.nullable(),
     agency_id: optionalString.nullable(),
   }),
+  internalPayoutRecomputeBody: z.object({
+    community_id: optionalString.nullable(),
+    agency_id: optionalString.nullable(),
+    limit: z.coerce.number().int().positive().max(1000).optional(),
+  }),
+  internalPayoutReleaseBody: z.object({
+    community_id: optionalString.nullable(),
+    agency_id: optionalString.nullable(),
+    stale_hours: z.coerce.number().positive().max(720).optional(),
+    limit: z.coerce.number().int().positive().max(500).optional(),
+  }),
   adminPayoutScopeQuery: z.object({
     agency_id: optionalString,
     community_id: optionalString,

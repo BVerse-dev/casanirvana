@@ -29,3 +29,18 @@ export function requirePaymentChargeCronApiKey(req: Request, res: Response, next
 
   next();
 }
+
+export function requirePayoutAutomationApiKey(req: Request, res: Response, next: NextFunction) {
+  const expectedKey = process.env.PAYOUT_AUTOMATION_API_KEY;
+  const providedKey = req.header('x-payout-automation-key');
+
+  if (!expectedKey) {
+    return res.status(500).json({ error: 'Payout automation API key is not configured' });
+  }
+
+  if (!providedKey || providedKey !== expectedKey) {
+    return res.status(401).json({ error: 'Invalid payout automation API key' });
+  }
+
+  next();
+}

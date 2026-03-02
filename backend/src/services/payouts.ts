@@ -18,6 +18,12 @@ type PayoutScopeInput = {
   communityId?: string | null;
 };
 
+type InternalPayoutAutomationInput = {
+  agencyId?: string | null;
+  communityId?: string | null;
+  limit?: number;
+};
+
 type ResolvedPayoutScope = {
   roleScope: 'platform' | 'agency' | 'community';
   actorRole: string;
@@ -321,6 +327,10 @@ const resolvePayoutScope = async ({
     };
   }
 
+  if (actorRole !== 'agency_manager') {
+    throw new Error('Only superadmin and agency managers can access payouts.');
+  }
+
   const assignedCommunityIds = await loadAssignedCommunityIds(profile, actorUserId);
   const communityMap = await normalizeCommunityIds(assignedCommunityIds);
   const assignedAgencyIds = await loadAssignedAgencyIds(profile, actorUserId, communityMap);
@@ -350,26 +360,7 @@ const resolvePayoutScope = async ({
       allowedCommunityIds: assignedCommunityIds,
     };
   }
-
-  const scopedCommunityId = requestedCommunityId || assignedCommunityIds[0] || null;
-  if (!scopedCommunityId) {
-    throw new Error('Your account is missing a community assignment.');
-  }
-  if (requestedCommunityId && !assignedCommunityIds.includes(requestedCommunityId)) {
-    throw new Error('You can only access payouts for your assigned community.');
-  }
-
-  const scopedCommunity = communityMap.get(scopedCommunityId) || (await normalizeCommunityIds([scopedCommunityId])).get(scopedCommunityId) || null;
-  const scopedAgencyId = scopedCommunity?.agency_id || assignedAgencyIds[0] || null;
-
-  return {
-    roleScope: 'community',
-    actorRole,
-    agencyId: scopedAgencyId,
-    communityId: scopedCommunityId,
-    allowedAgencyIds: assignedAgencyIds,
-    allowedCommunityIds: assignedCommunityIds,
-  };
+  throw new Error('Only superadmin and agency managers can access payouts.');
 };
 
 const resolveActiveRule = async (agencyId: string | null, communityId: string | null) => {
@@ -1569,4 +1560,160 @@ export const updateAdminPayoutRequestStatus = async (
   });
 
   return updated as PayoutRequest;
+};
+
+const listPaymentsForRecompute = async ({
+  agencyId,
+  communityId,
+  limit,
+}: InternalPayoutAutomationInput) => {
+  const query = db
+    .from('payments')
+    .select('id, unit_id, status, source_type, obligation_id, updated_at')
+    .order('updated_at', { ascending: false })
+    .limit(Math.max(1, Math.min(1000, Number(limit) || 500)));
+
+  const { data, error } = await query;
+  if (error) {
+    throw new Error(`Failed to load payments for payout recompute: ${error.message}`);
+  }
+
+  const rows = (data || []) as Array<{
+    id: string;
+    unit_id: string | null;
+    status: string | null;
+    source_type: string | null;
+    obligation_id: string | null;
+  }>;
+
+  if (!agencyId && !communityId) {
+    return rows;
+  }
+
+  const unitMap = await normalizeUnitIds(rows.map((row) => row.unit_id || '').filter(Boolean));
+  const communityMap = await normalizeCommunityIds(
+    rows
+      .map((row) => (row.unit_id ? unitMap.get(row.unit_id)?.community_id || '' : ''))
+      .filter(Boolean)
+  );
+
+  return rows.filter((row) => {
+    const community = row.unit_id ? communityMap.get(unitMap.get(row.unit_id)?.community_id || '') || null : null;
+    if (communityId && community?.id !== communityId) {
+      return false;
+    }
+    if (agencyId && community?.agency_id !== agencyId) {
+      return false;
+    }
+    return !communityId || Boolean(community?.id);
+  });
+};
+
+export const recomputePayoutBalances = async ({
+  agencyId,
+  communityId,
+  limit,
+}: InternalPayoutAutomationInput = {}) => {
+  const payments = await listPaymentsForRecompute({ agencyId, communityId, limit });
+  let synced = 0;
+  let failed = 0;
+  const errors: Array<{ payment_id: string; reason: string }> = [];
+
+  for (const payment of payments) {
+    try {
+      await syncPaymentToPayoutLedger(payment.id);
+      synced += 1;
+    } catch (error: any) {
+      failed += 1;
+      errors.push({
+        payment_id: payment.id,
+        reason: error?.message || 'Unknown error',
+      });
+    }
+  }
+
+  return {
+    synced,
+    failed,
+    scanned: payments.length,
+    scope: {
+      agency_id: agencyId || null,
+      community_id: communityId || null,
+    },
+    errors,
+  };
+};
+
+export const releaseStalePayoutReservations = async ({
+  agencyId,
+  communityId,
+  staleHours,
+  limit,
+}: InternalPayoutAutomationInput & { staleHours?: number }) => {
+  const thresholdHours = Math.max(1, Math.min(720, Number(staleHours) || 72));
+  const cutoff = Date.now() - thresholdHours * 60 * 60 * 1000;
+
+  const { data, error } = await db
+    .from('payout_requests')
+    .select('id, agency_id, community_id, status, updated_at, created_at')
+    .in('status', ['pending_review', 'approved'])
+    .order('updated_at', { ascending: true })
+    .limit(Math.max(1, Math.min(500, Number(limit) || 100)));
+
+  if (error) {
+    throw new Error(`Failed to load payout requests for stale release: ${error.message}`);
+  }
+
+  const requests = ((data || []) as Array<{
+    id: string;
+    agency_id: string;
+    community_id: string | null;
+    status: string;
+    updated_at: string | null;
+    created_at: string | null;
+  }>).filter((row) => {
+    if (agencyId && row.agency_id !== agencyId) return false;
+    if (communityId && row.community_id !== communityId) return false;
+    const baseline = new Date(row.updated_at || row.created_at || 0).getTime();
+    return Number.isFinite(baseline) && baseline > 0 && baseline <= cutoff;
+  });
+
+  const released: string[] = [];
+  const errors: Array<{ payout_request_id: string; reason: string }> = [];
+
+  for (const request of requests) {
+    try {
+      await updateAdminPayoutRequestStatus(
+        request.id,
+        'cancel',
+        {
+          userProfile: { role: 'superadmin' },
+          actorUserId: null,
+          agencyId: request.agency_id,
+          communityId: request.community_id,
+        },
+        {
+          notes: `Automatically cancelled after ${thresholdHours}h without completion.`,
+        }
+      );
+      released.push(request.id);
+    } catch (releaseError: any) {
+      errors.push({
+        payout_request_id: request.id,
+        reason: releaseError?.message || 'Unknown error',
+      });
+    }
+  }
+
+  return {
+    reviewed: requests.length,
+    released: released.length,
+    stale_hours: thresholdHours,
+    scope: {
+      agency_id: agencyId || null,
+      community_id: communityId || null,
+    },
+    released_request_ids: released,
+    errors,
+  };
 };

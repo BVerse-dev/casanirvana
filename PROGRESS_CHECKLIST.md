@@ -463,6 +463,10 @@ Date: 2026-02-06
   - Backend now classifies completed settled payments into Community Hub vs Personal Hub, computes payout eligibility snapshots, and writes `credit_available` payout ledger entries during normal payment settlement side effects.
   - Backend now exposes admin payout APIs for summary, eligible revenue, destinations, rules, payout requests, and payout-request lifecycle actions under `/admin/payouts/*`.
   - Superadmin `/payments/payouts` is now wired to real backend data with tabbed sections for `Overview`, `Requests`, `Destinations`, and `Rules`.
+- [x] Phase 32 payout hardening + automation completed:
+  - Added migration `supabase/migrations/20260302101500_phase32_payout_rls_hardening.sql` and applied it live: payout tables now have function-based scoped read policies for authenticated agency managers/superadmin and service-role full access only; no direct authenticated writes bypass the backend.
+  - Payout module access is now explicitly restricted to `superadmin` and `agency_manager` in the backend service layer; community-scoped admins continue using community finance reporting, not payout pages.
+  - Added internal payout automation endpoints for reconciliation and stale reservation cleanup: `POST /internal/payouts/recompute-balances` and `POST /internal/payouts/release-stale-reservations`.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)
@@ -503,11 +507,14 @@ Date: 2026-02-06
 - [x] `GET /admin/payouts/requests` (list payout requests)
 - [x] `POST /admin/payouts/requests` (create payout request)
 - [x] `POST /admin/payouts/requests/:id/:action` (approve/reject/process/pay/fail/cancel payout request)
+- [x] `POST /internal/payouts/recompute-balances` (API key protected payout reclassification / ledger reconciliation)
+- [x] `POST /internal/payouts/release-stale-reservations` (API key protected stale payout reservation release)
 
 ## Environment Variables (Required)
 - `ADMIN_INVITE_REDIRECT_URL`
 - `ONBOARDING_REQUEST_API_KEY`
 - `PAYMENT_CHARGE_CRON_API_KEY`
+- `PAYOUT_AUTOMATION_API_KEY`
 - `NEXT_PUBLIC_ADMIN_SIGNUP_DISABLED=true`
 - `NEXT_PUBLIC_API_URL`
 
