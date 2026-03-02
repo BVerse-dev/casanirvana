@@ -1,17 +1,13 @@
 "use client";
 
-import { useState } from "react";
 import {
   Card,
   CardBody,
-  CardHeader,
-  CardTitle,
   Col,
   Row,
-  Nav,
-  Tab,
 } from "react-bootstrap";
 import { useRouter } from "next/navigation";
+import PageTitle from "@/components/PageTitle";
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
 
 const SystemConfigPage = () => {
@@ -27,10 +23,17 @@ const SystemConfigPage = () => {
 
   return (
     <>
+      <PageTitle
+        title="System Configuration"
+        subName="Operations & Control"
+      />
+
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
           <h4 className="page-title">System Configuration</h4>
-          <p className="text-muted mb-0">Monitor system performance and configure system-wide settings</p>
+          <p className="text-muted mb-0">
+            Monitor live platform health and manage system-wide operational controls
+          </p>
         </div>
       </div>
 
@@ -43,7 +46,7 @@ const SystemConfigPage = () => {
               </div>
               <h5 className="mb-2">System Overview</h5>
               <p className="text-muted mb-0">
-                Comprehensive dashboard showing real-time system health, performance metrics, recent activities, and system component status
+                Review live system health, performance metrics, recent activities, and component status
               </p>
             </CardBody>
           </Card>
@@ -57,7 +60,7 @@ const SystemConfigPage = () => {
               </div>
               <h5 className="mb-2">System Settings</h5>
               <p className="text-muted mb-0">
-                Configure system-wide settings including performance, security, notifications, monitoring, and business logic parameters
+                Configure system-wide performance, monitoring, security, notification, and business logic controls
               </p>
             </CardBody>
           </Card>

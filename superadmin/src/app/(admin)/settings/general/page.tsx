@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { Card, CardBody, Row, Col, Button } from 'react-bootstrap';
 import { useRouter } from 'next/navigation';
 import PageTitle from '@/components/PageTitle';
@@ -32,9 +31,9 @@ const GeneralSettingsPage = () => {
       iconBg: 'primary',
       href: '/settings/general/application',
       stats: {
-        label: 'Active Apps',
-        value: '3',
-        variant: 'success'
+        label: 'Workspace',
+        value: 'Live',
+        variant: 'success',
       }
     },
     {
@@ -45,9 +44,9 @@ const GeneralSettingsPage = () => {
       iconBg: 'info',
       href: '/settings/general/system',
       stats: {
-        label: 'Active Configs',
-        value: '12',
-        variant: 'info'
+        label: 'Scope',
+        value: 'Core',
+        variant: 'info',
       }
     },
     {
@@ -58,9 +57,9 @@ const GeneralSettingsPage = () => {
       iconBg: 'success',
       href: '/settings/general/business',
       stats: {
-        label: 'Active Rules',
-        value: '8',
-        variant: 'success'
+        label: 'Scope',
+        value: 'Finance',
+        variant: 'success',
       }
     },
     {
@@ -71,9 +70,9 @@ const GeneralSettingsPage = () => {
       iconBg: 'danger',
       href: '/settings/general/security',
       stats: {
-        label: 'Security Level',
-        value: 'High',
-        variant: 'success'
+        label: 'Mode',
+        value: 'Policy',
+        variant: 'danger',
       }
     },
     {
@@ -84,9 +83,9 @@ const GeneralSettingsPage = () => {
       iconBg: 'warning',
       href: '/settings/general/integrations',
       stats: {
-        label: 'Connected APIs',
-        value: '6',
-        variant: 'warning'
+        label: 'Mode',
+        value: 'Secure',
+        variant: 'warning',
       }
     },
     {
@@ -97,9 +96,9 @@ const GeneralSettingsPage = () => {
       iconBg: 'secondary',
       href: '/settings/general/regional',
       stats: {
-        label: 'Supported Regions',
-        value: '4',
-        variant: 'info'
+        label: 'Default',
+        value: 'GHS',
+        variant: 'info',
       }
     }
   ];
@@ -118,7 +117,7 @@ const GeneralSettingsPage = () => {
             <div>
               <h4 className="mb-1">General Settings Overview</h4>
               <p className="text-muted mb-0">
-                Configure platform-wide settings for Casa Nirvana applications and services
+                Configure platform-wide settings for the Community Hub, Guard app, and superadmin workspace
               </p>
             </div>
             <div className="d-flex align-items-center gap-2">
@@ -188,7 +187,7 @@ const GeneralSettingsPage = () => {
                 <strong>Quick Actions:</strong>
                 <span className="text-muted ms-2">
                   Use the cards above to navigate to specific settings categories. 
-                  Each section contains related configuration options for better organization.
+                  Each section loads the live settings workspace for that category without duplicating configuration flows.
                 </span>
               </div>
             </div>

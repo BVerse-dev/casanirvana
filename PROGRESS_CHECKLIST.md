@@ -555,6 +555,10 @@ Date: 2026-02-06
   - `/settings/agencies/documents` now keeps its existing tabs, cards, tables, and modal layout while using a corrected live documents hook instead of the broken hardcoded-agency implementation.
   - Agency document create/update flows now require a real agency profile, reuse the live agency ID, and show honest page-level success/error feedback without relying only on toast notifications.
   - Agency document storage and retention cost displays now use `GHS` / `GH₵`, and the document hook no longer references invalid archive/download fields that are not present in the live `agency_documents` schema.
+- [x] Phase 33 platform-launcher cleanup completed:
+  - `/settings/general` now preserves the current navigation-card UI while removing misleading hardcoded numeric badges; the cards now describe live settings workspaces instead of claiming fake counts.
+  - `/settings/system` now keeps the existing route-launcher layout but uses a consistent page title and honest copy aligned to the live system overview and settings workspaces.
+  - Removed stale duplicate settings artifacts that were no longer part of the active settings flow: `page.tsx.new`, `page_new.tsx`, and `page-new.tsx` variants under admin/security, app/splash, and general/integrations.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)
