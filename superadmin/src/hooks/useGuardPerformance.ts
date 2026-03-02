@@ -356,7 +356,7 @@ export const useCreatePerformanceReview = () => {
         .from('guard_performance_reviews')
         .insert({
           guard_id: reviewData.guardId,
-          reviewer_id: '00000000-0000-0000-0000-000000000001', // Current admin user
+          reviewer_id: null,
           overall_rating: reviewData.overallRating,
           punctuality_rating: reviewData.punctualityRating,
           professionalism_rating: reviewData.professionalismRating,

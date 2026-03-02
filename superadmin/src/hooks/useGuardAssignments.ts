@@ -156,7 +156,7 @@ export const useGuardAssignments = () => {
           status,
           priority: 'medium' as GuardAssignment['priority'], // Default since not in DB
           responsibilities: assignment.responsibilities || [],
-          emergencyContact: assignment.emergency_contact || guard?.emergency_contact || '+1-555-0911',
+          emergencyContact: assignment.emergency_contact || guard?.emergency_contact || '',
           replacementId: assignment.backup_guard_id,
           replacementName: backupGuard?.full_name,
           notes: assignment.special_instructions,
@@ -267,7 +267,7 @@ export const useCreateAssignment = () => {
           assigned_gate: assignmentData.postLocation,
           patrol_areas: [],
           responsibilities: assignmentData.responsibilities,
-          emergency_contact: assignmentData.emergencyContact || '+1-555-0911',
+          emergency_contact: assignmentData.emergencyContact || null,
           special_instructions: assignmentData.notes || null,
           is_permanent: assignmentData.assignmentType === 'permanent',
           is_temporary: assignmentData.assignmentType === 'temporary',

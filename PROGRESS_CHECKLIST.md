@@ -524,6 +524,7 @@ Date: 2026-02-06
   - `useGuardPerformanceTrends` now uses real training completion percentages instead of random values, and `useGuardShiftTrends` provides live 30-day duty/overtime trend data for the analytics view.
   - `useRecentGuardActivities` no longer mutates `Date.prototype`, and the activity feed now sorts by real timestamps while showing an honest empty state when no records exist.
   - `useGuardsStats` no longer reports fake average rating/experience placeholders; it now derives those values from live `guard_performance` and `employment_date` data where available.
+  - Guard subpage data hooks no longer inject fake fallback identity values: new assignments do not write a dummy emergency number, displayed assignments no longer show a fake phone fallback, and new performance reviews no longer store a hardcoded placeholder reviewer UUID.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)
