@@ -98,6 +98,10 @@ export interface UnitStats {
 
 // Transform database row to UI format (matching actual DB schema)
 const transformDbToUI = (dbRow: any): CommunityUnit => {
+  const unitStatus: CommunityUnit['status'] = ['occupied', 'vacant', 'maintenance', 'reserved', 'under_renovation'].includes(dbRow.status)
+    ? dbRow.status
+    : 'vacant';
+
   return {
     id: dbRow.id,
     unitNumber: dbRow.unit_number || dbRow.number || '',
@@ -109,10 +113,10 @@ const transformDbToUI = (dbRow: any): CommunityUnit => {
     carpetArea: dbRow.area_sqft || dbRow.floor_area || dbRow.area || 0,
     builtUpArea: (dbRow.area_sqft || dbRow.floor_area || dbRow.area || 0) * 1.1, // Estimate
     superBuiltUpArea: (dbRow.area_sqft || dbRow.floor_area || dbRow.area || 0) * 1.3, // Estimate
-    balconies: dbRow.balcony_count || 1,
+    balconies: dbRow.balconies || dbRow.balcony_count || 1,
     bathrooms: dbRow.bathrooms || dbRow.bathroom_count || 1,
     bedrooms: dbRow.bedrooms || 1,
-    status: dbRow.status === 'occupied' ? 'occupied' : 'vacant',
+    status: unitStatus,
     ownershipType: dbRow.tenant_id ? 'rented' : 'owned',
     ownerName: undefined, // Not available in current schema
     ownerPhone: undefined,
@@ -122,7 +126,7 @@ const transformDbToUI = (dbRow: any): CommunityUnit => {
     tenantEmail: undefined,
     monthlyRent: dbRow.rent_amount || 0,
     maintenanceCharges: dbRow.maintenance_amount || 0,
-    securityDeposit: (dbRow.rent_amount || 0) * 3, // Estimate 3 months
+    securityDeposit: dbRow.deposit_amount || 0,
     parkingSlots: dbRow.parking_slot ? [dbRow.parking_slot] : [],
     amenitiesIncluded: Array.isArray(dbRow.amenities) ? dbRow.amenities : [],
     moveInDate: undefined,
@@ -133,7 +137,7 @@ const transformDbToUI = (dbRow: any): CommunityUnit => {
     internetConnection: false,
     cableConnection: false,
     gasConnection: false,
-    notes: undefined,
+    notes: dbRow.description || undefined,
     createdAt: dbRow.created_at,
     updatedAt: dbRow.updated_at,
   };
@@ -155,6 +159,7 @@ const transformFormToDb = (formData: UnitFormData): any => {
     bedrooms: formData.bedrooms,
     bathrooms: formData.bathrooms,
     balcony_count: formData.balconies,
+    balconies: formData.balconies,
     bathroom_count: formData.bathrooms,
     rent_amount: formData.monthlyRent || 0,
     maintenance_amount: formData.maintenanceCharges,
@@ -162,6 +167,8 @@ const transformFormToDb = (formData: UnitFormData): any => {
     is_furnished: formData.furnishingStatus === 'furnished',
     amenities: formData.amenitiesIncluded || [],
     parking_slot: formData.parkingSlots?.[0] || null,
+    deposit_amount: formData.securityDeposit || 0,
+    description: formData.notes || null,
   };
 };
 

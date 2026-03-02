@@ -103,7 +103,6 @@ const UnitsManagementPage = () => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedUnit, setSelectedUnit] = useState<CommunityUnit | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -116,6 +115,29 @@ const UnitsManagementPage = () => {
   const [overviewCurrentPage, setOverviewCurrentPage] = useState(1);
   const [overviewItemsPerPage, setOverviewItemsPerPage] = useState(5);
 
+  const defaultUnitValues: UnitFormData = {
+    unitNumber: '',
+    communityId: '',
+    blockNumber: '',
+    floorNumber: 0,
+    unitType: '2bhk',
+    carpetArea: 0,
+    builtUpArea: 0,
+    superBuiltUpArea: 0,
+    balconies: 1,
+    bathrooms: 1,
+    bedrooms: 1,
+    status: 'vacant',
+    ownershipType: 'owned',
+    maintenanceCharges: 0,
+    parkingSlots: [],
+    amenitiesIncluded: [],
+    furnishingStatus: 'unfurnished',
+    internetConnection: false,
+    cableConnection: false,
+    gasConnection: false,
+  };
+
   const {
     control,
     handleSubmit,
@@ -124,28 +146,7 @@ const UnitsManagementPage = () => {
     formState: { errors }
   } = useForm<UnitFormData>({
     resolver: yupResolver(unitSchema),
-    defaultValues: {
-      unitNumber: '',
-      communityId: '',
-      blockNumber: '',
-      floorNumber: 0,
-      unitType: '2bhk',
-      carpetArea: 0,
-      builtUpArea: 0,
-      superBuiltUpArea: 0,
-      balconies: 1,
-      bathrooms: 1,
-      bedrooms: 1,
-      status: 'vacant',
-      ownershipType: 'owned',
-      maintenanceCharges: 0,
-      parkingSlots: [],
-      amenitiesIncluded: [],
-      furnishingStatus: 'unfurnished',
-      internetConnection: false,
-      cableConnection: false,
-      gasConnection: false,
-    }
+    defaultValues: defaultUnitValues
   });
 
   // Transform communities data for dropdown options
@@ -153,125 +154,6 @@ const UnitsManagementPage = () => {
     value: community.id,
     label: community.name
   }));
-
-  // Mock data for backwards compatibility (to be removed)
-  const mockUnits = [
-    {
-      id: '1',
-      unitNumber: 'A-101',
-      communityId: 'community-1',
-      communityName: 'Green Valley Apartments',
-      blockNumber: 'A',
-      floorNumber: 1,
-      unitType: '2bhk',
-      carpetArea: 850,
-      builtUpArea: 950,
-      superBuiltUpArea: 1200,
-      balconies: 2,
-      bathrooms: 2,
-      bedrooms: 2,
-      status: 'occupied',
-      ownershipType: 'owned',
-      ownerName: 'John Smith',
-      ownerPhone: '+91 9876543210',
-      ownerEmail: 'john.smith@email.com',
-      monthlyRent: 0,
-      maintenanceCharges: 3500,
-      securityDeposit: 50000,
-      parkingSlots: ['A-101-1'],
-      amenitiesIncluded: ['gym', 'pool', 'garden'],
-      moveInDate: '2024-01-15',
-      furnishingStatus: 'semi_furnished',
-      electricityMeterNumber: 'EB12345',
-      waterMeterNumber: 'WB12345',
-      internetConnection: true,
-      cableConnection: true,
-      gasConnection: true,
-      notes: 'Prime location unit with garden view',
-      createdAt: '2024-01-01',
-      updatedAt: '2024-01-15'
-    },
-    {
-      id: '2',
-      unitNumber: 'B-205',
-      communityId: 'community-1',
-      communityName: 'Green Valley Apartments',
-      blockNumber: 'B',
-      floorNumber: 2,
-      unitType: '3bhk',
-      carpetArea: 1200,
-      builtUpArea: 1350,
-      superBuiltUpArea: 1600,
-      balconies: 3,
-      bathrooms: 3,
-      bedrooms: 3,
-      status: 'occupied',
-      ownershipType: 'rented',
-      ownerName: 'Sarah Johnson',
-      ownerPhone: '+91 9876543211',
-      ownerEmail: 'sarah.johnson@email.com',
-      tenantName: 'Mike Wilson',
-      tenantPhone: '+91 9876543212',
-      tenantEmail: 'mike.wilson@email.com',
-      monthlyRent: 45000,
-      maintenanceCharges: 4500,
-      securityDeposit: 135000,
-      parkingSlots: ['B-205-1', 'B-205-2'],
-      amenitiesIncluded: ['gym', 'pool', 'garden', 'clubhouse'],
-      moveInDate: '2024-02-01',
-      leaseEndDate: '2026-01-31',
-      furnishingStatus: 'furnished',
-      electricityMeterNumber: 'EB12346',
-      waterMeterNumber: 'WB12346',
-      internetConnection: true,
-      cableConnection: true,
-      gasConnection: true,
-      notes: 'Spacious unit with city view',
-      createdAt: '2024-01-01',
-      updatedAt: '2024-02-01'
-    },
-    {
-      id: '3',
-      unitNumber: 'C-302',
-      communityId: 'community-2',
-      communityName: 'Sunrise Heights',
-      blockNumber: 'C',
-      floorNumber: 3,
-      unitType: '1bhk',
-      carpetArea: 600,
-      builtUpArea: 700,
-      superBuiltUpArea: 850,
-      balconies: 1,
-      bathrooms: 1,
-      bedrooms: 1,
-      status: 'vacant',
-      ownershipType: 'owned',
-      ownerName: 'Robert Brown',
-      ownerPhone: '+91 9876543213',
-      ownerEmail: 'robert.brown@email.com',
-      monthlyRent: 0,
-      maintenanceCharges: 2500,
-      securityDeposit: 30000,
-      parkingSlots: ['C-302-1'],
-      amenitiesIncluded: ['gym', 'garden'],
-      furnishingStatus: 'unfurnished',
-      electricityMeterNumber: 'EB12347',
-      waterMeterNumber: 'WB12347',
-      internetConnection: false,
-      cableConnection: false,
-      gasConnection: true,
-      notes: 'Compact unit suitable for singles',
-      createdAt: '2024-01-01',
-      updatedAt: '2024-01-01'
-    },
-  ];
-
-  // Backup community options for form
-  const backupCommunityOptions = [
-    { value: 'community-1', label: 'Green Valley Apartments' },
-    { value: 'community-2', label: 'Sunrise Heights' },
-    { value: 'community-3', label: 'Royal Gardens' },
-  ];
 
   const unitTypeOptions = [
     { value: 'studio', label: 'Studio' },
@@ -402,20 +284,37 @@ const UnitsManagementPage = () => {
     resetPagination();
   }, [searchTerm, filterCommunity, filterStatus, filterType]);
 
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat('en-GH', {
+      style: 'currency',
+      currency: 'GHS',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+
+  const openCreateModal = () => {
+    setSelectedUnit(null);
+    reset(defaultUnitValues);
+    setShowCreateModal(true);
+  };
+
+  const closeCreateModal = () => {
+    setShowCreateModal(false);
+    setSelectedUnit(null);
+    reset(defaultUnitValues);
+  };
+
   const onSubmit = async (data: UnitFormData) => {
     try {
       if (selectedUnit) {
         await updateUnitMutation.mutateAsync({ id: selectedUnit.id, formData: data });
-        setShowEditModal(false);
       } else {
         await createUnitMutation.mutateAsync(data);
-        setShowCreateModal(false);
       }
-      
-      setSelectedUnit(null);
+
+      closeCreateModal();
       setShowSuccess(true);
-      reset();
-      
+
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (error) {
       console.error('Error submitting form:', error);
@@ -459,7 +358,7 @@ const UnitsManagementPage = () => {
       gasConnection: unit.gasConnection,
       notes: unit.notes,
     });
-    setShowEditModal(true);
+    setShowCreateModal(true);
   };
 
   const handleDelete = (unit: CommunityUnit) => {
@@ -616,7 +515,7 @@ const UnitsManagementPage = () => {
                     <div className="flex-grow-1 ms-3">
                       <h6 className="mb-1 text-muted fw-medium">Avg. Maintenance</h6>
                       <h3 className="mb-0 fw-bold">
-                        ₹{units.length > 0 ? Math.round(units.reduce((sum: number, unit: any) => sum + unit.maintenanceCharges, 0) / units.length).toLocaleString() : 0}
+                        {formatCurrency(Math.round(displayStats.avgMaintenance || 0))}
                       </h3>
                       <small className="text-info">
                         <IconifyIcon icon="ri:calculator-line" className="me-1" />
@@ -706,7 +605,7 @@ const UnitsManagementPage = () => {
                                 </div>
                               </td>
                               <td className="border-0 text-center">
-                                <span className="fw-medium">₹{avgMaintenance.toLocaleString()}</span>
+                                <span className="fw-medium">{formatCurrency(avgMaintenance)}</span>
                               </td>
                             </tr>
                           );
@@ -796,7 +695,7 @@ const UnitsManagementPage = () => {
                       <Button 
                         variant="outline-primary" 
                         size="sm"
-                        onClick={() => setShowCreateModal(true)}
+                        onClick={openCreateModal}
                         className="d-flex align-items-center"
                       >
                         <IconifyIcon icon="ri:add-line" className="me-1" />
@@ -888,7 +787,7 @@ const UnitsManagementPage = () => {
                 >
                   <IconifyIcon icon="ri:grid-fill" />
                 </Button>
-                <Button variant="primary" onClick={() => setShowCreateModal(true)}>
+                <Button variant="primary" onClick={openCreateModal}>
                   <IconifyIcon icon="ri:add-line" className="me-1" />
                   Add Unit
                 </Button>
@@ -949,7 +848,7 @@ const UnitsManagementPage = () => {
                             )}
                           </div>
                         </td>
-                        <td>${unit.maintenanceCharges.toLocaleString()}</td>
+                        <td>{formatCurrency(unit.maintenanceCharges)}</td>
                         <td>
                           <div className="d-flex gap-1">
                             <Button
@@ -1012,7 +911,7 @@ const UnitsManagementPage = () => {
 
                         <div className="mb-3">
                           <span className="text-muted">Maintenance: </span>
-                          <strong>${unit.maintenanceCharges.toLocaleString()}</strong>
+                          <strong>{formatCurrency(unit.maintenanceCharges)}</strong>
                         </div>
 
                         <div className="d-flex justify-content-end gap-2">
@@ -1186,11 +1085,11 @@ const UnitsManagementPage = () => {
       </Tabs>
 
       {/* Create Unit Modal */}
-      <Modal show={showCreateModal} onHide={() => setShowCreateModal(false)} size="xl">
+      <Modal show={showCreateModal} onHide={closeCreateModal} size="xl">
         <Modal.Header closeButton>
           <Modal.Title>
-            <IconifyIcon icon="ri:add-line" className="me-2" />
-            Add New Unit
+            <IconifyIcon icon={selectedUnit ? 'ri:edit-line' : 'ri:add-line'} className="me-2" />
+            {selectedUnit ? `Edit Unit: ${selectedUnit.unitNumber}` : 'Add New Unit'}
           </Modal.Title>
         </Modal.Header>
         <Form onSubmit={handleSubmit(onSubmit)}>
@@ -1694,90 +1593,23 @@ const UnitsManagementPage = () => {
             </Row>
           </Modal.Body>
           <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowCreateModal(false)}>
+            <Button variant="secondary" onClick={closeCreateModal}>
               Cancel
             </Button>
-            <Button variant="primary" type="submit" disabled={createUnitMutation.isPending}>
-              {createUnitMutation.isPending ? (
+            <Button
+              variant="primary"
+              type="submit"
+              disabled={selectedUnit ? updateUnitMutation.isPending : createUnitMutation.isPending}
+            >
+              {(selectedUnit ? updateUnitMutation.isPending : createUnitMutation.isPending) ? (
                 <>
                   <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                  Creating...
+                  {selectedUnit ? 'Updating...' : 'Creating...'}
                 </>
               ) : (
                 <>
                   <IconifyIcon icon="ri:save-line" className="me-1" />
-                  Create Unit
-                </>
-              )}
-            </Button>
-          </Modal.Footer>
-        </Form>
-      </Modal>
-
-      {/* Edit Unit Modal */}
-      <Modal show={showEditModal} onHide={() => setShowEditModal(false)} size="xl">
-        <Modal.Header closeButton>
-          <Modal.Title>
-            <IconifyIcon icon="ri:edit-line" className="me-2" />
-            Edit Unit: {selectedUnit?.unitNumber}
-          </Modal.Title>
-        </Modal.Header>
-        <Form onSubmit={handleSubmit(onSubmit)}>
-          <Modal.Body>
-            {/* Same form fields as create modal */}
-            <Row>
-              {/* Basic Information */}
-              <Col md={12}>
-                <h6 className="mb-3">Basic Information</h6>
-              </Col>
-              <Col md={6}>
-                <Controller
-                  name="unitNumber"
-                  control={control}
-                  render={({ field }) => (
-                    <TextFormInput
-                      {...field}
-                      label="Unit Number"
-                      placeholder="e.g., A-101"
-                      error={errors.unitNumber?.message}
-                    />
-                  )}
-                />
-              </Col>
-              <Col md={6}>
-                <Controller
-                  name="communityId"
-                  control={control}
-                  render={({ field }) => (
-                    <SelectFormInput
-                      {...field}
-                      label="Community"
-                      options={[
-                        { value: '', label: 'Select Community' },
-                        ...communityOptions
-                      ]}
-                      error={errors.communityId?.message}
-                    />
-                  )}
-                />
-              </Col>
-              {/* Add remaining form fields similar to create modal */}
-            </Row>
-          </Modal.Body>
-          <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowEditModal(false)}>
-              Cancel
-            </Button>
-            <Button variant="primary" type="submit" disabled={updateUnitMutation.isPending}>
-              {updateUnitMutation.isPending ? (
-                <>
-                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                  Updating...
-                </>
-              ) : (
-                <>
-                  <IconifyIcon icon="ri:save-line" className="me-1" />
-                  Update Unit
+                  {selectedUnit ? 'Update Unit' : 'Create Unit'}
                 </>
               )}
             </Button>

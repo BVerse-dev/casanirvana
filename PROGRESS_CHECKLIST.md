@@ -537,6 +537,11 @@ Date: 2026-02-06
   - `Add Income` and `Add Expense` quick actions now open the live transaction modal with preselected types instead of dead mock modals.
   - Finance currency labels and previews were normalized to `GHS` / `GH₵`, `UPI` labels were replaced with `Mobile Money`, and reminder/report previews now reflect live financial totals instead of static rupee placeholders.
   - The finance charts now derive trend and breakdown data from live financial and budget records instead of static demo series.
+- [x] Phase 33 community-units continuation completed:
+  - `/settings/communities/units` now uses a single real create/edit modal, removing the incomplete duplicate edit modal while preserving the existing visual layout and full form fields.
+  - The units workspace now shows maintenance and related financial values in `GHS` / `GH₵`, removing stale rupee/dollar formatting drift without changing the existing cards, tables, or grid UI.
+  - Create and edit actions now reset and close cleanly through one shared modal flow, preventing stale form state from leaking between operations.
+  - Unit transformation now respects real unit schema fields (`deposit_amount`, `description`, `balconies`) and preserves live unit statuses instead of collapsing everything non-occupied into `vacant`.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)
