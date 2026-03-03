@@ -536,7 +536,7 @@ const EmailNotificationsPage = () => {
                             { value: 'America/New_York', label: 'America/New_York (EST)' },
                             { value: 'Europe/London', label: 'Europe/London (GMT)' },
                             { value: 'Asia/Dubai', label: 'Asia/Dubai (UTC+04:00)' },
-                            { value: 'Asia/Kolkata', label: 'Asia/Kolkata (UTC+05:30)' },
+                            { value: 'Asia/Kolkata', label: 'UTC+05:30 (South Asia)' },
                           ]}
                         />
                       </Col>

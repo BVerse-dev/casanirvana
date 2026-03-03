@@ -273,7 +273,7 @@ const PaymentGatewaysPage = () => {
     { value: 'EUR', label: 'Euro (€)' },
     { value: 'GBP', label: 'British Pound (£)' },
     { value: 'NGN', label: 'Nigerian Naira (₦)' },
-    { value: 'INR', label: 'Indian Rupee (₹)' },
+    { value: 'INR', label: 'INR (₹)' },
   ];
 
   return (

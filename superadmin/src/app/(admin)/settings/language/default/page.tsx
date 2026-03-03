@@ -129,7 +129,7 @@ const DefaultLanguagePage = () => {
     { value: 'EUR (€)', label: 'EUR (€) - Euro' },
     { value: 'GBP (£)', label: 'GBP (£) - British Pound' },
     { value: 'JPY (¥)', label: 'JPY (¥) - Japanese Yen' },
-    { value: 'INR (₹)', label: 'INR (₹) - Indian Rupee' },
+    { value: 'INR (₹)', label: 'INR (₹)' },
     { value: 'AED (د.إ)', label: 'AED (د.إ) - UAE Dirham' },
   ];
 
@@ -144,7 +144,7 @@ const DefaultLanguagePage = () => {
     { value: 'Europe/Paris', label: 'Paris (CET/CEST)' },
     { value: 'Asia/Dubai', label: 'Dubai (UTC+04:00)' },
     { value: 'Asia/Tokyo', label: 'Tokyo (JST)' },
-    { value: 'Asia/Kolkata', label: 'Kolkata (UTC+05:30)' },
+    { value: 'Asia/Kolkata', label: 'UTC+05:30 (South Asia)' },
   ];
 
   return (

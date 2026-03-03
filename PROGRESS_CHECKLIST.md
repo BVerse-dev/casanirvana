@@ -605,6 +605,9 @@ Date: 2026-02-06
 - [x] Phase 33 notification-provider copy normalization completed:
   - `/settings/notifications/sms` normalized AWS region label from city-specific wording to neutral regional wording (`Asia Pacific (South Asia)`), and aligned provider sender placeholders to app-neutral values (`CASANV`).
   - `/settings/notifications/sms` provider info cards now use neutral coverage descriptions instead of region-locked phrasing, while preserving the existing tabs/cards/forms layout.
+- [x] Phase 33 final timezone/currency label sweep completed:
+  - `/settings/email/notifications` and `/settings/language/default` now use neutral UTC-based labels for `Asia/Kolkata` (`UTC+05:30 (South Asia)`) while preserving stored timezone values for backward compatibility.
+  - `/settings/payment/gateways` and `/settings/language/default` now display `INR (₹)` with neutral currency-label wording to remove region-locked copy drift.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)
