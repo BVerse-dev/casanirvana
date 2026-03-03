@@ -44,8 +44,6 @@ export const useListStaff = () => {
   return useQuery({
     queryKey: ['community_staff'],
     queryFn: async (): Promise<StaffMember[]> => {
-      console.log('🔍 useListStaff: Starting query...');
-      
       const { data, error } = await supabase
         .from('community_staff' as any)
         .select(`
@@ -57,11 +55,9 @@ export const useListStaff = () => {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('❌ useListStaff: Error fetching staff:', error);
+        console.error('Error fetching staff:', error);
         throw new Error(`Failed to fetch staff: ${error.message}`);
       }
-
-      console.log('✅ useListStaff: Data fetched successfully:', data?.length, 'records');
       
       // Map the joined community name
       const staffWithCommunityName = (data || []).map((staff: any) => ({

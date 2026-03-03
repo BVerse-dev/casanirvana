@@ -148,8 +148,6 @@ export const useListPermissions = (params: ListPermissionsParams = {}) => {
           throw error;
         }
 
-        console.log(`Successfully fetched ${data?.length || 0} permissions`);
-
         return {
           data: (data || []).map(normalizePermission),
           count: count || 0,
@@ -199,8 +197,6 @@ export const useCreatePermission = () => {
   return useMutation({
     mutationFn: async (permissionData: PermissionInsert) => {
       try {
-        console.log('Creating permission:', permissionData);
-
         const { data, error } = await supabase
           .from('permissions')
           .insert({
@@ -216,17 +212,15 @@ export const useCreatePermission = () => {
           throw error;
         }
 
-        console.log('Permission created successfully:', data);
         return normalizePermission(data);
       } catch (error) {
         console.error('Create permission error:', error);
         throw error;
       }
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['permissions'] });
       queryClient.invalidateQueries({ queryKey: ['permission-stats'] });
-      console.log('Permission cache invalidated after creation');
     },
     onError: (error) => {
       console.error('Create permission mutation error:', error);
@@ -241,8 +235,6 @@ export const useUpdatePermission = () => {
   return useMutation({
     mutationFn: async ({ id, ...updates }: PermissionUpdate) => {
       try {
-        console.log('Updating permission:', id, updates);
-
         const { data, error } = await supabase
           .from('permissions')
           .update(updates)
@@ -255,7 +247,6 @@ export const useUpdatePermission = () => {
           throw error;
         }
 
-        console.log('Permission updated successfully:', data);
         return normalizePermission(data);
       } catch (error) {
         console.error('Update permission error:', error);
@@ -266,7 +257,6 @@ export const useUpdatePermission = () => {
       queryClient.invalidateQueries({ queryKey: ['permissions'] });
       queryClient.invalidateQueries({ queryKey: ['permission', data.id] });
       queryClient.invalidateQueries({ queryKey: ['permission-stats'] });
-      console.log('Permission cache invalidated after update');
     },
     onError: (error) => {
       console.error('Update permission mutation error:', error);
@@ -281,8 +271,6 @@ export const useDeletePermission = () => {
   return useMutation({
     mutationFn: async (id: string) => {
       try {
-        console.log('Deleting permission:', id);
-
         // First check if it's a system permission
         const { data: permission, error: fetchError } = await supabase
           .from('permissions')
@@ -308,7 +296,6 @@ export const useDeletePermission = () => {
           throw error;
         }
 
-        console.log('Permission deleted successfully');
         return { id };
       } catch (error) {
         console.error('Delete permission error:', error);
@@ -318,7 +305,6 @@ export const useDeletePermission = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['permissions'] });
       queryClient.invalidateQueries({ queryKey: ['permission-stats'] });
-      console.log('Permission cache invalidated after deletion');
     },
     onError: (error) => {
       console.error('Delete permission mutation error:', error);
@@ -333,8 +319,6 @@ export const useTogglePermissionStatus = () => {
   return useMutation({
     mutationFn: async ({ id, status }: { id: string; status: 'active' | 'inactive' }) => {
       try {
-        console.log('Toggling permission status:', id, status);
-
         const { data, error } = await supabase
           .from('permissions')
           .update({ status })
@@ -347,7 +331,6 @@ export const useTogglePermissionStatus = () => {
           throw error;
         }
 
-        console.log('Permission status toggled successfully:', data);
         return normalizePermission(data);
       } catch (error) {
         console.error('Toggle permission status error:', error);
@@ -407,8 +390,6 @@ export const usePermissionStats = () => {
         modules.forEach(module => {
           stats.byModule[module] = data.filter(p => p.module === module).length;
         });
-
-        console.log('Permission stats calculated:', stats);
         return stats;
       } catch (error) {
         console.error('Permission stats error:', error);
@@ -445,8 +426,6 @@ export const usePermissionsByCategory = () => {
           acc[category].push(normalizePermission(permission));
           return acc;
         }, {} as { [key: string]: Permission[] });
-
-        console.log('Permissions grouped by category:', Object.keys(grouped));
         return grouped;
       } catch (error) {
         console.error('Permissions by category error:', error);
@@ -463,8 +442,6 @@ export const useBulkUpdatePermissions = () => {
   return useMutation({
     mutationFn: async ({ ids, updates }: { ids: string[]; updates: Partial<PermissionUpdate> }) => {
       try {
-        console.log('Bulk updating permissions:', ids, updates);
-
         const { data, error } = await supabase
           .from('permissions')
           .update(updates)
@@ -476,7 +453,6 @@ export const useBulkUpdatePermissions = () => {
           throw error;
         }
 
-        console.log('Permissions bulk updated successfully:', data?.length);
         return data;
       } catch (error) {
         console.error('Bulk update permissions error:', error);
@@ -486,7 +462,6 @@ export const useBulkUpdatePermissions = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['permissions'] });
       queryClient.invalidateQueries({ queryKey: ['permission-stats'] });
-      console.log('Permission cache invalidated after bulk update');
     },
     onError: (error) => {
       console.error('Bulk update permissions mutation error:', error);

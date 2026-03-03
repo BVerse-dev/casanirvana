@@ -64,25 +64,20 @@ export const useListUserProfiles = (filters: UserProfileFilters = {}) => {
   return useQuery({
     queryKey: ['userProfiles', filters],
     queryFn: async (): Promise<{ data: UserProfile[]; count: number; page: number; pageSize: number; totalPages: number }> => {
-      console.log('🔍 useListUserProfiles starting query with filters:', filters);
-      
       let query = supabase
         .from('profiles')
         .select('*', { count: 'exact' });
 
       // Apply filters
       if (filters.role && filters.role !== 'all') {
-        console.log('📝 Applying role filter:', filters.role);
         query = query.eq('role', filters.role);
       }
 
       if (filters.status && filters.status !== 'all') {
-        console.log('📝 Applying status filter:', filters.status);
         query = query.eq('status', filters.status);
       }
 
       if (filters.search && filters.search.trim()) {
-        console.log('📝 Applying search filter:', filters.search);
         query = query.or(`first_name.ilike.%${filters.search}%,last_name.ilike.%${filters.search}%,email.ilike.%${filters.search}%,full_name.ilike.%${filters.search}%`);
       }
 
@@ -93,19 +88,10 @@ export const useListUserProfiles = (filters: UserProfileFilters = {}) => {
       const to = from + pageSize - 1;
 
       query = query.range(from, to).order('created_at', { ascending: false });
-
-      console.log('🚀 Executing Supabase query...');
       const { data, error, count } = await query;
 
-      console.log('📊 Query results:', {
-        dataLength: data?.length,
-        count,
-        error: error?.message,
-        firstUser: data?.[0]?.email
-      });
-
       if (error) {
-        console.error('❌ Error fetching user profiles:', error);
+        console.error('Error fetching user profiles:', error);
         throw new Error(`Failed to fetch user profiles: ${error.message}`);
       }
 
@@ -140,12 +126,6 @@ export const useListUserProfiles = (filters: UserProfileFilters = {}) => {
 
       const totalPages = Math.ceil((count || 0) / pageSize);
 
-      console.log('✅ Transformed data:', {
-        transformedLength: transformedData.length,
-        totalPages,
-        sampleUser: transformedData[0]?.email
-      });
-
       return {
         data: transformedData,
         count: count || 0,
@@ -154,7 +134,7 @@ export const useListUserProfiles = (filters: UserProfileFilters = {}) => {
         totalPages
       };
     },
-    staleTime: 1 * 60 * 1000, // Reduced to 1 minute for debugging
+    staleTime: 1 * 60 * 1000,
     refetchOnMount: true,
     refetchOnWindowFocus: false,
   });
@@ -261,13 +241,11 @@ export const useCreateUserProfile = () => {
 
       // TODO: Handle password creation and welcome email if specified
       if (userData.password) {
-        // Create auth user with password
-        console.log('Password creation would be handled here');
+        // Create auth user with password in a dedicated onboarding/auth flow.
       }
 
       if (userData.send_welcome_email) {
-        // Send welcome email
-        console.log('Welcome email would be sent here');
+        // Send welcome email in a dedicated notification flow.
       }
 
       return {

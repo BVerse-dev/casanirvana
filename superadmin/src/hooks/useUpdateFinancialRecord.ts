@@ -11,8 +11,6 @@ export const useUpdateFinancialRecord = () => {
 
   return useMutation({
     mutationFn: async ({ id, ...updateData }: UpdateFinancialRecordData): Promise<FinancialRecord> => {
-      console.log('🔄 useUpdateFinancialRecord: Updating record...', id, updateData);
-
       const { data, error } = await supabase
         .from('community_financial_records' as any)
         .update(updateData)
@@ -21,20 +19,17 @@ export const useUpdateFinancialRecord = () => {
         .single();
 
       if (error) {
-        console.error('❌ useUpdateFinancialRecord: Error updating record:', error);
+        console.error('Error updating financial record:', error);
         throw new Error(`Failed to update financial record: ${error.message}`);
       }
-
-      console.log('✅ useUpdateFinancialRecord: Record updated successfully:', data);
       return data as unknown as FinancialRecord;
     },
     onSuccess: () => {
       // Invalidate and refetch financial records
       queryClient.invalidateQueries({ queryKey: ['community_financial_records'] });
-      console.log('🔄 useUpdateFinancialRecord: Invalidated community_financial_records cache');
     },
     onError: (error) => {
-      console.error('❌ useUpdateFinancialRecord: Mutation failed:', error);
+      console.error('Update financial record mutation failed:', error);
     },
   });
-}; 
+};

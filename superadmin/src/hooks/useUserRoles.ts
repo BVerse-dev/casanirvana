@@ -75,8 +75,6 @@ export function useListUserRoles(filters?: {
   return useQuery({
     queryKey: [...QUERY_KEYS.userRoles, filters],
     queryFn: async (): Promise<UserRoleWithUserCount[]> => {
-      console.log('🔍 [useListUserRoles] Fetching user roles with filters:', filters);
-
       try {
         // Build the query
         let query = supabase
@@ -100,8 +98,6 @@ export function useListUserRoles(filters?: {
           console.error('❌ [useListUserRoles] Supabase error:', error);
           throw new Error(`Failed to fetch user roles: ${error.message}`);
         }
-
-        console.log('✅ [useListUserRoles] Fetched roles:', roles?.length || 0);
 
         // Get user counts for each role
         const rolesWithCounts = await Promise.all(
@@ -143,8 +139,6 @@ export function useGetUserRole(id: string) {
   return useQuery({
     queryKey: QUERY_KEYS.userRole(id),
     queryFn: async (): Promise<UserRole> => {
-      console.log('🔍 [useGetUserRole] Fetching role:', id);
-
       const { data, error } = await supabase
         .from('user_roles')
         .select('*')
@@ -160,7 +154,6 @@ export function useGetUserRole(id: string) {
         throw new Error('User role not found');
       }
 
-      console.log('✅ [useGetUserRole] Fetched role:', data.name);
       return data;
     },
     enabled: !!id,
@@ -177,8 +170,6 @@ export function useCreateUserRole() {
 
   return useMutation({
     mutationFn: async (data: CreateRoleFormData): Promise<UserRole> => {
-      console.log('➕ [useCreateUserRole] Creating role:', data.name);
-
       // Prepare the data for insertion
       const insertData: CreateUserRoleData = {
         name: data.name,
@@ -209,7 +200,6 @@ export function useCreateUserRole() {
         throw new Error(`Failed to create user role: ${error.message}`);
       }
 
-      console.log('✅ [useCreateUserRole] Created role:', newRole.name);
       return newRole;
     },
     onSuccess: () => {
@@ -228,8 +218,6 @@ export function useUpdateUserRole() {
 
   return useMutation({
     mutationFn: async (data: UpdateRoleFormData): Promise<UserRole> => {
-      console.log('📝 [useUpdateUserRole] Updating role:', data.id);
-
       const { id, ...updateData } = data;
 
       // Prepare the data for update
@@ -262,7 +250,6 @@ export function useUpdateUserRole() {
         throw new Error(`Failed to update user role: ${error.message}`);
       }
 
-      console.log('✅ [useUpdateUserRole] Updated role:', updatedRole.name);
       return updatedRole;
     },
     onSuccess: (_, variables) => {
@@ -282,8 +269,6 @@ export function useDeleteUserRole() {
 
   return useMutation({
     mutationFn: async (id: string): Promise<void> => {
-      console.log('🗑️ [useDeleteUserRole] Deleting role:', id);
-
       // First, check if this role is assigned to any users
       const { count, error: countError } = await supabase
         .from('profiles')
@@ -325,7 +310,6 @@ export function useDeleteUserRole() {
         throw new Error(`Failed to delete user role: ${error.message}`);
       }
 
-      console.log('✅ [useDeleteUserRole] Deleted role:', role?.name);
     },
     onSuccess: () => {
       // Invalidate and refetch roles list
@@ -342,8 +326,6 @@ export function useRoleStatistics() {
   return useQuery({
     queryKey: QUERY_KEYS.roleStatistics,
     queryFn: async () => {
-      console.log('📊 [useRoleStatistics] Fetching role statistics');
-
       try {
         // Get total roles count
         const { count: totalRoles, error: totalError } = await supabase
@@ -383,7 +365,6 @@ export function useRoleStatistics() {
           totalUsers: totalUsers || 0,
         };
 
-        console.log('✅ [useRoleStatistics] Statistics:', stats);
         return stats;
       } catch (error) {
         console.error('❌ [useRoleStatistics] Error:', error);

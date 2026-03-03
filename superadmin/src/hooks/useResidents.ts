@@ -155,9 +155,9 @@ export const useCreateResident = () => {
         if (error) throw error;
         return data;
       } catch (err) {
-        console.warn("Database insert failed:", err);
-        // For demo purposes, simulate success
-        return { id: Date.now().toString(), ...residentData };
+        console.error("Database insert failed:", err);
+        const message = err instanceof Error ? err.message : 'Failed to create resident profile';
+        throw new Error(message);
       }
     },
     onSuccess: () => {
@@ -186,9 +186,9 @@ export const useUpdateResident = (id: string) => {
         if (error) throw error;
         return data;
       } catch (err) {
-        console.warn("Database update failed:", err);
-        // For demo purposes, simulate success
-        return { id, ...residentData };
+        console.error("Database update failed:", err);
+        const message = err instanceof Error ? err.message : 'Failed to update resident profile';
+        throw new Error(message);
       }
     },
     onSuccess: () => {
@@ -213,9 +213,9 @@ export const useDeleteResident = () => {
         if (error) throw error;
         return id;
       } catch (err) {
-        console.warn("Database delete failed:", err);
-        // For demo purposes, simulate success
-        return id;
+        console.error("Database delete failed:", err);
+        const message = err instanceof Error ? err.message : 'Failed to delete resident profile';
+        throw new Error(message);
       }
     },
     onSuccess: () => {

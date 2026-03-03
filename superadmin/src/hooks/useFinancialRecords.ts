@@ -29,20 +29,16 @@ export const useFinancialRecords = () => {
   return useQuery({
     queryKey: ['community_financial_records'],
     queryFn: async (): Promise<FinancialRecord[]> => {
-      console.log('🔍 useFinancialRecords: Starting query...');
-      
       const { data, error } = await supabase
         .from('community_financial_records' as any)
         .select('*')
         .order('transaction_date', { ascending: false });
 
       if (error) {
-        console.error('❌ useFinancialRecords: Error fetching records:', error);
+        console.error('Error fetching financial records:', error);
         throw new Error(`Failed to fetch financial records: ${error.message}`);
       }
-
-      console.log('✅ useFinancialRecords: Data fetched successfully:', data?.length, 'records');
       return (data as unknown as FinancialRecord[]) || [];
     },
   });
-}; 
+};

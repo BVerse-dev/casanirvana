@@ -647,6 +647,10 @@ Date: 2026-02-06
 - [x] Phase 33 notification-email settings persistence alignment completed:
   - `useEmailNotificationSettingsAdvanced` no longer depends on direct writes to `email_notification_settings`; it now uses the canonical backend-managed `system_settings` path via `useSettingsCategory` under `notifications_email_advanced`.
   - Preserved existing settings UI behavior and field coverage while standardizing load/save semantics with the rest of the settings stack.
+- [x] Phase 33 identity/settings production hardening continuation completed:
+  - Removed debug/dev console instrumentation from key identity and admin settings hooks (`useUserRoles`, `useUserPermissions`, `useUserProfiles`, `useListStaff`, `useFinancialRecords`, `useUpdateFinancialRecord`, `useDeleteFinancialRecord`) while preserving live query/mutation behavior and cache invalidation.
+  - Removed remaining demo mutation simulation in `useResidents` create/update/delete flows; failed DB operations now return real errors instead of fake-success fallback responses.
+  - Superadmin production build revalidated after this slice (`npm run build` in `/superadmin` passed).
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)
