@@ -710,6 +710,10 @@ Date: 2026-02-06
 - [x] Added RLS hardening migration for guard/agency operational tables:
   - `supabase/migrations/20260303_phase34_guard_agency_scope_rls_hardening.sql`
   - Added helper `public.can_access_agency(uuid)` and scoped policies for `guard_schedules`, `guard_assignments`, `guard_equipment`, `guard_performance`, `guard_training`, `agency_staff`, `agency_services`, `agency_documents`, `agency_transactions`.
+- [x] Applied Phase 34 guard/agency RLS migration to Casa Nirvana remote project (`pswnlowvmdgeifhxilao`) and verified:
+  - `public.can_access_agency` function exists.
+  - Scoped admin policies are active on guard/agency operational tables.
+  - Migration version `20260303` is recorded in `supabase_migrations.schema_migrations`.
 - [x] Build verification completed:
   - `backend`: `npm run build` passed.
   - `superadmin`: `npm run build` passed.

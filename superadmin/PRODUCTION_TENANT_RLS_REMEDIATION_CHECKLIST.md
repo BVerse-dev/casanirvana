@@ -83,3 +83,4 @@ Acceptance criteria:
 - 2026-03-03: Added shared backend scope service (`backend/src/services/adminScope.ts`) and capability endpoint (`GET /admin/me/capabilities`) for capability-driven navigation.
 - 2026-03-03: Added scoped guard/agency operational admin APIs and module-space operational pages (`/guards/*`, `/agency/*`) to complete Settings IA relocation.
 - 2026-03-03: Added migration `supabase/migrations/20260303_phase34_guard_agency_scope_rls_hardening.sql` to harden guard/agency operational RLS with scoped admin policies.
+- 2026-03-03: Applied Phase 34 RLS migration to Casa Nirvana remote DB (`pswnlowvmdgeifhxilao`) and validated function/policy presence plus migration metadata record (`version=20260303`).
