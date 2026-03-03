@@ -611,6 +611,8 @@ Date: 2026-02-06
   - `/settings/payment/gateways` and `/settings/language/default` now display `INR (₹)` with neutral currency-label wording to remove region-locked copy drift.
 - [x] Phase 33 settings API runtime alignment completed:
   - Marked `/api/module-settings` and `/api/module-settings/communities` route handlers as explicit dynamic routes (`force-dynamic`) to align with `headers()`-based auth scope checks and remove recurring static-generation dynamic-usage warnings during build.
+- [x] Phase 33 notification configuration route alignment completed:
+  - `/notifications/settings` is now a relocation shell into canonical Settings notification pages (`/settings/notifications/rules`, `/settings/notifications/push`) to eliminate duplicate/fake configuration surfaces and enforce one production save path.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)
