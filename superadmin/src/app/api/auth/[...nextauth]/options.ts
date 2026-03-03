@@ -36,6 +36,14 @@ const createAuthRefreshClient = () => {
   });
 };
 
+type RefreshedSession = {
+  accessToken: string;
+  refreshToken: string;
+  expiresAt: number | null;
+};
+
+const refreshInFlight = new Map<string, Promise<RefreshedSession>>();
+
 const getJwtExpiryMs = (jwt: string): number | null => {
   try {
     const [, payload] = jwt.split(".");
@@ -61,10 +69,35 @@ const refreshSupabaseAccessToken = async (refreshToken: string) => {
     throw new Error(error?.message || "Failed to refresh Supabase session");
   }
 
+  const expiresAt =
+    typeof data.session.expires_at === "number"
+      ? data.session.expires_at * 1000
+      : getJwtExpiryMs(data.session.access_token);
+
   return {
     accessToken: data.session.access_token,
     refreshToken: data.session.refresh_token || refreshToken,
+    expiresAt,
   };
+};
+
+const refreshSupabaseAccessTokenDeduped = async (refreshToken: string): Promise<RefreshedSession> => {
+  const existing = refreshInFlight.get(refreshToken);
+  if (existing) {
+    return existing;
+  }
+
+  const refreshPromise = refreshSupabaseAccessToken(refreshToken).finally(() => {
+    refreshInFlight.delete(refreshToken);
+  });
+
+  refreshInFlight.set(refreshToken, refreshPromise);
+  return refreshPromise;
+};
+
+const isRefreshTokenReusedError = (error: unknown): boolean => {
+  const message = error instanceof Error ? error.message : String(error ?? "");
+  return /Invalid Refresh Token:\s*Already Used/i.test(message);
 };
 
 type ScopeClaims = {
@@ -303,6 +336,11 @@ export const options: NextAuthOptions = {
         token.userId = customUser.id;
         token.accessToken = customUser.token;
         token.refreshToken = (customUser as any).refreshToken;
+        token.accessTokenExpires =
+          typeof (customUser as any).tokenExpiresAt === "number"
+            ? (customUser as any).tokenExpiresAt
+            : getJwtExpiryMs(customUser.token);
+        token.refreshRetryAfter = undefined;
         token.agencyId = customUser.agencyId;
         token.communityId = customUser.communityId;
         token.scopedAgencyIds = customUser.scopedAgencyIds || [];
@@ -313,16 +351,30 @@ export const options: NextAuthOptions = {
       const refreshToken = token.refreshToken as string | undefined;
 
       if (accessToken && refreshToken) {
-        const expiresAt = getJwtExpiryMs(accessToken);
+        const storedExpiry = token.accessTokenExpires as number | undefined;
+        const expiresAt = Number.isFinite(storedExpiry)
+          ? storedExpiry!
+          : getJwtExpiryMs(accessToken);
+        token.accessTokenExpires = expiresAt;
+        const retryAfter = token.refreshRetryAfter as number | undefined;
+        const retryBlocked = Number.isFinite(retryAfter) ? Date.now() < retryAfter! : false;
         const shouldRefresh = !expiresAt || Date.now() >= expiresAt - 60_000;
 
-        if (shouldRefresh) {
+        if (shouldRefresh && !retryBlocked) {
           try {
-            const refreshed = await refreshSupabaseAccessToken(refreshToken);
+            const refreshed = await refreshSupabaseAccessTokenDeduped(refreshToken);
             token.accessToken = refreshed.accessToken;
             token.refreshToken = refreshed.refreshToken;
+            token.accessTokenExpires = refreshed.expiresAt;
+            token.refreshRetryAfter = undefined;
           } catch (error) {
-            console.error("Supabase token refresh failed:", error);
+            if (isRefreshTokenReusedError(error)) {
+              // Supabase refresh tokens are one-time use; avoid refresh storms during concurrent session checks.
+              token.refreshRetryAfter = Date.now() + 15_000;
+              console.warn("Supabase token refresh skipped due to token reuse race");
+            } else {
+              console.error("Supabase token refresh failed:", error);
+            }
           }
         }
       }

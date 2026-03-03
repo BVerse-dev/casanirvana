@@ -580,6 +580,9 @@ Date: 2026-02-06
   - `/settings/users/groups` no longer shows a placeholder members modal; it now loads real group members from `group_members` + `profiles` and renders live member details with loading/error/empty states.
   - `/settings/users/activity` removed production-inappropriate debug console output and visible debug toggles/panels while preserving the existing activity monitoring UI and filters.
   - `useUserGroups` removed development logging noise and now keeps the same fallback behavior with cleaner production error handling.
+- [x] Phase 33 auth token refresh race hardening completed:
+  - NextAuth Supabase refresh flow now de-duplicates in-flight refresh requests per refresh token and applies a short retry backoff for one-time token reuse race conditions (`Invalid Refresh Token: Already Used`) to prevent refresh storms.
+  - JWT callback now stores/updates `accessTokenExpires` and refresh retry metadata, reducing repeated unnecessary refresh attempts under concurrent `/api/auth/session` requests.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)
