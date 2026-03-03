@@ -40,29 +40,30 @@ const chatSettingsKeys = {
   current: () => [...chatSettingsKeys.all, 'current'] as const,
 };
 
+const resolveChatSettingsUserId = async (providedUserId?: string) => {
+  if (providedUserId) {
+    return providedUserId;
+  }
+
+  const { data: { user }, error } = await supabase.auth.getUser();
+
+  if (error) {
+    throw new Error(`Failed to resolve chat settings user: ${error.message}`);
+  }
+
+  if (!user?.id) {
+    throw new Error('No authenticated user available for chat settings');
+  }
+
+  return user.id;
+};
+
 // Get current user's chat settings
 export const useGetChatSettings = (userId?: string) => {
   return useQuery({
     queryKey: chatSettingsKeys.current(),
     queryFn: async (): Promise<ChatSettings> => {
-      console.log('🔄 Fetching chat settings...');
-      
-      // Get current user profile if no userId provided
-      let currentUserId = userId;
-      
-      if (!currentUserId) {
-        try {
-          const { data: { user } } = await supabase.auth.getUser();
-          currentUserId = user?.id;
-        } catch (error) {
-          console.log('Auth not available, using default user ID');
-        }
-      }
-      
-      // If still no user ID, use the default one we created for testing
-      if (!currentUserId) {
-        currentUserId = 'b5c8d3e4-1234-5678-9abc-def012345678';
-      }
+      const currentUserId = await resolveChatSettingsUserId(userId);
 
       // Try to get existing settings
       const { data: existingSettings, error: fetchError } = await supabase
@@ -78,7 +79,6 @@ export const useGetChatSettings = (userId?: string) => {
 
       // If no settings exist, create default ones
       if (!existingSettings) {
-        console.log('🔄 Creating default chat settings...');
         const { data: newSettings, error: createError } = await supabase
           .from('chat_settings')
           .insert([{ user_id: currentUserId }])
@@ -89,12 +89,8 @@ export const useGetChatSettings = (userId?: string) => {
           console.error('❌ Error creating default chat settings:', createError);
           throw createError;
         }
-
-        console.log('✅ Default chat settings created successfully');
         return newSettings;
       }
-
-      console.log('✅ Chat settings fetched successfully');
       return existingSettings;
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
@@ -108,24 +104,7 @@ export const useUpdateChatSettings = () => {
   
   return useMutation({
     mutationFn: async (updates: ChatSettingsUpdate): Promise<ChatSettings> => {
-      console.log('🔄 Updating chat settings...');
-      
-      // Get user ID from updates or use default
-      let userId = updates.user_id;
-      
-      if (!userId) {
-        try {
-          const { data: { user } } = await supabase.auth.getUser();
-          userId = user?.id;
-        } catch (error) {
-          console.log('Auth not available, using default user ID');
-        }
-      }
-      
-      // If still no user ID, use the default one we created for testing
-      if (!userId) {
-        userId = 'b5c8d3e4-1234-5678-9abc-def012345678';
-      }
+      const userId = await resolveChatSettingsUserId(updates.user_id ?? undefined);
       
       // Remove user_id from updates as it's not needed for the update
       const { user_id, ...updateData } = updates;
@@ -141,8 +120,6 @@ export const useUpdateChatSettings = () => {
         console.error('❌ Error updating chat settings:', error);
         throw error;
       }
-
-      console.log('✅ Chat settings updated successfully');
       return data;
     },
     onSuccess: () => {
@@ -257,8 +234,6 @@ export const useResetChatSettings = () => {
   
   return useMutation({
     mutationFn: async (userId: string): Promise<ChatSettings> => {
-      console.log('🔄 Resetting chat settings to default...');
-      
       // Delete existing settings
       await supabase
         .from('chat_settings')
@@ -276,8 +251,6 @@ export const useResetChatSettings = () => {
         console.error('❌ Error resetting chat settings:', error);
         throw error;
       }
-
-      console.log('✅ Chat settings reset successfully');
       return data;
     },
     onSuccess: () => {
@@ -302,9 +275,7 @@ export const useChatSettingsRealtime = (userId?: string) => {
             table: 'chat_settings',
             filter: userId ? `user_id=eq.${userId}` : undefined,
           },
-          (payload) => {
-            console.log('🔄 Chat settings changed:', payload);
-            
+          () => {
             // Invalidate queries when settings change
             queryClient.invalidateQueries({ queryKey: chatSettingsKeys.all });
           }

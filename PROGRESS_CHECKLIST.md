@@ -651,6 +651,10 @@ Date: 2026-02-06
   - Removed debug/dev console instrumentation from key identity and admin settings hooks (`useUserRoles`, `useUserPermissions`, `useUserProfiles`, `useListStaff`, `useFinancialRecords`, `useUpdateFinancialRecord`, `useDeleteFinancialRecord`) while preserving live query/mutation behavior and cache invalidation.
   - Removed remaining demo mutation simulation in `useResidents` create/update/delete flows; failed DB operations now return real errors instead of fake-success fallback responses.
   - Superadmin production build revalidated after this slice (`npm run build` in `/superadmin` passed).
+- [x] Phase 33 notification/config hygiene continuation completed:
+  - Removed remaining debug realtime/analytics logging from notification and tenant-support hooks (`useSmsNotifications`, `useCommunityProfiles`, `useGuardAssignments`, `useGuardPerformance`, `useGuardSchedules`).
+  - Hardened `useChatSettings` user resolution for production by removing the test-user fallback and requiring a valid authenticated user (or explicit `userId`) before reads/writes.
+  - Superadmin production build revalidated after this slice (`npm run build` in `/superadmin` passed).
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)

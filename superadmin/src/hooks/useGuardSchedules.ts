@@ -546,8 +546,7 @@ export const useSchedulesSubscription = () => {
         schema: 'public',
         table: 'guard_schedules',
       },
-      (payload) => {
-        console.log('Guard schedules change detected:', payload);
+      () => {
         // Invalidate schedules queries to refetch fresh data
         queryClient.invalidateQueries({ queryKey: QUERY_KEYS.schedules });
       }
@@ -559,8 +558,7 @@ export const useSchedulesSubscription = () => {
         schema: 'public',
         table: 'shift_patterns',
       },
-      (payload) => {
-        console.log('Shift patterns change detected:', payload);
+      () => {
         // Invalidate patterns queries to refetch fresh data
         queryClient.invalidateQueries({ queryKey: QUERY_KEYS.patterns });
       }
@@ -582,8 +580,7 @@ export const useGuardSchedulesRealtime = () => {
           schema: 'public',
           table: 'guard_schedules',
         },
-        (payload) => {
-          console.log('Guard schedules change detected:', payload);
+        () => {
           // Invalidate schedules queries to refetch fresh data
           queryClient.invalidateQueries({ queryKey: QUERY_KEYS.schedules });
         }
@@ -595,8 +592,7 @@ export const useGuardSchedulesRealtime = () => {
           schema: 'public',
           table: 'shift_patterns',
         },
-        (payload) => {
-          console.log('Shift patterns change detected:', payload);
+        () => {
           // Invalidate patterns queries to refetch fresh data
           queryClient.invalidateQueries({ queryKey: QUERY_KEYS.patterns });
         }

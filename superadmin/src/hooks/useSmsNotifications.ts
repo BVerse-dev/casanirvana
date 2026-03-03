@@ -298,15 +298,8 @@ export const useSmsAnalytics = (notificationsOrDays: SmsNotification[] | number 
     queryFn: async () => {
       // Use provided notifications if available, otherwise use fetched ones
       const source = notifications && notifications.length > 0 ? notifications : smsNotifications;
-      
-      console.log('Analytics source data:', { 
-        providedNotifications: notifications?.length || 0, 
-        fetchedNotifications: smsNotifications?.length || 0, 
-        usingSource: source?.length || 0 
-      });
 
       if (!source || source.length === 0) {
-        console.log('No SMS notifications available for analytics');
         return {
           chartData: {
             labels: [],
@@ -377,14 +370,6 @@ export const useSmsAnalytics = (notificationsOrDays: SmsNotification[] | number 
         failed: failedCount,
         pending: pendingCount,
       };
-      
-      // Debug output
-      console.log('SMS Analytics processed data:', {
-        chartData,
-        deliveryStatusData,
-        totalNotifications: source.length,
-        uniqueDays: Object.keys(dayMap).length
-      });
       return {
         chartData,
         deliveryStatusData,

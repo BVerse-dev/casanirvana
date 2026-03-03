@@ -474,8 +474,7 @@ export const useGuardAssignmentsRealtime = () => {
           schema: 'public',
           table: 'guard_assignments',
         },
-        (payload) => {
-          console.log('Guard assignments change detected:', payload);
+        () => {
           // Invalidate queries to refetch fresh data
           queryClient.invalidateQueries({ queryKey: QUERY_KEYS.assignments });
           queryClient.invalidateQueries({ queryKey: QUERY_KEYS.societyOverview });

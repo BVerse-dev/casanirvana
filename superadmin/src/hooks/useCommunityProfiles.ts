@@ -461,8 +461,6 @@ export const useCommunityProfilesRealtime = () => {
               table: 'communities',
             },
             (payload) => {
-              console.log('Community profiles real-time update:', payload);
-              
               // Invalidate relevant queries to trigger refetch
               queryClient.invalidateQueries({ queryKey: ["community-profiles"] });
               queryClient.invalidateQueries({ queryKey: ["community-stats"] });

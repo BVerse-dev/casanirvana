@@ -571,8 +571,7 @@ export const useGuardPerformanceRealtime = () => {
           schema: 'public',
           table: 'guard_performance_reviews',
         },
-        (payload) => {
-          console.log('Performance reviews change detected:', payload);
+        () => {
           queryClient.invalidateQueries({ queryKey: QUERY_KEYS.reviews });
           queryClient.invalidateQueries({ queryKey: QUERY_KEYS.performances });
           queryClient.invalidateQueries({ queryKey: QUERY_KEYS.performanceStats });
@@ -589,8 +588,7 @@ export const useGuardPerformanceRealtime = () => {
           schema: 'public',
           table: 'guard_performance_metrics',
         },
-        (payload) => {
-          console.log('Performance metrics change detected:', payload);
+        () => {
           queryClient.invalidateQueries({ queryKey: QUERY_KEYS.performances });
           queryClient.invalidateQueries({ queryKey: QUERY_KEYS.performanceStats });
         }
