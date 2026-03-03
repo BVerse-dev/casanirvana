@@ -13,6 +13,7 @@ import IconifyIcon from '@/components/wrappers/IconifyIcon';
 
 // Hooks
 import {
+  useCommunityConfigurations,
   useCommunityConfigurationByCommunity,
   useUpdateCommunityConfiguration
 } from '@/hooks/useCommunityConfigurations';
@@ -24,8 +25,20 @@ const CommunityConfigurationPage = () => {
   const [hasChanges, setHasChanges] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [selectedCommunity, setSelectedCommunity] = useState('e1d40ef7-f1d5-4756-88a2-054fe30cb06a'); // Default to Green Valley Apartments
+  const [selectedCommunity, setSelectedCommunity] = useState('');
   const queryClient = useQueryClient();
+
+  const {
+    data: communityConfigurations = [],
+    isLoading: isLoadingCommunityConfigurations,
+    error: communityConfigurationsError,
+  } = useCommunityConfigurations();
+
+  useEffect(() => {
+    if (!selectedCommunity && communityConfigurations.length > 0) {
+      setSelectedCommunity(communityConfigurations[0].community_id);
+    }
+  }, [communityConfigurations, selectedCommunity]);
 
   // Fetch configuration data
   const { data: configuration, isLoading, error } = useCommunityConfigurationByCommunity(selectedCommunity);
@@ -168,7 +181,7 @@ const CommunityConfigurationPage = () => {
   };
 
   // Handle loading and error states
-  if (isLoading) {
+  if (isLoading || isLoadingCommunityConfigurations) {
     return (
       <>
         <PageTitle 
@@ -180,6 +193,23 @@ const CommunityConfigurationPage = () => {
             <Spinner animation="border" variant="primary" />
             <p className="mt-3">Loading configuration...</p>
           </div>
+        </ComponentContainerCard>
+      </>
+    );
+  }
+
+  if (communityConfigurationsError) {
+    return (
+      <>
+        <PageTitle
+          title="Community Configuration"
+          subName="Configure community settings and policies"
+        />
+        <ComponentContainerCard title="Community Configuration" id="community-config">
+          <Alert variant="danger">
+            <IconifyIcon icon="ri:error-warning-line" className="me-2" />
+            Error loading communities: {communityConfigurationsError.message}
+          </Alert>
         </ComponentContainerCard>
       </>
     );
@@ -212,7 +242,9 @@ const CommunityConfigurationPage = () => {
         <ComponentContainerCard title="Community Configuration" id="community-config">
           <Alert variant="info">
             <IconifyIcon icon="ri:information-line" className="me-2" />
-            No configuration found for this community. Create a new configuration to get started.
+            {communityConfigurations.length === 0
+              ? 'No community configuration records were found yet.'
+              : 'No configuration found for the selected community.'}
           </Alert>
         </ComponentContainerCard>
       </>
@@ -241,6 +273,24 @@ const CommunityConfigurationPage = () => {
       )}
 
       <ComponentContainerCard title="Community Configuration" id="community-config">
+        <Row className="mb-4">
+          <Col lg={6}>
+            <Form.Group>
+              <Form.Label className="fw-semibold">Select Community</Form.Label>
+              <Form.Select
+                value={selectedCommunity}
+                onChange={(event) => setSelectedCommunity(event.target.value)}
+              >
+                {communityConfigurations.map((communityConfig) => (
+                  <option key={communityConfig.community_id} value={communityConfig.community_id}>
+                    {communityConfig.community_name || communityConfig.community_id}
+                  </option>
+                ))}
+              </Form.Select>
+            </Form.Group>
+          </Col>
+        </Row>
+
         <Tabs defaultActiveKey="overview" className="mb-3">
           <Tab eventKey="overview" title="Configuration Overview">
             <Row className="mb-4">

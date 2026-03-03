@@ -617,6 +617,9 @@ Date: 2026-02-06
   - `/settings/general/integrations` now uses validation-first wording/status (`Validate Config`, `validated`, `invalid`) so the UI no longer implies guaranteed live provider connectivity for schema-only checks.
   - `/settings/payment/gateways` now clearly states that live credential validation is wired for ExpressPay only, and non-wired gateway test buttons are disabled (`Validation Pending`) instead of surfacing misleading pseudo-tests.
   - `/settings/notifications/push` and `/settings/notifications/sms` now explicitly indicate that setup tests validate configuration readiness while actual message delivery depends on provider/runtime conditions.
+- [x] Phase 33 settings cleanup continuation completed:
+  - Removed the unused duplicate notification-settings implementation (`/notifications/settings/components/NotificationSettingsView` and legacy hooks `useNotificationSettings`, `useChannelSettings`, `useAppSettings`) to prevent accidental fallback to direct browser writes against `app_settings`.
+  - `/settings/communities/configuration` no longer hardcodes a single community UUID; it now loads configured communities dynamically and allows selecting the target community before editing configuration.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)
