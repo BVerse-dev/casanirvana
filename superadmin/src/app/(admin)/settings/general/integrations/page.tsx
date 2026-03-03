@@ -384,7 +384,7 @@ const IntegrationsPage = () => {
 
   const testIntegrationConnection = async (service: string, configuredValue: string) => {
     if (!configuredValue) {
-      toast.error('Please enter an API key first');
+      toast.error('Please enter credentials first.');
       return;
     }
 
@@ -404,8 +404,8 @@ const IntegrationsPage = () => {
 
   const getConnectionStatus = (service: string, apiKey?: string) => {
     if (testResults[service] === 'testing') return { status: 'testing', color: 'warning' };
-    if (testResults[service] === 'success') return { status: 'connected', color: 'success' };
-    if (testResults[service] === 'error') return { status: 'error', color: 'danger' };
+    if (testResults[service] === 'success') return { status: 'validated', color: 'success' };
+    if (testResults[service] === 'error') return { status: 'invalid', color: 'danger' };
     if (apiKey) return { status: 'not tested', color: 'secondary' };
     return { status: 'not configured', color: 'light' };
   };
@@ -480,15 +480,20 @@ const IntegrationsPage = () => {
                 {testResults[service.name] === 'testing' ? (
                   <>
                     <Spinner size="sm" className="me-2" />
-                    Testing...
+                    Validating...
                   </>
                 ) : (
                   <>
                     <IconifyIcon icon="solar:play-circle-line-duotone" className="me-2" />
-                    Test Connection
+                    Validate Config
                   </>
                 )}
               </Button>
+            )}
+            {service.testable && (
+              <small className="text-muted d-block mt-2">
+                Validation checks required fields and format. Live provider delivery is verified during runtime calls.
+              </small>
             )}
           </Col>
         </Row>

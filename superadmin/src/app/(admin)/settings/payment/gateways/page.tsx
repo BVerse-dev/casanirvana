@@ -322,6 +322,11 @@ const PaymentGatewaysPage = () => {
         </Alert>
       )}
 
+      <Alert variant="info">
+        <IconifyIcon icon="solar:shield-check-line-duotone" className="fs-18 me-2" />
+        Credential validation is currently wired for ExpressPay only. Other gateway forms are saved, but live connection tests are not enabled yet.
+      </Alert>
+
       <form onSubmit={handleSubmit(onSubmit)}>
         <Row>
           {/* Razorpay */}
@@ -391,11 +396,11 @@ const PaymentGatewaysPage = () => {
 
                     <button
                       type="button"
-                      className="btn btn-outline-primary btn-sm"
-                      onClick={() => testPaymentGateway('Razorpay')}
+                      className="btn btn-outline-secondary btn-sm"
+                      disabled
                     >
-                      <i className="ri-test-tube-line me-1"></i>
-                      Test Connection
+                      <i className="ri-time-line me-1"></i>
+                      Validation Pending
                     </button>
                   </>
                 )}
@@ -470,11 +475,11 @@ const PaymentGatewaysPage = () => {
 
                     <button
                       type="button"
-                      className="btn btn-outline-primary btn-sm"
-                      onClick={() => testPaymentGateway('Stripe')}
+                      className="btn btn-outline-secondary btn-sm"
+                      disabled
                     >
-                      <i className="ri-test-tube-line me-1"></i>
-                      Test Connection
+                      <i className="ri-time-line me-1"></i>
+                      Validation Pending
                     </button>
                   </>
                 )}
@@ -551,11 +556,11 @@ const PaymentGatewaysPage = () => {
 
                     <button
                       type="button"
-                      className="btn btn-outline-primary btn-sm"
-                      onClick={() => testPaymentGateway('PayPal')}
+                      className="btn btn-outline-secondary btn-sm"
+                      disabled
                     >
-                      <i className="ri-test-tube-line me-1"></i>
-                      Test Connection
+                      <i className="ri-time-line me-1"></i>
+                      Validation Pending
                     </button>
                   </>
                 )}
@@ -630,11 +635,11 @@ const PaymentGatewaysPage = () => {
 
                     <button
                       type="button"
-                      className="btn btn-outline-primary btn-sm"
-                      onClick={() => testPaymentGateway('Paytm')}
+                      className="btn btn-outline-secondary btn-sm"
+                      disabled
                     >
-                      <i className="ri-test-tube-line me-1"></i>
-                      Test Connection
+                      <i className="ri-time-line me-1"></i>
+                      Validation Pending
                     </button>
                   </>
                 )}

@@ -151,6 +151,11 @@ const PushNotificationsPage = () => {
         </Alert>
       )}
 
+      <Alert variant="info">
+        <IconifyIcon icon="solar:shield-check-line-duotone" className="fs-18 me-2" />
+        Validate Push Setup checks configuration completeness only. Live push delivery depends on your Firebase project and client app registration.
+      </Alert>
+
       <form onSubmit={handleSubmit(onSubmit)}>
         <Row>
           {/* Firebase Configuration */}

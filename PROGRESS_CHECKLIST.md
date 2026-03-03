@@ -613,6 +613,10 @@ Date: 2026-02-06
   - Marked `/api/module-settings` and `/api/module-settings/communities` route handlers as explicit dynamic routes (`force-dynamic`) to align with `headers()`-based auth scope checks and remove recurring static-generation dynamic-usage warnings during build.
 - [x] Phase 33 notification configuration route alignment completed:
   - `/notifications/settings` is now a relocation shell into canonical Settings notification pages (`/settings/notifications/rules`, `/settings/notifications/push`) to eliminate duplicate/fake configuration surfaces and enforce one production save path.
+- [x] Phase 33 settings test-flow reliability alignment completed:
+  - `/settings/general/integrations` now uses validation-first wording/status (`Validate Config`, `validated`, `invalid`) so the UI no longer implies guaranteed live provider connectivity for schema-only checks.
+  - `/settings/payment/gateways` now clearly states that live credential validation is wired for ExpressPay only, and non-wired gateway test buttons are disabled (`Validation Pending`) instead of surfacing misleading pseudo-tests.
+  - `/settings/notifications/push` and `/settings/notifications/sms` now explicitly indicate that setup tests validate configuration readiness while actual message delivery depends on provider/runtime conditions.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)

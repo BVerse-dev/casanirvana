@@ -321,6 +321,11 @@ const SmsSettingsPage = () => {
         </Alert>
       )}
 
+      <Alert variant="info">
+        <IconifyIcon icon="solar:shield-check-line-duotone" className="fs-18 me-2" />
+        Validate SMS Setup checks provider configuration completeness. Live delivery still depends on your SMS provider account and approved sender setup.
+      </Alert>
+
       <form onSubmit={handleSubmit(onSubmit)}>
           <Row>
             <Col xl={6}>
