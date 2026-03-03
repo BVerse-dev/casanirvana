@@ -583,6 +583,10 @@ Date: 2026-02-06
 - [x] Phase 33 auth token refresh race hardening completed:
   - NextAuth Supabase refresh flow now de-duplicates in-flight refresh requests per refresh token and applies a short retry backoff for one-time token reuse race conditions (`Invalid Refresh Token: Already Used`) to prevent refresh storms.
   - JWT callback now stores/updates `accessTokenExpires` and refresh retry metadata, reducing repeated unnecessary refresh attempts under concurrent `/api/auth/session` requests.
+- [x] Phase 33 notifications/settings cleanup continuation completed:
+  - `/settings/notifications/rules` no longer seeds hardcoded sample rules; rule definitions now start from persisted settings only, and newly created rules use stable UUID-based IDs for production-safe management.
+  - Settings navigation keys were normalized to be globally unique (`menu-items.ts`) to prevent duplicate key collisions between module menus and settings menus (notably notification setup/email entries).
+  - This keeps the current UI/tabs intact while tightening config-only behavior and navigation stability.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)

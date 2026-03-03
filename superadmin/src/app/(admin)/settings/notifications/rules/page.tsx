@@ -106,99 +106,12 @@ const notificationRulesSchema = yup.object({
   default_throttle_time: yup.number().required(),
 });
 
-const defaultRules: NotificationRule[] = [
-  {
-    id: '1',
-    name: 'High Priority Complaint Alert',
-    description: 'Immediate notification for high-priority complaints',
-    trigger: 'complaint.created',
-    conditions: [
-      { field: 'priority', operator: 'equals', value: 'high' },
-      { field: 'category', operator: 'not_equals', value: 'general' }
-    ],
-    actions: [
-      {
-        type: 'notification',
-        channel: 'push',
-        recipients: ['admin', 'manager'],
-        template: 'new_complaint_alert',
-        delay: 0
-      },
-      {
-        type: 'email',
-        channel: 'email',
-        recipients: ['admin@company.com'],
-        template: 'new_complaint_email',
-        delay: 5
-      }
-    ],
-    priority: 'high',
-    isActive: true,
-    throttle: 60,
-    cooldown: 300,
-    maxExecutions: 100,
-    createdAt: '2024-01-15T10:00:00Z',
-    lastTriggered: '2024-01-29T14:30:00Z',
-    executionCount: 25
-  },
-  {
-    id: '2',
-    name: 'Maintenance Due Reminder',
-    description: 'Weekly reminder for upcoming maintenance requests',
-    trigger: 'maintenance.due_soon',
-    conditions: [
-      { field: 'daysUntilDue', operator: 'less_than', value: '7' },
-      { field: 'status', operator: 'equals', value: 'pending' }
-    ],
-    actions: [
-      {
-        type: 'notification',
-        channel: 'push',
-        recipients: ['maintenance_team'],
-        template: 'maintenance_reminder',
-        delay: 0
-      }
-    ],
-    priority: 'medium',
-    isActive: true,
-    throttle: 86400,
-    executionCount: 12,
-    createdAt: '2024-01-10T09:00:00Z',
-    lastTriggered: '2024-01-28T09:00:00Z'
-  },
-  {
-    id: '3',
-    name: 'Payment Overdue Alert',
-    description: 'Alert when payment is overdue by more than 30 days',
-    trigger: 'payment.overdue',
-    conditions: [
-      { field: 'daysPastDue', operator: 'greater_than', value: '30' }
-    ],
-    actions: [
-      {
-        type: 'notification',
-        channel: 'push',
-        recipients: ['finance_team', 'admin'],
-        template: 'payment_overdue_alert',
-        delay: 0
-      },
-      {
-        type: 'sms',
-        channel: 'sms',
-        recipients: ['unit_owner'],
-        template: 'payment_overdue_sms',
-        delay: 60
-      }
-    ],
-    priority: 'critical',
-    isActive: false,
-    throttle: 172800,
-    maxExecutions: 5,
-    executionCount: 3,
-    createdAt: '2024-01-05T08:00:00Z',
-    lastTriggered: '2024-01-25T11:20:00Z'
-  }
-];
+const defaultRules: NotificationRule[] = [];
+
+const generateRuleId = () =>
+  typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : `rule-${Date.now()}`;
 
 const NotificationRulesPage = () => {
   const {
@@ -233,7 +146,7 @@ const NotificationRulesPage = () => {
   const [deletingRuleId, setDeletingRuleId] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [ruleError, setRuleError] = useState<string | null>(null);
-  const [mockRules, setMockRules] = useState<NotificationRule[]>(defaultRules);
+  const [rules, setRules] = useState<NotificationRule[]>(defaultRules);
 
   // Form for global settings (Supabase data)
   const {
@@ -269,7 +182,7 @@ const NotificationRulesPage = () => {
 
   useEffect(() => {
     if (ruleDefinitions?.rules) {
-      setMockRules(ruleDefinitions.rules);
+      setRules(ruleDefinitions.rules);
     }
   }, [ruleDefinitions]);
 
@@ -311,14 +224,14 @@ const NotificationRulesPage = () => {
   const persistRules = async (nextRules: NotificationRule[]) => {
     setRuleError(null);
     await saveRuleDefinitionsAsync({ rules: nextRules });
-    setMockRules(nextRules);
+    setRules(nextRules);
     setShowSuccess(true);
     setTimeout(() => setShowSuccess(false), 4000);
   };
 
   // Rule management functions
   const toggleRuleStatus = async (ruleId: string) => {
-    const nextRules = mockRules.map(rule =>
+    const nextRules = rules.map(rule =>
       rule.id === ruleId ? { ...rule, isActive: !rule.isActive } : rule
     );
 
@@ -341,7 +254,7 @@ const NotificationRulesPage = () => {
 
   const confirmDeleteRule = async () => {
     if (deletingRuleId) {
-      const nextRules = mockRules.filter(rule => rule.id !== deletingRuleId);
+      const nextRules = rules.filter(rule => rule.id !== deletingRuleId);
       try {
         await persistRules(nextRules);
       } catch (error) {
@@ -359,11 +272,11 @@ const NotificationRulesPage = () => {
 
   const saveRule = async (data: RuleFormData) => {
     const nextRules = currentRule
-      ? mockRules.map(rule => (rule.id === currentRule.id ? { ...currentRule, ...data } : rule))
+      ? rules.map(rule => (rule.id === currentRule.id ? { ...currentRule, ...data } : rule))
       : [
-          ...mockRules,
+          ...rules,
           {
-            id: Date.now().toString(),
+            id: generateRuleId(),
             ...data,
             conditions: [],
             actions: [],
@@ -491,7 +404,7 @@ const NotificationRulesPage = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {mockRules.map((rule) => (
+                        {rules.map((rule) => (
                           <tr key={rule.id}>
                             <td>
                               <div>
@@ -554,7 +467,7 @@ const NotificationRulesPage = () => {
                             </td>
                           </tr>
                         ))}
-                        {mockRules.length === 0 && (
+                        {rules.length === 0 && (
                           <tr>
                             <td colSpan={7} className="text-center py-4">
                               <p className="mb-0 text-muted">No rules defined yet. Click &quot;Add Rule&quot; to create one.</p>
@@ -706,14 +619,14 @@ const NotificationRulesPage = () => {
                           <Row>
                             <Col md={3}>
                               <div className="text-center">
-                                <h4 className="text-primary">{mockRules.length}</h4>
+                                <h4 className="text-primary">{rules.length}</h4>
                                 <small className="text-muted">Total Rules</small>
                               </div>
                             </Col>
                             <Col md={3}>
                               <div className="text-center">
                                 <h4 className="text-success">
-                                  {mockRules.filter(r => r.isActive).length}
+                                  {rules.filter(r => r.isActive).length}
                                 </h4>
                                 <small className="text-muted">Active Rules</small>
                               </div>
@@ -721,7 +634,7 @@ const NotificationRulesPage = () => {
                             <Col md={3}>
                               <div className="text-center">
                                 <h4 className="text-warning">
-                                  {mockRules.reduce((sum, r) => sum + r.executionCount, 0)}
+                                  {rules.reduce((sum, r) => sum + r.executionCount, 0)}
                                 </h4>
                                 <small className="text-muted">Total Executions</small>
                               </div>
@@ -729,7 +642,7 @@ const NotificationRulesPage = () => {
                             <Col md={3}>
                               <div className="text-center">
                                 <h4 className="text-info">
-                                  {mockRules.filter(r => r.priority === 'critical').length}
+                                  {rules.filter(r => r.priority === 'critical').length}
                                 </h4>
                                 <small className="text-muted">Critical Rules</small>
                               </div>

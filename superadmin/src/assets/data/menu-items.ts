@@ -451,7 +451,7 @@ export const MENU_ITEMS: MenuItemType[] = [
     icon: "ri:news-line",
     children: [
       {
-        key: "post",
+        key: "post-list",
         label: "Notice",
         url: "/post",
         parentKey: "post",
@@ -530,7 +530,7 @@ export const MENU_ITEMS: MenuItemType[] = [
             parentKey: "email-settings",
           },
           {
-            key: "email-notifications",
+            key: "settings-email-notifications",
             label: "Email Notifications",
             url: "/settings/email/notifications",
             parentKey: "email-settings",
@@ -565,39 +565,39 @@ export const MENU_ITEMS: MenuItemType[] = [
         parentKey: "settings",
       },
       {
-        key: "notification-settings",
+        key: "settings-notification-setup",
         label: "Notification Setup",
         icon: "ri:notification-4-line",
         children: [
           {
-            key: "push-notifications",
+            key: "settings-push-notifications",
             label: "Push Notification Setup",
             url: "/settings/notifications/push",
-            parentKey: "notification-settings",
+            parentKey: "settings-notification-setup",
           },
           {
-            key: "sms-notifications",
+            key: "settings-sms-notifications",
             label: "SMS Notification Setup",
             url: "/settings/notifications/sms",
-            parentKey: "notification-settings",
+            parentKey: "settings-notification-setup",
           },
           {
-            key: "email-notification-settings",
+            key: "settings-email-notification-setup",
             label: "Email Notification Setup",
             url: "/settings/notifications/email",
-            parentKey: "notification-settings",
+            parentKey: "settings-notification-setup",
           },
           {
-            key: "inapp-notification-settings",
+            key: "settings-inapp-notification-setup",
             label: "In-App Notification Setup",
             url: "/settings/notifications/in-app",
-            parentKey: "notification-settings",
+            parentKey: "settings-notification-setup",
           },
           {
-            key: "notification-rules",
+            key: "settings-notification-rules",
             label: "Notification Rules",
             url: "/settings/notifications/rules",
-            parentKey: "notification-settings",
+            parentKey: "settings-notification-setup",
           },
         ],
         parentKey: "settings",
@@ -696,7 +696,7 @@ export const MENU_ITEMS: MenuItemType[] = [
             parentKey: "general-settings",
           },
           {
-            key: "system-config",
+            key: "general-system-config",
             label: "System Config",
             url: "/settings/general/system",
             parentKey: "general-settings",
