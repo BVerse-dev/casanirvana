@@ -191,7 +191,7 @@ const PaymentMethodsPage = () => {
     },
     {
       key: 'net_banking',
-      name: 'Net Banking',
+      name: 'Online Banking',
       note: 'Reserved toggle',
       icon: 'ri-bank-line',
       enabled: watchedMethods[2],
@@ -202,7 +202,7 @@ const PaymentMethodsPage = () => {
       key: 'cash',
       name: 'Cash',
       note: 'Reserved toggle',
-      icon: 'ri-money-rupee-circle-line',
+      icon: 'ri-money-dollar-circle-line',
       enabled: watchedMethods[6],
       fieldName: 'cash_enabled' as const,
       live: false,
@@ -346,7 +346,7 @@ const PaymentMethodsPage = () => {
             <Card>
               <CardHeader>
                 <h5 className="card-title mb-0">
-                  <i className="ri-money-rupee-circle-line me-2"></i>
+                  <i className="ri-money-dollar-circle-line me-2"></i>
                   Payment Limits
                 </h5>
               </CardHeader>

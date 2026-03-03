@@ -9,6 +9,7 @@ import * as yup from 'yup';
 // Components
 import PageTitle from '@/components/PageTitle';
 import TextFormInput from '@/components/from/TextFormInput';
+import PasswordFormInput from '@/components/from/PasswordFormInput';
 import SelectFormInput from '@/components/from/SelectFormInput';
 import IconifyIcon from '@/components/wrappers/IconifyIcon';
 
@@ -267,10 +268,12 @@ const PaymentGatewaysPage = () => {
   ];
 
   const currencyOptions = [
+    { value: 'GHS', label: 'Ghana Cedi (GH₵)' },
     { value: 'USD', label: 'US Dollar ($)' },
-    { value: 'INR', label: 'Indian Rupee ($)' },
     { value: 'EUR', label: 'Euro (€)' },
     { value: 'GBP', label: 'British Pound (£)' },
+    { value: 'NGN', label: 'Nigerian Naira (₦)' },
+    { value: 'INR', label: 'Indian Rupee (₹)' },
   ];
 
   return (
@@ -770,7 +773,7 @@ const PaymentGatewaysPage = () => {
                     <TextFormInput
                       name="bank_name"
                       label="Bank Name"
-                      placeholder="State Bank of India"
+                      placeholder="Example Bank Ghana"
                       control={control}
                       containerClassName="mb-3"
                     />
@@ -785,8 +788,8 @@ const PaymentGatewaysPage = () => {
 
                     <TextFormInput
                       name="ifsc_code"
-                      label="IFSC Code"
-                      placeholder="SBIN0001234"
+                      label="Routing / Branch Code"
+                      placeholder="BRANCH-001"
                       control={control}
                       containerClassName="mb-3"
                     />
@@ -879,14 +882,6 @@ const PaymentGatewaysPage = () => {
                 </Alert>
 
                 <div className="d-flex justify-content-end gap-2">
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={() => reset()}
-                    disabled={isUpdating}
-                  >
-                    Reset
-                  </button>
                   <button
                     type="submit"
                     className="btn btn-primary"

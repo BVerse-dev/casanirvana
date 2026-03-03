@@ -188,7 +188,7 @@ const PaymentFeesPage = () => {
       icon: 'ri-money-dollar-circle-line' 
     },
     { 
-      name: 'Net Banking', 
+      name: 'Online Banking', 
       percentageField: 'net_banking_fee_percentage' as const, 
       fixedField: 'net_banking_fee_fixed' as const, 
       icon: 'ri-bank-line' 

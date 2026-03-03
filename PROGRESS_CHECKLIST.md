@@ -594,6 +594,10 @@ Date: 2026-02-06
   - `/settings/general/business` replaced static/fake insights (including `$` display drift) with policy snapshot cards derived from active business configuration values.
   - `/settings/general/regional` removed stale India-specific UI drift (`currency-rupee`, `UTC+5:30`, `GST (India)`, static compliance count) and now shows dynamic compliance/currency/timezone state with Ghana-aligned labels.
   - `/settings/general/integrations` normalized payment-gateway copy to avoid region-locked wording and keep integration descriptions production-neutral.
+- [x] Phase 33 payment-settings cleanup continuation completed:
+  - `/settings/payment/gateways` now uses Ghana-first currency options (`GHS` default) with corrected legacy currency labels (`INR` symbol fix), and removed India-specific bank placeholders (`State Bank of India`, `IFSC`) in favor of region-neutral banking copy.
+  - `/settings/payment/gateways` action footer now has a single reset action (duplicate reset button removed) to keep the current UI cleaner without changing the existing card/tab layout.
+  - `/settings/payment/methods` and `/settings/payment/fees` renamed `Net Banking` to `Online Banking` for region-neutral terminology and removed remaining rupee-specific icon usage in payment limits/cards.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)
