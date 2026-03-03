@@ -25,6 +25,7 @@ import IconifyIcon from "@/components/wrappers/IconifyIcon";
 import ReactApexChart from "react-apexcharts";
 import { toast } from "react-hot-toast";
 import { useQueryClient } from '@tanstack/react-query';
+import { useRouter } from "next/navigation";
 import { 
   useSystemMetrics, 
   useSystemActivities, 
@@ -40,6 +41,7 @@ import {
 import { supabase } from '@/lib/supabase';
 
 const SystemOverview = () => {
+  const router = useRouter();
   // Use Supabase hooks
   const { data: systemMetricsData, isLoading: metricsLoading, error: metricsError } = useSystemMetrics();
   const { data: activitiesData = [], isLoading: activitiesLoading } = useSystemActivities();
@@ -80,6 +82,24 @@ const SystemOverview = () => {
     time: alert.time_ago,
     id: alert.id
   }));
+  const chartCategories = performanceDataUI.length > 0 ? performanceDataUI.map((item) => item.month) : ['No Data'];
+  const chartSeries = performanceDataUI.length > 0
+    ? [
+        { name: 'Users', data: performanceDataUI.map((item) => item.users) },
+        { name: 'Complaints', data: performanceDataUI.map((item) => item.complaints) },
+        { name: 'Satisfaction', data: performanceDataUI.map((item) => item.satisfaction) },
+      ]
+    : [
+        { name: 'Users', data: [0] },
+        { name: 'Complaints', data: [0] },
+        { name: 'Satisfaction', data: [0] },
+      ];
+  const resourceProgress = {
+    storage: resourceUsage.storage.total > 0 ? (resourceUsage.storage.used / resourceUsage.storage.total) * 100 : 0,
+    bandwidth: resourceUsage.bandwidth.total > 0 ? (resourceUsage.bandwidth.used / resourceUsage.bandwidth.total) * 100 : 0,
+    apiCalls: resourceUsage.apiCalls.total > 0 ? (resourceUsage.apiCalls.used / resourceUsage.apiCalls.total) * 100 : 0,
+    emailQuota: resourceUsage.emailQuota.total > 0 ? (resourceUsage.emailQuota.used / resourceUsage.emailQuota.total) * 100 : 0,
+  };
 
   // Real-time subscription for system metrics
   useEffect(() => {
@@ -168,7 +188,7 @@ const SystemOverview = () => {
             <IconifyIcon icon="ri:refresh-line" className="me-1" />
             Refresh
           </Button>
-          <Button variant="outline-secondary" size="sm">
+          <Button variant="outline-secondary" size="sm" onClick={() => router.push('/dashboards/analytics')}>
             <IconifyIcon icon="ri:download-line" className="me-1" />
             Export Report
           </Button>
@@ -367,11 +387,11 @@ const SystemOverview = () => {
                 </Col>
                 <Col md={3}>
                   <div className="text-muted small">Database Size</div>
-                  <div className="fw-medium">2.4 GB</div>
+                  <div className="fw-medium">{systemMetricsData?.database_size || 'N/A'}</div>
                 </Col>
                 <Col md={3}>
                   <div className="text-muted small">Backup Size</div>
-                  <div className="fw-medium">1.8 GB</div>
+                  <div className="fw-medium">{systemMetricsData?.backup_size || 'N/A'}</div>
                 </Col>
               </Row>
             </CardBody>
@@ -440,7 +460,7 @@ const SystemOverview = () => {
                   <IconifyIcon icon="ri:dashboard-line" className="me-1" />
                   System Health Score:{" "}
                   <span className="text-success fw-bold">
-                    &nbsp;98.5%
+                    &nbsp;{(systemMetricsData?.system_health_score ?? 0).toFixed(1)}%
                   </span>
                 </p>
               </div>
@@ -483,29 +503,16 @@ const SystemOverview = () => {
                         }
                       },
                       xaxis: {
-                        categories: [
-                          "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                          "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
-                        ],
+                        categories: chartCategories,
                       },
                       yaxis: {
                         title: {
                           text: "Performance Metrics"
-                        },
-                        labels: {
-                          formatter: function (val: number) {
-                            return val.toFixed(1) + "%";
-                          }
                         }
                       },
                       tooltip: {
                         x: {
                           format: "MMM"
-                        },
-                        y: {
-                          formatter: function (val: number) {
-                            return val.toFixed(1) + "%";
-                          }
                         }
                       },
                       legend: {
@@ -527,24 +534,7 @@ const SystemOverview = () => {
                         }
                       }
                     }}
-                    series={[
-                      {
-                        name: "CPU Performance",
-                        data: [85, 82, 88, 91, 87, 93, 89, 94, 92, 88, 91, 95]
-                      },
-                      {
-                        name: "Memory Efficiency",
-                        data: [78, 85, 83, 89, 86, 91, 88, 93, 90, 87, 89, 92]
-                      },
-                      {
-                        name: "Network Uptime",
-                        data: [95, 98, 97, 99, 96, 99, 98, 99, 97, 98, 99, 99]
-                      },
-                      {
-                        name: "Response Time",
-                        data: [88, 85, 90, 87, 92, 89, 94, 91, 88, 93, 90, 94]
-                      }
-                    ]}
+                    series={chartSeries}
                     height={350}
                     type="area"
                     className="apex-charts mt-2"
@@ -557,41 +547,25 @@ const SystemOverview = () => {
                 <Col md={3} className="border-end">
                   <p className="text-muted mb-1 small">Avg CPU Usage</p>
                   <p className="text-dark fs-16 fw-medium d-flex align-items-center justify-content-center gap-1 mb-0">
-                    {systemMetrics.cpu.toFixed(1)}%{" "}
-                    <span className="badge text-success bg-success-subtle fs-11">
-                      <IconifyIcon icon="ri:arrow-up-line" />
-                      2.1%
-                    </span>
+                    {systemMetrics.cpu.toFixed(1)}%
                   </p>
                 </Col>
                 <Col md={3} className="border-end">
                   <p className="text-muted mb-1 small">Memory Usage</p>
                   <p className="text-dark fs-16 fw-medium d-flex align-items-center justify-content-center gap-1 mb-0">
-                    {systemMetrics.memory.toFixed(1)}%{" "}
-                    <span className="badge text-warning bg-warning-subtle fs-11">
-                      <IconifyIcon icon="ri:arrow-up-line" />
-                      1.5%
-                    </span>
+                    {systemMetrics.memory.toFixed(1)}%
                   </p>
                 </Col>
                 <Col md={3} className="border-end">
                   <p className="text-muted mb-1 small">Uptime</p>
                   <p className="text-dark fs-16 fw-medium d-flex align-items-center justify-content-center gap-1 mb-0">
-                    99.2%{" "}
-                    <span className="badge text-success bg-success-subtle fs-11">
-                      <IconifyIcon icon="ri:arrow-up-line" />
-                      0.3%
-                    </span>
+                    {(systemMetricsData?.uptime_percentage ?? 0).toFixed(1)}%
                   </p>
                 </Col>
                 <Col md={3}>
                   <p className="text-muted mb-1 small">Response Time</p>
                   <p className="text-dark fs-16 fw-medium d-flex align-items-center justify-content-center gap-1 mb-0">
-                    245ms{" "}
-                    <span className="badge text-success bg-success-subtle fs-11">
-                      <IconifyIcon icon="ri:arrow-down-line" />
-                      12ms
-                    </span>
+                    {(systemMetricsData?.avg_response_time ?? 0).toFixed(0)}ms
                   </p>
                 </Col>
               </Row>
@@ -649,7 +623,7 @@ const SystemOverview = () => {
                           {data.complaints}
                         </span>
                       </td>
-                      <td className="small">${(data.revenue / 1000).toFixed(0)}k</td>
+                      <td className="small">GH₵ {(data.revenue / 1000).toFixed(0)}k</td>
                       <td>
                         <div className="d-flex align-items-center">
                           <IconifyIcon icon="ri:star-fill" className="text-warning me-1" />
@@ -661,7 +635,7 @@ const SystemOverview = () => {
                 </tbody>
               </Table>
               <div className="mt-3 text-center">
-                <Button variant="outline-primary" size="sm">
+                <Button variant="outline-primary" size="sm" onClick={() => router.push('/dashboards/analytics')}>
                   <IconifyIcon icon="ri:bar-chart-line" className="me-1" />
                   View Detailed Analytics
                 </Button>
@@ -681,7 +655,7 @@ const SystemOverview = () => {
                   <span className="fw-medium">{resourceUsage.storage.used} / {resourceUsage.storage.total} {resourceUsage.storage.unit}</span>
                 </div>
                 <ProgressBar 
-                  now={(resourceUsage.storage.used / resourceUsage.storage.total) * 100} 
+                  now={resourceProgress.storage}
                   variant="primary" 
                 />
               </div>
@@ -691,7 +665,7 @@ const SystemOverview = () => {
                   <span className="fw-medium">{resourceUsage.bandwidth.used} / {resourceUsage.bandwidth.total} {resourceUsage.bandwidth.unit}</span>
                 </div>
                 <ProgressBar 
-                  now={(resourceUsage.bandwidth.used / resourceUsage.bandwidth.total) * 100} 
+                  now={resourceProgress.bandwidth}
                   variant="info" 
                 />
               </div>
@@ -701,7 +675,7 @@ const SystemOverview = () => {
                   <span className="fw-medium">{resourceUsage.apiCalls.used.toLocaleString()} / {resourceUsage.apiCalls.total.toLocaleString()} {resourceUsage.apiCalls.unit}</span>
                 </div>
                 <ProgressBar 
-                  now={(resourceUsage.apiCalls.used / resourceUsage.apiCalls.total) * 100} 
+                  now={resourceProgress.apiCalls}
                   variant="warning" 
                 />
               </div>
@@ -711,7 +685,7 @@ const SystemOverview = () => {
                   <span className="fw-medium">{resourceUsage.emailQuota.used} / {resourceUsage.emailQuota.total} {resourceUsage.emailQuota.unit}</span>
                 </div>
                 <ProgressBar 
-                  now={(resourceUsage.emailQuota.used / resourceUsage.emailQuota.total) * 100} 
+                  now={resourceProgress.emailQuota}
                   variant="success" 
                 />
               </div>

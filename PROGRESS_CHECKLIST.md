@@ -625,6 +625,11 @@ Date: 2026-02-06
   - `/settings/system/settings` quick actions now navigate to real operational/configuration pages (`System Overview`, `Security Policies`, `Notification Rules`, `Integrations`) instead of pseudo-actions.
   - `/settings/system/settings` advanced tab now uses configuration snapshot content and deployment-secret guidance (no fake variable status timestamps), including explicit backend secret keys currently required for automation.
   - `/settings/system/overview` removed hardcoded trend deltas and dollar formatting in key metric cards; cards now use neutral live-count labels and `GH₵` currency formatting.
+- [x] Phase 33 security + system-overview alignment continuation completed:
+  - `/settings/admin/security` removed non-wired placeholder action flows and now routes all admin action buttons to canonical live workspaces (`/settings/admin/users`, `/settings/general/integrations`, `/settings/users/activity`, `/settings/system/overview`).
+  - `/settings/system/overview` analytics chart now uses persisted performance datasets instead of hardcoded static series.
+  - `/settings/system/overview` now sources health score, database size, backup size, uptime percentage, and response-time footer values from live system-overview records instead of fixed placeholders.
+  - `/settings/system/overview` now uses `GH₵` in performance summary revenue and guards resource-usage progress bars against divide-by-zero totals.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)

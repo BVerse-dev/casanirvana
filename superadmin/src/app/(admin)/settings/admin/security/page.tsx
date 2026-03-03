@@ -5,6 +5,7 @@ import { Card, CardBody, CardHeader, CardTitle, Button, Alert, Row, Col, Form, N
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
+import { useRouter } from 'next/navigation';
 import PageTitle from '@/components/PageTitle';
 import TextFormInput from '@/components/from/TextFormInput';
 import CheckFormInput from '@/components/from/CheckFormInput';
@@ -134,6 +135,7 @@ const normalizeSecuritySettings = (
 });
 
 const SecuritySettingsPage = () => {
+  const router = useRouter();
   const [showAlert, setShowAlert] = useState<{ type: 'success' | 'danger' | 'info'; message: string } | null>(null);
   const [activeTab, setActiveTab] = useState('authentication');
   const [securityScore, setSecurityScore] = useState(65); // Initial security score
@@ -231,11 +233,6 @@ const SecuritySettingsPage = () => {
       setShowAlert({ type: 'danger', message: 'Failed to update security settings. Please try again.' });
       setTimeout(() => setShowAlert(null), 5000);
     }
-  };
-
-  const showInfoMessage = (message: string) => {
-    setShowAlert({ type: 'info', message });
-    setTimeout(() => setShowAlert(null), 5000);
   };
 
   return (
@@ -628,10 +625,10 @@ const SecuritySettingsPage = () => {
                               variant="outline-secondary" 
                               size="sm"
                               type="button"
-                                  onClick={() => showInfoMessage('Password reset enforcement is not connected to a live global action yet. Use the user-management workflow for targeted resets until the backend operation is wired.')}
+                              onClick={() => router.push('/settings/admin/users')}
                             >
                               <IconifyIcon icon="heroicons:arrow-path" className="me-1" />
-                              Force Password Reset for All Users
+                              Open Admin User Security Controls
                             </Button>
                           </div>
                         </CardBody>
@@ -753,10 +750,10 @@ const SecuritySettingsPage = () => {
                               variant="outline-primary" 
                               size="sm"
                               type="button"
-                                  onClick={() => showInfoMessage('API key management is not connected to a live credential inventory on this page yet. Use the secure integrations and gateway settings pages for credential management until this control is wired.')}
+                              onClick={() => router.push('/settings/general/integrations')}
                             >
                               <IconifyIcon icon="heroicons:key" className="me-1" />
-                              Manage API Keys
+                              Open Integration Credentials
                             </Button>
                           </div>
                         </CardBody>
@@ -952,10 +949,10 @@ const SecuritySettingsPage = () => {
                               variant="outline-primary" 
                               size="sm"
                               type="button"
-                                  onClick={() => showInfoMessage('Audit log viewer is not connected on this page yet. Use the platform monitoring and database audit feeds until this viewer is wired.')}
+                              onClick={() => router.push('/settings/users/activity')}
                             >
                               <IconifyIcon icon="heroicons:document-magnifying-glass" className="me-1" />
-                              View Audit Logs
+                              Open Activity Logs
                             </Button>
                           </div>
                         </CardBody>
@@ -986,21 +983,21 @@ const SecuritySettingsPage = () => {
                               variant="outline-warning"
                               size="sm"
                               type="button"
-                                  onClick={() => showInfoMessage('Security incident dashboard is not connected on this page yet. Use platform monitoring until this dashboard is wired.')}
+                              onClick={() => router.push('/settings/system/overview')}
                               className="me-2"
                             >
                               <IconifyIcon icon="heroicons:bell-alert" className="me-1" />
-                              View Security Incidents
+                              Open Security Alerts
                             </Button>
                             
                             <Button 
                               variant="outline-danger"
                               size="sm"
                               type="button"
-                                  onClick={() => showInfoMessage('Security dashboard is not connected on this page yet. Use platform monitoring until this dashboard is wired.')}
+                              onClick={() => router.push('/settings/system/overview')}
                             >
                               <IconifyIcon icon="heroicons:shield-exclamation" className="me-1" />
-                              Security Dashboard
+                              Open System Security Overview
                             </Button>
                           </div>
                         </CardBody>
