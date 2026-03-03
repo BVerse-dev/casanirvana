@@ -644,6 +644,9 @@ Date: 2026-02-06
 - [x] Phase 33 settings-hook logging cleanup continuation completed:
   - Removed verbose debug logging from `useEmailNotificationSettingsAdvanced` while keeping default fallback behavior and save/invalidate flows unchanged.
   - Removed realtime subscription debug logs from `useAgencyConfigurationsRealtime`; subscription behavior remains unchanged with clean cache invalidation on updates.
+- [x] Phase 33 notification-email settings persistence alignment completed:
+  - `useEmailNotificationSettingsAdvanced` no longer depends on direct writes to `email_notification_settings`; it now uses the canonical backend-managed `system_settings` path via `useSettingsCategory` under `notifications_email_advanced`.
+  - Preserved existing settings UI behavior and field coverage while standardizing load/save semantics with the rest of the settings stack.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)
