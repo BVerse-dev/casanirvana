@@ -208,7 +208,7 @@ const OnboardingRequestsPage = () => {
 
   return (
     <>
-      <PageTitle subName="Admin Settings" title="Onboarding Requests" />
+      <PageTitle subName="Identity & Access" title="Onboarding & Invitations" />
 
       <div className="container-xxl">
         {showAlert && (
@@ -221,7 +221,7 @@ const OnboardingRequestsPage = () => {
           </Alert>
         )}
 
-        <ComponentContainerCard title="Review Admin Onboarding Requests" id="onboarding-requests">
+        <ComponentContainerCard title="Review Onboarding & Invitation Requests" id="onboarding-requests">
           <Card className="mb-3">
             <CardHeader className="bg-light">
               <Row className="g-2 align-items-center">

@@ -476,13 +476,13 @@ export default function UserPreferencesPage() {
   return (
     <>
       <PageTitle
-        title="User Preferences"
-        subName="Settings"
+        title="User Defaults"
+        subName="Identity & Access"
       />
       
       <ComponentContainerCard 
-        title="User Preferences Settings"
-        description="Configure user preference settings and default values for your community management system"
+        title="User Default Settings"
+        description="Configure default user preferences and access defaults for your community management system"
         id="preferences-settings"
       >
         {/* Show database status alerts */}

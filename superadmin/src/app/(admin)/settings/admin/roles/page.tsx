@@ -419,7 +419,7 @@ const RolesPermissionsSettingsPage = () => {
 
   return (
     <>
-      <PageTitle subName="Admin Settings" title="Roles & Permissions" />
+      <PageTitle subName="Identity & Access" title="Roles & Permissions" />
 
       {showAlert && (
         <Alert variant={showAlert.type} dismissible onClose={() => setShowAlert(null)}>

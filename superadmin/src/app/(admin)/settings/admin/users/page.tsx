@@ -237,7 +237,7 @@ const AdminUsersSettingsPage = () => {
 
   return (
     <>
-      <PageTitle subName="Admin Settings" title="Admin Users" />
+      <PageTitle subName="Identity & Access" title="Admin Users" />
 
       {showAlert && (
         <Alert variant={showAlert.type} dismissible onClose={() => setShowAlert(null)}>

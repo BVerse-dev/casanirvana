@@ -386,8 +386,8 @@ export default function UserActivityPage() {
               <p className="mb-1 small">Check the following:</p>
               <ul className="small mb-0">
                 <li>RLS policies on the activity_logs table</li>
-                <li>User role in auth.users (should be 'super_admin')</li>
-                <li>The RPC function 'get_all_activity_logs' exists</li>
+                <li>User role in auth.users (should be &apos;super_admin&apos;)</li>
+                <li>The RPC function &apos;get_all_activity_logs&apos; exists</li>
                 <li>Actual data exists in the activity_logs table</li>
               </ul>
             </Alert>
@@ -402,7 +402,7 @@ export default function UserActivityPage() {
 
   return (
     <>
-      <PageTitle title="User Activity Logs" subName="Settings" />
+      <PageTitle title="Activity Logs" subName="Identity & Access" />
       
       <ComponentContainerCard 
         id="user-activity"

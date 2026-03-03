@@ -569,6 +569,10 @@ Date: 2026-02-06
   - The Settings menu now exposes a single `Tenant Configuration` group instead of operational `Guard Settings`, `Community Settings`, and `Agency Settings` workspaces.
   - Added `/settings/guards/configuration` as the new config-only tenant page, using backend-managed settings persistence while preserving the current settings UI patterns.
   - Legacy operational guard, community, and agency settings routes were converted into branded relocation shells that point users to the correct operational modules and back to the surviving config-only settings pages.
+- [x] Phase 33 identity-access IA cleanup completed:
+  - The Settings menu now uses a single `Identity & Access` group instead of split `Admin Settings` and `User Settings` menu clusters.
+  - `User Management`, `User Profiles`, `Roles Management`, and `Permissions` routes under `/settings/users/*` are now relocation shells that point to the canonical operational or access-policy workspaces, removing redundant policy paths from Settings.
+  - The surviving identity pages now use consistent `Identity & Access` labeling, and `User Preferences` is presented as `User Defaults` to keep the settings layer configuration-only.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)

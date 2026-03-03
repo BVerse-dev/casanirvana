@@ -390,7 +390,7 @@ export default function UserGroupsPage() {
 
   return (
     <>
-      <PageTitle title="User Groups Management" subName="" />
+      <PageTitle title="Access Groups" subName="Identity & Access" />
       
       <ComponentContainerCard 
         id="user-groups-management"

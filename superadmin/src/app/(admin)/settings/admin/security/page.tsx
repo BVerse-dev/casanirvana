@@ -240,7 +240,7 @@ const SecuritySettingsPage = () => {
 
   return (
     <>
-      <PageTitle subName="Security" title="Admin Security Settings" />
+      <PageTitle subName="Identity & Access" title="Security Policies" />
       
       <div className="container-xxl">
         {showAlert && (
