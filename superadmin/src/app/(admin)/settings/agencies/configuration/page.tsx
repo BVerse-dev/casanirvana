@@ -248,12 +248,13 @@ const createDefaultConfiguration = (agencyId = '', agencyName = ''): AgencyConfi
   },
   status: 'active',
   last_updated: new Date().toISOString(),
-  updated_by: 'Admin User',
+  updated_by: 'System',
 });
 
 const AgencyConfigurationPage = () => {
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('commission');
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [selectedAgencyId, setSelectedAgencyId] = useState<string>('');
@@ -296,6 +297,7 @@ const AgencyConfigurationPage = () => {
 
   const handleSaveConfiguration = async (data: AgencyConfigurationUI) => {
     setLoading(true);
+    setSaveError(null);
     try {
       if (configuration?.id) {
         // Update existing configuration
@@ -304,7 +306,6 @@ const AgencyConfigurationPage = () => {
           id: configuration.id,
           agency_id: selectedAgencyId,
           agency_name: agencies?.find((a: any) => a.id === selectedAgencyId)?.name || '',
-          updated_by: 'Admin User',
         });
       } else {
         // Create new configuration
@@ -312,7 +313,6 @@ const AgencyConfigurationPage = () => {
           ...data,
           agency_id: selectedAgencyId,
           agency_name: agencies?.find((a: any) => a.id === selectedAgencyId)?.name || '',
-          updated_by: 'Admin User',
         });
       }
       
@@ -320,7 +320,7 @@ const AgencyConfigurationPage = () => {
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (error) {
-      console.error('Error saving configuration:', error);
+      setSaveError(error instanceof Error ? error.message : 'Failed to save agency configuration.');
     } finally {
       setLoading(false);
     }
@@ -354,6 +354,13 @@ const AgencyConfigurationPage = () => {
         <Alert variant="success" className="mb-4">
           <IconifyIcon icon="ri:checkbox-circle-line" className="me-2" />
           Configuration updated successfully!
+        </Alert>
+      )}
+
+      {saveError && (
+        <Alert variant="danger" className="mb-4">
+          <IconifyIcon icon="ri:error-warning-line" className="me-2" />
+          {saveError}
         </Alert>
       )}
 

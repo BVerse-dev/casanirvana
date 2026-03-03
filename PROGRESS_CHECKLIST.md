@@ -663,6 +663,11 @@ Date: 2026-02-06
   - Removed direct page-level Supabase subscriptions from `/settings/communities/configuration` and `/settings/system/overview`; both pages now use hook-owned realtime subscriptions (`useCommunityConfigurationsRealtime`, `useSystemOverviewRealtime`) to keep settings pages hook/service-driven.
   - Added reusable realtime invalidation hooks in `useCommunityConfigurations` and `useSystemOverview` so query invalidation remains centralized and consistent.
   - Revalidated lint and superadmin production build after migration of page-level subscriptions into hooks.
+- [x] Phase 33 agency-configuration hardening continuation completed:
+  - Replaced `useAgencyConfigurationsRealtime` query-based channel initialization with lifecycle-safe `useEffect` subscription cleanup to prevent stale channel accumulation and repeated invalidation churn on the Settings page.
+  - Removed hardcoded `updated_by: 'Admin User'` writes from `/settings/agencies/configuration` save flows and stopped injecting fallback `updated_by: 'system'` payloads from the hook transformer unless explicitly provided.
+  - Added explicit save failure feedback alert in `/settings/agencies/configuration` so failed persistence is visible to admins instead of failing silently.
+  - Revalidated superadmin production build after the hardening changes.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)

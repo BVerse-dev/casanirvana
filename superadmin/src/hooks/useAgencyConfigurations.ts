@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 
@@ -499,7 +500,9 @@ const transformToDB = (data: CreateAgencyConfigurationData | UpdateAgencyConfigu
     digital_signatures: data.digital_signatures ?? compliance?.legal_documentation?.digital_signatures ?? true,
     document_storage: data.document_storage || compliance?.legal_documentation?.document_storage || 'cloud',
     status: data.status || 'active',
-    updated_by: data.updated_by || 'system',
+    ...(typeof data.updated_by === 'string' && data.updated_by.trim().length > 0
+      ? { updated_by: data.updated_by }
+      : {}),
   };
 };
 
@@ -679,52 +682,46 @@ export const useAgencyConfigurationStats = () => {
 export const useAgencyConfigurationsRealtime = () => {
   const queryClient = useQueryClient();
 
-  return useQuery({
-    queryKey: ['agencyConfigurationsRealtime'],
-    queryFn: async () => {
-      // Set up real-time subscription
-      const channel = supabase
-        .channel('public:agency_configurations')
-        .on(
-          'postgres_changes',
-          { 
-            event: '*', 
-            schema: 'public', 
-            table: 'agency_configurations' 
-          },
-          (payload) => {
-            // Invalidate all relevant queries
-            queryClient.invalidateQueries({ queryKey: ['agencyConfigurations'] });
-            queryClient.invalidateQueries({ queryKey: ['agencyConfigurationStats'] });
-            
-            // If it's an update/insert, invalidate specific configuration queries
-            if (payload.new && (payload.new as any).agency_id) {
-              queryClient.invalidateQueries({ 
-                queryKey: ['agencyConfiguration', (payload.new as any).agency_id] 
-              });
-              queryClient.invalidateQueries({ 
-                queryKey: ['agencyConfigurationUI', (payload.new as any).agency_id] 
-              });
-            }
-            
-            // If it's a delete, invalidate based on old data
-            if (payload.old && (payload.old as any).agency_id) {
-              queryClient.invalidateQueries({ 
-                queryKey: ['agencyConfiguration', (payload.old as any).agency_id] 
-              });
-              queryClient.invalidateQueries({ 
-                queryKey: ['agencyConfigurationUI', (payload.old as any).agency_id] 
-              });
-            }
-          }
-        )
-        .subscribe();
+  useEffect(() => {
+    const channel = supabase
+      .channel('public:agency_configurations')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'agency_configurations',
+        },
+        (payload) => {
+          // Invalidate all relevant queries
+          queryClient.invalidateQueries({ queryKey: ['agencyConfigurations'] });
+          queryClient.invalidateQueries({ queryKey: ['agencyConfigurationStats'] });
 
-      return channel;
-    },
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    refetchOnReconnect: false,
-    staleTime: Infinity, // Keep the subscription alive
-  });
-}; 
+          // If it's an update/insert, invalidate specific configuration queries
+          if (payload.new && (payload.new as any).agency_id) {
+            queryClient.invalidateQueries({
+              queryKey: ['agencyConfiguration', (payload.new as any).agency_id],
+            });
+            queryClient.invalidateQueries({
+              queryKey: ['agencyConfigurationUI', (payload.new as any).agency_id],
+            });
+          }
+
+          // If it's a delete, invalidate based on old data
+          if (payload.old && (payload.old as any).agency_id) {
+            queryClient.invalidateQueries({
+              queryKey: ['agencyConfiguration', (payload.old as any).agency_id],
+            });
+            queryClient.invalidateQueries({
+              queryKey: ['agencyConfigurationUI', (payload.old as any).agency_id],
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+};
