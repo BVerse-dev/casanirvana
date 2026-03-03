@@ -630,6 +630,10 @@ Date: 2026-02-06
   - `/settings/system/overview` analytics chart now uses persisted performance datasets instead of hardcoded static series.
   - `/settings/system/overview` now sources health score, database size, backup size, uptime percentage, and response-time footer values from live system-overview records instead of fixed placeholders.
   - `/settings/system/overview` now uses `GH₵` in performance summary revenue and guards resource-usage progress bars against divide-by-zero totals.
+- [x] Phase 33 translation-workspace wiring continuation completed:
+  - `/settings/language/translations` import action is now wired to real JSON ingestion (array payload or settings object with `translations`), validates/normalizes rows, de-duplicates by key, and updates form state as a true dirty/saveable change instead of showing a non-wired alert.
+  - Translation edit modal `Save Translation` now persists row edits back into the live field-array state with duplicate-key protection and proper form validation triggers.
+  - `missing` language filter now correctly checks for missing values across enabled non-English languages instead of attempting to read a non-existent `translations['missing']` key.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)
