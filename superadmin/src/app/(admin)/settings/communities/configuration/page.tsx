@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { Card, Row, Col, Button, Modal, Form, Badge, Tab, Tabs, Alert, ProgressBar, Spinner } from 'react-bootstrap';
 import { useForm } from 'react-hook-form';
 import ReactApexChart from 'react-apexcharts';
-import { useQueryClient } from '@tanstack/react-query';
 
 // Components
 import PageTitle from '@/components/PageTitle';
@@ -15,10 +14,10 @@ import IconifyIcon from '@/components/wrappers/IconifyIcon';
 import {
   useCommunityConfigurations,
   useCommunityConfigurationByCommunity,
-  useUpdateCommunityConfiguration
+  useUpdateCommunityConfiguration,
+  useCommunityConfigurationsRealtime,
 } from '@/hooks/useCommunityConfigurations';
 import type { CommunityConfiguration } from '@/hooks/useCommunityConfigurations';
-import { supabase } from '@/lib/supabase';
 
 const CommunityConfigurationPage = () => {
   const [showSaveModal, setShowSaveModal] = useState(false);
@@ -26,7 +25,8 @@ const CommunityConfigurationPage = () => {
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [selectedCommunity, setSelectedCommunity] = useState('');
-  const queryClient = useQueryClient();
+
+  useCommunityConfigurationsRealtime();
 
   const {
     data: communityConfigurations = [],
@@ -76,20 +76,6 @@ const CommunityConfigurationPage = () => {
     setHasChanges(JSON.stringify(watchedValues) !== JSON.stringify(configuration));
   }, [configuration, watchedValues]);
 
-  // Real-time subscription
-  useEffect(() => {
-    const channel = supabase
-      .channel('public:community_configurations')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'community_configurations' }, () => {
-        queryClient.invalidateQueries({ queryKey: ['community_configurations'] });
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [queryClient]);
-  
   // Configuration sections
   const configurationSections = [
     {

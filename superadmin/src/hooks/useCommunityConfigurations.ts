@@ -1,4 +1,5 @@
 'use client';
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 
@@ -335,4 +336,26 @@ export const useUpdateCommunityConfiguration = () => {
       queryClient.invalidateQueries({ queryKey: ['community_configurations', 'community', data.community_id] });
     },
   });
-}; 
+};
+
+// Real-time subscription for community configuration changes
+export const useCommunityConfigurationsRealtime = () => {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('community-configurations-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'community_configurations' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['community_configurations'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+};

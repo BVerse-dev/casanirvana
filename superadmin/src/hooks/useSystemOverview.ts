@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'react-toastify';
@@ -374,4 +375,31 @@ export const useDismissSystemAlert = () => {
       toast.error('Failed to dismiss alert');
     },
   });
-}; 
+};
+
+// Real-time subscription hook for system overview resources
+export const useSystemOverviewRealtime = () => {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('system-overview-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'system_overview' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['system-metrics'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'system_activities' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['system-activities'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'system_alerts' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['system-alerts'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'system_components' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['system-components'] });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+};

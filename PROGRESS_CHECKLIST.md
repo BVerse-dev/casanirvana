@@ -659,6 +659,10 @@ Date: 2026-02-06
   - `useResidents` no longer injects sample/mock resident data on query failures or empty results; list/detail/community/unit queries now return live DB-driven results and surface true errors for operational handling.
   - `useResidents` single-resident lookup now returns `null` only for a real not-found (`PGRST116`) case instead of silently substituting sample profiles.
   - Removed remaining debug submit logging from the legacy settings unit form component (`/settings/communities/units/components/UnitAdd_Enhanced.tsx`) and revalidated superadmin build/lint for changed files.
+- [x] Phase 33 config-only page wiring continuation completed:
+  - Removed direct page-level Supabase subscriptions from `/settings/communities/configuration` and `/settings/system/overview`; both pages now use hook-owned realtime subscriptions (`useCommunityConfigurationsRealtime`, `useSystemOverviewRealtime`) to keep settings pages hook/service-driven.
+  - Added reusable realtime invalidation hooks in `useCommunityConfigurations` and `useSystemOverview` so query invalidation remains centralized and consistent.
+  - Revalidated lint and superadmin production build after migration of page-level subscriptions into hooks.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)

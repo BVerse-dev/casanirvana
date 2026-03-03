@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Button,
   Card,
@@ -36,9 +36,9 @@ import {
   mapResourceUsageToUI,
   mapSystemStatusToUI,
   mapPerformanceDataToUI,
-  useDismissSystemAlert
+  useDismissSystemAlert,
+  useSystemOverviewRealtime,
 } from '@/hooks/useSystemOverview';
-import { supabase } from '@/lib/supabase';
 
 const SystemOverview = () => {
   const router = useRouter();
@@ -50,6 +50,7 @@ const SystemOverview = () => {
   const { data: componentsData = [], isLoading: componentsLoading } = useSystemComponents();
   const dismissAlertMutation = useDismissSystemAlert();
   const queryClient = useQueryClient();
+  useSystemOverviewRealtime();
 
   // Transform data for UI
   const systemMetrics = systemMetricsData ? mapSystemMetricsToUI(systemMetricsData) : {
@@ -100,29 +101,6 @@ const SystemOverview = () => {
     apiCalls: resourceUsage.apiCalls.total > 0 ? (resourceUsage.apiCalls.used / resourceUsage.apiCalls.total) * 100 : 0,
     emailQuota: resourceUsage.emailQuota.total > 0 ? (resourceUsage.emailQuota.used / resourceUsage.emailQuota.total) * 100 : 0,
   };
-
-  // Real-time subscription for system metrics
-  useEffect(() => {
-    const channel = supabase
-      .channel('system-overview-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'system_overview' }, () => {
-        queryClient.invalidateQueries({ queryKey: ['system-metrics'] });
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'system_activities' }, () => {
-        queryClient.invalidateQueries({ queryKey: ['system-activities'] });
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'system_alerts' }, () => {
-        queryClient.invalidateQueries({ queryKey: ['system-alerts'] });
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'system_components' }, () => {
-        queryClient.invalidateQueries({ queryKey: ['system-components'] });
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [queryClient]);
 
   // Loading state
   if (metricsLoading || activitiesLoading || alertsLoading || performanceLoading || componentsLoading) {
