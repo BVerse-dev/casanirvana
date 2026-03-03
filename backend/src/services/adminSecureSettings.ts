@@ -1006,6 +1006,24 @@ export async function testAdminPushSettings(input: Record<string, unknown>) {
   const current = await loadSettings('push_notifications', PUSH_DEFAULTS);
   const merged = mergeSubmittedSettings(input, current, PUSH_DEFAULTS, PUSH_SENSITIVE_KEYS);
 
+  const submittedProjectId =
+    typeof input.firebase_project_id === 'string' ? input.firebase_project_id.trim() : '';
+  const submittedSenderId =
+    typeof input.firebase_sender_id === 'string' ? input.firebase_sender_id.trim() : '';
+  const submittedServerKey =
+    typeof input.firebase_server_key === 'string' ? input.firebase_server_key.trim() : '';
+  const submittedApiKey =
+    typeof input.firebase_api_key === 'string' ? input.firebase_api_key.trim() : '';
+  const projectChanged =
+    submittedProjectId.length > 0 && submittedProjectId !== String(current.firebase_project_id || '');
+  const senderChanged =
+    submittedSenderId.length > 0 && submittedSenderId !== String(current.firebase_sender_id || '');
+  const firebaseSecretsProvided =
+    submittedServerKey.length > 0 &&
+    submittedApiKey.length > 0 &&
+    submittedServerKey !== MASKED_SECRET_VALUE &&
+    submittedApiKey !== MASKED_SECRET_VALUE;
+
   if (!merged.firebase_enabled) {
     return {
       success: false,
@@ -1022,6 +1040,14 @@ export async function testAdminPushSettings(input: Record<string, unknown>) {
         message: `Firebase configuration is incomplete. Set ${key.replace(/_/g, ' ')} first.`,
       };
     }
+  }
+
+  if ((projectChanged || senderChanged) && !firebaseSecretsProvided) {
+    return {
+      success: false,
+      message:
+        'Provide both Firebase server key and Firebase API key when changing project or sender details, then test again.',
+    };
   }
 
   return {
@@ -1051,12 +1077,21 @@ export async function testAdminSmsSettings(input: Record<string, unknown>) {
   const current = await loadSettings('sms_notifications', SMS_DEFAULTS);
   const merged = mergeSubmittedSettings(input, current, SMS_DEFAULTS, SMS_SENSITIVE_KEYS);
   const provider = String(merged.sms_provider || '');
+  const submittedProvider = typeof input.sms_provider === 'string' ? input.sms_provider.trim() : '';
+  const providerChanged = submittedProvider.length > 0 && submittedProvider !== String(current.sms_provider || '');
 
   const requiredByProvider: Record<string, string[]> = {
     twilio: ['twilio_account_sid', 'twilio_auth_token', 'twilio_phone_number'],
     aws_sns: ['aws_access_key_id', 'aws_secret_access_key', 'aws_region'],
     textlocal: ['textlocal_api_key', 'textlocal_sender'],
     msg91: ['msg91_api_key', 'msg91_sender_id', 'msg91_route'],
+  };
+
+  const providerSensitiveKeys: Record<string, string[]> = {
+    twilio: ['twilio_auth_token'],
+    aws_sns: ['aws_access_key_id', 'aws_secret_access_key'],
+    textlocal: ['textlocal_api_key'],
+    msg91: ['msg91_api_key'],
   };
 
   if (!requiredByProvider[provider]) {
@@ -1074,6 +1109,28 @@ export async function testAdminSmsSettings(input: Record<string, unknown>) {
         message: `${provider.replace(/_/g, ' ')} configuration is incomplete. Set ${key.replace(/_/g, ' ')} first.`,
       };
     }
+  }
+
+  const identityKeys = requiredByProvider[provider].filter(
+    (key) => !providerSensitiveKeys[provider].includes(key)
+  );
+  const identityChanged = identityKeys.some((key) => {
+    if (typeof input[key] !== 'string') return false;
+    const submitted = String(input[key]).trim();
+    return submitted.length > 0 && submitted !== String(current[key] || '');
+  });
+  const providerSecretsProvided = providerSensitiveKeys[provider].every((key) => {
+    if (typeof input[key] !== 'string') return false;
+    const submitted = String(input[key]).trim();
+    return submitted.length > 0 && submitted !== MASKED_SECRET_VALUE;
+  });
+
+  if ((providerChanged || identityChanged) && !providerSecretsProvided) {
+    return {
+      success: false,
+      message:
+        'Provide fresh provider secret credentials when changing SMS provider details, then test again.',
+    };
   }
 
   return {
