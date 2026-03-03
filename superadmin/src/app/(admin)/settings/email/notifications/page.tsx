@@ -64,7 +64,7 @@ const notificationSettingsSchema = yup.object({
   enable_bounce_handling: yup.boolean().default(true),
   enable_unsubscribe_link: yup.boolean().default(true),
   auto_retry_failed_emails: yup.boolean().default(true),
-  notification_time_zone: yup.string().required('Time zone is required').default('Asia/Kolkata'),
+  notification_time_zone: yup.string().required('Time zone is required').default('Africa/Accra'),
   quiet_hours_start: yup.string().default('22:00'),
   quiet_hours_end: yup.string().default('07:00'),
 });
@@ -531,10 +531,12 @@ const EmailNotificationsPage = () => {
                           label="Time Zone"
                           placeholder="Select time zone"
                           options={[
-                            { value: 'Asia/Kolkata', label: 'Asia/Kolkata (IST)' },
+                            { value: 'Africa/Accra', label: 'Africa/Accra (GMT)' },
                             { value: 'UTC', label: 'UTC' },
                             { value: 'America/New_York', label: 'America/New_York (EST)' },
                             { value: 'Europe/London', label: 'Europe/London (GMT)' },
+                            { value: 'Asia/Dubai', label: 'Asia/Dubai (UTC+04:00)' },
+                            { value: 'Asia/Kolkata', label: 'Asia/Kolkata (UTC+05:30)' },
                           ]}
                         />
                       </Col>

@@ -142,9 +142,9 @@ const DefaultLanguagePage = () => {
     { value: 'America/Los_Angeles', label: 'Pacific Time (US & Canada)' },
     { value: 'Europe/London', label: 'London (GMT/BST)' },
     { value: 'Europe/Paris', label: 'Paris (CET/CEST)' },
-    { value: 'Asia/Dubai', label: 'Dubai (GST)' },
+    { value: 'Asia/Dubai', label: 'Dubai (UTC+04:00)' },
     { value: 'Asia/Tokyo', label: 'Tokyo (JST)' },
-    { value: 'Asia/Kolkata', label: 'India (IST)' },
+    { value: 'Asia/Kolkata', label: 'Kolkata (UTC+05:30)' },
   ];
 
   return (

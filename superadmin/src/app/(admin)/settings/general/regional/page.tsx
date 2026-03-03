@@ -486,13 +486,13 @@ export default function RegionalLocalizationPage() {
                     <Form.Check
                       type="switch"
                       id="gstEnabled"
-                      label="Enable GST Mode"
+                      label="Enable Regional Sales Tax Mode"
                       checked={field.value}
                       onChange={field.onChange}
                     />
                   )}
                 />
-                <small className="text-muted">Enable GST-style tax compliance for supported regions</small>
+                <small className="text-muted">Enable sales-tax compliance rules for supported regions</small>
               </Col>
 
               <Col md={4} className="mb-3">

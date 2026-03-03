@@ -598,6 +598,10 @@ Date: 2026-02-06
   - `/settings/payment/gateways` now uses Ghana-first currency options (`GHS` default) with corrected legacy currency labels (`INR` symbol fix), and removed India-specific bank placeholders (`State Bank of India`, `IFSC`) in favor of region-neutral banking copy.
   - `/settings/payment/gateways` action footer now has a single reset action (duplicate reset button removed) to keep the current UI cleaner without changing the existing card/tab layout.
   - `/settings/payment/methods` and `/settings/payment/fees` renamed `Net Banking` to `Online Banking` for region-neutral terminology and removed remaining rupee-specific icon usage in payment limits/cards.
+- [x] Phase 33 communication + localization label normalization completed:
+  - `/settings/email/notifications` now defaults notification timezone to `Africa/Accra` (schema + selector), with expanded global timezone options and no India-only default fallback.
+  - `/settings/language/default` timezone labels were normalized to neutral UTC-based wording (`Dubai (UTC+04:00)`, `Kolkata (UTC+05:30)`) to remove ambiguous region-locked labels while preserving existing UI structure.
+  - `/settings/general/regional` renamed GST UI copy to generic sales-tax wording (`Regional Sales Tax Mode`) while keeping the same persisted config field and existing settings layout.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)
