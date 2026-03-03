@@ -641,6 +641,9 @@ Date: 2026-02-06
 - [x] Phase 33 community-settings hook hygiene continuation completed:
   - Removed noisy debug-console instrumentation from `useCommunityConfigurations` while preserving query/mutation behavior and cache invalidation.
   - Removed development logging from community document and finance helper hooks used by settings workspaces (`useCommunityDocuments`, `useCreateCommunityDocument`, `useUpdateCommunityDocument`, `useDeleteCommunityDocument`, `useBudgetItems`, `useCreateFinancialRecord`) to keep production logs clean and signal-focused.
+- [x] Phase 33 settings-hook logging cleanup continuation completed:
+  - Removed verbose debug logging from `useEmailNotificationSettingsAdvanced` while keeping default fallback behavior and save/invalidate flows unchanged.
+  - Removed realtime subscription debug logs from `useAgencyConfigurationsRealtime`; subscription behavior remains unchanged with clean cache invalidation on updates.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)

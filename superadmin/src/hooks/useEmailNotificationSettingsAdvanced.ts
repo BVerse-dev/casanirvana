@@ -73,8 +73,6 @@ const useEmailNotificationSettingsAdvanced = () => {
   } = useQuery({
     queryKey: ['emailNotificationSettingsAdvanced'],
     queryFn: async (): Promise<EmailNotificationSettingsAdvanced> => {
-      console.log('Fetching email notification settings...');
-
       const { data, error } = await supabase
         .from('email_notification_settings')
         .select('*')
@@ -88,11 +86,8 @@ const useEmailNotificationSettingsAdvanced = () => {
         }
       }
 
-      console.log('Raw email notification settings data:', data);
-
       // If no data exists or empty array, return defaults
       if (!data || data.length === 0) {
-        console.log('No email notification settings found, returning defaults');
         return {
           // Email Delivery Settings
           email_enabled: true,
@@ -161,8 +156,6 @@ const useEmailNotificationSettingsAdvanced = () => {
   // Update email notification settings
   const updateEmailSettingsMutation = useMutation({
     mutationFn: async (newSettings: Partial<EmailNotificationSettingsAdvanced>) => {
-      console.log('Updating email notification settings:', newSettings);
-
       const { error } = await supabase
         .from('email_notification_settings')
         .upsert({
@@ -180,9 +173,6 @@ const useEmailNotificationSettingsAdvanced = () => {
     onSuccess: () => {
       // Invalidate and refetch
       queryClient.invalidateQueries({ queryKey: ['emailNotificationSettingsAdvanced'] });
-    },
-    onError: (error) => {
-      console.error('Error updating email notification settings:', error);
     },
   });
 

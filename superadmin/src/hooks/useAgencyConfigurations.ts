@@ -693,8 +693,6 @@ export const useAgencyConfigurationsRealtime = () => {
             table: 'agency_configurations' 
           },
           (payload) => {
-            console.log('Agency configurations change detected:', payload);
-            
             // Invalidate all relevant queries
             queryClient.invalidateQueries({ queryKey: ['agencyConfigurations'] });
             queryClient.invalidateQueries({ queryKey: ['agencyConfigurationStats'] });
@@ -720,9 +718,7 @@ export const useAgencyConfigurationsRealtime = () => {
             }
           }
         )
-        .subscribe((status) => {
-          console.log('Agency configurations subscription status:', status);
-        });
+        .subscribe();
 
       return channel;
     },
