@@ -672,6 +672,10 @@ Date: 2026-02-06
   - Added backend-managed tenant settings endpoints for community and agency configuration (`/admin/settings/community-configurations*`, `/admin/settings/agency-configurations*`) with scope-aware access checks and payload allowlisting.
   - Migrated `useCommunityConfigurations` and `useAgencyConfigurations` core read/write paths in superadmin from direct client-table mutations to the backend admin API (`useAdminApi`) while preserving existing settings UI/UX.
   - Revalidated backend and superadmin production builds after the migration.
+- [x] Phase 33 settings-hook consolidation continuation completed:
+  - Refactored `superadmin/src/hooks/useSettings.ts` to use the shared `useAdminApi` helper instead of a duplicate in-file auth fetch implementation.
+  - Removed unused legacy settings hooks from `useSettings.ts` (`useSettings`, `useUpdateSettings`, `useSetting`, `useUpdateSetting`, `useDeleteSetting`) so the file now exposes only the active system-settings category APIs used by current settings pages.
+  - Revalidated superadmin production build after the consolidation.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)
