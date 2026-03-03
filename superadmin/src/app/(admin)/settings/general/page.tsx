@@ -121,13 +121,21 @@ const GeneralSettingsPage = () => {
               </p>
             </div>
             <div className="d-flex align-items-center gap-2">
-              <Button variant="outline-primary" size="sm">
-                <IconifyIcon icon="material-symbols:download" className="me-1" />
-                Export Settings
+              <Button
+                variant="outline-primary"
+                size="sm"
+                onClick={() => router.push('/settings/system/overview')}
+              >
+                <IconifyIcon icon="material-symbols:monitoring" className="me-1" />
+                System Overview
               </Button>
-              <Button variant="outline-success" size="sm">
-                <IconifyIcon icon="material-symbols:backup" className="me-1" />
-                Backup Config
+              <Button
+                variant="outline-success"
+                size="sm"
+                onClick={() => router.push('/settings/module-settings')}
+              >
+                <IconifyIcon icon="material-symbols:toggle-on" className="me-1" />
+                Module Settings
               </Button>
             </div>
           </div>

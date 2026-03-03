@@ -161,7 +161,7 @@ const ApplicationConfigPage = () => {
                   <TextFormInput
                     name="organization_name"
                     label="Organization Name"
-                    placeholder="Casa Nirvana Technologies Pvt Ltd"
+                    placeholder="BVerse Ltd"
                     control={control}
                   />
                 </Col>
@@ -214,7 +214,7 @@ const ApplicationConfigPage = () => {
                   <TextFormInput
                     name="contact_phone"
                     label="Contact Phone"
-                    placeholder="+91 98765 43210"
+                    placeholder="+233 20 000 0000"
                     control={control}
                   />
                 </Col>

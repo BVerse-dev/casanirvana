@@ -16,7 +16,6 @@ import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import PageTitle from '@/components/PageTitle';
-import SelectFormInput from '@/components/from/SelectFormInput';
 import IconifyIcon from '@/components/wrappers/IconifyIcon';
 import useRegionalLocalizationSettings, { RegionalLocalizationSettings } from '@/hooks/useRegionalLocalizationSettings';
 
@@ -149,6 +148,18 @@ export default function RegionalLocalizationPage() {
   const watchedLanguages = watch('supportedLanguages');
   const watchedCurrency = watch('currency');
   const watchedTimezone = watch('timezone');
+  const watchedGstEnabled = watch('gstEnabled');
+  const watchedVatEnabled = watch('vatEnabled');
+  const watchedGdprCompliance = watch('gdprCompliance');
+  const watchedCookieConsent = watch('cookieConsent');
+  const watchedDataLocalization = watch('dataLocalization');
+  const complianceEnabledCount = [
+    watchedGstEnabled,
+    watchedVatEnabled,
+    watchedGdprCompliance,
+    watchedCookieConsent,
+    watchedDataLocalization,
+  ].filter(Boolean).length;
 
   const onSubmit = async (data: RegionalFormData) => {
     try {
@@ -299,8 +310,8 @@ export default function RegionalLocalizationPage() {
                   control={control}
                   render={({ field }) => (
                     <Form.Select {...field} className={errors.currencyPosition ? 'is-invalid' : ''}>
-                      <option value="before">Before Amount ($1,000)</option>
-                      <option value="after">After Amount (1,000$)</option>
+                      <option value="before">Before Amount (GH₵1,000)</option>
+                      <option value="after">After Amount (1,000 GH₵)</option>
                     </Form.Select>
                   )}
                 />
@@ -475,13 +486,13 @@ export default function RegionalLocalizationPage() {
                     <Form.Check
                       type="switch"
                       id="gstEnabled"
-                      label="Enable GST (India)"
+                      label="Enable GST Mode"
                       checked={field.value}
                       onChange={field.onChange}
                     />
                   )}
                 />
-                <small className="text-muted">Goods and Services Tax compliance</small>
+                <small className="text-muted">Enable GST-style tax compliance for supported regions</small>
               </Col>
 
               <Col md={4} className="mb-3">
@@ -576,7 +587,7 @@ export default function RegionalLocalizationPage() {
                 <Card className="bg-success bg-opacity-10 border-success">
                   <CardBody className="text-center">
                     <IconifyIcon icon="material-symbols:schedule" className="display-6 text-success mb-2" />
-                    <h5 className="text-success mb-1">{watchedTimezone || 'UTC+5:30'}</h5>
+                    <h5 className="text-success mb-1">{watchedTimezone || 'Africa/Accra'}</h5>
                     <small className="text-muted">Active Timezone</small>
                   </CardBody>
                 </Card>
@@ -585,7 +596,7 @@ export default function RegionalLocalizationPage() {
               <Col md={3} className="mb-3">
                 <Card className="bg-info bg-opacity-10 border-info">
                   <CardBody className="text-center">
-                    <IconifyIcon icon="material-symbols:currency-rupee" className="display-6 text-info mb-2" />
+                    <IconifyIcon icon="material-symbols:payments" className="display-6 text-info mb-2" />
                     <h5 className="text-info mb-1">{watchedCurrency || 'GHS'}</h5>
                     <small className="text-muted">Primary Currency</small>
                   </CardBody>
@@ -596,7 +607,7 @@ export default function RegionalLocalizationPage() {
                 <Card className="bg-warning bg-opacity-10 border-warning">
                   <CardBody className="text-center">
                     <IconifyIcon icon="material-symbols:policy" className="display-6 text-warning mb-2" />
-                    <h5 className="text-warning mb-1">3/5</h5>
+                    <h5 className="text-warning mb-1">{complianceEnabledCount}/5</h5>
                     <small className="text-muted">Compliance Active</small>
                   </CardBody>
                 </Card>

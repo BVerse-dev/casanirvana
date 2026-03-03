@@ -70,7 +70,7 @@ const BusinessConfigPage = () => {
   const { data: businessConfig, isLoading: isLoadingConfig, error: configError } = useBusinessConfig();
   const updateBusinessConfig = useUpdateBusinessConfig();
 
-  const { register, control, handleSubmit, reset, formState: { isDirty, isSubmitting } } = useForm<BusinessConfigFormData>({
+  const { register, control, handleSubmit, reset, watch, formState: { isDirty, isSubmitting } } = useForm<BusinessConfigFormData>({
     resolver: yupResolver(businessConfigSchema),
     defaultValues: {
       default_currency: 'GHS',
@@ -88,6 +88,19 @@ const BusinessConfigPage = () => {
       digital_notice_board_enabled: true,
     },
   });
+
+  const watchedCurrency = watch('default_currency');
+  const watchedMaintenanceFee = watch('maintenance_fee');
+  const watchedReminderDays = watch('payment_reminder_days');
+  const watchedVisitorExpiry = watch('visitor_pass_expiry_hours');
+
+  const currencySymbolMap: Record<string, string> = {
+    GHS: 'GH₵',
+    USD: '$',
+    EUR: '€',
+    GBP: '£',
+  };
+  const currencySymbol = currencySymbolMap[watchedCurrency || 'GHS'] || '';
 
   // Load data from Supabase when available
   useEffect(() => {
@@ -174,7 +187,7 @@ const BusinessConfigPage = () => {
                     name="maintenance_fee"
                     label="Monthly Maintenance Fee"
                     type="number"
-                    placeholder="2500"
+                    placeholder="250"
                     control={control}
                   />
                 </Col>
@@ -324,19 +337,19 @@ const BusinessConfigPage = () => {
               </Row>
             </div>
 
-            {/* Business Insights */}
+            {/* Policy Snapshot */}
             <div className="mb-4">
               <h6 className="mb-3 text-warning">
                 <IconifyIcon icon="material-symbols:analytics" className="me-2" />
-                Business Insights
+                Policy Snapshot
               </h6>
               <Row className="g-3">
                 <Col md={3}>
                   <Card className="bg-primary-subtle border-primary border-opacity-25">
                     <CardBody className="p-3 text-center">
                       <IconifyIcon icon="material-symbols:account-balance-wallet" className="text-primary fs-2 mb-2" />
-                      <h6 className="mb-1">Monthly Revenue</h6>
-                      <span className="text-primary fw-medium">$2,45,000</span>
+                      <h6 className="mb-1">Default Currency</h6>
+                      <span className="text-primary fw-medium">{watchedCurrency || 'GHS'}</span>
                     </CardBody>
                   </Card>
                 </Col>
@@ -344,26 +357,26 @@ const BusinessConfigPage = () => {
                   <Card className="bg-success-subtle border-success border-opacity-25">
                     <CardBody className="p-3 text-center">
                       <IconifyIcon icon="material-symbols:payments" className="text-success fs-2 mb-2" />
-                      <h6 className="mb-1">Collection Rate</h6>
-                      <span className="text-success fw-medium">94%</span>
+                      <h6 className="mb-1">Maintenance Fee</h6>
+                      <span className="text-success fw-medium">{currencySymbol}{watchedMaintenanceFee ?? 0}</span>
                     </CardBody>
                   </Card>
                 </Col>
                 <Col md={3}>
                   <Card className="bg-info-subtle border-info border-opacity-25">
                     <CardBody className="p-3 text-center">
-                      <IconifyIcon icon="material-symbols:group" className="text-info fs-2 mb-2" />
-                      <h6 className="mb-1">Active Visitors</h6>
-                      <span className="text-info fw-medium">156</span>
+                      <IconifyIcon icon="material-symbols:calendar-clock" className="text-info fs-2 mb-2" />
+                      <h6 className="mb-1">Reminder Window</h6>
+                      <span className="text-info fw-medium">{watchedReminderDays ?? 0} days</span>
                     </CardBody>
                   </Card>
                 </Col>
                 <Col md={3}>
                   <Card className="bg-warning-subtle border-warning border-opacity-25">
                     <CardBody className="p-3 text-center">
-                      <IconifyIcon icon="material-symbols:pending-actions" className="text-warning fs-2 mb-2" />
-                      <h6 className="mb-1">Pending Requests</h6>
-                      <span className="text-warning fw-medium">23</span>
+                      <IconifyIcon icon="material-symbols:timer" className="text-warning fs-2 mb-2" />
+                      <h6 className="mb-1">Visitor Pass Expiry</h6>
+                      <span className="text-warning fw-medium">{watchedVisitorExpiry ?? 0} hrs</span>
                     </CardBody>
                   </Card>
                 </Col>

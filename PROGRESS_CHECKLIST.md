@@ -587,6 +587,13 @@ Date: 2026-02-06
   - `/settings/notifications/rules` no longer seeds hardcoded sample rules; rule definitions now start from persisted settings only, and newly created rules use stable UUID-based IDs for production-safe management.
   - Settings navigation keys were normalized to be globally unique (`menu-items.ts`) to prevent duplicate key collisions between module menus and settings menus (notably notification setup/email entries).
   - This keeps the current UI/tabs intact while tightening config-only behavior and navigation stability.
+- [x] Phase 33 general-settings cleanup continuation completed:
+  - `/settings/general` quick-action buttons are now real navigation actions (`System Overview`, `Module Settings`) instead of non-functional controls.
+  - `/settings/general/application` removed stale non-Ghana placeholders (`+91`, `Pvt Ltd`) and aligned defaults to current production context.
+  - `/settings/general/system` replaced hardcoded fake runtime metrics with live configuration snapshot cards sourced from current form values.
+  - `/settings/general/business` replaced static/fake insights (including `$` display drift) with policy snapshot cards derived from active business configuration values.
+  - `/settings/general/regional` removed stale India-specific UI drift (`currency-rupee`, `UTC+5:30`, `GST (India)`, static compliance count) and now shows dynamic compliance/currency/timezone state with Ghana-aligned labels.
+  - `/settings/general/integrations` normalized payment-gateway copy to avoid region-locked wording and keep integration descriptions production-neutral.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)

@@ -84,6 +84,10 @@ const SystemConfigPage = () => {
   });
 
   const watchMaintenanceMode = watch('enable_maintenance_mode');
+  const watchRefreshMinutes = watch('admin_dashboard_refresh_minutes');
+  const watchSessionTimeout = watch('session_timeout_minutes');
+  const watchUploadSize = watch('max_file_upload_size_mb');
+  const watchBackupFrequency = watch('data_backup_frequency');
 
   // Load data from Supabase when available
   useEffect(() => {
@@ -311,46 +315,46 @@ const SystemConfigPage = () => {
               </Row>
             </div>
 
-            {/* System Status */}
+            {/* Configuration Snapshot */}
             <div className="mb-4">
               <h6 className="mb-3 text-secondary">
                 <IconifyIcon icon="material-symbols:monitoring" className="me-2" />
-                System Status
+                Configuration Snapshot
               </h6>
               <Row className="g-3">
                 <Col md={3}>
                   <Card className="bg-success-subtle border-success border-opacity-25">
                     <CardBody className="p-3 text-center">
-                      <IconifyIcon icon="material-symbols:memory" className="text-success fs-2 mb-2" />
-                      <h6 className="mb-1">Memory Usage</h6>
-                      <span className="text-success fw-medium">68%</span>
+                      <IconifyIcon icon="material-symbols:schedule" className="text-success fs-2 mb-2" />
+                      <h6 className="mb-1">Dashboard Refresh</h6>
+                      <span className="text-success fw-medium">{watchRefreshMinutes || 5} min</span>
                     </CardBody>
                   </Card>
                 </Col>
                 <Col md={3}>
                   <Card className="bg-info-subtle border-info border-opacity-25">
                     <CardBody className="p-3 text-center">
-                      <IconifyIcon icon="material-symbols:storage" className="text-info fs-2 mb-2" />
-                      <h6 className="mb-1">Disk Usage</h6>
-                      <span className="text-info fw-medium">45%</span>
+                      <IconifyIcon icon="material-symbols:timer" className="text-info fs-2 mb-2" />
+                      <h6 className="mb-1">Session Timeout</h6>
+                      <span className="text-info fw-medium">{watchSessionTimeout || 30} min</span>
                     </CardBody>
                   </Card>
                 </Col>
                 <Col md={3}>
                   <Card className="bg-warning-subtle border-warning border-opacity-25">
                     <CardBody className="p-3 text-center">
-                      <IconifyIcon icon="material-symbols:network-check" className="text-warning fs-2 mb-2" />
-                      <h6 className="mb-1">Network</h6>
-                      <span className="text-warning fw-medium">Stable</span>
+                      <IconifyIcon icon="material-symbols:upload-file" className="text-warning fs-2 mb-2" />
+                      <h6 className="mb-1">Upload Limit</h6>
+                      <span className="text-warning fw-medium">{watchUploadSize || 10} MB</span>
                     </CardBody>
                   </Card>
                 </Col>
                 <Col md={3}>
                   <Card className="bg-primary-subtle border-primary border-opacity-25">
                     <CardBody className="p-3 text-center">
-                      <IconifyIcon icon="material-symbols:update" className="text-primary fs-2 mb-2" />
-                      <h6 className="mb-1">Last Backup</h6>
-                      <span className="text-primary fw-medium">2h ago</span>
+                      <IconifyIcon icon="material-symbols:backup" className="text-primary fs-2 mb-2" />
+                      <h6 className="mb-1">Backup Policy</h6>
+                      <span className="text-primary fw-medium text-capitalize">{watchBackupFrequency || 'daily'}</span>
                     </CardBody>
                   </Card>
                 </Col>

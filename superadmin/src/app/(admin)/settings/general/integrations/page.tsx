@@ -180,7 +180,7 @@ const serviceCategories = {
       {
         name: 'razorpay_key_id',
         label: 'Razorpay',
-        description: 'Indian payment gateway for fees and bills',
+        description: 'Regional payment gateway integration',
         icon: 'simple-icons:razorpay',
         testable: true,
         docs: 'https://razorpay.com/docs'
@@ -510,7 +510,7 @@ const IntegrationsPage = () => {
     <>
       <PageTitle 
         title="API Integrations" 
-        subName="Configure third-party services and AI capabilities for your property management system"
+        subName="Configure third-party services and AI capabilities for your community management platform"
       />
 
       <Form onSubmit={handleSubmit(onSubmit)}>
