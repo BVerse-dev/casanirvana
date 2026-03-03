@@ -576,6 +576,10 @@ Date: 2026-02-06
 - [x] Phase 33 settings-route closeout completed:
   - Legacy aggregate launchers `/settings/app` and `/settings/system` were converted into configuration-safe relocation shells that point to canonical subpages (`/settings/app/splash`, `/settings/app/urls`, `/settings/system/overview`, `/settings/system/settings`).
   - This removes duplicate aggregate configuration surfaces while preserving backward-compatible route access for existing links.
+- [x] Phase 33 settings UX hardening continuation completed:
+  - `/settings/users/groups` no longer shows a placeholder members modal; it now loads real group members from `group_members` + `profiles` and renders live member details with loading/error/empty states.
+  - `/settings/users/activity` removed production-inappropriate debug console output and visible debug toggles/panels while preserving the existing activity monitoring UI and filters.
+  - `useUserGroups` removed development logging noise and now keeps the same fallback behavior with cleaner production error handling.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)

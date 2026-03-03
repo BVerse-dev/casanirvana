@@ -99,8 +99,6 @@ export default function UserActivityPage() {
     currentPage: 1,
     itemsPerPage: 5
   });
-  // Debug mode state
-  const [debugMode, setDebugMode] = useState(false);
 
   const { handleSubmit } = useForm();
 
@@ -115,25 +113,11 @@ export default function UserActivityPage() {
     offset: (pagination.currentPage - 1) * pagination.itemsPerPage
   });
 
-    // Enhanced debug activity logs data
-  console.log('%c ACTIVITY LOGS COMPONENT DEBUG INFO:', 'background: #3498db; color: white; font-weight: bold;');
-  console.log('Activity logs data:', activityLogs);
-  console.log('Number of logs:', activityLogs?.length || 0);
-  console.log('Loading state:', isLoadingLogs);
-  console.log('Error state:', logsError);
-  console.log('Current filters:', filters);
-  console.log('Pagination:', pagination);
-
   const { 
     data: activityStats, 
     isLoading: isLoadingStats, 
     error: statsError 
   } = useActivityStats();
-  
-  // Debug activity stats
-  console.log('Activity stats in component:', activityStats);
-  console.log('Loading stats:', isLoadingStats);
-  console.log('Stats error:', statsError);
 
   const exportMutation = useExportActivityLogs();
 
@@ -344,7 +328,6 @@ export default function UserActivityPage() {
           {logsError ? (
             <>
               Error loading activity logs. Please try refreshing the page.
-              {debugMode && <div className="text-danger small mt-2">{String(logsError)}</div>}
             </>
           ) : (
             <>
@@ -379,26 +362,9 @@ export default function UserActivityPage() {
             Refresh Page
           </Button>
         </div>
-        {debugMode && (
-          <div className="mt-4">
-            <Alert variant="info" className="text-start">
-              <h6>Debugging Information</h6>
-              <p className="mb-1 small">Check the following:</p>
-              <ul className="small mb-0">
-                <li>RLS policies on the activity_logs table</li>
-                <li>User role in auth.users (should be &apos;super_admin&apos;)</li>
-                <li>The RPC function &apos;get_all_activity_logs&apos; exists</li>
-                <li>Actual data exists in the activity_logs table</li>
-              </ul>
-            </Alert>
-          </div>
-        )}
       </div>
     );
   };
-
-  // Toggle debug mode
-  const toggleDebugMode = () => setDebugMode(!debugMode);
 
   return (
     <>
@@ -409,55 +375,6 @@ export default function UserActivityPage() {
         title="Activity Monitoring"
         description="Track user activities, security events, and system operations across your community management platform"
       >
-        {/* Debug Panel */}
-        {debugMode && (
-          <Alert variant="warning" className="mb-4">
-            <div className="d-flex justify-content-between align-items-center mb-2">
-              <h5 className="mb-0">Debug Mode Active</h5>
-              <Button variant="outline-dark" size="sm" onClick={toggleDebugMode}>Close</Button>
-            </div>
-            
-            <div className="row g-3">
-              <div className="col-md-6">
-                <h6>Activity Stats</h6>
-                <pre className="bg-light p-2 rounded" style={{fontSize: '0.8rem'}}>
-                  {JSON.stringify(activityStats || {}, null, 2)}
-                </pre>
-              </div>
-              <div className="col-md-6">
-                <h6>Current Filters</h6>
-                <pre className="bg-light p-2 rounded" style={{fontSize: '0.8rem'}}>
-                  {JSON.stringify({
-                    filters,
-                    pagination,
-                    totalCount: activityStats?.total || 0,
-                    logsLoaded: activityLogs?.length || 0
-                  }, null, 2)}
-                </pre>
-              </div>
-            </div>
-
-            <div className="mt-3 d-flex gap-2">
-              <Button 
-                variant="outline-primary" 
-                size="sm"
-                onClick={() => {
-                  setFilters({
-                    dateRange: 'all',
-                    actionType: 'all',
-                    status: 'all',
-                    severity: 'all',
-                    userId: 'all',
-                    searchTerm: ''
-                  });
-                }}
-              >
-                Reset All Filters
-              </Button>
-            </div>
-          </Alert>
-        )}
-
         {/* Loading State */}
         {(isLoadingLogs || isLoadingStats) && (
           <div className="text-center py-4">
@@ -521,55 +438,6 @@ export default function UserActivityPage() {
               </Row>
             )}
             
-            {/* Debug Panel */}
-            {debugMode && (
-              <Alert variant="warning" className="mb-4">
-                <div className="d-flex justify-content-between align-items-center mb-2">
-                  <h5 className="mb-0">Debug Mode Active</h5>
-                  <Button variant="outline-dark" size="sm" onClick={toggleDebugMode}>Close</Button>
-                </div>
-                
-                <div className="row g-3">
-                  <div className="col-md-6">
-                    <h6>Activity Stats</h6>
-                    <pre className="bg-light p-2 rounded" style={{fontSize: '0.8rem'}}>
-                      {JSON.stringify(activityStats || {}, null, 2)}
-                    </pre>
-                  </div>
-                  <div className="col-md-6">
-                    <h6>Current Filters</h6>
-                    <pre className="bg-light p-2 rounded" style={{fontSize: '0.8rem'}}>
-                      {JSON.stringify({
-                        filters,
-                        pagination,
-                        totalCount: activityStats?.total || 0,
-                        logsLoaded: activityLogs?.length || 0
-                      }, null, 2)}
-                    </pre>
-                  </div>
-                </div>
-
-                <div className="mt-3 d-flex gap-2">
-                  <Button 
-                    variant="outline-primary" 
-                    size="sm"
-                    onClick={() => {
-                      setFilters({
-                        dateRange: 'all',
-                        actionType: 'all',
-                        status: 'all',
-                        severity: 'all',
-                        userId: 'all',
-                        searchTerm: ''
-                      });
-                    }}
-                  >
-                    Reset All Filters
-                  </Button>
-                </div>
-              </Alert>
-            )}
-
         {/* Filters */}
         <Card className="mb-4 border-0 bg-light">
           <Card.Body>
@@ -672,14 +540,6 @@ export default function UserActivityPage() {
                 >
                   <IconifyIcon icon="material-symbols:refresh" className="me-1" />
                   Refresh
-                </Button>
-                <Button 
-                  variant={debugMode ? "warning" : "outline-dark"}
-                  size="sm"
-                  onClick={toggleDebugMode}
-                >
-                  <IconifyIcon icon="material-symbols:bug-report" className="me-1" />
-                  Debug {debugMode ? 'ON' : 'OFF'}
                 </Button>
               </div>
             </div>

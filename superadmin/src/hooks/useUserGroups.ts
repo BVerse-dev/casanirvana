@@ -39,6 +39,16 @@ export interface GroupStats {
   byType: { [key: string]: number };
 }
 
+export interface GroupMember {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  userRole: string;
+  joinDate: string;
+  isActive: boolean;
+}
+
 // Transform database row to frontend interface
 const transformUserGroup = (dbGroup: any): UserGroup => ({
   id: dbGroup.id,
@@ -77,6 +87,8 @@ const userGroupsKeys = {
   list: (filters: Record<string, any>) => [...userGroupsKeys.lists(), { filters }] as const,
   details: () => [...userGroupsKeys.all, 'detail'] as const,
   detail: (id: string) => [...userGroupsKeys.details(), id] as const,
+  members: () => [...userGroupsKeys.all, 'members'] as const,
+  memberList: (groupId: string) => [...userGroupsKeys.members(), groupId] as const,
   stats: () => [...userGroupsKeys.all, 'stats'] as const,
 };
 
@@ -86,15 +98,12 @@ export const useListUserGroups = () => {
     queryKey: userGroupsKeys.lists(),
     queryFn: async (): Promise<UserGroup[]> => {
       try {
-        console.log('🔄 Fetching user groups from Supabase...');
         const { data, error } = await supabase
           .from('groups_with_leaders')
           .select('*')
           .order('name');
 
         if (error) {
-          console.error('❌ Error fetching user groups:', error);
-          
           // Check if the groups_with_leaders view exists
           const { data: viewCheck, error: viewError } = await supabase
             .from('information_schema.views')
@@ -104,9 +113,6 @@ export const useListUserGroups = () => {
             .single();
             
           if (viewError || !viewCheck) {
-            console.error('⚠️ The groups_with_leaders view does not exist:', viewError);
-            console.log('⚠️ Falling back to direct query on user_groups table');
-            
             // Try querying the base table directly
             const { data: directData, error: directError } = await supabase
               .from('user_groups')
@@ -114,21 +120,17 @@ export const useListUserGroups = () => {
               .order('name');
               
             if (directError) {
-              console.error('❌ Error querying user_groups directly:', directError);
               throw new Error(`Failed to fetch user groups: ${directError.message}`);
             }
-            
-            console.log('✅ Successfully fetched user groups directly:', directData?.length);
+
             return directData?.map(transformUserGroup) || [];
           }
           
           throw new Error(`Failed to fetch user groups: ${error.message}`);
         }
 
-        console.log('✅ Successfully fetched user groups:', data?.length);
         return data?.map(transformUserGroup) || [];
       } catch (error) {
-        console.error('❌ Error in useListUserGroups:', error);
         throw error instanceof Error ? error : new Error('Failed to fetch user groups');
       }
     },
@@ -149,7 +151,6 @@ export const useGetUserGroup = (id: string) => {
           .single();
 
         if (error) {
-          console.error('Error fetching user group:', error);
           const { data: directData, error: directError } = await supabase
             .from('user_groups')
             .select('*')
@@ -165,11 +166,64 @@ export const useGetUserGroup = (id: string) => {
 
         return data ? transformUserGroup(data) : null;
       } catch (error) {
-        console.error('Error in useGetUserGroup:', error);
         throw error instanceof Error ? error : new Error('Failed to fetch user group');
       }
     },
     enabled: !!id,
+  });
+};
+
+// Get members for a specific user group
+export const useGroupMembers = (groupId?: string) => {
+  return useQuery({
+    queryKey: groupId ? userGroupsKeys.memberList(groupId) : [...userGroupsKeys.members(), 'none'],
+    queryFn: async (): Promise<GroupMember[]> => {
+      if (!groupId) return [];
+
+      const { data, error } = await supabase
+        .from('group_members')
+        .select(
+          `
+            id,
+            user_id,
+            joined_at,
+            is_active,
+            profiles!group_members_user_id_fkey (
+              full_name,
+              first_name,
+              last_name,
+              email,
+              role
+            )
+          `
+        )
+        .eq('group_id', groupId)
+        .order('joined_at', { ascending: false });
+
+      if (error) {
+        throw new Error(`Failed to fetch group members: ${error.message}`);
+      }
+
+      return (data || []).map((member: any) => {
+        const profile = Array.isArray(member.profiles) ? member.profiles[0] : member.profiles;
+        const fullName =
+          profile?.full_name ||
+          [profile?.first_name, profile?.last_name].filter(Boolean).join(' ').trim() ||
+          'Unknown User';
+
+        return {
+          id: member.id,
+          userId: member.user_id,
+          userName: fullName,
+          userEmail: profile?.email || 'N/A',
+          userRole: profile?.role || 'member',
+          joinDate: member.joined_at || '',
+          isActive: member.is_active ?? true,
+        };
+      });
+    },
+    enabled: Boolean(groupId),
+    staleTime: 60 * 1000,
   });
 };
 
@@ -179,8 +233,6 @@ export const useUserGroupsStats = () => {
     queryKey: userGroupsKeys.stats(),
     queryFn: async (): Promise<GroupStats> => {
       try {
-        console.log('🔄 Fetching user groups stats...');
-        
         // First try the dedicated statistics view
         const { data: statsData, error: statsError } = await supabase
           .from('group_statistics')
@@ -188,7 +240,6 @@ export const useUserGroupsStats = () => {
           .single();
           
         if (!statsError && statsData) {
-          console.log('✅ Successfully fetched group stats from view:', statsData);
           return {
             total: statsData.total_groups || 0,
             active: statsData.active_groups || 0,
@@ -197,16 +248,13 @@ export const useUserGroupsStats = () => {
             byType: statsData.groups_by_type || {}
           };
         }
-        
-        console.log('⚠️ Stats view failed, using manual calculation:', statsError?.message);
-        
+
         // Fall back to manual calculation
         const { data: groups, error } = await supabase
           .from('user_groups')
           .select('type, member_count, is_active');
 
         if (error) {
-          console.error('❌ Error fetching group stats:', error);
           throw new Error(`Failed to fetch group statistics: ${error.message}`);
         }
 
@@ -228,7 +276,6 @@ export const useUserGroupsStats = () => {
           byType
         };
       } catch (error) {
-        console.error('Error in useUserGroupsStats:', error);
         throw error instanceof Error ? error : new Error('Failed to fetch group statistics');
       }
     },

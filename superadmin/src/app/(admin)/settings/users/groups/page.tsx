@@ -22,19 +22,11 @@ import {
   useCreateUserGroup, 
   useUpdateUserGroup, 
   useDeleteUserGroup,
+  useGroupMembers,
+  type GroupMember,
   type UserGroup,
   type GroupFormData 
 } from '@/hooks/useUserGroups';
-
-interface GroupMember {
-  id: string;
-  userId: string;
-  userName: string;
-  userEmail: string;
-  userRole: string;
-  joinDate: string;
-  isActive: boolean;
-}
 
 const groupValidationSchema = yup.object({
   name: yup.string().required('Group name is required').min(3, 'Group name must be at least 3 characters'),
@@ -87,6 +79,11 @@ export default function UserGroupsPage() {
   const createGroupMutation = useCreateUserGroup();
   const updateGroupMutation = useUpdateUserGroup();
   const deleteGroupMutation = useDeleteUserGroup();
+  const {
+    data: groupMembers = [],
+    isLoading: isLoadingMembers,
+    error: groupMembersError,
+  } = useGroupMembers(showMembersModal ? selectedGroup?.id : undefined);
 
   // UI state
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -794,13 +791,51 @@ export default function UserGroupsPage() {
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <div className="text-center py-4">
-            <IconifyIcon icon="material-symbols:groups" className="fs-1 text-muted mb-3" />
-            <p className="text-muted">Member management functionality coming soon...</p>
-            <p className="small text-muted">
-              This will show all members in the group with options to add/remove members.
-            </p>
-          </div>
+          {isLoadingMembers ? (
+            <div className="text-center py-4">
+              <Spinner animation="border" size="sm" className="me-2" />
+              <span className="text-muted">Loading group members...</span>
+            </div>
+          ) : groupMembersError ? (
+            <Alert variant="danger" className="mb-0">
+              <IconifyIcon icon="solar:danger-triangle-line-duotone" className="me-2" />
+              Failed to load members for this group.
+            </Alert>
+          ) : groupMembers.length === 0 ? (
+            <div className="text-center py-4">
+              <IconifyIcon icon="material-symbols:groups" className="fs-1 text-muted mb-3" />
+              <p className="text-muted mb-0">No members are currently assigned to this group.</p>
+            </div>
+          ) : (
+            <div className="table-responsive">
+              <Table className="mb-0">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Joined</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {groupMembers.map((member: GroupMember) => (
+                    <tr key={member.id}>
+                      <td>{member.userName}</td>
+                      <td>{member.userEmail}</td>
+                      <td className="text-capitalize">{member.userRole}</td>
+                      <td>{member.joinDate ? new Date(member.joinDate).toLocaleDateString() : 'N/A'}</td>
+                      <td>
+                        <Badge bg={member.isActive ? 'success' : 'secondary'}>
+                          {member.isActive ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            </div>
+          )}
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={() => setShowMembersModal(false)}>
