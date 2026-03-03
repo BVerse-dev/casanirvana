@@ -1,4 +1,4 @@
-import { Socket } from 'node:net';
+import nodemailer from 'nodemailer';
 import { supabase } from '../lib/supabase';
 
 export const MASKED_SECRET_VALUE = '••••••••';
@@ -855,36 +855,17 @@ export async function saveAdminSmtpSettings(input: Record<string, unknown>, upda
   return upsertSettingsCategory('smtp', merged, SMTP_DESCRIPTIONS, SMTP_SENSITIVE_KEYS, updatedBy);
 }
 
-async function tcpConnectivityCheck(host: string, port: number, timeoutSeconds: number) {
-  return new Promise<void>((resolve, reject) => {
-    const socket = new Socket();
-    const timeoutMs = Math.max(1000, timeoutSeconds * 1000);
-
-    const cleanup = () => {
-      socket.removeAllListeners();
-      socket.destroy();
-    };
-
-    socket.setTimeout(timeoutMs);
-    socket.once('connect', () => {
-      cleanup();
-      resolve();
-    });
-    socket.once('timeout', () => {
-      cleanup();
-      reject(new Error('Connection timed out'));
-    });
-    socket.once('error', (error) => {
-      cleanup();
-      reject(error);
-    });
-    socket.connect(port, host);
-  });
-}
-
 export async function testAdminSmtpSettings(input: Record<string, unknown>) {
   const current = await loadSettings('smtp', SMTP_DEFAULTS);
   const merged = mergeSubmittedSettings(input, current, SMTP_DEFAULTS, SMTP_SENSITIVE_KEYS);
+
+  const submittedHost = typeof input.smtp_host === 'string' ? input.smtp_host.trim() : '';
+  const submittedUsername = typeof input.smtp_username === 'string' ? input.smtp_username.trim() : '';
+  const submittedPassword = typeof input.smtp_password === 'string' ? input.smtp_password.trim() : '';
+  const hostChanged = submittedHost.length > 0 && submittedHost !== String(current.smtp_host || '');
+  const usernameChanged =
+    submittedUsername.length > 0 && submittedUsername !== String(current.smtp_username || '');
+  const passwordProvided = submittedPassword.length > 0 && submittedPassword !== MASKED_SECRET_VALUE;
 
   if (!merged.smtp_host || !merged.smtp_from_email || !merged.smtp_username || !merged.smtp_password) {
     return {
@@ -893,23 +874,47 @@ export async function testAdminSmtpSettings(input: Record<string, unknown>) {
     };
   }
 
-  try {
-    await tcpConnectivityCheck(
-      String(merged.smtp_host),
-      Number(merged.smtp_port || 587),
-      Number(merged.smtp_timeout || 30)
-    );
-    return {
-      success: true,
-      message: 'SMTP server responded successfully.',
-    };
-  } catch (error) {
+  if ((hostChanged || usernameChanged) && !passwordProvided) {
     return {
       success: false,
       message:
-        error instanceof Error
-          ? `SMTP connectivity test failed: ${error.message}`
-          : 'SMTP connectivity test failed.',
+        'Provide SMTP password when changing host or username, then test again to validate credentials.',
+    };
+  }
+
+  try {
+    const host = String(merged.smtp_host);
+    const port = Number(merged.smtp_port || 587);
+    const timeoutMs = Math.max(1000, Number(merged.smtp_timeout || 30) * 1000);
+    const encryption = String(merged.smtp_encryption || '').toLowerCase();
+    const secure = encryption === 'ssl' || merged.smtp_enable_ssl === true || port === 465;
+    const requireTLS = encryption === 'tls' || encryption === 'starttls' || merged.smtp_enable_tls === true;
+
+    const transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure,
+      requireTLS,
+      auth: {
+        user: String(merged.smtp_username),
+        pass: String(merged.smtp_password),
+      },
+      connectionTimeout: timeoutMs,
+      greetingTimeout: timeoutMs,
+      socketTimeout: timeoutMs,
+    });
+
+    await transporter.verify();
+
+    return {
+      success: true,
+      message: 'SMTP authentication succeeded.',
+    };
+  } catch (error) {
+    const errMessage = error instanceof Error ? error.message : 'Unknown SMTP error';
+    return {
+      success: false,
+      message: `SMTP test failed: ${errMessage}`,
     };
   }
 }

@@ -476,7 +476,7 @@ Date: 2026-02-06
   - `mark_paid` moves linked payments to `paid_out` and clears reserved amounts.
   - `cancel` / `reject` / `fail` all release reserved amounts back to `available`.
 - [x] Phase 33 settings hardening slice completed (security-first, UI preserved):
-  - SMTP settings are now backend-mediated through `/admin/settings/smtp`; browser writes to `app_settings` were removed from the SMTP flow, sensitive values are masked on read, and connection tests are now real server-side socket checks instead of mock delays.
+  - SMTP settings are now backend-mediated through `/admin/settings/smtp`; browser writes to `app_settings` were removed from the SMTP flow, sensitive values are masked on read, and connection tests now run real SMTP authentication (`nodemailer.verify`) with password-required checks when host/username changes.
   - Integration settings are now backend-mediated through `/admin/settings/integrations`; browser writes to `app_settings` were removed from the integrations flow, sensitive values are masked on read, and test actions now run deterministic server-side validation instead of simulated success/failure.
   - Added secure backend settings controller/service for SMTP + integrations (`backend/src/controllers/adminSecureSettings.ts`, `backend/src/services/adminSecureSettings.ts`) and the supporting validation schemas/routes.
   - Added shared authenticated superadmin admin-API helpers (`superadmin/src/hooks/useAdminApi.ts`) and replaced duplicated direct-fetch logic in the affected settings hooks.
