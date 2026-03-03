@@ -2,6 +2,7 @@
 import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { useAdminApi } from './useAdminApi';
 
 // Types matching the UI interface
 export interface CommunityConfiguration {
@@ -195,63 +196,39 @@ const mapDatabaseToUI = (raw: any): CommunityConfiguration => {
 
 // Get community configuration by community ID
 export const useCommunityConfigurationByCommunity = (communityId: string) => {
+  const { fetchAdmin, hasToken } = useAdminApi();
+
   return useQuery({
     queryKey: ['community_configurations', 'community', communityId],
     queryFn: async (): Promise<CommunityConfiguration | null> => {
-      try {
-        // Use direct query without types to bypass TypeScript issues
-        const { data, error } = await supabase
-          .from('community_configurations' as any)
-          .select('*')
-          .eq('community_id', communityId)
-          .single();
-
-        if (error && error.code !== 'PGRST116') {
-          throw new Error(`Failed to fetch community configuration: ${error.message}`);
-        }
-
-        if (!data) {
-          return null;
-        }
-
-        return mapDatabaseToUI(data);
-
-      } catch (error) {
-        throw error;
-      }
+      const response = await fetchAdmin<{ data?: any[] }>(
+        `/admin/settings/community-configurations?community_id=${encodeURIComponent(communityId)}`
+      );
+      const row = response.data?.[0];
+      return row ? mapDatabaseToUI(row) : null;
     },
-    enabled: !!communityId,
+    enabled: hasToken && !!communityId,
   });
 };
 
 // List all community configurations
 export const useCommunityConfigurations = () => {
+  const { fetchAdmin, hasToken } = useAdminApi();
+
   return useQuery({
     queryKey: ['community_configurations'],
     queryFn: async (): Promise<CommunityConfiguration[]> => {
-      try {
-        // Use direct query without types to bypass TypeScript issues
-        const { data, error } = await supabase
-          .from('community_configurations' as any)
-          .select('*')
-          .order('updated_at', { ascending: false });
-
-        if (error) {
-          throw new Error(`Failed to fetch community configurations: ${error.message}`);
-        }
-        
-        return (data || []).map(mapDatabaseToUI);
-
-      } catch (error) {
-        throw error;
-      }
+      const response = await fetchAdmin<{ data?: any[] }>('/admin/settings/community-configurations');
+      return (response.data || []).map(mapDatabaseToUI);
     },
+    enabled: hasToken,
   });
 };
 
 // Update community configuration
 export const useUpdateCommunityConfiguration = () => {
   const queryClient = useQueryClient();
+  const { fetchAdmin } = useAdminApi();
 
   return useMutation({
     mutationFn: async ({ id, config }: { id: string; config: Partial<CommunityConfiguration> }): Promise<CommunityConfiguration> => {
@@ -317,18 +294,12 @@ export const useUpdateCommunityConfiguration = () => {
         }
       }
       
-      const { data, error } = await supabase
-        .from('community_configurations' as any)
-        .update(dbData)
-        .eq('id', id)
-        .select()
-        .single();
+      const response = await fetchAdmin<{ data: any }>(`/admin/settings/community-configurations/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(dbData),
+      });
 
-      if (error) {
-        throw new Error(`Failed to update community configuration: ${error.message}`);
-      }
-
-      return mapDatabaseToUI(data);
+      return mapDatabaseToUI(response.data);
     },
     onSuccess: (data) => {
       // Invalidate and refetch configurations

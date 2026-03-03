@@ -282,6 +282,21 @@ export const schemas = {
   }),
   adminSettingsUpdate: nonEmptyObject,
   adminDeleteSettingParams: z.object({ key: nonEmptyString }),
+  adminConfigurationIdParam: z.object({ id: z.string().uuid() }),
+  adminCommunityConfigurationsQuery: z.object({
+    community_id: z.string().uuid().optional(),
+  }),
+  adminCommunityConfigurationUpdate: nonEmptyObject,
+  adminAgencyConfigurationsQuery: z.object({
+    agency_id: z.string().uuid().optional(),
+  }),
+  adminAgencyConfigurationCreate: z
+    .object({
+      agency_id: z.string().uuid(),
+      agency_name: nonEmptyString,
+    })
+    .passthrough(),
+  adminAgencyConfigurationUpdate: nonEmptyObject,
   adminExpressPayConfigQuery: z.object({
     mode: z.enum(['test', 'live']).optional(),
     scope: z.enum(['global', 'community']).optional(),

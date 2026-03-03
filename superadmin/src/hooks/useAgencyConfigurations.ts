@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { useAdminApi } from './useAdminApi';
 
 // Types matching the database schema and UI interface
 export interface AgencyConfiguration {
@@ -508,86 +509,70 @@ const transformToDB = (data: CreateAgencyConfigurationData | UpdateAgencyConfigu
 
 // Hook to get all agency configurations
 export const useAgencyConfigurations = () => {
+  const { fetchAdmin, hasToken } = useAdminApi();
+
   return useQuery({
     queryKey: ['agencyConfigurations'],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from('agency_configurations')
-        .select('*')
-        .order('agency_name', { ascending: true });
-
-      if (error) throw error;
-      return data?.map(transformFromDB) || [];
+      const response = await fetchAdmin<{ data?: any[] }>('/admin/settings/agency-configurations');
+      return (response.data || []).map(transformFromDB);
     },
+    enabled: hasToken,
   });
 };
 
 // Hook to get agency configuration by agency ID
 export const useAgencyConfiguration = (agencyId: string) => {
+  const { fetchAdmin, hasToken } = useAdminApi();
+
   return useQuery({
     queryKey: ['agencyConfiguration', agencyId],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from('agency_configurations')
-        .select('*')
-        .eq('agency_id', agencyId)
-        .single();
-
-      if (error) {
-        if (error.code === 'PGRST116') {
-          // No configuration found - return null instead of throwing
-          return null;
-        }
-        throw error;
-      }
-      return data ? transformFromDB(data) : null;
+      const response = await fetchAdmin<{ data?: any[] }>(
+        `/admin/settings/agency-configurations?agency_id=${encodeURIComponent(agencyId)}`
+      );
+      const row = response.data?.[0];
+      return row ? transformFromDB(row) : null;
     },
-    enabled: !!agencyId,
+    enabled: hasToken && !!agencyId,
   });
 };
 
 // Hook to get agency configuration in UI format
 export const useAgencyConfigurationUI = (agencyId: string) => {
+  const { fetchAdmin, hasToken } = useAdminApi();
+
   return useQuery({
     queryKey: ['agencyConfigurationUI', agencyId],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from('agency_configurations')
-        .select('*')
-        .eq('agency_id', agencyId)
-        .single();
-
-      if (error) {
-        if (error.code === 'PGRST116') {
-          return null;
-        }
-        throw error;
-      }
-      const config = data ? transformFromDB(data) : null;
+      const response = await fetchAdmin<{ data?: any[] }>(
+        `/admin/settings/agency-configurations?agency_id=${encodeURIComponent(agencyId)}`
+      );
+      const row = response.data?.[0];
+      const config = row ? transformFromDB(row) : null;
       return config ? transformToUI(config) : null;
     },
-    enabled: !!agencyId,
+    enabled: hasToken && !!agencyId,
   });
 };
 
 // Hook to create a new agency configuration
 export const useCreateAgencyConfiguration = () => {
   const queryClient = useQueryClient();
+  const { fetchAdmin } = useAdminApi();
 
   return useMutation({
     mutationFn: async (data: CreateAgencyConfigurationData) => {
       const transformedData = transformToDB(data);
-      const { data: result, error } = await (supabase as any)
-        .from('agency_configurations')
-        .insert([transformedData])
-        .select()
-        .single();
-
-      if (error) throw error;
-      return transformFromDB(result);
+      const response = await fetchAdmin<{ data: any }>('/admin/settings/agency-configurations', {
+        method: 'POST',
+        body: JSON.stringify(transformedData),
+      });
+      return transformFromDB(response.data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agencyConfigurations'] });
+      queryClient.invalidateQueries({ queryKey: ['agencyConfigurationStats'] });
     },
   });
 };
@@ -595,29 +580,24 @@ export const useCreateAgencyConfiguration = () => {
 // Hook to update an existing agency configuration
 export const useUpdateAgencyConfiguration = () => {
   const queryClient = useQueryClient();
+  const { fetchAdmin } = useAdminApi();
 
   return useMutation({
     mutationFn: async (data: UpdateAgencyConfigurationData) => {
       const { id, ...updateData } = data;
       const transformedData = transformToDB(updateData as CreateAgencyConfigurationData);
-      
-      const { data: result, error } = await (supabase as any)
-        .from('agency_configurations')
-        .update({
-          ...transformedData,
-          last_updated: new Date().toISOString(),
-        })
-        .eq('id', id)
-        .select()
-        .single();
 
-      if (error) throw error;
-      return transformFromDB(result);
+      const response = await fetchAdmin<{ data: any }>(`/admin/settings/agency-configurations/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(transformedData),
+      });
+      return transformFromDB(response.data);
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['agencyConfigurations'] });
       queryClient.invalidateQueries({ queryKey: ['agencyConfiguration', data.agency_id] });
       queryClient.invalidateQueries({ queryKey: ['agencyConfigurationUI', data.agency_id] });
+      queryClient.invalidateQueries({ queryKey: ['agencyConfigurationStats'] });
     },
   });
 };
@@ -625,56 +605,33 @@ export const useUpdateAgencyConfiguration = () => {
 // Hook to delete an agency configuration
 export const useDeleteAgencyConfiguration = () => {
   const queryClient = useQueryClient();
+  const { fetchAdmin } = useAdminApi();
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any)
-        .from('agency_configurations')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+      await fetchAdmin(`/admin/settings/agency-configurations/${id}`, {
+        method: 'DELETE',
+      });
       return id;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agencyConfigurations'] });
+      queryClient.invalidateQueries({ queryKey: ['agencyConfigurationStats'] });
     },
   });
 };
 
 // Hook to get configuration statistics
 export const useAgencyConfigurationStats = () => {
+  const { fetchAdmin, hasToken } = useAdminApi();
+
   return useQuery({
     queryKey: ['agencyConfigurationStats'],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from('agency_configurations')
-        .select('status, split_policy, payment_schedule, document_storage');
-
-      if (error) throw error;
-
-      const configs = data || [];
-      return {
-        total: configs.length,
-        active: configs.filter((c: any) => c.status === 'active').length,
-        inactive: configs.filter((c: any) => c.status === 'inactive').length,
-        splitPolicyBreakdown: {
-          agency_agent: configs.filter((c: any) => c.split_policy === 'agency_agent').length,
-          tiered: configs.filter((c: any) => c.split_policy === 'tiered').length,
-          performance_based: configs.filter((c: any) => c.split_policy === 'performance_based').length,
-        },
-        paymentScheduleBreakdown: {
-          immediate: configs.filter((c: any) => c.payment_schedule === 'immediate').length,
-          monthly: configs.filter((c: any) => c.payment_schedule === 'monthly').length,
-          quarterly: configs.filter((c: any) => c.payment_schedule === 'quarterly').length,
-        },
-        documentStorageBreakdown: {
-          local: configs.filter((c: any) => c.document_storage === 'local').length,
-          cloud: configs.filter((c: any) => c.document_storage === 'cloud').length,
-          hybrid: configs.filter((c: any) => c.document_storage === 'hybrid').length,
-        },
-      };
+      const response = await fetchAdmin<{ data: any }>('/admin/settings/agency-configurations/stats');
+      return response.data;
     },
+    enabled: hasToken,
   });
 };
 

@@ -668,6 +668,10 @@ Date: 2026-02-06
   - Removed hardcoded `updated_by: 'Admin User'` writes from `/settings/agencies/configuration` save flows and stopped injecting fallback `updated_by: 'system'` payloads from the hook transformer unless explicitly provided.
   - Added explicit save failure feedback alert in `/settings/agencies/configuration` so failed persistence is visible to admins instead of failing silently.
   - Revalidated superadmin production build after the hardening changes.
+- [x] Phase 33 tenant-configuration API alignment completed:
+  - Added backend-managed tenant settings endpoints for community and agency configuration (`/admin/settings/community-configurations*`, `/admin/settings/agency-configurations*`) with scope-aware access checks and payload allowlisting.
+  - Migrated `useCommunityConfigurations` and `useAgencyConfigurations` core read/write paths in superadmin from direct client-table mutations to the backend admin API (`useAdminApi`) while preserving existing settings UI/UX.
+  - Revalidated backend and superadmin production builds after the migration.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)

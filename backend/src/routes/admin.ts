@@ -16,6 +16,7 @@ import * as complaintController from '../controllers/complaint';
 import * as paymentController from '../controllers/payment';
 import * as adminPaymentGatewayController from '../controllers/adminPaymentGateway';
 import * as adminSecureSettingsController from '../controllers/adminSecureSettings';
+import * as adminTenantConfigurationsController from '../controllers/adminTenantConfigurations';
 
 const router = express.Router();
 
@@ -659,6 +660,60 @@ router.put(
   requirePermission('manage:settings'),
   validateRequest({ body: schemas.adminPaymentFeeSettingsUpdate }),
   adminSecureSettingsController.updatePaymentFeeSettings
+);
+router.get(
+  '/settings/community-configurations',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ query: schemas.adminCommunityConfigurationsQuery }),
+  adminTenantConfigurationsController.listCommunityConfigurations
+);
+router.put(
+  '/settings/community-configurations/:id',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({
+    params: schemas.adminConfigurationIdParam,
+    body: schemas.adminCommunityConfigurationUpdate,
+  }),
+  adminTenantConfigurationsController.updateCommunityConfiguration
+);
+router.get(
+  '/settings/agency-configurations',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ query: schemas.adminAgencyConfigurationsQuery }),
+  adminTenantConfigurationsController.listAgencyConfigurations
+);
+router.get(
+  '/settings/agency-configurations/stats',
+  requireAuth,
+  requirePermission('manage:settings'),
+  adminTenantConfigurationsController.getAgencyConfigurationStats
+);
+router.post(
+  '/settings/agency-configurations',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ body: schemas.adminAgencyConfigurationCreate }),
+  adminTenantConfigurationsController.createAgencyConfiguration
+);
+router.put(
+  '/settings/agency-configurations/:id',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({
+    params: schemas.adminConfigurationIdParam,
+    body: schemas.adminAgencyConfigurationUpdate,
+  }),
+  adminTenantConfigurationsController.updateAgencyConfiguration
+);
+router.delete(
+  '/settings/agency-configurations/:id',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ params: schemas.adminConfigurationIdParam }),
+  adminTenantConfigurationsController.deleteAgencyConfiguration
 );
 router.put(
   '/settings',
