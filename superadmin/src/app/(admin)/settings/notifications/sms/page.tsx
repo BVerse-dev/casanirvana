@@ -170,7 +170,7 @@ const SmsSettingsPage = () => {
                       { value: 'us-east-1', label: 'US East (N. Virginia)' },
                       { value: 'us-west-2', label: 'US West (Oregon)' },
                       { value: 'eu-west-1', label: 'Europe (Ireland)' },
-                      { value: 'ap-south-1', label: 'Asia Pacific (Mumbai)' },
+                      { value: 'ap-south-1', label: 'Asia Pacific (South Asia)' },
                       { value: 'ap-southeast-1', label: 'Asia Pacific (Singapore)' }
                     ]}
                   />
@@ -205,7 +205,7 @@ const SmsSettingsPage = () => {
                     control={control}
                     name="textlocal_sender"
                     label="Sender Name"
-                    placeholder="TXTLCL"
+                    placeholder="CASANV"
                     containerClassName="mb-3"
                   />
                 </Col>
@@ -239,7 +239,7 @@ const SmsSettingsPage = () => {
                     control={control}
                     name="msg91_sender_id"
                     label="Sender ID"
-                    placeholder="MSGIND"
+                    placeholder="CASANV"
                     containerClassName="mb-3"
                   />
                 </Col>
@@ -556,7 +556,7 @@ const SmsSettingsPage = () => {
                       <div className="mb-3">
                         <h6 className="fw-bold">TextLocal</h6>
                         <small className="text-muted">
-                          Regional SMS provider<br />
+                          Provider-specific regional coverage<br />
                           Competitive rates<br />
                           Easy integration
                         </small>
@@ -566,7 +566,7 @@ const SmsSettingsPage = () => {
                       <div className="mb-3">
                         <h6 className="fw-bold">MSG91</h6>
                         <small className="text-muted">
-                          Regional SMS provider<br />
+                          Provider-specific regional coverage<br />
                           Low-cost SMS<br />
                           Transactional & Promotional
                         </small>

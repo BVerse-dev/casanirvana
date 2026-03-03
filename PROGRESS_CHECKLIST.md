@@ -602,6 +602,9 @@ Date: 2026-02-06
   - `/settings/email/notifications` now defaults notification timezone to `Africa/Accra` (schema + selector), with expanded global timezone options and no India-only default fallback.
   - `/settings/language/default` timezone labels were normalized to neutral UTC-based wording (`Dubai (UTC+04:00)`, `Kolkata (UTC+05:30)`) to remove ambiguous region-locked labels while preserving existing UI structure.
   - `/settings/general/regional` renamed GST UI copy to generic sales-tax wording (`Regional Sales Tax Mode`) while keeping the same persisted config field and existing settings layout.
+- [x] Phase 33 notification-provider copy normalization completed:
+  - `/settings/notifications/sms` normalized AWS region label from city-specific wording to neutral regional wording (`Asia Pacific (South Asia)`), and aligned provider sender placeholders to app-neutral values (`CASANV`).
+  - `/settings/notifications/sms` provider info cards now use neutral coverage descriptions instead of region-locked phrasing, while preserving the existing tabs/cards/forms layout.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)
