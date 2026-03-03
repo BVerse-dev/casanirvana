@@ -8,6 +8,8 @@ import {
   requireAdminScope,
 } from '@/lib/adminAuth';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * Module Settings API
  * 

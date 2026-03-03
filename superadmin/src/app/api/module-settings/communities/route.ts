@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { ADMIN_ROLES, requireAdminScope } from '@/lib/adminAuth';
 
+export const dynamic = 'force-dynamic';
+
 function apiResponse<T>(
   status: 'success' | 'error',
   remark: string,

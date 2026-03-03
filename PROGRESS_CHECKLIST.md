@@ -608,6 +608,8 @@ Date: 2026-02-06
 - [x] Phase 33 final timezone/currency label sweep completed:
   - `/settings/email/notifications` and `/settings/language/default` now use neutral UTC-based labels for `Asia/Kolkata` (`UTC+05:30 (South Asia)`) while preserving stored timezone values for backward compatibility.
   - `/settings/payment/gateways` and `/settings/language/default` now display `INR (₹)` with neutral currency-label wording to remove region-locked copy drift.
+- [x] Phase 33 settings API runtime alignment completed:
+  - Marked `/api/module-settings` and `/api/module-settings/communities` route handlers as explicit dynamic routes (`force-dynamic`) to align with `headers()`-based auth scope checks and remove recurring static-generation dynamic-usage warnings during build.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)
