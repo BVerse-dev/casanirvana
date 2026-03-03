@@ -620,6 +620,11 @@ Date: 2026-02-06
 - [x] Phase 33 settings cleanup continuation completed:
   - Removed the unused duplicate notification-settings implementation (`/notifications/settings/components/NotificationSettingsView` and legacy hooks `useNotificationSettings`, `useChannelSettings`, `useAppSettings`) to prevent accidental fallback to direct browser writes against `app_settings`.
   - `/settings/communities/configuration` no longer hardcodes a single community UUID; it now loads configured communities dynamically and allows selecting the target community before editing configuration.
+- [x] Phase 33 system-settings truthfulness cleanup completed:
+  - `/settings/system/settings` no longer uses fake runtime metrics, fabricated health states, or non-wired backup/log/maintenance modals; the page now presents configuration health and configured thresholds derived from actual saved settings.
+  - `/settings/system/settings` quick actions now navigate to real operational/configuration pages (`System Overview`, `Security Policies`, `Notification Rules`, `Integrations`) instead of pseudo-actions.
+  - `/settings/system/settings` advanced tab now uses configuration snapshot content and deployment-secret guidance (no fake variable status timestamps), including explicit backend secret keys currently required for automation.
+  - `/settings/system/overview` removed hardcoded trend deltas and dollar formatting in key metric cards; cards now use neutral live-count labels and `GH₵` currency formatting.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)

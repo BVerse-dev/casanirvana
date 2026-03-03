@@ -221,8 +221,8 @@ const SystemOverview = () => {
                 <div className="flex-grow-1 ms-3">
                   <p className="text-muted mb-1">Active Users</p>
                   <h5 className="mb-0">{systemMetrics.activeUsers.toLocaleString()}</h5>
-                  <span className="text-success small">
-                    <IconifyIcon icon="ri:arrow-up-line" /> +12%
+                  <span className="text-muted small">
+                    <IconifyIcon icon="ri:pulse-line" /> Live count
                   </span>
                 </div>
               </div>
@@ -243,8 +243,8 @@ const SystemOverview = () => {
                 <div className="flex-grow-1 ms-3">
                   <p className="text-muted mb-1">Total Units</p>
                   <h5 className="mb-0">{systemMetrics.totalUnits.toLocaleString()}</h5>
-                  <span className="text-success small">
-                    <IconifyIcon icon="ri:arrow-up-line" /> +5%
+                  <span className="text-muted small">
+                    <IconifyIcon icon="ri:pulse-line" /> Live count
                   </span>
                 </div>
               </div>
@@ -265,8 +265,8 @@ const SystemOverview = () => {
                 <div className="flex-grow-1 ms-3">
                   <p className="text-muted mb-1">Active Complaints</p>
                   <h5 className="mb-0">{systemMetrics.activeComplaints}</h5>
-                  <span className="text-danger small">
-                    <IconifyIcon icon="ri:arrow-up-line" /> +3
+                  <span className="text-muted small">
+                    <IconifyIcon icon="ri:pulse-line" /> Open workload
                   </span>
                 </div>
               </div>
@@ -286,9 +286,9 @@ const SystemOverview = () => {
                 </div>
                 <div className="flex-grow-1 ms-3">
                   <p className="text-muted mb-1">Monthly Revenue</p>
-                  <h5 className="mb-0">${systemMetrics.revenue.toLocaleString()}</h5>
-                  <span className="text-success small">
-                    <IconifyIcon icon="ri:arrow-up-line" /> +8%
+                  <h5 className="mb-0">GH₵ {systemMetrics.revenue.toLocaleString()}</h5>
+                  <span className="text-muted small">
+                    <IconifyIcon icon="ri:pulse-line" /> Live total
                   </span>
                 </div>
               </div>

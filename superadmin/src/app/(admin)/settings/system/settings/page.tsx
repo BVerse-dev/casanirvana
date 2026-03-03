@@ -20,16 +20,13 @@ import {
   TabContent,
   TabPane,
   ProgressBar,
-  Modal,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
   Table,
   Dropdown,
   DropdownToggle,
   DropdownMenu,
   DropdownItem,
 } from "react-bootstrap";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
@@ -162,32 +159,17 @@ const smsProviderOptions = [
 ];
 
 const SystemConfigSettings = () => {
+  const router = useRouter();
   const { data: systemSettingsData, isLoading } = useSystemSettings();
   const updateSystemSettingsMutation = useUpdateSystemSettings();
   const [activeTab, setActiveTab] = useState("general");
-  const [showBackupModal, setShowBackupModal] = useState(false);
-  const [showLogsModal, setShowLogsModal] = useState(false);
-  const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
-  const systemMetrics = {
-    cpu: 45,
-    memory: 67,
-    disk: 34,
-    network: 23,
-    uptime: "15d 7h 32m",
-    connections: 156,
-  };
-  const logs = [
-    { timestamp: "2026-03-02 09:30:25", level: "INFO", message: "System health check completed successfully", module: "Health" },
-    { timestamp: "2026-03-02 09:25:12", level: "WARN", message: "SMS queue latency is above the configured threshold", module: "Monitor" },
-    { timestamp: "2026-03-02 09:20:08", level: "INFO", message: "Backup policy is configured and awaiting the next scheduled run", module: "Backup" },
-    { timestamp: "2026-03-02 09:15:03", level: "INFO", message: "Notification routing configuration loaded successfully", module: "Notifications" },
-  ];
 
   const {
     register,
     control,
     handleSubmit,
     reset,
+    watch,
     formState: { errors, isDirty },
   } = useForm<SystemConfigFormData>({
     resolver: yupResolver(systemConfigSchema),
@@ -266,6 +248,18 @@ const SystemConfigSettings = () => {
       enable_whatsapp_integration: false,
     },
   });
+  const watchedValues = watch();
+  const systemMetrics = {
+    cpuThreshold: Number(watchedValues.cpu_usage_alert_threshold ?? 0),
+    memoryThreshold: Number(watchedValues.memory_usage_alert_threshold ?? 0),
+    diskThreshold: Number(watchedValues.disk_space_alert_threshold ?? 0),
+    apiBurstUtilization: Math.min(
+      100,
+      Math.max(0, Number(watchedValues.api_burst_limit ?? 0) / 10)
+    ),
+    sessionTimeout: Number(watchedValues.session_timeout ?? 0),
+    connectionPoolSize: Number(watchedValues.database_connection_pool_size ?? 0),
+  };
 
   // Populate form when settings are loaded
   useEffect(() => {
@@ -287,14 +281,57 @@ const SystemConfigSettings = () => {
   };
 
   const systemStatus = [
-    { label: "Database Status", status: "operational", icon: "ri:database-2-line", details: "Connected - 45ms latency" },
-    { label: "Email Service", status: "operational", icon: "ri:mail-line", details: "Queue: 12 pending" },
-    { label: "SMS Service", status: "degraded", icon: "ri:message-2-line", details: "High latency detected" },
-    { label: "Push Notifications", status: "operational", icon: "ri:notification-3-line", details: "All channels active" },
-    { label: "File Storage", status: "operational", icon: "ri:folder-cloud-line", details: "34% used (156GB)" },
-    { label: "Backup System", status: "operational", icon: "ri:save-line", details: "Last backup: 2h ago" },
-    { label: "Cache System", status: "operational", icon: "ri:refresh-line", details: "Redis - 89% hit rate" },
-    { label: "Security Scanner", status: "operational", icon: "ri:shield-check-line", details: "No threats detected" },
+    {
+      label: "Environment",
+      status: watchedValues.environment === "production" ? "configured" : "review",
+      icon: "ri:server-line",
+      details: `Configured as ${watchedValues.environment || "production"}`,
+    },
+    {
+      label: "Monitoring Policy",
+      status: watchedValues.enable_system_monitoring ? "configured" : "disabled",
+      icon: "ri:pulse-line",
+      details: watchedValues.enable_system_monitoring
+        ? `Enabled • ${watchedValues.monitoring_interval_seconds || 300}s interval`
+        : "Disabled in configuration",
+    },
+    {
+      label: "Notification Channels",
+      status:
+        watchedValues.notification_email_enabled ||
+        watchedValues.notification_sms_enabled ||
+        watchedValues.notification_push_enabled
+          ? "configured"
+          : "review",
+      icon: "ri:notification-3-line",
+      details: [
+        watchedValues.notification_email_enabled ? "Email" : null,
+        watchedValues.notification_sms_enabled ? "SMS" : null,
+        watchedValues.notification_push_enabled ? "Push" : null,
+      ]
+        .filter(Boolean)
+        .join(" • ") || "No channels enabled",
+    },
+    {
+      label: "Backup Policy",
+      status: watchedValues.auto_backup_enabled ? "configured" : "review",
+      icon: "ri:save-line",
+      details: watchedValues.auto_backup_enabled
+        ? `${watchedValues.backup_frequency || "daily"} backups • ${watchedValues.backup_retention_days || 30} day retention`
+        : "Auto backup disabled",
+    },
+    {
+      label: "Security Controls",
+      status: watchedValues.force_ssl ? "configured" : "review",
+      icon: "ri:shield-check-line",
+      details: `SSL ${watchedValues.force_ssl ? "enforced" : "not enforced"} • Max login attempts ${watchedValues.max_login_attempts || 0}`,
+    },
+    {
+      label: "Runtime Operations",
+      status: "review",
+      icon: "ri:settings-5-line",
+      details: "Use System Overview for live metrics, alerts, and operational logs",
+    },
   ];
 
   const getStatusBadge = (status: string) => {
@@ -305,34 +342,14 @@ const SystemConfigSettings = () => {
         return <Badge bg="warning">Degraded</Badge>;
       case "down":
         return <Badge bg="danger">Down</Badge>;
+      case "configured":
+        return <Badge bg="info">Configured</Badge>;
+      case "review":
+        return <Badge bg="warning">Needs Review</Badge>;
+      case "disabled":
+        return <Badge bg="secondary">Disabled</Badge>;
       default:
         return <Badge bg="secondary">Unknown</Badge>;
-    }
-  };
-
-  const handleClearCache = async () => {
-    try {
-      toast("Cache clear is not connected to a live maintenance job yet.");
-    } catch (error) {
-      toast.error("Unable to prepare the cache clear shortcut.");
-    }
-  };
-
-  const handleRunBackup = async () => {
-    try {
-      toast("Backup scheduling must be triggered through your infrastructure job runner.");
-      setShowBackupModal(false);
-    } catch (error) {
-      toast.error("Unable to prepare the backup shortcut.");
-    }
-  };
-
-  const handleSystemMaintenance = async () => {
-    try {
-      toast("Maintenance scheduling should be triggered through your deployment workflow.");
-      setShowMaintenanceModal(false);
-    } catch (error) {
-      toast.error("Unable to prepare the maintenance shortcut.");
     }
   };
 
@@ -351,7 +368,7 @@ const SystemConfigSettings = () => {
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
           <h4 className="page-title">System Configuration</h4>
-          <p className="text-muted mb-0">Configure system-wide settings and monitor system health</p>
+          <p className="text-muted mb-0">Configure system-wide behavior. Runtime operations are handled in System Overview.</p>
         </div>
       </div>
 
@@ -361,23 +378,23 @@ const SystemConfigSettings = () => {
           {/* System Health */}
           <Card className="mb-4">
             <CardHeader className="d-flex justify-content-between align-items-center">
-              <CardTitle as="h6">System Health</CardTitle>
+              <CardTitle as="h6">Configuration Health</CardTitle>
               <Dropdown>
                 <DropdownToggle variant="outline-secondary" size="sm">
                   <IconifyIcon icon="ri:more-line" />
                 </DropdownToggle>
                 <DropdownMenu>
-                  <DropdownItem onClick={() => setShowLogsModal(true)}>
-                    <IconifyIcon icon="ri:file-list-line" className="me-2" />
-                    View Logs
+                  <DropdownItem onClick={() => router.push("/settings/system/overview")}>
+                    <IconifyIcon icon="ri:pulse-line" className="me-2" />
+                    Open System Overview
                   </DropdownItem>
-                  <DropdownItem onClick={() => setShowBackupModal(true)}>
-                    <IconifyIcon icon="ri:save-line" className="me-2" />
-                    Run Backup
+                  <DropdownItem onClick={() => router.push("/settings/admin/security")}>
+                    <IconifyIcon icon="ri:shield-check-line" className="me-2" />
+                    Open Security Policies
                   </DropdownItem>
-                  <DropdownItem onClick={() => setShowMaintenanceModal(true)}>
-                    <IconifyIcon icon="ri:tools-line" className="me-2" />
-                    Maintenance
+                  <DropdownItem onClick={() => router.push("/settings/notifications/rules")}>
+                    <IconifyIcon icon="ri:notification-3-line" className="me-2" />
+                    Open Notification Rules
                   </DropdownItem>
                 </DropdownMenu>
               </Dropdown>
@@ -402,55 +419,55 @@ const SystemConfigSettings = () => {
             </CardBody>
           </Card>
 
-          {/* Real-time Metrics */}
+          {/* Configured Thresholds */}
           <Card className="mb-4">
             <CardHeader>
-              <CardTitle as="h6">System Metrics</CardTitle>
+              <CardTitle as="h6">Configured Thresholds</CardTitle>
             </CardHeader>
             <CardBody>
               <div className="mb-3">
                 <div className="d-flex justify-content-between mb-1">
-                  <span className="text-muted">CPU Usage</span>
-                  <span className="fw-medium">{systemMetrics.cpu.toFixed(1)}%</span>
+                  <span className="text-muted">CPU Alert Threshold</span>
+                  <span className="fw-medium">{systemMetrics.cpuThreshold.toFixed(1)}%</span>
                 </div>
                 <ProgressBar 
-                  now={systemMetrics.cpu} 
-                  variant={systemMetrics.cpu > 80 ? "danger" : systemMetrics.cpu > 60 ? "warning" : "success"} 
+                  now={systemMetrics.cpuThreshold}
+                  variant={systemMetrics.cpuThreshold > 80 ? "danger" : systemMetrics.cpuThreshold > 60 ? "warning" : "success"}
                 />
               </div>
               <div className="mb-3">
                 <div className="d-flex justify-content-between mb-1">
-                  <span className="text-muted">Memory Usage</span>
-                  <span className="fw-medium">{systemMetrics.memory.toFixed(1)}%</span>
+                  <span className="text-muted">Memory Alert Threshold</span>
+                  <span className="fw-medium">{systemMetrics.memoryThreshold.toFixed(1)}%</span>
                 </div>
                 <ProgressBar 
-                  now={systemMetrics.memory} 
-                  variant={systemMetrics.memory > 85 ? "danger" : systemMetrics.memory > 70 ? "warning" : "info"} 
+                  now={systemMetrics.memoryThreshold}
+                  variant={systemMetrics.memoryThreshold > 85 ? "danger" : systemMetrics.memoryThreshold > 70 ? "warning" : "info"}
                 />
               </div>
               <div className="mb-3">
                 <div className="d-flex justify-content-between mb-1">
-                  <span className="text-muted">Disk Usage</span>
-                  <span className="fw-medium">{systemMetrics.disk}%</span>
+                  <span className="text-muted">Disk Alert Threshold</span>
+                  <span className="fw-medium">{systemMetrics.diskThreshold}%</span>
                 </div>
-                <ProgressBar now={systemMetrics.disk} variant="primary" />
+                <ProgressBar now={systemMetrics.diskThreshold} variant="primary" />
               </div>
               <div className="mb-3">
                 <div className="d-flex justify-content-between mb-1">
-                  <span className="text-muted">Network I/O</span>
-                  <span className="fw-medium">{systemMetrics.network.toFixed(1)}%</span>
+                  <span className="text-muted">API Burst Utilization</span>
+                  <span className="fw-medium">{systemMetrics.apiBurstUtilization.toFixed(1)}%</span>
                 </div>
-                <ProgressBar now={systemMetrics.network} variant="secondary" />
+                <ProgressBar now={systemMetrics.apiBurstUtilization} variant="secondary" />
               </div>
               <hr />
               <div className="row text-center">
                 <div className="col-6">
-                  <div className="text-muted small">Uptime</div>
-                  <div className="fw-medium">{systemMetrics.uptime}</div>
+                  <div className="text-muted small">Session Timeout</div>
+                  <div className="fw-medium">{systemMetrics.sessionTimeout} min</div>
                 </div>
                 <div className="col-6">
-                  <div className="text-muted small">Connections</div>
-                  <div className="fw-medium">{systemMetrics.connections}</div>
+                  <div className="text-muted small">DB Pool Size</div>
+                  <div className="fw-medium">{systemMetrics.connectionPoolSize}</div>
                 </div>
               </div>
             </CardBody>
@@ -463,21 +480,21 @@ const SystemConfigSettings = () => {
             </CardHeader>
             <CardBody>
               <div className="d-grid gap-2">
-                <Button variant="outline-primary" size="sm" onClick={handleClearCache}>
-                  <IconifyIcon icon="ri:refresh-line" className="me-1" />
-                  Clear Cache
+                <Button variant="outline-primary" size="sm" onClick={() => router.push("/settings/system/overview")}>
+                  <IconifyIcon icon="ri:pulse-line" className="me-1" />
+                  Open Runtime Overview
                 </Button>
-                <Button variant="outline-info" size="sm" onClick={() => setShowBackupModal(true)}>
-                  <IconifyIcon icon="ri:download-line" className="me-1" />
-                  Create Backup
+                <Button variant="outline-info" size="sm" onClick={() => router.push("/settings/general/integrations")}>
+                  <IconifyIcon icon="ri:plug-line" className="me-1" />
+                  Review Integrations
                 </Button>
-                <Button variant="outline-warning" size="sm" onClick={() => setShowMaintenanceModal(true)}>
-                  <IconifyIcon icon="ri:tools-line" className="me-1" />
-                  System Maintenance
+                <Button variant="outline-warning" size="sm" onClick={() => router.push("/settings/admin/security")}>
+                  <IconifyIcon icon="ri:shield-keyhole-line" className="me-1" />
+                  Review Security Policies
                 </Button>
-                <Button variant="outline-secondary" size="sm" onClick={() => setShowLogsModal(true)}>
-                  <IconifyIcon icon="ri:file-list-line" className="me-1" />
-                  View System Logs
+                <Button variant="outline-secondary" size="sm" onClick={() => router.push("/settings/notifications/rules")}>
+                  <IconifyIcon icon="ri:notification-4-line" className="me-1" />
+                  Review Notification Rules
                 </Button>
               </div>
             </CardBody>
@@ -1096,42 +1113,46 @@ const SystemConfigSettings = () => {
                   <div>
                     <h6 className="mb-3">Advanced System Configuration</h6>
                     
-                    {/* Database Management */}
+                    {/* Database Configuration */}
                     <Card className="mb-4">
                       <CardHeader>
-                        <CardTitle as="h6">Database Management</CardTitle>
+                        <CardTitle as="h6">Database Configuration</CardTitle>
                       </CardHeader>
                       <CardBody>
                         <Row>
                           <Col md={6}>
                             <div className="mb-3">
-                              <strong>Connection Pool Status:</strong>
+                              <strong>Connection Pool Size</strong>
                               <div className="d-flex justify-content-between mt-1">
-                                <span>Active: 15/20</span>
-                                <Badge bg="success">Healthy</Badge>
+                                <span>{watchedValues.database_connection_pool_size || 0} configured connections</span>
+                                <Badge bg="info">Configured</Badge>
                               </div>
                             </div>
                             <div className="mb-3">
-                              <strong>Query Performance:</strong>
+                              <strong>Query Timeout</strong>
                               <div className="d-flex justify-content-between mt-1">
-                                <span>Avg Response: 45ms</span>
-                                <Badge bg="info">Good</Badge>
+                                <span>{watchedValues.database_query_timeout || 0} ms</span>
+                                <Badge bg="info">Configured</Badge>
                               </div>
                             </div>
                           </Col>
                           <Col md={6}>
                             <div className="mb-3">
-                              <strong>Storage Usage:</strong>
-                              <ProgressBar now={67} label="67%" variant="primary" />
+                              <strong>Upload Limit</strong>
+                              <ProgressBar
+                                now={Math.min(100, (Number(watchedValues.max_file_upload_size || 0) / 100) * 100)}
+                                label={`${watchedValues.max_file_upload_size || 0} MB`}
+                                variant="primary"
+                              />
                             </div>
                             <div className="d-grid gap-2">
-                              <Button variant="outline-primary" size="sm">
-                                <IconifyIcon icon="ri:database-line" className="me-1" />
-                                Optimize Tables
+                              <Button variant="outline-primary" size="sm" onClick={() => router.push("/settings/system/overview")}>
+                                <IconifyIcon icon="ri:pulse-line" className="me-1" />
+                                Open Runtime Database Metrics
                               </Button>
-                              <Button variant="outline-warning" size="sm">
-                                <IconifyIcon icon="ri:refresh-line" className="me-1" />
-                                Rebuild Indexes
+                              <Button variant="outline-secondary" size="sm" onClick={() => router.push("/settings/general/integrations")}>
+                                <IconifyIcon icon="ri:plug-line" className="me-1" />
+                                Review Storage Integrations
                               </Button>
                             </div>
                           </Col>
@@ -1139,38 +1160,38 @@ const SystemConfigSettings = () => {
                       </CardBody>
                     </Card>
 
-                    {/* Cache Management */}
+                    {/* Cache Configuration */}
                     <Card className="mb-4">
                       <CardHeader>
-                        <CardTitle as="h6">Cache Management</CardTitle>
+                        <CardTitle as="h6">Cache Configuration</CardTitle>
                       </CardHeader>
                       <CardBody>
                         <Row>
                           <Col md={8}>
                             <div className="mb-2">
                               <div className="d-flex justify-content-between">
-                                <span>Cache Hit Rate</span>
-                                <span className="fw-bold text-success">89.2%</span>
+                                <span>Cache Provider</span>
+                                <span className="fw-bold text-info">{watchedValues.cache_provider || "redis"}</span>
                               </div>
-                              <ProgressBar now={89.2} variant="success" />
+                              <ProgressBar now={100} variant="info" />
                             </div>
                             <div className="mb-2">
                               <div className="d-flex justify-content-between">
-                                <span>Memory Usage</span>
-                                <span>156 MB / 512 MB</span>
+                                <span>Cache TTL</span>
+                                <span>{watchedValues.cache_ttl || 0} seconds</span>
                               </div>
-                              <ProgressBar now={30.4} variant="info" />
+                              <ProgressBar now={Math.min(100, Number(watchedValues.cache_ttl || 0) / 864)} variant="secondary" />
                             </div>
                           </Col>
                           <Col md={4}>
                             <div className="d-grid gap-2">
-                              <Button variant="outline-danger" size="sm" onClick={handleClearCache}>
-                                <IconifyIcon icon="ri:delete-bin-line" className="me-1" />
-                                Clear All Cache
+                              <Button variant="outline-primary" size="sm" onClick={() => router.push("/settings/system/overview")}>
+                                <IconifyIcon icon="ri:pulse-line" className="me-1" />
+                                View Runtime Cache Metrics
                               </Button>
-                              <Button variant="outline-secondary" size="sm">
-                                <IconifyIcon icon="ri:restart-line" className="me-1" />
-                                Restart Cache
+                              <Button variant="outline-secondary" size="sm" onClick={() => router.push("/settings/general/system")}>
+                                <IconifyIcon icon="ri:settings-4-line" className="me-1" />
+                                Open System Config
                               </Button>
                             </div>
                           </Col>
@@ -1178,33 +1199,35 @@ const SystemConfigSettings = () => {
                       </CardBody>
                     </Card>
 
-                    {/* Security Audit */}
+                    {/* Security Configuration */}
                     <Card className="mb-4">
                       <CardHeader>
-                        <CardTitle as="h6">Security Audit</CardTitle>
+                        <CardTitle as="h6">Security Configuration</CardTitle>
                       </CardHeader>
                       <CardBody>
                         <div className="mb-3">
                           <div className="d-flex justify-content-between align-items-center">
-                            <span>Last Security Scan:</span>
-                            <Badge bg="success">2 hours ago</Badge>
+                            <span>Force SSL</span>
+                            <Badge bg={watchedValues.force_ssl ? "success" : "warning"}>
+                              {watchedValues.force_ssl ? "Enabled" : "Disabled"}
+                            </Badge>
                           </div>
                         </div>
                         <div className="mb-3">
                           <div className="d-flex justify-content-between align-items-center">
-                            <span>Failed Login Attempts (24h):</span>
-                            <Badge bg="warning">12</Badge>
+                            <span>Max Login Attempts</span>
+                            <Badge bg="info">{watchedValues.max_login_attempts || 0}</Badge>
                           </div>
                         </div>
                         <div className="mb-3">
                           <div className="d-flex justify-content-between align-items-center">
-                            <span>Active Sessions:</span>
-                            <Badge bg="info">234</Badge>
+                            <span>Session Timeout</span>
+                            <Badge bg="info">{watchedValues.session_timeout || 0} minutes</Badge>
                           </div>
                         </div>
-                        <Button variant="outline-primary" size="sm" className="w-100">
-                          <IconifyIcon icon="ri:scan-line" className="me-1" />
-                          Run Security Scan
+                        <Button variant="outline-primary" size="sm" className="w-100" onClick={() => router.push("/settings/admin/security")}>
+                          <IconifyIcon icon="ri:shield-check-line" className="me-1" />
+                          Open Security Policies
                         </Button>
                       </CardBody>
                     </Card>
@@ -1217,40 +1240,56 @@ const SystemConfigSettings = () => {
                       <CardBody>
                         <Alert variant="warning">
                           <IconifyIcon icon="ri:warning-line" className="me-1" />
-                          Environment variables are managed through secure deployment processes.
+                          Environment variables are managed in deployment platforms (Vercel/Render). This page does not read raw secret values.
                         </Alert>
                         <div className="table-responsive">
                           <Table size="sm">
                             <thead>
                               <tr>
                                 <th>Variable</th>
-                                <th>Status</th>
-                                <th>Last Updated</th>
+                                <th>Purpose</th>
+                                <th>Scope</th>
                               </tr>
                             </thead>
                             <tbody>
                               <tr>
                                 <td>DATABASE_URL</td>
-                                <td><Badge bg="success">Set</Badge></td>
-                                <td>2024-01-15</td>
+                                <td>Primary database connection</td>
+                                <td><Badge bg="secondary">Backend</Badge></td>
                               </tr>
                               <tr>
-                                <td>REDIS_URL</td>
-                                <td><Badge bg="success">Set</Badge></td>
-                                <td>2024-01-15</td>
+                                <td>SUPABASE_SERVICE_ROLE_KEY</td>
+                                <td>Privileged Supabase operations</td>
+                                <td><Badge bg="secondary">Backend</Badge></td>
                               </tr>
                               <tr>
-                                <td>JWT_SECRET</td>
-                                <td><Badge bg="success">Set</Badge></td>
-                                <td>2024-01-10</td>
+                                <td>NEXTAUTH_SECRET</td>
+                                <td>Session and auth signing</td>
+                                <td><Badge bg="secondary">Superadmin</Badge></td>
                               </tr>
                               <tr>
                                 <td>SMTP_PASSWORD</td>
-                                <td><Badge bg="warning">Missing</Badge></td>
-                                <td>-</td>
+                                <td>Email provider authentication</td>
+                                <td><Badge bg="secondary">Backend</Badge></td>
+                              </tr>
+                              <tr>
+                                <td>PAYMENT_CHARGE_CRON_API_KEY</td>
+                                <td>Scheduled charge issuance protection</td>
+                                <td><Badge bg="secondary">Backend</Badge></td>
+                              </tr>
+                              <tr>
+                                <td>PAYOUT_AUTOMATION_API_KEY</td>
+                                <td>Payout automation protection</td>
+                                <td><Badge bg="secondary">Backend</Badge></td>
                               </tr>
                             </tbody>
                           </Table>
+                        </div>
+                        <div className="d-flex justify-content-end mt-3">
+                          <Button variant="outline-secondary" size="sm" onClick={() => router.push("/settings/general/integrations")}>
+                            <IconifyIcon icon="ri:external-link-line" className="me-1" />
+                            Review Integration Settings
+                          </Button>
                         </div>
                       </CardBody>
                     </Card>
@@ -1277,152 +1316,6 @@ const SystemConfigSettings = () => {
         </Col>
       </Row>
 
-      {/* Modals */}
-      {/* Backup Modal */}
-      <Modal show={showBackupModal} onHide={() => setShowBackupModal(false)}>
-        <ModalHeader closeButton>
-          <h5>System Backup</h5>
-        </ModalHeader>
-        <ModalBody>
-          <p>This will create a complete system backup including:</p>
-          <ul>
-            <li>Database snapshot</li>
-            <li>Configuration files</li>
-            <li>User uploaded files</li>
-            <li>System logs</li>
-          </ul>
-          <Alert variant="info">
-            <IconifyIcon icon="ri:information-line" className="me-1" />
-            Backup process may take 5-10 minutes depending on data size.
-          </Alert>
-        </ModalBody>
-        <ModalFooter>
-          <Button variant="secondary" onClick={() => setShowBackupModal(false)}>
-            Cancel
-          </Button>
-          <Button variant="primary" onClick={handleRunBackup}>
-            <IconifyIcon icon="ri:download-line" className="me-1" />
-            Start Backup
-          </Button>
-        </ModalFooter>
-      </Modal>
-
-      {/* Logs Modal */}
-      <Modal show={showLogsModal} onHide={() => setShowLogsModal(false)} size="lg">
-        <ModalHeader closeButton>
-          <h5>System Logs</h5>
-        </ModalHeader>
-        <ModalBody>
-          <div className="mb-3">
-            <Row>
-              <Col md={4}>
-                <Form.Select size="sm">
-                  <option>All Levels</option>
-                  <option>Error</option>
-                  <option>Warning</option>
-                  <option>Info</option>
-                  <option>Debug</option>
-                </Form.Select>
-              </Col>
-              <Col md={4}>
-                <Form.Select size="sm">
-                  <option>All Modules</option>
-                  <option>Auth</option>
-                  <option>Database</option>
-                  <option>API</option>
-                  <option>Backup</option>
-                </Form.Select>
-              </Col>
-              <Col md={4}>
-                <Button variant="outline-primary" size="sm" className="w-100">
-                  <IconifyIcon icon="ri:refresh-line" className="me-1" />
-                  Refresh
-                </Button>
-              </Col>
-            </Row>
-          </div>
-          <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-            <Table striped size="sm">
-              <thead>
-                <tr>
-                  <th>Time</th>
-                  <th>Level</th>
-                  <th>Module</th>
-                  <th>Message</th>
-                </tr>
-              </thead>
-              <tbody>
-                {logs.map((log, index) => (
-                  <tr key={index}>
-                    <td style={{ fontSize: '0.8rem' }}>{log.timestamp}</td>
-                    <td>
-                      <Badge 
-                        bg={log.level === 'ERROR' ? 'danger' : log.level === 'WARN' ? 'warning' : 'info'}
-                      >
-                        {log.level}
-                      </Badge>
-                    </td>
-                    <td>{log.module}</td>
-                    <td style={{ fontSize: '0.9rem' }}>{log.message}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-          </div>
-        </ModalBody>
-        <ModalFooter>
-          <Button variant="outline-secondary" size="sm">
-            <IconifyIcon icon="ri:download-line" className="me-1" />
-            Export Logs
-          </Button>
-          <Button variant="secondary" onClick={() => setShowLogsModal(false)}>
-            Close
-          </Button>
-        </ModalFooter>
-      </Modal>
-
-      {/* Maintenance Modal */}
-      <Modal show={showMaintenanceModal} onHide={() => setShowMaintenanceModal(false)}>
-        <ModalHeader closeButton>
-          <h5>System Maintenance</h5>
-        </ModalHeader>
-        <ModalBody>
-          <p>Schedule system maintenance tasks:</p>
-          <div className="mb-3">
-            <Form.Check 
-              type="checkbox" 
-              label="Database optimization" 
-              defaultChecked 
-            />
-            <Form.Check 
-              type="checkbox" 
-              label="Clear temporary files" 
-              defaultChecked 
-            />
-            <Form.Check 
-              type="checkbox" 
-              label="Update search indexes" 
-            />
-            <Form.Check 
-              type="checkbox" 
-              label="Compress old logs" 
-            />
-          </div>
-          <Alert variant="warning">
-            <IconifyIcon icon="ri:warning-line" className="me-1" />
-            Maintenance tasks may cause brief service interruptions.
-          </Alert>
-        </ModalBody>
-        <ModalFooter>
-          <Button variant="secondary" onClick={() => setShowMaintenanceModal(false)}>
-            Cancel
-          </Button>
-          <Button variant="warning" onClick={handleSystemMaintenance}>
-            <IconifyIcon icon="ri:tools-line" className="me-1" />
-            Schedule Maintenance
-          </Button>
-        </ModalFooter>
-      </Modal>
     </>
   );
 };
