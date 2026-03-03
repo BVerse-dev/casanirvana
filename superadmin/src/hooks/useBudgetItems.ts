@@ -19,20 +19,16 @@ export const useBudgetItems = () => {
   return useQuery({
     queryKey: ['community_budget_items'],
     queryFn: async (): Promise<BudgetItem[]> => {
-      console.log('🔍 useBudgetItems: Starting query...');
-      
       const { data, error } = await supabase
         .from('community_budget_items' as any)
         .select('*')
         .order('category', { ascending: true });
 
       if (error) {
-        console.error('❌ useBudgetItems: Error fetching budget items:', error);
         throw new Error(`Failed to fetch budget items: ${error.message}`);
       }
 
-      console.log('✅ useBudgetItems: Data fetched successfully:', data?.length, 'items');
       return (data as unknown as BudgetItem[]) || [];
     },
   });
-}; 
+};

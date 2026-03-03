@@ -197,8 +197,6 @@ export const useCommunityConfigurationByCommunity = (communityId: string) => {
   return useQuery({
     queryKey: ['community_configurations', 'community', communityId],
     queryFn: async (): Promise<CommunityConfiguration | null> => {
-      console.log('🔍 useCommunityConfigurationByCommunity: Starting query for community:', communityId);
-      
       try {
         // Use direct query without types to bypass TypeScript issues
         const { data, error } = await supabase
@@ -212,15 +210,12 @@ export const useCommunityConfigurationByCommunity = (communityId: string) => {
         }
 
         if (!data) {
-          console.log('📝 useCommunityConfigurationByCommunity: No configuration found for community:', communityId);
           return null;
         }
 
-        console.log('✅ useCommunityConfigurationByCommunity: Configuration fetched successfully');
         return mapDatabaseToUI(data);
 
       } catch (error) {
-        console.error('❌ useCommunityConfigurationByCommunity: Error:', error);
         throw error;
       }
     },
@@ -233,8 +228,6 @@ export const useCommunityConfigurations = () => {
   return useQuery({
     queryKey: ['community_configurations'],
     queryFn: async (): Promise<CommunityConfiguration[]> => {
-      console.log('🔍 useCommunityConfigurations: Starting query...');
-      
       try {
         // Use direct query without types to bypass TypeScript issues
         const { data, error } = await supabase
@@ -243,16 +236,12 @@ export const useCommunityConfigurations = () => {
           .order('updated_at', { ascending: false });
 
         if (error) {
-          console.error('❌ useCommunityConfigurations: Error fetching configurations:', error);
           throw new Error(`Failed to fetch community configurations: ${error.message}`);
         }
-
-        console.log('✅ useCommunityConfigurations: Data fetched successfully:', data?.length, 'configurations');
         
         return (data || []).map(mapDatabaseToUI);
 
       } catch (error) {
-        console.error('❌ useCommunityConfigurations: Error:', error);
         throw error;
       }
     },
@@ -265,8 +254,6 @@ export const useUpdateCommunityConfiguration = () => {
 
   return useMutation({
     mutationFn: async ({ id, config }: { id: string; config: Partial<CommunityConfiguration> }): Promise<CommunityConfiguration> => {
-      console.log('📝 Updating community configuration:', id, config);
-      
       // Map UI data to database format
       const dbData: any = {};
       
@@ -337,22 +324,15 @@ export const useUpdateCommunityConfiguration = () => {
         .single();
 
       if (error) {
-        console.error('❌ Error updating community configuration:', error);
         throw new Error(`Failed to update community configuration: ${error.message}`);
       }
 
-      console.log('✅ Community configuration updated successfully');
       return mapDatabaseToUI(data);
     },
     onSuccess: (data) => {
       // Invalidate and refetch configurations
       queryClient.invalidateQueries({ queryKey: ['community_configurations'] });
       queryClient.invalidateQueries({ queryKey: ['community_configurations', 'community', data.community_id] });
-      
-      console.log('✅ Community configuration cache invalidated');
-    },
-    onError: (error) => {
-      console.error('❌ Failed to update community configuration:', error);
     },
   });
 }; 

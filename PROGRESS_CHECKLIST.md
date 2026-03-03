@@ -638,6 +638,9 @@ Date: 2026-02-06
   - `useActivityLogs` no longer runs debug-only RPC probes (`get_my_role`, `test_rpc_function`) or verbose console dump logging in production paths.
   - Activity log loading now follows a clean fallback chain (`get_all_activity_logs` -> `admin_get_all_logs` -> direct `activity_logs` query) with shared filtering/pagination/date-range helpers to keep behavior deterministic.
   - `useActivityStats` removed debug logging noise while preserving the RPC-first and table-query fallback behavior for stats rendering.
+- [x] Phase 33 community-settings hook hygiene continuation completed:
+  - Removed noisy debug-console instrumentation from `useCommunityConfigurations` while preserving query/mutation behavior and cache invalidation.
+  - Removed development logging from community document and finance helper hooks used by settings workspaces (`useCommunityDocuments`, `useCreateCommunityDocument`, `useUpdateCommunityDocument`, `useDeleteCommunityDocument`, `useBudgetItems`, `useCreateFinancialRecord`) to keep production logs clean and signal-focused.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)

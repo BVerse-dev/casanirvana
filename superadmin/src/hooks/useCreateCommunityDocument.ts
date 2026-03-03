@@ -9,8 +9,6 @@ export const useCreateCommunityDocument = () => {
 
   return useMutation({
     mutationFn: async (newDocument: CreateCommunityDocumentData): Promise<CommunityDocument> => {
-      console.log('🔄 useCreateCommunityDocument: Creating document...', newDocument);
-
       const { data, error } = await supabase
         .from('community_documents' as any)
         .insert(newDocument)
@@ -18,20 +16,13 @@ export const useCreateCommunityDocument = () => {
         .single();
 
       if (error) {
-        console.error('❌ useCreateCommunityDocument: Error creating document:', error);
         throw new Error(`Failed to create community document: ${error.message}`);
       }
 
-      console.log('✅ useCreateCommunityDocument: Document created successfully:', data);
       return data as unknown as CommunityDocument;
     },
     onSuccess: () => {
-      // Invalidate and refetch community documents
       queryClient.invalidateQueries({ queryKey: ['community_documents'] });
-      console.log('🔄 useCreateCommunityDocument: Invalidated community_documents cache');
-    },
-    onError: (error) => {
-      console.error('❌ useCreateCommunityDocument: Mutation failed:', error);
     },
   });
-}; 
+};

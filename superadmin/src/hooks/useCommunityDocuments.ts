@@ -62,19 +62,15 @@ export const useCommunityDocuments = () => {
   return useQuery({
     queryKey: ['community_documents'],
     queryFn: async (): Promise<CommunityDocument[]> => {
-      console.log('🔍 useCommunityDocuments: Starting query...');
-      
       const { data, error } = await supabase
         .from('community_documents' as any)
         .select('*')
         .order('upload_date', { ascending: false });
 
       if (error) {
-        console.error('❌ useCommunityDocuments: Error fetching documents:', error);
         throw new Error(`Failed to fetch community documents: ${error.message}`);
       }
 
-      console.log('✅ useCommunityDocuments: Data fetched successfully:', data?.length, 'documents');
       return (data as unknown as CommunityDocument[]) || [];
     },
   });
@@ -92,7 +88,6 @@ export const useCurrentCommunityDocuments = () => {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching current community documents:', error);
         throw new Error(`Failed to fetch current community documents: ${error.message}`);
       }
 
@@ -113,7 +108,6 @@ export const useGetCommunityDocument = (id: string) => {
         .single();
 
       if (error) {
-        console.error('Error fetching community document:', error);
         throw new Error(`Failed to fetch community document: ${error.message}`);
       }
 
@@ -135,7 +129,6 @@ export const useGetCommunityDocumentsByCommunity = (communityId: string) => {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching community documents by community:', error);
         throw new Error(`Failed to fetch community documents: ${error.message}`);
       }
 
@@ -157,7 +150,6 @@ export const useGetCommunityDocumentsByType = (documentType: string) => {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching community documents by type:', error);
         throw new Error(`Failed to fetch community documents: ${error.message}`);
       }
 
@@ -179,7 +171,6 @@ export const useGetCommunityDocumentsByCategory = (category: string) => {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching community documents by category:', error);
         throw new Error(`Failed to fetch community documents: ${error.message}`);
       }
 
@@ -206,7 +197,6 @@ export const useGetExpiringCommunityDocuments = (days: number = 30) => {
         .order('expiry_date');
 
       if (error) {
-        console.error('Error fetching expiring community documents:', error);
         throw new Error(`Failed to fetch expiring community documents: ${error.message}`);
       }
 
@@ -221,19 +211,15 @@ export const useDocumentCategories = () => {
   return useQuery({
     queryKey: ['document_categories'],
     queryFn: async (): Promise<DocumentCategory[]> => {
-      console.log('🔍 useDocumentCategories: Starting query...');
-      
       const { data, error } = await supabase
         .from('document_categories' as any)
         .select('*')
         .order('type', { ascending: true });
 
       if (error) {
-        console.error('❌ useDocumentCategories: Error fetching categories:', error);
         throw new Error(`Failed to fetch document categories: ${error.message}`);
       }
 
-      console.log('✅ useDocumentCategories: Data fetched successfully:', data?.length, 'categories');
       return (data as unknown as DocumentCategory[]) || [];
     },
   });
