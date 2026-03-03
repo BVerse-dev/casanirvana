@@ -634,6 +634,10 @@ Date: 2026-02-06
   - `/settings/language/translations` import action is now wired to real JSON ingestion (array payload or settings object with `translations`), validates/normalizes rows, de-duplicates by key, and updates form state as a true dirty/saveable change instead of showing a non-wired alert.
   - Translation edit modal `Save Translation` now persists row edits back into the live field-array state with duplicate-key protection and proper form validation triggers.
   - `missing` language filter now correctly checks for missing values across enabled non-English languages instead of attempting to read a non-existent `translations['missing']` key.
+- [x] Phase 33 activity-logs settings hardening continuation completed:
+  - `useActivityLogs` no longer runs debug-only RPC probes (`get_my_role`, `test_rpc_function`) or verbose console dump logging in production paths.
+  - Activity log loading now follows a clean fallback chain (`get_all_activity_logs` -> `admin_get_all_logs` -> direct `activity_logs` query) with shared filtering/pagination/date-range helpers to keep behavior deterministic.
+  - `useActivityStats` removed debug logging noise while preserving the RPC-first and table-query fallback behavior for stats rendering.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)
