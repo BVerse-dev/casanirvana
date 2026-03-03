@@ -1,7 +1,7 @@
 "use client";
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { getSampleResidentsData, type ResidentProfile } from '@/assets/data/residents';
+import type { ResidentProfile } from '@/assets/data/residents';
 
 export type Resident = ResidentProfile;
 
@@ -38,49 +38,39 @@ export const useListResidents = () => {
   return useQuery({
     queryKey: ['residents'],
     queryFn: async () => {
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select(`
-            *,
-            units!profiles_unit_id_fkey (
-              id,
-              block,
-              number,
-              community_id
-            ),
-            community:communities!profiles_society_id_fkey (
-              id,
-              name
-            )
-          `)
-          .eq('role', 'user')
-          .order('created_at', { ascending: false });
+      const { data, error } = await supabase
+        .from('profiles')
+        .select(`
+          *,
+          units!profiles_unit_id_fkey (
+            id,
+            block,
+            number,
+            community_id
+          ),
+          community:communities!profiles_society_id_fkey (
+            id,
+            name
+          )
+        `)
+        .eq('role', 'user')
+        .order('created_at', { ascending: false });
 
-        if (error) {
-          console.warn("Database query failed, using sample data:", error.message);
-          return getSampleResidentsData();
-        }
-
-        // If no data from database, return sample data
-        if (!data || data.length === 0) {
-          return getSampleResidentsData();
-        }
-
-        // Transform database data to match expected format
-        const transformedData = data.map((resident: any) => ({
-          ...resident,
-          full_name: `${resident.first_name || ''} ${resident.last_name || ''}`.trim(),
-          unit_number: resident.units ? `${resident.units.block}-${resident.units.number}` : 'N/A',
-          is_active: resident.is_active ?? true,
-          avatar_url: resident.avatar_url
-        }));
-
-        return transformedData as Resident[];
-      } catch (err) {
-        console.warn("Network error, using sample data:", err);
-        return getSampleResidentsData();
+      if (error) {
+        console.error("Error fetching residents:", error);
+        throw new Error(`Failed to fetch residents: ${error.message}`);
       }
+
+      // Transform database data to match expected format
+      const transformedData = (data || []).map((resident: any) => ({
+        ...resident,
+        full_name: `${resident.first_name || ''} ${resident.last_name || ''}`.trim(),
+        unit_number: resident.units ? `${resident.units.block}-${resident.units.number}` : 'N/A',
+        is_active: resident.is_active ?? true,
+        avatar_url: resident.avatar_url
+      }));
+
+      return transformedData as Resident[];
     },
   });
 };
@@ -90,46 +80,46 @@ export const useGetResident = (id: string) => {
   return useQuery({
     queryKey: ['residents', id],
     queryFn: async () => {
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select(`
-            *,
-            units!profiles_unit_id_fkey (
-              id,
-              block,
-              number,
-              community_id
-            ),
-            community:communities!profiles_society_id_fkey (
-              id,
-              name
-            )
-          `)
-          .eq('id', id)
-          .single();
+      const { data, error } = await supabase
+        .from('profiles')
+        .select(`
+          *,
+          units!profiles_unit_id_fkey (
+            id,
+            block,
+            number,
+            community_id
+          ),
+          community:communities!profiles_society_id_fkey (
+            id,
+            name
+          )
+        `)
+        .eq('id', id)
+        .single();
 
-        if (error || !data) {
-          // Return sample data for the specific ID
-          const sampleData = getSampleResidentsData();
-          return sampleData.find(r => r.id === id) || sampleData[0];
+      if (error) {
+        if (error.code === 'PGRST116') {
+          return null;
         }
-
-        // Transform database data to match expected format
-        const transformedData = {
-          ...data,
-          full_name: `${data.first_name || ''} ${data.last_name || ''}`.trim(),
-          unit_number: data.units ? `${data.units.block}-${data.units.number}` : 'N/A',
-          is_active: data.is_active ?? true,
-          avatar_url: data.avatar_url
-        };
-
-        return transformedData as Resident;
-      } catch (err) {
-        console.warn("Network error, using sample data:", err);
-        const sampleData = getSampleResidentsData();
-        return sampleData.find(r => r.id === id) || sampleData[0];
+        console.error('Error fetching resident by id:', error);
+        throw new Error(`Failed to fetch resident: ${error.message}`);
       }
+
+      if (!data) {
+        return null;
+      }
+
+      // Transform database data to match expected format
+      const transformedData = {
+        ...data,
+        full_name: `${data.first_name || ''} ${data.last_name || ''}`.trim(),
+        unit_number: data.units ? `${data.units.block}-${data.units.number}` : 'N/A',
+        is_active: data.is_active ?? true,
+        avatar_url: data.avatar_url
+      };
+
+      return transformedData as Resident;
     },
     enabled: !!id,
   });
@@ -229,42 +219,35 @@ export const useResidentsByCommunity = (communityId: string) => {
   return useQuery({
     queryKey: ['residents', 'community', communityId],
     queryFn: async () => {
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select(`
-            *,
-            units (
-              id,
-              block,
-              number,
-              community_id
-            )
-          `)
-          .eq('community_id', communityId)
-          .order('created_at', { ascending: false });
+      const { data, error } = await supabase
+        .from('profiles')
+        .select(`
+          *,
+          units (
+            id,
+            block,
+            number,
+            community_id
+          )
+        `)
+        .eq('community_id', communityId)
+        .order('created_at', { ascending: false });
 
-        if (error || !data) {
-          // Filter sample data by community
-          const sampleData = getSampleResidentsData();
-          return sampleData.filter(r => r.units?.community_id === communityId);
-        }
-
-        // Transform database data to match expected format
-        const transformedData = data.map((resident: any) => ({
-          ...resident,
-          full_name: `${resident.first_name || ''} ${resident.last_name || ''}`.trim(),
-          unit_number: resident.units ? `${resident.units.block}-${resident.units.number}` : 'N/A',
-          is_active: resident.is_active ?? true,
-          avatar_url: resident.avatar_url
-        }));
-
-        return transformedData as Resident[];
-      } catch (err) {
-        console.warn("Network error, using sample data:", err);
-        const sampleData = getSampleResidentsData();
-        return sampleData.filter(r => r.units?.community_id === communityId);
+      if (error) {
+        console.error("Error fetching residents by community:", error);
+        throw new Error(`Failed to fetch community residents: ${error.message}`);
       }
+
+      // Transform database data to match expected format
+      const transformedData = (data || []).map((resident: any) => ({
+        ...resident,
+        full_name: `${resident.first_name || ''} ${resident.last_name || ''}`.trim(),
+        unit_number: resident.units ? `${resident.units.block}-${resident.units.number}` : 'N/A',
+        is_active: resident.is_active ?? true,
+        avatar_url: resident.avatar_url
+      }));
+
+      return transformedData as Resident[];
     },
     enabled: !!communityId,
   });
@@ -275,33 +258,26 @@ export const useResidentsByUnit = (unitId: string) => {
   return useQuery({
     queryKey: ['residents', 'unit', unitId],
     queryFn: async () => {
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('unit_id', unitId)
-          .order('created_at', { ascending: false });
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('unit_id', unitId)
+        .order('created_at', { ascending: false });
 
-        if (error || !data) {
-          // Filter sample data by unit
-          const sampleData = getSampleResidentsData();
-          return sampleData.filter(r => r.units?.id === unitId);
-        }
-
-        // Transform database data to match expected format
-        const transformedData = data.map((resident: any) => ({
-          ...resident,
-          full_name: `${resident.first_name || ''} ${resident.last_name || ''}`.trim(),
-          is_active: resident.is_active ?? true,
-          avatar_url: resident.avatar_url
-        }));
-
-        return transformedData as Resident[];
-      } catch (err) {
-        console.warn("Network error, using sample data:", err);
-        const sampleData = getSampleResidentsData();
-        return sampleData.filter(r => r.units?.id === unitId);
+      if (error) {
+        console.error("Error fetching residents by unit:", error);
+        throw new Error(`Failed to fetch unit residents: ${error.message}`);
       }
+
+      // Transform database data to match expected format
+      const transformedData = (data || []).map((resident: any) => ({
+        ...resident,
+        full_name: `${resident.first_name || ''} ${resident.last_name || ''}`.trim(),
+        is_active: resident.is_active ?? true,
+        avatar_url: resident.avatar_url
+      }));
+
+      return transformedData as Resident[];
     },
     enabled: !!unitId,
   });

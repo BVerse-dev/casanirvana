@@ -655,6 +655,10 @@ Date: 2026-02-06
   - Removed remaining debug realtime/analytics logging from notification and tenant-support hooks (`useSmsNotifications`, `useCommunityProfiles`, `useGuardAssignments`, `useGuardPerformance`, `useGuardSchedules`).
   - Hardened `useChatSettings` user resolution for production by removing the test-user fallback and requiring a valid authenticated user (or explicit `userId`) before reads/writes.
   - Superadmin production build revalidated after this slice (`npm run build` in `/superadmin` passed).
+- [x] Phase 33 residents/settings data-integrity continuation completed:
+  - `useResidents` no longer injects sample/mock resident data on query failures or empty results; list/detail/community/unit queries now return live DB-driven results and surface true errors for operational handling.
+  - `useResidents` single-resident lookup now returns `null` only for a real not-found (`PGRST116`) case instead of silently substituting sample profiles.
+  - Removed remaining debug submit logging from the legacy settings unit form component (`/settings/communities/units/components/UnitAdd_Enhanced.tsx`) and revalidated superadmin build/lint for changed files.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)

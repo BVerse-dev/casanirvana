@@ -99,7 +99,6 @@ const UnitAddEnhanced = () => {
   const onSubmit = async (data: UnitFormData) => {
     try {
       // Here you would call your unit creation API
-      console.log('Unit data:', data)
       toast.success('Unit created successfully!')
       reset()
       router.push('/settings/communities/units')
