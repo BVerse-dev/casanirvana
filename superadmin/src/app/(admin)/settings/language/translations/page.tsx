@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Card, Row, Col, Button, Form, Tab, Tabs, Badge, Alert, Modal, Table, ProgressBar } from 'react-bootstrap';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -34,6 +34,8 @@ interface TranslationSettings {
   fallbackToEnglish: boolean;
   showMissingKeys: boolean;
 }
+
+type EditableTranslation = Translation & { index: number };
 
 const defaultTranslationSettings: TranslationSettings = {
   translations: [
@@ -119,12 +121,12 @@ const TranslationsPage = () => {
   const [loading, setLoading] = useState(false);
   const [showAlert, setShowAlert] = useState<{ type: 'success' | 'danger' | 'info'; message: string } | null>(null);
   const [activeTab, setActiveTab] = useState('translations');
-  const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [editingTranslation, setEditingTranslation] = useState<Translation | null>(null);
+  const [editingTranslation, setEditingTranslation] = useState<EditableTranslation | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedLanguage, setSelectedLanguage] = useState('all');
+  const importInputRef = useRef<HTMLInputElement | null>(null);
   const { data: settingsData } = useSettingsCategory('localization', 'translations');
   const updateSettings = useBulkUpdateSettings();
 
@@ -137,7 +139,13 @@ const TranslationsPage = () => {
     reset,
     formState: { errors, isDirty }
   } = useForm<TranslationSettings>({
+    resolver: yupResolver(translationSchema),
     defaultValues: defaultTranslationSettings
+  });
+
+  const { fields: translationFields, append: appendTranslation, remove: removeTranslation, replace: replaceTranslations } = useFieldArray({
+    control,
+    name: 'translations'
   });
 
   useEffect(() => {
@@ -157,11 +165,6 @@ const TranslationsPage = () => {
         : defaultTranslationSettings.activeLanguages,
     });
   }, [reset, settingsData]);
-
-  const { fields: translationFields, append: appendTranslation, remove: removeTranslation } = useFieldArray({
-    control,
-    name: 'translations'
-  });
 
   const watchedValues = watch();
 
@@ -229,16 +232,23 @@ const TranslationsPage = () => {
     }
   };
 
-  const filteredTranslations = watchedValues.translations?.filter(translation => {
+  const indexedTranslations = (watchedValues.translations || []).map((translation, index) => ({ translation, index }));
+
+  const filteredTranslations = indexedTranslations.filter(({ translation }) => {
     const matchesSearch = translation.key.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          translation.english.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === 'all' || translation.category === selectedCategory;
-    const matchesLanguage = selectedLanguage === 'all' || 
-                           (selectedLanguage === 'missing' && !translation.translations[selectedLanguage]) ||
-                           translation.translations[selectedLanguage];
+    const matchesLanguage =
+      selectedLanguage === 'all' ||
+      (selectedLanguage === 'missing' &&
+        (watchedValues.activeLanguages || []).some(
+          (langCode) =>
+            langCode !== 'en' && !(translation.translations?.[langCode] || '').trim()
+        )) ||
+      Boolean((translation.translations?.[selectedLanguage] || '').trim());
     
     return matchesSearch && matchesCategory && matchesLanguage;
-  }) || [];
+  });
 
   const getTranslationCompletion = (languageCode: string) => {
     if (!watchedValues.translations) return 0;
@@ -259,7 +269,7 @@ const TranslationsPage = () => {
   };
 
   const editTranslation = (translation: Translation, index: number) => {
-    setEditingTranslation({ ...translation, index } as any);
+    setEditingTranslation({ ...translation, index });
     setShowEditModal(true);
   };
 
@@ -272,6 +282,120 @@ const TranslationsPage = () => {
     a.download = 'translations.json';
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const normalizeImportedTranslation = (item: any): Translation | null => {
+    if (!item || typeof item !== 'object') return null;
+    const key = typeof item.key === 'string' ? item.key.trim() : '';
+    const category = typeof item.category === 'string' ? item.category.trim() : '';
+    const english = typeof item.english === 'string' ? item.english.trim() : '';
+
+    if (!key || !category || !english) return null;
+
+    const translations =
+      item.translations && typeof item.translations === 'object' && !Array.isArray(item.translations)
+        ? Object.entries(item.translations).reduce<Record<string, string>>((acc, [lang, value]) => {
+            if (typeof value === 'string') acc[lang] = value;
+            return acc;
+          }, {})
+        : {};
+
+    return {
+      key,
+      category,
+      english,
+      translations,
+      description: typeof item.description === 'string' ? item.description : '',
+      context: typeof item.context === 'string' ? item.context : '',
+    };
+  };
+
+  const handleImportTranslations = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const rawText = await file.text();
+      const parsed = JSON.parse(rawText);
+
+      let incomingTranslations: any[] = [];
+      if (Array.isArray(parsed)) {
+        incomingTranslations = parsed;
+      } else if (parsed && typeof parsed === 'object' && Array.isArray(parsed.translations)) {
+        incomingTranslations = parsed.translations;
+      } else {
+        throw new Error('Imported file must be an array of translations or a settings object containing a translations array.');
+      }
+
+      const normalized = incomingTranslations
+        .map(normalizeImportedTranslation)
+        .filter((item): item is Translation => Boolean(item));
+
+      if (normalized.length === 0) {
+        throw new Error('No valid translation entries found in the imported file.');
+      }
+
+      const dedupedByKey = new Map<string, Translation>();
+      normalized.forEach((entry) => dedupedByKey.set(entry.key, entry));
+
+      replaceTranslations(Array.from(dedupedByKey.values()));
+      setValue('translations', Array.from(dedupedByKey.values()), { shouldDirty: true, shouldValidate: true });
+
+      if (parsed && typeof parsed === 'object' && Array.isArray((parsed as any).activeLanguages)) {
+        const validLanguages = (parsed as any).activeLanguages.filter((lang: unknown) => typeof lang === 'string');
+        if (validLanguages.length > 0) {
+          setValue('activeLanguages', Array.from(new Set(validLanguages)), { shouldDirty: true, shouldValidate: true });
+        }
+      }
+
+      setShowAlert({
+        type: 'success',
+        message: `Imported ${dedupedByKey.size} translation key(s) successfully.`,
+      });
+      setTimeout(() => setShowAlert(null), 4000);
+    } catch (error) {
+      setShowAlert({
+        type: 'danger',
+        message: error instanceof Error ? error.message : 'Failed to import translations.',
+      });
+      setTimeout(() => setShowAlert(null), 5000);
+    } finally {
+      event.target.value = '';
+    }
+  };
+
+  const saveEditedTranslation = () => {
+    if (!editingTranslation) return;
+
+    const nextTranslations = [...(watchedValues.translations || [])];
+    if (editingTranslation.index < 0 || editingTranslation.index >= nextTranslations.length) {
+      setShowAlert({ type: 'danger', message: 'Unable to save translation: invalid target row.' });
+      setTimeout(() => setShowAlert(null), 4000);
+      return;
+    }
+
+    const existingIndexForKey = nextTranslations.findIndex(
+      (item, idx) => item.key === editingTranslation.key && idx !== editingTranslation.index
+    );
+    if (existingIndexForKey >= 0) {
+      setShowAlert({ type: 'danger', message: 'Translation key must be unique.' });
+      setTimeout(() => setShowAlert(null), 4000);
+      return;
+    }
+
+    nextTranslations[editingTranslation.index] = {
+      key: editingTranslation.key,
+      category: editingTranslation.category,
+      english: editingTranslation.english,
+      translations: editingTranslation.translations || {},
+      description: editingTranslation.description || '',
+      context: editingTranslation.context || '',
+    };
+
+    replaceTranslations(nextTranslations);
+    setValue('translations', nextTranslations, { shouldDirty: true, shouldValidate: true });
+    setShowEditModal(false);
+    setEditingTranslation(null);
   };
 
   return (
@@ -300,19 +424,20 @@ const TranslationsPage = () => {
                 <div className="d-flex justify-content-between align-items-center mb-3">
                   <h5>Translation Keys</h5>
                   <div className="d-flex gap-2">
+                    <input
+                      ref={importInputRef}
+                      type="file"
+                      accept="application/json,.json"
+                      className="d-none"
+                      onChange={handleImportTranslations}
+                    />
                     <Button variant="outline-success" onClick={exportTranslations}>
                       <IconifyIcon icon="material-symbols:download" className="me-2" />
                       Export
                     </Button>
                     <Button
                       variant="outline-primary"
-                      onClick={() => {
-                        setShowAlert({
-                          type: 'info',
-                          message: 'Translation import is not connected to a bulk ingestion workflow yet. Use export plus manual updates until the import pipeline is wired.',
-                        });
-                        setTimeout(() => setShowAlert(null), 5000);
-                      }}
+                      onClick={() => importInputRef.current?.click()}
                     >
                       <IconifyIcon icon="material-symbols:upload" className="me-2" />
                       Import
@@ -385,14 +510,13 @@ const TranslationsPage = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {filteredTranslations.map((translation, index) => {
-                          const actualIndex = watchedValues.translations?.findIndex(t => t.key === translation.key) || 0;
-                          const completed = Object.keys(translation.translations).length;
+                        {filteredTranslations.map(({ translation, index: actualIndex }) => {
+                          const completed = Object.keys(translation.translations || {}).length;
                           const total = watchedValues.activeLanguages?.length || 0;
                           const completion = total > 0 ? Math.round((completed / total) * 100) : 0;
                           
                           return (
-                            <tr key={translation.key}>
+                            <tr key={`${translation.key}-${actualIndex}`}>
                               <td>
                                 <code className="small">{translation.key}</code>
                               </td>
@@ -749,7 +873,7 @@ const TranslationsPage = () => {
           <Button variant="secondary" onClick={() => setShowEditModal(false)}>
             Cancel
           </Button>
-          <Button variant="primary">
+          <Button variant="primary" onClick={saveEditedTranslation}>
             Save Translation
           </Button>
         </Modal.Footer>
