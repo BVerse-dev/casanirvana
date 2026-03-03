@@ -17,11 +17,17 @@ import * as paymentController from '../controllers/payment';
 import * as adminPaymentGatewayController from '../controllers/adminPaymentGateway';
 import * as adminSecureSettingsController from '../controllers/adminSecureSettings';
 import * as adminTenantConfigurationsController from '../controllers/adminTenantConfigurations';
+import * as adminCapabilitiesController from '../controllers/adminCapabilities';
+import * as adminGuardsOperationsController from '../controllers/adminGuardsOperations';
+import * as adminAgenciesOperationsController from '../controllers/adminAgenciesOperations';
 
 const router = express.Router();
 
 // Unread notifications count for dashboard
 router.get('/notifications/unread-count', requireAuth, requirePermission('read:all_profiles'), notificationsController.getUnreadNotificationsCount);
+
+// Admin capability contract for frontend menu filtering
+router.get('/me/capabilities', requireAuth, requireAdmin, adminCapabilitiesController.getAdminCapabilities);
 
 // Admin dashboard analytics
 router.get(
@@ -258,6 +264,255 @@ router.delete(
   requirePermission('write:all_notifications'),
   validateRequest({ params: schemas.idParam }),
   adminNotificationsController.deleteNotificationCampaign
+);
+
+// Guard operational routes (People -> Guards)
+router.get(
+  '/guards/profiles',
+  requireAuth,
+  requirePermission('read:all_profiles'),
+  validateRequest({ query: schemas.adminGuardOperationsQuery }),
+  adminGuardsOperationsController.listGuardProfiles
+);
+router.get(
+  '/guards/schedules',
+  requireAuth,
+  requirePermission('read:all_profiles'),
+  validateRequest({ query: schemas.adminGuardOperationsQuery }),
+  adminGuardsOperationsController.listGuardSchedules
+);
+router.post(
+  '/guards/schedules',
+  requireAuth,
+  requirePermission('create:profiles'),
+  validateRequest({ body: schemas.adminGuardScheduleCreate }),
+  adminGuardsOperationsController.createGuardSchedule
+);
+router.patch(
+  '/guards/schedules/:id',
+  requireAuth,
+  requirePermission('update:all_profiles'),
+  validateRequest({ params: schemas.idParam, body: schemas.adminGuardScheduleUpdate }),
+  adminGuardsOperationsController.updateGuardSchedule
+);
+router.delete(
+  '/guards/schedules/:id',
+  requireAuth,
+  requirePermission('delete:profiles'),
+  validateRequest({ params: schemas.idParam }),
+  adminGuardsOperationsController.deleteGuardSchedule
+);
+router.get(
+  '/guards/assignments',
+  requireAuth,
+  requirePermission('read:all_profiles'),
+  validateRequest({ query: schemas.adminGuardOperationsQuery }),
+  adminGuardsOperationsController.listGuardAssignments
+);
+router.post(
+  '/guards/assignments',
+  requireAuth,
+  requirePermission('create:profiles'),
+  validateRequest({ body: schemas.adminGuardAssignmentCreate }),
+  adminGuardsOperationsController.createGuardAssignment
+);
+router.patch(
+  '/guards/assignments/:id',
+  requireAuth,
+  requirePermission('update:all_profiles'),
+  validateRequest({ params: schemas.idParam, body: schemas.adminGuardAssignmentUpdate }),
+  adminGuardsOperationsController.updateGuardAssignment
+);
+router.delete(
+  '/guards/assignments/:id',
+  requireAuth,
+  requirePermission('delete:profiles'),
+  validateRequest({ params: schemas.idParam }),
+  adminGuardsOperationsController.deleteGuardAssignment
+);
+router.get(
+  '/guards/equipment',
+  requireAuth,
+  requirePermission('read:all_profiles'),
+  validateRequest({ query: schemas.adminGuardOperationsQuery }),
+  adminGuardsOperationsController.listGuardEquipment
+);
+router.post(
+  '/guards/equipment',
+  requireAuth,
+  requirePermission('create:profiles'),
+  validateRequest({ body: schemas.adminGuardEquipmentCreate }),
+  adminGuardsOperationsController.createGuardEquipment
+);
+router.patch(
+  '/guards/equipment/:id',
+  requireAuth,
+  requirePermission('update:all_profiles'),
+  validateRequest({ params: schemas.idParam, body: schemas.adminGuardEquipmentUpdate }),
+  adminGuardsOperationsController.updateGuardEquipment
+);
+router.delete(
+  '/guards/equipment/:id',
+  requireAuth,
+  requirePermission('delete:profiles'),
+  validateRequest({ params: schemas.idParam }),
+  adminGuardsOperationsController.deleteGuardEquipment
+);
+router.get(
+  '/guards/performance',
+  requireAuth,
+  requirePermission('read:all_profiles'),
+  validateRequest({ query: schemas.adminGuardOperationsQuery }),
+  adminGuardsOperationsController.listGuardPerformance
+);
+router.post(
+  '/guards/performance',
+  requireAuth,
+  requirePermission('create:profiles'),
+  validateRequest({ body: schemas.adminGuardPerformanceCreate }),
+  adminGuardsOperationsController.createGuardPerformance
+);
+router.patch(
+  '/guards/performance/:id',
+  requireAuth,
+  requirePermission('update:all_profiles'),
+  validateRequest({ params: schemas.idParam, body: schemas.adminGuardPerformanceUpdate }),
+  adminGuardsOperationsController.updateGuardPerformance
+);
+router.get(
+  '/guards/training',
+  requireAuth,
+  requirePermission('read:all_profiles'),
+  validateRequest({ query: schemas.adminGuardOperationsQuery }),
+  adminGuardsOperationsController.listGuardTraining
+);
+router.post(
+  '/guards/training',
+  requireAuth,
+  requirePermission('create:profiles'),
+  validateRequest({ body: schemas.adminGuardTrainingCreate }),
+  adminGuardsOperationsController.createGuardTraining
+);
+router.patch(
+  '/guards/training/:id',
+  requireAuth,
+  requirePermission('update:all_profiles'),
+  validateRequest({ params: schemas.idParam, body: schemas.adminGuardTrainingUpdate }),
+  adminGuardsOperationsController.updateGuardTraining
+);
+
+// Agency operational routes (People -> Agency)
+router.get(
+  '/agencies/profiles',
+  requireAuth,
+  requirePermission('read:all_profiles'),
+  validateRequest({ query: schemas.adminAgencyOperationsQuery }),
+  adminAgenciesOperationsController.listAgencyProfiles
+);
+router.get(
+  '/agencies/staff',
+  requireAuth,
+  requirePermission('read:all_profiles'),
+  validateRequest({ query: schemas.adminAgencyOperationsQuery }),
+  adminAgenciesOperationsController.listAgencyStaff
+);
+router.post(
+  '/agencies/staff',
+  requireAuth,
+  requirePermission('create:profiles'),
+  validateRequest({ body: schemas.adminAgencyStaffCreate }),
+  adminAgenciesOperationsController.createAgencyStaff
+);
+router.patch(
+  '/agencies/staff/:id',
+  requireAuth,
+  requirePermission('update:all_profiles'),
+  validateRequest({ params: schemas.idParam, body: schemas.adminAgencyStaffUpdate }),
+  adminAgenciesOperationsController.updateAgencyStaff
+);
+router.delete(
+  '/agencies/staff/:id',
+  requireAuth,
+  requirePermission('delete:profiles'),
+  validateRequest({ params: schemas.idParam }),
+  adminAgenciesOperationsController.deleteAgencyStaff
+);
+router.get(
+  '/agencies/services',
+  requireAuth,
+  requirePermission('read:all_profiles'),
+  validateRequest({ query: schemas.adminAgencyOperationsQuery }),
+  adminAgenciesOperationsController.listAgencyServices
+);
+router.post(
+  '/agencies/services',
+  requireAuth,
+  requirePermission('create:profiles'),
+  validateRequest({ body: schemas.adminAgencyServiceCreate }),
+  adminAgenciesOperationsController.createAgencyService
+);
+router.patch(
+  '/agencies/services/:id',
+  requireAuth,
+  requirePermission('update:all_profiles'),
+  validateRequest({ params: schemas.idParam, body: schemas.adminAgencyServiceUpdate }),
+  adminAgenciesOperationsController.updateAgencyService
+);
+router.delete(
+  '/agencies/services/:id',
+  requireAuth,
+  requirePermission('delete:profiles'),
+  validateRequest({ params: schemas.idParam }),
+  adminAgenciesOperationsController.deleteAgencyService
+);
+router.get(
+  '/agencies/finance',
+  requireAuth,
+  requirePermission('read:all_payments'),
+  validateRequest({ query: schemas.adminAgencyOperationsQuery }),
+  adminAgenciesOperationsController.listAgencyFinance
+);
+router.post(
+  '/agencies/finance',
+  requireAuth,
+  requirePermission('create:payments'),
+  validateRequest({ body: schemas.adminAgencyFinanceCreate }),
+  adminAgenciesOperationsController.createAgencyFinance
+);
+router.patch(
+  '/agencies/finance/:id',
+  requireAuth,
+  requirePermission('update:payments'),
+  validateRequest({ params: schemas.idParam, body: schemas.adminAgencyFinanceUpdate }),
+  adminAgenciesOperationsController.updateAgencyFinance
+);
+router.get(
+  '/agencies/documents',
+  requireAuth,
+  requirePermission('read:all_profiles'),
+  validateRequest({ query: schemas.adminAgencyOperationsQuery }),
+  adminAgenciesOperationsController.listAgencyDocuments
+);
+router.post(
+  '/agencies/documents',
+  requireAuth,
+  requirePermission('create:profiles'),
+  validateRequest({ body: schemas.adminAgencyDocumentCreate }),
+  adminAgenciesOperationsController.createAgencyDocument
+);
+router.patch(
+  '/agencies/documents/:id',
+  requireAuth,
+  requirePermission('update:all_profiles'),
+  validateRequest({ params: schemas.idParam, body: schemas.adminAgencyDocumentUpdate }),
+  adminAgenciesOperationsController.updateAgencyDocument
+);
+router.delete(
+  '/agencies/documents/:id',
+  requireAuth,
+  requirePermission('delete:profiles'),
+  validateRequest({ params: schemas.idParam }),
+  adminAgenciesOperationsController.deleteAgencyDocument
 );
 
 // Society management routes

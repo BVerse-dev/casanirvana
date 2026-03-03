@@ -1,14 +1,11 @@
 import { NextFunction, Request, Response } from 'express';
 import { supabase } from '../lib/supabase';
-
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-const isUuid = (value: unknown): value is string =>
-  typeof value === 'string' && UUID_PATTERN.test(value);
-
-const dedupe = (values: Array<string | null | undefined>) =>
-  [...new Set(values.filter((value): value is string => isUuid(value)))];
+import {
+  canAccessAgency,
+  canAccessCommunity,
+  isUuid,
+  resolveAdminScope,
+} from '../services/adminScope';
 
 const AGENCY_CONFIGURATION_COLUMNS = new Set([
   'agency_id',
@@ -154,98 +151,6 @@ const sanitizePayload = (input: Record<string, unknown>, allowList: Set<string>)
   return sanitized;
 };
 
-type AdminScope = {
-  isGlobal: boolean;
-  communityIds: string[];
-  agencyIds: string[];
-};
-
-async function resolveAdminScope(req: Request): Promise<AdminScope> {
-  const profile = req.userProfile as
-    | { id?: string; role?: string | null; email?: string | null; community_id?: string | null }
-    | undefined;
-
-  const role = profile?.role || null;
-  const profileId = profile?.id || null;
-  const email = profile?.email || null;
-  const directCommunityId = profile?.community_id || null;
-
-  if (!profileId || !role) {
-    return { isGlobal: false, communityIds: [], agencyIds: [] };
-  }
-
-  if (role === 'superadmin' || role === 'admin') {
-    return { isGlobal: true, communityIds: [], agencyIds: [] };
-  }
-
-  const communityIds = new Set<string>(dedupe([directCommunityId]));
-  const agencyIds = new Set<string>();
-
-  const { data: communityAdminRows } = await supabase
-    .from('community_admins')
-    .select('community_id')
-    .eq('user_id', profileId);
-  for (const row of communityAdminRows || []) {
-    if (isUuid(row.community_id)) communityIds.add(row.community_id);
-  }
-
-  const { data: legacyCommunityRows } = await supabase
-    .from('communities')
-    .select('id')
-    .contains('admins', [profileId]);
-  for (const row of legacyCommunityRows || []) {
-    if (isUuid(row.id)) communityIds.add(row.id);
-  }
-
-  if (email) {
-    const { data: agencyStaffRows } = await supabase
-      .from('agency_staff')
-      .select('agency_id')
-      .eq('email', email)
-      .eq('is_active', true);
-
-    for (const row of agencyStaffRows || []) {
-      if (isUuid(row.agency_id)) agencyIds.add(row.agency_id);
-    }
-  }
-
-  if (communityIds.size > 0) {
-    const { data: communityRows } = await supabase
-      .from('communities')
-      .select('id, agency_id')
-      .in('id', [...communityIds]);
-    for (const row of communityRows || []) {
-      if (isUuid(row.agency_id)) agencyIds.add(row.agency_id);
-    }
-  }
-
-  if (agencyIds.size > 0) {
-    const { data: agencyCommunityRows } = await supabase
-      .from('communities')
-      .select('id')
-      .in('agency_id', [...agencyIds]);
-    for (const row of agencyCommunityRows || []) {
-      if (isUuid(row.id)) communityIds.add(row.id);
-    }
-  }
-
-  return {
-    isGlobal: false,
-    communityIds: [...communityIds],
-    agencyIds: [...agencyIds],
-  };
-}
-
-function ensureCommunityAccess(scope: AdminScope, communityId: string) {
-  if (scope.isGlobal) return true;
-  return scope.communityIds.includes(communityId);
-}
-
-function ensureAgencyAccess(scope: AdminScope, agencyId: string) {
-  if (scope.isGlobal) return true;
-  return scope.agencyIds.includes(agencyId);
-}
-
 export async function listCommunityConfigurations(req: Request, res: Response, next: NextFunction) {
   try {
     const requestedCommunityId =
@@ -254,7 +159,7 @@ export async function listCommunityConfigurations(req: Request, res: Response, n
         : null;
     const scope = await resolveAdminScope(req);
 
-    if (requestedCommunityId && !ensureCommunityAccess(scope, requestedCommunityId)) {
+    if (requestedCommunityId && !canAccessCommunity(scope, requestedCommunityId)) {
       return res.status(403).json({ error: 'Access denied for the requested community.' });
     }
 
@@ -308,7 +213,7 @@ export async function updateCommunityConfiguration(req: Request, res: Response, 
     if (!existing) {
       return res.status(404).json({ error: 'Community configuration not found' });
     }
-    if (!ensureCommunityAccess(scope, existing.community_id)) {
+    if (!canAccessCommunity(scope, existing.community_id)) {
       return res.status(403).json({ error: 'Access denied for the requested community.' });
     }
 
@@ -348,7 +253,7 @@ export async function listAgencyConfigurations(req: Request, res: Response, next
         : null;
     const scope = await resolveAdminScope(req);
 
-    if (requestedAgencyId && !ensureAgencyAccess(scope, requestedAgencyId)) {
+    if (requestedAgencyId && !canAccessAgency(scope, requestedAgencyId)) {
       return res.status(403).json({ error: 'Access denied for the requested agency.' });
     }
 
@@ -388,7 +293,7 @@ export async function createAgencyConfiguration(req: Request, res: Response, nex
     if (typeof payload.agency_name !== 'string' || payload.agency_name.trim().length === 0) {
       return res.status(400).json({ error: 'agency_name is required' });
     }
-    if (!ensureAgencyAccess(scope, payload.agency_id)) {
+    if (!canAccessAgency(scope, payload.agency_id)) {
       return res.status(403).json({ error: 'Access denied for the requested agency.' });
     }
 
@@ -431,7 +336,7 @@ export async function updateAgencyConfiguration(req: Request, res: Response, nex
     if (!existing) {
       return res.status(404).json({ error: 'Agency configuration not found' });
     }
-    if (!ensureAgencyAccess(scope, existing.agency_id)) {
+    if (!canAccessAgency(scope, existing.agency_id)) {
       return res.status(403).json({ error: 'Access denied for the requested agency.' });
     }
 
@@ -482,7 +387,7 @@ export async function deleteAgencyConfiguration(req: Request, res: Response, nex
     if (!existing) {
       return res.status(404).json({ error: 'Agency configuration not found' });
     }
-    if (!ensureAgencyAccess(scope, existing.agency_id)) {
+    if (!canAccessAgency(scope, existing.agency_id)) {
       return res.status(403).json({ error: 'Access denied for the requested agency.' });
     }
 

@@ -6,8 +6,8 @@ const Page = () => (
     subName="Performance tracking now lives in the Guards module."
     scopeLabel="Guard Operations"
     reason="Performance data is operational guard data. Settings keeps only the policies and thresholds that affect performance workflows."
-    destinationLabel="Open Guards Module"
-    destinationUrl="/guards/list-view"
+    destinationLabel="Open Guard Performance"
+    destinationUrl="/guards/performance"
     secondaryLabel="Open Guard Configuration"
     secondaryUrl="/settings/guards/configuration"
   />

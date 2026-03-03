@@ -80,3 +80,6 @@ Acceptance criteria:
 - 2026-02-20: Applied migration `phase11_tenant_scope_rls_hardening` and validated policy inventory.
 - 2026-02-20: Applied migration `phase11_profile_resolution_prefer_user_id` to fix canonical profile resolution and restore same-community profile visibility for member directory queries.
 - 2026-02-20: Applied migration `phase11_profiles_identity_guard` to prevent future profile/auth dual-link collisions at insert/update time.
+- 2026-03-03: Added shared backend scope service (`backend/src/services/adminScope.ts`) and capability endpoint (`GET /admin/me/capabilities`) for capability-driven navigation.
+- 2026-03-03: Added scoped guard/agency operational admin APIs and module-space operational pages (`/guards/*`, `/agency/*`) to complete Settings IA relocation.
+- 2026-03-03: Added migration `supabase/migrations/20260303_phase34_guard_agency_scope_rls_hardening.sql` to harden guard/agency operational RLS with scoped admin policies.

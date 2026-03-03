@@ -6,8 +6,8 @@ const Page = () => (
     subName="Equipment tracking now lives in the Guards module."
     scopeLabel="Guard Operations"
     reason="Equipment check-out and inventory are operational workflows. Settings only keeps the equipment policy defaults."
-    destinationLabel="Open Guards Module"
-    destinationUrl="/guards/list-view"
+    destinationLabel="Open Equipment Management"
+    destinationUrl="/guards/equipment"
     secondaryLabel="Open Guard Configuration"
     secondaryUrl="/settings/guards/configuration"
   />

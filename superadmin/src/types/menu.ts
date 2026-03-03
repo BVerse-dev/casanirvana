@@ -6,6 +6,9 @@ export type MenuItemType = {
   isTitle?: boolean;
   icon?: string;
   url?: string;
+  capabilityKey?: string;
+  requiredAnyRole?: string[];
+  requiredAnyPermission?: string[];
   badge?: {
     variant: string;
     text: string;

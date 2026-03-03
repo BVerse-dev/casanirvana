@@ -1,15 +1,17 @@
 "use client";
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
 import {
+  filterMenuItemsByCapabilities,
   findAllParent,
   findMenuItem,
   getMenuItemFromURL,
 } from "@/helpers/Manu";
+import { useAdminCapabilities } from "@/hooks/useAdminCapabilities";
 import { MenuItemType, SubMenus } from "@/types/menu";
 import clsx from "clsx";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Fragment, MouseEvent, useCallback, useEffect, useState } from "react";
+import { Fragment, MouseEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { Collapse } from "react-bootstrap";
 
 const MenuItemWithChildren = ({
@@ -139,11 +141,22 @@ type AppMenuProps = {
 
 const AppMenu = ({ menuItems }: AppMenuProps) => {
   const pathname = usePathname();
+  const { data: capabilities } = useAdminCapabilities();
+
+  const scopedMenuItems = useMemo(
+    () =>
+      filterMenuItemsByCapabilities(menuItems, {
+        role: capabilities?.role ?? null,
+        permissions: capabilities?.permissions ?? [],
+        menuCapabilities: capabilities?.menu_capabilities ?? [],
+      }),
+    [menuItems, capabilities]
+  );
 
   const [activeMenuItems, setActiveMenuItems] = useState<Array<string>>([]);
   const toggleMenu = (menuItem: MenuItemType, show: boolean) => {
     if (show)
-      setActiveMenuItems([menuItem.key, ...findAllParent(menuItems, menuItem)]);
+      setActiveMenuItems([menuItem.key, ...findAllParent(scopedMenuItems, menuItem)]);
   };
 
   const getActiveClass = useCallback(
@@ -155,14 +168,14 @@ const AppMenu = ({ menuItems }: AppMenuProps) => {
 
   const activeMenu = useCallback(() => {
     const trimmedURL = pathname?.replaceAll("", "");
-    const matchingMenuItem = getMenuItemFromURL(menuItems, trimmedURL);
+    const matchingMenuItem = getMenuItemFromURL(scopedMenuItems, trimmedURL);
 
     if (matchingMenuItem) {
-      const activeMt = findMenuItem(menuItems, matchingMenuItem.key);
+      const activeMt = findMenuItem(scopedMenuItems, matchingMenuItem.key);
       if (activeMt) {
         setActiveMenuItems([
           activeMt.key,
-          ...findAllParent(menuItems, activeMt),
+          ...findAllParent(scopedMenuItems, activeMt),
         ]);
       }
 
@@ -205,15 +218,15 @@ const AppMenu = ({ menuItems }: AppMenuProps) => {
         animateScroll();
       };
     }
-  }, [pathname, menuItems]);
+  }, [pathname, scopedMenuItems]);
 
   useEffect(() => {
-    if (menuItems && menuItems.length > 0) activeMenu();
-  }, [activeMenu, menuItems]);
+    if (scopedMenuItems && scopedMenuItems.length > 0) activeMenu();
+  }, [activeMenu, scopedMenuItems]);
 
   return (
     <ul className="navbar-nav">
-      {(menuItems || []).map((item, idx) => {
+      {(scopedMenuItems || []).map((item, idx) => {
         return (
           <Fragment key={item.key + idx}>
             {item.isTitle ? (

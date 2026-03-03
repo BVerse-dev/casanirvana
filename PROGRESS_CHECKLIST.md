@@ -677,6 +677,43 @@ Date: 2026-02-06
   - Removed unused legacy settings hooks from `useSettings.ts` (`useSettings`, `useUpdateSettings`, `useSetting`, `useUpdateSetting`, `useDeleteSetting`) so the file now exposes only the active system-settings category APIs used by current settings pages.
   - Revalidated superadmin production build after the consolidation.
 
+## Phase 34 - Settings IA Completion + Operational Relocation (Guards/Agency)
+- [x] Added shared backend admin scope service `backend/src/services/adminScope.ts` and refactored tenant-configuration controller scope logic to use the shared helper (`resolveAdminScope`, `canAccessCommunity`, `canAccessAgency`).
+- [x] Added backend capability contract endpoint `GET /admin/me/capabilities` in `backend/src/controllers/adminCapabilities.ts` + `backend/src/routes/admin.ts`.
+- [x] Added backend guard operational API set with explicit scope checks:
+  - `GET /admin/guards/profiles`
+  - `GET/POST/PATCH/DELETE /admin/guards/schedules`
+  - `GET/POST/PATCH/DELETE /admin/guards/assignments`
+  - `GET/POST/PATCH/DELETE /admin/guards/equipment`
+  - `GET/POST/PATCH /admin/guards/performance`
+  - `GET/POST/PATCH /admin/guards/training`
+- [x] Added backend agency operational API set with explicit scope checks:
+  - `GET /admin/agencies/profiles`
+  - `GET/POST/PATCH/DELETE /admin/agencies/staff`
+  - `GET/POST/PATCH/DELETE /admin/agencies/services`
+  - `GET/POST/PATCH /admin/agencies/finance`
+  - `GET/POST/PATCH/DELETE /admin/agencies/documents`
+- [x] Extended backend validation schemas for all new guard/agency operational endpoints (`backend/src/validation/schemas.ts`).
+- [x] Implemented frontend capability-driven menu filtering:
+  - Added `capabilityKey`, `requiredAnyRole`, `requiredAnyPermission` to `MenuItemType`.
+  - Added `filterMenuItemsByCapabilities()` in `superadmin/src/helpers/Manu.ts`.
+  - Wired capability fetch hook `superadmin/src/hooks/useAdminCapabilities.ts`.
+  - Updated app menu rendering to apply backend-driven capability filtering.
+- [x] Added missing operational submenus under `People -> Guards` and `People -> Agency` in `superadmin/src/assets/data/menu-items.ts`.
+- [x] Implemented dedicated operational pages in module space (no settings duplication):
+  - Guards: `/guards/profiles`, `/guards/schedules`, `/guards/assignments`, `/guards/equipment`, `/guards/performance`, `/guards/training`
+  - Agency: `/agency/profiles`, `/agency/staff`, `/agency/services`, `/agency/finance`, `/agency/documents`
+  - Pages are DB-backed through backend admin APIs via `useGuardOperations` and `useAgencyOperations` hooks.
+- [x] Repointed settings relocation shells to new operational destinations:
+  - `superadmin/src/app/(admin)/settings/guards/*`
+  - `superadmin/src/app/(admin)/settings/agencies/*`
+- [x] Added RLS hardening migration for guard/agency operational tables:
+  - `supabase/migrations/20260303_phase34_guard_agency_scope_rls_hardening.sql`
+  - Added helper `public.can_access_agency(uuid)` and scoped policies for `guard_schedules`, `guard_assignments`, `guard_equipment`, `guard_performance`, `guard_training`, `agency_staff`, `agency_services`, `agency_documents`, `agency_transactions`.
+- [x] Build verification completed:
+  - `backend`: `npm run build` passed.
+  - `superadmin`: `npm run build` passed.
+
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)
 - [x] Remove any `node_modules` committed to repo.
@@ -718,6 +755,18 @@ Date: 2026-02-06
 - [x] `POST /admin/payouts/requests/:id/:action` (approve/reject/process/pay/fail/cancel payout request)
 - [x] `POST /internal/payouts/recompute-balances` (API key protected payout reclassification / ledger reconciliation)
 - [x] `POST /internal/payouts/release-stale-reservations` (API key protected stale payout reservation release)
+- [x] `GET /admin/me/capabilities` (backend role/scope/capabilities contract for menu visibility)
+- [x] `GET /admin/guards/profiles`
+- [x] `GET/POST/PATCH/DELETE /admin/guards/schedules`
+- [x] `GET/POST/PATCH/DELETE /admin/guards/assignments`
+- [x] `GET/POST/PATCH/DELETE /admin/guards/equipment`
+- [x] `GET/POST/PATCH /admin/guards/performance`
+- [x] `GET/POST/PATCH /admin/guards/training`
+- [x] `GET /admin/agencies/profiles`
+- [x] `GET/POST/PATCH/DELETE /admin/agencies/staff`
+- [x] `GET/POST/PATCH/DELETE /admin/agencies/services`
+- [x] `GET/POST/PATCH /admin/agencies/finance`
+- [x] `GET/POST/PATCH/DELETE /admin/agencies/documents`
 
 ## Environment Variables (Required)
 - `ADMIN_INVITE_REDIRECT_URL`
