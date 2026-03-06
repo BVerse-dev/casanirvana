@@ -17,9 +17,10 @@ type VisitorActionRecord = {
 interface VisitorActionButtonsProps {
   visitor: VisitorActionRecord
   mode?: 'table' | 'card'
+  source?: 'list-view' | 'grid-view'
 }
 
-const VisitorActionButtons = ({ visitor, mode = 'table' }: VisitorActionButtonsProps) => {
+const VisitorActionButtons = ({ visitor, mode = 'table', source }: VisitorActionButtonsProps) => {
   const { approve, deny, checkIn, checkOut, remove, isPending } = useVisitorPassLifecycleActions(visitor.id)
 
   const showLabels = mode === 'card'
@@ -128,7 +129,7 @@ const VisitorActionButtons = ({ visitor, mode = 'table' }: VisitorActionButtonsP
 
       <Button
         as={Link}
-        href={`/visitors/details?id=${visitor.id}`}
+        href={`/visitors/details?id=${visitor.id}${source ? `&source=${source}` : ''}`}
         variant="outline-secondary"
         size={buttonSize}
         className={buttonClassName}

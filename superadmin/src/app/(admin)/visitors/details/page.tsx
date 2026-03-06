@@ -14,6 +14,9 @@ const VisitorDetailsPage = () => {
   const router = useRouter()
   const searchParams = useSearchParams()
   const visitorId = searchParams.get('id')
+  const source = searchParams.get('source')
+  const returnHref = source === 'grid-view' ? '/visitors/grid-view' : '/visitors/list-view'
+  const returnLabel = source === 'grid-view' ? 'Back to Visitor Grid' : 'Back to Visitor List'
 
   const { data: visitor, isLoading, error } = useGetVisitorPass(visitorId || '')
   const { approve, deny, checkIn, checkOut, remove, isPending } = useVisitorPassLifecycleActions(visitorId || '')
@@ -31,7 +34,7 @@ const VisitorDetailsPage = () => {
     if (!confirm('Delete this visitor pass? This action cannot be undone.')) return
     await runAction('Visitor pass deleted', async () => {
       await remove()
-      router.push('/visitors/list-view')
+      router.push(returnHref)
     })
   }
 
@@ -95,7 +98,7 @@ const VisitorDetailsPage = () => {
         <Col xl={12}>
           <div className="d-flex justify-content-between align-items-center">
             <Link 
-              href="/visitors/grid-view" 
+              href={returnHref} 
               className="btn text-white fw-semibold"
               style={{
                 background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
@@ -107,7 +110,7 @@ const VisitorDetailsPage = () => {
               }}
             >
               <IconifyIcon icon="ri:arrow-left-line" className="me-1" />
-              Back to Visitors
+              {returnLabel}
             </Link>
           </div>
         </Col>

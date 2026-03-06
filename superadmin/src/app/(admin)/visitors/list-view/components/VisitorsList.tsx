@@ -128,11 +128,11 @@ const VisitorsList = ({
                         role="button"
                         tabIndex={0}
                         style={{ cursor: 'pointer' }}
-                        onClick={() => router.push(`/visitors/details?id=${visitor.id}`)}
+                        onClick={() => router.push(`/visitors/details?id=${visitor.id}&source=list-view`)}
                         onKeyDown={(event) => {
                           if (event.key === 'Enter' || event.key === ' ') {
                             event.preventDefault()
-                            router.push(`/visitors/details?id=${visitor.id}`)
+                            router.push(`/visitors/details?id=${visitor.id}&source=list-view`)
                           }
                         }}
                       >
@@ -155,7 +155,7 @@ const VisitorsList = ({
                             </div>
                             <div>
                               <Link
-                                href={`/visitors/details?id=${visitor.id}`}
+                                href={`/visitors/details?id=${visitor.id}&source=list-view`}
                                 className="mb-0 text-dark fw-medium fs-15 d-inline-block"
                                 onClick={(event) => event.stopPropagation()}
                               >
@@ -170,7 +170,7 @@ const VisitorsList = ({
                         <td>{displayValue(visitor.community_name)}</td>
                         <td>{displayValue(visitor.unit_label)}</td>
                         <td>{displayValue(visitor.created_by_display || visitor.host_profile?.full_name, 'Unknown')}</td>
-                        <td>{displayValue(visitor.agency_name || visitor.agency_id)}</td>
+                        <td>{displayValue(visitor.agency_name || visitor.agency_id, 'Not assigned')}</td>
                         <td>
                           <Badge bg={`${getVisitorStatusVariant(visitor.status)}-subtle`} text={getVisitorStatusVariant(visitor.status)}>
                             {formatVisitorLabel(visitor.status)}
@@ -186,6 +186,7 @@ const VisitorsList = ({
                               checked_out_at: visitor.checked_out_at,
                             }}
                             mode="table"
+                            source="list-view"
                           />
                         </td>
                       </tr>

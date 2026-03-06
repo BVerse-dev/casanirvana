@@ -90,6 +90,55 @@ const displayValue = (value?: string | null, fallback = 'Not assigned') => {
   return trimmed.length ? trimmed : fallback
 }
 
+const resolveLifecycleStatusEvent = (visitor: VisitorDetailsProps['visitor']) => {
+  const statusTimestamp =
+    visitor.updated_at && visitor.updated_at !== visitor.created_at ? visitor.updated_at : null
+
+  if (!statusTimestamp) return null
+
+  if (visitor.status === 'approved' && !visitor.checked_in_at && !visitor.checked_out_at) {
+    return {
+      label: 'Pass Approved',
+      timestamp: statusTimestamp,
+      actor: visitor.approved_by_display || 'System',
+      icon: 'ri:check-double-line',
+      color: 'success',
+    }
+  }
+
+  if (visitor.status === 'denied') {
+    return {
+      label: 'Pass Denied',
+      timestamp: statusTimestamp,
+      actor: visitor.approved_by_display || 'System',
+      icon: 'ri:close-circle-line',
+      color: 'danger',
+    }
+  }
+
+  if (visitor.status === 'cancelled') {
+    return {
+      label: 'Pass Cancelled',
+      timestamp: statusTimestamp,
+      actor: visitor.approved_by_display || 'System',
+      icon: 'ri:close-circle-line',
+      color: 'secondary',
+    }
+  }
+
+  if (visitor.status === 'expired') {
+    return {
+      label: 'Pass Expired',
+      timestamp: statusTimestamp,
+      actor: 'System',
+      icon: 'ri:timer-flash-line',
+      color: 'secondary',
+    }
+  }
+
+  return null
+}
+
 const normalizeQrPayload = (value?: string | null) => {
   if (!value) return null
   const raw = value.trim()
@@ -182,6 +231,8 @@ const VisitorDetails = ({
     }
   }, [qrCodeValue])
 
+  const lifecycleStatusEvent = resolveLifecycleStatusEvent(visitor)
+
   const timeline = [
     {
       label: 'Pass Created',
@@ -190,15 +241,7 @@ const VisitorDetails = ({
       icon: 'ri:add-circle-line',
       color: 'primary',
     },
-    visitor.status === 'approved' || visitor.status === 'checked_in' || visitor.status === 'checked_out'
-      ? {
-          label: 'Pass Approved',
-          timestamp: visitor.updated_at,
-          actor: visitor.approved_by_display || 'System',
-          icon: 'ri:check-double-line',
-          color: 'success',
-        }
-      : null,
+    lifecycleStatusEvent,
     visitor.checked_in_at
       ? {
           label: 'Visitor Checked In',

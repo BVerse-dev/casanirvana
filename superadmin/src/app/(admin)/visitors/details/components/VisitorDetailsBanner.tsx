@@ -91,16 +91,22 @@ const VisitorDetailsBanner = ({
   }
 
   const getCheckInStatus = () => {
-    if (visitor.checked_out_at) {
-      return { text: 'Checked Out', color: 'secondary', icon: 'ri:logout-box-line' }
+    if (visitor.status === 'checked_out' || visitor.checked_out_at) {
+      return { text: 'Visit Completed', color: 'secondary', icon: 'ri:logout-box-line' }
     }
-    if (visitor.checked_in_at) {
-      return { text: 'Checked In', color: 'success', icon: 'ri:check-double-line' }
-    } else if (visitor.status === 'approved') {
+    if (visitor.status === 'checked_in' || visitor.checked_in_at) {
+      return { text: 'Inside Community', color: 'success', icon: 'ri:check-double-line' }
+    }
+    if (visitor.status === 'approved') {
       return { text: 'Awaiting Check-in', color: 'warning', icon: 'ri:time-line' }
-    } else {
-      return { text: 'Not Approved', color: 'secondary', icon: 'ri:close-line' }
     }
+    if (visitor.status === 'pending') {
+      return { text: 'Awaiting Approval', color: 'warning', icon: 'ri:hourglass-line' }
+    }
+    if (visitor.status === 'denied' || visitor.status === 'cancelled' || visitor.status === 'expired') {
+      return { text: 'Access Closed', color: 'secondary', icon: 'ri:close-line' }
+    }
+    return { text: 'Awaiting Review', color: 'secondary', icon: 'ri:question-line' }
   }
 
   const checkInStatus = getCheckInStatus()
