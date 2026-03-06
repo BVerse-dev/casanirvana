@@ -22,19 +22,10 @@ import { useTranslation } from "react-i18next";
 import { ms } from "react-native-size-matters/extend";
 import AwesomeButton from "react-native-really-awesome-button";
 
-// LESSON LEARNED: Import all necessary services from the start
-import { useCabEntries } from '../hooks/useCabEntries';
-import { useGuardAuth } from '../contexts/GuardAuthContext';
-import { validateAndGetUnitId, getUnitResident } from '../services/unitValidationService';
-
 const { width, height } = Dimensions.get("window");
 
-const CabEntryScreen = ({ navigation, route }) => {
+const CabEntryScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
-  
-  // LESSON LEARNED: Always get authentication context first
-  const { guard, user, isAuthenticated } = useGuardAuth();
-  const { createCabEntry } = useCabEntries();
 
   const isRtl = i18n.dir() == "rtl";
 
@@ -42,20 +33,7 @@ const CabEntryScreen = ({ navigation, route }) => {
     return t(`cabEntryScreen:${key}`);
   }
   const backAction = () => {
-    if (selectedFlatNo) {
-      // If in confirmation mode, go back to flat selection
-      navigation.push("flatNoScreen", {
-        headerTitle: tr("selectFlatUnit") || "Select flat unit",
-        title: tr("cabDriverName"),
-        placeholderTitle: tr("enterName"),
-        image: require("../assets/images/visitor2.png"),
-        returnScreen: 'cabEntryScreen',
-        cabName: cabDriverName
-      });
-    } else {
-      // If in normal mode, go back to previous screen
-      navigation.pop();
-    }
+    navigation.pop();
     return true;
   };
   useEffect(() => {
@@ -65,18 +43,7 @@ const CabEntryScreen = ({ navigation, route }) => {
 
   const [cabDriverName, setCabDriverName] = useState("");
   const [capDigit, setCabDigit] = useState("");
-  const [companyName, setCompanyName] = useState("Uber");
-  const [pickupDropUp, setPickupDropUp] = useState("Pickup");
   const [refreshing, setRefreshing] = useState(false);
-  const [hostName, setHostName] = useState("");
-  const [selectedFlatNo, setSelectedFlatNo] = useState("");
-  const [cabDetails, setCabDetails] = useState("");
-  const [cabMessage, setCabMessage] = useState("");
-  
-  // LESSON LEARNED: Add state for tracking cab entry ID and submission
-  const [submitting, setSubmitting] = useState(false);
-  const [unitId, setUnitId] = useState(null);
-  const [cabEntryId, setCabEntryId] = useState(null);
 
   // Dropdown states
   const [companyNameModal, setCompanyNameModal] = useState(false);
@@ -103,63 +70,13 @@ const CabEntryScreen = ({ navigation, route }) => {
     { key: "3", name: "Pickup & Dropoff" },
   ];
 
-  // LESSON LEARNED: Replace hardcoded mapping with database lookup
-  // Load host name from database for the selected flat
-  const loadHostName = async (flatNumber) => {
-    if (!flatNumber || !guard?.community_id) {
-      setHostName("");
-      setUnitId(null);
-      return;
-    }
-
-    try {
-      const unitInfo = await validateAndGetUnitId(flatNumber, guard.community_id);
-      const resident = await getUnitResident(unitInfo.unitId);
-      setHostName(resident ? resident.name : "Unknown Resident");
-      setUnitId(unitInfo.unitId);
-    } catch (err) {
-      console.error('Error loading host name:', err);
-      setHostName("Unknown Resident");
-      setUnitId(null);
-    }
-  };
-
-  // Handle navigation return from flat selection
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
-      // Check route params for selectedFlat
-      const currentRoute = navigation.getState()?.routes?.find(route => route.name === 'cabEntryScreen');
-      const params = currentRoute?.params;
-      
-      if (params?.selectedFlat) {
-        setSelectedFlatNo(params.selectedFlat);
-        loadHostName(params.selectedFlat); // LESSON: Use database lookup
-        
-        // Clear the params to prevent re-triggering
-        navigation.setParams({ selectedFlat: undefined });
-      }
-    });
-    return unsubscribe;
-  }, [navigation]);
-
-  // Also check route params on component mount
-  useEffect(() => {
-    if (route.params?.selectedFlat) {
-      setSelectedFlatNo(route.params.selectedFlat);
-      loadHostName(route.params.selectedFlat); // LESSON: Use database lookup
-    }
-  }, [route.params]);
-
   const onRefresh = () => {
     setRefreshing(true);
-    // Reset form or reload data
     setTimeout(() => {
       setRefreshing(false);
     }, 1000);
   };
 
-  // LESSON LEARNED: Create comprehensive cab entry function with proper error handling
-  // Render function for company dropdown
   const renderCompanyItem = ({ item }) => {
     const isSelected = selectedCompanyName === item.name;
     return (
@@ -236,22 +153,7 @@ const CabEntryScreen = ({ navigation, route }) => {
           paddingHorizontal: Default.fixPadding * 2,
         }}
       >
-        <TouchableOpacity onPress={() => {
-          if (selectedFlatNo) {
-            // If in confirmation mode, go back to flat selection
-            navigation.push("flatNoScreen", {
-              headerTitle: tr("selectFlatUnit") || "Select flat unit",
-              title: tr("cabDriverName"),
-              placeholderTitle: tr("enterName"),
-              image: require("../assets/images/visitor2.png"),
-              returnScreen: 'cabEntryScreen',
-              cabName: cabDriverName
-            });
-          } else {
-            // If in normal mode, go back to previous screen
-            navigation.pop();
-          }
-        }}>
+        <TouchableOpacity onPress={() => navigation.pop()}>
           <Ionicons
             name={isRtl ? "arrow-forward-outline" : "arrow-back-outline"}
             size={25}
@@ -264,7 +166,7 @@ const CabEntryScreen = ({ navigation, route }) => {
             marginHorizontal: Default.fixPadding,
           }}
         >
-          {selectedFlatNo ? (tr("entryConfirmation") || "Entry Confirmation") : tr("cabEntry")}
+          {tr("cabEntry")}
         </Text>
       </View>
 
@@ -426,75 +328,6 @@ const CabEntryScreen = ({ navigation, route }) => {
             />
           </TouchableOpacity>
 
-          {selectedFlatNo ? (
-            <View>
-              <Text
-                style={{
-                  ...Fonts.Medium16grey,
-                  textAlign: isRtl ? "right" : "left",
-                }}
-              >
-                {tr("hostName") || "Host Name"}
-              </Text>
-
-              <View
-                style={{
-                  flexDirection: isRtl ? "row-reverse" : "row",
-                  marginBottom: Default.fixPadding * 2,
-                  ...styles.textInputView,
-                }}
-              >
-                <Text
-                  style={{
-                    ...Fonts.SemiBold16black,
-                    flex: 1,
-                    textAlign: isRtl ? "right" : "left",
-                    marginRight: isRtl ? 0 : Default.fixPadding,
-                    marginLeft: isRtl ? Default.fixPadding : 0,
-                    paddingVertical: Default.fixPadding * 0.8,
-                  }}
-                >
-                  {hostName}
-                </Text>
-              </View>
-            </View>
-          ) : null}
-
-          {selectedFlatNo ? (
-            <>
-              <Text
-                style={{
-                  ...Fonts.Medium16grey,
-                  textAlign: isRtl ? "right" : "left",
-                }}
-              >
-                {tr("visiting") || "Visiting"}
-              </Text>
-
-              <View
-                style={{
-                  flexDirection: isRtl ? "row-reverse" : "row",
-                  ...styles.textInputView,
-                }}
-              >
-                <Text
-                  style={{
-                    ...Fonts.SemiBold16black,
-                    flex: 1,
-                    textAlign: isRtl ? "right" : "left",
-                  }}
-                >
-                  {selectedFlatNo}
-                </Text>
-
-                <Ionicons
-                  name="home-outline"
-                  size={20}
-                  color={Colors.primary}
-                />
-              </View>
-            </>
-          ) : null}
         </View>
       </ScrollView>
 
@@ -517,40 +350,21 @@ const CabEntryScreen = ({ navigation, route }) => {
               return;
             }
 
-            if (selectedFlatNo) {
-              // Follow guest entry pattern: Go directly to entry confirmation screen
-              // NO visitor pass creation here - that happens only after "Allow" in ringing screen
-              navigation.push("entryConfirmationScreen", {
-                name: cleanedDriverName,
-                phoneNumber: '', // Cab drivers usually don't provide phone
-                visiting: selectedFlatNo,
-                hostName,
-                insideTime: "4 hours", // Default for cabs
-                unitId,
-                entryType: 'cab',
-                guestDetails: `${confirmCompanyName || 'Uber'} - Last 4 digits: ${cleanedVehicleDigits}`,
-                guestMessage: confirmPickupDropoff || 'Pickup'  // Just the service type, no extra text
-              });
-            } else {
-              // Navigate to flat selection
-              navigation.push("flatNoScreen", {
-                headerTitle: tr("selectFlatUnit") || "Select flat unit",
-                title: tr("cabDriverName"),
-                placeholderTitle: tr("enterName"),
-                image: require("../assets/images/visitor2.png"),
-                returnScreen: 'cabEntryScreen',
-                cabName: cleanedDriverName,
-                // Pass all cab-specific data for later use
-                cabData: {
-                  driverName: cleanedDriverName,
-                  companyName: confirmCompanyName || 'Uber',
-                  serviceType: confirmPickupDropoff || 'Pickup',
-                  vehicleDigits: cleanedVehicleDigits
-                }
-              });
-            }
+            navigation.push("flatNoScreen", {
+              headerTitle: tr("selectFlatUnit") || "Select flat unit",
+              title: tr("cabDriverName"),
+              placeholderTitle: tr("enterName"),
+              image: require("../assets/images/visitor2.png"),
+              returnScreen: 'cabEntryScreen',
+              cabName: cleanedDriverName,
+              cabData: {
+                driverName: cleanedDriverName,
+                companyName: confirmCompanyName || 'Uber',
+                serviceType: confirmPickupDropoff || 'Pickup',
+                vehicleDigits: cleanedVehicleDigits
+              }
+            });
           }}
-          disabled={submitting}
           raiseLevel={1}
           stretch={true}
           borderRadius={10}
@@ -562,10 +376,7 @@ const CabEntryScreen = ({ navigation, route }) => {
             numberOfLines={1}
             style={{ ...Fonts.SemiBold18white, overflow: "hidden" }}
           >
-            {submitting 
-              ? "Creating..." 
-              : (selectedFlatNo ? (tr("confirmNotification") || "Confirm and send notification") : tr("continue"))
-            }
+            {tr("continue")}
           </Text>
         </AwesomeButton>
       </View>

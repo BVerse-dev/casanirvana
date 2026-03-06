@@ -11,6 +11,7 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { useGuardAuth } from '../contexts/GuardAuthContext';
 import { useVisitorPasses } from '../hooks/useVisitorPasses';
+import { resolveUnitResidentInfo } from "../services/unitValidationService";
 
 const AllowedScreen = ({ navigation, route }) => {
   const { t } = useTranslation();
@@ -39,6 +40,10 @@ const AllowedScreen = ({ navigation, route }) => {
 
   const [visitorPass, setVisitorPass] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [resolvedHost, setResolvedHost] = useState({
+    name: hostName || "Resident",
+    phone: null,
+  });
 
   // Generate appropriate entry text based on entry type
   const getEntryTypeText = () => {
@@ -129,6 +134,45 @@ const AllowedScreen = ({ navigation, route }) => {
     updateVisitorPassStatus();
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const currentHostName = String(hostName || "").trim().toLowerCase();
+    const needsResolution =
+      !!unitId &&
+      (!hostName ||
+        currentHostName === "resident" ||
+        currentHostName === "unknown resident" ||
+        currentHostName === "unknown host");
+
+    if (!needsResolution) {
+      setResolvedHost((previous) => ({
+        ...previous,
+        name: hostName || previous.name || "Resident",
+      }));
+      return undefined;
+    }
+
+    const hydrateHost = async () => {
+      const resident = await resolveUnitResidentInfo(unitId, {
+        name: hostName || "Resident",
+        phone: null,
+      });
+      if (!cancelled) {
+        setResolvedHost({
+          name: resident.name,
+          phone: resident.phone,
+        });
+      }
+    };
+
+    hydrateHost();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [hostName, unitId]);
+
   const navigateHome = () => {
     navigation.navigate("bottomTab", { screen: "homeScreen" });
   };
@@ -143,8 +187,19 @@ const AllowedScreen = ({ navigation, route }) => {
     try {
       setLoading(true);
 
+      const hostInfo = unitId
+        ? await resolveUnitResidentInfo(unitId, {
+            name: hostName || resolvedHost.name || "Resident",
+          })
+        : { name: hostName || resolvedHost.name || "Resident", phone: null };
+
+      setResolvedHost({
+        name: hostInfo.name,
+        phone: hostInfo.phone || null,
+      });
+
       // Update visitor pass status to 'approved' and 'checked_in'
-      const guardNotes = `${entryTypeInfo.nameLabel} approved by guard. Host: ${hostName}, Unit: ${selectedFlatNo}`;
+      const guardNotes = `${entryTypeInfo.nameLabel} approved by guard. Host: ${hostInfo.name}, Unit: ${selectedFlatNo}`;
       await updatePassStatus(visitorPassId, 'checked_in', guardNotes);
 
       // Fetch the updated visitor pass data
@@ -218,7 +273,7 @@ const AllowedScreen = ({ navigation, route }) => {
       visitor_phone: visitorPass.visitor_phone,
       unit_id: visitorPass.unit_id,
       flat_no: selectedFlatNo,
-      host_name: hostName,
+      host_name: resolvedHost.name,
       from_date: visitorPass.from_date,
       to_date: visitorPass.to_date,
       status: visitorPass.status,
@@ -333,7 +388,7 @@ const AllowedScreen = ({ navigation, route }) => {
           <View style={{ flexDirection: 'row', marginBottom: Default.fixPadding }}>
             <MaterialCommunityIcons name="account-outline" size={20} color={Colors.grey} />
             <Text style={{ ...Fonts.Medium16black, marginLeft: Default.fixPadding }}>
-              Host: {hostName}
+              Host: {resolvedHost.name}
             </Text>
           </View>
           

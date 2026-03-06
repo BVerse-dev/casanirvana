@@ -9,6 +9,7 @@ import { useGuardAuth } from '../contexts/GuardAuthContext';
 import { useVisitorPasses } from '../hooks/useVisitorPasses';
 import { supabase } from "../utils/supabase";
 import moment from "moment";
+import { resolveUnitResidentInfo } from "../services/unitValidationService";
 
 const CancelledScreen = ({ navigation, route }) => {
   const { t } = useTranslation();
@@ -22,10 +23,15 @@ const CancelledScreen = ({ navigation, route }) => {
     phoneNumber,
     visitorPassId,    // Visitor pass ID from guest entry
     visitorPhone,     // Visitor phone from guest entry
-    expectedTime      // Expected time from guest entry
+    expectedTime,     // Expected time from guest entry
+    unitId,
   } = route.params || {};
 
   const [loading, setLoading] = useState(true);
+  const [resolvedHost, setResolvedHost] = useState({
+    name: hostName || "Resident",
+    phone: null,
+  });
 
   function tr(key) {
     return t(`cancelledScreen:${key}`);
@@ -42,6 +48,44 @@ const CancelledScreen = ({ navigation, route }) => {
     return unsubscribe;
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const currentHostName = String(hostName || "").trim().toLowerCase();
+    const needsResolution =
+      !!unitId &&
+      (!hostName ||
+        currentHostName === "resident" ||
+        currentHostName === "unknown resident" ||
+        currentHostName === "unknown host");
+
+    if (!needsResolution) {
+      setResolvedHost((previous) => ({
+        ...previous,
+        name: hostName || previous.name || "Resident",
+      }));
+      return undefined;
+    }
+
+    const hydrateHost = async () => {
+      const resident = await resolveUnitResidentInfo(unitId, {
+        name: hostName || "Resident",
+      });
+      if (!cancelled) {
+        setResolvedHost({
+          name: resident.name,
+          phone: resident.phone,
+        });
+      }
+    };
+
+    hydrateHost();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [hostName, unitId]);
+
   const updateVisitorPassStatus = async () => {
     if (!isAuthenticated || !visitorPassId) {
       Alert.alert('Error', 'Authentication required or invalid visitor pass');
@@ -52,8 +96,19 @@ const CancelledScreen = ({ navigation, route }) => {
     try {
       setLoading(true);
 
+      const hostInfo = unitId
+        ? await resolveUnitResidentInfo(unitId, {
+            name: hostName || resolvedHost.name || "Resident",
+          })
+        : { name: hostName || resolvedHost.name || "Resident", phone: null };
+
+      setResolvedHost({
+        name: hostInfo.name,
+        phone: hostInfo.phone || null,
+      });
+
       // Update visitor pass status to 'denied'
-      const guardNotes = `Guest entry denied by guard. Host: ${hostName}, Unit: ${selectedFlatNo}`;
+      const guardNotes = `Guest entry denied by guard. Host: ${hostInfo.name}, Unit: ${selectedFlatNo}`;
       await updatePassStatus(visitorPassId, 'denied', guardNotes);
 
       // Send rejection notification
@@ -186,7 +241,7 @@ const CancelledScreen = ({ navigation, route }) => {
             <Text style={{ ...Fonts.Medium14grey }}>Guest: {guestName || "Unknown Guest"}</Text>
             <Text style={{ ...Fonts.Medium14grey }}>Phone: {visitorPhone || phoneNumber || "N/A"}</Text>
             <Text style={{ ...Fonts.Medium14grey }}>Flat: {selectedFlatNo || "N/A"}</Text>
-            <Text style={{ ...Fonts.Medium14grey }}>Host: {hostName || "N/A"}</Text>
+            <Text style={{ ...Fonts.Medium14grey }}>Host: {resolvedHost.name || "N/A"}</Text>
             <Text style={{ ...Fonts.Medium12grey, marginTop: Default.fixPadding * 0.5 }}>
               Denied at: {moment().format('MMM DD, YYYY - HH:mm')}
             </Text>

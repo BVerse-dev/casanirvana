@@ -314,6 +314,7 @@ const RingingScreen = ({ navigation, route }) => {
         guestMessage,
         visitorPassId: createdVisitorPassId,
         visitorPhone: visitorPhone || phoneNumber,
+        unitId: resolvedUnitId,
       });
     } catch (error) {
       console.error('Error in handleCancel:', error);

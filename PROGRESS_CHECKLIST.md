@@ -739,6 +739,10 @@ Date: 2026-02-06
   - Updated `/Users/andromeda/casanirvana/Guard/screens/searchScreen.js` to persist resident lookups, support name/unit/phone/email search, and replace the non-production voice-search placeholder with a standard clear-search control.
 - [x] Fixed Guard resident-directory route payload consistency:
   - Updated `/Users/andromeda/casanirvana/Guard/components/residentsTab.js` so resident avatar URLs are normalized to React Native image-source objects before navigating to `/Users/andromeda/casanirvana/Guard/screens/messageScreen.js` and `/Users/andromeda/casanirvana/Guard/screens/callScreen.js`.
+- [x] Closed the remaining Guard Visitors + Entry/Exit partials:
+  - Updated `/Users/andromeda/casanirvana/Guard/screens/confirmScreen.js`, `/Users/andromeda/casanirvana/Guard/screens/allowedScreen.js`, and `/Users/andromeda/casanirvana/Guard/screens/cancelledScreen.js` so host attribution resolves from the selected unit instead of persisting generic `Resident` fallbacks in approval/denial flows.
+  - Updated `/Users/andromeda/casanirvana/Guard/services/visitorEntryService.js` to carry through stored host fields when present.
+  - Simplified `/Users/andromeda/casanirvana/Guard/screens/cabEntryScreen.js` into a single-step pre-selection form by removing the obsolete selected-flat / old route-param fallback branch.
 - [x] Build verification completed:
   - `backend`: `npm run build` passed.
   - `superadmin`: `npm run build` passed.

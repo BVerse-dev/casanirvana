@@ -26,6 +26,7 @@ import {
   mapVisitorPassToNavigationParams,
   parseQrPayload,
 } from "../services/visitorEntryService";
+import { resolveUnitResidentInfo } from "../services/unitValidationService";
 
 const formatDateTime = (value) => {
   if (!value) return "N/A";
@@ -47,6 +48,9 @@ const ConfirmScreen = ({ navigation, route }) => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [resolvedPass, setResolvedPass] = useState(params.visitorPass || null);
   const [loadingPass, setLoadingPass] = useState(false);
+  const [resolvedHostName, setResolvedHostName] = useState(
+    params.hostName || params.visitorPass?.host_name || null
+  );
 
   useEffect(() => {
     const backSub = BackHandler.addEventListener("hardwareBackPress", () => {
@@ -129,10 +133,59 @@ const ConfirmScreen = ({ navigation, route }) => {
     [resolvedPass]
   );
 
+  useEffect(() => {
+    const currentHostName =
+      params.hostName || scannedPayload?.host_name || passNavParams?.hostName || null;
+    const normalizedHostName = String(currentHostName || "").trim().toLowerCase();
+    const needsResolution =
+      !currentHostName ||
+      normalizedHostName === "resident" ||
+      normalizedHostName === "unknown resident" ||
+      normalizedHostName === "unknown host";
+
+    if (!needsResolution) {
+      setResolvedHostName(currentHostName);
+      return;
+    }
+
+    const targetUnitId = resolvedPass?.unit_id || passNavParams?.unitId || null;
+    if (!targetUnitId) {
+      setResolvedHostName(currentHostName || "Resident");
+      return;
+    }
+
+    let cancelled = false;
+
+    const hydrateHost = async () => {
+      const resident = await resolveUnitResidentInfo(targetUnitId, {
+        name: currentHostName || "Resident",
+      });
+      if (!cancelled) {
+        setResolvedHostName(resident.name);
+      }
+    };
+
+    hydrateHost();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    params.hostName,
+    passNavParams?.hostName,
+    passNavParams?.unitId,
+    resolvedPass?.unit_id,
+    scannedPayload?.host_name,
+  ]);
+
   const displayGuestName =
     passNavParams?.guestName || params.guestName || scannedPayload?.visitor_name || "Visitor";
   const displayHostName =
-    params.hostName || scannedPayload?.host_name || passNavParams?.hostName || "Resident";
+    resolvedHostName ||
+    params.hostName ||
+    scannedPayload?.host_name ||
+    passNavParams?.hostName ||
+    "Resident";
   const displayPhone =
     passNavParams?.visitorPhone ||
     params.visitorPhone ||
@@ -171,7 +224,7 @@ const ConfirmScreen = ({ navigation, route }) => {
 
   const isGuestEntryFlow = !!params.guestName && !!params.visitorPhone && !resolvedPass;
 
-  const handlePrimaryAction = () => {
+  const handlePrimaryAction = async () => {
     if (resolvedPass) {
       if (!isPassEntryActionable(resolvedPass.status)) {
         Alert.alert(
@@ -181,11 +234,28 @@ const ConfirmScreen = ({ navigation, route }) => {
         return;
       }
 
+      const normalizedHostName = String(displayHostName || "").trim().toLowerCase();
+      const needsHostResolution =
+        !!resolvedPass.unit_id &&
+        (!displayHostName ||
+          normalizedHostName === "resident" ||
+          normalizedHostName === "unknown resident" ||
+          normalizedHostName === "unknown host");
+
+      let nextHostName = displayHostName;
+      if (needsHostResolution) {
+        const resident = await resolveUnitResidentInfo(resolvedPass.unit_id, {
+          name: displayHostName || "Resident",
+        });
+        nextHostName = resident.name;
+        setResolvedHostName(resident.name);
+      }
+
       navigation.push("allowedScreen", {
         ...(passNavParams || {}),
         visitorPassId: resolvedPass.id,
         guestName: displayGuestName,
-        hostName: displayHostName,
+        hostName: nextHostName,
         selectedFlatNo: visitingValue,
         visitorPhone: displayPhone,
         phoneNumber: displayPhone,

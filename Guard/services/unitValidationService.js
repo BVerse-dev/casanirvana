@@ -125,6 +125,17 @@ export const getUnitResident = async (unitId) => {
   }
 };
 
+export const resolveUnitResidentInfo = async (unitId, fallback = {}) => {
+  const resident = await getUnitResident(unitId);
+
+  return {
+    residentId: resident?.residentId || fallback.residentId || null,
+    name: resident?.name || fallback.name || 'Resident',
+    email: resident?.email || fallback.email || null,
+    phone: resident?.phone || fallback.phone || null,
+  };
+};
+
 /**
  * Batch resident lookup for multiple units.
  * Returns map: { [unitId]: { residentId, name, email, phone } | null }
