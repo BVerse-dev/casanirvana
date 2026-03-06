@@ -46,6 +46,7 @@ type GuardAssignmentScope = {
 };
 
 const ACTIVE_GUARD_ASSIGNMENT_STATUS = 'active';
+const DEFAULT_GUARD_WORK_DAYS = [0, 1, 2, 3, 4, 5, 6];
 
 const buildGuardDisplayName = (guard: Partial<GuardIdentity>) => {
   const fullName = String(guard.full_name || '').trim();
@@ -58,6 +59,65 @@ const buildGuardDisplayName = (guard: Partial<GuardIdentity>) => {
 
   return String(guard.email || guard.id || 'Guard');
 };
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const buildAssignmentShiftType = (shiftType?: string | null) => {
+  const normalized = String(shiftType || '').trim().toLowerCase();
+  if (normalized === 'night') return 'night';
+  if (normalized === 'rotating') return 'rotating';
+  return 'day';
+};
+
+const buildShiftWindow = (shiftType?: string | null) => {
+  const normalized = String(shiftType || '').trim().toLowerCase();
+  if (normalized === 'night') {
+    return { start: '22:00', end: '06:00' };
+  }
+  if (normalized === 'evening') {
+    return { start: '14:00', end: '22:00' };
+  }
+  return { start: '06:00', end: '14:00' };
+};
+
+async function waitForUserRecord(userId: string, maxAttempts = 12, delayMs = 500) {
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, email')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(`Failed to load invited user: ${error.message}`);
+    }
+
+    if (data) {
+      return data;
+    }
+
+    await sleep(delayMs);
+  }
+
+  return null;
+}
+
+async function rollbackProvisionedGuard(authUserId: string | null) {
+  if (!isUuid(authUserId)) return;
+
+  const { data: guardRows } = await supabase.from('guards').select('id').eq('user_id', authUserId);
+  const guardIds = (guardRows || [])
+    .map((row) => (isUuid(row.id) ? row.id : null))
+    .filter((value): value is string => Boolean(value));
+
+  if (guardIds.length > 0) {
+    await supabase.from('guard_assignments').delete().in('guard_id', guardIds);
+  }
+  await supabase.from('guards').delete().eq('user_id', authUserId);
+  await supabase.from('profiles').delete().eq('id', authUserId);
+  await supabase.from('users').delete().eq('id', authUserId);
+  await supabase.auth.admin.deleteUser(authUserId).catch(() => undefined);
+}
 
 async function getGuardIdentity(guardId: string): Promise<GuardIdentity | null> {
   if (!isUuid(guardId)) return null;
@@ -157,6 +217,260 @@ async function canAssignGuardToCommunity(
   }
 
   return { ok: true, guard };
+}
+
+export async function createGuardProfile(req: Request, res: Response, next: NextFunction) {
+  let invitedAuthUserId: string | null = null;
+
+  try {
+    const scope = await resolveAdminScope(req);
+    const payload = { ...(req.body || {}) };
+
+    const firstName = String(payload.first_name || '').trim();
+    const lastName = String(payload.last_name || '').trim();
+    const email = String(payload.email || '').trim().toLowerCase();
+    const communityId = isUuid(payload.community_id) ? payload.community_id : null;
+    const phone = String(payload.phone || '').trim() || null;
+    const mobile = String(payload.guard_phone || '').trim() || phone;
+    const shiftType = String(payload.shift_type || 'morning').trim().toLowerCase();
+    const employmentDate = String(payload.employment_date || '').trim() || new Date().toISOString().slice(0, 10);
+    const status = String(payload.status || 'active').trim().toLowerCase();
+
+    if (!firstName || !lastName || !email) {
+      return res.status(400).json({ error: 'first_name, last_name, and email are required.' });
+    }
+    if (!communityId) {
+      return res.status(400).json({ error: 'community_id is required for guard provisioning.' });
+    }
+    if (!canAccessCommunity(scope, communityId)) {
+      return toScopeError(res, 'Access denied for the selected community.');
+    }
+
+    const { data: existingUser, error: existingUserError } = await supabase
+      .from('users')
+      .select('id, email')
+      .eq('email', email)
+      .maybeSingle();
+
+    if (existingUserError) {
+      return res.status(500).json({ error: 'Failed to validate existing guard users', details: existingUserError.message });
+    }
+
+    if (existingUser?.id) {
+      return res.status(409).json({
+        error:
+          'A guard account already exists for this email. Use Manage Guards to assign or update the existing record instead.',
+      });
+    }
+
+    const { data: communityRow, error: communityError } = await supabase
+      .from('communities')
+      .select('id, name')
+      .eq('id', communityId)
+      .maybeSingle();
+
+    if (communityError) {
+      return res.status(500).json({ error: 'Failed to load selected community', details: communityError.message });
+    }
+    if (!communityRow) {
+      return res.status(404).json({ error: 'Selected community not found.' });
+    }
+
+    const redirectTo =
+      process.env.GUARD_INVITE_REDIRECT_URL ||
+      process.env.ADMIN_INVITE_REDIRECT_URL ||
+      process.env.SUPABASE_INVITE_REDIRECT_URL ||
+      undefined;
+
+    const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email, {
+      redirectTo,
+      data: {
+        first_name: firstName,
+        last_name: lastName,
+        role: 'guard',
+      },
+    });
+
+    if (inviteError || !inviteData.user) {
+      const inviteMessage = inviteError?.message || 'Supabase invite flow did not return a user.';
+      const duplicateInvite =
+        inviteError &&
+        /already exists|already registered|email address has already been registered/i.test(inviteMessage);
+
+      return res.status(duplicateInvite ? 409 : 500).json({
+        error: 'Failed to send guard invite',
+        details: inviteMessage,
+      });
+    }
+
+    invitedAuthUserId = inviteData.user.id;
+
+    if (!(await waitForUserRecord(invitedAuthUserId))) {
+      throw new Error('Invited auth user was created, but public.users sync did not complete.');
+    }
+
+    const fullName = `${firstName} ${lastName}`.trim();
+    const phoneNumber = mobile || phone;
+
+    const { error: userUpdateError } = await supabase
+      .from('users')
+      .update({
+        first_name: firstName,
+        last_name: lastName,
+        email,
+        phone,
+        phone_number: phoneNumber,
+        role: 'guard',
+        community_id: communityId,
+        address: payload.address || null,
+        date_of_birth: payload.date_of_birth || null,
+      })
+      .eq('id', invitedAuthUserId);
+
+    if (userUpdateError) {
+      throw new Error(`Failed to update invited user record: ${userUpdateError.message}`);
+    }
+
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .upsert(
+        {
+          id: invitedAuthUserId,
+          user_id: invitedAuthUserId,
+          first_name: firstName,
+          last_name: lastName,
+          full_name: fullName,
+          email,
+          phone,
+          role: 'guard',
+          status,
+          is_active: status === 'active',
+          community_id: communityId,
+          address: payload.address || '',
+          city: '',
+          state: '',
+          pincode: '',
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'id' }
+      );
+
+    if (profileError) {
+      throw new Error(`Failed to upsert guard profile: ${profileError.message}`);
+    }
+
+    const { data: existingGuard, error: existingGuardError } = await supabase
+      .from('guards')
+      .select('id, user_id')
+      .eq('user_id', invitedAuthUserId)
+      .maybeSingle();
+
+    if (existingGuardError) {
+      throw new Error(`Failed to load existing guard row: ${existingGuardError.message}`);
+    }
+
+    const guardPayload = {
+      user_id: invitedAuthUserId,
+      first_name: firstName,
+      last_name: lastName,
+      full_name: fullName,
+      display_name: fullName,
+      email,
+      phone,
+      mobile,
+      address: payload.address || null,
+      date_of_birth: payload.date_of_birth || null,
+      license_number: payload.license_number || null,
+      employment_date: employmentDate,
+      shift_type: shiftType,
+      shift_start_time: payload.shift_start_time || null,
+      shift_end_time: payload.shift_end_time || null,
+      gate_assignment: payload.gate_assignment || null,
+      salary: payload.salary ?? null,
+      emergency_contact_name: payload.emergency_contact_name || null,
+      emergency_contact_phone: payload.emergency_contact_phone || null,
+      status,
+      is_active: status === 'active',
+      role: 'GUARD',
+      community_id: communityId,
+      updated_at: new Date().toISOString(),
+    };
+
+    const guardResponse = existingGuard?.id
+      ? await supabase.from('guards').update(guardPayload).eq('id', existingGuard.id).select('*').single()
+      : await supabase.from('guards').insert(guardPayload).select('*').single();
+
+    if (guardResponse.error || !guardResponse.data) {
+      throw new Error(`Failed to provision guard record: ${guardResponse.error?.message || 'Unknown error'}`);
+    }
+
+    const guardRecord = guardResponse.data;
+    const defaultShiftWindow = buildShiftWindow(shiftType);
+    const assignmentName =
+      String(payload.assignment_name || '').trim() ||
+      [payload.gate_assignment || null, communityRow.name || null].filter(Boolean).join(' - ') ||
+      `${communityRow.name} Guard Assignment`;
+
+    const assignmentPayload = {
+      guard_id: guardRecord.id,
+      community_id: communityId,
+      assignment_name: assignmentName,
+      shift_type: buildAssignmentShiftType(shiftType),
+      start_time: payload.shift_start_time || defaultShiftWindow.start,
+      end_time: payload.shift_end_time || defaultShiftWindow.end,
+      days_of_week: DEFAULT_GUARD_WORK_DAYS,
+      start_date: employmentDate,
+      end_date: null,
+      assigned_gate: payload.gate_assignment || null,
+      assigned_location: payload.gate_assignment || null,
+      status: ACTIVE_GUARD_ASSIGNMENT_STATUS,
+      current_status: 'off_duty',
+      is_permanent: true,
+      is_temporary: false,
+      special_instructions: payload.special_instructions || null,
+    };
+
+    const { data: existingAssignment } = await supabase
+      .from('guard_assignments')
+      .select('id')
+      .eq('guard_id', guardRecord.id)
+      .eq('status', ACTIVE_GUARD_ASSIGNMENT_STATUS)
+      .eq('community_id', communityId)
+      .order('start_date', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const assignmentResponse = existingAssignment?.id
+      ? await supabase
+          .from('guard_assignments')
+          .update({ ...assignmentPayload, updated_at: new Date().toISOString() })
+          .eq('id', existingAssignment.id)
+          .select('*')
+          .single()
+      : await supabase.from('guard_assignments').insert(assignmentPayload).select('*').single();
+
+    if (assignmentResponse.error || !assignmentResponse.data) {
+      throw new Error(
+        `Failed to provision initial guard assignment: ${assignmentResponse.error?.message || 'Unknown error'}`
+      );
+    }
+
+    await syncGuardAssignmentScope(guardRecord.id);
+
+    return res.status(201).json({
+      data: {
+        invite: inviteData.user,
+        guard: guardRecord,
+        assignment: assignmentResponse.data,
+      },
+      message: 'Guard invited and assigned successfully.',
+    });
+  } catch (error) {
+    if (invitedAuthUserId) {
+      await rollbackProvisionedGuard(invitedAuthUserId);
+    }
+    next(error);
+  }
 }
 
 async function ensureGuardScope(scope: Awaited<ReturnType<typeof resolveAdminScope>>, guardId: string) {

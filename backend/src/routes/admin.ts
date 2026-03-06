@@ -273,6 +273,13 @@ router.delete(
 );
 
 // Guard operational routes (People -> Guards)
+router.post(
+  '/guards/profiles',
+  requireAuth,
+  requirePermission('create:profiles'),
+  validateRequest({ body: schemas.adminGuardProfileCreate }),
+  adminGuardsOperationsController.createGuardProfile
+);
 router.get(
   '/guards/profiles',
   requireAuth,

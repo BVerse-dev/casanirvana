@@ -93,6 +93,9 @@ const useDeleteMutation = (resourceKey: string, path: string) => {
 export const useGuardProfiles = (filters?: GuardOperationsFilters) =>
   useGuardOperationsResource("/admin/guards/profiles", filters);
 
+export const useCreateGuardProfile = () =>
+  useCreateMutation("/admin/guards/profiles", "/admin/guards/profiles");
+
 export const useGuardCommunities = () =>
   useGuardOperationsResource("/admin/communities");
 

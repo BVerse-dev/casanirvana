@@ -1,74 +1,86 @@
 'use client'
+
 import ChoicesFormInput from '@/components/from/ChoicesFormInput'
 import TextFormInput from '@/components/from/TextFormInput'
+import { useCreateGuardProfile, useGuardCommunities } from '@/hooks/useGuardOperations'
 import { yupResolver } from '@hookform/resolvers/yup'
 import { Button, Card, CardBody, CardHeader, CardTitle, Col, Row } from 'react-bootstrap'
-import { useForm, Controller } from 'react-hook-form'
-import * as yup from 'yup'
-import { useCreateGuard, type CreateGuardData } from '@/hooks/useGuards_Enhanced'
-import { useListCommunities } from '@/hooks/useCommunities'
+import { Controller, useForm } from 'react-hook-form'
 import { useRouter } from 'next/navigation'
 import { toast } from 'react-hot-toast'
+import * as yup from 'yup'
 
-const GuardAdd = () => {
+const numberField = yup
+  .number()
+  .transform((value, originalValue) => (originalValue === '' || originalValue == null ? undefined : value))
+  .positive('Value must be positive')
+  .optional()
+
+const guardSchema = yup.object({
+  first_name: yup.string().trim().required('Please enter first name'),
+  last_name: yup.string().trim().required('Please enter last name'),
+  email: yup.string().trim().email('Please enter a valid email').required('Please enter email'),
+  phone: yup.string().trim().optional(),
+  guard_phone: yup.string().trim().optional(),
+  date_of_birth: yup.string().optional(),
+  address: yup.string().trim().optional(),
+  community_id: yup.string().trim().required('Please select a community'),
+  shift_type: yup.string().oneOf(['morning', 'evening', 'night', 'rotating']).default('morning'),
+  shift_start_time: yup.string().optional(),
+  shift_end_time: yup.string().optional(),
+  gate_assignment: yup.string().trim().optional(),
+  license_number: yup.string().trim().optional(),
+  employment_date: yup.string().optional(),
+  salary: numberField,
+  emergency_contact_name: yup.string().trim().optional(),
+  emergency_contact_phone: yup.string().trim().optional(),
+  assignment_name: yup.string().trim().optional(),
+  special_instructions: yup.string().trim().optional(),
+  status: yup.string().oneOf(['active', 'inactive', 'suspended']).default('active'),
+})
+
+type CreateGuardProfileData = yup.InferType<typeof guardSchema>
+
+type GuardAddProps = {
+  formId?: string
+}
+
+const GuardAdd = ({ formId = 'guard-provisioning-form' }: GuardAddProps) => {
   const router = useRouter()
-  const createGuard = useCreateGuard()
-  const { data: communitiesResponse } = useListCommunities()
-  const communities = communitiesResponse?.data || []
+  const createGuardProfile = useCreateGuardProfile()
+  const { data: communities = [] } = useGuardCommunities()
 
-  const guardSchema = yup.object({
-    // Basic Information
-    first_name: yup.string().required('Please enter first name'),
-    last_name: yup.string().required('Please enter last name'),
-    email: yup.string().email().required('Please enter email'),
-    phone: yup.string().optional(),
-    guard_phone: yup.string().optional(), // Alternative phone field
-    date_of_birth: yup.string().optional(),
-    address: yup.string().optional(),
-    
-    // Employment Details
-    society_id: yup.string().optional(),
-    shift_type: yup.string().oneOf(['morning', 'evening', 'night']).optional(),
-    shift_start_time: yup.string().optional(),
-    shift_end_time: yup.string().optional(),
-    gate_assignment: yup.string().optional(),
-    license_number: yup.string().optional(),
-    employment_date: yup.string().optional(),
-    salary: yup.number().positive('Salary must be positive').optional(),
-    
-    // System Fields
-    role: yup.string().oneOf(['guard']).required(),
-  })
-
-  const { handleSubmit, control, reset } = useForm<CreateGuardData>({
+  const { handleSubmit, control } = useForm<CreateGuardProfileData>({
     resolver: yupResolver(guardSchema),
     defaultValues: {
-      role: 'guard' as const,
       shift_type: 'morning',
+      status: 'active',
     },
   })
 
-  const onSubmit = async (data: CreateGuardData) => {
+  const onSubmit = async (data: CreateGuardProfileData) => {
     try {
-      await createGuard.mutateAsync(data)
-      toast.success('Guard created successfully!')
-      reset()
-      router.push('/guards/list-view')
+      await createGuardProfile.mutateAsync({
+        ...data,
+        salary: typeof data.salary === 'number' ? data.salary : undefined,
+      })
+      toast.success('Guard invite sent and assignment created successfully.')
+      router.push('/guards/manage?tab=profiles')
     } catch (error) {
-      toast.error('Error creating guard')
-      console.error('Error creating guard:', error)
+      const message = error instanceof Error ? error.message : 'Failed to create guard account.'
+      toast.error(message)
+      console.error('Error creating guard profile:', error)
     }
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)}>
+    <form id={formId} onSubmit={handleSubmit(onSubmit)}>
       <Card>
         <CardHeader>
           <CardTitle as={'h4'}>Guard Information</CardTitle>
         </CardHeader>
         <CardBody>
           <Row>
-            {/* Basic Information */}
             <Col lg={12}>
               <h5 className="mb-3">Basic Information</h5>
             </Col>
@@ -108,9 +120,8 @@ const GuardAdd = () => {
               </div>
             </Col>
 
-            {/* Employment Details */}
             <Col lg={12}>
-              <h5 className="mb-3 mt-4">Employment Details</h5>
+              <h5 className="mb-3 mt-4">Assignment & Employment</h5>
             </Col>
             <Col lg={6}>
               <div className="mb-3">
@@ -118,7 +129,7 @@ const GuardAdd = () => {
                   Assigned Community
                 </label>
                 <Controller
-                  name="society_id"
+                  name="community_id"
                   control={control}
                   render={({ field }) => (
                     <ChoicesFormInput
@@ -129,7 +140,7 @@ const GuardAdd = () => {
                       onChange={(value) => field.onChange(value)}
                     >
                       <option value="">Choose a Community</option>
-                      {communities.map(community => (
+                      {communities.map((community: any) => (
                         <option key={community.id} value={community.id}>
                           {community.name}
                         </option>
@@ -160,10 +171,34 @@ const GuardAdd = () => {
                       data-placeholder="Select Shift"
                       onChange={(value) => field.onChange(value)}
                     >
-                      <option value="">Choose Shift Type</option>
                       <option value="morning">Morning Shift (6AM - 2PM)</option>
                       <option value="evening">Evening Shift (2PM - 10PM)</option>
                       <option value="night">Night Shift (10PM - 6AM)</option>
+                      <option value="rotating">Rotating Shift</option>
+                    </ChoicesFormInput>
+                  )}
+                />
+              </div>
+            </Col>
+            <Col lg={6}>
+              <div className="mb-3">
+                <label htmlFor="status-select" className="form-label">
+                  Guard Status
+                </label>
+                <Controller
+                  name="status"
+                  control={control}
+                  render={({ field }) => (
+                    <ChoicesFormInput
+                      {...field}
+                      className="form-control"
+                      id="status-select"
+                      data-placeholder="Select Status"
+                      onChange={(value) => field.onChange(value)}
+                    >
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
+                      <option value="suspended">Suspended</option>
                     </ChoicesFormInput>
                   )}
                 />
@@ -186,6 +221,11 @@ const GuardAdd = () => {
             </Col>
             <Col lg={6}>
               <div className="mb-3">
+                <TextFormInput control={control} name="assignment_name" placeholder="Front Gate - Day Shift" label="Assignment Name" />
+              </div>
+            </Col>
+            <Col lg={6}>
+              <div className="mb-3">
                 <TextFormInput control={control} name="license_number" placeholder="Enter Security License Number" label="Security License Number" />
               </div>
             </Col>
@@ -194,14 +234,32 @@ const GuardAdd = () => {
                 <TextFormInput control={control} name="salary" type="number" placeholder="Enter Monthly Salary" label="Monthly Salary" />
               </div>
             </Col>
+            <Col lg={12}>
+              <div className="mb-3">
+                <TextFormInput control={control} name="special_instructions" placeholder="Any handover or post instructions" label="Special Instructions" />
+              </div>
+            </Col>
 
+            <Col lg={12}>
+              <h5 className="mb-3 mt-4">Emergency Contact</h5>
+            </Col>
+            <Col lg={6}>
+              <div className="mb-3">
+                <TextFormInput control={control} name="emergency_contact_name" placeholder="Emergency Contact Name" label="Emergency Contact Name" />
+              </div>
+            </Col>
+            <Col lg={6}>
+              <div className="mb-3">
+                <TextFormInput control={control} name="emergency_contact_phone" placeholder="Emergency Contact Phone" label="Emergency Contact Phone" />
+              </div>
+            </Col>
           </Row>
           <div className="text-end">
-            <Button type="button" variant="outline-secondary" className="me-2" onClick={() => router.back()}>
+            <Button type="button" variant="outline-secondary" className="me-2" onClick={() => router.push('/guards/manage?tab=profiles')}>
               Cancel
             </Button>
-            <Button type="submit" variant="primary" disabled={createGuard.isPending}>
-              {createGuard.isPending ? 'Creating...' : 'Add Guard'}
+            <Button type="submit" variant="primary" disabled={createGuardProfile.isPending}>
+              {createGuardProfile.isPending ? 'Sending Invite...' : 'Send Guard Invite'}
             </Button>
           </div>
         </CardBody>
