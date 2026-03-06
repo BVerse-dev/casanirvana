@@ -1,10 +1,9 @@
 'use client'
 
-import ChoicesFormInput from '@/components/from/ChoicesFormInput'
 import TextFormInput from '@/components/from/TextFormInput'
 import { useCreateGuardProfile, useGuardCommunities } from '@/hooks/useGuardOperations'
 import { yupResolver } from '@hookform/resolvers/yup'
-import { Button, Card, CardBody, CardHeader, CardTitle, Col, Row } from 'react-bootstrap'
+import { Button, Card, CardBody, CardHeader, CardTitle, Col, Form, Row } from 'react-bootstrap'
 import { Controller, useForm } from 'react-hook-form'
 import { useRouter } from 'next/navigation'
 import { toast } from 'react-hot-toast'
@@ -50,9 +49,14 @@ const GuardAdd = ({ formId = 'guard-provisioning-form' }: GuardAddProps) => {
   const createGuardProfile = useCreateGuardProfile()
   const { data: communities = [] } = useGuardCommunities()
 
-  const { handleSubmit, control } = useForm<CreateGuardProfileData>({
+  const {
+    handleSubmit,
+    control,
+    formState: { errors },
+  } = useForm<CreateGuardProfileData>({
     resolver: yupResolver(guardSchema),
     defaultValues: {
+      community_id: '',
       shift_type: 'morning',
       status: 'active',
     },
@@ -132,12 +136,12 @@ const GuardAdd = ({ formId = 'guard-provisioning-form' }: GuardAddProps) => {
                   name="community_id"
                   control={control}
                   render={({ field }) => (
-                    <ChoicesFormInput
-                      {...field}
-                      className="form-control"
+                    <Form.Select
                       id="community-select"
-                      data-placeholder="Select Community"
-                      onChange={(value) => field.onChange(value)}
+                      className={errors.community_id ? 'is-invalid' : ''}
+                      value={field.value || ''}
+                      onChange={(event) => field.onChange(event.target.value)}
+                      onBlur={field.onBlur}
                     >
                       <option value="">Choose a Community</option>
                       {communities.map((community: any) => (
@@ -145,9 +149,12 @@ const GuardAdd = ({ formId = 'guard-provisioning-form' }: GuardAddProps) => {
                           {community.name}
                         </option>
                       ))}
-                    </ChoicesFormInput>
+                    </Form.Select>
                   )}
                 />
+                {errors.community_id ? (
+                  <div className="invalid-feedback d-block">{errors.community_id.message}</div>
+                ) : null}
               </div>
             </Col>
             <Col lg={6}>
@@ -164,18 +171,17 @@ const GuardAdd = ({ formId = 'guard-provisioning-form' }: GuardAddProps) => {
                   name="shift_type"
                   control={control}
                   render={({ field }) => (
-                    <ChoicesFormInput
-                      {...field}
-                      className="form-control"
+                    <Form.Select
                       id="shift-select"
-                      data-placeholder="Select Shift"
-                      onChange={(value) => field.onChange(value)}
+                      value={field.value || 'morning'}
+                      onChange={(event) => field.onChange(event.target.value)}
+                      onBlur={field.onBlur}
                     >
                       <option value="morning">Morning Shift (6AM - 2PM)</option>
                       <option value="evening">Evening Shift (2PM - 10PM)</option>
                       <option value="night">Night Shift (10PM - 6AM)</option>
                       <option value="rotating">Rotating Shift</option>
-                    </ChoicesFormInput>
+                    </Form.Select>
                   )}
                 />
               </div>
@@ -189,17 +195,16 @@ const GuardAdd = ({ formId = 'guard-provisioning-form' }: GuardAddProps) => {
                   name="status"
                   control={control}
                   render={({ field }) => (
-                    <ChoicesFormInput
-                      {...field}
-                      className="form-control"
+                    <Form.Select
                       id="status-select"
-                      data-placeholder="Select Status"
-                      onChange={(value) => field.onChange(value)}
+                      value={field.value || 'active'}
+                      onChange={(event) => field.onChange(event.target.value)}
+                      onBlur={field.onBlur}
                     >
                       <option value="active">Active</option>
                       <option value="inactive">Inactive</option>
                       <option value="suspended">Suspended</option>
-                    </ChoicesFormInput>
+                    </Form.Select>
                   )}
                 />
               </div>

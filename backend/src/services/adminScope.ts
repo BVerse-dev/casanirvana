@@ -2,8 +2,10 @@ import type { Request } from 'express';
 
 import { supabase } from '../lib/supabase';
 
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+// The production dataset still contains legacy seeded UUID-like ids that do not
+// follow RFC variant/version bits. Scope resolution must accept those persisted
+// keys or valid community/agency assignments get dropped during authorization.
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type AdminProfile = {
   id?: string;

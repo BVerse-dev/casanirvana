@@ -759,6 +759,10 @@ Date: 2026-02-06
 - [x] Replaced the legacy superadmin Add Guard admin-create path:
   - Added `POST /admin/guards/profiles` with schema validation in `/Users/andromeda/casanirvana/backend/src/routes/admin.ts` and `/Users/andromeda/casanirvana/backend/src/validation/schemas.ts`, and completed provisioning logic in `/Users/andromeda/casanirvana/backend/src/controllers/adminGuardsOperations.ts` so admin-created guards are invited through Auth, synced into `users`/`profiles`/`guards`, and given an initial assignment in the selected community.
   - Rebuilt `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/guards/add/components/GuardAdd_Enhanced.tsx`, `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/guards/add/components/GuardAddCard.tsx`, and `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/guards/add/page.tsx` around the scoped admin APIs (`useGuardOperations`) so the active Add Guard flow no longer depends on legacy `society_id` fields, localStorage tokens, or the deprecated `/guards` backend route.
+- [x] Focused QA remediation for `People -> Guards -> Add Guard`:
+  - Replaced the broken `ChoicesFormInput` wiring in `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/guards/add/components/GuardAdd_Enhanced.tsx` with native `Form.Select` controls for community, shift, and status so `react-hook-form` submission is deterministic.
+  - Relaxed `/Users/andromeda/casanirvana/backend/src/services/adminScope.ts` UUID matching to accept legacy seeded ids already persisted in Casa Nirvana, which restored community scope checks for records like `11111111-1111-1111-1111-111111111111`.
+  - Re-ran browser QA locally: the `community_id` payload is now submitted correctly; the only remaining runtime blocker during repeated local testing was Supabase Auth `inviteUserByEmail` rate limiting after multiple rapid invite attempts, not form or scope wiring.
 - [x] Build verification completed:
   - `backend`: `npm run build` passed.
   - `superadmin`: `npm run build` passed.
