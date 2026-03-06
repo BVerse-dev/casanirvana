@@ -4,34 +4,15 @@ import PageTitle from "@/components/PageTitle";
 import { ChatProvider } from "@/context/useChatContext";
 import ChatApp from "./components/ChatApp";
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
-import { useMessageStats, useMessagesRealtime } from "@/hooks/useMessages";
-import { useEffect } from "react";
+import { useMessageStats } from "@/hooks/useMessages";
 
 const ChatPage = () => {
-  // Get real message statistics
   const { data: messageStats, isLoading, error } = useMessageStats();
-  
-  // Set up real-time subscriptions for live chat updates
-  const { subscribeToMessages } = useMessagesRealtime();
-  
-  useEffect(() => {
-    // Set page title
-    document.title = "Messages | Casa Nirvana Admin";
-    
-    // Subscribe to real-time message updates
-    const unsubscribe = subscribeToMessages();
-    
-    // Clean up subscription on component unmount
-    return () => {
-      if (unsubscribe) unsubscribe();
-    };
-  }, []);
 
-  // Show loading state
   if (isLoading) {
     return (
       <>
-        <PageTitle title="Messages & Chats" subName="Casa Nirvana" />
+        <PageTitle title="Messages & Chats" subName="Communication" />
         <Row className="mb-4">
           <Col xs={12}>
             <Card>
@@ -48,11 +29,10 @@ const ChatPage = () => {
     );
   }
 
-  // Show error state
   if (error) {
     return (
       <>
-        <PageTitle title="Messages & Chats" subName="Casa Nirvana" />
+        <PageTitle title="Messages & Chats" subName="Communication" />
         <Row className="mb-4">
           <Col xs={12}>
             <Card>
@@ -67,7 +47,6 @@ const ChatPage = () => {
     );
   }
 
-  // Default fallback if no data
   const stats = messageStats || {
     totalMessages: 0,
     activeChats: 0,
@@ -77,7 +56,7 @@ const ChatPage = () => {
 
   return (
     <>
-      <PageTitle title="Messages & Chats" subName="Casa Nirvana" />
+      <PageTitle title="Messages & Chats" subName="Communication" />
       
       {/* Beautiful Gradient Cards Row */}
       <Row className="mb-4">

@@ -3,7 +3,6 @@ import SimplebarReactClient from "@/components/wrappers/SimplebarReactClient";
 import type { UserType } from "@/types/data";
 import { timeSince } from "@/utils/date";
 import Image from "next/image";
-import Link from "next/link";
 
 type ChatUsersProps = {
   onUserSelect: (value: UserType) => void;
@@ -19,12 +18,15 @@ const Chat = ({ onUserSelect, users, selectedUser }: ChatUsersProps) => {
           className={`d-flex flex-column h-100 ${users.length - 1 != idx && "border-bottom"}`}
           key={idx}
         >
-          <Link href="" className="d-block">
+          <button
+            type="button"
+            className="d-block w-100 border-0 bg-transparent text-start p-0"
+            onClick={() => {
+              onUserSelect(user);
+            }}
+          >
             <div
               className={`d-flex align-items-center px-2 pb-2 mb-1 ${idx == 0 ? "" : "p-2"} rounded`}
-              onClick={() => {
-                onUserSelect(user);
-              }}
             >
               <div className="position-relative">
                 <Image
@@ -34,8 +36,8 @@ const Chat = ({ onUserSelect, users, selectedUser }: ChatUsersProps) => {
                   height={40}
                   className="avatar rounded-circle flex-shrink-0"
                 />
-                <span className="position-absolute bottom-0 end-0  p-1 bg-success border border-light border-2 rounded-circle">
-                  <span className="visually-hidden">New alerts</span>
+                <span className={`position-absolute bottom-0 end-0 p-1 ${user.activityStatus === "online" ? "bg-success" : "bg-secondary"} border border-light border-2 rounded-circle`}>
+                  <span className="visually-hidden">{user.activityStatus}</span>
                 </span>
               </div>
               <div className="d-block ms-3 flex-grow-1">
@@ -48,7 +50,7 @@ const Chat = ({ onUserSelect, users, selectedUser }: ChatUsersProps) => {
                   </div>
                 </div>
                 <div className="d-flex justify-content-between align-items-center">
-                  {selectedUser.activityStatus === "typing" &&
+                  {user.activityStatus === "typing" &&
                   selectedUser.id === user.id ? (
                     <span className="w-75 text-primary">typing...</span>
                   ) : (
@@ -63,15 +65,10 @@ const Chat = ({ onUserSelect, users, selectedUser }: ChatUsersProps) => {
                         {user.message}
                       </p>
                       <div>
-                        <IconifyIcon
-                          icon="ri:check-double-line"
-                          className=" fs-18 text-primary"
-                        />
-                        {idx == 0 && (
-                          <IconifyIcon
-                            icon="ri:pushpin-2-fill"
-                            className=" text-success"
-                          />
+                        {typeof (user as any).unreadCount === "number" && (user as any).unreadCount > 0 ? (
+                          <span className="badge bg-danger">{(user as any).unreadCount}</span>
+                        ) : (
+                          <IconifyIcon icon="ri:check-double-line" className="fs-18 text-primary" />
                         )}
                       </div>
                     </>
@@ -79,7 +76,7 @@ const Chat = ({ onUserSelect, users, selectedUser }: ChatUsersProps) => {
                 </div>
               </div>
             </div>
-          </Link>
+          </button>
         </div>
       ))}
     </SimplebarReactClient>

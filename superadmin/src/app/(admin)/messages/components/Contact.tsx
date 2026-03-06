@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { useState } from "react";
-import { Modal, Button, Form } from "react-bootstrap";
+import { Modal, Button } from "react-bootstrap";
 
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
 import SimplebarReactClient from "@/components/wrappers/SimplebarReactClient";
-import { useListChatUsers, useCreateProfile, type ChatUser } from "@/hooks/useProfiles";
+import { useListChatUsers, type ChatUser } from "@/hooks/useProfiles";
 import Image from "next/image";
 
 interface ContactProps {
@@ -14,16 +14,15 @@ interface ContactProps {
 
 const Contact = ({ onContactSelect, onAddContact }: ContactProps) => {
   const { data: allContacts, isLoading, error } = useListChatUsers();
-  const createProfileMutation = useCreateProfile();
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
-  
-  // Modal state
   const [showAddModal, setShowAddModal] = useState(false);
-  const [newContactFirstName, setNewContactFirstName] = useState("");
-  const [newContactLastName, setNewContactLastName] = useState("");
-  const [newContactEmail, setNewContactEmail] = useState("");
-  const [newContactPhone, setNewContactPhone] = useState("");
-  const [newContactRole, setNewContactRole] = useState("resident");
+
+  const contactCreationLinks = [
+    { href: "/residents/add", label: "Add Resident", description: "Create a resident profile that will appear in chat contacts.", icon: "ri:user-add-line" },
+    { href: "/guards/add", label: "Add Guard", description: "Register a guard and make them available in messaging.", icon: "ri:shield-user-line" },
+    { href: "/agency/add", label: "Add Agency", description: "Create an agency profile for operational conversations.", icon: "ri:building-line" },
+    { href: "/settings/admin/users", label: "Admin Users", description: "Manage platform admin accounts and access.", icon: "ri:admin-line" },
+  ];
 
   const handleContactClick = (contactId: string, contactName: string) => {
     setSelectedContactId(contactId);
@@ -38,48 +37,6 @@ const Contact = ({ onContactSelect, onAddContact }: ContactProps) => {
     } else {
       setShowAddModal(true);
     }
-  };
-
-  const handleAddContact = async () => {
-    if (!newContactFirstName.trim() || !newContactLastName.trim() || !newContactEmail.trim()) {
-      alert('Please fill in all required fields (First Name, Last Name, Email)');
-      return;
-    }
-
-    try {
-      await createProfileMutation.mutateAsync({
-        first_name: newContactFirstName.trim(),
-        last_name: newContactLastName.trim(),
-        email: newContactEmail.trim(),
-        phone: newContactPhone.trim() || null,
-        role: newContactRole,
-        avatar_url: null, // Will use default avatar
-      });
-      
-      // Reset form and close modal
-      setShowAddModal(false);
-      setNewContactFirstName("");
-      setNewContactLastName("");
-      setNewContactEmail("");
-      setNewContactPhone("");
-      setNewContactRole("resident");
-    } catch (error) {
-      console.error("Failed to add contact:", error);
-      alert('Failed to add contact. Please try again.');
-    }
-  };
-
-  const resetForm = () => {
-    setNewContactFirstName("");
-    setNewContactLastName("");
-    setNewContactEmail("");
-    setNewContactPhone("");
-    setNewContactRole("resident");
-  };
-
-  const handleCloseModal = () => {
-    setShowAddModal(false);
-    resetForm();
   };
 
   return (
@@ -173,108 +130,48 @@ const Contact = ({ onContactSelect, onAddContact }: ContactProps) => {
       )}
 
       {/* Add Contact Modal */}
-      <Modal show={showAddModal} onHide={handleCloseModal} size="lg">
+      <Modal show={showAddModal} onHide={() => setShowAddModal(false)} size="lg">
         <Modal.Header closeButton>
           <Modal.Title>
             <IconifyIcon icon="ri:user-add-line" className="me-2" />
-            Add New Contact
+            Create Platform Contact
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <Form>
-            <div className="row">
-              <div className="col-md-6">
-                <Form.Group className="mb-3">
-                  <Form.Label>First Name *</Form.Label>
-                  <Form.Control
-                    type="text"
-                    placeholder="Enter first name"
-                    value={newContactFirstName}
-                    onChange={(e) => setNewContactFirstName(e.target.value)}
-                  />
-                </Form.Group>
-              </div>
-              <div className="col-md-6">
-                <Form.Group className="mb-3">
-                  <Form.Label>Last Name *</Form.Label>
-                  <Form.Control
-                    type="text"
-                    placeholder="Enter last name"
-                    value={newContactLastName}
-                    onChange={(e) => setNewContactLastName(e.target.value)}
-                  />
-                </Form.Group>
-              </div>
+          <div className="alert alert-info d-flex align-items-start">
+            <IconifyIcon icon="ri:information-line" className="fs-20 me-2 mt-1" />
+            <div>
+              Contacts in messaging sync from existing platform profiles. Create the user in the appropriate management area, then return here to start the conversation.
             </div>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Email Address *</Form.Label>
-              <Form.Control
-                type="email"
-                placeholder="Enter email address"
-                value={newContactEmail}
-                onChange={(e) => setNewContactEmail(e.target.value)}
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Phone Number (Optional)</Form.Label>
-              <Form.Control
-                type="tel"
-                placeholder="Enter phone number"
-                value={newContactPhone}
-                onChange={(e) => setNewContactPhone(e.target.value)}
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Role *</Form.Label>
-              <Form.Select
-                value={newContactRole}
-                onChange={(e) => setNewContactRole(e.target.value)}
-              >
-                <option value="resident">Resident</option>
-                <option value="staff">Staff Member</option>
-                <option value="guard">Security Guard</option>
-                <option value="admin">System Administrator</option>
-              </Form.Select>
-            </Form.Group>
-
-            <div className="alert alert-info d-flex align-items-center">
-              <IconifyIcon icon="ri:information-line" className="fs-20 me-2" />
-              <div>
-                <strong>Adding a Contact:</strong>
-                <ul className="mb-0 mt-1">
-                  <li>The contact will be added to your contact list immediately</li>
-                  <li>They can start messaging once they accept the invitation</li>
-                  <li>An invitation notification will be sent to their email</li>
-                </ul>
+          </div>
+          <div className="row g-3">
+            {contactCreationLinks.map((item) => (
+              <div className="col-md-6" key={item.href}>
+                <Link href={item.href} className="text-decoration-none">
+                  <div className="border rounded p-3 h-100 bg-light bg-opacity-50 hover-shadow-sm">
+                    <div className="d-flex align-items-center gap-2 mb-2">
+                      <IconifyIcon icon={item.icon} className="fs-20 text-primary" />
+                      <h6 className="mb-0 text-dark">{item.label}</h6>
+                    </div>
+                    <p className="mb-0 text-muted fs-13">{item.description}</p>
+                  </div>
+                </Link>
               </div>
-            </div>
-          </Form>
+            ))}
+          </div>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={handleCloseModal}>
+          <Button variant="secondary" onClick={() => setShowAddModal(false)}>
             Cancel
           </Button>
-          <Button 
-            variant="primary" 
-            onClick={handleAddContact}
-            disabled={!newContactFirstName.trim() || !newContactLastName.trim() || !newContactEmail.trim() || createProfileMutation.isPending}
+          <Button
+            as={Link}
+            href="/residents/add"
+            variant="primary"
+            onClick={() => setShowAddModal(false)}
           >
-            {createProfileMutation.isPending ? (
-              <>
-                <div className="spinner-border spinner-border-sm me-2" role="status">
-                  <span className="visually-hidden">Adding...</span>
-                </div>
-                Adding Contact...
-              </>
-            ) : (
-              <>
-                <IconifyIcon icon="ri:user-add-line" className="me-1" />
-                Add Contact
-              </>
-            )}
+            <IconifyIcon icon="ri:arrow-right-line" className="me-1" />
+            Open Resident Add Flow
           </Button>
         </Modal.Footer>
       </Modal>

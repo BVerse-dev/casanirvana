@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { useState } from "react";
 import { Modal, Button, Form, ListGroup } from "react-bootstrap";
 import Image from "next/image";
+import { toast } from "react-hot-toast";
 
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
 import SimplebarReactClient from "@/components/wrappers/SimplebarReactClient";
@@ -11,10 +11,9 @@ import { timeSince } from "@/utils/date";
 
 interface GroupProps {
   onGroupSelect?: (groupId: string, groupName: string) => void;
-  onCreateGroup?: () => void;
 }
 
-const Group = ({ onGroupSelect, onCreateGroup }: GroupProps) => {
+const Group = ({ onGroupSelect }: GroupProps) => {
   // Only use Supabase data since all groups have been migrated
   const { data: supabaseGroups, isLoading, error } = useListGroups();
   const { data: availableUsers } = useListChatUsers();
@@ -54,8 +53,9 @@ const Group = ({ onGroupSelect, onCreateGroup }: GroupProps) => {
       setNewGroupName("");
       setNewGroupDescription("");
       setSelectedMembers([]);
+      toast.success("Group created successfully.");
     } catch (error) {
-      console.error("Failed to create group:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to create group.");
     }
   };
 
@@ -71,11 +71,12 @@ const Group = ({ onGroupSelect, onCreateGroup }: GroupProps) => {
     <SimplebarReactClient className="px-2 mb-3 chat-setting-height">
       {/* Create New Group Option */}
       <div className="d-flex flex-column h-100 border-bottom">
-        <Link href="" className="d-block">
-          <div 
-            className="d-flex align-items-center px-2 pb-2 mb-1 rounded"
-            onClick={handleCreateGroupClick}
-          >
+        <button
+          type="button"
+          className="d-block w-100 border-0 bg-transparent text-start p-0"
+          onClick={handleCreateGroupClick}
+        >
+          <div className="d-flex align-items-center px-2 pb-2 mb-1 rounded">
             <div className="position-relative">
               <div className="avatar flex-shrink-0">
                 <span className="avatar-title bg-primary text-white fs-4 rounded-circle">
@@ -92,7 +93,7 @@ const Group = ({ onGroupSelect, onCreateGroup }: GroupProps) => {
               </div>
             </div>
           </div>
-        </Link>
+        </button>
       </div>
       
       {/* Show loading state for Supabase groups */}
@@ -127,12 +128,15 @@ const Group = ({ onGroupSelect, onCreateGroup }: GroupProps) => {
             className={`d-flex flex-column h-100 ${allGroups.length - 1 != idx && "border-bottom"}`}
             key={group.id}
           >
-            <Link href="" className="d-block">
+            <button
+              type="button"
+              className="d-block w-100 border-0 bg-transparent text-start p-0"
+              onClick={() => handleGroupClick(group.id!, groupName)}
+            >
               <div
                 className={`d-flex align-items-center px-2 pb-2 mb-1 ${idx == 0 ? "" : "p-2"} rounded ${
                   selectedGroupId === group.id ? 'bg-primary bg-opacity-10' : ''
                 }`}
-                onClick={() => handleGroupClick(group.id!, groupName)}
               >
                 <div className="position-relative">
                   <div className="avatar flex-shrink-0">
@@ -186,17 +190,11 @@ const Group = ({ onGroupSelect, onCreateGroup }: GroupProps) => {
                           className="fs-18 text-primary"
                         />
                       )}
-                      {idx === 0 && (
-                        <IconifyIcon
-                          icon="ri:pushpin-2-fill"
-                          className="text-success ms-1"
-                        />
-                      )}
                     </div>
                   </div>
                 </div>
               </div>
-            </Link>
+            </button>
           </div>
         );
       })}

@@ -1,8 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useSession } from "next-auth/react";
+import { toast } from "react-hot-toast";
+import QRCode from "qrcode";
 
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
 import { useChatContext } from "@/context/useChatContext";
-import { useMessageStats, useMessagesRealtime } from "@/hooks/useMessages";
+import { useMessageStats } from "@/hooks/useMessages";
+import { useGetProfile } from "@/hooks/useProfiles";
 import { 
   useGetChatSettings, 
   useUpdateChatSettings, 
@@ -40,7 +44,7 @@ import Group from "./Group";
 import avatar1 from "@/assets/images/users/avatar-1.jpg";
 
 import Image from "next/image";
-import Link from "next/link";
+import { mapAvatarUrl } from "@/utils/avatarMapper";
 import "swiper/css";
 import "swiper/css/free-mode";
 
@@ -206,12 +210,18 @@ const activeContactStyles = `
   }
 `;
 
+const formatRoleLabel = (role?: string | null) => {
+  if (!role) return "Admin";
+  return role
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (value) => value.toUpperCase());
+};
+
 type ChatUsersProps = {
   onUserSelect: (value: any) => void;
   users: any[];
   selectedUser: any;
-  onGroupSelect?: (groupId: string, groupName: string) => void;
-  onCreateGroup?: () => void;
+  onGroupSelect?: (groupId: string, groupName?: string) => void;
   onContactSelect?: (contactId: string, contactName: string) => void;
 };
 
@@ -220,13 +230,11 @@ const ChatLeftSidebar = ({
   onUserSelect,
   selectedUser,
   onGroupSelect,
-  onCreateGroup,
   onContactSelect,
 }: ChatUsersProps) => {
   const { chatSetting } = useChatContext();
   const [user, setUser] = useState<any[]>([...users]);
   const { data: messageStats, isLoading: statsLoading } = useMessageStats();
-  const { subscribeToMessages } = useMessagesRealtime();
   
   // Modal states
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
@@ -274,6 +282,7 @@ const ChatLeftSidebar = ({
   
   // QR Code modal
   const [showQRCodeModal, setShowQRCodeModal] = useState(false);
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string | null>(null);
   
   // Chat settings hooks
   const { data: chatSettings, isLoading: settingsLoading } = useGetChatSettings();
@@ -284,6 +293,26 @@ const ChatLeftSidebar = ({
   const { mutate: updateThemeSettings } = useUpdateThemeSettings();
   const { subscribeToChatSettings } = useChatSettingsRealtime();
   const formattedStorage = useFormattedStorageUsage(chatSettings);
+  const { data: session } = useSession();
+  const { data: currentProfile } = useGetProfile(session?.user?.id || "");
+
+  const currentUserName = session?.user?.name || "Admin User";
+  const currentUserEmail = session?.user?.email || "No email available";
+  const currentUserRole = formatRoleLabel(session?.user?.role);
+  const currentUserAvatar = mapAvatarUrl(currentProfile?.avatar_url) || avatar1;
+  const currentUserSubtitle = currentProfile?.phone || currentUserEmail;
+  const qrContactPayload = useMemo(
+    () => ({
+      type: "nirvana_chat_user",
+      id: session?.user?.id || chatSettings?.user_id || "unknown",
+      name: currentUserName,
+      email: session?.user?.email || null,
+      role: session?.user?.role || null,
+      app: "Nirvana Chat",
+      timestamp: new Date().toISOString(),
+    }),
+    [chatSettings?.user_id, currentUserName, session?.user?.email, session?.user?.id, session?.user?.role],
+  );
 
   const search = (text: string) => {
     setUser(
@@ -295,14 +324,6 @@ const ChatLeftSidebar = ({
     );
   };
 
-  // Subscribe to real-time message updates to keep stats current
-  useEffect(() => {
-    const unsubscribe = subscribeToMessages();
-    return () => {
-      unsubscribe();
-    };
-  }, [subscribeToMessages]);
-
   // Subscribe to real-time chat settings updates
   useEffect(() => {
     const unsubscribe = subscribeToChatSettings();
@@ -310,6 +331,32 @@ const ChatLeftSidebar = ({
       unsubscribe();
     };
   }, [subscribeToChatSettings]);
+
+  useEffect(() => {
+    let active = true;
+
+    const generateQrCode = async () => {
+      try {
+        const nextQrCode = await QRCode.toDataURL(JSON.stringify(qrContactPayload), {
+          width: 200,
+          margin: 1,
+        });
+        if (active) {
+          setQrCodeDataUrl(nextQrCode);
+        }
+      } catch {
+        if (active) {
+          setQrCodeDataUrl(null);
+        }
+      }
+    };
+
+    generateQrCode();
+
+    return () => {
+      active = false;
+    };
+  }, [qrContactPayload]);
 
   // Helper function to handle settings updates
   const handleSettingToggle = (settingType: string, field: string, value: any) => {
@@ -319,8 +366,6 @@ const ChatLeftSidebar = ({
     
     switch (settingType) {
       case 'flat':
-        // For flat database structure, update the setting directly
-        console.log('🔄 Updating flat setting:', field, value);
         updateChatSettings({ 
           user_id: userId, 
           [field]: value 
@@ -411,13 +456,13 @@ const ChatLeftSidebar = ({
     if (file) {
       // Check if file is an image
       if (!file.type.startsWith('image/')) {
-        alert('Please select a valid image file');
+        toast.error("Please select a valid image file.");
         return;
       }
 
       // Check file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
-        alert('Image size must be less than 5MB');
+        toast.error("Image size must be less than 5MB.");
         return;
       }
 
@@ -593,7 +638,7 @@ const ChatLeftSidebar = ({
           />
         </Tab>
         <Tab title="Group" eventKey={"group-tab"}>
-          <Group onGroupSelect={onGroupSelect} onCreateGroup={onCreateGroup} />
+          <Group onGroupSelect={onGroupSelect} />
         </Tab>
         <Tab title="Contact" eventKey={"contact-tab"}>
           <Contact onContactSelect={onContactSelect} />
@@ -622,11 +667,11 @@ const ChatLeftSidebar = ({
           <h4 className="page-title p-3 my-0">Setting</h4>
           <div className="d-flex align-items-center px-3 pb-3 border-bottom">
             <Image
-              src={avatar1}
+              src={currentUserAvatar}
               className="me-2 rounded-circle"
               height={36}
               width={36}
-              alt="avatar-1"
+              alt={currentUserName}
             />
             <div className="flex-grow-1">
               <div className="float-end">
@@ -634,10 +679,11 @@ const ChatLeftSidebar = ({
                   <IconifyIcon icon="bx:qr-scan" className="fs-20" />
                 </span>
               </div>
-              <h5 className="my-0 fs-14">Gaston Lapierre</h5>
+              <h5 className="my-0 fs-14">{currentUserName}</h5>
               <p className="mt-1 mb-0 text-muted">
-                <span className="w-75">Hey there! I am using Nirvana Chat.</span>
+                <span className="w-75">{currentUserSubtitle}</span>
               </p>
+              <p className="mt-1 mb-0 text-muted fs-12">{currentUserRole}</p>
             </div>
           </div>
           <div className="px-3 my-3 app-chat-setting">
@@ -765,7 +811,7 @@ const ChatLeftSidebar = ({
                           />
                         </div>
                       </div>
-                      <Link href="">Media Visibility</Link>
+                      <span className="fw-medium">Media Visibility</span>
                       <p className="mb-0 text-muted fs-12">
                         Show Newly downloaded media in your phone&apos;s gallery
                       </p>
@@ -783,7 +829,7 @@ const ChatLeftSidebar = ({
                           />
                         </div>
                       </div>
-                      <Link href="">Enter is send</Link>
+                      <span className="fw-medium">Enter is send</span>
                       <p className="mb-0 text-muted fs-12">
                         Enter key will send your message
                       </p>
@@ -860,7 +906,7 @@ const ChatLeftSidebar = ({
                           />
                         </div>
                       </div>
-                      <Link href="">Conversation Tones</Link>
+                      <span className="fw-medium">Conversation Tones</span>
                       <p className="mb-0 text-muted fs-12">
                         Play sound for incoming and outgoing message.
                       </p>
@@ -1474,11 +1520,13 @@ const ChatLeftSidebar = ({
                className="btn btn-primary"
                onClick={() => {
                  handleSecurityUpdate('phone_change_requested', true);
-                 alert('Verification code sent to your new number!');
+                 handleSecurityUpdate('phone_change_requested_at', new Date().toISOString());
+                 setShowChangeNumberModal(false);
+                 toast.success('Phone change request saved.');
                }}
                disabled={!getSecuritySettingValue('new_phone', '')}
              >
-               Send Verification Code
+               Save Change Request
              </button>
              <button 
                className="btn btn-outline-secondary"
@@ -1625,12 +1673,13 @@ const ChatLeftSidebar = ({
                className="btn btn-primary"
                onClick={() => {
                  handleSecurityUpdate('export_requested', true);
-                 handleSecurityUpdate('last_export_date', new Date().toLocaleDateString());
-                 alert('Data export request submitted! Check your email for the download link.');
+                 handleSecurityUpdate('last_export_date', new Date().toISOString());
+                 setShowRequestInfoModal(false);
+                 toast.success('Export request saved.');
                }}
                disabled={!getSecuritySettingValue('export_email', '')}
              >
-               Request Data Export
+               Save Export Request
              </button>
              <button 
                className="btn btn-outline-secondary"
@@ -1772,13 +1821,10 @@ const ChatLeftSidebar = ({
              <button 
                className="btn btn-danger"
                onClick={() => {
-                 if (getSecuritySettingValue('delete_confirmation', '') === 'DELETE') {
-                   handleSecurityUpdate('account_deletion_requested', true);
-                   alert('Account deletion request submitted. You will receive a confirmation email.');
-                   setShowDeleteAccountModal(false);
-                 } else {
-                   alert('Please type "DELETE" to confirm account deletion.');
-                 }
+                 handleSecurityUpdate('account_deletion_requested', true);
+                 handleSecurityUpdate('account_deletion_requested_at', new Date().toISOString());
+                 setShowDeleteAccountModal(false);
+                 toast.success('Account deletion request saved.');
                }}
                disabled={
                  !getSecuritySettingValue('backup_before_delete', false) ||
@@ -3983,7 +4029,7 @@ const ChatLeftSidebar = ({
                        </div>
                        <div className="text-end">
                          <div className="fw-medium">Developer</div>
-                         <div className="text-muted">Casa Nirvana</div>
+                         <div className="text-muted">BVerse Technologies</div>
                        </div>
                      </div>
                    </div>
@@ -4164,75 +4210,68 @@ const ChatLeftSidebar = ({
            <div className="mb-4">
              <div className="d-flex align-items-center justify-content-center mb-3">
                <Image
-                 src={avatar1}
+                 src={currentUserAvatar}
                  className="rounded-circle me-3"
                  height={50}
                  width={50}
                  alt="User Avatar"
                />
                <div>
-                 <h6 className="mb-0">Gaston Lapierre</h6>
-                 <p className="text-muted mb-0 small">Nirvana Chat User</p>
+                 <h6 className="mb-0">{currentUserName}</h6>
+                 <p className="text-muted mb-0 small">{currentUserRole}</p>
                </div>
              </div>
            </div>
            <div className="mb-4">
              <div className="p-3 bg-white border rounded d-inline-block">
-               {/* QR Code placeholder - using a service like qr-server.com */}
-               <img 
-                 src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(JSON.stringify({
-                   type: 'nirvana_chat_user',
-                   id: 'user-gaston-lapierre',
-                   name: 'Gaston Lapierre',
-                   avatar: avatar1,
-                   app: 'Nirvana Chat',
-                   timestamp: new Date().toISOString()
-                 }))}`}
-                 alt="QR Code"
-                 width={200}
-                 height={200}
-               />
+               {qrCodeDataUrl ? (
+                 <Image
+                   src={qrCodeDataUrl}
+                   alt="QR Code"
+                   width={200}
+                   height={200}
+                 />
+               ) : (
+                 <div className="d-flex align-items-center justify-content-center text-muted" style={{ width: 200, height: 200 }}>
+                   <IconifyIcon icon="ri:qr-code-line" className="fs-1" />
+                 </div>
+               )}
              </div>
            </div>
            <div className="mb-3">
-             <h6 className="mb-2">Scan to add me on Nirvana Chat</h6>
+             <h6 className="mb-2">Scan to share my Nirvana Chat profile</h6>
              <p className="text-muted small mb-0">
-               Point your camera at this code to add me as a contact on Nirvana Chat
+               This QR code contains your live admin contact payload for internal sharing and support workflows.
              </p>
            </div>
            <div className="row">
              <div className="col-6">
                <button 
                  className="btn btn-outline-primary w-100 btn-sm"
-                 onClick={() => {
-                   // Copy QR code link functionality
-                   const qrData = JSON.stringify({
-                     type: 'nirvana_chat_user',
-                     id: 'user-gaston-lapierre',
-                     name: 'Gaston Lapierre',
-                     avatar: avatar1,
-                     app: 'Nirvana Chat',
-                     timestamp: new Date().toISOString()
-                   });
-                   navigator.clipboard.writeText(`https://nirvana.chat/add-contact?data=${encodeURIComponent(qrData)}`);
+                 onClick={async () => {
+                   await navigator.clipboard.writeText(JSON.stringify(qrContactPayload));
+                   toast.success("Contact payload copied.");
                  }}
                >
                  <IconifyIcon icon="bx:copy" className="me-1" />
-                 Copy Link
+                 Copy Data
                </button>
              </div>
              <div className="col-6">
                <button 
                  className="btn btn-primary w-100 btn-sm"
-                 onClick={() => {
-                   // Share functionality
+                 onClick={async () => {
                    if (navigator.share) {
-                     navigator.share({
-                       title: 'Add me on Nirvana Chat',
-                       text: 'Scan this QR code to add me as a contact on Nirvana Chat',
-                       url: `https://nirvana.chat/add-contact?user=gaston-lapierre`
+                     await navigator.share({
+                       title: `${currentUserName} on Nirvana Chat`,
+                       text: `${currentUserName} (${currentUserRole})`,
+                       url: typeof window !== "undefined" ? window.location.href : undefined,
                      });
+                     return;
                    }
+
+                   await navigator.clipboard.writeText(JSON.stringify(qrContactPayload));
+                   toast.success("Contact payload copied.");
                  }}
                >
                  <IconifyIcon icon="bx:share" className="me-1" />

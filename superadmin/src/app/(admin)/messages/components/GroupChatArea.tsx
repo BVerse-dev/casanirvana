@@ -21,6 +21,8 @@ import {
 } from "react-bootstrap";
 import { useForm } from "react-hook-form";
 import * as yup from "yup";
+import { useSession } from "next-auth/react";
+import { toast } from "react-hot-toast";
 
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
 import SimplebarReactClient from "@/components/wrappers/SimplebarReactClient";
@@ -36,13 +38,13 @@ import {
 } from "@/hooks/useGroups";
 import { avatars } from "@/assets/images/users";
 import { supabase } from '@/lib/supabase';
+import { mapAvatarUrl } from "@/utils/avatarMapper";
 
 import small1 from "@/assets/images/small/img-1.jpg";
 import small2 from "@/assets/images/small/img-2.jpg";
 import small3 from "@/assets/images/small/img-3.jpg";
 import TextFormInput from "@/components/from/TextFormInput";
 import Image from "next/image";
-import Link from "next/link";
 
 interface GroupChatAreaProps {
   groupId: string;
@@ -85,36 +87,36 @@ const VideoCall = ({ group }: { group: any }) => {
           <div className="video-call-action text-center pt-4 pb-0">
             <ul className="d-flex align-items-center justify-content-evenly bg-dark m-3 p-2 rounded-pill">
               <li className="list-inline-item avatar-sm me-2">
-                <Link
-                  href=""
-                  className="avatar-title rounded-circle bg-soft-light text-white fs-16"
+                <button
+                  type="button"
+                  className="avatar-title rounded-circle bg-soft-light text-white fs-16 border-0"
                 >
                   <IconifyIcon icon="ri:mic-off-line" />
-                </Link>
+                </button>
               </li>
               <li className="list-inline-item avatar-sm">
-                <Link
-                  href=""
-                  className="avatar-title rounded-circle bg-soft-light text-white fs-16"
+                <button
+                  type="button"
+                  className="avatar-title rounded-circle bg-soft-light text-white fs-16 border-0"
                 >
                   <IconifyIcon icon="ri:volume-up-line" />
-                </Link>
+                </button>
               </li>
               <li className="list-inline-item avatar-sm me-2">
-                <Link
-                  href=""
-                  className="avatar-title rounded-circle bg-soft-light text-white fs-16"
+                <button
+                  type="button"
+                  className="avatar-title rounded-circle bg-soft-light text-white fs-16 border-0"
                 >
                   <IconifyIcon icon="ri:camera-switch-line" />
-                </Link>
+                </button>
               </li>
               <li className="list-inline-item avatar-sm">
-                <Link
-                  href=""
-                  className="avatar-title rounded-circle bg-soft-light text-white fs-16"
+                <button
+                  type="button"
+                  className="avatar-title rounded-circle bg-soft-light text-white fs-16 border-0"
                 >
                   <IconifyIcon icon="ri:camera-off-line" />
-                </Link>
+                </button>
               </li>
               <li className="list-inline-item fw-bold" data-bs-dismiss="modal">
                 <Button
@@ -179,32 +181,32 @@ const VoiceCall = ({ group }: { group: any }) => {
           <div className="voice-call-action pt-4 pb-0">
             <ul className="d-flex align-items-center justify-content-between bg-dark mx-5 mb-3 p-2 rounded-pill">
               <li className="list-inline-item avatar-sm me-2">
-                <Link
-                  href=""
-                  className="avatar-title rounded-circle bg-soft-light text-white fs-16"
+                <button
+                  type="button"
+                  className="avatar-title rounded-circle bg-soft-light text-white fs-16 border-0"
                 >
                   <IconifyIcon icon="ri:mic-off-line" />
-                </Link>
+                </button>
               </li>
               <li
                 className="list-inline-item avatar-sm me-2"
                 data-bs-dismiss="modal"
               >
-                <Link
-                  href=""
+                <button
+                  type="button"
                   onClick={voiceCall.toggle}
-                  className="avatar-title rounded-circle bg-danger text-white fs-18"
+                  className="avatar-title rounded-circle bg-danger text-white fs-18 border-0"
                 >
                   <IconifyIcon icon="solar:end-call-linear" />
-                </Link>
+                </button>
               </li>
               <li className="list-inline-item avatar-sm">
-                <Link
-                  href=""
-                  className="avatar-title rounded-circle bg-soft-light text-white fs-16"
+                <button
+                  type="button"
+                  className="avatar-title rounded-circle bg-soft-light text-white fs-16 border-0"
                 >
                   <IconifyIcon icon="ri:volume-up-line" />
-                </Link>
+                </button>
               </li>
             </ul>
           </div>
@@ -460,8 +462,10 @@ const GroupChatArea = ({ groupId }: GroupChatAreaProps) => {
     imageName: ''
   });
 
-  // Get current user ID - for demo, using a fixed admin user
-  const currentUserId = "35995267-1de3-48e7-a991-91f38ffdcab1"; // Alice's ID
+  const { data: session } = useSession();
+  const currentUserId = session?.user?.id;
+  const currentUserName = session?.user?.name || "You";
+  const currentUserEmail = session?.user?.email || "Not available";
 
   // Use real group data from Supabase
   const { data: group, isLoading: groupLoading } = useGetGroup(groupId);
@@ -477,13 +481,13 @@ const GroupChatArea = ({ groupId }: GroupChatAreaProps) => {
     const fromUser = profileData ? {
       id: msg.from_user || 'unknown',
       name: `${profileData.first_name || 'User'} ${profileData.last_name || ''}`.trim(),
-      avatar: profileData.avatar || avatars.avatar1,
+      avatar: mapAvatarUrl(profileData.avatar_url) || avatars.avatar1,
       email: profileData.email || "user@example.com",
       mutualCount: 0,
-      contact: profileData.phone || "000-000-0000",
+      contact: profileData.phone || "Not provided",
       activityStatus: "online" as const,
       status: "Active" as const,
-      location: "Casa Nirvana",
+      location: group?.name || "Group chat",
       languages: ["English"],
       time: new Date(),
       message: "",
@@ -494,10 +498,10 @@ const GroupChatArea = ({ groupId }: GroupChatAreaProps) => {
       avatar: avatars.avatar1,
       email: "user@example.com",
       mutualCount: 0,
-      contact: "000-000-0000",
+      contact: "Not provided",
       activityStatus: "online" as const,
       status: "Active" as const,
-      location: "Casa Nirvana",
+      location: group?.name || "Group chat",
       languages: ["English"],
       time: new Date(),
       message: "",
@@ -519,16 +523,16 @@ const GroupChatArea = ({ groupId }: GroupChatAreaProps) => {
 
   // Fixed current user object for UI compatibility
   const toUser: UserType = {
-    id: currentUserId,
-    mutualCount: 56,
-    name: "You",
+    id: currentUserId || "current-user",
+    mutualCount: 0,
+    name: currentUserName,
     avatar: avatars.avatar10,
-    email: "admin@casanirvana.com",
+    email: currentUserEmail,
     message: "",
     time: new Date(),
-    contact: "123 456 7890",
+    contact: "Not provided",
     emailMessage: "",
-    location: "Casa Nirvana Admin",
+    location: "Admin Workspace",
     languages: ["English"],
     activityStatus: "online",
     status: "Active",
@@ -548,24 +552,40 @@ const GroupChatArea = ({ groupId }: GroupChatAreaProps) => {
    */
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file || !currentUserId) return;
 
     try {
-      // For now, just show that a file was shared
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
+      const storagePath = `${currentUserId}/group-chat/${fileName}`;
+
+      const { error: uploadError } = await supabase
+        .storage
+        .from('chat-attachments')
+        .upload(storagePath, file, {
+          cacheControl: '3600',
+          upsert: false,
+        });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      const { data: { publicUrl } } = supabase.storage.from('chat-attachments').getPublicUrl(storagePath);
+
       await createGroupMessageMutation.mutateAsync({
         group_id: groupId,
-        body: `📎 Shared a file: ${file.name}`,
+        body: `📎 ${file.name}`,
         message_type: "file",
         attachments: { 
-          filename: file.name, 
+          filename: file.name,
           size: file.size,
           mimeType: file.type,
           name: file.name,
-          url: URL.createObjectURL(file) // Temporary URL for preview
+          url: publicUrl,
         },
       });
-    } catch (error) {
-      console.error("Failed to send file:", error);
+    } catch {
     }
 
     // Clear the file input
@@ -589,8 +609,7 @@ const GroupChatArea = ({ groupId }: GroupChatAreaProps) => {
         },
         message_type: 'video_call',
       });
-    } catch (error) {
-      console.error('Error sending video call message:', error);
+    } catch {
     }
   };
 
@@ -630,8 +649,7 @@ const GroupChatArea = ({ groupId }: GroupChatAreaProps) => {
       });
       
       reset();
-    } catch (error) {
-      console.error('Error sending message:', error);
+    } catch {
     }
   };
 
@@ -787,7 +805,7 @@ const GroupChatArea = ({ groupId }: GroupChatAreaProps) => {
                         <EmojiPicker
                           data={data}
                           theme={theme}
-                          onEmojiSelect={(e: any) => console.info(e.native)}
+                          onEmojiSelect={() => undefined}
                         />
                       </DropdownMenu>
                     </Dropdown>

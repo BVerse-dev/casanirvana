@@ -23,6 +23,7 @@ import {
 import { useForm } from "react-hook-form";
 import * as yup from "yup";
 import { useSession } from "next-auth/react";
+import { toast } from "react-hot-toast";
 
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
 import SimplebarReactClient from "@/components/wrappers/SimplebarReactClient";
@@ -40,7 +41,6 @@ import small2 from "@/assets/images/small/img-2.jpg";
 import small3 from "@/assets/images/small/img-3.jpg";
 import TextFormInput from "@/components/from/TextFormInput";
 import Image from "next/image";
-import Link from "next/link";
 
 const MessageDropdown = ({
   message,
@@ -132,36 +132,36 @@ const VideoCall = ({ selectedUser }: { selectedUser: UserType }) => {
           <div className="video-call-action text-center pt-4 pb-0">
             <ul className="d-flex align-items-center justify-content-evenly bg-dark m-3 p-2 rounded-pill">
               <li className="list-inline-item avatar-sm me-2">
-                <Link
-                  href=""
-                  className="avatar-title rounded-circle bg-soft-light text-white fs-16"
+                <button
+                  type="button"
+                  className="avatar-title rounded-circle bg-soft-light text-white fs-16 border-0"
                 >
                   <IconifyIcon icon="ri:mic-off-line" />
-                </Link>
+                </button>
               </li>
               <li className="list-inline-item avatar-sm">
-                <Link
-                  href=""
-                  className="avatar-title rounded-circle bg-soft-light text-white fs-16"
+                <button
+                  type="button"
+                  className="avatar-title rounded-circle bg-soft-light text-white fs-16 border-0"
                 >
                   <IconifyIcon icon="ri:volume-up-line" />
-                </Link>
+                </button>
               </li>
               <li className="list-inline-item avatar-sm me-2">
-                <Link
-                  href=""
-                  className="avatar-title rounded-circle bg-soft-light text-white fs-16"
+                <button
+                  type="button"
+                  className="avatar-title rounded-circle bg-soft-light text-white fs-16 border-0"
                 >
                   <IconifyIcon icon="ri:camera-switch-line" />
-                </Link>
+                </button>
               </li>
               <li className="list-inline-item avatar-sm">
-                <Link
-                  href=""
-                  className="avatar-title rounded-circle bg-soft-light text-white fs-16"
+                <button
+                  type="button"
+                  className="avatar-title rounded-circle bg-soft-light text-white fs-16 border-0"
                 >
                   <IconifyIcon icon="ri:camera-off-line" />
-                </Link>
+                </button>
               </li>
               <li className="list-inline-item fw-bold" data-bs-dismiss="modal">
                 <Button
@@ -230,32 +230,32 @@ const VoiceCall = ({ selectedUser }: { selectedUser: UserType }) => {
           <div className="voice-call-action pt-4 pb-0">
             <ul className="d-flex align-items-center justify-content-between bg-dark mx-5 mb-3 p-2 rounded-pill">
               <li className="list-inline-item avatar-sm me-2">
-                <Link
-                  href=""
-                  className="avatar-title rounded-circle bg-soft-light text-white fs-16"
+                <button
+                  type="button"
+                  className="avatar-title rounded-circle bg-soft-light text-white fs-16 border-0"
                 >
                   <IconifyIcon icon="ri:mic-off-line" />
-                </Link>
+                </button>
               </li>
               <li
                 className="list-inline-item avatar-sm me-2"
                 data-bs-dismiss="modal"
               >
-                <Link
-                  href=""
+                <button
+                  type="button"
                   onClick={voiceCall.toggle}
-                  className="avatar-title rounded-circle bg-danger text-white fs-18"
+                  className="avatar-title rounded-circle bg-danger text-white fs-18 border-0"
                 >
                   <IconifyIcon icon="solar:end-call-linear" />
-                </Link>
+                </button>
               </li>
               <li className="list-inline-item avatar-sm">
-                <Link
-                  href=""
-                  className="avatar-title rounded-circle bg-soft-light text-white fs-16"
+                <button
+                  type="button"
+                  className="avatar-title rounded-circle bg-soft-light text-white fs-16 border-0"
                 >
                   <IconifyIcon icon="ri:volume-up-line" />
-                </Link>
+                </button>
               </li>
             </ul>
           </div>
@@ -310,7 +310,13 @@ const ProfileDetail = ({ selectedUser }: { selectedUser: UserType }) => {
                 className="img-thumbnail avatar-lg rounded-circle mb-1"
               />
               <h4>{selectedUser.name}</h4>
-              <Button variant="primary" size="sm" className="mt-1">
+              <Button
+                as="a"
+                href={`mailto:${selectedUser.email}`}
+                variant="primary"
+                size="sm"
+                className="mt-1"
+              >
                 <IconifyIcon icon="bi:envelope" className="me-1" />
                 Send Email
               </Button>
@@ -675,7 +681,7 @@ const ChatArea = ({ selectedUser, selectedUserId }: { selectedUser: ChatUser; se
     time: new Date(),
     contact: "Not provided",
     emailMessage: "",
-    location: "Casa Nirvana Admin",
+    location: "Admin Workspace",
     languages: ["English"],
     activityStatus: "online",
     status: "Active",
@@ -723,7 +729,7 @@ const ChatArea = ({ selectedUser, selectedUserId }: { selectedUser: ChatUser; se
     const maxSize = 10 * 1024 * 1024; // 10MB limit
 
     if (file.size > maxSize) {
-      alert('File size must be less than 10MB');
+      toast.error("File size must be less than 10MB.");
       return;
     }
 
@@ -741,7 +747,6 @@ const ChatArea = ({ selectedUser, selectedUserId }: { selectedUser: ChatUser; se
         });
 
       if (uploadError) {
-        console.error('Upload error:', uploadError);
         // Fallback: send text message about file
         await createMessageMutation.mutateAsync({
           from_user: currentUserId,
@@ -754,6 +759,7 @@ const ChatArea = ({ selectedUser, selectedUserId }: { selectedUser: ChatUser; se
           read: false,
           is_read: false,
         });
+        toast.error("File upload failed. A text notice was sent instead.");
       } else {
         // Get public URL for the uploaded file
         const { data: { publicUrl } } = supabase.storage
@@ -785,8 +791,7 @@ const ChatArea = ({ selectedUser, selectedUserId }: { selectedUser: ChatUser; se
         fileInputRef.current.value = '';
       }
     } catch (error) {
-      console.error('Error sending file:', error);
-      alert('Failed to send file. Please try again.');
+      toast.error(error instanceof Error ? error.message : "Failed to send file.");
     }
   };
 
@@ -814,7 +819,7 @@ const ChatArea = ({ selectedUser, selectedUserId }: { selectedUser: ChatUser; se
         is_read: false,
       });
     } catch (error) {
-      console.error('Error sending video call message:', error);
+      toast.error(error instanceof Error ? error.message : "Failed to register the call event.");
     }
 
     // Open the video call modal
@@ -869,7 +874,7 @@ const ChatArea = ({ selectedUser, selectedUserId }: { selectedUser: ChatUser; se
       
       reset();
     } catch (error) {
-      console.error('Error sending message:', error);
+      toast.error(error instanceof Error ? error.message : "Failed to send message.");
     }
   };
 
@@ -1019,11 +1024,11 @@ const ChatArea = ({ selectedUser, selectedUserId }: { selectedUser: ChatUser; se
                       />
                     </DropdownToggle>
                     <DropdownMenu className="p-0 rounded-4">
-                      <EmojiPicker
-                        data={data}
-                        theme={theme}
-                        onEmojiSelect={(e: any) => console.info(e.native)}
-                      />
+                        <EmojiPicker
+                          data={data}
+                          theme={theme}
+                          onEmojiSelect={() => undefined}
+                        />
                     </DropdownMenu>
                   </Dropdown>
                   <TextFormInput

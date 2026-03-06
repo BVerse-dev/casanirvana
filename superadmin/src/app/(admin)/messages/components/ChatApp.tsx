@@ -62,21 +62,14 @@ const ChatApp = () => {
     setChatMode('user');
   };
 
-  const onGroupSelect = (groupId: string, groupName: string) => {
+  const onGroupSelect = (groupId: string) => {
     setSelectedGroupId(groupId);
     setSelectedUserId(null);
     setChatMode('group');
-    console.log(`Selected group: ${groupName} (${groupId})`);
-    
-    // Close the sidebar on mobile after selection
+
     if (chatList.open) {
       chatList.toggle();
     }
-  };
-
-  const onCreateGroup = () => {
-    // For now, just show an alert - could open a modal later
-    alert('Create Group functionality - coming soon!\n\nThis will open a modal to:\n- Enter group name\n- Select members\n- Create the group');
   };
 
   const onContactSelect = (contactId: string, contactName: string) => {
@@ -104,7 +97,6 @@ const ChatApp = () => {
                 onUserSelect={onUserChange}
                 selectedUser={currentSelectedUser}
                 onGroupSelect={onGroupSelect}
-                onCreateGroup={onCreateGroup}
                 onContactSelect={onContactSelect}
               />
             </Offcanvas>
@@ -114,7 +106,6 @@ const ChatApp = () => {
                 onUserSelect={onUserChange}
                 selectedUser={currentSelectedUser}
                 onGroupSelect={onGroupSelect}
-                onCreateGroup={onCreateGroup}
                 onContactSelect={onContactSelect}
               />
             </div>
