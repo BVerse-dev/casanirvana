@@ -1,188 +1,124 @@
 "use client";
-import IconifyIcon from "@/components/wrappers/IconifyIcon";
-import { Database } from "@/lib/database.types";
-import { Button } from "react-bootstrap";
-import Link from "next/link";
-import { useUpdateServiceRequest } from "@/hooks/useServiceRequests";
 
-type ServiceRequest = Database["public"]["Tables"]["service_requests"]["Row"] & {
-  services?: Database["public"]["Tables"]["services"]["Row"];
-  user_profile?: Database["public"]["Tables"]["profiles"]["Row"];
-  units?: Database["public"]["Tables"]["units"]["Row"] & {
-    community?: Database["public"]["Tables"]["communities"]["Row"];
-  };
-  priority?: string | null;
-};
+import Link from "next/link";
+import { Badge, Button } from "react-bootstrap";
+
+import { formatServiceRequestStatusLabel } from "@/hooks/useServiceRequests";
 
 interface ServiceRequestsTableProps {
-  serviceRequests: ServiceRequest[];
+  serviceRequests: Array<any>;
+  onStatusUpdate: (id: string, status: "in_progress" | "completed" | "cancelled" | "pending") => Promise<void> | void;
+  isUpdating: boolean;
 }
 
-const ServiceRequestsTable = ({ serviceRequests }: ServiceRequestsTableProps) => {
-  const updateServiceRequest = useUpdateServiceRequest();
+const formatMoney = (amount?: number | null) =>
+  new Intl.NumberFormat("en-GH", {
+    style: "currency",
+    currency: "GHS",
+    minimumFractionDigits: 2,
+  }).format(Number(amount || 0));
 
-  const handleStatusUpdate = async (id: string, status: "in_progress" | "completed") => {
-    try {
-      await updateServiceRequest.mutateAsync({
-        id,
-        status,
-        completion_date: status === "completed" ? new Date().toISOString().slice(0, 10) : null,
-      });
-    } catch (error) {
-      console.error("Failed to update service request status:", error);
-    }
-  };
+const getStatusVariant = (status?: string | null) => {
+  switch (status) {
+    case "completed":
+      return "success";
+    case "in_progress":
+      return "info";
+    case "cancelled":
+      return "danger";
+    case "pending":
+    default:
+      return "warning";
+  }
+};
 
-  if (serviceRequests.length === 0) {
+const getPriorityVariant = (priority?: string | null) => {
+  switch (priority) {
+    case "high":
+      return "danger";
+    case "low":
+      return "success";
+    case "medium":
+    default:
+      return "warning";
+  }
+};
+
+const ServiceRequestsTable = ({ serviceRequests, onStatusUpdate, isUpdating }: ServiceRequestsTableProps) => {
+  if (!serviceRequests.length) {
     return (
       <div className="text-center py-5">
-        <IconifyIcon icon="solar:clipboard-list-broken" className="fs-1 text-muted mb-3" />
         <h5 className="text-muted">No service requests found</h5>
-        <p className="text-muted mb-0">Service requests will appear here when residents make bookings.</p>
+        <p className="text-muted mb-0">Requests will appear here once residents start booking services.</p>
       </div>
     );
   }
-
-  const formatCurrency = (amount?: number | null) => {
-    const value = Number(amount || 0);
-    return `GHS ${value.toFixed(2)}`;
-  };
-
-  const formatStatusLabel = (status?: string | null) => {
-    const normalized = status || "pending";
-    return normalized.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
-  };
-
-  const formatPriorityLabel = (priority?: string | null) => {
-    const normalized = priority || "medium";
-    return normalized.charAt(0).toUpperCase() + normalized.slice(1);
-  };
-
-  const getStatusBadgeColor = (status: string) => {
-    const statusColors: Record<string, string> = {
-      'pending': 'warning',
-      'in_progress': 'info',
-      'completed': 'success',
-      'cancelled': 'danger',
-      'default': 'secondary'
-    };
-    return statusColors[status] || statusColors.default;
-  };
-
-  const getPriorityBadgeColor = (priority: string) => {
-    const priorityColors: Record<string, string> = {
-      'low': 'success',
-      'medium': 'warning',
-      'high': 'danger',
-      'default': 'secondary'
-    };
-    return priorityColors[priority] || priorityColors.default;
-  };
 
   return (
     <div className="table-responsive">
       <table className="table align-middle text-nowrap table-hover table-centered mb-0">
         <thead className="bg-light-subtle">
           <tr>
-            <th>Service & Resident</th>
-            <th>Unit Details</th>
+            <th>Request</th>
+            <th>Resident</th>
+            <th>Unit / Community</th>
             <th>Priority</th>
             <th>Status</th>
-            <th>Scheduled Date</th>
+            <th>Payment</th>
             <th>Amount</th>
-            <th>Action</th>
+            <th className="text-end">Actions</th>
           </tr>
         </thead>
         <tbody>
           {serviceRequests.map((request) => (
             <tr key={request.id}>
               <td>
-                <div className="d-flex align-items-center gap-2">
-                  <div className="avatar-sm bg-light rounded d-flex align-items-center justify-content-center">
-                    <IconifyIcon 
-                      icon="solar:settings-minimalistic-broken" 
-                      className="fs-18 text-primary"
-                    />
-                  </div>
-                  <div>
-                    <Link href={`/service-requests/${request.id}`} className="text-decoration-none">
-                      <h6 className="mb-0 fw-medium text-dark hover-primary">
-                        {request.services?.name || request.title || "Service Request"}
-                      </h6>
-                    </Link>
-                    <p className="mb-0 text-muted fs-12">
-                      {[request.user_profile?.first_name, request.user_profile?.last_name]
-                        .filter(Boolean)
-                        .join(" ") || request.user_profile?.email || "Resident"}
-                    </p>
-                  </div>
+                <div className="fw-semibold">{request.title || request.services?.name || "Service Request"}</div>
+                <small className="text-muted">{request.preferred_date ? new Date(request.preferred_date).toLocaleDateString() : "No preferred date"}</small>
+              </td>
+              <td>
+                <div className="fw-semibold">
+                  {[request.user_profile?.first_name, request.user_profile?.last_name].filter(Boolean).join(" ") || request.user_profile?.email || "Resident"}
                 </div>
+                <small className="text-muted">{request.user_profile?.email || "No email"}</small>
               </td>
               <td>
-                <div>
-                  <span className="fw-medium fs-13">
-                    {[request.units?.block, request.units?.number || request.units?.unit_number]
-                      .filter(Boolean)
-                      .join(" - ") || "N/A"}
-                  </span>
-                  <p className="mb-0 text-muted fs-12">
-                    {request.units?.community?.name || "Community N/A"}
-                  </p>
-                </div>
+                <div className="fw-semibold">{[request.units?.block, request.units?.number || request.units?.unit_number].filter(Boolean).join("-") || "N/A"}</div>
+                <small className="text-muted">{request.units?.community?.name || "Community N/A"}</small>
               </td>
               <td>
-                <span className={`badge bg-${getPriorityBadgeColor(request.priority || 'medium')} text-white fs-11`}>
-                  {formatPriorityLabel(request.priority)}
-                </span>
+                <Badge bg={getPriorityVariant(request.priority)}>{formatServiceRequestStatusLabel(request.priority || "medium")}</Badge>
               </td>
               <td>
-                <span className={`badge bg-${getStatusBadgeColor(request.status || 'pending')} text-white fs-11`}>
-                  {formatStatusLabel(request.status)}
-                </span>
+                <Badge bg={getStatusVariant(request.status)}>{formatServiceRequestStatusLabel(request.status)}</Badge>
               </td>
+              <td>{formatServiceRequestStatusLabel(request.payment_status || "not_required")}</td>
+              <td>{formatMoney(request.total_amount)}</td>
               <td>
-                <span className="text-muted fs-13">
-                  {request.preferred_date ? 
-                    new Date(request.preferred_date).toLocaleDateString('en-US', {
-                      day: '2-digit',
-                      month: 'short',
-                      year: 'numeric'
-                    }) : 'Not scheduled'
-                  }
-                </span>
-              </td>
-              <td>
-                <span className="fw-semibold">{formatCurrency(request.total_amount)}</span>
-              </td>
-              <td>
-                <div className="d-flex gap-2">
-                  <Link href={`/service-requests/${request.id}`}>
-                    <Button variant="light" size="sm" title="View Details">
-                      <IconifyIcon icon="solar:eye-broken" className="align-middle fs-18" />
-                    </Button>
+                <div className="d-flex justify-content-end gap-2">
+                  <Link href={`/service-requests/${request.id}`} className="btn btn-outline-primary btn-sm">
+                    View
                   </Link>
-                  {request.status === "pending" && (
-                    <Button
-                      variant="soft-primary"
-                      size="sm"
-                      title="Start Service"
-                      disabled={updateServiceRequest.isPending}
-                      onClick={() => handleStatusUpdate(request.id, "in_progress")}
-                    >
-                      <IconifyIcon icon="solar:play-circle-broken" className="align-middle fs-18" />
+                  {request.status === "pending" ? (
+                    <Button variant="outline-info" size="sm" disabled={isUpdating} onClick={() => void onStatusUpdate(request.id, "in_progress")}>
+                      Start
                     </Button>
-                  )}
-                  {(request.status === "pending" || request.status === "in_progress") && (
-                    <Button
-                      variant="soft-success"
-                      size="sm"
-                      title="Mark Complete"
-                      disabled={updateServiceRequest.isPending}
-                      onClick={() => handleStatusUpdate(request.id, "completed")}
-                    >
-                      <IconifyIcon icon="solar:check-circle-broken" className="align-middle fs-18" />
+                  ) : null}
+                  {request.status === "pending" || request.status === "in_progress" ? (
+                    <Button variant="outline-success" size="sm" disabled={isUpdating} onClick={() => void onStatusUpdate(request.id, "completed")}>
+                      Complete
                     </Button>
-                  )}
+                  ) : null}
+                  {request.status === "pending" || request.status === "in_progress" ? (
+                    <Button variant="outline-danger" size="sm" disabled={isUpdating} onClick={() => void onStatusUpdate(request.id, "cancelled")}>
+                      Cancel
+                    </Button>
+                  ) : null}
+                  {request.status === "completed" || request.status === "cancelled" ? (
+                    <Button variant="outline-secondary" size="sm" disabled={isUpdating} onClick={() => void onStatusUpdate(request.id, "pending")}>
+                      Reopen
+                    </Button>
+                  ) : null}
                 </div>
               </td>
             </tr>

@@ -1,81 +1,77 @@
-'use client'
+"use client";
 
-import IconifyIcon from '@/components/wrappers/IconifyIcon'
-import { useGetService } from '@/hooks/useServices'
-import { useListServiceRequests } from '@/hooks/useServiceRequests'
-import { useSearchParams } from 'next/navigation'
-import { Card, CardBody, Col, Row } from 'react-bootstrap'
+import { Card, CardBody, Col, Row } from "react-bootstrap";
+import { useSearchParams } from "next/navigation";
+
+import IconifyIcon from "@/components/wrappers/IconifyIcon";
+import { useGetService } from "@/hooks/useServices";
+import { useListServiceRequests } from "@/hooks/useServiceRequests";
+
+const formatMoney = (amount: number) =>
+  new Intl.NumberFormat("en-GH", {
+    style: "currency",
+    currency: "GHS",
+    minimumFractionDigits: 2,
+  }).format(amount);
 
 const ServiceStatsCards = () => {
-  const searchParams = useSearchParams()
-  const serviceId = searchParams.get('id')
-  
-  const { data: service } = useGetService(serviceId || '')
-  const { data: serviceRequests = [] } = useListServiceRequests(serviceId || '')
+  const searchParams = useSearchParams();
+  const serviceId = searchParams.get("id") || "";
+  const { data: service } = useGetService(serviceId);
+  const { data: requests = [] } = useListServiceRequests(serviceId);
 
-  // Calculate statistics
-  const totalRequests = serviceRequests.length
-  const activeRequests = serviceRequests.filter(req => ['pending', 'approved'].includes(req.status)).length
-  const completedRequests = serviceRequests.filter(req => req.status === 'completed').length
-  const totalRevenue = serviceRequests
-    .filter(req => req.status === 'completed' && req.quoted_price)
-    .reduce((sum, req) => sum + (req.quoted_price || 0), 0)
+  const pending = requests.filter((request) => request.status === "pending").length;
+  const inProgress = requests.filter((request) => request.status === "in_progress").length;
+  const completed = requests.filter((request) => request.status === "completed").length;
+  const completedRevenue = requests
+    .filter((request) => request.status === "completed")
+    .reduce((sum, request) => sum + Number(request.total_amount || 0), 0);
 
-  const statsData = [
+  const cards = [
     {
-      title: 'Service Status',
-      value: service?.is_active ? 'ACTIVE' : 'INACTIVE',
-      icon: 'solar:shield-check-bold-duotone',
-      gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+      title: "Pending",
+      value: String(pending),
+      subtitle: "Waiting to start",
+      icon: "solar:clock-circle-bold-duotone",
+      tone: "warning",
     },
     {
-      title: 'Total Requests',
-      value: totalRequests.toString(),
-      icon: 'solar:clipboard-list-bold-duotone',
-      gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
+      title: "In Progress",
+      value: String(inProgress),
+      subtitle: "Active service jobs",
+      icon: "solar:play-circle-bold-duotone",
+      tone: "info",
     },
     {
-      title: 'Completed',
-      value: completedRequests.toString(),
-      icon: 'solar:check-circle-bold-duotone',
-      gradient: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)'
+      title: "Completed",
+      value: String(completed),
+      subtitle: "Finished requests",
+      icon: "solar:check-circle-bold-duotone",
+      tone: "success",
     },
     {
-      title: 'Base Price',
-      value: service?.base_price ? `$${service.base_price}` : 'Custom',
-      icon: 'solar:dollar-bold-duotone',
-      gradient: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)'
-    }
-  ]
+      title: "Base Price / Revenue",
+      value: service ? `${formatMoney(Number((service as any).base_price || 0))} / ${formatMoney(completedRevenue)}` : "N/A",
+      subtitle: "Current price / completed value",
+      icon: "solar:wallet-money-bold-duotone",
+      tone: "primary",
+    },
+  ];
 
   return (
-    <Row className="mb-4">
-      {statsData.map((stat, index) => (
-        <Col xl={3} lg={6} key={index}>
-          <Card 
-            className="border-0 h-100"
-            style={{
-              background: stat.gradient,
-              backdropFilter: 'blur(10px)',
-              WebkitBackdropFilter: 'blur(10px)',
-              boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.15)',
-              border: '1px solid rgba(255, 255, 255, 0.18)'
-            }}
-          >
-            <CardBody className="p-3">
-              <div className="d-flex align-items-center">
-                <div className="flex-grow-1">
-                  <h6 className="text-uppercase fw-medium text-white-50 mb-2 fs-12">
-                    {stat.title}
-                  </h6>
-                  <h6 className="mb-0 text-white fw-semibold fs-16">
-                    {stat.value}
-                  </h6>
+    <Row className="g-3 mb-4">
+      {cards.map((card) => (
+        <Col xl={3} sm={6} key={card.title}>
+          <Card className="border-0 shadow-sm h-100">
+            <CardBody>
+              <div className="d-flex justify-content-between align-items-start gap-3">
+                <div>
+                  <p className="text-muted mb-2 fs-13">{card.title}</p>
+                  <h5 className="mb-1">{card.value}</h5>
+                  <p className="text-muted mb-0 fs-12">{card.subtitle}</p>
                 </div>
-                <div className="flex-shrink-0">
-                  <div className="bg-white bg-opacity-20 rounded-circle p-2">
-                    <IconifyIcon icon={stat.icon} className="fs-20 text-white" />
-                  </div>
+                <div className={`avatar-md rounded-3 bg-${card.tone}-subtle d-flex align-items-center justify-content-center`}>
+                  <IconifyIcon icon={card.icon} className={`fs-26 text-${card.tone}`} />
                 </div>
               </div>
             </CardBody>
@@ -83,7 +79,7 @@ const ServiceStatsCards = () => {
         </Col>
       ))}
     </Row>
-  )
-}
+  );
+};
 
-export default ServiceStatsCards 
+export default ServiceStatsCards;

@@ -1,105 +1,77 @@
 "use client";
+
 import { Card, CardBody, Col, Row } from "react-bootstrap";
+
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
 
 interface ServiceRequestsStatsProps {
-  serviceRequests: any[];
+  serviceRequests: Array<{
+    status?: string | null;
+    total_amount?: number | null;
+  }>;
 }
 
-const ServiceRequestsStats = ({ serviceRequests }: ServiceRequestsStatsProps) => {
-  const totalRequests = serviceRequests.length;
-  const pendingRequests = serviceRequests.filter(req => req.status === 'pending').length;
-  const inProgressRequests = serviceRequests.filter(req => req.status === 'in_progress').length;
-  const completedRequests = serviceRequests.filter(req => req.status === 'completed').length;
+const formatMoney = (amount: number) =>
+  new Intl.NumberFormat("en-GH", {
+    style: "currency",
+    currency: "GHS",
+    minimumFractionDigits: 2,
+  }).format(amount);
 
-  const stats = [
+const ServiceRequestsStats = ({ serviceRequests }: ServiceRequestsStatsProps) => {
+  const total = serviceRequests.length;
+  const activeQueue = serviceRequests.filter((request) => ["pending", "in_progress"].includes(String(request.status || "pending"))).length;
+  const completed = serviceRequests.filter((request) => request.status === "completed").length;
+  const completedRevenue = serviceRequests
+    .filter((request) => request.status === "completed")
+    .reduce((sum, request) => sum + Number(request.total_amount || 0), 0);
+
+  const cards = [
     {
       title: "Total Requests",
-      value: totalRequests,
-      icon: "solar:clipboard-list-broken",
-      gradient: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+      value: String(total),
+      subtitle: "All recorded service jobs",
+      icon: "solar:clipboard-list-bold-duotone",
+      tone: "primary",
     },
     {
-      title: "Pending",
-      value: pendingRequests,
-      icon: "solar:clock-circle-broken",
-      gradient: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
-    },
-    {
-      title: "In Progress", 
-      value: inProgressRequests,
-      icon: "solar:play-circle-broken",
-      gradient: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
+      title: "Active Queue",
+      value: String(activeQueue),
+      subtitle: "Pending + in progress",
+      icon: "solar:clock-circle-bold-duotone",
+      tone: "warning",
     },
     {
       title: "Completed",
-      value: completedRequests,
-      icon: "solar:check-circle-broken",
-      gradient: "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)",
+      value: String(completed),
+      subtitle: "Finished service jobs",
+      icon: "solar:check-circle-bold-duotone",
+      tone: "success",
+    },
+    {
+      title: "Completed Revenue",
+      value: formatMoney(completedRevenue),
+      subtitle: "Value from closed requests",
+      icon: "solar:wallet-money-bold-duotone",
+      tone: "info",
     },
   ];
 
   return (
-    <Row className="mb-4">
-      {stats.map((stat, index) => (
-        <Col xl={3} sm={6} key={index}>
-          <Card 
-            className="border-0 overflow-hidden position-relative"
-            style={{
-              background: stat.gradient,
-              minHeight: '160px',
-              boxShadow: '0 10px 30px rgba(0,0,0,0.12)',
-              transition: 'all 0.3s ease',
-              borderRadius: '12px',
-              cursor: 'pointer'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-5px)';
-              e.currentTarget.style.boxShadow = '0 20px 40px rgba(0,0,0,0.15)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 10px 30px rgba(0,0,0,0.12)';
-            }}
-          >
-            <CardBody className="p-4 position-relative d-flex flex-column justify-content-between h-100">
-              {/* Background decoration icon - properly contained */}
-              <div 
-                className="position-absolute"
-                style={{
-                  top: '20px',
-                  right: '20px',
-                  fontSize: '2.5rem',
-                  color: 'rgba(255, 255, 255, 0.15)',
-                  zIndex: 1
-                }}
-              >
-                <IconifyIcon icon={stat.icon} />
-              </div>
-              
-              {/* Main content */}
-              <div className="position-relative" style={{ zIndex: 2 }}>
-                <div className="mb-3">
-                  <IconifyIcon
-                    icon={stat.icon}
-                    className="fs-24 text-white mb-2"
-                    style={{ display: 'block' }}
-                  />
-                </div>
-                
+    <Row className="g-3 mb-4">
+      {cards.map((card) => (
+        <Col xl={3} sm={6} key={card.title}>
+          <Card className="border-0 shadow-sm h-100">
+            <CardBody>
+              <div className="d-flex align-items-start justify-content-between gap-3">
                 <div>
-                  <h3 className="text-white fw-bold mb-1 display-6">{stat.value}</h3>
-                  <p className="text-white mb-2 fs-15 fw-medium opacity-90">{stat.title}</p>
+                  <p className="text-muted mb-2 fs-13">{card.title}</p>
+                  <h4 className="mb-1">{card.value}</h4>
+                  <p className="text-muted mb-0 fs-12">{card.subtitle}</p>
                 </div>
-              </div>
-
-              {/* Growth indicator at bottom */}
-              <div className="d-flex align-items-center justify-content-between mt-auto">
-                <span className="text-white fs-13 fw-medium opacity-75">
-                  <IconifyIcon icon="ri:database-2-line" className="me-1" />
-                  Live data
-                </span>
-                <span className="text-white fs-12 opacity-60">Current scope</span>
+                <div className={`avatar-md rounded-3 bg-${card.tone}-subtle d-flex align-items-center justify-content-center`}>
+                  <IconifyIcon icon={card.icon} className={`fs-26 text-${card.tone}`} />
+                </div>
               </div>
             </CardBody>
           </Card>

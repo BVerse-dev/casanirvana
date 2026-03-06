@@ -1,267 +1,181 @@
 "use client";
-import IconifyIcon from "@/components/wrappers/IconifyIcon";
-import { useListServiceRequests } from "@/hooks/useServiceRequests";
-import { supabase } from "@/lib/supabase";
-import { useQueryClient } from "@tanstack/react-query";
+
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useEffect, useState, useMemo } from "react";
-import {
-  Card,
-  CardBody,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-  Col,
-  Dropdown,
-  DropdownItem,
-  DropdownMenu,
-  DropdownToggle,
-  Row,
-} from "react-bootstrap";
+import { Alert, Card, CardBody, CardFooter, CardHeader, CardTitle, Col, Form, Row } from "react-bootstrap";
+import { useSearchParams } from "next/navigation";
+
+import IconifyIcon from "@/components/wrappers/IconifyIcon";
 import ServiceRequestsStats from "./ServiceRequestsStats";
 import ServiceRequestsTable from "./ServiceRequestsTable";
+import { useListServiceRequests, useUpdateServiceRequest } from "@/hooks/useServiceRequests";
+import { getServiceDisplayName } from "@/hooks/useServices";
+
+const PAGE_SIZE = 12;
 
 const ServiceRequestsView = () => {
-  const { data: serviceRequests = [], isLoading, isError } = useListServiceRequests();
-  const queryClient = useQueryClient();
-  
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
-  const [entriesPerPage, setEntriesPerPage] = useState(15);
-  const [statusFilter, setStatusFilter] = useState('all');
+  const searchParams = useSearchParams();
+  const serviceId = searchParams.get("serviceId") || undefined;
+  const { data: serviceRequests = [], isLoading, isError } = useListServiceRequests(serviceId);
+  const updateServiceRequest = useUpdateServiceRequest();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [priorityFilter, setPriorityFilter] = useState("all");
+  const [page, setPage] = useState(1);
+  const [feedback, setFeedback] = useState<{ variant: "success" | "danger"; message: string } | null>(null);
 
-  // Filter data based on status
+  const serviceScopeLabel = useMemo(() => {
+    if (!serviceId) return null;
+    return serviceRequests[0]?.services ? getServiceDisplayName(serviceRequests[0].services) : `Service ${serviceId}`;
+  }, [serviceId, serviceRequests]);
+
   const filteredData = useMemo(() => {
-    if (statusFilter === 'all') return serviceRequests;
-    return serviceRequests.filter(request => request.status === statusFilter);
-  }, [serviceRequests, statusFilter]);
+    return serviceRequests.filter((request) => {
+      const matchesSearch =
+        searchQuery.trim().length === 0 ||
+        String(request.title || request.services?.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+        String(request.user_profile?.email || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+        String(request.request_details || request.description || "").toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesStatus = statusFilter === "all" || String(request.status || "pending") === statusFilter;
+      const matchesPriority = priorityFilter === "all" || String(request.priority || "medium") === priorityFilter;
+      return matchesSearch && matchesStatus && matchesPriority;
+    });
+  }, [priorityFilter, searchQuery, serviceRequests, statusFilter]);
 
-  // Pagination calculations
-  const totalEntries = filteredData.length;
-  const totalPages = Math.ceil(totalEntries / entriesPerPage);
-  const startIndex = (currentPage - 1) * entriesPerPage;
-  const endIndex = Math.min(startIndex + entriesPerPage, totalEntries);
-  const currentData = filteredData.slice(startIndex, endIndex) as any[];
+  const totalPages = Math.max(1, Math.ceil(filteredData.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const currentData = filteredData.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-  // Reset to first page when filter changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [statusFilter, entriesPerPage]);
-
-  // Real-time subscription for service requests updates
-  useEffect(() => {
-    const channel = supabase
-      .channel('public:service_requests')
-      .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public', 
-        table: 'service_requests' 
-      }, () => {
-        queryClient.invalidateQueries({ queryKey: ['service_requests'] });
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [queryClient]);
+  const handleStatusUpdate = async (id: string, status: "in_progress" | "completed" | "cancelled" | "pending") => {
+    setFeedback(null);
+    try {
+      await updateServiceRequest.mutateAsync({
+        id,
+        status,
+        completion_date: status === "completed" ? new Date().toISOString().slice(0, 10) : null,
+      });
+      setFeedback({
+        variant: "success",
+        message: `Service request moved to ${status.replace(/_/g, " ")}.`,
+      });
+    } catch (error) {
+      console.error("Failed to update service request status:", error);
+      setFeedback({
+        variant: "danger",
+        message: "Failed to update service request status.",
+      });
+    }
+  };
 
   if (isLoading) {
     return (
-      <div className="d-flex justify-content-center align-items-center" style={{ height: '400px' }}>
-        <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Loading service requests...</span>
-        </div>
-      </div>
+      <Card>
+        <CardBody className="text-center py-5">Loading service requests...</CardBody>
+      </Card>
     );
   }
 
   if (isError) {
-    return (
-      <div className="alert alert-danger" role="alert">
-        <h4 className="alert-heading">Error loading service requests</h4>
-        <p>There was an error loading the service requests. Please try refreshing the page.</p>
-      </div>
-    );
+    return <Alert variant="danger">Failed to load service requests.</Alert>;
   }
 
   return (
     <>
-      <ServiceRequestsStats serviceRequests={filteredData} />
-      
-      <Row>
-        <Col xl={12}>
-          <Card>
-            <CardHeader className="d-flex justify-content-between align-items-center border-bottom">
-              <div>
-                <CardTitle as={"h4"}>All Service Requests</CardTitle>
-              </div>
-              <div className="d-flex gap-2">
-                <Dropdown>
-                  <DropdownToggle
-                    as={"a"}
-                    className="btn btn-sm btn-outline-primary"
-                    data-bs-toggle="dropdown"
-                    aria-expanded="false"
-                  >
-                    <IconifyIcon icon="solar:filter-broken" className="me-1" />
-                    Filter by Status
-                  </DropdownToggle>
-                  <DropdownMenu>
-                    <DropdownItem onClick={() => setStatusFilter('all')}>All Requests</DropdownItem>
-                    <DropdownItem onClick={() => setStatusFilter('pending')}>Pending</DropdownItem>
-                    <DropdownItem onClick={() => setStatusFilter('in_progress')}>In Progress</DropdownItem>
-                    <DropdownItem onClick={() => setStatusFilter('completed')}>Completed</DropdownItem>
-                    <DropdownItem onClick={() => setStatusFilter('cancelled')}>Cancelled</DropdownItem>
-                  </DropdownMenu>
-                </Dropdown>
-                <Link href="/services" className="btn btn-sm btn-primary">
-                  <IconifyIcon icon="ri:settings-3-line" className="me-1" />
+      <ServiceRequestsStats serviceRequests={serviceRequests} />
+
+      <Card>
+        <CardHeader className="border-0">
+          <Row className="g-3 align-items-end">
+            <Col lg={4}>
+              <CardTitle as="h4" className="mb-2">
+                All Service Requests
+              </CardTitle>
+              <p className="text-muted mb-0">
+                {serviceScopeLabel ? `Scoped to ${serviceScopeLabel}.` : "Review and action resident service requests across communities."}
+              </p>
+            </Col>
+            <Col lg={2}>
+              <Form.Label>Search</Form.Label>
+              <Form.Control
+                value={searchQuery}
+                onChange={(event) => {
+                  setSearchQuery(event.target.value);
+                  setPage(1);
+                }}
+                placeholder="Search requests"
+              />
+            </Col>
+            <Col lg={2}>
+              <Form.Label>Status</Form.Label>
+              <Form.Select
+                value={statusFilter}
+                onChange={(event) => {
+                  setStatusFilter(event.target.value);
+                  setPage(1);
+                }}
+              >
+                <option value="all">All Statuses</option>
+                <option value="pending">Pending</option>
+                <option value="in_progress">In Progress</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+              </Form.Select>
+            </Col>
+            <Col lg={2}>
+              <Form.Label>Priority</Form.Label>
+              <Form.Select
+                value={priorityFilter}
+                onChange={(event) => {
+                  setPriorityFilter(event.target.value);
+                  setPage(1);
+                }}
+              >
+                <option value="all">All Priorities</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+              </Form.Select>
+            </Col>
+            <Col lg={2} className="text-lg-end">
+              <div className="d-grid gap-2">
+                <Link href="/services" className="btn btn-outline-primary">
                   Manage Services
                 </Link>
+                {serviceId ? (
+                  <Link href="/service-requests" className="btn btn-outline-secondary">
+                    Clear Scope
+                  </Link>
+                ) : null}
               </div>
-            </CardHeader>
-            <CardBody className="p-0">
-              <ServiceRequestsTable serviceRequests={currentData} />
-            </CardBody>
-            <CardFooter className="border-top">
-              <div className="d-flex justify-content-between align-items-center">
-                <div className="d-flex align-items-center gap-3">
-                  <div className="text-muted">
-                    {totalEntries === 0
-                      ? "Showing 0 of 0 service requests"
-                      : `Showing ${startIndex + 1} to ${endIndex} of ${totalEntries} service requests`}
-                  </div>
-                  <div className="d-flex align-items-center gap-2">
-                    <span className="text-muted">Show:</span>
-                    <Dropdown>
-                      <DropdownToggle
-                        as={"a"}
-                        className="btn btn-sm btn-outline-secondary"
-                        data-bs-toggle="dropdown"
-                        aria-expanded="false"
-                        style={{ minWidth: '80px' }}
-                      >
-                        {entriesPerPage} entries
-                      </DropdownToggle>
-                      <DropdownMenu>
-                        <DropdownItem onClick={() => setEntriesPerPage(5)}>5 entries</DropdownItem>
-                        <DropdownItem onClick={() => setEntriesPerPage(10)}>10 entries</DropdownItem>
-                        <DropdownItem onClick={() => setEntriesPerPage(15)}>15 entries</DropdownItem>
-                        <DropdownItem onClick={() => setEntriesPerPage(20)}>20 entries</DropdownItem>
-                        <DropdownItem onClick={() => setEntriesPerPage(50)}>50 entries</DropdownItem>
-                      </DropdownMenu>
-                    </Dropdown>
-                  </div>
-                </div>
-                
-                {totalPages > 1 && (
-                  <nav aria-label="Service requests pagination">
-                    <ul className="pagination mb-0">
-                      <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-                        <a 
-                          className="page-link d-flex align-items-center" 
-                          href="#" 
-                          onClick={(e) => {
-                            e.preventDefault();
-                            if (currentPage > 1) setCurrentPage(currentPage - 1);
-                          }}
-                          title="Previous page"
-                        >
-                          <IconifyIcon icon="solar:arrow-left-linear" className="me-1" />
-                          Previous
-                        </a>
-                      </li>
-                      
-                      {/* Show first page if we're not on first few pages */}
-                      {currentPage > 3 && (
-                        <>
-                          <li className="page-item">
-                            <a 
-                              className="page-link" 
-                              href="#" 
-                              onClick={(e) => {
-                                e.preventDefault();
-                                setCurrentPage(1);
-                              }}
-                            >
-                              1
-                            </a>
-                          </li>
-                          {currentPage > 4 && (
-                            <li className="page-item disabled">
-                              <span className="page-link">...</span>
-                            </li>
-                          )}
-                        </>
-                      )}
-                      
-                      {/* Show page numbers around current page */}
-                      {Array.from({ length: totalPages }, (_, i) => i + 1)
-                        .filter(pageNum => {
-                          return pageNum >= Math.max(1, currentPage - 2) && 
-                                 pageNum <= Math.min(totalPages, currentPage + 2);
-                        })
-                        .map((pageNum) => (
-                          <li key={pageNum} className={`page-item ${currentPage === pageNum ? 'active' : ''}`}>
-                            <a 
-                              className="page-link" 
-                              href="#" 
-                              onClick={(e) => {
-                                e.preventDefault();
-                                setCurrentPage(pageNum);
-                              }}
-                            >
-                              {pageNum}
-                            </a>
-                          </li>
-                        ))}
-                      
-                      {/* Show last page if we're not on last few pages */}
-                      {currentPage < totalPages - 2 && (
-                        <>
-                          {currentPage < totalPages - 3 && (
-                            <li className="page-item disabled">
-                              <span className="page-link">...</span>
-                            </li>
-                          )}
-                          <li className="page-item">
-                            <a 
-                              className="page-link" 
-                              href="#" 
-                              onClick={(e) => {
-                                e.preventDefault();
-                                setCurrentPage(totalPages);
-                              }}
-                            >
-                              {totalPages}
-                            </a>
-                          </li>
-                        </>
-                      )}
-                      
-                      <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
-                        <a 
-                          className="page-link d-flex align-items-center" 
-                          href="#" 
-                          onClick={(e) => {
-                            e.preventDefault();
-                            if (currentPage < totalPages) setCurrentPage(currentPage + 1);
-                          }}
-                          title="Next page"
-                        >
-                          Next
-                          <IconifyIcon icon="solar:arrow-right-linear" className="ms-1" />
-                        </a>
-                      </li>
-                    </ul>
-                  </nav>
-                )}
-              </div>
-            </CardFooter>
-          </Card>
-        </Col>
-      </Row>
+            </Col>
+          </Row>
+        </CardHeader>
+        <CardBody className="px-0 pb-0">
+          {feedback ? (
+            <Alert variant={feedback.variant} dismissible onClose={() => setFeedback(null)} className="m-3 mb-0">
+              {feedback.message}
+            </Alert>
+          ) : null}
+          <ServiceRequestsTable serviceRequests={currentData} onStatusUpdate={handleStatusUpdate} isUpdating={updateServiceRequest.isPending} />
+        </CardBody>
+        <CardFooter>
+          <div className="d-flex justify-content-between align-items-center gap-3 flex-wrap">
+            <p className="text-muted mb-0">
+              {filteredData.length === 0
+                ? "No service requests match the current filters."
+                : `Showing ${(currentPage - 1) * PAGE_SIZE + 1}-${Math.min(currentPage * PAGE_SIZE, filteredData.length)} of ${filteredData.length} service requests`}
+            </p>
+            <div className="d-flex gap-2">
+              <button className="btn btn-outline-secondary btn-sm" disabled={currentPage <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>
+                Previous
+              </button>
+              <button className="btn btn-outline-secondary btn-sm" disabled={currentPage >= totalPages || filteredData.length === 0} onClick={() => setPage((value) => Math.min(totalPages, value + 1))}>
+                Next
+              </button>
+            </div>
+          </div>
+        </CardFooter>
+      </Card>
     </>
   );
 };

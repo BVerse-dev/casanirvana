@@ -1,257 +1,129 @@
 "use client";
-import IconifyIcon from "@/components/wrappers/IconifyIcon";
-import { Card, CardBody, CardTitle, Col, Row, ProgressBar } from "react-bootstrap";
-import { useGetService } from "@/hooks/useServices";
-import { useListServiceRequests } from "@/hooks/useServiceRequests";
+
+import { Card, CardBody, CardHeader, CardTitle, Col, Row } from "react-bootstrap";
 import { useSearchParams } from "next/navigation";
+
+import { getServiceDisplayName, useGetService } from "@/hooks/useServices";
+import { useListServiceRequests } from "@/hooks/useServiceRequests";
+
+const formatMoney = (amount?: number | null) =>
+  Number(amount || 0) > 0
+    ? new Intl.NumberFormat("en-GH", {
+        style: "currency",
+        currency: "GHS",
+        minimumFractionDigits: 2,
+      }).format(Number(amount || 0))
+    : "Free";
+
+const formatList = (items?: string[] | null) => (items && items.length ? items.join(", ") : "Not configured");
 
 const ServiceOverview = () => {
   const searchParams = useSearchParams();
-  const serviceId = searchParams.get('id');
-  
-  const { data: service } = useGetService(serviceId || '');
-  const { data: serviceRequests = [] } = useListServiceRequests(serviceId || '');
-
-  // Calculate service statistics
-  const totalRequests = serviceRequests.length;
-  const pendingRequests = serviceRequests.filter((req) => req.status === "pending").length;
-  const inProgressRequests = serviceRequests.filter((req) => req.status === "in_progress").length;
-  const completedRequests = serviceRequests.filter((req) => req.status === "completed").length;
-  const cancelledRequests = serviceRequests.filter((req) => req.status === "cancelled").length;
-  
-  // Calculate revenue
-  const totalRevenue = serviceRequests
-    .filter((req) => req.status === "completed" && req.total_amount)
-    .reduce((sum, request) => sum + (parseFloat(String(request.total_amount)) || 0), 0);
-  
-  const pendingRevenue = serviceRequests
-    .filter((req) => req.status !== "completed" && req.status !== "cancelled" && req.total_amount)
-    .reduce((sum, request) => sum + (parseFloat(String(request.total_amount)) || 0), 0);
-
-  // Calculate percentages for progress bars
-  const completionRate = totalRequests > 0 ? (completedRequests / totalRequests) * 100 : 0;
-  const pendingPercentage = totalRequests > 0 ? (pendingRequests / totalRequests) * 100 : 0;
-  const inProgressPercentage = totalRequests > 0 ? (inProgressRequests / totalRequests) * 100 : 0;
-
-  // Get priority distribution
-  const priorityDistribution = serviceRequests.reduce((acc, request) => {
-    const priority = (request as any).priority || 'medium';
-    acc[priority] = (acc[priority] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
-
-  const highPriorityRequests = priorityDistribution.high || 0;
-  const mediumPriorityRequests = priorityDistribution.medium || 0;
-  const lowPriorityRequests = priorityDistribution.low || 0;
-
-  // Get recent request trends
-  const recentRequests = serviceRequests
-    .filter(req => {
-      if (!req.created_at) return false;
-      const requestDate = new Date(req.created_at);
-      const weekAgo = new Date();
-      weekAgo.setDate(weekAgo.getDate() - 7);
-      return requestDate >= weekAgo;
-    }).length;
-
-  const getCategoryIcon = (category: string) => {
-    const categoryIcons: { [key: string]: string } = {
-      maintenance: 'solar:settings-bold-duotone',
-      cleaning: 'solar:broom-bold-duotone',
-      security: 'solar:shield-check-bold-duotone',
-      utilities: 'solar:bolt-bold-duotone',
-      landscaping: 'solar:leaf-bold-duotone',
-      repair: 'solar:hammer-bold-duotone',
-      plumbing: 'solar:water-drop-bold-duotone',
-      electrical: 'solar:flash-bold-duotone',
-      pest_control: 'solar:bug-bold-duotone',
-      housekeeping: 'solar:home-2-bold-duotone',
-      hvac: 'solar:wind-bold-duotone',
-      default: 'solar:service-bold-duotone'
-    };
-    return categoryIcons[category] || categoryIcons.default;
-  };
+  const serviceId = searchParams.get("id") || "";
+  const { data: service } = useGetService(serviceId);
+  const { data: requests = [] } = useListServiceRequests(serviceId);
 
   if (!service) {
     return null;
   }
 
+  const recentRequests = requests.slice(0, 5);
+  const activeRequests = requests.filter((request) => ["pending", "in_progress"].includes(String(request.status || "pending"))).length;
+
   return (
-    <Row className="mb-4">
-      <Col xl={12}>
-        <Card className="bg-gradient-primary text-white border-0 shadow-lg">
-          <CardBody className="p-4">
-            <Row className="align-items-center">
-              <Col lg={8}>
-                <div className="d-flex align-items-center mb-3">
-                  <div className="avatar-lg bg-white bg-opacity-20 rounded-circle flex-centered me-3">
-                                         <IconifyIcon
-                       icon={getCategoryIcon(service.category || 'default')}
-                       className="fs-24 text-white"
-                     />
-                  </div>
-                  <div>
-                    <CardTitle as="h3" className="text-white mb-1">
-                      {service.name} Overview
-                    </CardTitle>
-                    <p className="text-white-75 mb-2">
-                      Real-time service request insights and performance metrics for {service.category} services
-                    </p>
-                    
-                    {/* Brief Service Details */}
-                    <div className="bg-white bg-opacity-10 rounded-3 p-3 mb-0 w-100">
-                      <div className="row g-4">
-                        <div className="col-4">
-                          <div className="d-flex align-items-center">
-                            <IconifyIcon icon="solar:tag-bold" className="text-white-75 me-2" />
-                            <div>
-                              <p className="text-white-75 mb-0 small">Category</p>
-                              <p className="text-white fw-semibold mb-0 small text-capitalize">{service.category}</p>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="col-4">
-                          <div className="d-flex align-items-center">
-                            <IconifyIcon icon="solar:dollar-bold" className="text-white-75 me-2" />
-                            <div>
-                              <p className="text-white-75 mb-0 small">Base Price</p>
-                              <p className="text-white fw-semibold mb-0 small">${service.base_price || 'Custom'}</p>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="col-4">
-                          <div className="d-flex align-items-center">
-                            <IconifyIcon icon="solar:clock-circle-bold" className="text-white-75 me-2" />
-                            <div>
-                              <p className="text-white-75 mb-0 small">Availability</p>
-                              <p className="text-white fw-semibold mb-0 small">{service.is_active ? 'Active' : 'Inactive'}</p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      {service.description && (
-                        <div className="mt-3 pt-3 border-top border-white border-opacity-20">
-                          <p className="text-white-75 mb-0 small">
-                            <IconifyIcon icon="solar:info-circle-bold" className="me-1" />
-                            {service.description}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <Row className="g-4">
-                  <Col md={6}>
-                    <div className="d-flex align-items-center justify-content-between mb-2">
-                      <span className="text-white-75">Completion Rate</span>
-                      <span className="text-white fw-semibold">{completedRequests}/{totalRequests}</span>
-                    </div>
-                    <ProgressBar 
-                      now={completionRate} 
-                      className="progress-sm bg-white bg-opacity-20"
-                      variant=""
-                    >
-                      <div 
-                        className="progress-bar bg-success" 
-                        style={{ width: `${completionRate}%` }}
-                      ></div>
-                    </ProgressBar>
-                  </Col>
-
-                  <Col md={6}>
-                    <div className="d-flex align-items-center justify-content-between mb-2">
-                      <span className="text-white-75">In Progress</span>
-                      <span className="text-white fw-semibold">{inProgressRequests}/{totalRequests}</span>
-                    </div>
-                    <ProgressBar 
-                      now={inProgressPercentage} 
-                      className="progress-sm bg-white bg-opacity-20"
-                      variant=""
-                    >
-                      <div 
-                        className="progress-bar bg-info" 
-                        style={{ width: `${inProgressPercentage}%` }}
-                      ></div>
-                    </ProgressBar>
-                  </Col>
-
-                  <Col md={6}>
-                    <div className="d-flex align-items-center justify-content-between mb-2">
-                      <span className="text-white-75">Pending Requests</span>
-                      <span className="text-white fw-semibold">{pendingRequests}/{totalRequests}</span>
-                    </div>
-                    <ProgressBar 
-                      now={pendingPercentage} 
-                      className="progress-sm bg-white bg-opacity-20"
-                      variant=""
-                    >
-                      <div 
-                        className="progress-bar bg-warning" 
-                        style={{ width: `${pendingPercentage}%` }}
-                      ></div>
-                    </ProgressBar>
-                  </Col>
-
-                  <Col md={6}>
-                    <div className="d-flex align-items-center justify-content-between mb-2">
-                      <span className="text-white-75">Total Revenue</span>
-                      <span className="text-white fw-semibold">${totalRevenue.toLocaleString()}</span>
-                    </div>
-                    <div className="d-flex align-items-center justify-content-between">
-                      <span className="text-white-75 small">Pending: ${pendingRevenue.toLocaleString()}</span>
-                      <span className="text-success small">
-                        <IconifyIcon icon="solar:arrow-up-bold" className="me-1" />
-                        +{completionRate.toFixed(1)}% completion rate
-                      </span>
-                    </div>
-                  </Col>
-                </Row>
+    <Row className="g-4 mb-4">
+      <Col xl={8}>
+        <Card className="h-100">
+          <CardHeader>
+            <CardTitle as="h5" className="mb-0">
+              {getServiceDisplayName(service)} Overview
+            </CardTitle>
+          </CardHeader>
+          <CardBody>
+            <Row className="g-3">
+              <Col md={6}>
+                <small className="text-muted d-block">Description</small>
+                <span className="fw-semibold">{service.description || "No service description has been added yet."}</span>
               </Col>
-
-              <Col lg={4}>
-                <div className="text-center">
-                  <div className="mb-3">
-                    <h2 className="text-white display-6 fw-bold mb-1">{totalRequests}</h2>
-                    <p className="text-white-75 mb-0">Total Requests</p>
-                  </div>
-                  
-                  <div className="bg-white bg-opacity-10 rounded-3 p-3 mb-3">
-                    <h6 className="text-white mb-2">
-                      <IconifyIcon icon="solar:fire-bold" className="me-1" />
-                      Priority Distribution
-                    </h6>
-                    <div className="d-flex align-items-center justify-content-between mb-1">
-                      <span className="text-white-75 small">High Priority</span>
-                      <span className="text-white fw-semibold small">{highPriorityRequests}</span>
-                    </div>
-                    <div className="d-flex align-items-center justify-content-between mb-1">
-                      <span className="text-white-75 small">Medium Priority</span>
-                      <span className="text-white fw-semibold small">{mediumPriorityRequests}</span>
-                    </div>
-                    <div className="d-flex align-items-center justify-content-between">
-                      <span className="text-white-75 small">Low Priority</span>
-                      <span className="text-white fw-semibold small">{lowPriorityRequests}</span>
-                    </div>
-                  </div>
-
-                  <div className="bg-white bg-opacity-10 rounded-3 p-3">
-                    <h6 className="text-white mb-1">
-                      <IconifyIcon icon="solar:calendar-bold" className="me-1" />
-                      This Week
-                    </h6>
-                    <div className="d-flex align-items-center justify-content-between">
-                      <span className="text-white-75 small">New Requests</span>
-                      <span className="text-white fw-semibold">{recentRequests}</span>
-                    </div>
-                    <div className="d-flex align-items-center justify-content-between">
-                      <span className="text-white-75 small">Base Price</span>
-                      <span className="text-white fw-semibold">${service.base_price || 'Custom'}</span>
-                    </div>
-                  </div>
-                </div>
+              <Col md={6}>
+                <small className="text-muted d-block">Pricing Model</small>
+                <span className="fw-semibold">{formatMoney((service as any).base_price)}</span>
+              </Col>
+              <Col md={6}>
+                <small className="text-muted d-block">Availability</small>
+                <span className="fw-semibold">{(service as any).availability || "Not specified"}</span>
+              </Col>
+              <Col md={6}>
+                <small className="text-muted d-block">Duration</small>
+                <span className="fw-semibold">{(service as any).duration || "Not specified"}</span>
+              </Col>
+              <Col md={6}>
+                <small className="text-muted d-block">Features</small>
+                <span className="fw-semibold">{formatList((service as any).features)}</span>
+              </Col>
+              <Col md={6}>
+                <small className="text-muted d-block">Tags</small>
+                <span className="fw-semibold">{formatList((service as any).tags)}</span>
+              </Col>
+              <Col md={6}>
+                <small className="text-muted d-block">Requirements</small>
+                <span className="fw-semibold">{(service as any).requirements || "No requirements documented."}</span>
+              </Col>
+              <Col md={6}>
+                <small className="text-muted d-block">Target Market</small>
+                <span className="fw-semibold">{(service as any).target_market || "General residents"}</span>
               </Col>
             </Row>
+          </CardBody>
+        </Card>
+      </Col>
+      <Col xl={4}>
+        <Card className="mb-4">
+          <CardHeader>
+            <CardTitle as="h5" className="mb-0">
+              Operational Snapshot
+            </CardTitle>
+          </CardHeader>
+          <CardBody>
+            <div className="d-flex justify-content-between mb-2">
+              <span className="text-muted">Active requests</span>
+              <span className="fw-semibold">{activeRequests}</span>
+            </div>
+            <div className="d-flex justify-content-between mb-2">
+              <span className="text-muted">Total requests</span>
+              <span className="fw-semibold">{requests.length}</span>
+            </div>
+            <div className="d-flex justify-content-between mb-2">
+              <span className="text-muted">Commission rate</span>
+              <span className="fw-semibold">{Number((service as any).commission_rate || 0)}%</span>
+            </div>
+            <div className="d-flex justify-content-between">
+              <span className="text-muted">Community</span>
+              <span className="fw-semibold">{(service as any).communities?.name || "All Communities"}</span>
+            </div>
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle as="h5" className="mb-0">
+              Recent Requests
+            </CardTitle>
+          </CardHeader>
+          <CardBody>
+            {recentRequests.length ? (
+              <div className="d-grid gap-3">
+                {recentRequests.map((request) => (
+                  <div key={request.id} className="border rounded p-3">
+                    <div className="fw-semibold">{request.title || request.services?.name || "Service Request"}</div>
+                    <div className="text-muted fs-12 mb-1">{request.user_profile?.email || "Resident"}</div>
+                    <div className="text-muted fs-12">{request.created_at ? new Date(request.created_at).toLocaleString() : "N/A"}</div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted mb-0">No service requests recorded for this service yet.</p>
+            )}
           </CardBody>
         </Card>
       </Col>
@@ -259,4 +131,4 @@ const ServiceOverview = () => {
   );
 };
 
-export default ServiceOverview; 
+export default ServiceOverview;

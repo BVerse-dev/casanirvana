@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "Service Requests" };
 const ServiceRequestsPage = () => {
   return (
     <>
-      <PageTitle title="Service Requests" subName="Community Management" />
+      <PageTitle title="Service Requests" subName="Operations" />
       <ServiceRequestsView />
     </>
   );

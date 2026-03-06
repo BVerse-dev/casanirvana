@@ -1,74 +1,91 @@
 "use client";
+
 import { Card, CardBody, Col, Row } from "react-bootstrap";
+
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
+import { getServiceDisplayName, isServiceActive, type Service } from "@/hooks/useServices";
 
 interface ServicesStatsProps {
-  services: any[];
+  services: Service[];
+  serviceRequests: Array<{
+    status?: string | null;
+    total_amount?: number | null;
+    service_id?: string | number | null;
+    services?: Service | null;
+  }>;
 }
 
-const ServicesStats = ({ services }: ServicesStatsProps) => {
+const formatMoney = (amount: number) =>
+  new Intl.NumberFormat("en-GH", {
+    style: "currency",
+    currency: "GHS",
+    minimumFractionDigits: 2,
+  }).format(amount);
+
+const ServicesStats = ({ services, serviceRequests }: ServicesStatsProps) => {
   const totalServices = services.length;
-  const activeServices = services.filter(service => service.is_active).length;
-  const categoryStats = services.reduce((acc: any, service) => {
-    acc[service.category] = (acc[service.category] || 0) + 1;
-    return acc;
-  }, {});
-  
-  const topCategory = Object.keys(categoryStats).length > 0 
-    ? Object.keys(categoryStats).reduce((a, b) => categoryStats[a] > categoryStats[b] ? a : b)
-    : 'N/A';
+  const activeServices = services.filter((service) => isServiceActive(service)).length;
+  const activeQueue = serviceRequests.filter((request) => ["pending", "in_progress"].includes(String(request.status || "pending"))).length;
+  const completedRevenue = serviceRequests
+    .filter((request) => request.status === "completed")
+    .reduce((sum, request) => sum + Number(request.total_amount || 0), 0);
 
-  const averagePrice = services.length > 0 
-    ? services.filter(s => s.price).reduce((sum, s) => sum + (s.price || 0), 0) / services.filter(s => s.price).length
-    : 0;
+  const servicesByDemand = new Map<string, number>();
+  serviceRequests.forEach((request) => {
+    const key = String(request.service_id || request.services?.id || "");
+    if (!key) return;
+    servicesByDemand.set(key, (servicesByDemand.get(key) || 0) + 1);
+  });
 
-  const stats = [
+  const topService = services
+    .slice()
+    .sort((left, right) => (servicesByDemand.get(String(right.id)) || 0) - (servicesByDemand.get(String(left.id)) || 0))[0];
+
+  const cards = [
     {
       title: "Total Services",
-      value: totalServices,
-      icon: "solar:settings-minimalistic-broken",
-      color: "primary",
-      bgColor: "bg-primary-subtle",
+      value: String(totalServices),
+      subtitle: `${activeServices} currently active`,
+      icon: "solar:widget-5-bold-duotone",
+      tone: "primary",
     },
     {
-      title: "Active Services",
-      value: activeServices,
-      icon: "solar:shield-check-broken",
-      color: "success",
-      bgColor: "bg-success-subtle",
+      title: "Active Queue",
+      value: String(activeQueue),
+      subtitle: "Pending + in progress requests",
+      icon: "solar:clock-circle-bold-duotone",
+      tone: "warning",
     },
     {
-      title: "Top Category",
-      value: topCategory,
-      icon: "solar:tag-horizontal-broken",
-      color: "warning",
-      bgColor: "bg-warning-subtle",
+      title: "Completed Revenue",
+      value: formatMoney(completedRevenue),
+      subtitle: "Closed service request value",
+      icon: "solar:wallet-money-bold-duotone",
+      tone: "success",
     },
     {
-      title: "Avg Price",
-      value: `$${averagePrice.toFixed(0)}`,
-      icon: "solar:dollar-minimalistic-broken",
-      color: "info",
-      bgColor: "bg-info-subtle",
+      title: "Top Service",
+      value: topService ? getServiceDisplayName(topService) : "N/A",
+      subtitle: topService ? `${servicesByDemand.get(String(topService.id)) || 0} requests` : "No requests yet",
+      icon: "solar:medal-ribbons-star-bold-duotone",
+      tone: "info",
     },
   ];
 
   return (
-    <Row className="mb-4">
-      {stats.map((stat, index) => (
-        <Col xl={3} sm={6} key={index}>
-          <Card className="border-0 shadow-sm">
+    <Row className="g-3 mb-4">
+      {cards.map((card) => (
+        <Col xl={3} sm={6} key={card.title}>
+          <Card className="border-0 shadow-sm h-100">
             <CardBody>
-              <div className="d-flex align-items-center">
-                <div className={`avatar-sm rounded ${stat.bgColor} d-flex align-items-center justify-content-center me-3`}>
-                  <IconifyIcon
-                    icon={stat.icon}
-                    className={`fs-20 text-${stat.color}`}
-                  />
+              <div className="d-flex align-items-start justify-content-between gap-3">
+                <div>
+                  <p className="text-muted mb-2 fs-13">{card.title}</p>
+                  <h4 className="mb-1">{card.value}</h4>
+                  <p className="text-muted mb-0 fs-12">{card.subtitle}</p>
                 </div>
-                <div className="flex-grow-1">
-                  <h5 className="mb-1 fw-bold">{stat.value}</h5>
-                  <p className="mb-0 text-muted fs-13">{stat.title}</p>
+                <div className={`avatar-md rounded-3 bg-${card.tone}-subtle d-flex align-items-center justify-content-center flex-shrink-0`}>
+                  <IconifyIcon icon={card.icon} className={`fs-26 text-${card.tone}`} />
                 </div>
               </div>
             </CardBody>

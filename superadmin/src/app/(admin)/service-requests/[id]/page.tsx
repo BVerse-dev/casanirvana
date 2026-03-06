@@ -1,22 +1,48 @@
 "use client";
-import { useParams } from "next/navigation";
-import { Card, CardBody, CardHeader, CardTitle, Row, Col, Badge, Button } from "react-bootstrap";
-import { useGetServiceRequest, useUpdateServiceRequest } from "@/hooks/useServiceRequests";
-import PageTitle from "@/components/PageTitle";
-import IconifyIcon from "@/components/wrappers/IconifyIcon";
-import { useState } from "react";
+
+import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
+import { Alert, Badge, Button, Card, CardBody, CardHeader, CardTitle, Col, Row } from "react-bootstrap";
+
+import PageTitle from "@/components/PageTitle";
+import { useGetServiceRequest, useUpdateServiceRequest, formatServiceRequestStatusLabel } from "@/hooks/useServiceRequests";
+import { getServiceDisplayName } from "@/hooks/useServices";
+
+const formatMoney = (amount?: number | null) =>
+  new Intl.NumberFormat("en-GH", {
+    style: "currency",
+    currency: "GHS",
+    minimumFractionDigits: 2,
+  }).format(Number(amount || 0));
+
+const formatDateTime = (value?: string | null) => (value ? new Date(value).toLocaleString() : "N/A");
+const formatDate = (value?: string | null) => (value ? new Date(value).toLocaleDateString() : "N/A");
+
+const getStatusVariant = (status?: string | null) => {
+  switch (status) {
+    case "completed":
+      return "success";
+    case "in_progress":
+      return "info";
+    case "cancelled":
+      return "danger";
+    case "pending":
+    default:
+      return "warning";
+  }
+};
 
 const ServiceRequestDetailsPage = () => {
   const params = useParams();
   const requestId = params.id as string;
   const { data: serviceRequest, isLoading, error } = useGetServiceRequest(requestId);
   const updateServiceRequest = useUpdateServiceRequest();
-  const [actionError, setActionError] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<{ variant: "success" | "danger"; message: string } | null>(null);
 
-  const handleStatusUpdate = async (status: "in_progress" | "completed") => {
+  const handleStatusUpdate = async (status: "in_progress" | "completed" | "cancelled" | "pending") => {
     if (!serviceRequest?.id) return;
-    setActionError(null);
+    setFeedback(null);
 
     try {
       await updateServiceRequest.mutateAsync({
@@ -24,23 +50,80 @@ const ServiceRequestDetailsPage = () => {
         status,
         completion_date: status === "completed" ? new Date().toISOString().slice(0, 10) : null,
       });
+      setFeedback({
+        variant: "success",
+        message: `Service request moved to ${formatServiceRequestStatusLabel(status)}.`,
+      });
     } catch (updateError) {
-      const message = updateError instanceof Error ? updateError.message : "Failed to update service request status.";
-      setActionError(message);
+      console.error("Failed to update service request status:", updateError);
+      setFeedback({
+        variant: "danger",
+        message: "Failed to update service request status.",
+      });
     }
   };
+
+  const timeline = useMemo(() => {
+    if (!serviceRequest) return [] as Array<{ key: string; title: string; timestamp: string; tone: string; description: string }>;
+
+    const events = [
+      serviceRequest.created_at
+        ? {
+            key: "created",
+            title: "Request created",
+            timestamp: serviceRequest.created_at,
+            tone: "primary",
+            description: "Resident submitted the service request.",
+          }
+        : null,
+      serviceRequest.preferred_date
+        ? {
+            key: "preferred",
+            title: "Preferred date requested",
+            timestamp: serviceRequest.preferred_date,
+            tone: "secondary",
+            description: `Resident requested service for ${formatDate(serviceRequest.preferred_date)}.`,
+          }
+        : null,
+      serviceRequest.scheduled_date
+        ? {
+            key: "scheduled",
+            title: "Scheduled date",
+            timestamp: serviceRequest.scheduled_date,
+            tone: "info",
+            description: "The request has a scheduled service date.",
+          }
+        : null,
+      serviceRequest.completion_date
+        ? {
+            key: "completed",
+            title: "Completion recorded",
+            timestamp: serviceRequest.completion_date,
+            tone: "success",
+            description: "Completion date was recorded for this request.",
+          }
+        : null,
+      serviceRequest.updated_at && serviceRequest.updated_at !== serviceRequest.created_at
+        ? {
+            key: "updated",
+            title: "Last updated",
+            timestamp: serviceRequest.updated_at,
+            tone: serviceRequest.status === "cancelled" ? "danger" : serviceRequest.status === "completed" ? "success" : "warning",
+            description: `Current status: ${formatServiceRequestStatusLabel(serviceRequest.status)}.`,
+          }
+        : null,
+    ];
+
+    return events.filter(Boolean) as Array<{ key: string; title: string; timestamp: string; tone: string; description: string }>;
+  }, [serviceRequest]);
 
   if (isLoading) {
     return (
       <>
-        <PageTitle title="Service Request Details" subName="Service Requests Management" />
-        <Row>
-          <Col xl={12}>
-            <Card>
-              <div className="text-center p-4">Loading service request details...</div>
-            </Card>
-          </Col>
-        </Row>
+        <PageTitle title="Service Request Details" subName="Operations" />
+        <Card>
+          <CardBody className="text-center py-5">Loading service request details...</CardBody>
+        </Card>
       </>
     );
   }
@@ -48,365 +131,219 @@ const ServiceRequestDetailsPage = () => {
   if (error || !serviceRequest) {
     return (
       <>
-        <PageTitle title="Service Request Details" subName="Service Requests Management" />
-        <Row>
-          <Col xl={12}>
-            <Card>
-              <div className="text-center p-4 text-danger">
-                {error ? "Error loading service request" : "Service request not found"}
-                <div className="mt-3">
-                  <Link href="/service-requests" className="btn btn-primary">
-                    Back to Service Requests
-                  </Link>
-                </div>
-              </div>
-            </Card>
-          </Col>
-        </Row>
+        <PageTitle title="Service Request Details" subName="Operations" />
+        <Alert variant="danger">{error ? "Failed to load service request." : "Service request not found."}</Alert>
+        <Link href="/service-requests" className="btn btn-outline-secondary btn-sm">
+          Back to Service Requests
+        </Link>
       </>
     );
   }
 
-  const getStatusBadgeClass = (status: string) => {
-    switch (status) {
-      case "completed":
-        return "bg-success-subtle text-success";
-      case "in_progress":
-        return "bg-warning-subtle text-warning";
-      case "pending":
-        return "bg-info-subtle text-info";
-      case "cancelled":
-        return "bg-danger-subtle text-danger";
-      default:
-        return "bg-secondary-subtle text-secondary";
-    }
-  };
-
-  const formatDate = (dateString?: string | null) => {
-    if (!dateString) return "N/A";
-
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
-  const formatCurrency = (amount?: number | null) => {
-    return new Intl.NumberFormat("en-GH", {
-      style: "currency",
-      currency: "GHS",
-    }).format(Number(amount || 0));
-  };
-
-  const serviceName = serviceRequest.services?.name || serviceRequest.title || "Service Request";
+  const residentName =
+    [serviceRequest.user_profile?.first_name, serviceRequest.user_profile?.last_name].filter(Boolean).join(" ") ||
+    serviceRequest.user_profile?.email ||
+    "Resident";
+  const canStart = serviceRequest.status === "pending";
+  const canComplete = serviceRequest.status === "pending" || serviceRequest.status === "in_progress";
+  const canCancel = serviceRequest.status === "pending" || serviceRequest.status === "in_progress";
+  const canReopen = serviceRequest.status === "completed" || serviceRequest.status === "cancelled";
 
   return (
     <>
-      <PageTitle title="Service Request Details" subName="Service Requests Management" />
-      
-      {/* Header Actions */}
+      <PageTitle title="Service Request Details" subName="Operations" />
+
       <Row className="mb-3">
         <Col xl={12}>
-            <div className="d-flex justify-content-between align-items-center">
-              <Link 
-                href="/service-requests" 
-              className="btn text-white fw-semibold"
-              style={{
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                border: 'none',
-                borderRadius: '8px',
-                padding: '10px 20px',
-                boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
-                transition: 'all 0.3s ease'
-              }}
-            >
-              <IconifyIcon icon="ri:arrow-left-line" className="me-1" />
-              Back to Service Requests
-              </Link>
-              <div className="d-flex gap-2">
-                {serviceRequest.status === "pending" && (
-                  <>
-                    <Button
-                      variant="warning"
-                      onClick={() => handleStatusUpdate("in_progress")}
-                      disabled={updateServiceRequest.isPending}
-                    >
-                      <IconifyIcon icon="ri:play-line" className="me-1" />
+          <Link href="/service-requests" className="btn btn-outline-secondary btn-sm">
+            Back to Service Requests
+          </Link>
+        </Col>
+      </Row>
+
+      <Row className="mb-4 g-3">
+        <Col xl={12}>
+          <Card>
+            <CardBody>
+              <div className="d-flex justify-content-between align-items-start flex-wrap gap-3">
+                <div>
+                  <div className="d-flex gap-2 flex-wrap mb-2">
+                    <Badge bg={getStatusVariant(serviceRequest.status)}>{formatServiceRequestStatusLabel(serviceRequest.status)}</Badge>
+                    <Badge bg="light" text="dark" className="border">
+                      Payment: {formatServiceRequestStatusLabel(serviceRequest.payment_status || "not_required")}
+                    </Badge>
+                  </div>
+                  <h3 className="mb-2">{serviceRequest.title || getServiceDisplayName(serviceRequest.services) || "Service Request"}</h3>
+                  <p className="text-muted mb-0">Request ID: {serviceRequest.id}</p>
+                </div>
+                <div className="d-flex gap-2 flex-wrap">
+                  {canStart ? (
+                    <Button variant="info" size="sm" onClick={() => void handleStatusUpdate("in_progress")} disabled={updateServiceRequest.isPending}>
                       Start Service
                     </Button>
-                    <Button
-                      variant="success"
-                      onClick={() => handleStatusUpdate("completed")}
-                      disabled={updateServiceRequest.isPending}
-                    >
-                      <IconifyIcon icon="ri:check-line" className="me-1" />
-                      Mark as Completed
+                  ) : null}
+                  {canComplete ? (
+                    <Button variant="success" size="sm" onClick={() => void handleStatusUpdate("completed")} disabled={updateServiceRequest.isPending}>
+                      Mark Completed
                     </Button>
-                  </>
-                )}
-                {serviceRequest.status === "in_progress" && (
-                  <Button
-                    variant="success"
-                    onClick={() => handleStatusUpdate("completed")}
-                    disabled={updateServiceRequest.isPending}
-                  >
-                    <IconifyIcon icon="ri:check-line" className="me-1" />
-                    Mark as Completed
-                  </Button>
-                )}
-              </div>
-            </div>
-            {actionError && (
-              <div className="alert alert-danger mt-3 mb-0">{actionError}</div>
-            )}
-          </Col>
-        </Row>
-
-      <Row>
-        {/* Main Service Request Information */}
-        <Col xl={8}>
-          <Card className="mb-4">
-            <CardHeader className="border-bottom">
-              <div className="d-flex justify-content-between align-items-start">
-                <div>
-                  <CardTitle as="h4" className="mb-1">
-                    {serviceName}
-                  </CardTitle>
-                  <div className="d-flex align-items-center gap-3 mt-2">
-                    <Badge className={`py-1 px-2 fs-13 ${getStatusBadgeClass(serviceRequest.status || "pending")}`}>
-                      {(serviceRequest.status || "pending").replace("_", " ").toUpperCase()}
-                    </Badge>
-                    <Badge className="bg-info-subtle text-info py-1 px-2 fs-13">
-                      {serviceRequest.services?.category}
-                    </Badge>
-                    <Badge className="bg-primary-subtle text-primary py-1 px-2 fs-13">
-                      {formatCurrency(serviceRequest.total_amount)}
-                    </Badge>
-                  </div>
-                </div>
-                <div className="text-muted fs-13">
-                  <div>ID: #{serviceRequest.id}</div>
-                  <div>Requested: {formatDate(serviceRequest.created_at)}</div>
-                </div>
-              </div>
-            </CardHeader>
-            
-            <CardBody>
-              <div className="mb-4">
-                <h6 className="mb-2">Service Details</h6>
-                <div className="row g-3 mb-3">
-                  <div className="col-md-6">
-                    <small className="text-muted">Service Name</small>
-                    <div className="fw-medium">{serviceName}</div>
-                  </div>
-                  <div className="col-md-6">
-                    <small className="text-muted">Category</small>
-                    <div className="fw-medium text-capitalize">{serviceRequest.services?.category || "General"}</div>
-                  </div>
-                  <div className="col-md-6">
-                    <small className="text-muted">Preferred Date</small>
-                    <div className="fw-medium">
-                      {serviceRequest.preferred_date
-                        ? new Date(serviceRequest.preferred_date).toLocaleDateString("en-US", {
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                          })
-                        : "Not specified"}
-                    </div>
-                  </div>
-                  <div className="col-md-6">
-                    <small className="text-muted">Total Amount</small>
-                    <div className="fw-medium text-success">{formatCurrency(serviceRequest.total_amount)}</div>
-                  </div>
-                </div>
-              </div>
-
-              {(serviceRequest.description || serviceRequest.request_details) && (
-                <div className="mb-4">
-                  <h6 className="mb-2">Service Instructions</h6>
-                  <div className="p-3 bg-light rounded">
-                    <p className="mb-0 text-muted">{serviceRequest.description || serviceRequest.request_details}</p>
-                  </div>
-                </div>
-              )}
-
-              {serviceRequest.services?.description && (
-                <div className="mb-4">
-                  <h6 className="mb-2">Service Description</h6>
-                  <p className="text-muted mb-0 lh-base">{serviceRequest.services.description}</p>
-                </div>
-              )}
-
-              <div>
-                <h6 className="mb-3">Timeline</h6>
-                <div className="timeline">
-                  <div className="timeline-item">
-                    <div className="timeline-marker bg-primary"></div>
-                    <div className="timeline-content">
-                      <h6 className="mb-1">Service Request Created</h6>
-                      <small className="text-muted">{formatDate(serviceRequest.created_at)}</small>
-                    </div>
-                  </div>
-                  {serviceRequest.updated_at && serviceRequest.updated_at !== serviceRequest.created_at && (
-                    <div className="timeline-item">
-                      <div className="timeline-marker bg-warning"></div>
-                      <div className="timeline-content">
-                        <h6 className="mb-1">Last Updated</h6>
-                        <small className="text-muted">{formatDate(serviceRequest.updated_at)}</small>
-                      </div>
-                    </div>
-                  )}
-                  {serviceRequest.status === "completed" && (
-                    <div className="timeline-item">
-                      <div className="timeline-marker bg-success"></div>
-                      <div className="timeline-content">
-                        <h6 className="mb-1">Service Completed</h6>
-                        <small className="text-muted">{formatDate(serviceRequest.updated_at)}</small>
-                      </div>
-                    </div>
-                  )}
+                  ) : null}
+                  {canCancel ? (
+                    <Button variant="danger" size="sm" onClick={() => void handleStatusUpdate("cancelled")} disabled={updateServiceRequest.isPending}>
+                      Cancel
+                    </Button>
+                  ) : null}
+                  {canReopen ? (
+                    <Button variant="outline-secondary" size="sm" onClick={() => void handleStatusUpdate("pending")} disabled={updateServiceRequest.isPending}>
+                      Reopen
+                    </Button>
+                  ) : null}
                 </div>
               </div>
             </CardBody>
           </Card>
         </Col>
+      </Row>
 
-        {/* Sidebar */}
-        <Col xl={4}>
-          {/* Resident Information */}
+      <Row className="g-4">
+        <Col xl={8}>
+          {feedback ? (
+            <Alert variant={feedback.variant} dismissible onClose={() => setFeedback(null)}>
+              {feedback.message}
+            </Alert>
+          ) : null}
+
           <Card className="mb-4">
             <CardHeader>
               <CardTitle as="h5" className="mb-0">
-                <IconifyIcon icon="ri:user-line" className="me-2" />
+                Request Information
+              </CardTitle>
+            </CardHeader>
+            <CardBody>
+              <Row className="g-3">
+                <Col md={6}>
+                  <small className="text-muted d-block">Service</small>
+                  <span className="fw-semibold">{getServiceDisplayName(serviceRequest.services)}</span>
+                </Col>
+                <Col md={6}>
+                  <small className="text-muted d-block">Category</small>
+                  <span className="fw-semibold">{formatServiceRequestStatusLabel(serviceRequest.services?.category || "general")}</span>
+                </Col>
+                <Col md={6}>
+                  <small className="text-muted d-block">Preferred Date</small>
+                  <span className="fw-semibold">{formatDate(serviceRequest.preferred_date)}</span>
+                </Col>
+                <Col md={6}>
+                  <small className="text-muted d-block">Preferred Time</small>
+                  <span className="fw-semibold">{serviceRequest.preferred_time || "Not set"}</span>
+                </Col>
+                <Col md={6}>
+                  <small className="text-muted d-block">Scheduled Date</small>
+                  <span className="fw-semibold">{formatDate(serviceRequest.scheduled_date)}</span>
+                </Col>
+                <Col md={6}>
+                  <small className="text-muted d-block">Amount</small>
+                  <span className="fw-semibold">{formatMoney(serviceRequest.total_amount)}</span>
+                </Col>
+                <Col md={12}>
+                  <small className="text-muted d-block">Request Details</small>
+                  <span className="fw-semibold">{serviceRequest.request_details || serviceRequest.description || "No request details provided."}</span>
+                </Col>
+                {serviceRequest.notes ? (
+                  <Col md={12}>
+                    <small className="text-muted d-block">Internal Notes</small>
+                    <span className="fw-semibold">{serviceRequest.notes}</span>
+                  </Col>
+                ) : null}
+              </Row>
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle as="h5" className="mb-0">
+                Timeline
+              </CardTitle>
+            </CardHeader>
+            <CardBody>
+              <div className="d-grid gap-3">
+                {timeline.map((event) => (
+                  <div key={event.key} className="border rounded p-3">
+                    <div className="d-flex justify-content-between align-items-start gap-3">
+                      <div>
+                        <div className="fw-semibold">{event.title}</div>
+                        <div className="text-muted fs-13">{event.description}</div>
+                      </div>
+                      <Badge bg={event.tone}>{formatDateTime(event.timestamp)}</Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardBody>
+          </Card>
+        </Col>
+
+        <Col xl={4}>
+          <Card className="mb-4">
+            <CardHeader>
+              <CardTitle as="h5" className="mb-0">
                 Resident Information
               </CardTitle>
             </CardHeader>
             <CardBody>
-              <div className="d-flex align-items-center mb-3">
-                <div className="avatar-lg bg-primary bg-opacity-10 rounded flex-centered me-3">
-                  <IconifyIcon icon="ri:user-fill" className="fs-24 text-primary" />
-                </div>
-                <div>
-                  <h6 className="mb-1">
-                    {[serviceRequest.user_profile?.first_name, serviceRequest.user_profile?.last_name]
-                      .filter(Boolean)
-                      .join(" ") || serviceRequest.user_profile?.email || "Resident"}
-                  </h6>
-                  <p className="text-muted mb-0 fs-13">Resident</p>
-                </div>
+              <div className="d-flex justify-content-between mb-2">
+                <span className="text-muted">Resident</span>
+                <span className="fw-semibold">{residentName}</span>
               </div>
-              
-              <div className="border-top pt-3">
-                <div className="row g-2">
-                  <div className="col-6">
-                    <small className="text-muted">Unit</small>
-                    <div className="fw-medium">{serviceRequest.units?.number || serviceRequest.units?.unit_number || "N/A"}</div>
-                  </div>
-                  <div className="col-6">
-                    <small className="text-muted">Block</small>
-                    <div className="fw-medium">{serviceRequest.units?.block || "N/A"}</div>
-                  </div>
-                </div>
-                <div className="mt-2">
-                  <small className="text-muted">Community</small>
-                  <div className="fw-medium">{serviceRequest.units?.community?.name || "N/A"}</div>
-                </div>
-                <div className="mt-2">
-                  <small className="text-muted">Email</small>
-                  <div className="fw-medium">{serviceRequest.user_profile?.email || "N/A"}</div>
-                </div>
+              <div className="d-flex justify-content-between mb-2">
+                <span className="text-muted">Email</span>
+                <span className="fw-semibold">{serviceRequest.user_profile?.email || "N/A"}</span>
+              </div>
+              <div className="d-flex justify-content-between">
+                <span className="text-muted">Phone</span>
+                <span className="fw-semibold">{serviceRequest.user_profile?.phone || "N/A"}</span>
               </div>
             </CardBody>
           </Card>
 
-          {/* Quick Actions */}
           <Card className="mb-4">
             <CardHeader>
               <CardTitle as="h5" className="mb-0">
-                <IconifyIcon icon="ri:settings-3-line" className="me-2" />
-                Quick Actions
+                Assignment & Unit
               </CardTitle>
             </CardHeader>
             <CardBody>
-              <div className="d-grid gap-2">
-                {serviceRequest.status === "pending" && (
-                  <>
-                    <Button
-                      variant="warning"
-                      size="sm"
-                      onClick={() => handleStatusUpdate("in_progress")}
-                      disabled={updateServiceRequest.isPending}
-                    >
-                      <IconifyIcon icon="ri:play-line" className="me-1" />
-                      Start Service
-                    </Button>
-                    <Button
-                      variant="success"
-                      size="sm"
-                      onClick={() => handleStatusUpdate("completed")}
-                      disabled={updateServiceRequest.isPending}
-                    >
-                      <IconifyIcon icon="ri:check-line" className="me-1" />
-                      Mark as Completed
-                    </Button>
-                  </>
-                )}
-                {serviceRequest.status === "in_progress" && (
-                  <Button
-                    variant="success"
-                    size="sm"
-                    onClick={() => handleStatusUpdate("completed")}
-                    disabled={updateServiceRequest.isPending}
-                  >
-                    <IconifyIcon icon="ri:check-line" className="me-1" />
-                    Mark as Completed
-                  </Button>
-                )}
-                <Link href="/service-requests" className="btn btn-outline-secondary btn-sm">
-                  <IconifyIcon icon="ri:list-check-3" className="me-1" />
-                  Back to Requests List
-                </Link>
+              <div className="d-flex justify-content-between mb-2">
+                <span className="text-muted">Assigned To</span>
+                <span className="fw-semibold">
+                  {[serviceRequest.assigned_profile?.first_name, serviceRequest.assigned_profile?.last_name].filter(Boolean).join(" ") || serviceRequest.assigned_profile?.email || "Unassigned"}
+                </span>
+              </div>
+              <div className="d-flex justify-content-between mb-2">
+                <span className="text-muted">Unit</span>
+                <span className="fw-semibold">{[serviceRequest.units?.block, serviceRequest.units?.number || serviceRequest.units?.unit_number].filter(Boolean).join("-") || "N/A"}</span>
+              </div>
+              <div className="d-flex justify-content-between">
+                <span className="text-muted">Community</span>
+                <span className="fw-semibold">{serviceRequest.units?.community?.name || "N/A"}</span>
               </div>
             </CardBody>
           </Card>
 
-          {/* Request Metadata */}
           <Card>
             <CardHeader>
               <CardTitle as="h5" className="mb-0">
-                <IconifyIcon icon="ri:file-info-line" className="me-2" />
-                Request Metadata
+                Quick Links
               </CardTitle>
             </CardHeader>
-            <CardBody>
-              <div className="d-flex flex-column gap-2">
-                <div className="d-flex justify-content-between">
-                  <span className="text-muted">Status</span>
-                  <span className="fw-semibold text-capitalize">
-                    {serviceRequest.status?.replace("_", " ") || "pending"}
-                  </span>
-                </div>
-                <div className="d-flex justify-content-between">
-                  <span className="text-muted">Priority</span>
-                  <span className="fw-semibold text-capitalize">{serviceRequest.priority || "medium"}</span>
-                </div>
-                <div className="d-flex justify-content-between">
-                  <span className="text-muted">Created</span>
-                  <span className="fw-semibold">{formatDate(serviceRequest.created_at)}</span>
-                </div>
-                <div className="d-flex justify-content-between">
-                  <span className="text-muted">Last Updated</span>
-                  <span className="fw-semibold">{formatDate(serviceRequest.updated_at)}</span>
-                </div>
-                <div className="d-flex justify-content-between">
-                  <span className="text-muted">Amount</span>
-                  <span className="fw-semibold">{formatCurrency(serviceRequest.total_amount)}</span>
-                </div>
-              </div>
+            <CardBody className="d-grid gap-2">
+              {serviceRequest.services?.id ? (
+                <Link href={`/services/details?id=${serviceRequest.services.id}`} className="btn btn-outline-primary">
+                  View Service
+                </Link>
+              ) : null}
+              <Link href="/service-requests" className="btn btn-outline-secondary">
+                Back to Requests
+              </Link>
             </CardBody>
           </Card>
         </Col>

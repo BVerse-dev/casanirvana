@@ -1,29 +1,35 @@
 "use client";
+
+import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
 import { supabase } from "../lib/supabase";
 import type { Database } from "../lib/database.types";
+import type { Service } from "./useServices";
 
-type ServiceRequest = Database["public"]["Tables"]["service_requests"]["Row"];
+type ServiceRequest = Database["public"]["Tables"]["service_requests"]["Row"] & {
+  payment_status?: string | null;
+};
 type ServiceRequestInsert = Database["public"]["Tables"]["service_requests"]["Insert"];
-type ServiceRequestUpdate = Database["public"]["Tables"]["service_requests"]["Update"];
+type ServiceRequestUpdate = Database["public"]["Tables"]["service_requests"]["Update"] & {
+  payment_status?: string | null;
+};
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
 type ServiceRequestWithRelations = ServiceRequest & {
-  services?: Database["public"]["Tables"]["services"]["Row"] | null;
+  services?: (Service & { id?: string | number | null }) | null;
   units?: (Database["public"]["Tables"]["units"]["Row"] & {
     community?: Database["public"]["Tables"]["communities"]["Row"] | null;
   }) | null;
   user_profile?: Profile | null;
+  assigned_profile?: Profile | null;
 };
 
 const SERVICE_REQUEST_SELECT = `
   *,
   services (
-    id,
-    name,
-    category,
-    base_price,
-    description
+    *,
+    communities:community_id(name)
   ),
   units (
     id,
@@ -38,6 +44,17 @@ const SERVICE_REQUEST_SELECT = `
     )
   )
 `;
+
+let serviceRequestsChannel: ReturnType<typeof supabase.channel> | null = null;
+let serviceRequestsSubscriberCount = 0;
+
+export const formatServiceRequestStatusLabel = (value?: string | null) => {
+  const normalized = value || "pending";
+  return normalized
+    .split("_")
+    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+    .join(" ");
+};
 
 const fetchProfilesByActorIds = async (actorIds: string[]) => {
   if (!actorIds.length) {
@@ -77,7 +94,9 @@ const fetchProfilesByActorIds = async (actorIds: string[]) => {
 };
 
 const withRequesterProfiles = async (rows: ServiceRequestWithRelations[]) => {
-  const actorIds = [...new Set(rows.flatMap((row) => [row.user_id, row.created_by]).filter(Boolean))] as string[];
+  const actorIds = [
+    ...new Set(rows.flatMap((row) => [row.user_id, row.created_by, row.assigned_to]).filter(Boolean)),
+  ] as string[];
   const profileMap = await fetchProfilesByActorIds(actorIds);
 
   return rows.map((row) => ({
@@ -86,17 +105,45 @@ const withRequesterProfiles = async (rows: ServiceRequestWithRelations[]) => {
       (row.user_id ? profileMap.get(row.user_id) : null) ||
       (row.created_by ? profileMap.get(row.created_by) : null) ||
       null,
+    assigned_profile: row.assigned_to ? profileMap.get(row.assigned_to) || null : null,
   }));
 };
 
+const useServiceRequestsRealtime = () => {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    serviceRequestsSubscriberCount += 1;
+
+    if (!serviceRequestsChannel) {
+      serviceRequestsChannel = supabase
+        .channel("superadmin-service-requests")
+        .on("postgres_changes", { event: "*", schema: "public", table: "service_requests" }, () => {
+          queryClient.invalidateQueries({ queryKey: ["service_requests"] });
+          queryClient.invalidateQueries({ queryKey: ["service_request"] });
+        })
+        .subscribe();
+    }
+
+    return () => {
+      serviceRequestsSubscriberCount -= 1;
+
+      if (serviceRequestsSubscriberCount <= 0 && serviceRequestsChannel) {
+        supabase.removeChannel(serviceRequestsChannel);
+        serviceRequestsChannel = null;
+        serviceRequestsSubscriberCount = 0;
+      }
+    };
+  }, [queryClient]);
+};
+
 export const useListServiceRequests = (serviceId?: string, status?: string, userId?: string) => {
+  useServiceRequestsRealtime();
+
   return useQuery({
-    queryKey: ["service_requests", serviceId, status, userId],
-    queryFn: async () => {
-      let query = supabase
-        .from("service_requests")
-        .select(SERVICE_REQUEST_SELECT)
-        .order("created_at", { ascending: false });
+    queryKey: ["service_requests", serviceId || "all", status || "all", userId || "all"],
+    queryFn: async (): Promise<ServiceRequestWithRelations[]> => {
+      let query = supabase.from("service_requests").select(SERVICE_REQUEST_SELECT).order("created_at", { ascending: false });
 
       if (serviceId) {
         query = query.eq("service_id", serviceId);
@@ -117,21 +164,18 @@ export const useListServiceRequests = (serviceId?: string, status?: string, user
 };
 
 export const useGetServiceRequest = (id: string) => {
+  useServiceRequestsRealtime();
+
   return useQuery({
     queryKey: ["service_request", id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("service_requests")
-        .select(SERVICE_REQUEST_SELECT)
-        .eq("id", id)
-        .single();
-
+    queryFn: async (): Promise<ServiceRequestWithRelations | null> => {
+      const { data, error } = await supabase.from("service_requests").select(SERVICE_REQUEST_SELECT).eq("id", id).single();
       if (error) throw error;
 
       const rows = await withRequesterProfiles([data as ServiceRequestWithRelations]);
-      return rows[0];
+      return rows[0] || null;
     },
-    enabled: !!id,
+    enabled: Boolean(id),
   });
 };
 
@@ -140,12 +184,7 @@ export const useCreateServiceRequest = () => {
 
   return useMutation({
     mutationFn: async (data: ServiceRequestInsert) => {
-      const { data: result, error } = await supabase
-        .from("service_requests")
-        .insert(data)
-        .select()
-        .single();
-
+      const { data: result, error } = await supabase.from("service_requests").insert(data).select().single();
       if (error) throw error;
       return result;
     },
@@ -160,13 +199,7 @@ export const useUpdateServiceRequest = () => {
 
   return useMutation({
     mutationFn: async ({ id, ...data }: ServiceRequestUpdate & { id: string }) => {
-      const { data: result, error } = await supabase
-        .from("service_requests")
-        .update(data)
-        .eq("id", id)
-        .select()
-        .single();
-
+      const { data: result, error } = await supabase.from("service_requests").update(data).eq("id", id).select().single();
       if (error) throw error;
       return result;
     },
