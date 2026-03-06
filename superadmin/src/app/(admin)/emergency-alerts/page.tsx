@@ -10,9 +10,9 @@ export const metadata: Metadata = { title: "Emergency Alerts" };
 const EmergencyAlertsPage = () => {
   return (
     <>
-      <PageTitle title="Emergency Alerts" subName="Community Management" />
+      <PageTitle title="Emergency Alerts" subName="Communication" />
       <EmergencyAlertsOverview />
-      <Card>
+      <Card className="border-0 shadow-sm">
         <Row className="g-0">
           <EmergencyAlertsView />
         </Row>

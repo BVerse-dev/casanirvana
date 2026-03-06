@@ -1,20 +1,95 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "../lib/supabase";
-import type { Database } from "../lib/database.types";
+"use client";
+
+import { useEffect } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { PostgrestError } from "@supabase/supabase-js";
 
-type EmergencyAlert = Database["public"]["Tables"]["emergency_alerts"]["Row"];
-type EmergencyAlertInsert =
-  Database["public"]["Tables"]["emergency_alerts"]["Insert"];
-type EmergencyAlertUpdate =
-  Database["public"]["Tables"]["emergency_alerts"]["Update"];
+import { supabase } from "../lib/supabase";
+import type { Database } from "../lib/database.types";
+
+type EmergencyAlertRow = Database["public"]["Tables"]["emergency_alerts"]["Row"];
+type EmergencyAlertInsert = Database["public"]["Tables"]["emergency_alerts"]["Insert"];
+type EmergencyAlertUpdate = Database["public"]["Tables"]["emergency_alerts"]["Update"];
+type Profile = Pick<
+  Database["public"]["Tables"]["profiles"]["Row"],
+  "id" | "first_name" | "last_name" | "email" | "phone" | "avatar_url" | "user_id"
+>;
+type Community = Pick<Database["public"]["Tables"]["communities"]["Row"], "id" | "name">;
+type Unit = Pick<Database["public"]["Tables"]["units"]["Row"], "id" | "block" | "number" | "unit_number">;
+
+export type EmergencyAlertStatus = "pending" | "active" | "investigating" | "escalated" | "resolved";
+
+export type EmergencyAlertRecord = EmergencyAlertRow & {
+  communities?: Community | null;
+  units?: Unit | null;
+  user_profile?: Profile | null;
+  resolved_by_profile?: Profile | null;
+};
 
 type EmergencyActorContext = {
   profileId: string;
   communityId: string | null;
 };
 
+const EMERGENCY_ALERT_SELECT = `
+  *,
+  communities:communities!emergency_alerts_society_id_fkey (
+    id,
+    name
+  ),
+  units:units!emergency_alerts_unit_id_fkey (
+    id,
+    block,
+    number,
+    unit_number
+  ),
+  user_profile:profiles!emergency_alerts_user_id_fkey (
+    id,
+    first_name,
+    last_name,
+    email,
+    phone,
+    avatar_url,
+    user_id
+  ),
+  resolved_by_profile:profiles!emergency_alerts_resolved_by_fkey (
+    id,
+    first_name,
+    last_name,
+    email,
+    phone,
+    avatar_url,
+    user_id
+  )
+`;
+
+let emergencyAlertsChannel: ReturnType<typeof supabase.channel> | null = null;
+let emergencyAlertsSubscriberCount = 0;
+
 const isNotFoundError = (error: PostgrestError | null) => error?.code === "PGRST116";
+
+export const normalizeEmergencyAlertStatus = (value?: string | null): EmergencyAlertStatus => {
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase();
+
+  switch (normalized) {
+    case "pending":
+    case "active":
+    case "investigating":
+    case "escalated":
+    case "resolved":
+      return normalized;
+    default:
+      return "active";
+  }
+};
+
+export const formatEmergencyAlertStatusLabel = (value?: string | null) =>
+  normalizeEmergencyAlertStatus(value)
+    .split("_")
+    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+    .join(" ");
 
 const resolveProfileByAuthId = async (authUserId: string) => {
   const byUserId = await supabase
@@ -66,22 +141,43 @@ const resolveEmergencyActorContext = async (): Promise<EmergencyActorContext> =>
   };
 };
 
-// List all emergency alerts
+const useEmergencyAlertsRealtime = () => {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    emergencyAlertsSubscriberCount += 1;
+
+    if (!emergencyAlertsChannel) {
+      emergencyAlertsChannel = supabase
+        .channel("superadmin-emergency-alerts")
+        .on("postgres_changes", { event: "*", schema: "public", table: "emergency_alerts" }, () => {
+          queryClient.invalidateQueries({ queryKey: ["emergency_alerts"] });
+          queryClient.invalidateQueries({ queryKey: ["emergency_alert"] });
+        })
+        .subscribe();
+    }
+
+    return () => {
+      emergencyAlertsSubscriberCount -= 1;
+
+      if (emergencyAlertsSubscriberCount <= 0 && emergencyAlertsChannel) {
+        supabase.removeChannel(emergencyAlertsChannel);
+        emergencyAlertsChannel = null;
+        emergencyAlertsSubscriberCount = 0;
+      }
+    };
+  }, [queryClient]);
+};
+
 export const useListEmergencyAlerts = (communityId?: string, status?: string) => {
+  useEmergencyAlertsRealtime();
+
   return useQuery({
-    queryKey: ["emergency_alerts", communityId, status],
-    queryFn: async () => {
+    queryKey: ["emergency_alerts", communityId || "all", status || "all"],
+    queryFn: async (): Promise<EmergencyAlertRecord[]> => {
       let query = supabase
         .from("emergency_alerts")
-        .select(
-          `
-          *,
-          communities:community_id(name),
-          units:unit_id(block, number),
-          user_profile:user_id(first_name, last_name, email, phone),
-          resolved_by_profile:resolved_by(first_name, last_name, email, phone)
-        `,
-        )
+        .select(EMERGENCY_ALERT_SELECT)
         .order("created_at", { ascending: false });
 
       if (communityId) {
@@ -93,40 +189,27 @@ export const useListEmergencyAlerts = (communityId?: string, status?: string) =>
       }
 
       const { data, error } = await query;
-
       if (error) throw error;
-      return data;
+
+      return (data || []) as EmergencyAlertRecord[];
     },
   });
 };
 
-// Get single emergency alert
 export const useGetEmergencyAlert = (id: string) => {
-  return useQuery({
-    queryKey: ["emergency_alerts", id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("emergency_alerts")
-        .select(
-          `
-          *,
-          communities:community_id(name),
-          units:unit_id(block, number),
-          user_profile:user_id(first_name, last_name, email, phone),
-          resolved_by_profile:resolved_by(first_name, last_name, email, phone)
-        `,
-        )
-        .eq("id", id)
-        .single();
+  useEmergencyAlertsRealtime();
 
+  return useQuery({
+    queryKey: ["emergency_alert", id],
+    queryFn: async (): Promise<EmergencyAlertRecord | null> => {
+      const { data, error } = await supabase.from("emergency_alerts").select(EMERGENCY_ALERT_SELECT).eq("id", id).single();
       if (error) throw error;
-      return data;
+      return data as EmergencyAlertRecord;
     },
-    enabled: !!id,
+    enabled: Boolean(id),
   });
 };
 
-// Create emergency alert
 export const useCreateEmergencyAlert = () => {
   const queryClient = useQueryClient();
 
@@ -148,11 +231,11 @@ export const useCreateEmergencyAlert = () => {
       const { data, error } = await supabase
         .from("emergency_alerts")
         .insert(payload)
-        .select()
+        .select(EMERGENCY_ALERT_SELECT)
         .single();
 
       if (error) throw error;
-      return data;
+      return data as EmergencyAlertRecord;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["emergency_alerts"] });
@@ -160,44 +243,47 @@ export const useCreateEmergencyAlert = () => {
   });
 };
 
-// Update emergency alert
-export const useUpdateEmergencyAlert = (id: string) => {
+export const useUpdateEmergencyAlert = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (updates: EmergencyAlertUpdate) => {
+    mutationFn: async ({ id, ...updates }: EmergencyAlertUpdate & { id: string }) => {
+      const actorContext = await resolveEmergencyActorContext();
+      const payload: EmergencyAlertUpdate = { ...updates };
+
+      if (normalizeEmergencyAlertStatus(payload.status) === "resolved") {
+        payload.resolved_at = payload.resolved_at || new Date().toISOString();
+        payload.resolved_by = payload.resolved_by || actorContext.profileId;
+      }
+
       const { data, error } = await supabase
         .from("emergency_alerts")
-        .update(updates)
+        .update(payload)
         .eq("id", id)
-        .select()
+        .select(EMERGENCY_ALERT_SELECT)
         .single();
 
       if (error) throw error;
-      return data;
+      return data as EmergencyAlertRecord;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["emergency_alerts"] });
-      queryClient.invalidateQueries({ queryKey: ["emergency_alerts", id] });
+      queryClient.invalidateQueries({ queryKey: ["emergency_alert", variables.id] });
     },
   });
 };
 
-// Delete emergency alert
 export const useDeleteEmergencyAlert = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("emergency_alerts")
-        .delete()
-        .eq("id", id);
-
+      const { error } = await supabase.from("emergency_alerts").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["emergency_alerts"] });
+      queryClient.invalidateQueries({ queryKey: ["emergency_alert"] });
     },
   });
 };
