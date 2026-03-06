@@ -18,10 +18,6 @@ import {
   CardHeader,
   CardTitle,
   Col,
-  Dropdown,
-  DropdownItem,
-  DropdownMenu,
-  DropdownToggle,
   Row,
 } from "react-bootstrap";
 import MaintenanceRequestGridCard from "./components/MaintenanceRequestGridCard";
@@ -31,6 +27,29 @@ type MaintenanceWithProfiles =
     requester_profile?: Database["public"]["Tables"]["profiles"]["Row"];
     unit?: Database["public"]["Tables"]["units"]["Row"];
   };
+
+const formatMoney = (value?: number | null) => {
+  if (value === null || value === undefined) return "TBD";
+  return `GH₵${Number(value).toLocaleString()}`;
+};
+
+const formatStatusLabel = (value?: string | null) =>
+  (value || "unknown")
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+
+const getPriorityVariant = (value?: string | null) => {
+  switch ((value || "").toLowerCase()) {
+    case "urgent":
+    case "high":
+      return "danger";
+    case "medium":
+      return "warning";
+    default:
+      return "info";
+  }
+};
 
 const MaintenanceRequestsPage = () => {
   const { data: maintenanceRequests = [], isLoading } =
@@ -91,28 +110,13 @@ const MaintenanceRequestsPage = () => {
             <CardHeader className="d-flex justify-content-between align-items-center border-bottom">
               <div>
                 <CardTitle as={"h4"}>All Maintenance Requests</CardTitle>
+                <p className="text-muted mb-0 fs-13">
+                  {maintenanceRequests.length.toLocaleString()} live requests
+                </p>
               </div>
-              <Dropdown>
-                <DropdownToggle
-                  as={"a"}
-                  className=" btn btn-sm btn-outline-light rounded content-none icons-center"
-                  data-bs-toggle="dropdown"
-                  aria-expanded="false"
-                >
-                  This Month{" "}
-                  <IconifyIcon
-                    className="ms-1"
-                    width={16}
-                    height={16}
-                    icon="ri:arrow-down-s-line"
-                  />
-                </DropdownToggle>
-                <DropdownMenu className="dropdown-menu-end">
-                  <DropdownItem>Download</DropdownItem>
-                  <DropdownItem>Export</DropdownItem>
-                  <DropdownItem>Import</DropdownItem>
-                </DropdownMenu>
-              </Dropdown>
+              <span className="badge bg-light-subtle text-muted border">
+                Real-time list
+              </span>
             </CardHeader>
             <CardBody className="p-0">
               <div className="table-responsive">
@@ -203,9 +207,9 @@ const MaintenanceRequestsPage = () => {
                           <td>{request.request_type}</td>
                           <td>
                             <span
-                              className={`badge bg-${request.priority === "high" ? "danger" : request.priority === "medium" ? "warning" : "info"} text-white fs-11`}
+                              className={`badge bg-${getPriorityVariant(request.priority)} text-white fs-11`}
                             >
-                              {request.priority}
+                              {formatStatusLabel(request.priority)}
                             </span>
                           </td>
                           <td>
@@ -220,15 +224,17 @@ const MaintenanceRequestsPage = () => {
                                       : "danger"
                               } text-white fs-11`}
                             >
-                              {request.status}
+                              {formatStatusLabel(request.status)}
                             </span>
                           </td>
-                          <td>{request.description?.substring(0, 50) || "No description"}...</td>
                           <td>
-                            {request.estimated_cost
-                              ? `$${request.estimated_cost}`
-                              : "TBD"}
+                            {request.description
+                              ? request.description.length > 50
+                                ? `${request.description.substring(0, 50)}...`
+                                : request.description
+                              : "No description"}
                           </td>
+                          <td>{formatMoney(request.estimated_cost)}</td>
                           <td>
                             <div className="d-flex gap-2">
                               <Button

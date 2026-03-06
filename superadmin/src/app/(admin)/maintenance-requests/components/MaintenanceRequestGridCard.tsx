@@ -1,12 +1,64 @@
 'use client'
-import homeImg from '@/assets/images/home-2.png'
 import IconifyIcon from '@/components/wrappers/IconifyIcon'
 import { useListMaintenanceRequests } from '@/hooks/useMaintenanceRequests'
 import { ApexOptions } from 'apexcharts'
-import Image from 'next/image'
 import Link from 'next/link'
 import ReactApexChart from 'react-apexcharts'
-import { Card, CardBody, CardFooter, CardHeader, CardTitle, Col, Dropdown, DropdownItem, DropdownMenu, DropdownToggle, Row } from 'react-bootstrap'
+import { Card, CardBody, CardFooter, CardHeader, CardTitle, Col, Row } from 'react-bootstrap'
+
+const formatMoney = (value?: number | null) => {
+  const amount = Number(value || 0)
+  return `GH₵${amount.toLocaleString()}`
+}
+
+const toRequestTypeKey = (value?: string | null) => (value || '').trim().toLowerCase()
+
+const isUrgentPriority = (value?: string | null) => ['high', 'urgent'].includes((value || '').toLowerCase())
+
+const getResolvedTimestamp = (request: { completed_at?: string | null; resolved_at?: string | null }) =>
+  request.completed_at || request.resolved_at || null
+
+const getAverageResolutionDays = (maintenanceRequests: Array<{ created_at?: string | null; completed_at?: string | null; resolved_at?: string | null }>) => {
+  const resolvedDurations = maintenanceRequests
+    .map((request) => {
+      const startedAt = request.created_at ? new Date(request.created_at).getTime() : null
+      const endedAt = getResolvedTimestamp(request) ? new Date(getResolvedTimestamp(request) as string).getTime() : null
+      if (!startedAt || !endedAt || Number.isNaN(startedAt) || Number.isNaN(endedAt) || endedAt < startedAt) {
+        return null
+      }
+      return (endedAt - startedAt) / (1000 * 60 * 60 * 24)
+    })
+    .filter((value): value is number => value !== null)
+
+  if (!resolvedDurations.length) return null
+  const average = resolvedDurations.reduce((sum, value) => sum + value, 0) / resolvedDurations.length
+  return average
+}
+
+const buildMonthlyTrend = (maintenanceRequests: Array<{ created_at?: string | null }>) => {
+  const labels: string[] = []
+  const values: number[] = []
+  const now = new Date()
+
+  for (let index = 5; index >= 0; index -= 1) {
+    const date = new Date(now.getFullYear(), now.getMonth() - index, 1)
+    const label = date.toLocaleDateString('en-US', { month: 'short' })
+    labels.push(label)
+
+    const count = maintenanceRequests.filter((request) => {
+      if (!request.created_at) return false
+      const createdAt = new Date(request.created_at)
+      return (
+        createdAt.getFullYear() === date.getFullYear() &&
+        createdAt.getMonth() === date.getMonth()
+      )
+    }).length
+
+    values.push(count)
+  }
+
+  return { labels, values }
+}
 
 const MaintenanceOverviewChart = () => {
   const { data: maintenanceRequests = [] } = useListMaintenanceRequests()
@@ -87,12 +139,15 @@ const MaintenanceOverviewChart = () => {
 
 const RequestTypeStatistics = () => {
   const { data: maintenanceRequests = [] } = useListMaintenanceRequests()
-  
-  // Calculate request type statistics
-  const hvacRequests = maintenanceRequests.filter(r => r.request_type === 'HVAC').length
-  const plumbingRequests = maintenanceRequests.filter(r => r.request_type === 'Plumbing').length
-  const electricalRequests = maintenanceRequests.filter(r => r.request_type === 'Electrical').length
-  const generalRequests = maintenanceRequests.filter(r => ['General Repair', 'Maintenance', 'Installation', 'Renovation'].includes(r.request_type || '')).length
+
+  const hvacRequests = maintenanceRequests.filter(r => toRequestTypeKey(r.request_type) === 'hvac').length
+  const plumbingRequests = maintenanceRequests.filter(r => toRequestTypeKey(r.request_type) === 'plumbing').length
+  const electricalRequests = maintenanceRequests.filter(r => toRequestTypeKey(r.request_type) === 'electrical').length
+  const otherRequests = Math.max(maintenanceRequests.length - hvacRequests - plumbingRequests - electricalRequests, 0)
+  const latestUpdatedAt = maintenanceRequests
+    .map((request) => request.updated_at || request.created_at)
+    .filter((value): value is string => Boolean(value))
+    .sort((left, right) => new Date(right).getTime() - new Date(left).getTime())[0]
   
   return (
     <Col xl={3} lg={6}>
@@ -101,17 +156,9 @@ const RequestTypeStatistics = () => {
           <CardTitle as={'h4'} className="mb-0">
             Request Types
           </CardTitle>
-          <div className="ms-auto">
-            <Dropdown>
-              <DropdownToggle as={'a'} className="drop-arrow-none card-drop p-0 " data-bs-toggle="dropdown" aria-expanded="false">
-                <IconifyIcon className="ms-1" width={16} height={16} icon="ri:arrow-down-s-line" />
-              </DropdownToggle>
-              <DropdownMenu className="dropdown-menu-end">
-                <DropdownItem>Download</DropdownItem>
-                <DropdownItem>Share</DropdownItem>
-              </DropdownMenu>
-            </Dropdown>
-          </div>
+          <span className="ms-auto badge bg-light-subtle text-muted border">
+            {maintenanceRequests.length.toLocaleString()} total
+          </span>
         </CardHeader>
         <CardBody>
           <Row>
@@ -146,18 +193,20 @@ const RequestTypeStatistics = () => {
             ></div>
           </div>
           <p className="mb-0 mt-3">
-            <span className="text-success fw-medium mb-0">
-              <IconifyIcon icon="ri:arrow-up-line" />
-              {generalRequests > 0 ? `${Math.round((generalRequests / maintenanceRequests.length) * 100)}%` : '0%'}
+            <span className="text-dark fw-medium mb-0">
+              {otherRequests.toLocaleString()}
             </span>{' '}
-            Other Types
+            Other Request Types
           </p>
         </CardBody>
         <CardFooter className="d-flex justify-content-between  py-2">
           <p className="text-muted mb-0 d-flex align-items-center gap-1">
-            Last Updated <span>:</span> <span className="text-dark">12 hour ago</span>
+            Last Updated <span>:</span>{' '}
+            <span className="text-dark">
+              {latestUpdatedAt ? new Date(latestUpdatedAt).toLocaleDateString() : 'No updates yet'}
+            </span>
           </p>
-          <Link href="" className="link-primary fw-medium">
+          <Link href="/maintenance-requests" className="link-primary fw-medium">
             View More
           </Link>
         </CardFooter>
@@ -168,9 +217,8 @@ const RequestTypeStatistics = () => {
 
 const MaintenanceTrendChart = () => {
   const { data: maintenanceRequests = [] } = useListMaintenanceRequests()
-  
-  // Calculate high priority requests
-  const highPriorityRequests = maintenanceRequests.filter(r => r.priority === 'high').length
+  const highPriorityRequests = maintenanceRequests.filter(r => isUrgentPriority(r.priority)).length
+  const monthlyTrend = buildMonthlyTrend(maintenanceRequests)
   
   const MaintenanceTrendOptions: ApexOptions = {
     chart: {
@@ -182,9 +230,15 @@ const MaintenanceTrendChart = () => {
     },
     series: [
       {
-        data: [25, 66, 41, 89, 63, 25, 44, 12, 36, 9, 54],
+        data: monthlyTrend.values,
       },
     ],
+    xaxis: {
+      categories: monthlyTrend.labels,
+      labels: {
+        show: false,
+      },
+    },
     stroke: {
       width: 2,
       curve: 'smooth',
@@ -219,7 +273,7 @@ const MaintenanceTrendChart = () => {
           <div className="d-flex align-items-center justify-content-between mb-3">
             <div>
               <CardTitle as={'h4'} className="mb-2 text-white">
-                High Priority Requests{' '}
+                Urgent Requests
               </CardTitle>
               <p className="text-white fw-medium fs-24 mb-0">{highPriorityRequests}</p>
             </div>
@@ -231,6 +285,7 @@ const MaintenanceTrendChart = () => {
           </div>
           <div id="maintenance_trend" data-colors="#ffffff" className="apex-charts" />
           <ReactApexChart options={MaintenanceTrendOptions} series={MaintenanceTrendOptions.series} height={115} type="line" className="apex-charts" />
+          <p className="text-white-50 fs-13 mb-0 mt-2">Six-month request volume trend</p>
         </CardBody>
       </Card>
     </Col>
@@ -240,45 +295,46 @@ const MaintenanceTrendChart = () => {
 const MaintenanceMetrics = () => {
   const { data: maintenanceRequests = [] } = useListMaintenanceRequests()
   
-  // Calculate various metrics
   const totalCost = maintenanceRequests.reduce((sum, request) => {
     return sum + (request.estimated_cost || 0)
   }, 0)
-  
-  const avgResolutionTime = '3.2' // Mock data for average resolution time in days
-  const customerSatisfaction = '4.7' // Mock customer satisfaction rating
+  const averageResolutionDays = getAverageResolutionDays(maintenanceRequests)
+  const now = new Date()
+  const completedThisMonth = maintenanceRequests.filter((request) => {
+    const resolvedTimestamp = getResolvedTimestamp(request)
+    if (!resolvedTimestamp) return false
+    const resolvedAt = new Date(resolvedTimestamp)
+    return resolvedAt.getFullYear() === now.getFullYear() && resolvedAt.getMonth() === now.getMonth()
+  }).length
+  const activeRequests = maintenanceRequests.filter((request) => ['pending', 'in_progress'].includes(request.status)).length
   
   const cardData = [
     {
       title: 'Total Cost',
-      value: `$${totalCost.toLocaleString()}`,
-      percentage: '15%',
-      trend: 'up',
+      value: formatMoney(totalCost),
+      subtitle: `${maintenanceRequests.filter((request) => request.estimated_cost).length} requests with estimates`,
       icon: 'ri:money-dollar-circle-line',
       color: 'success',
     },
     {
       title: 'Avg Resolution',
-      value: `${avgResolutionTime} days`,
-      percentage: '8%',
-      trend: 'down',
+      value: averageResolutionDays === null ? 'N/A' : `${averageResolutionDays.toFixed(1)} days`,
+      subtitle: averageResolutionDays === null ? 'No resolved requests yet' : 'Based on resolved request history',
       icon: 'ri:time-line',
       color: 'warning',
     },
     {
-      title: 'Customer Rating',
-      value: `${customerSatisfaction}/5.0`,
-      percentage: '12%',
-      trend: 'up',
-      icon: 'ri:star-line',
+      title: 'Resolved This Month',
+      value: completedThisMonth.toString(),
+      subtitle: 'Requests closed in the current month',
+      icon: 'ri:checkbox-circle-line',
       color: 'info',
     },
     {
-      title: 'Urgent Requests',
-      value: maintenanceRequests.filter(r => r.priority === 'high').length.toString(),
-      percentage: '5%',
-      trend: 'down',
-      icon: 'ri:error-warning-line',
+      title: 'Active Requests',
+      value: activeRequests.toString(),
+      subtitle: 'Pending or in-progress requests',
+      icon: 'ri:loader-4-line',
       color: 'danger',
     },
   ]
@@ -299,9 +355,8 @@ const MaintenanceMetrics = () => {
                      <div className={`avatar avatar-md bg-${card.color}-subtle rounded d-flex align-items-center justify-content-center`}>
                        <IconifyIcon icon={card.icon} className={`fs-20 text-${card.color}`} />
                      </div>
-                     <p className={`mb-0 mt-2 text-${card.trend === 'up' ? 'success' : 'danger'}`}>
-                       <IconifyIcon icon={`ri:arrow-${card.trend === 'up' ? 'up' : 'down'}-line`} className="me-1" />
-                       {card.percentage}
+                     <p className="mb-0 mt-2 text-muted fs-12">
+                       {card.subtitle}
                      </p>
                    </div>
                  </Col>

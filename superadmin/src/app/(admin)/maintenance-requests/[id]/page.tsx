@@ -9,6 +9,22 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 
+const formatStatusLabel = (value?: string | null) =>
+  (value || "unknown")
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+
+const formatMoney = (value?: number | null) => {
+  if (value === null || value === undefined) return "TBD";
+  return `GH₵${Number(value).toLocaleString()}`;
+};
+
+const getResolutionTimestamp = (request: {
+  completed_at?: string | null;
+  resolved_at?: string | null;
+}) => request.completed_at || request.resolved_at || null;
+
 const MaintenanceRequestDetailsPage = () => {
   const params = useParams();
   const requestId = params.id as string;
@@ -61,7 +77,7 @@ const MaintenanceRequestDetailsPage = () => {
       case "in_progress":
         return "bg-warning-subtle text-warning";
       case "pending":
-        return "bg-danger-subtle text-danger";
+        return "bg-info-subtle text-info";
       default:
         return "bg-secondary-subtle text-secondary";
     }
@@ -95,6 +111,49 @@ const MaintenanceRequestDetailsPage = () => {
         (item): item is string => typeof item === "string" && item.length > 0,
       )
     : [];
+
+  const timelineEvents = [
+    request.created_at
+      ? {
+          key: "created",
+          title: "Request Submitted",
+          description: "Initial maintenance request submitted by resident",
+          timestamp: request.created_at,
+          markerClass: "bg-primary",
+          iconClass: "text-primary",
+        }
+      : null,
+    request.status === "in_progress" && request.updated_at && request.updated_at !== request.created_at
+      ? {
+          key: "in-progress",
+          title: "Marked In Progress",
+          description: "Request is actively being handled by the maintenance team",
+          timestamp: request.updated_at,
+          markerClass: "bg-warning",
+          iconClass: "text-warning",
+        }
+      : null,
+    getResolutionTimestamp(request)
+      ? {
+          key: "resolved",
+          title: request.status === "completed" ? "Request Completed" : "Request Resolved",
+          description:
+            request.status === "completed"
+              ? "Maintenance work has been completed and closed"
+              : "Request was resolved and updated in the system",
+          timestamp: getResolutionTimestamp(request) as string,
+          markerClass: "bg-success",
+          iconClass: "text-success",
+        }
+      : null,
+  ].filter(Boolean) as Array<{
+    key: string;
+    title: string;
+    description: string;
+    timestamp: string;
+    markerClass: string;
+    iconClass: string;
+  }>;
 
   // Handle status updates
   const handleStatusUpdate = async (newStatus: string) => {
@@ -171,14 +230,13 @@ const MaintenanceRequestDetailsPage = () => {
                   </div>
                 </div>
                 <div className="d-flex gap-2">
+                  <Badge className={`${getStatusBadgeClass(request.status)} fs-12 d-inline-flex align-items-center`}>
+                    {formatStatusLabel(request.status)}
+                  </Badge>
                   <Link href="/maintenance-requests" className="btn btn-outline-secondary">
                     <IconifyIcon icon="ri:arrow-left-line" className="me-1" />
                     Back to List
                   </Link>
-                  <Button variant="primary">
-                    <IconifyIcon icon="ri:edit-line" className="me-1" />
-                    Edit Request
-                  </Button>
                 </div>
               </div>
             </CardBody>
@@ -204,7 +262,7 @@ const MaintenanceRequestDetailsPage = () => {
                 <div className="flex-grow-1">
                   <h6 className="text-uppercase fw-medium text-white-50 mb-2 fs-12">Status</h6>
                   <h6 className="mb-0 text-white fw-semibold fs-16">
-                    {(request.status || 'pending').replace('_', ' ').toUpperCase()}
+                    {formatStatusLabel(request.status).toUpperCase()}
                   </h6>
                 </div>
                 <div className="flex-shrink-0">
@@ -232,7 +290,7 @@ const MaintenanceRequestDetailsPage = () => {
                 <div className="flex-grow-1">
                   <h6 className="text-uppercase fw-medium text-white-50 mb-2 fs-12">Priority</h6>
                   <h6 className="mb-0 text-white fw-semibold fs-16">
-                    {(request.priority || 'medium').toUpperCase()}
+                    {formatStatusLabel(request.priority).toUpperCase()}
                   </h6>
                 </div>
                 <div className="flex-shrink-0">
@@ -286,7 +344,7 @@ const MaintenanceRequestDetailsPage = () => {
                 <div className="flex-grow-1">
                   <h6 className="text-uppercase fw-medium text-white-50 mb-2 fs-12">Estimated Cost</h6>
                   <h6 className="mb-0 text-white fw-semibold fs-16">
-                    {request.estimated_cost ? `₹${request.estimated_cost.toLocaleString()}` : "TBD"}
+                    {formatMoney(request.estimated_cost)}
                   </h6>
                 </div>
                 <div className="flex-shrink-0">
@@ -323,7 +381,7 @@ const MaintenanceRequestDetailsPage = () => {
                         <Col md={6}>
                           <div className="mb-3">
                             <label className="form-label text-muted">Request Type:</label>
-                            <p className="mb-0 fw-medium">{request.request_type}</p>
+                            <p className="mb-0 fw-medium">{formatStatusLabel(request.request_type)}</p>
                           </div>
                         </Col>
                         <Col md={6}>
@@ -331,7 +389,7 @@ const MaintenanceRequestDetailsPage = () => {
                             <label className="form-label text-muted">Priority Level:</label>
                             <p className="mb-0">
                               <Badge className={`${getPriorityBadgeClass(request.priority)} fs-12`}>
-                                {request.priority.toUpperCase()}
+                                {formatStatusLabel(request.priority).toUpperCase()}
                               </Badge>
                             </p>
                           </div>
@@ -358,16 +416,20 @@ const MaintenanceRequestDetailsPage = () => {
                           <div className="mb-3">
                             <label className="form-label text-muted">Estimated Cost:</label>
                             <p className="mb-0 fw-medium text-success">
-                              {request.estimated_cost ? `₹${request.estimated_cost.toLocaleString()}` : "To be determined"}
+                              {request.estimated_cost ? formatMoney(request.estimated_cost) : "To be determined"}
                             </p>
                           </div>
                         </Col>
                         <Col md={6}>
                           <div className="mb-3">
-                            <label className="form-label text-muted">Payment Status:</label>
+                            <label className="form-label text-muted">Resolution Status:</label>
                             <p className="mb-0">
-                              <Badge className="bg-warning-subtle text-warning fs-12">
-                                Pending Approval
+                              <Badge className={`${getStatusBadgeClass(request.status)} fs-12`}>
+                                {request.status === "completed"
+                                  ? "Closed"
+                                  : request.status === "in_progress"
+                                    ? "Work In Progress"
+                                    : "Awaiting Action"}
                               </Badge>
                             </p>
                           </div>
@@ -379,22 +441,16 @@ const MaintenanceRequestDetailsPage = () => {
                 <Tab eventKey="timeline" title="Timeline">
                   <div className="tab-content mt-3">
                     <div className="timeline-container">
-                      <div className="timeline-item">
-                        <div className="timeline-marker bg-primary"></div>
-                        <div className="timeline-content">
-                          <h6 className="mb-1">Request Submitted</h6>
-                          <p className="text-muted mb-1">Initial maintenance request submitted by resident</p>
-                          <small className="text-muted">{request.created_at ? formatDate(request.created_at) : "N/A"}</small>
+                      {timelineEvents.map((event) => (
+                        <div className="timeline-item" key={event.key}>
+                          <div className={`timeline-marker ${event.markerClass}`}></div>
+                          <div className="timeline-content">
+                            <h6 className="mb-1">{event.title}</h6>
+                            <p className="text-muted mb-1">{event.description}</p>
+                            <small className="text-muted">{formatDate(event.timestamp)}</small>
+                          </div>
                         </div>
-                      </div>
-                      <div className="timeline-item">
-                        <div className="timeline-marker bg-warning"></div>
-                        <div className="timeline-content">
-                          <h6 className="mb-1">Under Review</h6>
-                          <p className="text-muted mb-1">Request is being reviewed by maintenance team</p>
-                          <small className="text-muted">{request.updated_at ? formatDate(request.updated_at) : "N/A"}</small>
-                        </div>
-                      </div>
+                      ))}
                     </div>
                   </div>
                 </Tab>
@@ -545,15 +601,17 @@ const MaintenanceRequestDetailsPage = () => {
             </CardHeader>
             <CardBody>
               <div className="status-history">
-                <div className="d-flex align-items-center gap-3 mb-3">
-                  <div className="avatar-xs bg-danger bg-opacity-10 rounded-circle flex-centered">
-                    <IconifyIcon icon="ri:time-line" className="fs-12 text-danger" />
+                {timelineEvents.map((event) => (
+                  <div className="d-flex align-items-center gap-3 mb-3" key={event.key}>
+                    <div className={`avatar-xs ${event.markerClass} bg-opacity-10 rounded-circle flex-centered`}>
+                      <IconifyIcon icon="ri:time-line" className={`fs-12 ${event.iconClass}`} />
+                    </div>
+                    <div className="flex-grow-1">
+                      <h6 className="mb-1 fs-13">{event.title}</h6>
+                      <p className="text-muted mb-0 fs-12">{formatDate(event.timestamp)}</p>
+                    </div>
                   </div>
-                  <div className="flex-grow-1">
-                    <h6 className="mb-1 fs-13">Pending</h6>
-                    <p className="text-muted mb-0 fs-12">{request.created_at ? formatDate(request.created_at) : "N/A"}</p>
-                  </div>
-                </div>
+                ))}
               </div>
             </CardBody>
           </Card>
