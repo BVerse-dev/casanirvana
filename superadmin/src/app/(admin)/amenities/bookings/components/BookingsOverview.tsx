@@ -1,155 +1,156 @@
 "use client";
+
+import { useMemo } from "react";
+
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
-import { Card, CardBody, CardTitle, Col, Row, ProgressBar } from "react-bootstrap";
 import { useListAmenityBookings } from "@/hooks/useAmenities";
+import { useSearchParams } from "next/navigation";
+import { Badge, Card, CardBody, CardTitle, Col, ProgressBar, Row } from "react-bootstrap";
+
+const formatMoney = (amount?: number | null) =>
+  new Intl.NumberFormat("en-GH", {
+    style: "currency",
+    currency: "GHS",
+    minimumFractionDigits: 2,
+  }).format(Number(amount || 0));
 
 const BookingsOverview = () => {
   const { data: bookings = [] } = useListAmenityBookings();
+  const searchParams = useSearchParams();
+  const amenityId = searchParams.get("amenityId");
 
-  // Calculate booking statistics
-  const totalBookings = bookings.length;
-  const confirmedBookings = bookings.filter((b) => b.status === "confirmed").length;
-  const pendingBookings = bookings.filter((b) => b.status === "pending").length;
-  const cancelledBookings = bookings.filter((b) => b.status === "cancelled").length;
-  
-  // Calculate revenue
-  const totalRevenue = bookings
-    .filter((b) => b.payment_status === "paid")
-    .reduce((sum, booking) => sum + booking.total_amount, 0);
-  
-  const pendingRevenue = bookings
-    .filter((b) => b.payment_status === "pending")
-    .reduce((sum, booking) => sum + booking.total_amount, 0);
+  const scopedBookings = useMemo(
+    () => (amenityId ? bookings.filter((booking) => booking.amenity_id === amenityId) : bookings),
+    [amenityId, bookings],
+  );
 
-  // Calculate percentages for progress bars
-  const confirmedPercentage = totalBookings > 0 ? (confirmedBookings / totalBookings) * 100 : 0;
-  const pendingPercentage = totalBookings > 0 ? (pendingBookings / totalBookings) * 100 : 0;
-  const cancelledPercentage = totalBookings > 0 ? (cancelledBookings / totalBookings) * 100 : 0;
+  const totalBookings = scopedBookings.length;
+  const confirmedBookings = scopedBookings.filter((booking) => booking.status === "confirmed").length;
+  const pendingBookings = scopedBookings.filter((booking) => booking.status === "pending").length;
+  const cancelledBookings = scopedBookings.filter((booking) => booking.status === "cancelled").length;
+  const completedBookings = scopedBookings.filter((booking) => booking.status === "completed").length;
 
-  // Get popular amenities
-  const amenityBookingCounts = bookings.reduce((acc, booking) => {
-    const amenityName = booking.amenities?.name || 'Unknown';
-    acc[amenityName] = (acc[amenityName] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  const totalRevenue = scopedBookings
+    .filter((booking) => booking.payment_status === "paid")
+    .reduce((sum, booking) => sum + Number(booking.total_amount || booking.amount || 0), 0);
 
-  const popularAmenities = Object.entries(amenityBookingCounts)
-    .sort(([, a], [, b]) => b - a)
+  const pendingRevenue = scopedBookings
+    .filter((booking) => booking.payment_status === "pending")
+    .reduce((sum, booking) => sum + Number(booking.total_amount || booking.amount || 0), 0);
+
+  const popularAmenities = Object.entries(
+    scopedBookings.reduce<Record<string, number>>((accumulator, booking) => {
+      const amenityName = booking.amenities?.name || "Unknown Amenity";
+      accumulator[amenityName] = (accumulator[amenityName] || 0) + 1;
+      return accumulator;
+    }, {}),
+  )
+    .sort((left, right) => right[1] - left[1])
     .slice(0, 3);
+
+  const statusBreakdown = [
+    {
+      label: "Confirmed",
+      count: confirmedBookings,
+      percentage: totalBookings > 0 ? (confirmedBookings / totalBookings) * 100 : 0,
+      variant: "success",
+    },
+    {
+      label: "Pending",
+      count: pendingBookings,
+      percentage: totalBookings > 0 ? (pendingBookings / totalBookings) * 100 : 0,
+      variant: "warning",
+    },
+    {
+      label: "Completed",
+      count: completedBookings,
+      percentage: totalBookings > 0 ? (completedBookings / totalBookings) * 100 : 0,
+      variant: "info",
+    },
+    {
+      label: "Cancelled",
+      count: cancelledBookings,
+      percentage: totalBookings > 0 ? (cancelledBookings / totalBookings) * 100 : 0,
+      variant: "danger",
+    },
+  ] as const;
 
   return (
     <Row className="mb-4">
       <Col xl={12}>
-        <Card className="bg-gradient-primary text-white border-0 shadow-lg">
+        <Card className="border-0 shadow-sm">
           <CardBody className="p-4">
-            <Row className="align-items-center">
-              <Col lg={8}>
+            <Row className="align-items-center g-4">
+              <Col lg={7}>
                 <div className="d-flex align-items-center mb-3">
-                  <div className="avatar-lg bg-white bg-opacity-20 rounded-circle flex-centered me-3">
-                    <IconifyIcon
-                      icon="solar:chart-square-bold-duotone"
-                      className="fs-24 text-white"
-                    />
+                  <div className="avatar-lg bg-primary bg-opacity-10 rounded-circle flex-centered me-3">
+                    <IconifyIcon icon="solar:chart-square-bold-duotone" className="fs-24 text-primary" />
                   </div>
                   <div>
-                    <CardTitle as="h3" className="text-white mb-1">
+                    <CardTitle as="h3" className="mb-1">
                       Bookings Overview
                     </CardTitle>
-                    <p className="text-white-75 mb-0">
-                      Real-time amenity booking insights and performance metrics
+                    <p className="text-muted mb-0">
+                      {amenityId
+                        ? "Live operational metrics for the selected amenity."
+                        : "Live operational metrics across all amenity bookings."}
                     </p>
                   </div>
                 </div>
 
-                <Row className="g-4">
-                  <Col md={6}>
-                    <div className="d-flex align-items-center justify-content-between mb-2">
-                      <span className="text-white-75">Confirmed Bookings</span>
-                      <span className="text-white fw-semibold">{confirmedBookings}/{totalBookings}</span>
-                    </div>
-                    <ProgressBar 
-                      now={confirmedPercentage} 
-                      className="progress-sm bg-white bg-opacity-20"
-                      variant=""
-                      style={{ backgroundColor: 'rgba(255,255,255,0.3)' }}
-                    >
-                      <div 
-                        className="progress-bar bg-success" 
-                        style={{ width: `${confirmedPercentage}%` }}
-                      ></div>
-                    </ProgressBar>
-                  </Col>
-
-                  <Col md={6}>
-                    <div className="d-flex align-items-center justify-content-between mb-2">
-                      <span className="text-white-75">Pending Approval</span>
-                      <span className="text-white fw-semibold">{pendingBookings}/{totalBookings}</span>
-                    </div>
-                    <ProgressBar 
-                      now={pendingPercentage} 
-                      className="progress-sm bg-white bg-opacity-20"
-                      variant=""
-                    >
-                      <div 
-                        className="progress-bar bg-warning" 
-                        style={{ width: `${pendingPercentage}%` }}
-                      ></div>
-                    </ProgressBar>
-                  </Col>
-
-                  <Col md={6}>
-                    <div className="d-flex align-items-center justify-content-between mb-2">
-                      <span className="text-white-75">Cancelled Bookings</span>
-                      <span className="text-white fw-semibold">{cancelledBookings}/{totalBookings}</span>
-                    </div>
-                    <ProgressBar 
-                      now={cancelledPercentage} 
-                      className="progress-sm bg-white bg-opacity-20"
-                      variant=""
-                    >
-                      <div 
-                        className="progress-bar bg-danger" 
-                        style={{ width: `${cancelledPercentage}%` }}
-                      ></div>
-                    </ProgressBar>
-                  </Col>
-
-                  <Col md={6}>
-                    <div className="d-flex align-items-center justify-content-between mb-2">
-                      <span className="text-white-75">Total Revenue</span>
-                      <span className="text-white fw-semibold">${totalRevenue.toLocaleString()}</span>
-                    </div>
-                    <div className="d-flex align-items-center justify-content-between">
-                      <span className="text-white-75 small">Pending: ${pendingRevenue.toLocaleString()}</span>
-                      <span className="text-success small">
-                        <IconifyIcon icon="solar:arrow-up-bold" className="me-1" />
-                        +12.5% vs last month
-                      </span>
-                    </div>
-                  </Col>
+                <Row className="g-3">
+                  {statusBreakdown.map((item) => (
+                    <Col md={6} key={item.label}>
+                      <div className="border rounded p-3 h-100">
+                        <div className="d-flex justify-content-between align-items-center mb-2">
+                          <span className="text-muted">{item.label}</span>
+                          <span className="fw-semibold">{item.count}</span>
+                        </div>
+                        <ProgressBar now={item.percentage} variant={item.variant} className="mb-2" />
+                        <small className="text-muted">{item.percentage.toFixed(0)}% of current bookings</small>
+                      </div>
+                    </Col>
+                  ))}
                 </Row>
               </Col>
 
-              <Col lg={4}>
-                <div className="text-center">
-                  <div className="mb-3">
-                    <h2 className="text-white display-6 fw-bold mb-1">{totalBookings}</h2>
-                    <p className="text-white-75 mb-0">Total Bookings</p>
+              <Col lg={5}>
+                <div className="border rounded p-4 h-100">
+                  <div className="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                      <h2 className="fw-bold mb-1">{totalBookings}</h2>
+                      <p className="text-muted mb-0">Total live booking rows</p>
+                    </div>
+                    <Badge bg="primary">{amenityId ? "Amenity Scope" : "Portfolio Scope"}</Badge>
                   </div>
-                  
-                  {popularAmenities.length > 0 && (
-                    <div className="bg-white bg-opacity-10 rounded-3 p-3">
-                      <h6 className="text-white mb-2">
+
+                  <div className="d-flex justify-content-between mb-2">
+                    <span className="text-muted">Paid Revenue</span>
+                    <span className="fw-semibold">{formatMoney(totalRevenue)}</span>
+                  </div>
+                  <div className="d-flex justify-content-between mb-3">
+                    <span className="text-muted">Pending Revenue</span>
+                    <span className="fw-semibold">{formatMoney(pendingRevenue)}</span>
+                  </div>
+
+                  {popularAmenities.length > 0 ? (
+                    <div className="bg-light-subtle rounded p-3">
+                      <h6 className="mb-2">
                         <IconifyIcon icon="solar:fire-bold" className="me-1" />
-                        Popular Amenities
+                        Most Booked Amenities
                       </h6>
-                      {popularAmenities.map(([amenity, count], index) => (
-                        <div key={amenity} className="d-flex align-items-center justify-content-between mb-1">
-                          <span className="text-white-75 small">{amenity}</span>
-                          <span className="text-white fw-semibold small">{count}</span>
+                      {popularAmenities.map(([amenityName, count]) => (
+                        <div
+                          key={amenityName}
+                          className="d-flex align-items-center justify-content-between mb-1"
+                        >
+                          <span className="text-muted small">{amenityName}</span>
+                          <span className="fw-semibold small">{count}</span>
                         </div>
                       ))}
                     </div>
+                  ) : (
+                    <p className="text-muted mb-0">No amenity bookings have been recorded yet.</p>
                   )}
                 </div>
               </Col>

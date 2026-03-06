@@ -157,6 +157,11 @@ export interface AmenityStats {
   averageRating: number;
 }
 
+let amenitiesChannel: ReturnType<typeof supabase.channel> | null = null;
+let amenitiesSubscriberCount = 0;
+let amenityBookingsChannel: ReturnType<typeof supabase.channel> | null = null;
+let amenityBookingsSubscriberCount = 0;
+
 // Transform database amenity to UI format
 const transformAmenityFromDB = (amenity: any): Amenity => {
   const operatingHours = amenity.operating_hours || {
@@ -276,6 +281,8 @@ const transformAmenityToDB = (formData: FlexibleAmenityFormData) => {
 
 // 1. List all amenities
 export const useListAmenities = () => {
+  useAmenitiesRealtime();
+
   return useQuery({
     queryKey: ['amenities'],
     queryFn: async (): Promise<Amenity[]> => {
@@ -299,6 +306,8 @@ export const useListAmenities = () => {
 
 // 2. Get single amenity
 export const useGetAmenity = (id: string) => {
+  useAmenitiesRealtime();
+
   return useQuery({
     queryKey: ['amenities', id],
     queryFn: async (): Promise<Amenity> => {
@@ -436,18 +445,27 @@ export const useAmenitiesRealtime = () => {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    const channel = supabase
-      .channel('public:amenities')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'amenities' }, 
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['amenities'] });
-        }
-      )
-      .subscribe();
+    amenitiesSubscriberCount += 1;
+
+    if (!amenitiesChannel) {
+      amenitiesChannel = supabase
+        .channel('public:amenities')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'amenities' },
+          () => {
+            queryClient.invalidateQueries({ queryKey: ['amenities'] });
+          }
+        )
+        .subscribe();
+    }
 
     return () => {
-      supabase.removeChannel(channel);
+      amenitiesSubscriberCount -= 1;
+      if (amenitiesSubscriberCount === 0 && amenitiesChannel) {
+        supabase.removeChannel(amenitiesChannel);
+        amenitiesChannel = null;
+      }
     };
   }, [queryClient]);
 };
@@ -528,6 +546,8 @@ const transformBookingFromDB = (booking: any): AmenityBooking => ({
 
 // 8. List amenity bookings
 export const useListAmenityBookings = () => {
+  useAmenityBookingsRealtime();
+
   return useQuery({
     queryKey: ['amenity_bookings'],
     queryFn: async (): Promise<AmenityBooking[]> => {
@@ -566,6 +586,8 @@ export const useListAmenityBookings = () => {
 
 // 9. Get single amenity booking
 export const useGetAmenityBooking = (id: string) => {
+  useAmenityBookingsRealtime();
+
   return useQuery({
     queryKey: ['amenity_bookings', id],
     queryFn: async (): Promise<AmenityBooking | null> => {
@@ -700,18 +722,27 @@ export const useAmenityBookingsRealtime = () => {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    const channel = supabase
-      .channel('public:amenity_bookings')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'amenity_bookings' }, 
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['amenity_bookings'] });
-        }
-      )
-      .subscribe();
+    amenityBookingsSubscriberCount += 1;
+
+    if (!amenityBookingsChannel) {
+      amenityBookingsChannel = supabase
+        .channel('public:amenity_bookings')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'amenity_bookings' },
+          () => {
+            queryClient.invalidateQueries({ queryKey: ['amenity_bookings'] });
+          }
+        )
+        .subscribe();
+    }
 
     return () => {
-      supabase.removeChannel(channel);
+      amenityBookingsSubscriberCount -= 1;
+      if (amenityBookingsSubscriberCount === 0 && amenityBookingsChannel) {
+        supabase.removeChannel(amenityBookingsChannel);
+        amenityBookingsChannel = null;
+      }
     };
   }, [queryClient]);
 };

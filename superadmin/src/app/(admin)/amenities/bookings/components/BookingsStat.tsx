@@ -1,105 +1,95 @@
 "use client";
+
+import { useMemo } from "react";
+
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
-import { Card, CardBody, CardTitle, Col, Row } from "react-bootstrap";
 import { useListAmenityBookings } from "@/hooks/useAmenities";
+import { useSearchParams } from "next/navigation";
+import { Card, CardBody, CardTitle, Col, Row } from "react-bootstrap";
 
-type BookingStatType = {
-  amount: string;
-  change: string;
-  icon: string;
+const formatMoney = (amount?: number | null) =>
+  new Intl.NumberFormat("en-GH", {
+    style: "currency",
+    currency: "GHS",
+    minimumFractionDigits: 2,
+  }).format(Number(amount || 0));
+
+type BookingStatCardProps = {
   title: string;
-  variant: "success" | "danger";
+  amount: string;
+  helper: string;
+  icon: string;
 };
 
-const BookingStatCard = ({
-  amount,
-  change,
-  icon,
-  title,
-  variant,
-}: BookingStatType) => {
-  return (
-    <Card>
-      <CardBody>
-        <div className="d-flex align-items-center justify-content-between">
-          <div>
-            <CardTitle as={"h4"} className="mb-2 ">
-              {title}
-            </CardTitle>
-            <p className="text-muted fw-medium fs-22 mb-0">{amount}</p>
-          </div>
-          <div>
-            <div className="avatar-md bg-primary bg-opacity-10 rounded flex-centered">
-              <IconifyIcon
-                icon={icon}
-                width={32}
-                height={32}
-                className="fs-32 text-primary "
-              />
-            </div>
-          </div>
+const BookingStatCard = ({ title, amount, helper, icon }: BookingStatCardProps) => (
+  <Card>
+    <CardBody>
+      <div className="d-flex align-items-center justify-content-between">
+        <div>
+          <CardTitle as="h4" className="mb-2">
+            {title}
+          </CardTitle>
+          <p className="text-dark fw-semibold fs-22 mb-1">{amount}</p>
+          <p className="text-muted mb-0 fs-13">{helper}</p>
         </div>
-        <div className="d-flex align-items-center justify-content-between mt-3">
-          <p className="mb-0">
-            <span className={`text-${variant} fw-medium mb-0`}>
-              {variant == "success" ? (
-                <IconifyIcon icon="ri:arrow-up-line" />
-              ) : (
-                <IconifyIcon icon="ri:arrow-down-line" />
-              )}
-              {change}%
-            </span>{" "}
-            vs last month
-          </p>
+        <div className="avatar-md bg-primary bg-opacity-10 rounded flex-centered">
+          <IconifyIcon icon={icon} width={28} height={28} className="fs-28 text-primary" />
         </div>
-      </CardBody>
-    </Card>
-  );
-};
+      </div>
+    </CardBody>
+  </Card>
+);
 
 const BookingsStat = () => {
   const { data: bookings = [] } = useListAmenityBookings();
+  const searchParams = useSearchParams();
+  const amenityId = searchParams.get("amenityId");
 
-  const totalBookings = bookings.length;
-  const confirmedBookings = bookings.filter((b) => b.status === "confirmed").length;
-  const pendingBookings = bookings.filter((b) => b.status === "pending").length;
-  const cancelledBookings = bookings.filter((b) => b.status === "cancelled").length;
+  const scopedBookings = useMemo(
+    () => (amenityId ? bookings.filter((booking) => booking.amenity_id === amenityId) : bookings),
+    [amenityId, bookings],
+  );
 
-  const bookingStatData: BookingStatType[] = [
+  const confirmed = scopedBookings.filter((booking) => booking.status === "confirmed").length;
+  const pending = scopedBookings.filter((booking) => booking.status === "pending").length;
+  const completedRevenue = scopedBookings
+    .filter((booking) => booking.payment_status === "paid")
+    .reduce((sum, booking) => sum + Number(booking.total_amount || booking.amount || 0), 0);
+  const uniqueResidents = new Set(
+    scopedBookings.map((booking) => booking.user_id).filter(Boolean),
+  ).size;
+
+  const statCards: BookingStatCardProps[] = [
     {
-      amount: totalBookings.toString(),
-      change: "15.2",
-      icon: "ri:calendar-line",
       title: "Total Bookings",
-      variant: "success",
+      amount: String(scopedBookings.length),
+      helper: amenityId ? "Scoped to selected amenity" : "Across all amenities",
+      icon: "ri:calendar-line",
     },
     {
-      amount: confirmedBookings.toString(),
-      change: "12.5",
-      icon: "ri:calendar-check-line",
       title: "Confirmed",
-      variant: "success",
+      amount: String(confirmed),
+      helper: `${pending} still awaiting action`,
+      icon: "ri:calendar-check-line",
     },
     {
-      amount: pendingBookings.toString(),
-      change: "8.3",
-      icon: "ri:time-line",
-      title: "Pending",
-      variant: "danger",
+      title: "Paid Revenue",
+      amount: formatMoney(completedRevenue),
+      helper: "Captured from paid bookings",
+      icon: "ri:wallet-3-line",
     },
     {
-      amount: cancelledBookings.toString(),
-      change: "3.1",
-      icon: "ri:calendar-close-line",
-      title: "Cancelled",
-      variant: "danger",
+      title: "Residents",
+      amount: String(uniqueResidents),
+      helper: "Unique booking residents",
+      icon: "ri:user-line",
     },
   ];
 
   return (
-    <Row>
-      {bookingStatData.map((item, idx) => (
-        <Col md={6} xl={3} key={idx}>
+    <Row className="mb-4">
+      {statCards.map((item) => (
+        <Col md={6} xl={3} key={item.title}>
           <BookingStatCard {...item} />
         </Col>
       ))}
