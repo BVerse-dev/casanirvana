@@ -667,6 +667,7 @@ Date: 2026-02-06
   - Replaced `useAgencyConfigurationsRealtime` query-based channel initialization with lifecycle-safe `useEffect` subscription cleanup to prevent stale channel accumulation and repeated invalidation churn on the Settings page.
   - Removed hardcoded `updated_by: 'Admin User'` writes from `/settings/agencies/configuration` save flows and stopped injecting fallback `updated_by: 'system'` payloads from the hook transformer unless explicitly provided.
   - Added explicit save failure feedback alert in `/settings/agencies/configuration` so failed persistence is visible to admins instead of failing silently.
+  - Fixed the remaining runtime crash on `/settings/agencies/configuration` by removing raw `configuration.*` render bindings, moving all editable fields onto `react-hook-form` registration, and guarding conditional sections/mandatory-field toggles with form-state-backed defaults.
   - Revalidated superadmin production build after the hardening changes.
 - [x] Phase 33 tenant-configuration API alignment completed:
   - Added backend-managed tenant settings endpoints for community and agency configuration (`/admin/settings/community-configurations*`, `/admin/settings/agency-configurations*`) with scope-aware access checks and payload allowlisting.
@@ -714,6 +715,12 @@ Date: 2026-02-06
   - `public.can_access_agency` function exists.
   - Scoped admin policies are active on guard/agency operational tables.
   - Migration version `20260303` is recorded in `supabase_migrations.schema_migrations`.
+- [x] Rewired active superadmin Guard directory surfaces (`/guards/list-view`, `/guards/grid-view`, `/guards/details`) to backend-scoped admin APIs and backend delete flow (`/admin/guards/profiles`).
+- [x] Rewired active superadmin Agency directory surfaces (`/agency/list-view`, `/agency/grid-view`, `/agency/details`) to backend-scoped admin APIs and backend delete flow (`/admin/agencies/directory`) while preserving the existing `agencies` table contract.
+- [x] Normalized admin role alias handling in backend auth + capability resolution so relocated Guard/Agency submenu items render for aliased admin roles (`Super Admin`, `Administrator`, `agency_admin`, `facility_admin`, `Management`) instead of being filtered out.
+- [x] Hardened Guard/Agency submenu visibility for superadmin sessions:
+  - Updated `backend/src/services/adminScope.ts` so aliased platform-admin roles (`super_admin`, `Administrator`) resolve as global scope, matching the auth/capability logic.
+  - Updated `superadmin/src/components/layout/VerticalNavigationBar/components/AppMenu.tsx` to fall back to platform-admin Guard/Agency capabilities from the signed-in session role when the capability API payload is temporarily empty, preventing those operational submenu items from disappearing for superadmin users.
 - [x] Build verification completed:
   - `backend`: `npm run build` passed.
   - `superadmin`: `npm run build` passed.

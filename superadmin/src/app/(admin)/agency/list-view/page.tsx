@@ -7,14 +7,14 @@ import SearchForm from './components/SearchForm'
 import { Metadata } from 'next'
 import Link from 'next/link'
 import { useState } from 'react'
-import { useListAgencies } from '@/hooks/useAgencies'
+import { useListAgenciesDirectory } from '@/hooks/useAgencyDirectory'
 
 // Note: Metadata can't be used in client components, so we'll handle it differently
 // export const metadata: Metadata = { title: 'Society List' }
 
 const ListViewPage = () => {
   const [searchTerm, setSearchTerm] = useState('')
-  const { data: agenciesData = [] } = useListAgencies()
+  const { data: agenciesData = [] } = useListAgenciesDirectory()
 
   return (
     <>

@@ -264,6 +264,7 @@ const AgencyConfigurationPage = () => {
   const { data: configuration, isLoading: configLoading, error: configError } = useAgencyConfigurationUI(selectedAgencyId);
   const updateConfigurationMutation = useUpdateAgencyConfiguration();
   const createConfigurationMutation = useCreateAgencyConfiguration();
+  const selectedAgencyName = agencies?.find((agency: any) => agency.id === selectedAgencyId)?.name || '';
   
   // Real-time subscription for live updates
   useAgencyConfigurationsRealtime();
@@ -284,16 +285,13 @@ const AgencyConfigurationPage = () => {
     if (configuration) {
       reset(configuration);
     } else if (!configLoading && selectedAgencyId) {
-      reset(
-        createDefaultConfiguration(
-          selectedAgencyId,
-          agencies?.find((agency) => agency.id === selectedAgencyId)?.name || ''
-        )
-      );
+      reset(createDefaultConfiguration(selectedAgencyId, selectedAgencyName));
     }
-  }, [configuration, configLoading, selectedAgencyId, agencies, reset]);
+  }, [configuration, configLoading, selectedAgencyId, selectedAgencyName, reset]);
 
   const currentConfiguration = watch();
+  const formConfiguration =
+    currentConfiguration || createDefaultConfiguration(selectedAgencyId, selectedAgencyName);
 
   const handleSaveConfiguration = async (data: AgencyConfigurationUI) => {
     setLoading(true);
@@ -305,14 +303,14 @@ const AgencyConfigurationPage = () => {
           ...data,
           id: configuration.id,
           agency_id: selectedAgencyId,
-          agency_name: agencies?.find((a: any) => a.id === selectedAgencyId)?.name || '',
+          agency_name: selectedAgencyName,
         });
       } else {
         // Create new configuration
         await createConfigurationMutation.mutateAsync({
           ...data,
           agency_id: selectedAgencyId,
-          agency_name: agencies?.find((a: any) => a.id === selectedAgencyId)?.name || '',
+          agency_name: selectedAgencyName,
         });
       }
       
@@ -458,7 +456,7 @@ const AgencyConfigurationPage = () => {
                             <input
                               type="number"
                               className="form-control"
-                              {...register('commission_settings.default_rate')}
+                              {...register('commission_settings.default_rate', { valueAsNumber: true })}
                               step="0.1"
                               min="0"
                               max="10"
@@ -475,7 +473,7 @@ const AgencyConfigurationPage = () => {
                               <input
                                 type="number"
                                 className="form-control"
-                                {...register('commission_settings.property_type_rates.residential')}
+                                {...register('commission_settings.property_type_rates.residential', { valueAsNumber: true })}
                                 step="0.1"
                               />
                               <span className="input-group-text">%</span>
@@ -487,7 +485,7 @@ const AgencyConfigurationPage = () => {
                               <input
                                 type="number"
                                 className="form-control"
-                                value={configuration.commission_settings.property_type_rates.commercial}
+                                {...register('commission_settings.property_type_rates.commercial', { valueAsNumber: true })}
                                 step="0.1"
                               />
                               <span className="input-group-text">%</span>
@@ -499,7 +497,7 @@ const AgencyConfigurationPage = () => {
                               <input
                                 type="number"
                                 className="form-control"
-                                value={configuration.commission_settings.property_type_rates.luxury}
+                                {...register('commission_settings.property_type_rates.luxury', { valueAsNumber: true })}
                                 step="0.1"
                               />
                               <span className="input-group-text">%</span>
@@ -511,7 +509,7 @@ const AgencyConfigurationPage = () => {
                               <input
                                 type="number"
                                 className="form-control"
-                                value={configuration.commission_settings.property_type_rates.plot}
+                                {...register('commission_settings.property_type_rates.plot', { valueAsNumber: true })}
                                 step="0.1"
                               />
                               <span className="input-group-text">%</span>
@@ -538,7 +536,7 @@ const AgencyConfigurationPage = () => {
                               <input
                                 type="number"
                                 className="form-control"
-                                value={configuration.commission_settings.agent_tier_rates.junior}
+                                {...register('commission_settings.agent_tier_rates.junior', { valueAsNumber: true })}
                                 min="0"
                                 max="100"
                               />
@@ -551,7 +549,7 @@ const AgencyConfigurationPage = () => {
                               <input
                                 type="number"
                                 className="form-control"
-                                value={configuration.commission_settings.agent_tier_rates.senior}
+                                {...register('commission_settings.agent_tier_rates.senior', { valueAsNumber: true })}
                                 min="0"
                                 max="100"
                               />
@@ -564,7 +562,7 @@ const AgencyConfigurationPage = () => {
                               <input
                                 type="number"
                                 className="form-control"
-                                value={configuration.commission_settings.agent_tier_rates.team_leader}
+                                {...register('commission_settings.agent_tier_rates.team_leader', { valueAsNumber: true })}
                                 min="0"
                                 max="100"
                               />
@@ -577,7 +575,7 @@ const AgencyConfigurationPage = () => {
                               <input
                                 type="number"
                                 className="form-control"
-                                value={configuration.commission_settings.agent_tier_rates.manager}
+                                {...register('commission_settings.agent_tier_rates.manager', { valueAsNumber: true })}
                                 min="0"
                                 max="100"
                               />
@@ -597,7 +595,7 @@ const AgencyConfigurationPage = () => {
 
                         <div className="mb-3">
                           <label className="form-label">Payment Schedule</label>
-                          <select className="form-select" value={configuration.commission_settings.payment_schedule}>
+                          <select className="form-select" {...register('commission_settings.payment_schedule')}>
                             <option value="immediate">Immediate</option>
                             <option value="monthly">Monthly</option>
                             <option value="quarterly">Quarterly</option>
@@ -625,7 +623,7 @@ const AgencyConfigurationPage = () => {
                             <input
                               className="form-check-input"
                               type="checkbox"
-                              checked={configuration.listing_settings.auto_approval_required}
+                              {...register('listing_settings.auto_approval_required')}
                             />
                             <label className="form-check-label">
                               Auto Approval Required
@@ -638,7 +636,7 @@ const AgencyConfigurationPage = () => {
                           <input
                             type="number"
                             className="form-control"
-                            value={configuration.listing_settings.max_photos_per_listing}
+                            {...register('listing_settings.max_photos_per_listing', { valueAsNumber: true })}
                             min="1"
                             max="50"
                           />
@@ -649,7 +647,7 @@ const AgencyConfigurationPage = () => {
                           <input
                             type="number"
                             className="form-control"
-                            value={configuration.listing_settings.listing_duration_days}
+                            {...register('listing_settings.listing_duration_days', { valueAsNumber: true })}
                             min="30"
                             max="365"
                           />
@@ -660,7 +658,7 @@ const AgencyConfigurationPage = () => {
                           <input
                             type="number"
                             className="form-control"
-                            value={configuration.listing_settings.renewal_notification_days}
+                            {...register('listing_settings.renewal_notification_days', { valueAsNumber: true })}
                             min="1"
                             max="30"
                           />
@@ -671,7 +669,7 @@ const AgencyConfigurationPage = () => {
                           <input
                             type="number"
                             className="form-control"
-                            value={configuration.listing_settings.featured_listing_fee}
+                            {...register('listing_settings.featured_listing_fee', { valueAsNumber: true })}
                             min="0"
                           />
                         </div>
@@ -695,7 +693,14 @@ const AgencyConfigurationPage = () => {
                             <input
                               className="form-check-input"
                               type="checkbox"
-                              checked={configuration.listing_settings.mandatory_fields.includes(field)}
+                              checked={formConfiguration.listing_settings.mandatory_fields.includes(field)}
+                              onChange={(event) => {
+                                const currentFields = formConfiguration.listing_settings.mandatory_fields || [];
+                                const nextFields = event.target.checked
+                                  ? [...currentFields, field]
+                                  : currentFields.filter((mandatoryField) => mandatoryField !== field);
+                                setValue('listing_settings.mandatory_fields', nextFields, { shouldDirty: true });
+                              }}
                             />
                             <label className="form-check-label text-capitalize">
                               {field.replace('_', ' ')}
@@ -724,7 +729,7 @@ const AgencyConfigurationPage = () => {
                             <input
                               className="form-check-input"
                               type="checkbox"
-                              checked={configuration.lead_settings.auto_assignment}
+                              {...register('lead_settings.auto_assignment')}
                             />
                             <label className="form-check-label">
                               Auto Assignment Enabled
@@ -734,7 +739,7 @@ const AgencyConfigurationPage = () => {
 
                         <div className="mb-3">
                           <label className="form-label">Lead Rotation Method</label>
-                          <select className="form-select" value={configuration.lead_settings.lead_rotation}>
+                          <select className="form-select" {...register('lead_settings.lead_rotation')}>
                             <option value="round_robin">Round Robin</option>
                             <option value="performance_based">Performance Based</option>
                             <option value="manual">Manual Assignment</option>
@@ -746,7 +751,7 @@ const AgencyConfigurationPage = () => {
                             <input
                               className="form-check-input"
                               type="checkbox"
-                              checked={configuration.lead_settings.follow_up_reminders}
+                              {...register('lead_settings.follow_up_reminders')}
                             />
                             <label className="form-check-label">
                               Follow-up Reminders
@@ -759,7 +764,7 @@ const AgencyConfigurationPage = () => {
                           <input
                             type="number"
                             className="form-control"
-                            value={configuration.lead_settings.max_leads_per_agent}
+                            {...register('lead_settings.max_leads_per_agent', { valueAsNumber: true })}
                             min="1"
                             max="100"
                           />
@@ -770,7 +775,7 @@ const AgencyConfigurationPage = () => {
                           <input
                             type="number"
                             className="form-control"
-                            value={configuration.lead_settings.lead_expiry_days}
+                            {...register('lead_settings.lead_expiry_days', { valueAsNumber: true })}
                             min="1"
                             max="365"
                           />
@@ -793,7 +798,7 @@ const AgencyConfigurationPage = () => {
                           <input
                             type="text"
                             className="form-control"
-                            value={configuration.lead_settings.hot_lead_criteria.budget_range}
+                            {...register('lead_settings.hot_lead_criteria.budget_range')}
                             placeholder="e.g., GH₵ 50k-100k"
                           />
                         </div>
@@ -803,7 +808,7 @@ const AgencyConfigurationPage = () => {
                           <input
                             type="number"
                             className="form-control"
-                            value={configuration.lead_settings.hot_lead_criteria.response_time_hours}
+                            {...register('lead_settings.hot_lead_criteria.response_time_hours', { valueAsNumber: true })}
                             min="1"
                             max="48"
                           />
@@ -814,7 +819,7 @@ const AgencyConfigurationPage = () => {
                           <input
                             type="number"
                             className="form-control"
-                            value={configuration.lead_settings.hot_lead_criteria.engagement_score}
+                            {...register('lead_settings.hot_lead_criteria.engagement_score', { valueAsNumber: true })}
                             min="0"
                             max="100"
                           />
@@ -848,7 +853,7 @@ const AgencyConfigurationPage = () => {
                           <input
                             type="number"
                             className="form-control"
-                            value={configuration.performance.target_settings.monthly_listing_target}
+                            {...register('performance.target_settings.monthly_listing_target', { valueAsNumber: true })}
                             min="0"
                           />
                         </div>
@@ -858,7 +863,7 @@ const AgencyConfigurationPage = () => {
                           <input
                             type="number"
                             className="form-control"
-                            value={configuration.performance.target_settings.monthly_deal_target}
+                            {...register('performance.target_settings.monthly_deal_target', { valueAsNumber: true })}
                             min="0"
                           />
                         </div>
@@ -868,7 +873,7 @@ const AgencyConfigurationPage = () => {
                           <input
                             type="number"
                             className="form-control"
-                            value={configuration.performance.target_settings.monthly_revenue_target}
+                            {...register('performance.target_settings.monthly_revenue_target', { valueAsNumber: true })}
                             min="0"
                           />
                         </div>
@@ -890,7 +895,7 @@ const AgencyConfigurationPage = () => {
                             <input
                               className="form-check-input"
                               type="checkbox"
-                              checked={configuration.performance.kpi_tracking.response_time}
+                              {...register('performance.kpi_tracking.response_time')}
                             />
                             <label className="form-check-label">
                               Response Time Tracking
@@ -903,7 +908,7 @@ const AgencyConfigurationPage = () => {
                             <input
                               className="form-check-input"
                               type="checkbox"
-                              checked={configuration.performance.kpi_tracking.conversion_rate}
+                              {...register('performance.kpi_tracking.conversion_rate')}
                             />
                             <label className="form-check-label">
                               Conversion Rate Tracking
@@ -916,7 +921,7 @@ const AgencyConfigurationPage = () => {
                             <input
                               className="form-check-input"
                               type="checkbox"
-                              checked={configuration.performance.kpi_tracking.client_satisfaction}
+                              {...register('performance.kpi_tracking.client_satisfaction')}
                             />
                             <label className="form-check-label">
                               Client Satisfaction Score
@@ -929,7 +934,7 @@ const AgencyConfigurationPage = () => {
                             <input
                               className="form-check-input"
                               type="checkbox"
-                              checked={configuration.performance.kpi_tracking.repeat_business}
+                              {...register('performance.kpi_tracking.repeat_business')}
                             />
                             <label className="form-check-label">
                               Repeat Business Tracking
@@ -958,7 +963,7 @@ const AgencyConfigurationPage = () => {
                           <input
                             type="number"
                             className="form-control"
-                            value={configuration.financial.payment_terms.client_payment_days}
+                            {...register('financial.payment_terms.client_payment_days', { valueAsNumber: true })}
                             min="0"
                             max="90"
                           />
@@ -969,7 +974,7 @@ const AgencyConfigurationPage = () => {
                           <input
                             type="number"
                             className="form-control"
-                            value={configuration.financial.payment_terms.commission_payment_days}
+                            {...register('financial.payment_terms.commission_payment_days', { valueAsNumber: true })}
                             min="0"
                             max="30"
                           />
@@ -980,7 +985,7 @@ const AgencyConfigurationPage = () => {
                           <input
                             type="number"
                             className="form-control"
-                            value={configuration.financial.payment_terms.late_payment_penalty}
+                            {...register('financial.payment_terms.late_payment_penalty', { valueAsNumber: true })}
                             min="0"
                             max="10"
                             step="0.1"
@@ -1004,7 +1009,7 @@ const AgencyConfigurationPage = () => {
                             <input
                               className="form-check-input"
                               type="checkbox"
-                              checked={configuration.financial.tax_settings.gst_applicable}
+                              {...register('financial.tax_settings.gst_applicable')}
                             />
                             <label className="form-check-label">
                               Tax Applicable
@@ -1012,14 +1017,14 @@ const AgencyConfigurationPage = () => {
                           </div>
                         </div>
 
-                        {configuration.financial.tax_settings.gst_applicable && (
+                        {formConfiguration.financial.tax_settings.gst_applicable && (
                           <>
                             <div className="mb-3">
                               <label className="form-label">Tax Percentage (%)</label>
                               <input
                                 type="number"
                                 className="form-control"
-                                value={configuration.financial.tax_settings.gst_percentage}
+                                {...register('financial.tax_settings.gst_percentage', { valueAsNumber: true })}
                                 min="0"
                                 max="30"
                               />
@@ -1030,7 +1035,7 @@ const AgencyConfigurationPage = () => {
                               <input
                                 type="text"
                                 className="form-control"
-                                value={configuration.financial.tax_settings.gst_number || ''}
+                                {...register('financial.tax_settings.gst_number')}
                                 placeholder="Enter tax reference"
                               />
                             </div>
@@ -1042,7 +1047,7 @@ const AgencyConfigurationPage = () => {
                             <input
                               className="form-check-input"
                               type="checkbox"
-                              checked={configuration.financial.tax_settings.tds_applicable}
+                              {...register('financial.tax_settings.tds_applicable')}
                             />
                             <label className="form-check-label">
                               TDS Applicable
@@ -1050,13 +1055,13 @@ const AgencyConfigurationPage = () => {
                           </div>
                         </div>
 
-                        {configuration.financial.tax_settings.tds_applicable && (
+                        {formConfiguration.financial.tax_settings.tds_applicable && (
                           <div className="mb-3">
                             <label className="form-label">TDS Percentage (%)</label>
                             <input
                               type="number"
                               className="form-control"
-                              value={configuration.financial.tax_settings.tds_percentage}
+                              {...register('financial.tax_settings.tds_percentage', { valueAsNumber: true })}
                               min="0"
                               max="30"
                             />
@@ -1084,7 +1089,7 @@ const AgencyConfigurationPage = () => {
                             <input
                               className="form-check-input"
                               type="checkbox"
-                              checked={configuration.compliance.rera_compliance.registration_mandatory}
+                              {...register('compliance.rera_compliance.registration_mandatory')}
                             />
                             <label className="form-check-label">
                               RERA Registration Mandatory
@@ -1097,7 +1102,7 @@ const AgencyConfigurationPage = () => {
                             <input
                               className="form-check-input"
                               type="checkbox"
-                              checked={configuration.compliance.rera_compliance.document_verification}
+                              {...register('compliance.rera_compliance.document_verification')}
                             />
                             <label className="form-check-label">
                               Document Verification Required
@@ -1110,7 +1115,7 @@ const AgencyConfigurationPage = () => {
                             <input
                               className="form-check-input"
                               type="checkbox"
-                              checked={configuration.compliance.rera_compliance.periodic_renewal}
+                              {...register('compliance.rera_compliance.periodic_renewal')}
                             />
                             <label className="form-check-label">
                               Periodic Renewal Tracking
@@ -1135,7 +1140,7 @@ const AgencyConfigurationPage = () => {
                             <input
                               className="form-check-input"
                               type="checkbox"
-                              checked={configuration.compliance.data_protection.client_data_encryption}
+                              {...register('compliance.data_protection.client_data_encryption')}
                             />
                             <label className="form-check-label">
                               Client Data Encryption
@@ -1148,7 +1153,7 @@ const AgencyConfigurationPage = () => {
                             <input
                               className="form-check-input"
                               type="checkbox"
-                              checked={configuration.compliance.data_protection.gdpr_compliance}
+                              {...register('compliance.data_protection.gdpr_compliance')}
                             />
                             <label className="form-check-label">
                               GDPR Compliance
@@ -1161,7 +1166,7 @@ const AgencyConfigurationPage = () => {
                           <input
                             type="number"
                             className="form-control"
-                            value={configuration.compliance.data_protection.data_retention_months}
+                            {...register('compliance.data_protection.data_retention_months', { valueAsNumber: true })}
                             min="12"
                             max="120"
                           />

@@ -11,8 +11,28 @@ import { MenuItemType, SubMenus } from "@/types/menu";
 import clsx from "clsx";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Fragment, MouseEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { Collapse } from "react-bootstrap";
+
+const normalizeRoleName = (role?: string | null) =>
+  typeof role === "string" ? role.trim().toLowerCase().replace(/\s+/g, "_") : "";
+
+const PLATFORM_ADMIN_ROLES = new Set(["superadmin", "super_admin", "admin", "administrator"]);
+
+const PLATFORM_ADMIN_MENU_CAPABILITIES = [
+  "guards:profiles:view",
+  "guards:schedules:view",
+  "guards:assignments:view",
+  "guards:equipment:view",
+  "guards:performance:view",
+  "guards:training:view",
+  "agency:profiles:view",
+  "agency:staff:view",
+  "agency:services:view",
+  "agency:finance:view",
+  "agency:documents:view",
+];
 
 const MenuItemWithChildren = ({
   item,
@@ -142,15 +162,31 @@ type AppMenuProps = {
 const AppMenu = ({ menuItems }: AppMenuProps) => {
   const pathname = usePathname();
   const { data: capabilities } = useAdminCapabilities();
+  const { data: session } = useSession();
+
+  const sessionRole = session?.user?.role ?? null;
+  const fallbackMenuCapabilities = useMemo(() => {
+    if (PLATFORM_ADMIN_ROLES.has(normalizeRoleName(sessionRole))) {
+      return PLATFORM_ADMIN_MENU_CAPABILITIES;
+    }
+    return [];
+  }, [sessionRole]);
+
+  const effectiveRole = capabilities?.role ?? sessionRole ?? null;
+  const effectivePermissions = capabilities?.permissions ?? [];
+  const effectiveMenuCapabilities =
+    capabilities?.menu_capabilities && capabilities.menu_capabilities.length > 0
+      ? capabilities.menu_capabilities
+      : fallbackMenuCapabilities;
 
   const scopedMenuItems = useMemo(
     () =>
       filterMenuItemsByCapabilities(menuItems, {
-        role: capabilities?.role ?? null,
-        permissions: capabilities?.permissions ?? [],
-        menuCapabilities: capabilities?.menu_capabilities ?? [],
+        role: effectiveRole,
+        permissions: effectivePermissions,
+        menuCapabilities: effectiveMenuCapabilities,
       }),
-    [menuItems, capabilities]
+    [menuItems, effectiveRole, effectivePermissions, effectiveMenuCapabilities]
   );
 
   const [activeMenuItems, setActiveMenuItems] = useState<Array<string>>([]);

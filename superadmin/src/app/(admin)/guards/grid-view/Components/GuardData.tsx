@@ -4,7 +4,7 @@ import IconifyIcon from '@/components/wrappers/IconifyIcon'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Button, Card, CardBody, CardFooter, Col, Dropdown, DropdownItem, DropdownMenu, DropdownToggle, Row, Pagination } from 'react-bootstrap'
-import { useDeleteGuard, type Guard } from '@/hooks/useGuards'
+import { useDeleteGuardDirectory, type GuardDirectoryItem } from '@/hooks/useGuardDirectory'
 import { mapAvatarUrl } from '@/utils/avatarMapper'
 import { avatars } from '@/assets/images/users'
 import { useState } from 'react'
@@ -20,7 +20,7 @@ type GuardCardProps = {
   is_active: boolean | null
   shift_type: string | null
   employment_date: string | null
-  onDelete: (guard: Guard) => void
+  onDelete: (guard: GuardDirectoryItem) => void
 }
 
 const GuardCard = ({ id, full_name, email, phone, avatar_url, societies, is_active, shift_type, employment_date, onDelete }: GuardCardProps) => {
@@ -45,7 +45,7 @@ const GuardCard = ({ id, full_name, email, phone, avatar_url, societies, is_acti
           is_active,
           shift_type,
           employment_date
-        } as Guard)
+        } as GuardDirectoryItem)
         break
     }
   }
@@ -103,7 +103,7 @@ const GuardCard = ({ id, full_name, email, phone, avatar_url, societies, is_acti
         <div className="mt-3">
           <p className="d-flex align-items-center gap-2 mb-2">
             <IconifyIcon icon="solar:buildings-bold-duotone" className="fs-18 text-primary" />
-            <span className="text-muted">Society:</span> {societies?.name || 'N/A'}
+            <span className="text-muted">Community:</span> {societies?.name || 'N/A'}
           </p>
           <p className="d-flex align-items-center gap-2 mb-2">
             <IconifyIcon icon="solar:clock-circle-bold-duotone" className="fs-18 text-warning" />
@@ -133,7 +133,7 @@ const GuardCard = ({ id, full_name, email, phone, avatar_url, societies, is_acti
 }
 
 interface GuardDataProps {
-  guards: Guard[]
+  guards: GuardDirectoryItem[]
   isLoading: boolean
   error: Error | null
   searchTerm: string
@@ -151,9 +151,9 @@ const GuardData = ({
   currentPage, 
   onPageChange 
 }: GuardDataProps) => {
-  const [selectedGuard, setSelectedGuard] = useState<Guard | null>(null)
+  const [selectedGuard, setSelectedGuard] = useState<GuardDirectoryItem | null>(null)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
-  const deleteGuardMutation = useDeleteGuard()
+  const deleteGuardMutation = useDeleteGuardDirectory()
   
   const itemsPerPage = 6 // Show 6 guards per page (2 rows of 3)
 
@@ -171,7 +171,7 @@ const GuardData = ({
     }
   }
 
-  const handleDeleteClick = (guard: Guard) => {
+  const handleDeleteClick = (guard: GuardDirectoryItem) => {
     setSelectedGuard(guard)
     setShowDeleteModal(true)
   }

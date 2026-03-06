@@ -274,6 +274,13 @@ router.get(
   validateRequest({ query: schemas.adminGuardOperationsQuery }),
   adminGuardsOperationsController.listGuardProfiles
 );
+router.delete(
+  '/guards/profiles/:id',
+  requireAuth,
+  requirePermission('delete:profiles'),
+  validateRequest({ params: schemas.idParam }),
+  adminGuardsOperationsController.deleteGuardProfile
+);
 router.get(
   '/guards/schedules',
   requireAuth,
@@ -402,6 +409,20 @@ router.patch(
 );
 
 // Agency operational routes (People -> Agency)
+router.get(
+  '/agencies/directory',
+  requireAuth,
+  requirePermission('read:all_profiles'),
+  validateRequest({ query: schemas.adminAgencyOperationsQuery }),
+  adminAgenciesOperationsController.listAgencyDirectory
+);
+router.delete(
+  '/agencies/directory/:id',
+  requireAuth,
+  requirePermission('delete:profiles'),
+  validateRequest({ params: schemas.idParam }),
+  adminAgenciesOperationsController.deleteAgencyDirectory
+);
 router.get(
   '/agencies/profiles',
   requireAuth,

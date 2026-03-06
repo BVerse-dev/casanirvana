@@ -12,6 +12,11 @@ type AdminProfile = {
   community_id?: string | null;
 };
 
+const normalizeRoleName = (role?: string | null) =>
+  typeof role === 'string' ? role.trim().toLowerCase().replace(/\s+/g, '_') : '';
+
+const GLOBAL_ADMIN_ROLES = new Set(['superadmin', 'super_admin', 'admin', 'administrator']);
+
 export type AdminScope = {
   role: string | null;
   profileId: string | null;
@@ -31,6 +36,7 @@ export async function resolveAdminScope(req: Request): Promise<AdminScope> {
   const profile = req.userProfile as AdminProfile | undefined;
 
   const role = profile?.role || null;
+  const normalizedRole = normalizeRoleName(role);
   const profileId = profile?.id || null;
   const email = profile?.email || null;
   const directCommunityId = profile?.community_id || null;
@@ -46,7 +52,7 @@ export async function resolveAdminScope(req: Request): Promise<AdminScope> {
     };
   }
 
-  if (role === 'superadmin' || role === 'admin') {
+  if (GLOBAL_ADMIN_ROLES.has(normalizedRole)) {
     return {
       role,
       profileId,
@@ -161,4 +167,3 @@ export async function resolveGuardCommunityId(guardId: string): Promise<string |
 
   return isUuid(data?.community_id) ? data.community_id : null;
 }
-

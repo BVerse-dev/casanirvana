@@ -2,7 +2,7 @@
 
 import PageTitle from '@/components/PageTitle'
 import { useSearchParams } from 'next/navigation'
-import { useGetAgency } from '@/hooks/useAgencies'
+import { useGetAgencyDirectory } from '@/hooks/useAgencyDirectory'
 import AgencyDetails from './components/AgencyDetails'
 import AgencyDetailsBanner from './components/AgencyDetailsBanner'
 import { Row, Col, Spinner, Alert, Card, CardBody, CardHeader, Nav, NavItem, NavLink, CardTitle, Badge, Table, ProgressBar, Button, Dropdown, Form } from 'react-bootstrap'
@@ -17,7 +17,7 @@ const AgencyDetailsPage = () => {
   const [activeTab, setActiveTab] = useState<string>('overview');
   
   // Fetch agency data if ID is provided
-  const { data: agency, isLoading, error } = useGetAgency(agencyId || '');
+  const { data: agency, isLoading, error } = useGetAgencyDirectory(agencyId || '');
   
   if (!agencyId) {
     return (

@@ -6,7 +6,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { Card, CardBody, CardFooter, CardHeader, CardTitle, Col, Dropdown, DropdownItem, DropdownMenu, DropdownToggle, Row } from '@/components/ReactBootstrap'
-import { useListAgencies } from '@/hooks/useAgencies'
+import { useListAgenciesDirectory } from '@/hooks/useAgencyDirectory'
 
 // Dynamically import ReactApexChart to prevent SSR issues
 const ReactApexChart = dynamic(() => import('react-apexcharts'), {
@@ -20,7 +20,7 @@ const AgenciesChart = ({ agencies, isLoading, error, refetch }: {
   error: Error | null;
   refetch: () => void;
 }) => {
-  // Calculate real society statistics
+  // Calculate real community statistics
   const totalSocieties = agencies.reduce((total, agency) => total + (agency.managed_societies || 0), 0);
 
   // Handle force refresh
@@ -81,7 +81,7 @@ const AgenciesChart = ({ agencies, isLoading, error, refetch }: {
           <Row className="align-items-center">
             <Col lg={7}>
               <h4 className="text-dark mb-1">Welcome Back , Gaston</h4>
-              <p className="fs-14">This is your societies portfolio report</p>
+              <p className="fs-14">This is your communities portfolio report</p>
               <Row className="align-items-center text-center mb-2">
                 <Col lg={7} className="border-end border-light">
                   <Row className="align-items-center">
@@ -95,7 +95,7 @@ const AgenciesChart = ({ agencies, isLoading, error, refetch }: {
                       />
                     </Col>
                     <Col lg={6}>
-                      <h5>Societies</h5>
+                      <h5>Communities</h5>
                       <h2 className="fw-semibold text-dark">{totalSocieties}</h2>
                     </Col>
                   </Row>
@@ -160,7 +160,7 @@ const DevelopmentTask = ({ agencies }: { agencies: any[] }) => {
           <Row>
             <Col lg={5}>
               <h5 className="text-dark fw-medium mb-1">{totalSocieties}</h5>
-              <p className="text-muted mb-0">Total societies </p>
+              <p className="text-muted mb-0">Total communities </p>
             </Col>
             <Col lg={4} xs={3} className="text-center">
               <h5 className="text-dark fw-medium mb-1">{pendingSocieties}</h5>
@@ -268,7 +268,7 @@ const SealProperties = ({ agencies }: { agencies: any[] }) => {
 
 const AgencyGridCard = () => {
   // Fetch agencies data once and pass it down to child components
-  const { data: agencies = [], isLoading, error, refetch } = useListAgencies();
+  const { data: agencies = [], isLoading, error, refetch } = useListAgenciesDirectory();
   
   return (
     <Row>

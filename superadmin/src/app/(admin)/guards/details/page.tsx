@@ -6,14 +6,14 @@ import { Row, Col } from 'react-bootstrap'
 import Link from 'next/link'
 import IconifyIcon from '@/components/wrappers/IconifyIcon'
 import { useSearchParams } from 'next/navigation'
-import { useGetGuard } from '@/hooks/useGuards'
+import { useGetGuardDirectory } from '@/hooks/useGuardDirectory'
 import { Suspense } from 'react'
 
 const GuardDetailsContent = () => {
   const searchParams = useSearchParams()
   const guardId = searchParams.get('id')
   
-  const { data: guard, isLoading, error } = useGetGuard(guardId || '')
+  const { data: guard, isLoading, error } = useGetGuardDirectory(guardId || '')
 
   if (!guardId) {
     return (

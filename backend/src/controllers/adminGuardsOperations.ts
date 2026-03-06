@@ -39,13 +39,28 @@ export async function listGuardProfiles(req: Request, res: Response, next: NextF
   try {
     const scope = await resolveAdminScope(req);
     const requestedCommunityId = parseUuidQueryParam(req, 'community_id');
+    const requestedGuardId = parseUuidQueryParam(req, 'guard_id');
     const search = parseStringQueryParam(req, 'search');
 
     if (requestedCommunityId && !canAccessCommunity(scope, requestedCommunityId)) {
       return toScopeError(res, 'Access denied for the requested community.');
     }
+    if (requestedGuardId && !scope.isGlobal) {
+      const guardScope = await ensureGuardScope(scope, requestedGuardId);
+      if (!guardScope.ok) return toScopeError(res, guardScope.reason);
+    }
 
-    let query = supabase.from('guards').select('*').order('created_at', { ascending: false });
+    let query = supabase
+      .from('guards')
+      .select(`
+        *,
+        communities!guards_society_id_fkey (
+          id,
+          name,
+          address
+        )
+      `)
+      .order('created_at', { ascending: false });
 
     if (requestedCommunityId) {
       query = query.eq('community_id', requestedCommunityId);
@@ -54,6 +69,9 @@ export async function listGuardProfiles(req: Request, res: Response, next: NextF
         return res.json({ data: [] });
       }
       query = query.in('community_id', scope.communityIds);
+    }
+    if (requestedGuardId) {
+      query = query.eq('id', requestedGuardId);
     }
 
     if (search) {
@@ -66,6 +84,41 @@ export async function listGuardProfiles(req: Request, res: Response, next: NextF
     }
 
     return res.json({ data: data || [] });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function deleteGuardProfile(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { id } = req.params;
+    if (!isUuid(id)) {
+      return res.status(400).json({ error: 'Invalid guard id' });
+    }
+
+    const scope = await resolveAdminScope(req);
+    const { data: existing, error: existingError } = await supabase
+      .from('guards')
+      .select('id, community_id')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (existingError) {
+      return res.status(500).json({ error: 'Failed to load guard profile', details: existingError.message });
+    }
+    if (!existing) {
+      return res.status(404).json({ error: 'Guard profile not found' });
+    }
+    if (!isUuid(existing.community_id) || !canAccessCommunity(scope, existing.community_id)) {
+      return toScopeError(res, 'Access denied for the selected guard.');
+    }
+
+    const { error } = await supabase.from('guards').delete().eq('id', id);
+    if (error) {
+      return res.status(500).json({ error: 'Failed to delete guard profile', details: error.message });
+    }
+
+    return res.status(204).send();
   } catch (error) {
     next(error);
   }
@@ -817,4 +870,3 @@ export async function updateGuardTraining(req: Request, res: Response, next: Nex
     next(error);
   }
 }
-

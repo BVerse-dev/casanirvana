@@ -5,13 +5,13 @@ import { Card, CardHeader, Col, Row } from '@/components/ReactBootstrap'
 import AgencyData from './components/AgencyData'
 import AgencyGridCard from './components/AgencyGridCard'
 import PageTitle from '@/components/PageTitle'
-import { useListAgencies } from '@/hooks/useAgencies'
+import { useListAgenciesDirectory } from '@/hooks/useAgencyDirectory'
 
 // Note: Metadata can't be used in client components, so we'll handle it differently
 // export const metadata: Metadata = { title: 'Agency Grid' }
 
 const GridViewPage = () => {
-  const { data: agencies = [] } = useListAgencies()
+  const { data: agencies = [] } = useListAgenciesDirectory()
 
   return (
     <>

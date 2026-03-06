@@ -1,7 +1,7 @@
 "use client";
 
 import IconifyIcon from '@/components/wrappers/IconifyIcon'
-import { useListAgencies, useDeleteAgency } from '@/hooks/useAgencies'
+import { useListAgenciesDirectory, useDeleteAgencyDirectory } from '@/hooks/useAgencyDirectory'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useState } from 'react'
@@ -19,8 +19,8 @@ interface AgencyListProps {
 }
 
 const AgencyList = ({ searchTerm: externalSearchTerm }: AgencyListProps) => {
-  const { data: agenciesData = [], isLoading } = useListAgencies();
-  const deleteAgency = useDeleteAgency();
+  const { data: agenciesData = [], isLoading } = useListAgenciesDirectory();
+  const deleteAgency = useDeleteAgencyDirectory();
   const [currentPage, setCurrentPage] = useState(1);
   const [internalSearchTerm, setInternalSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
@@ -141,7 +141,7 @@ const AgencyList = ({ searchTerm: externalSearchTerm }: AgencyListProps) => {
                     <th>Agency Photo & Name</th>
                     <th>Contact Info</th>
                     <th>Address</th>
-                    <th>Societies</th>
+                    <th>Communities</th>
                     <th>Date Created</th>
                     <th>Status</th>
                     <th>Action</th>
@@ -215,7 +215,7 @@ const AgencyList = ({ searchTerm: externalSearchTerm }: AgencyListProps) => {
                           <td>
                             <div className="d-flex align-items-center gap-2">
                               <span className="fw-medium">{agency.managed_societies || 0}</span>
-                              <span className="text-muted small">Societies</span>
+                              <span className="text-muted small">Communities</span>
                             </div>
                           </td>
                           <td>

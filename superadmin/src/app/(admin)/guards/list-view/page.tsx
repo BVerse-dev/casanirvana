@@ -4,7 +4,7 @@ import IconifyIcon from '@/components/wrappers/IconifyIcon'
 import { Card, CardHeader, Col, Row } from 'react-bootstrap'
 import GuardsList from './components/GuardsList'
 import Link from 'next/link'
-import { useListGuards } from '@/hooks/useGuards'
+import { useListGuardsDirectory } from '@/hooks/useGuardDirectory'
 import { useState } from 'react'
 
 const ListViewPage = () => {
@@ -13,7 +13,7 @@ const ListViewPage = () => {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
   const [currentPage, setCurrentPage] = useState(1)
   
-  const { data: guards = [], isLoading, error } = useListGuards()
+  const { data: guards = [], isLoading, error } = useListGuardsDirectory()
   
   // Filter guards based on search and status
   const filteredGuards = guards.filter(guard => {

@@ -6,7 +6,7 @@ import ReactApexChart from 'react-apexcharts'
 import { ApexOptions } from 'apexcharts'
 import { Card, CardBody, CardHeader, CardTitle, Col, Row, Dropdown, DropdownItem, DropdownMenu, DropdownToggle, Button, CardFooter } from 'react-bootstrap'
 import GuardDetailsCard from './GuardDetailsCard'
-import type { Guard } from '@/hooks/useGuards'
+import type { GuardDirectoryItem } from '@/hooks/useGuardDirectory'
 
 // Guard Activity Chart Data
 const guardActivityChart: ApexOptions = {
@@ -61,7 +61,7 @@ const guardActivityChart: ApexOptions = {
 }
 
 type GuardDetailsProps = {
-  guard: Guard
+  guard: GuardDirectoryItem
 }
 
 const GuardDetails = ({ guard }: GuardDetailsProps) => {

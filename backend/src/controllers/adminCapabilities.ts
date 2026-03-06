@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 
+import { isAdminLikeRole } from '../middleware/auth';
 import { resolveAdminScope } from '../services/adminScope';
 
 type CapabilityBuildInput = {
@@ -10,19 +11,27 @@ type CapabilityBuildInput = {
 const hasAnyPermission = (permissions: Set<string>, keys: string[]) =>
   keys.some((key) => permissions.has(key));
 
+const normalizeRoleName = (role?: string | null) =>
+  typeof role === 'string' ? role.trim().toLowerCase().replace(/\s+/g, '_') : '';
+
 function buildMenuCapabilities({ role, permissions }: CapabilityBuildInput): string[] {
   const permissionSet = new Set(permissions);
   const capabilities = new Set<string>();
+  const normalizedRole = normalizeRoleName(role);
 
-  const isAdminRole =
-    role === 'superadmin' || role === 'admin' || role === 'agency_manager' || role === 'facility_manager';
+  const isAdminRole = isAdminLikeRole(role);
+  const isPlatformAdmin =
+    normalizedRole === 'superadmin' ||
+    normalizedRole === 'super_admin' ||
+    normalizedRole === 'admin' ||
+    normalizedRole === 'administrator';
 
   const canReadProfiles = hasAnyPermission(permissionSet, [
     'read:all_profiles',
     'manage:users',
     'update:all_profiles',
     'create:profiles',
-  ]);
+  ]) || isAdminRole;
   const canReadPayments = hasAnyPermission(permissionSet, [
     'read:all_payments',
     'create:payments',
@@ -33,7 +42,7 @@ function buildMenuCapabilities({ role, permissions }: CapabilityBuildInput): str
     return [];
   }
 
-  if (canReadProfiles || role === 'superadmin' || role === 'admin') {
+  if (canReadProfiles || isPlatformAdmin) {
     capabilities.add('guards:profiles:view');
     capabilities.add('guards:schedules:view');
     capabilities.add('guards:assignments:view');
@@ -47,7 +56,7 @@ function buildMenuCapabilities({ role, permissions }: CapabilityBuildInput): str
     capabilities.add('agency:documents:view');
   }
 
-  if (canReadPayments || role === 'superadmin' || role === 'admin') {
+  if (canReadPayments || isPlatformAdmin) {
     capabilities.add('agency:finance:view');
   }
 
@@ -78,4 +87,3 @@ export async function getAdminCapabilities(req: Request, res: Response, next: Ne
     next(error);
   }
 }
-

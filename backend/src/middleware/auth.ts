@@ -91,6 +91,24 @@ const MODULE_ALIASES: Record<string, string[]> = {
 
 const isNotFoundError = (error?: { code?: string | null } | null) => error?.code === 'PGRST116';
 
+const normalizeRoleName = (role?: string | null) =>
+  typeof role === 'string' ? role.trim().toLowerCase().replace(/\s+/g, '_') : '';
+
+const ADMIN_ROLE_NAMES = new Set([
+  'superadmin',
+  'super_admin',
+  'admin',
+  'administrator',
+  'agency_manager',
+  'facility_manager',
+  'agency_admin',
+  'facility_admin',
+  'community_admin',
+  'management',
+]);
+
+export const isAdminLikeRole = (role?: string | null) => ADMIN_ROLE_NAMES.has(normalizeRoleName(role));
+
 function getRoleNameCandidates(role: UserProfile['role']) {
   const normalizedRole = typeof role === 'string' && role.trim().length > 0 ? role.trim() : 'user';
   const mappedRoleNames =
@@ -238,7 +256,7 @@ export function requirePermission(permission: string) {
 
 // Middleware to check if user is an admin
 export function requireAdmin(req: Request, res: Response, next: NextFunction) {
-  if (!req.userProfile || !['admin', 'superadmin', 'agency_manager', 'facility_manager'].includes(req.userProfile.role)) {
+  if (!req.userProfile || !isAdminLikeRole(req.userProfile.role)) {
     return res.status(403).json({ error: 'Admin access required' });
   }
   next();
@@ -246,7 +264,8 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction) {
 
 // Middleware to check if user is a superadmin
 export function requireSuperAdmin(req: Request, res: Response, next: NextFunction) {
-  if (!req.userProfile || req.userProfile.role !== 'superadmin') {
+  const normalizedRole = normalizeRoleName(req.userProfile?.role);
+  if (!req.userProfile || (normalizedRole !== 'superadmin' && normalizedRole !== 'super_admin')) {
     return res.status(403).json({ error: 'Super admin access required' });
   }
   next();

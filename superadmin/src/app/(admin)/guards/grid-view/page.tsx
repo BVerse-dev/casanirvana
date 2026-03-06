@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { Card, CardHeader, Col, Row } from 'react-bootstrap'
 import GuardData from './Components/GuardData'
 import GuardGridCard from './Components/GuardGridCard'
-import { useListGuards } from '@/hooks/useGuards'
+import { useListGuardsDirectory } from '@/hooks/useGuardDirectory'
 import { useState } from 'react'
 
 const GridViewPage = () => {
@@ -14,7 +14,7 @@ const GridViewPage = () => {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
   const [currentPage, setCurrentPage] = useState(1)
   
-  const { data: guards = [], isLoading, error } = useListGuards()
+  const { data: guards = [], isLoading, error } = useListGuardsDirectory()
   
   // Filter guards based on search and status
   const filteredGuards = guards.filter(guard => {

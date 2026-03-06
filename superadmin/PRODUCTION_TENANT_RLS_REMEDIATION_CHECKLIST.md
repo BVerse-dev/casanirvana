@@ -84,3 +84,5 @@ Acceptance criteria:
 - 2026-03-03: Added scoped guard/agency operational admin APIs and module-space operational pages (`/guards/*`, `/agency/*`) to complete Settings IA relocation.
 - 2026-03-03: Added migration `supabase/migrations/20260303_phase34_guard_agency_scope_rls_hardening.sql` to harden guard/agency operational RLS with scoped admin policies.
 - 2026-03-03: Applied Phase 34 RLS migration to Casa Nirvana remote DB (`pswnlowvmdgeifhxilao`) and validated function/policy presence plus migration metadata record (`version=20260303`).
+- 2026-03-06: Rewired active Guard and Agency directory pages off direct Supabase reads/writes and onto backend-scoped admin APIs (`/admin/guards/profiles`, `/admin/agencies/directory`) so People list/grid/details flows now enforce tenant scope at the API layer.
+- 2026-03-06: Normalized backend admin role aliases in auth and capability resolution so capability-filtered Guard and Agency submenu entries do not disappear for aliased admin roles.

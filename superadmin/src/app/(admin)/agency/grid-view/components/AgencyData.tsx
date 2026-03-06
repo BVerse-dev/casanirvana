@@ -3,7 +3,7 @@ import { useState } from 'react'
 import IconifyIcon from '@/components/wrappers/IconifyIcon'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useListAgencies, useDeleteAgency } from '@/hooks/useAgencies'
+import { useListAgenciesDirectory, useDeleteAgencyDirectory } from '@/hooks/useAgencyDirectory'
 import { getAgencyAvatar, getAgencyPropertyImage } from '@/utils/avatarMapper'
 
 // Import individual components directly
@@ -77,7 +77,7 @@ const AgencyCard = ({ agency, onDelete }: { agency: any; onDelete: (id: string) 
         </p>
         <p className="d-flex align-items-center gap-2 mt-2 small">
           <IconifyIcon icon="solar:buildings-bold-duotone" className="fs-16 text-primary" />
-          Societies: {agency.managed_societies || 0}
+          Communities: {agency.managed_societies || 0}
         </p>
         <div className="d-flex justify-content-between align-items-center my-3">
           <h6 className="mb-0 small">Social Media</h6>
@@ -142,8 +142,8 @@ const AgencyCard = ({ agency, onDelete }: { agency: any; onDelete: (id: string) 
 }
 
 const AgencyData = () => {
-  const { data: agencies = [], isLoading, error } = useListAgencies()
-  const deleteAgency = useDeleteAgency()
+  const { data: agencies = [], isLoading, error } = useListAgenciesDirectory()
+  const deleteAgency = useDeleteAgencyDirectory()
   const [currentPage, setCurrentPage] = useState(1)
   const agenciesPerPage = 6 // 3 columns x 2 rows per page
 

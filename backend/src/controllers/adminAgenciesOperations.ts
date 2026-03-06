@@ -76,6 +76,74 @@ export async function listAgencyProfiles(req: Request, res: Response, next: Next
   }
 }
 
+export async function listAgencyDirectory(req: Request, res: Response, next: NextFunction) {
+  try {
+    const scope = await resolveAdminScope(req);
+    const requestedAgencyId = parseUuidQueryParam(req, 'agency_id');
+    const search = parseStringQueryParam(req, 'search');
+
+    if (requestedAgencyId && !canAccessAgency(scope, requestedAgencyId)) {
+      return toScopeError(res, 'Access denied for the requested agency.');
+    }
+
+    let query = supabase.from('agencies').select('*').order('created_at', { ascending: false });
+
+    if (requestedAgencyId) {
+      query = query.eq('id', requestedAgencyId);
+    } else if (!scope.isGlobal) {
+      if (scope.agencyIds.length === 0) {
+        return res.json({ data: [] });
+      }
+      query = query.in('id', scope.agencyIds);
+    }
+
+    if (search) {
+      query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%,address.ilike.%${search}%`);
+    }
+
+    const { data, error } = await query;
+    if (error) {
+      return res.status(500).json({ error: 'Failed to fetch agency directory', details: error.message });
+    }
+
+    return res.json({ data: data || [] });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function deleteAgencyDirectory(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { id } = req.params;
+    if (!isUuid(id)) return res.status(400).json({ error: 'Invalid agency id' });
+
+    const scope = await resolveAdminScope(req);
+    if (!canAccessAgency(scope, id)) {
+      return toScopeError(res, 'Access denied for the selected agency.');
+    }
+
+    const { data: existing, error: existingError } = await supabase
+      .from('agencies')
+      .select('id')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (existingError) {
+      return res.status(500).json({ error: 'Failed to load agency directory record', details: existingError.message });
+    }
+    if (!existing) return res.status(404).json({ error: 'Agency not found' });
+
+    const { error } = await supabase.from('agencies').delete().eq('id', id);
+    if (error) {
+      return res.status(500).json({ error: 'Failed to delete agency directory record', details: error.message });
+    }
+
+    return res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function listAgencyStaff(req: Request, res: Response, next: NextFunction) {
   try {
     const scope = await resolveAdminScope(req);
@@ -579,4 +647,3 @@ export async function deleteAgencyDocument(req: Request, res: Response, next: Ne
     next(error);
   }
 }
-

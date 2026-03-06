@@ -17,14 +17,14 @@ import {
   DropdownToggle,
   Row,
 } from 'react-bootstrap'
-import { useDeleteGuard, type Guard } from '@/hooks/useGuards'
+import { useDeleteGuardDirectory, type GuardDirectoryItem } from '@/hooks/useGuardDirectory'
 import { mapAvatarUrl } from '@/utils/avatarMapper'
 import { avatars } from '@/assets/images/users'
 import { useState } from 'react'
 import { toast } from 'react-hot-toast'
 
 interface GuardsListProps {
-  guards: Guard[]
+  guards: GuardDirectoryItem[]
   isLoading: boolean
   error: Error | null
   searchTerm: string
@@ -42,9 +42,9 @@ const GuardsList = ({
   currentPage, 
   onPageChange 
 }: GuardsListProps) => {
-  const [selectedGuard, setSelectedGuard] = useState<Guard | null>(null)
+  const [selectedGuard, setSelectedGuard] = useState<GuardDirectoryItem | null>(null)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
-  const deleteGuardMutation = useDeleteGuard()
+  const deleteGuardMutation = useDeleteGuardDirectory()
 
   // Pagination settings
   const itemsPerPage = 8
@@ -53,7 +53,7 @@ const GuardsList = ({
   const endIndex = startIndex + itemsPerPage
   const currentGuards = guards.slice(startIndex, endIndex)
 
-  const handleDeleteClick = (guard: Guard) => {
+  const handleDeleteClick = (guard: GuardDirectoryItem) => {
     setSelectedGuard(guard)
     setShowDeleteModal(true)
   }
@@ -85,7 +85,7 @@ const GuardsList = ({
   const handleExport = () => {
     // Create CSV content
     const csvContent = [
-      ['Name', 'Email', 'Phone', 'Society', 'Shift Type', 'Employment Date', 'Status'],
+      ['Name', 'Email', 'Phone', 'Community', 'Shift Type', 'Employment Date', 'Status'],
       ...guards.map(guard => [
         guard.full_name || 'N/A',
         guard.email || 'N/A',
@@ -187,7 +187,7 @@ const GuardsList = ({
                   <thead className="bg-light-subtle">
                     <tr>
                       <th>Guard Photo &amp; Name</th>
-                      <th>Society</th>
+                      <th>Community</th>
                       <th>Email</th>
                       <th>Contact</th>
                       <th>Shift Type</th>

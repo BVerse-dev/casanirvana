@@ -6,10 +6,10 @@ import Image from 'next/image'
 import Link from 'next/link'
 import ReactApexChart from 'react-apexcharts'
 import { Card, CardBody, CardFooter, CardHeader, CardTitle, Col, Dropdown, DropdownItem, DropdownMenu, DropdownToggle, Row } from 'react-bootstrap'
-import { useListGuards } from '@/hooks/useGuards'
+import { useListGuardsDirectory } from '@/hooks/useGuardDirectory'
 
 const GuardsChart = () => {
-  const { data: guards = [] } = useListGuards()
+  const { data: guards = [] } = useListGuardsDirectory()
   
   // Calculate statistics from actual data
   const activeGuards = guards.filter(guard => guard.is_active).length
@@ -116,7 +116,7 @@ const GuardsChart = () => {
 }
 
 const GuardStatistics = () => {
-  const { data: guards = [] } = useListGuards()
+  const { data: guards = [] } = useListGuardsDirectory()
   
   // Calculate real statistics from guard data
   const totalGuards = guards.length

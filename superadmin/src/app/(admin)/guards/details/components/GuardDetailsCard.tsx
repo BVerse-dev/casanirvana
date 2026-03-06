@@ -10,10 +10,10 @@ import { guardStatusData, guardReviewData, guardFileData, GuardStatusType, Guard
 
 import { mapAvatarUrl } from '@/utils/avatarMapper'
 import { avatars } from '@/assets/images/users'
-import type { Guard } from '@/hooks/useGuards'
+import type { GuardDirectoryItem } from '@/hooks/useGuardDirectory'
 
 type GuardDetailsCardProps = {
-  guard: Guard
+  guard: GuardDirectoryItem
 }
 
 const GuardStatCard = ({ count, icon, progress, title, variant }: GuardStatusType) => {
@@ -521,7 +521,7 @@ const GuardDetailsCard = ({ guard }: GuardDetailsCardProps) => {
         <div className="mt-3">
           <p className="d-flex align-items-center gap-2">
             <IconifyIcon icon="solar:map-point-wave-bold-duotone" className="fs-18 text-primary" />
-            {guard.societies?.name || 'Society not assigned'} - {guard.shift_type || 'Shift not set'}
+            {guard.societies?.name || 'Community not assigned'} - {guard.shift_type || 'Shift not set'}
           </p>
           <p className="d-flex align-items-center gap-2">
             <IconifyIcon icon="solar:outgoing-call-rounded-bold-duotone" className="fs-18 text-primary" />
@@ -581,7 +581,7 @@ const GuardDetailsCard = ({ guard }: GuardDetailsCardProps) => {
             {guard.full_name || 'they'} contribute to the overall safety and peaceful environment of our residential community.
           </p>
           <p className="mb-2">
-            <span className="fw-medium text-dark">Society</span>
+            <span className="fw-medium text-dark">Community</span>
             <span className="mx-2">:</span>{guard.societies?.name || 'Not assigned'}
           </p>
           <p className="mb-2">

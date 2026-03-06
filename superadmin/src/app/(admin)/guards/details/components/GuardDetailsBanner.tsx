@@ -3,10 +3,10 @@ import IconifyIcon from '@/components/wrappers/IconifyIcon'
 import Image from 'next/image'
 import { Card, CardBody, CardHeader, CardTitle, Col, Row } from 'react-bootstrap'
 import { useState } from 'react'
-import type { Guard } from '@/hooks/useGuards'
+import type { GuardDirectoryItem } from '@/hooks/useGuardDirectory'
 
 interface GuardDetailsBannerProps {
-  guard: Guard
+  guard: GuardDirectoryItem
 }
 
 const GuardDetailsBanner = ({ guard }: GuardDetailsBannerProps) => {
@@ -55,7 +55,7 @@ const GuardDetailsBanner = ({ guard }: GuardDetailsBannerProps) => {
                   />
                   <div className="position-absolute top-0 start-0 m-3">
                     <div className="badge bg-primary fs-6 px-3 py-2">
-                      {guard.societies?.name || 'Society Not Assigned'}
+                      {guard.societies?.name || 'Community Not Assigned'}
                     </div>
                   </div>
                   <div className="position-absolute top-0 end-0 m-3">
