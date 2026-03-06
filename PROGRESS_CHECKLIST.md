@@ -747,6 +747,10 @@ Date: 2026-02-06
   - Updated `/Users/andromeda/casanirvana/Guard/hooks/useCalls.js` to resolve the authenticated guard to canonical `profiles.id`, keep call reads/mutations profile-scoped, and subscribe on both caller/callee edges so thread/conversation caches refresh correctly when call rows change.
 - [x] Hardened Guard RTC signaling UX contract:
   - Updated `/Users/andromeda/casanirvana/Guard/hooks/useCallManager.js` and `/Users/andromeda/casanirvana/Guard/screens/callScreen.js` so call state follows realtime `calls` row updates, removed fake auto-connect timers/alert-driven progression, and aligned the chat handoff back to the active message thread instead of the chat index.
+- [x] Finished Guard edit-profile production email flow:
+  - Updated `/Users/andromeda/casanirvana/Guard/screens/editProfileScreen.js` to add a password-reauthenticated login email-change modal, keep pending email changes visible from `auth.users.new_email`, and leave `public.users.email` synchronization to the confirmed auth change instead of patching it prematurely.
+- [x] Formalized Guard registration handoff UX:
+  - Updated `/Users/andromeda/casanirvana/Guard/screens/auth/registerScreen.js`, `/Users/andromeda/casanirvana/Guard/screens/auth/emailLoginScreen.js`, `/Users/andromeda/casanirvana/Guard/hooks/useRegisterGuard.js`, and `/Users/andromeda/casanirvana/Guard/contexts/GuardAuthContext.js` so signup/login communicate pending provisioning clearly, and sign-in failures distinguish missing profile, inactive profile, and awaiting community assignment states.
 - [x] Build verification completed:
   - `backend`: `npm run build` passed.
   - `superadmin`: `npm run build` passed.

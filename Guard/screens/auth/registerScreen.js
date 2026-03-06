@@ -109,14 +109,17 @@ const RegisterScreen = ({ navigation }) => {
 
       const result = await registerGuard(formData);
 
-      // Registration successful (immediate or pending email verification)
       const successMessage = result?.message ||
         (result?.requiresEmailConfirmation
           ? 'Sign up successful! Please check your email to verify your account, then sign in.'
           : 'Your guard account has been created successfully.');
 
+      const nextNoticeMessage = result?.requiresCommunityAssignment
+        ? 'After verification, your administrator still needs to assign you to a community before your first login will succeed.'
+        : successMessage;
+
       Alert.alert(
-        'Registration Successful!',
+        result?.requiresCommunityAssignment ? 'Registration Submitted' : 'Registration Successful!',
         successMessage,
         [
           {
@@ -124,7 +127,15 @@ const RegisterScreen = ({ navigation }) => {
             onPress: () => {
               navigation.reset({
                 index: 0,
-                routes: [{ name: "emailLoginScreen" }],
+                routes: [
+                  {
+                    name: "emailLoginScreen",
+                    params: {
+                      noticeMessage: nextNoticeMessage,
+                      noticeType: result?.requiresCommunityAssignment ? 'awaiting_assignment' : 'success',
+                    },
+                  },
+                ],
               });
             },
           },

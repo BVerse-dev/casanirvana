@@ -70,8 +70,18 @@ const EditProfileScreen = ({ navigation }) => {
   const [pickedImage, setPickedImage] = useState(null);
   const [removeImage, setRemoveImage] = useState(false);
   const [dateCalendarModal, setDateCalendarModal] = useState(false);
+  const [emailChangeModal, setEmailChangeModal] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState(authUser?.new_email || "");
+  const [newLoginEmail, setNewLoginEmail] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [isUpdatingEmail, setIsUpdatingEmail] = useState(false);
 
   const profileName = `${firstName} ${lastName}`.trim() || "Guard";
+  const normalizedCurrentEmail = String(email || authUser?.email || "").trim().toLowerCase();
+
+  useEffect(() => {
+    setPendingEmail(authUser?.new_email || "");
+  }, [authUser?.new_email]);
 
   useEffect(() => {
     let active = true;
@@ -167,6 +177,72 @@ const EditProfileScreen = ({ navigation }) => {
     }
   };
   const today = new Date().toISOString().split("T")[0];
+
+  const isValidEmail = (value) => /\S+@\S+\.\S+/.test(String(value || "").trim());
+
+  const resetEmailChangeForm = () => {
+    setNewLoginEmail("");
+    setCurrentPassword("");
+    setEmailChangeModal(false);
+  };
+
+  const handleRequestEmailChange = async () => {
+    const nextEmail = String(newLoginEmail || "").trim().toLowerCase();
+    const password = String(currentPassword || "");
+
+    if (!normalizedCurrentEmail) {
+      Alert.alert("Email unavailable", "Your current login email could not be resolved.");
+      return;
+    }
+
+    if (!isValidEmail(nextEmail)) {
+      Alert.alert("Invalid email", "Enter a valid new email address.");
+      return;
+    }
+
+    if (nextEmail == normalizedCurrentEmail) {
+      Alert.alert("No change detected", "Enter a different email address to continue.");
+      return;
+    }
+
+    if (!password) {
+      Alert.alert("Password required", "Enter your current password to confirm this change.");
+      return;
+    }
+
+    setIsUpdatingEmail(true);
+    try {
+      const { error: reauthError } = await supabase.auth.signInWithPassword({
+        email: normalizedCurrentEmail,
+        password,
+      });
+
+      if (reauthError) {
+        throw new Error(reauthError.message || "Password verification failed.");
+      }
+
+      const { data, error: updateError } = await supabase.auth.updateUser({
+        email: nextEmail,
+      });
+
+      if (updateError) {
+        throw new Error(updateError.message || "Could not request email change.");
+      }
+
+      const queuedEmail = data?.user?.new_email || nextEmail;
+      setPendingEmail(queuedEmail);
+      resetEmailChangeForm();
+      Alert.alert(
+        "Email change requested",
+        "Check your inboxes to confirm the new email address. If secure email change is enabled, Supabase will require confirmation on both the current and new email addresses before the login email updates."
+      );
+    } catch (error) {
+      console.error("Failed to request guard email change:", error);
+      Alert.alert("Email update failed", error?.message || "Could not request email change.");
+    } finally {
+      setIsUpdatingEmail(false);
+    }
+  };
 
   const [removeImageToast, setRemoveImageToast] = useState(false);
   const onDismissRemoveImage = () => setRemoveImageToast(false);
@@ -488,7 +564,7 @@ const EditProfileScreen = ({ navigation }) => {
           {/* Gender removed */}
 
           <Text style={styles.fieldLabel}>{tr("emailAddress")}</Text>
-          <TouchableOpacity style={[styles.textInputCard, styles.inputContainer]}>
+          <View style={[styles.textInputCard, styles.inputContainer]}>
             <TextInput
               value={email}
               editable={false}
@@ -501,7 +577,21 @@ const EditProfileScreen = ({ navigation }) => {
                 flex: 1,
               }}
             />
-          </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setEmailChangeModal(true)}
+              style={styles.inlineActionButton}
+            >
+              <Text style={styles.inlineActionButtonText}>
+                {tr("changeEmail") || "Change"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.helperText}>
+            {pendingEmail
+              ? `${tr("pendingEmailChange") || "Pending email change:"} ${pendingEmail}`
+              : tr("emailChangeHelper") ||
+                "Use Change to update your login email. A confirmation email will be sent before the new address becomes active."}
+          </Text>
 
           <Text style={styles.fieldLabel}>{tr("alternativeEmail")}</Text>
           <TouchableOpacity style={[styles.textInputCard, styles.inputContainer]}>
@@ -583,6 +673,111 @@ const EditProfileScreen = ({ navigation }) => {
   {/* All dropdown/radio modals removed */}
 
       {/* Date Calendar Modal */}
+      <Modal
+        transparent={true}
+        animationType="fade"
+        visible={emailChangeModal}
+        onRequestClose={resetEmailChangeForm}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          onPressOut={resetEmailChangeForm}
+          style={styles.modalOverlay}
+        >
+          <View style={styles.modalContainer}>
+            <TouchableOpacity activeOpacity={1} style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>{tr("changeEmail") || "Change Email"}</Text>
+                <TouchableOpacity onPress={resetEmailChangeForm} style={styles.closeButton}>
+                  <Ionicons name="close" size={22} color={Colors.grey} />
+                </TouchableOpacity>
+              </View>
+              <DashedLine
+                dashGap={2.5}
+                dashLength={2.5}
+                dashThickness={1.5}
+                dashColor={Colors.grey}
+              />
+              <View style={styles.emailModalBody}>
+                <Text style={styles.modalInfoText}>
+                  {tr("currentEmailLabel") || "Current login email"}
+                </Text>
+                <View style={[styles.textInputCard, styles.inputContainer, styles.modalInputSpacing]}>
+                  <TextInput
+                    value={normalizedCurrentEmail}
+                    editable={false}
+                    placeholderTextColor={Colors.grey}
+                    style={{ ...Fonts.Medium16grey, flex: 1, textAlign: isRtl ? "right" : "left" }}
+                  />
+                </View>
+
+                <Text style={styles.modalInfoText}>
+                  {tr("newEmailAddress") || "New email address"}
+                </Text>
+                <View style={[styles.textInputCard, styles.inputContainer, styles.modalInputSpacing]}>
+                  <TextInput
+                    value={newLoginEmail}
+                    onChangeText={setNewLoginEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    placeholder={tr("enterNewEmail") || "Enter new email address"}
+                    placeholderTextColor={Colors.grey}
+                    selectionColor={Colors.primary}
+                    style={{ ...Fonts.Medium16black, flex: 1, textAlign: isRtl ? "right" : "left" }}
+                  />
+                </View>
+
+                <Text style={styles.modalInfoText}>
+                  {tr("currentPassword") || "Current password"}
+                </Text>
+                <View style={[styles.textInputCard, styles.inputContainer]}>
+                  <TextInput
+                    value={currentPassword}
+                    onChangeText={setCurrentPassword}
+                    secureTextEntry
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    placeholder={tr("enterCurrentPassword") || "Enter current password"}
+                    placeholderTextColor={Colors.grey}
+                    selectionColor={Colors.primary}
+                    style={{ ...Fonts.Medium16black, flex: 1, textAlign: isRtl ? "right" : "left" }}
+                  />
+                </View>
+
+                <Text style={[styles.helperText, { marginTop: Default.fixPadding }]}>
+                  {tr("emailChangeVerificationNote") ||
+                    "For security, the app verifies your current password before requesting the email change. You must confirm the change from the verification email before the new login email becomes active."}
+                </Text>
+
+                <View style={styles.modalActionRow}>
+                  <TouchableOpacity
+                    onPress={resetEmailChangeForm}
+                    style={[styles.modalActionButton, styles.modalSecondaryButton]}
+                    disabled={isUpdatingEmail}
+                  >
+                    <Text style={styles.modalSecondaryButtonText}>
+                      {tr("cancel") || "Cancel"}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={handleRequestEmailChange}
+                    style={[styles.modalActionButton, styles.modalPrimaryButton]}
+                    disabled={isUpdatingEmail}
+                  >
+                    <Text style={styles.modalPrimaryButtonText}>
+                      {isUpdatingEmail
+                        ? tr("updatingEmail") || "Submitting..."
+                        : tr("submitEmailChange") || "Request Change"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
       <Modal
         transparent={true}
         animationType="fade"
@@ -718,6 +913,56 @@ const styles = StyleSheet.create({
     height: 106,
     width: 106,
     borderRadius: 53,
+  },
+  helperText: {
+    ...Fonts.Medium13grey,
+    marginTop: Default.fixPadding * 0.6,
+    lineHeight: 18,
+  },
+  inlineActionButton: {
+    marginLeft: Default.fixPadding,
+    paddingHorizontal: Default.fixPadding,
+    paddingVertical: Default.fixPadding * 0.5,
+    borderRadius: 8,
+    backgroundColor: Colors.primary + '12',
+  },
+  inlineActionButtonText: {
+    ...Fonts.SemiBold14primary,
+  },
+  emailModalBody: {
+    paddingVertical: Default.fixPadding * 1.4,
+  },
+  modalInfoText: {
+    ...Fonts.Medium14black,
+    marginBottom: Default.fixPadding * 0.6,
+  },
+  modalInputSpacing: {
+    marginBottom: Default.fixPadding * 1.2,
+  },
+  modalActionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: Default.fixPadding,
+    marginTop: Default.fixPadding * 1.4,
+  },
+  modalActionButton: {
+    flex: 1,
+    borderRadius: 10,
+    paddingVertical: Default.fixPadding,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalPrimaryButton: {
+    backgroundColor: Colors.primary,
+  },
+  modalSecondaryButton: {
+    backgroundColor: Colors.regularGrey,
+  },
+  modalPrimaryButtonText: {
+    ...Fonts.SemiBold16white,
+  },
+  modalSecondaryButtonText: {
+    ...Fonts.SemiBold16black,
   },
   imageView: {
     justifyContent: "center",

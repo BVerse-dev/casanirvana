@@ -97,6 +97,7 @@ export const useRegisterGuard = () => {
           guard: null,
           session: authData.session,
           requiresEmailConfirmation: true,
+          requiresCommunityAssignment: true,
           message: 'Sign up successful! Verify your email, then wait for admin community assignment before signing in.',
         };
       }
@@ -160,6 +161,7 @@ export const useRegisterGuard = () => {
         user: userData,
         guard: guardData,
         session: authData.session,
+        requiresCommunityAssignment: true,
         message: 'Guard registration successful. After email verification, your admin must assign you to a community before first login.',
       };
 

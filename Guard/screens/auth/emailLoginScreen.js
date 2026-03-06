@@ -20,7 +20,7 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import Feather from "react-native-vector-icons/Feather";
 import { useGuardAuth } from "../../contexts/GuardAuthContext";
 
-const EmailLoginScreen = ({ navigation }) => {
+const EmailLoginScreen = ({ navigation, route }) => {
   const { t, i18n } = useTranslation();
   const { signIn } = useGuardAuth();
 
@@ -34,6 +34,15 @@ const EmailLoginScreen = ({ navigation }) => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [noticeMessage, setNoticeMessage] = useState(route?.params?.noticeMessage || "");
+
+  useFocusEffect(
+    useCallback(() => {
+      if (route?.params?.noticeMessage) {
+        setNoticeMessage(route.params.noticeMessage);
+      }
+    }, [route?.params?.noticeMessage])
+  );
 
   const [visibleToast, setVisibleToast] = useState(false);
   const onDismissVisibleToast = () => setVisibleToast(false);
@@ -91,18 +100,30 @@ const EmailLoginScreen = ({ navigation }) => {
     try {
       setLoading(true);
       setError("");
+      setNoticeMessage("");
 
       await signIn(email, password);
-      
-      // Authentication successful, navigate to main app
+
       navigation.reset({
         index: 0,
         routes: [{ name: "bottomTab" }],
       });
-      
+
     } catch (err) {
       console.error("Login error:", err);
-      setError(err.message || "Sign in failed. Please check your credentials.");
+      const rawMessage = err.message || "Sign in failed. Please check your credentials.";
+      const normalized = rawMessage.toLowerCase();
+
+      if (normalized.includes('awaiting community assignment')) {
+        setError('Your account is verified, but your administrator still needs to assign you to a community before you can sign in.');
+        setNoticeMessage('Account created successfully. Finish email verification first, then wait for community assignment from your administrator.');
+      } else if (normalized.includes('profile has not been provisioned yet')) {
+        setError('Your guard profile is not fully provisioned yet. Contact your administrator to finish setup.');
+      } else if (normalized.includes('profile is inactive')) {
+        setError('Your guard profile is inactive. Contact your administrator.');
+      } else {
+        setError(rawMessage);
+      }
     } finally {
       setLoading(false);
       completeProgress();
@@ -144,6 +165,12 @@ const EmailLoginScreen = ({ navigation }) => {
               marginHorizontal: Default.fixPadding * 2,
             }}
           >
+            {noticeMessage ? (
+              <View style={styles.noticeCard}>
+                <Ionicons name="information-circle-outline" size={20} color={Colors.primary} />
+                <Text style={styles.noticeText}>{noticeMessage}</Text>
+              </View>
+            ) : null}
             <Text style={{ ...Fonts.SemiBold21primary }}>
               SIGN IN WITH EMAIL
             </Text>
@@ -296,6 +323,20 @@ const EmailLoginScreen = ({ navigation }) => {
 export default EmailLoginScreen;
 
 const styles = StyleSheet.create({
+  noticeCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Default.fixPadding,
+    marginTop: Default.fixPadding * 1.4,
+    padding: Default.fixPadding * 1.2,
+    borderRadius: 12,
+    backgroundColor: Colors.primary + '12',
+  },
+  noticeText: {
+    ...Fonts.Medium14black,
+    flex: 1,
+    lineHeight: 20,
+  },
   textInput: {
     alignItems: "center",
     paddingVertical: Default.fixPadding,

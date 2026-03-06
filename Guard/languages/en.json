@@ -324,7 +324,18 @@
     "okay": "Okay",
     "update": "Update",
     "deny": "You has denied to access Camera!!!",
-    "removeImage": "Profile photo removed."
+    "removeImage": "Profile photo removed.",
+    "changeEmail": "Change",
+    "pendingEmailChange": "Pending email change:",
+    "emailChangeHelper": "Use Change to update your login email. A confirmation email will be sent before the new address becomes active.",
+    "currentEmailLabel": "Current login email",
+    "newEmailAddress": "New email address",
+    "enterNewEmail": "Enter new email address",
+    "currentPassword": "Current password",
+    "enterCurrentPassword": "Enter current password",
+    "emailChangeVerificationNote": "For security, the app verifies your current password before requesting the email change. You must confirm the change from the verification email before the new login email becomes active.",
+    "updatingEmail": "Submitting...",
+    "submitEmailChange": "Request Change"
   },
   "addImageBottomSheet": {
     "addImage": "Add Image",

@@ -11,6 +11,22 @@ import { supabase } from "../utils/supabase";
 const GuardAuthContext = createContext(undefined);
 const GUARD_ROLE_VALUES = ["guard", "GUARD"];
 
+const resolveGuardAccessErrorMessage = ({ hasUser, hasGuard, guardIsActive, hasCommunityScope }) => {
+  if (!hasUser) {
+    return "Access denied: Guard account record could not be found.";
+  }
+  if (!hasGuard) {
+    return "Access denied: Your guard profile has not been provisioned yet. Contact your administrator.";
+  }
+  if (!guardIsActive) {
+    return "Access denied: Your guard profile is inactive. Contact your administrator.";
+  }
+  if (!hasCommunityScope) {
+    return "Access denied: Your guard account is awaiting community assignment.";
+  }
+  return null;
+};
+
 const loadGuardBundle = async (authUserId) => {
   const { data: userData, error: userError } = await supabase
     .from("users")
@@ -100,7 +116,14 @@ export const GuardAuthProvider = ({ children }) => {
         bundle?.guard?.community_id || bundle?.user?.community_id
       );
 
-      if (!bundle?.guard || !guardIsActive || !hasCommunityScope) {
+      const accessErrorMessage = resolveGuardAccessErrorMessage({
+        hasUser: Boolean(bundle?.user),
+        hasGuard: Boolean(bundle?.guard),
+        guardIsActive,
+        hasCommunityScope,
+      });
+
+      if (accessErrorMessage) {
         if (enforceGuard) {
           await supabase.auth.signOut();
           clearAuthState();
@@ -109,10 +132,8 @@ export const GuardAuthProvider = ({ children }) => {
           setGuard(null);
           setCommunity(null);
         }
-        setAuthError(
-          "Access denied: Guard profile is missing, inactive, or not assigned to a community."
-        );
-        return null;
+        setAuthError(accessErrorMessage);
+        return { accessDenied: true, message: accessErrorMessage };
       }
 
       setUser(bundle.user);
@@ -188,8 +209,8 @@ export const GuardAuthProvider = ({ children }) => {
       }
 
       const bundle = await hydrateFromSession(data.session);
-      if (!bundle) {
-        throw new Error("Access denied: Guard credentials required.");
+      if (!bundle || bundle?.accessDenied) {
+        throw new Error(bundle?.message || "Access denied: Guard credentials required.");
       }
 
       if (bundle.guard?.id) {
