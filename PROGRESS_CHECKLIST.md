@@ -751,6 +751,11 @@ Date: 2026-02-06
   - Updated `/Users/andromeda/casanirvana/Guard/screens/editProfileScreen.js` to add a password-reauthenticated login email-change modal, keep pending email changes visible from `auth.users.new_email`, and leave `public.users.email` synchronization to the confirmed auth change instead of patching it prematurely.
 - [x] Formalized Guard registration handoff UX:
   - Updated `/Users/andromeda/casanirvana/Guard/screens/auth/registerScreen.js`, `/Users/andromeda/casanirvana/Guard/screens/auth/emailLoginScreen.js`, `/Users/andromeda/casanirvana/Guard/hooks/useRegisterGuard.js`, and `/Users/andromeda/casanirvana/Guard/contexts/GuardAuthContext.js` so signup/login communicate pending provisioning clearly, and sign-in failures distinguish missing profile, inactive profile, and awaiting community assignment states.
+- [x] Formalized admin-side Guard community assignment so registration is fully wired:
+  - Updated `/Users/andromeda/casanirvana/backend/src/controllers/adminGuardsOperations.ts` and `/Users/andromeda/casanirvana/backend/src/services/adminScope.ts` so guard assignments now sync canonical `guards.community_id` / `users.community_id`, active guard scope falls back to assignments when needed, and guard profile rows expose assignment/provisioning state.
+  - Added scoped `GET /admin/communities` in `/Users/andromeda/casanirvana/backend/src/controllers/adminCommunities.ts` and `/Users/andromeda/casanirvana/backend/src/routes/admin.ts` for assignment provisioning UI.
+  - Updated `/Users/andromeda/casanirvana/superadmin/src/components/operations/GuardOperationsWorkspace.tsx`, `/Users/andromeda/casanirvana/superadmin/src/hooks/useGuardOperations.ts`, and `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/guards/manage/page.tsx` so `Manage Guards -> Community Assignments` uses real guard/community selects, highlights guards awaiting first assignment, and deep-links from the profiles tab into onboarding completion.
+  - Added and applied `/Users/andromeda/casanirvana/supabase/migrations/20260306180000_phase34_guard_assignment_scope_sync.sql` to keep assignment-to-community sync enforced at the database layer and to make `current_guard_community_id()` fall back to active assignments.
 - [x] Build verification completed:
   - `backend`: `npm run build` passed.
   - `superadmin`: `npm run build` passed.

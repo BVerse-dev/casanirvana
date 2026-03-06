@@ -1,5 +1,33 @@
 import { Request, Response, NextFunction } from 'express';
 import { supabase } from '../lib/supabase';
+import { resolveAdminScope } from '../services/adminScope';
+
+export async function listCommunities(req: Request, res: Response, next: NextFunction) {
+  try {
+    const scope = await resolveAdminScope(req);
+
+    let query = supabase
+      .from('communities')
+      .select('id, name, agency_id, address, city, state, status')
+      .order('name', { ascending: true });
+
+    if (!scope.isGlobal) {
+      if (scope.communityIds.length === 0) {
+        return res.json({ data: [] });
+      }
+      query = query.in('id', scope.communityIds);
+    }
+
+    const { data, error } = await query;
+    if (error) {
+      return res.status(500).json({ error: 'Failed to load communities', details: error.message });
+    }
+
+    return res.json({ data: data || [] });
+  } catch (err) {
+    next(err);
+  }
+}
 
 export async function createCommunity(req: Request, res: Response, next: NextFunction) {
   try {

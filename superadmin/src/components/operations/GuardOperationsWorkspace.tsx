@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Alert, Nav } from "react-bootstrap";
+import { Alert, Badge, Button, Nav } from "react-bootstrap";
 
 import PageTitle from "@/components/PageTitle";
 import AdminCrudSection, {
@@ -19,6 +19,7 @@ import {
   useDeleteGuardEquipment,
   useDeleteGuardSchedule,
   useGuardAssignments,
+  useGuardCommunities,
   useGuardEquipment,
   useGuardPerformance,
   useGuardProfiles,
@@ -49,35 +50,102 @@ const toErrorText = (error: unknown) => (error instanceof Error ? error.message 
 
 export type GuardSectionKey = (typeof GUARD_TABS)[number]["key"];
 
+const renderAssignmentStatusBadge = (status: string | null | undefined) => {
+  const normalized = String(status || "").toLowerCase();
+  if (normalized === "assigned") {
+    return (
+      <Badge bg="success-subtle" text="success">
+        Assigned
+      </Badge>
+    );
+  }
+  if (normalized === "inactive") {
+    return (
+      <Badge bg="secondary-subtle" text="secondary">
+        Inactive
+      </Badge>
+    );
+  }
+  return (
+    <Badge bg="warning-subtle" text="warning">
+      Awaiting Assignment
+    </Badge>
+  );
+};
+
 const GuardProfilesSection = () => {
   const profilesQuery = useGuardProfiles();
+  const awaitingAssignmentCount =
+    profilesQuery.data?.filter((row) => row.assignment_status === "awaiting_assignment").length || 0;
 
   const columns: CrudColumn[] = [
     { key: "full_name", label: "Name" },
     { key: "email", label: "Email" },
     { key: "phone", label: "Phone" },
-    { key: "status", label: "Status" },
+    {
+      key: "assignment_status",
+      label: "Provisioning",
+      render: (row) => renderAssignmentStatusBadge(row.assignment_status),
+    },
     { key: "shift_type", label: "Shift" },
-    { key: "community_id", label: "Community" },
+    {
+      key: "resolved_community_name",
+      label: "Community",
+      render: (row) => row.resolved_community_name || "—",
+    },
+    {
+      key: "assignment_action",
+      label: "Next Step",
+      render: (row) =>
+        row.assignment_status === "awaiting_assignment" ? (
+          <Button
+            as={Link}
+            href={`/guards/manage?tab=assignments&guardId=${encodeURIComponent(row.id)}`}
+            size="sm"
+          >
+            Assign Community
+          </Button>
+        ) : row.active_assignment_id ? (
+          <Button
+            as={Link}
+            href={`/guards/manage?tab=assignments&guardId=${encodeURIComponent(row.id)}`}
+            variant="outline-primary"
+            size="sm"
+          >
+            Manage Assignment
+          </Button>
+        ) : (
+          "—"
+        ),
+    },
   ];
 
   return (
-    <AdminCrudSection
-      id="guards-profiles-workspace"
-      title="Guard Profiles"
-      subTitle="Directory of guards scoped to your tenant access."
-      badgeLabel="Read Only"
-      rows={profilesQuery.data || []}
-      isLoading={profilesQuery.isLoading}
-      error={toErrorText(profilesQuery.error)}
-      columns={columns}
-      fields={[]}
-      canCreate={false}
-      canUpdate={false}
-      canDelete={false}
-      onRefresh={() => profilesQuery.refetch()}
-      emptyText="No guard profiles available for your scope."
-    />
+    <>
+      {awaitingAssignmentCount > 0 ? (
+        <Alert variant="warning">
+          {awaitingAssignmentCount} guard{awaitingAssignmentCount === 1 ? "" : "s"} currently
+          await first community assignment. Use <strong>Assign Community</strong> to complete
+          onboarding before first login.
+        </Alert>
+      ) : null}
+      <AdminCrudSection
+        id="guards-profiles-workspace"
+        title="Guard Profiles"
+        subTitle="Directory of guards scoped to your tenant access. Self-registered guards appear here until a superadmin provisions their first community assignment."
+        badgeLabel="Read Only"
+        rows={profilesQuery.data || []}
+        isLoading={profilesQuery.isLoading}
+        error={toErrorText(profilesQuery.error)}
+        columns={columns}
+        fields={[]}
+        canCreate={false}
+        canUpdate={false}
+        canDelete={false}
+        onRefresh={() => profilesQuery.refetch()}
+        emptyText="No guard profiles available for your scope."
+      />
+    </>
   );
 };
 
@@ -139,11 +207,36 @@ const GuardSchedulesSection = () => {
   );
 };
 
-const GuardAssignmentsSection = () => {
-  const assignmentsQuery = useGuardAssignments();
+const GuardAssignmentsSection = ({ initialGuardId }: { initialGuardId?: string | null }) => {
+  const today = new Date().toISOString().slice(0, 10);
+  const assignmentsQuery = useGuardAssignments(initialGuardId ? { guardId: initialGuardId } : undefined);
   const createMutation = useCreateGuardAssignment();
   const updateMutation = useUpdateGuardAssignment();
   const deleteMutation = useDeleteGuardAssignment();
+  const profilesQuery = useGuardProfiles();
+  const communitiesQuery = useGuardCommunities();
+  const communities = communitiesQuery.data || [];
+  const guardOptions = (profilesQuery.data || [])
+    .slice()
+    .sort((left, right) => {
+      const leftScore = left.assignment_status === "awaiting_assignment" ? 0 : 1;
+      const rightScore = right.assignment_status === "awaiting_assignment" ? 0 : 1;
+      if (leftScore !== rightScore) return leftScore - rightScore;
+      return String(left.full_name || "").localeCompare(String(right.full_name || ""));
+    })
+    .map((guard) => ({
+      value: guard.id,
+      label:
+        guard.assignment_status === "awaiting_assignment"
+          ? `${guard.full_name} — Awaiting assignment`
+          : `${guard.full_name}${guard.resolved_community_name ? ` — ${guard.resolved_community_name}` : ""}`,
+    }));
+  const communityOptions = communities.map((community) => ({
+    value: community.id,
+    label: community.name,
+  }));
+  const awaitingAssignmentCount =
+    profilesQuery.data?.filter((row) => row.assignment_status === "awaiting_assignment").length || 0;
 
   const columns: CrudColumn[] = [
     { key: "assignment_name", label: "Assignment" },
@@ -155,9 +248,29 @@ const GuardAssignmentsSection = () => {
   ];
 
   const fields: CrudField[] = [
-    { key: "assignment_name", label: "Assignment Name", type: "text" },
-    { key: "guard_id", label: "Guard ID", type: "text", required: true },
-    { key: "community_id", label: "Community ID", type: "text", required: true },
+    {
+      key: "guard_id",
+      label: "Guard",
+      type: "select",
+      required: true,
+      options: guardOptions,
+      initialValue: initialGuardId || undefined,
+      helpText: "Self-registered guards awaiting first assignment are listed at the top.",
+    },
+    {
+      key: "community_id",
+      label: "Community",
+      type: "select",
+      required: true,
+      options: communityOptions,
+    },
+    {
+      key: "assignment_name",
+      label: "Assignment Name",
+      type: "text",
+      placeholder: "Main gate coverage",
+      helpText: "Use a clear operational label for audit and shift planning.",
+    },
     {
       key: "shift_type",
       label: "Shift Type",
@@ -170,15 +283,16 @@ const GuardAssignmentsSection = () => {
         { label: "Rotating", value: "rotating" },
       ],
     },
-    { key: "start_time", label: "Start Time", type: "time", required: true },
-    { key: "end_time", label: "End Time", type: "time", required: true },
-    { key: "start_date", label: "Start Date", type: "date", required: true },
+    { key: "start_time", label: "Start Time", type: "time", required: true, initialValue: "08:00" },
+    { key: "end_time", label: "End Time", type: "time", required: true, initialValue: "17:00" },
+    { key: "start_date", label: "Start Date", type: "date", required: true, initialValue: today },
     { key: "end_date", label: "End Date", type: "date" },
     {
       key: "days_of_week",
       label: "Days of Week",
       type: "text",
       required: true,
+      initialValue: "0,1,2,3,4,5,6",
       helpText: "Comma-separated weekday numbers (0=Sun ... 6=Sat).",
       fromValue: (value) => (Array.isArray(value) ? value.join(",") : ""),
       toPayload: (value) =>
@@ -202,21 +316,38 @@ const GuardAssignmentsSection = () => {
   ];
 
   return (
-    <AdminCrudSection
-      id="guards-assignments-workspace"
-      title="Community Assignments"
-      subTitle="Manage where guards are assigned across scoped communities."
-      rows={assignmentsQuery.data || []}
-      isLoading={assignmentsQuery.isLoading}
-      error={toErrorText(assignmentsQuery.error)}
-      columns={columns}
-      fields={fields}
-      onCreate={(payload) => createMutation.mutateAsync(payload)}
-      onUpdate={(id, payload) => updateMutation.mutateAsync({ id, payload })}
-      onDelete={(id) => deleteMutation.mutateAsync(id)}
-      onRefresh={() => assignmentsQuery.refetch()}
-      emptyText="No assignments found."
-    />
+    <>
+      {awaitingAssignmentCount > 0 ? (
+        <Alert variant="info">
+          {awaitingAssignmentCount} guard{awaitingAssignmentCount === 1 ? "" : "s"} are ready for
+          onboarding completion. Create an active community assignment here to unlock first login in
+          the Guard app.
+        </Alert>
+      ) : null}
+      <AdminCrudSection
+        id="guards-assignments-workspace"
+        title="Community Assignments"
+        subTitle="Manage where guards are assigned across scoped communities. Saving an active assignment now also syncs the guard's canonical community scope for Guard app access."
+        rows={assignmentsQuery.data || []}
+        isLoading={assignmentsQuery.isLoading || profilesQuery.isLoading || communitiesQuery.isLoading}
+        error={
+          toErrorText(assignmentsQuery.error) ||
+          toErrorText(profilesQuery.error) ||
+          toErrorText(communitiesQuery.error)
+        }
+        columns={columns}
+        fields={fields}
+        onCreate={(payload) => createMutation.mutateAsync(payload)}
+        onUpdate={(id, payload) => updateMutation.mutateAsync({ id, payload })}
+        onDelete={(id) => deleteMutation.mutateAsync(id)}
+        onRefresh={() => {
+          assignmentsQuery.refetch();
+          profilesQuery.refetch();
+          communitiesQuery.refetch();
+        }}
+        emptyText="No assignments found."
+      />
+    </>
   );
 };
 
@@ -357,7 +488,13 @@ const GuardTrainingSection = () => {
   );
 };
 
-const GuardOperationsWorkspace = ({ section }: { section: GuardSectionKey }) => {
+const GuardOperationsWorkspace = ({
+  section,
+  initialGuardId,
+}: {
+  section: GuardSectionKey;
+  initialGuardId?: string | null;
+}) => {
   const { data: capabilities } = useAdminCapabilities();
   const capabilitySet = new Set(capabilities?.menu_capabilities || []);
   const visibleTabs = GUARD_TABS.filter((tab) => capabilitySet.has(tab.capability));
@@ -394,7 +531,9 @@ const GuardOperationsWorkspace = ({ section }: { section: GuardSectionKey }) => 
 
       {hasAccess && resolvedSection === "profiles" ? <GuardProfilesSection /> : null}
       {hasAccess && resolvedSection === "schedules" ? <GuardSchedulesSection /> : null}
-      {hasAccess && resolvedSection === "assignments" ? <GuardAssignmentsSection /> : null}
+      {hasAccess && resolvedSection === "assignments" ? (
+        <GuardAssignmentsSection initialGuardId={initialGuardId} />
+      ) : null}
       {hasAccess && resolvedSection === "equipment" ? <GuardEquipmentSection /> : null}
       {hasAccess && resolvedSection === "performance" ? <GuardPerformanceSection /> : null}
       {hasAccess && resolvedSection === "training" ? <GuardTrainingSection /> : null}

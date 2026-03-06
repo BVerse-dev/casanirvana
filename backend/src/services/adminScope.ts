@@ -148,22 +148,46 @@ export async function getScopedGuardIds(scope: AdminScope): Promise<string[]> {
 
   if (scope.communityIds.length === 0) return [];
 
-  const { data } = await supabase
+  const { data: guardRows } = await supabase
     .from('guards')
     .select('id')
     .in('community_id', scope.communityIds);
 
-  return dedupe((data || []).map((row) => row.id));
+  const { data: assignmentRows } = await supabase
+    .from('guard_assignments')
+    .select('guard_id')
+    .in('community_id', scope.communityIds)
+    .eq('status', 'active');
+
+  return dedupe([
+    ...(guardRows || []).map((row) => row.id),
+    ...(assignmentRows || []).map((row) => row.guard_id),
+  ]);
 }
 
 export async function resolveGuardCommunityId(guardId: string): Promise<string | null> {
   if (!isUuid(guardId)) return null;
 
   const { data } = await supabase
-    .from('guards')
+      .from('guards')
+      .select('community_id')
+      .eq('id', guardId)
+      .maybeSingle();
+
+  if (isUuid(data?.community_id)) {
+    return data.community_id;
+  }
+
+  const { data: assignment } = await supabase
+    .from('guard_assignments')
     .select('community_id')
-    .eq('id', guardId)
+    .eq('guard_id', guardId)
+    .eq('status', 'active')
+    .order('start_date', { ascending: false })
+    .order('updated_at', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(1)
     .maybeSingle();
 
-  return isUuid(data?.community_id) ? data.community_id : null;
+  return isUuid(assignment?.community_id) ? assignment.community_id : null;
 }

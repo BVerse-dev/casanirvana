@@ -93,6 +93,9 @@ const useDeleteMutation = (resourceKey: string, path: string) => {
 export const useGuardProfiles = (filters?: GuardOperationsFilters) =>
   useGuardOperationsResource("/admin/guards/profiles", filters);
 
+export const useGuardCommunities = () =>
+  useGuardOperationsResource("/admin/communities");
+
 export const useGuardSchedules = (filters?: GuardOperationsFilters) =>
   useGuardOperationsResource("/admin/guards/schedules", filters);
 export const useCreateGuardSchedule = () =>
@@ -133,4 +136,3 @@ export const useCreateGuardTraining = () =>
   useCreateMutation("/admin/guards/training", "/admin/guards/training");
 export const useUpdateGuardTraining = () =>
   useUpdateMutation("/admin/guards/training", "/admin/guards/training");
-

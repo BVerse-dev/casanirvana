@@ -106,6 +106,12 @@ router.patch(
 );
 
 // Communities management (admin writes)
+router.get(
+  '/communities',
+  requireAuth,
+  requireAdmin,
+  communitiesAdminController.listCommunities
+);
 router.post(
   '/communities',
   requireAuth,

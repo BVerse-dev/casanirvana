@@ -14,6 +14,7 @@ const VALID_SECTIONS = new Set<GuardSectionKey>([
 type ManageGuardsPageProps = {
   searchParams?: {
     tab?: string;
+    guardId?: string;
   };
 };
 
@@ -23,7 +24,10 @@ const resolveSection = (tab?: string): GuardSectionKey =>
     : "profiles";
 
 const Page = ({ searchParams }: ManageGuardsPageProps) => (
-  <GuardOperationsWorkspace section={resolveSection(searchParams?.tab)} />
+  <GuardOperationsWorkspace
+    section={resolveSection(searchParams?.tab)}
+    initialGuardId={searchParams?.guardId || null}
+  />
 );
 
 export default Page;

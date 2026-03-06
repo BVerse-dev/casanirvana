@@ -24,6 +24,141 @@ const parseStringQueryParam = (req: Request, key: string): string | null => {
 const toScopeError = (res: Response, message: string) =>
   res.status(403).json({ error: message });
 
+type GuardIdentity = {
+  id: string;
+  user_id: string | null;
+  community_id: string | null;
+  full_name?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  email?: string | null;
+  status?: string | null;
+  is_active?: boolean | null;
+};
+
+type GuardAssignmentScope = {
+  id: string;
+  guard_id: string;
+  community_id: string;
+  assignment_name: string | null;
+  assigned_gate: string | null;
+  shift_type: string | null;
+};
+
+const ACTIVE_GUARD_ASSIGNMENT_STATUS = 'active';
+
+const buildGuardDisplayName = (guard: Partial<GuardIdentity>) => {
+  const fullName = String(guard.full_name || '').trim();
+  if (fullName) return fullName;
+
+  const firstName = String(guard.first_name || '').trim();
+  const lastName = String(guard.last_name || '').trim();
+  const joined = `${firstName} ${lastName}`.trim();
+  if (joined) return joined;
+
+  return String(guard.email || guard.id || 'Guard');
+};
+
+async function getGuardIdentity(guardId: string): Promise<GuardIdentity | null> {
+  if (!isUuid(guardId)) return null;
+
+  const { data, error } = await supabase
+    .from('guards')
+    .select('id, user_id, community_id, full_name, first_name, last_name, email, status, is_active')
+    .eq('id', guardId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to load guard profile: ${error.message}`);
+  }
+
+  return (data as GuardIdentity | null) || null;
+}
+
+async function getPrimaryGuardAssignment(guardId: string): Promise<GuardAssignmentScope | null> {
+  if (!isUuid(guardId)) return null;
+
+  const { data, error } = await supabase
+    .from('guard_assignments')
+    .select('id, guard_id, community_id, assignment_name, assigned_gate, shift_type')
+    .eq('guard_id', guardId)
+    .eq('status', ACTIVE_GUARD_ASSIGNMENT_STATUS)
+    .order('start_date', { ascending: false })
+    .order('updated_at', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to load guard assignment scope: ${error.message}`);
+  }
+
+  return (data as GuardAssignmentScope | null) || null;
+}
+
+async function syncGuardAssignmentScope(guardId: string) {
+  const guard = await getGuardIdentity(guardId);
+  if (!guard) return;
+
+  const primaryAssignment = await getPrimaryGuardAssignment(guardId);
+  const nextCommunityId = isUuid(primaryAssignment?.community_id) ? primaryAssignment.community_id : null;
+  const nextAssignmentName = primaryAssignment?.assignment_name || null;
+
+  const { error: guardError } = await supabase
+    .from('guards')
+    .update({
+      community_id: nextCommunityId,
+      community_assignment: nextAssignmentName,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', guardId);
+
+  if (guardError) {
+    throw new Error(`Failed to sync guard scope: ${guardError.message}`);
+  }
+
+  if (isUuid(guard.user_id)) {
+    const { error: userError } = await supabase
+      .from('users')
+      .update({
+        community_id: nextCommunityId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', guard.user_id);
+
+    if (userError) {
+      throw new Error(`Failed to sync user scope: ${userError.message}`);
+    }
+  }
+}
+
+async function canAssignGuardToCommunity(
+  scope: Awaited<ReturnType<typeof resolveAdminScope>>,
+  guardId: string,
+  communityId: string
+) {
+  if (!isUuid(guardId)) {
+    return { ok: false, reason: 'guard_id is required.' as const };
+  }
+  if (!isUuid(communityId)) {
+    return { ok: false, reason: 'community_id is required.' as const };
+  }
+  if (!canAccessCommunity(scope, communityId)) {
+    return { ok: false, reason: 'Access denied for the selected community.' as const };
+  }
+
+  const guard = await getGuardIdentity(guardId);
+  if (!guard) {
+    return { ok: false, reason: 'Guard profile not found.' as const };
+  }
+
+  if (!scope.isGlobal && isUuid(guard.community_id) && !canAccessCommunity(scope, guard.community_id)) {
+    return { ok: false, reason: 'Access denied for the selected guard.' as const };
+  }
+
+  return { ok: true, guard };
+}
+
 async function ensureGuardScope(scope: Awaited<ReturnType<typeof resolveAdminScope>>, guardId: string) {
   const guardCommunityId = await resolveGuardCommunityId(guardId);
   if (!guardCommunityId) {
@@ -65,10 +200,11 @@ export async function listGuardProfiles(req: Request, res: Response, next: NextF
     if (requestedCommunityId) {
       query = query.eq('community_id', requestedCommunityId);
     } else if (!scope.isGlobal) {
-      if (scope.communityIds.length === 0) {
+      const scopedGuardIds = await getScopedGuardIds(scope);
+      if (scopedGuardIds.length === 0) {
         return res.json({ data: [] });
       }
-      query = query.in('community_id', scope.communityIds);
+      query = query.in('id', scopedGuardIds);
     }
     if (requestedGuardId) {
       query = query.eq('id', requestedGuardId);
@@ -83,7 +219,94 @@ export async function listGuardProfiles(req: Request, res: Response, next: NextF
       return res.status(500).json({ error: 'Failed to fetch guard profiles', details: error.message });
     }
 
-    return res.json({ data: data || [] });
+    const rows = data || [];
+    if (rows.length === 0) {
+      return res.json({ data: [] });
+    }
+
+    const guardIds = rows
+      .map((row) => (isUuid(row.id) ? row.id : null))
+      .filter((value): value is string => Boolean(value));
+
+    const { data: assignmentRows, error: assignmentError } = await supabase
+      .from('guard_assignments')
+      .select('id, guard_id, community_id, assignment_name, assigned_gate, shift_type')
+      .in('guard_id', guardIds)
+      .eq('status', ACTIVE_GUARD_ASSIGNMENT_STATUS)
+      .order('start_date', { ascending: false })
+      .order('updated_at', { ascending: false })
+      .order('created_at', { ascending: false });
+
+    if (assignmentError) {
+      return res.status(500).json({ error: 'Failed to fetch guard assignment summary', details: assignmentError.message });
+    }
+
+    const activeAssignmentByGuard = new Map<string, GuardAssignmentScope>();
+    for (const assignment of assignmentRows || []) {
+      if (isUuid(assignment.guard_id) && !activeAssignmentByGuard.has(assignment.guard_id)) {
+        activeAssignmentByGuard.set(assignment.guard_id, assignment as GuardAssignmentScope);
+      }
+    }
+
+    const communityIds = Array.from(
+      new Set(
+        rows
+          .map((row) => row.community_id)
+          .concat((assignmentRows || []).map((assignment) => assignment.community_id))
+          .filter((value): value is string => isUuid(value))
+      )
+    );
+
+    const { data: communityRows, error: communityError } =
+      communityIds.length > 0
+        ? await supabase.from('communities').select('id, name').in('id', communityIds)
+        : { data: [], error: null };
+
+    if (communityError) {
+      return res.status(500).json({ error: 'Failed to fetch guard communities', details: communityError.message });
+    }
+
+    const communityMap = new Map((communityRows || []).map((community) => [community.id, community.name]));
+
+    const mappedRows = rows.map((row) => {
+      const activeAssignment = activeAssignmentByGuard.get(row.id);
+      const resolvedCommunityId = isUuid(row.community_id)
+        ? row.community_id
+        : isUuid(activeAssignment?.community_id)
+          ? activeAssignment.community_id
+          : null;
+      const resolvedCommunityName =
+        (resolvedCommunityId ? communityMap.get(resolvedCommunityId) : null) ||
+        row.communities?.name ||
+        null;
+      const isActive =
+        row.is_active !== false && String(row.status || 'active').toLowerCase() === 'active';
+      const assignmentStatus = !isActive
+        ? 'inactive'
+        : resolvedCommunityId
+          ? 'assigned'
+          : 'awaiting_assignment';
+
+      return {
+        ...row,
+        full_name: buildGuardDisplayName(row),
+        resolved_community_id: resolvedCommunityId,
+        resolved_community_name: resolvedCommunityName,
+        active_assignment_id: activeAssignment?.id || null,
+        active_assignment_name: activeAssignment?.assignment_name || null,
+        active_assignment_gate: activeAssignment?.assigned_gate || null,
+        active_assignment_shift_type: activeAssignment?.shift_type || null,
+        assignment_status: assignmentStatus,
+        assignment_status_label:
+          assignmentStatus === 'awaiting_assignment'
+            ? 'Awaiting Assignment'
+            : assignmentStatus === 'inactive'
+              ? 'Inactive'
+              : 'Assigned',
+      };
+    });
+
+    return res.json({ data: mappedRows });
   } catch (error) {
     next(error);
   }
@@ -361,13 +584,9 @@ export async function createGuardAssignment(req: Request, res: Response, next: N
     if (!isUuid(payload.guard_id)) {
       return res.status(400).json({ error: 'guard_id is required' });
     }
-    if (!canAccessCommunity(scope, payload.community_id)) {
-      return toScopeError(res, 'Access denied for the selected community.');
-    }
-
-    if (!scope.isGlobal) {
-      const guardScope = await ensureGuardScope(scope, payload.guard_id);
-      if (!guardScope.ok) return toScopeError(res, guardScope.reason);
+    const assignmentScope = await canAssignGuardToCommunity(scope, payload.guard_id, payload.community_id);
+    if (!assignmentScope.ok) {
+      return toScopeError(res, assignmentScope.reason);
     }
 
     const { data, error } = await supabase
@@ -379,6 +598,8 @@ export async function createGuardAssignment(req: Request, res: Response, next: N
     if (error) {
       return res.status(500).json({ error: 'Failed to create guard assignment', details: error.message });
     }
+
+    await syncGuardAssignmentScope(payload.guard_id);
 
     return res.status(201).json({ data });
   } catch (error) {
@@ -412,12 +633,12 @@ export async function updateGuardAssignment(req: Request, res: Response, next: N
       return toScopeError(res, 'Access denied for the selected assignment.');
     }
 
-    if (isUuid(payload.community_id) && !canAccessCommunity(scope, payload.community_id)) {
-      return toScopeError(res, 'Access denied for the selected community.');
-    }
-    if (isUuid(payload.guard_id) && !scope.isGlobal) {
-      const guardScope = await ensureGuardScope(scope, payload.guard_id);
-      if (!guardScope.ok) return toScopeError(res, guardScope.reason);
+    const nextGuardId = isUuid(payload.guard_id) ? payload.guard_id : existing.guard_id;
+    const nextCommunityId = isUuid(payload.community_id) ? payload.community_id : existing.community_id;
+
+    const assignmentScope = await canAssignGuardToCommunity(scope, nextGuardId, nextCommunityId);
+    if (!assignmentScope.ok) {
+      return toScopeError(res, assignmentScope.reason);
     }
 
     payload.updated_at = new Date().toISOString();
@@ -431,6 +652,13 @@ export async function updateGuardAssignment(req: Request, res: Response, next: N
 
     if (error) {
       return res.status(500).json({ error: 'Failed to update guard assignment', details: error.message });
+    }
+
+    if (isUuid(existing.guard_id)) {
+      await syncGuardAssignmentScope(existing.guard_id);
+    }
+    if (isUuid(data?.guard_id) && data.guard_id !== existing.guard_id) {
+      await syncGuardAssignmentScope(data.guard_id);
     }
 
     return res.json({ data });
@@ -449,7 +677,7 @@ export async function deleteGuardAssignment(req: Request, res: Response, next: N
     const scope = await resolveAdminScope(req);
     const { data: existing, error: existingError } = await supabase
       .from('guard_assignments')
-      .select('id, community_id')
+      .select('id, community_id, guard_id')
       .eq('id', id)
       .maybeSingle();
 
@@ -463,9 +691,15 @@ export async function deleteGuardAssignment(req: Request, res: Response, next: N
       return toScopeError(res, 'Access denied for the selected assignment.');
     }
 
+    const guardId = existing.guard_id;
+
     const { error } = await supabase.from('guard_assignments').delete().eq('id', id);
     if (error) {
       return res.status(500).json({ error: 'Failed to delete guard assignment', details: error.message });
+    }
+
+    if (isUuid(guardId)) {
+      await syncGuardAssignmentScope(guardId);
     }
 
     return res.status(204).send();
