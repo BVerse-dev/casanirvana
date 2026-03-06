@@ -5,7 +5,6 @@ import {
   BackHandler,
   FlatList,
   TextInput,
-  Alert,
   Image,
   ActivityIndicator,
 } from 'react-native';
@@ -23,6 +22,13 @@ import {
 } from '../hooks/useCommunityDirectoryMembers';
 import ModuleUnavailableState from '../components/ModuleUnavailableState';
 import { useGuardModuleAccess, MODULE_SLUGS } from '../hooks/useGuardModuleAccess';
+import { useGuardAuth } from '../contexts/GuardAuthContext';
+import {
+  loadRecentResidentSearches,
+  saveRecentResidentSearch,
+  clearRecentResidentSearches,
+  replaceRecentResidentSearches,
+} from '../services/residentSearchHistoryService';
 
 const roleLabel = (role) => {
   if (role === 'admin') return 'Admin';
@@ -56,6 +62,7 @@ const SearchScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
   const isRtl = i18n.dir() === 'rtl';
   const { conversations = [] } = useConversations();
+  const { authUser } = useGuardAuth();
 
   function tr(key) {
     return t(`searchScreen:${key}`);
@@ -74,8 +81,7 @@ const SearchScreen = ({ navigation }) => {
   }, [backAction]);
 
   const [search, setSearch] = useState('');
-  const [clearAll, setClearAll] = useState(false);
-  const [isListening, setIsListening] = useState(false);
+  const [recentSearches, setRecentSearches] = useState([]);
   const { modulesLoaded, enabled: residentDirectoryEnabled } = useGuardModuleAccess(
     MODULE_SLUGS.RESIDENT_DIRECTORY,
   );
@@ -84,6 +90,23 @@ const SearchScreen = ({ navigation }) => {
     enabled: residentDirectoryEnabled,
   });
   useGuardCommunityDirectorySubscription({ enabled: residentDirectoryEnabled });
+
+  useEffect(() => {
+    let mounted = true;
+
+    const hydrateRecentSearches = async () => {
+      const nextRecentSearches = await loadRecentResidentSearches(authUser?.id);
+      if (mounted) {
+        setRecentSearches(nextRecentSearches);
+      }
+    };
+
+    hydrateRecentSearches();
+
+    return () => {
+      mounted = false;
+    };
+  }, [authUser?.id]);
 
   const conversationsByPartner = useMemo(() => {
     const map = new Map();
@@ -99,6 +122,7 @@ const SearchScreen = ({ navigation }) => {
       memberId: resident.id,
       name: resident.name,
       phone: resident.phone,
+      email: resident.email,
       unit:
         resident.block === 'N/A'
           ? roleLabel(resident.role)
@@ -114,32 +138,135 @@ const SearchScreen = ({ navigation }) => {
     return allResidents.filter(
       (resident) =>
         resident.name.toLowerCase().includes(searchLower) ||
-        resident.unit.toLowerCase().includes(searchLower),
+        resident.unit.toLowerCase().includes(searchLower) ||
+        (resident.phone || '').toLowerCase().includes(searchLower) ||
+        (resident.email || '').toLowerCase().includes(searchLower),
     );
   }, [allResidents, search]);
 
-  const recentSearchList = useMemo(
-    () =>
-      allResidents.slice(0, 6).map((resident, index) => ({
-        key: `${resident.id}-${index}`,
-        title: `${resident.name} (${resident.unit})`,
+  useEffect(() => {
+    if (!authUser?.id || recentSearches.length === 0) {
+      return;
+    }
+
+    const residentById = new Map(allResidents.map((resident) => [resident.id, resident]));
+    const syncedRecentSearches = recentSearches
+      .map((entry) => {
+        const currentResident = residentById.get(entry.id);
+        if (!currentResident) {
+          return null;
+        }
+
+        return {
+          ...entry,
+          memberId: currentResident.memberId,
+          name: currentResident.name,
+          unit: currentResident.unit,
+          image: currentResident.image,
+          phone: currentResident.phone,
+          email: currentResident.email,
+        };
+      })
+      .filter(Boolean);
+
+    const currentSerialized = JSON.stringify(recentSearches);
+    const nextSerialized = JSON.stringify(syncedRecentSearches);
+
+    if (currentSerialized !== nextSerialized) {
+      setRecentSearches(syncedRecentSearches);
+      replaceRecentResidentSearches(authUser.id, syncedRecentSearches);
+    }
+  }, [allResidents, authUser?.id, recentSearches]);
+
+  const recentSearchList = useMemo(() => {
+    return recentSearches.map((resident, index) => ({
+      ...resident,
+      key: `${resident.id}-${index}`,
+      title: `${resident.name} (${resident.unit})`,
+    }));
+  }, [recentSearches]);
+
+  const openResidentThread = useCallback(
+    async (resident) => {
+      if (authUser?.id) {
+        const nextRecentSearches = await saveRecentResidentSearch(authUser.id, resident);
+        setRecentSearches(nextRecentSearches);
+      }
+
+      navigation.navigate('messageScreen', {
+        image: resident.image
+          ? { uri: resident.image }
+          : require('../assets/images/guard.png'),
         name: resident.name,
-      })),
-    [allResidents],
+        key: resident.id,
+        id: resident.id,
+        memberId: resident.memberId,
+      });
+    },
+    [authUser?.id, navigation],
   );
 
-  const handleVoiceSearch = async () => {
-    try {
-      setIsListening(true);
-      Alert.alert(
-        'Voice Search',
-        'Voice search feature coming soon! For now, please type your search.',
-        [{ text: 'OK', onPress: () => setIsListening(false) }],
-      );
-    } catch (_voiceError) {
-      setIsListening(false);
-    }
-  };
+  const handleClearRecentSearches = useCallback(async () => {
+    await clearRecentResidentSearches(authUser?.id);
+    setRecentSearches([]);
+  }, [authUser?.id]);
+
+  const formatRecentSearchTime = useCallback((timestamp) => {
+    if (!timestamp) return '';
+
+    const date = new Date(timestamp);
+    if (Number.isNaN(date.getTime())) return '';
+
+    return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  }, []);
+
+  const hasRecentSearches = recentSearchList.length > 0;
+
+  const renderEmptyRecentState = () => (
+    <View
+      style={{
+        marginTop: Default.fixPadding * 6,
+        alignItems: 'center',
+        paddingHorizontal: Default.fixPadding * 2,
+      }}
+    >
+      <MaterialIcons name='history' size={32} color={Colors.grey} />
+      <Text
+        style={{
+          ...Fonts.SemiBold16grey,
+          marginTop: Default.fixPadding,
+          textAlign: 'center',
+        }}
+      >
+        No recent resident lookups yet.
+      </Text>
+      <Text
+        style={{
+          ...Fonts.Medium14grey,
+          marginTop: Default.fixPadding * 0.5,
+          textAlign: 'center',
+        }}
+      >
+        Search by resident name, unit, phone number, or email.
+      </Text>
+    </View>
+  );
+
+  const renderResidentCallAction = useCallback(
+    (resident) => {
+      navigation.navigate('callScreen', {
+        image: resident.image
+          ? { uri: resident.image }
+          : require('../assets/images/guard.png'),
+        name: resident.name,
+        phone: resident.phone,
+        id: resident.id,
+        memberId: resident.memberId,
+        calleeProfileId: resident.memberId || resident.id,
+      });
+    },
+    [navigation],
+  );
 
   const renderSearchResult = ({ item }) => {
     const conversation = conversationsByPartner.get(item.id);
@@ -147,17 +274,7 @@ const SearchScreen = ({ navigation }) => {
 
     return (
       <TouchableOpacity
-        onPress={() => {
-          navigation.navigate('messageScreen', {
-            image: item.image
-              ? { uri: item.image }
-              : require('../assets/images/guard.png'),
-            name: item.name,
-            key: item.id,
-            id: item.id,
-            memberId: item.memberId,
-          });
-        }}
+        onPress={() => openResidentThread(item)}
         style={{
           flexDirection: isRtl ? 'row-reverse' : 'row',
           alignItems: 'center',
@@ -235,18 +352,7 @@ const SearchScreen = ({ navigation }) => {
             </View>
           ) : null}
           <TouchableOpacity
-            onPress={() => {
-              navigation.navigate('callScreen', {
-                image: item.image
-                  ? { uri: item.image }
-                  : require('../assets/images/guard.png'),
-                name: item.name,
-                phone: item.phone,
-                id: item.id,
-                memberId: item.memberId,
-                calleeProfileId: item.memberId || item.id,
-              });
-            }}
+            onPress={() => renderResidentCallAction(item)}
             style={{ padding: Default.fixPadding * 0.5 }}
           >
             <MaterialCommunityIcons name='phone-outline' size={20} color={Colors.grey} />
@@ -259,14 +365,51 @@ const SearchScreen = ({ navigation }) => {
   const renderRecentItem = ({ item }) => {
     return (
       <TouchableOpacity
-        onPress={() => setSearch(item.name)}
+        onPress={() => openResidentThread(item)}
         style={{
-          alignItems: isRtl ? 'flex-end' : 'flex-start',
+          flexDirection: isRtl ? 'row-reverse' : 'row',
+          alignItems: 'center',
           marginBottom: Default.fixPadding,
           marginHorizontal: Default.fixPadding * 2,
         }}
       >
-        <Text style={{ ...Fonts.Medium14grey }}>🔍 {item.title}</Text>
+        <View
+          style={{
+            flex: 1,
+            flexDirection: isRtl ? 'row-reverse' : 'row',
+            alignItems: 'center',
+          }}
+        >
+          <MaterialIcons name='history' size={18} color={Colors.grey} />
+          <View
+            style={{
+            flex: 1,
+            alignItems: isRtl ? 'flex-end' : 'flex-start',
+            marginHorizontal: Default.fixPadding,
+          }}
+        >
+          <Text numberOfLines={1} style={{ ...Fonts.Medium16primary, overflow: 'hidden' }}>
+            {item.title}
+          </Text>
+          <Text
+            numberOfLines={1}
+            style={{
+              ...Fonts.Medium12grey,
+              overflow: 'hidden',
+              marginTop: Default.fixPadding * 0.3,
+            }}
+          >
+            Opened {formatRecentSearchTime(item.updatedAt)}
+          </Text>
+        </View>
+        </View>
+
+        <TouchableOpacity
+          onPress={() => renderResidentCallAction(item)}
+          style={{ padding: Default.fixPadding * 0.5 }}
+        >
+          <MaterialCommunityIcons name='phone-outline' size={20} color={Colors.grey} />
+        </TouchableOpacity>
       </TouchableOpacity>
     );
   };
@@ -345,13 +488,11 @@ const SearchScreen = ({ navigation }) => {
                 marginHorizontal: Default.fixPadding,
               }}
             />
-            <TouchableOpacity onPress={handleVoiceSearch}>
-              <MaterialIcons
-                name={isListening ? 'mic' : 'mic-none'}
-                size={20}
-                color={isListening ? Colors.primary : Colors.grey}
-              />
-            </TouchableOpacity>
+            {search.trim() ? (
+              <TouchableOpacity onPress={() => setSearch('')}>
+                <MaterialIcons name='close' size={20} color={Colors.grey} />
+              </TouchableOpacity>
+            ) : null}
           </View>
         </View>
       </View>
@@ -393,14 +534,7 @@ const SearchScreen = ({ navigation }) => {
             </Text>
           </View>
         )
-      ) : clearAll ? (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <MaterialIcons name='search-off' size={40} color={Colors.grey} />
-          <Text style={{ ...Fonts.SemiBold16grey, marginTop: Default.fixPadding }}>
-            {tr('noSearch')}
-          </Text>
-        </View>
-      ) : (
+      ) : hasRecentSearches ? (
         <FlatList
           data={recentSearchList}
           renderItem={renderRecentItem}
@@ -427,7 +561,7 @@ const SearchScreen = ({ navigation }) => {
                 {tr('recentSearch')}
               </Text>
               <TouchableOpacity
-                onPress={() => setClearAll(true)}
+                onPress={handleClearRecentSearches}
                 style={{
                   flex: 3,
                   alignItems: isRtl ? 'flex-start' : 'flex-end',
@@ -445,6 +579,8 @@ const SearchScreen = ({ navigation }) => {
             </View>
           )}
         />
+      ) : (
+        renderEmptyRecentState()
       )}
     </View>
   );

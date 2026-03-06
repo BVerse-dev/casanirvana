@@ -734,6 +734,11 @@ Date: 2026-02-06
   - Added `/Users/andromeda/casanirvana/Guard/services/moduleSettingsService.js` as the guard-side scoped module cache/service so Guard module reads use the canonical Supabase client and fail closed for known slugs.
   - Added `/Users/andromeda/casanirvana/Guard/hooks/useGuardModuleAccess.js` and applied it to `/Users/andromeda/casanirvana/Guard/screens/chatScreen.js`, `/Users/andromeda/casanirvana/Guard/screens/searchScreen.js`, and `/Users/andromeda/casanirvana/Guard/components/residentsTab.js`.
   - Resident discovery/search surfaces now stop rendering and stop querying when the `resident_directory` module is disabled for a community, while guard chats remain available.
+- [x] Removed placeholder resident-search UX in the Guard directory flow:
+  - Added `/Users/andromeda/casanirvana/Guard/services/residentSearchHistoryService.js` so resident search history is real, guard-scoped, and capped instead of showing fake “recent searches.”
+  - Updated `/Users/andromeda/casanirvana/Guard/screens/searchScreen.js` to persist resident lookups, support name/unit/phone/email search, and replace the non-production voice-search placeholder with a standard clear-search control.
+- [x] Fixed Guard resident-directory route payload consistency:
+  - Updated `/Users/andromeda/casanirvana/Guard/components/residentsTab.js` so resident avatar URLs are normalized to React Native image-source objects before navigating to `/Users/andromeda/casanirvana/Guard/screens/messageScreen.js` and `/Users/andromeda/casanirvana/Guard/screens/callScreen.js`.
 - [x] Build verification completed:
   - `backend`: `npm run build` passed.
   - `superadmin`: `npm run build` passed.

@@ -24,6 +24,11 @@ const roleLabel = (role) => {
   return "Member";
 };
 
+const toRouteImageSource = (image) =>
+  typeof image === "string" && image
+    ? { uri: image }
+    : require("../assets/images/guard.png");
+
 const ResidentsTab = ({ navigation }) => {
   const { i18n } = useTranslation();
   const isRtl = i18n.dir() === "rtl";
@@ -189,7 +194,7 @@ const ResidentsTab = ({ navigation }) => {
                 <TouchableOpacity
                   onPress={() =>
                     navigation.push("callScreen", {
-                      image: member.image || require("../assets/images/guard.png"),
+                      image: toRouteImageSource(member.image),
                       name: member.name,
                       phone: member.phone,
                       id: member.id,
@@ -211,7 +216,7 @@ const ResidentsTab = ({ navigation }) => {
                 <TouchableOpacity
                   onPress={() =>
                     navigation.push("messageScreen", {
-                      image: member.image || require("../assets/images/guard.png"),
+                      image: toRouteImageSource(member.image),
                       name: member.name,
                       key: member.key,
                       id: member.id,
