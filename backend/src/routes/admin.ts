@@ -429,6 +429,13 @@ router.get(
   validateRequest({ query: schemas.adminAgencyOperationsQuery }),
   adminAgenciesOperationsController.listAgencyDirectory
 );
+router.post(
+  '/agencies/directory',
+  requireAuth,
+  requirePermission('create:profiles'),
+  validateRequest({ body: schemas.adminAgencyDirectoryCreate }),
+  adminAgenciesOperationsController.createAgencyDirectory
+);
 router.delete(
   '/agencies/directory/:id',
   requireAuth,

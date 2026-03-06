@@ -128,3 +128,27 @@ export const useDeleteAgencyDirectory = () => {
     },
   });
 };
+
+export const useCreateAgencyDirectory = () => {
+  const { fetchAdmin } = useAdminApi();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload: Record<string, unknown>) => {
+      const response = await fetchAdmin<{ data: any; message?: string }>(`/admin/agencies/directory`, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["agencies-directory"] });
+      queryClient.invalidateQueries({ queryKey: ["agency-operations", "/admin/agencies/profiles"] });
+      toast.success("Agency created successfully!");
+    },
+    onError: (error) => {
+      console.error("Error creating agency:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to create agency");
+    },
+  });
+};

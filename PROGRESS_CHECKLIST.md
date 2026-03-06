@@ -766,6 +766,14 @@ Date: 2026-02-06
 - [x] Build verification completed:
   - `backend`: `npm run build` passed.
   - `superadmin`: `npm run build` passed.
+- [x] Wired `People -> Agency -> Add Agency` to the production admin path:
+  - Added scoped `POST /admin/agencies/directory` with schema validation in `/Users/andromeda/casanirvana/backend/src/routes/admin.ts` and `/Users/andromeda/casanirvana/backend/src/validation/schemas.ts`, and completed create logic in `/Users/andromeda/casanirvana/backend/src/controllers/adminAgenciesOperations.ts` so a new agency now creates synchronized `agencies` + `agency_profiles` records and initial managed community rows in one rollback-safe flow.
+  - Added `useCreateAgencyDirectory` in `/Users/andromeda/casanirvana/superadmin/src/hooks/useAgencyDirectory.ts` and rebuilt the active form in `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/agency/add/components/AgencyAdd.tsx` to submit through backend APIs, sanitize optional fields before transport, and replace the legacy `ChoicesFormInput` branch with deterministic native `Form.Select` controls.
+  - Revalidated the slice with `backend: npm run build` and `superadmin: npm run build`.
+- [x] Focused QA remediation for `People -> Agency -> Add Agency`:
+  - Ran a real local browser pass against the active form, authenticated with a disposable QA superadmin, and confirmed end-to-end UI submission redirects from `/agency/add` to `/agency/list-view` with the new agency row visible.
+  - Fixed two backend persistence mismatches discovered during QA in `/Users/andromeda/casanirvana/backend/src/controllers/adminAgenciesOperations.ts`: uppercase agency type values are now mapped to the lowercase `agency_profiles` constraint set, and managed community `established_date` is now persisted in the format expected by the `communities` table instead of being truncated to a year.
+  - Cleaned up the temporary QA agencies, communities, profile, and auth user after verification so no test data remains in Casa Nirvana.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)
