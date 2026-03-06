@@ -1,145 +1,181 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../utils/supabase';
 import { useGuardAuth } from '../contexts/GuardAuthContext';
+import { getProfileByAuthId } from '../utils/profileResolver';
+
+const resolveCallProfileId = async (authUserId) => {
+  const profile = await getProfileByAuthId(authUserId, 'id');
+  return profile?.id || null;
+};
+
+const buildCallSelect = () => `
+  *,
+  caller:caller_id(id, full_name, first_name, last_name, avatar_url),
+  callee:callee_id(id, full_name, first_name, last_name, avatar_url)
+`;
+
+const invalidateCallCaches = (queryClient, currentProfileId, otherProfileId = null) => {
+  queryClient.invalidateQueries({ queryKey: ['userCalls', currentProfileId] });
+  queryClient.invalidateQueries({ queryKey: ['callHistory', currentProfileId] });
+  queryClient.invalidateQueries({ queryKey: ['messages', currentProfileId] });
+  queryClient.invalidateQueries({ queryKey: ['conversations', currentProfileId] });
+
+  if (otherProfileId) {
+    queryClient.invalidateQueries({ queryKey: ['callHistory', currentProfileId, otherProfileId] });
+    queryClient.invalidateQueries({ queryKey: ['callHistory', otherProfileId, currentProfileId] });
+    queryClient.invalidateQueries({ queryKey: ['messages', currentProfileId, otherProfileId] });
+    queryClient.invalidateQueries({ queryKey: ['messages', otherProfileId, currentProfileId] });
+    queryClient.invalidateQueries({ queryKey: ['conversations', otherProfileId] });
+  }
+};
+
+const useCurrentCallProfileId = () => {
+  const { authUser } = useGuardAuth();
+  const [profileId, setProfileId] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const hydrateProfileId = async () => {
+      if (!authUser?.id) {
+        setProfileId(null);
+        return;
+      }
+
+      try {
+        const resolvedProfileId = await resolveCallProfileId(authUser.id);
+        if (!cancelled) {
+          setProfileId(resolvedProfileId);
+        }
+      } catch (error) {
+        console.error('Failed to resolve current guard call profile:', error);
+        if (!cancelled) {
+          setProfileId(null);
+        }
+      }
+    };
+
+    hydrateProfileId();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authUser?.id]);
+
+  return profileId;
+};
 
 export const useCallHistory = (otherUserId) => {
-  const { user } = useGuardAuth();
-  
+  const currentProfileId = useCurrentCallProfileId();
+
   return useQuery({
-    queryKey: ['callHistory', user?.id, otherUserId],
+    queryKey: ['callHistory', currentProfileId, otherUserId],
     queryFn: async () => {
-      if (!user?.id || !otherUserId) {
+      if (!currentProfileId || !otherUserId) {
         return [];
       }
 
-      console.log('🔍 Fetching call history between:', user.id, 'and', otherUserId);
-
       const { data, error } = await supabase
         .from('calls')
-        .select(`
-          *,
-          caller:caller_id(id, first_name, last_name),
-          callee:callee_id(id, first_name, last_name)
-        `)
-        .or(`and(caller_id.eq.${user.id},callee_id.eq.${otherUserId}),and(caller_id.eq.${otherUserId},callee_id.eq.${user.id})`)
+        .select(buildCallSelect())
+        .or(
+          `and(caller_id.eq.${currentProfileId},callee_id.eq.${otherUserId}),and(caller_id.eq.${otherUserId},callee_id.eq.${currentProfileId})`
+        )
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('❌ Error fetching call history:', error);
+        console.error('Error fetching call history:', error);
         throw error;
       }
 
-      console.log('✅ Call history fetched:', data?.length || 0, 'calls');
       return data || [];
     },
-    enabled: !!user?.id && !!otherUserId,
-    staleTime: 30 * 1000, // 30 seconds
+    enabled: Boolean(currentProfileId && otherUserId),
+    staleTime: 30 * 1000,
   });
 };
 
-// Hook to get all calls for current user
 export const useUserCalls = () => {
-  const { user } = useGuardAuth();
-  
+  const currentProfileId = useCurrentCallProfileId();
+
   return useQuery({
-    queryKey: ['userCalls', user?.id],
+    queryKey: ['userCalls', currentProfileId],
     queryFn: async () => {
-      if (!user?.id) {
+      if (!currentProfileId) {
         return [];
       }
 
-      console.log('🔍 Fetching all calls for user:', user.id);
-
       const { data, error } = await supabase
         .from('calls')
-        .select(`
-          *,
-          caller:caller_id(id, first_name, last_name),
-          callee:callee_id(id, first_name, last_name)
-        `)
-        .or(`caller_id.eq.${user.id},callee_id.eq.${user.id}`)
+        .select(buildCallSelect())
+        .or(`caller_id.eq.${currentProfileId},callee_id.eq.${currentProfileId}`)
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('❌ Error fetching user calls:', error);
+        console.error('Error fetching user calls:', error);
         throw error;
       }
 
-      console.log('✅ User calls fetched:', data?.length || 0, 'calls');
       return data || [];
     },
-    enabled: !!user?.id,
-    staleTime: 30 * 1000, // 30 seconds
+    enabled: Boolean(currentProfileId),
+    staleTime: 30 * 1000,
   });
 };
 
-// Hook to create a new call
 export const useCreateCall = () => {
   const queryClient = useQueryClient();
-  const { user } = useGuardAuth();
+  const currentProfileId = useCurrentCallProfileId();
 
   return useMutation({
-    mutationFn: async ({
-      calleeId,
-      callType = 'voice'
-    }) => {
-      if (!user?.id) {
-        throw new Error('User not authenticated');
+    mutationFn: async ({ calleeId, callType = 'voice' }) => {
+      if (!currentProfileId) {
+        throw new Error('Guard profile is unavailable for call creation.');
+      }
+      if (!calleeId) {
+        throw new Error('Call recipient is required.');
       }
 
-      console.log('📞 Creating call from', user.id, 'to', calleeId, 'type:', callType);
-
-      // Generate unique channel name
-      const channelName = `call_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const channelName = `call_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
 
       const { data, error } = await supabase
         .from('calls')
         .insert({
-          caller_id: user.id,
+          caller_id: currentProfileId,
           callee_id: calleeId,
           call_type: callType,
           status: 'initiated',
           agora_channel_name: channelName,
         })
-        .select()
+        .select(buildCallSelect())
         .single();
 
       if (error) {
-        console.error('❌ Error creating call:', error);
+        console.error('Error creating call:', error);
         throw error;
       }
 
-      console.log('✅ Call created:', data);
       return data;
     },
     onSuccess: (data) => {
-      // Invalidate relevant queries
-      queryClient.invalidateQueries({ queryKey: ['userCalls'] });
-      queryClient.invalidateQueries({ queryKey: ['callHistory'] });
-      queryClient.invalidateQueries({ queryKey: ['messages'] });
-      queryClient.invalidateQueries({ queryKey: ['conversations', user?.id] });
+      invalidateCallCaches(queryClient, currentProfileId, data?.callee_id || null);
     },
   });
 };
 
-// Hook to update call status
 export const useUpdateCall = () => {
   const queryClient = useQueryClient();
-  const { user } = useGuardAuth();
+  const currentProfileId = useCurrentCallProfileId();
 
   return useMutation({
-    mutationFn: async ({
-      callId,
-      status,
-      answeredAt,
-      endedAt,
-      durationSeconds
-    }) => {
-      console.log('� Updating call:', callId, 'status:', status);
+    mutationFn: async ({ callId, status, answeredAt, endedAt, durationSeconds }) => {
+      if (!callId) {
+        throw new Error('Call ID is required.');
+      }
 
       const updateData = {
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       };
 
       if (status) updateData.status = status;
@@ -151,121 +187,128 @@ export const useUpdateCall = () => {
         .from('calls')
         .update(updateData)
         .eq('id', callId)
-        .select()
+        .select(buildCallSelect())
         .single();
 
       if (error) {
-        console.error('❌ Error updating call:', error);
+        console.error('Error updating call:', error);
         throw error;
       }
 
-      console.log('✅ Call updated:', data);
       return data;
     },
-    onSuccess: () => {
-      // Invalidate relevant queries
-      queryClient.invalidateQueries({ queryKey: ['userCalls'] });
-      queryClient.invalidateQueries({ queryKey: ['callHistory'] });
-      queryClient.invalidateQueries({ queryKey: ['messages'] });
-      queryClient.invalidateQueries({ queryKey: ['conversations', user?.id] });
+    onSuccess: (data) => {
+      if (!currentProfileId) {
+        return;
+      }
+
+      const otherProfileId =
+        data?.caller_id === currentProfileId ? data?.callee_id : data?.caller_id;
+      invalidateCallCaches(queryClient, currentProfileId, otherProfileId || null);
     },
   });
 };
 
-// Real-time subscription for calls
 export const useCallsSubscription = () => {
-  const { user } = useGuardAuth();
+  const currentProfileId = useCurrentCallProfileId();
   const queryClient = useQueryClient();
 
-  useEffect(() => {
-    if (!user?.id) return;
+  const handleCallPayload = useCallback(
+    (payload) => {
+      const row = payload?.new || payload?.old;
+      if (!currentProfileId || !row) {
+        return;
+      }
 
-    console.log('🔔 Setting up calls subscription for user:', user.id);
+      const otherProfileId =
+        row.caller_id === currentProfileId ? row.callee_id : row.caller_id;
+      invalidateCallCaches(queryClient, currentProfileId, otherProfileId || null);
+    },
+    [currentProfileId, queryClient]
+  );
+
+  useEffect(() => {
+    if (!currentProfileId) return undefined;
 
     const callsChannel = supabase
-      .channel(`calls-${user.id}`)
+      .channel(`calls-${currentProfileId}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'calls',
-          filter: `or(caller_id.eq.${user.id},callee_id.eq.${user.id})`,
+          filter: `caller_id=eq.${currentProfileId}`,
         },
-        (payload) => {
-          console.log('🔔 Real-time call update:', payload);
-          queryClient.invalidateQueries({ queryKey: ['userCalls'] });
-          queryClient.invalidateQueries({ queryKey: ['callHistory'] });
-          queryClient.invalidateQueries({ queryKey: ['messages'] });
-          queryClient.invalidateQueries({ queryKey: ['conversations', user?.id] });
-        }
+        handleCallPayload
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'calls',
+          filter: `callee_id=eq.${currentProfileId}`,
+        },
+        handleCallPayload
       )
       .subscribe();
 
     return () => {
-      console.log('🔔 Cleaning up calls subscription');
       supabase.removeChannel(callsChannel);
     };
-  }, [user?.id, queryClient]);
+  }, [currentProfileId, handleCallPayload]);
 };
 
-// Helper function to format call duration
-export const formatCallDuration = (durationSeconds) => {
+export const formatCallDuration = (durationSeconds = 0) => {
   if (durationSeconds < 60) {
     return `${durationSeconds}s`;
   }
-  
+
   const minutes = Math.floor(durationSeconds / 60);
   const seconds = durationSeconds % 60;
-  
+
   if (minutes < 60) {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   }
-  
+
   const hours = Math.floor(minutes / 60);
   const remainingMinutes = minutes % 60;
-  
-  return `${hours}:${remainingMinutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+  return `${hours}:${remainingMinutes.toString().padStart(2, '0')}:${seconds
+    .toString()
+    .padStart(2, '0')}`;
 };
 
-// Helper function to get call display info
 export const getCallDisplayInfo = (call, currentUserId) => {
   const isOutgoing = call.caller_id === currentUserId;
   const isMissed = call.status === 'missed' || (call.status === 'ended' && !call.answered_at);
-  const isAnswered = call.answered_at !== null;
-  
+  const isAnswered = Boolean(call.answered_at);
+
   let displayText = '';
   let iconName = '';
   let color = '#666';
 
-  if (call.call_type === 'video') {
-    iconName = 'videocam';
-  } else {
-    iconName = 'call';
-  }
+  iconName = call.call_type === 'video' ? 'videocam' : 'call';
 
   if (isOutgoing) {
     if (isMissed) {
       displayText = 'Outgoing call (missed)';
       color = '#ff6b6b';
     } else if (isAnswered) {
-      displayText = `Outgoing call (${formatCallDuration(call.duration_seconds)})`;
+      displayText = `Outgoing call (${formatCallDuration(call.duration_seconds || 0)})`;
       color = '#4CAF50';
     } else {
       displayText = 'Outgoing call';
-      color = '#666';
     }
+  } else if (isMissed) {
+    displayText = 'Missed call';
+    color = '#ff6b6b';
+  } else if (isAnswered) {
+    displayText = `Incoming call (${formatCallDuration(call.duration_seconds || 0)})`;
+    color = '#4CAF50';
   } else {
-    if (isMissed) {
-      displayText = 'Missed call';
-      color = '#ff6b6b';
-    } else if (isAnswered) {
-      displayText = `Incoming call (${formatCallDuration(call.duration_seconds)})`;
-      color = '#4CAF50';
-    } else {
-      displayText = 'Incoming call';
-      color = '#666';
-    }
+    displayText = 'Incoming call';
   }
 
   return {
@@ -275,7 +318,7 @@ export const getCallDisplayInfo = (call, currentUserId) => {
     isOutgoing,
     isMissed,
     isAnswered,
-    duration: call.duration_seconds,
-    timestamp: call.created_at
+    duration: call.duration_seconds || 0,
+    timestamp: call.created_at,
   };
 };

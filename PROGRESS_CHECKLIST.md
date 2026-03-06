@@ -743,6 +743,8 @@ Date: 2026-02-06
   - Updated `/Users/andromeda/casanirvana/Guard/screens/confirmScreen.js`, `/Users/andromeda/casanirvana/Guard/screens/allowedScreen.js`, and `/Users/andromeda/casanirvana/Guard/screens/cancelledScreen.js` so host attribution resolves from the selected unit instead of persisting generic `Resident` fallbacks in approval/denial flows.
   - Updated `/Users/andromeda/casanirvana/Guard/services/visitorEntryService.js` to carry through stored host fields when present.
   - Simplified `/Users/andromeda/casanirvana/Guard/screens/cabEntryScreen.js` into a single-step pre-selection form by removing the obsolete selected-flat / old route-param fallback branch.
+- [x] Hardened Guard Messaging + Calls cache wiring:
+  - Updated `/Users/andromeda/casanirvana/Guard/hooks/useCalls.js` to resolve the authenticated guard to canonical `profiles.id`, keep call reads/mutations profile-scoped, and subscribe on both caller/callee edges so thread/conversation caches refresh correctly when call rows change.
 - [x] Build verification completed:
   - `backend`: `npm run build` passed.
   - `superadmin`: `npm run build` passed.
