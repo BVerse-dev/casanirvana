@@ -745,6 +745,8 @@ Date: 2026-02-06
   - Simplified `/Users/andromeda/casanirvana/Guard/screens/cabEntryScreen.js` into a single-step pre-selection form by removing the obsolete selected-flat / old route-param fallback branch.
 - [x] Hardened Guard Messaging + Calls cache wiring:
   - Updated `/Users/andromeda/casanirvana/Guard/hooks/useCalls.js` to resolve the authenticated guard to canonical `profiles.id`, keep call reads/mutations profile-scoped, and subscribe on both caller/callee edges so thread/conversation caches refresh correctly when call rows change.
+- [x] Hardened Guard RTC signaling UX contract:
+  - Updated `/Users/andromeda/casanirvana/Guard/hooks/useCallManager.js` and `/Users/andromeda/casanirvana/Guard/screens/callScreen.js` so call state follows realtime `calls` row updates, removed fake auto-connect timers/alert-driven progression, and aligned the chat handoff back to the active message thread instead of the chat index.
 - [x] Build verification completed:
   - `backend`: `npm run build` passed.
   - `superadmin`: `npm run build` passed.

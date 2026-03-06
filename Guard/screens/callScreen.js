@@ -5,23 +5,24 @@ import {
   BackHandler,
   StyleSheet,
   Image,
-  Alert,
-} from "react-native";
-import React, { useEffect, useState } from "react";
-import { useTranslation } from "react-i18next";
-import { Colors, Default, Fonts } from "../constants/styles";
-import Ionicons from "react-native-vector-icons/Ionicons";
-import MyStatusBar from "../components/myStatusBar";
-import { ms } from "react-native-size-matters/extend";
-import MaterialIcons from "react-native-vector-icons/MaterialIcons";
+} from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Colors, Default, Fonts } from '../constants/styles';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import MyStatusBar from '../components/myStatusBar';
+import { ms } from 'react-native-size-matters/extend';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withDelay,
   withRepeat,
   withTiming,
-} from "react-native-reanimated";
-import { useCallManager } from "../hooks/useCallManager";
+} from 'react-native-reanimated';
+import { useCallManager } from '../hooks/useCallManager';
+
+const TERMINAL_STATUSES = new Set(['ended', 'rejected', 'missed']);
 
 const CallScreen = ({ navigation, route }) => {
   const {
@@ -33,151 +34,208 @@ const CallScreen = ({ navigation, route }) => {
     hostPhone,
     unitDisplay: routeUnitDisplay,
     unitId: passedUnitId,
-    visitorName,
     actualHostName,
     passFlatNumber,
     originalPass,
     calleeProfileId: routeCalleeProfileId,
     callType: routeCallType,
+    memberId,
+    memberPhone,
+    email,
   } = route.params;
 
-  const resolvedCalleeProfileId =
-    routeCalleeProfileId || route.params?.memberId || id || null;
+  const resolvedCalleeProfileId = routeCalleeProfileId || memberId || id || null;
   const resolvedUnitId = passedUnitId || hostId || null;
-  const normalizedCallType = routeCallType === "video" ? "video" : "voice";
+  const normalizedCallType = routeCallType === 'video' ? 'video' : 'voice';
+  const initiatedRef = useRef(false);
 
   const { t, i18n } = useTranslation();
-  const isRtl = i18n.dir() == "rtl";
-  
-  // Initialize call manager
+  const isRtl = i18n.dir() === 'rtl';
+
   const {
-    rtcEngine,
     isInCall,
     callData,
     hostName,
     unitDisplay,
     localAudioMuted,
-    localVideoMuted,
     initiateCall,
-    answerCall,
     endCall,
-    rejectCall,
     toggleMute,
-    toggleVideo,
   } = useCallManager();
-  const resolvedUnitLabel =
-    unitDisplay || routeUnitDisplay || route.params?.flatNo || passFlatNumber || "";
+
+  const [callStatus, setCallStatus] = useState('connecting');
+  const [callDuration, setCallDuration] = useState(0);
+  const [speakerMuted, setSpeakerMuted] = useState(false);
+
+  const resolvedUnitLabel = unitDisplay || routeUnitDisplay || route.params?.flatNo || passFlatNumber || '';
+  const displayName = hostName || name || actualHostName || 'Resident';
 
   function tr(key) {
     return t(`callScreen:${key}`);
   }
 
-  const [callStatus, setCallStatus] = useState('connecting'); // 'connecting', 'ringing', 'connected', 'ended'
-  const [callDuration, setCallDuration] = useState(0);
-  const [callTimer, setCallTimer] = useState(null);
+  const avatarSource = useMemo(() => {
+    if (typeof image === 'number') {
+      return image;
+    }
 
-  // Debug logging
-  console.log('CallScreen params:', route.params);
-  console.log('CallScreen state:', { hostName, unitDisplay, routeUnitDisplay });
+    if (typeof image === 'string' && image.startsWith('http')) {
+      return { uri: image };
+    }
 
-  // Format time helper function
+    return require('../assets/images/call.png');
+  }, [image]);
+
+  useEffect(() => {
+    if (initiatedRef.current) {
+      return;
+    }
+
+    if (!resolvedCalleeProfileId && !resolvedUnitId) {
+      setCallStatus('ended');
+      return;
+    }
+
+    initiatedRef.current = true;
+
+    const startCall = async () => {
+      try {
+        setCallStatus('connecting');
+        await initiateCall(resolvedCalleeProfileId, normalizedCallType, resolvedUnitId, {
+          actualHostName,
+          passFlatNumber,
+          hostPhone,
+          originalPass,
+        });
+      } catch (_error) {
+        setCallStatus('ended');
+      }
+    };
+
+    startCall();
+  }, [
+    actualHostName,
+    hostPhone,
+    initiateCall,
+    normalizedCallType,
+    originalPass,
+    passFlatNumber,
+    resolvedCalleeProfileId,
+    resolvedUnitId,
+  ]);
+
+  useEffect(() => {
+    if (!callData?.status) {
+      return;
+    }
+
+    if (callData.status === 'answered') {
+      setCallStatus('connected');
+      return;
+    }
+
+    if (callData.status === 'ringing' || callData.status === 'initiated') {
+      setCallStatus('ringing');
+      return;
+    }
+
+    if (callData.status === 'rejected') {
+      setCallStatus('rejected');
+      return;
+    }
+
+    if (callData.status === 'missed') {
+      setCallStatus('missed');
+      return;
+    }
+
+    if (callData.status === 'ended') {
+      setCallStatus('ended');
+    }
+  }, [callData?.status]);
+
+  useEffect(() => {
+    if (callStatus !== 'connected' || !callData?.answered_at) {
+      setCallDuration(callData?.duration_seconds || 0);
+      return undefined;
+    }
+
+    const syncDuration = () => {
+      const answeredAt = new Date(callData.answered_at).getTime();
+      const elapsedSeconds = Math.max(0, Math.floor((Date.now() - answeredAt) / 1000));
+      setCallDuration(elapsedSeconds);
+    };
+
+    syncDuration();
+    const timer = setInterval(syncDuration, 1000);
+    return () => clearInterval(timer);
+  }, [callData?.answered_at, callData?.duration_seconds, callStatus]);
+
+  useEffect(() => {
+    if (!TERMINAL_STATUSES.has(callStatus)) {
+      return undefined;
+    }
+
+    const timer = setTimeout(() => {
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+      }
+    }, 1200);
+
+    return () => clearTimeout(timer);
+  }, [callStatus, navigation]);
+
+  useEffect(() => {
+    const handleBack = () => {
+      handleEndCall();
+      return true;
+    };
+
+    const subscription = BackHandler.addEventListener('hardwareBackPress', handleBack);
+    return () => subscription.remove();
+  }, [isInCall, callData?.id]);
+
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Start call timer when connected
-  const startCallTimer = () => {
-    if (callTimer) clearInterval(callTimer);
-    const timer = setInterval(() => {
-      setCallDuration(prev => prev + 1);
-    }, 1000);
-    setCallTimer(timer);
-    return timer;
-  };
-
-  // Stop call timer
-  const stopCallTimer = () => {
-    if (callTimer) {
-      clearInterval(callTimer);
-      setCallTimer(null);
+  const getCallStatusText = () => {
+    switch (callStatus) {
+      case 'connecting':
+        return tr('connecting') || 'Connecting...';
+      case 'ringing':
+        return tr('calling') || 'Calling...';
+      case 'connected':
+        return formatTime(callDuration);
+      case 'rejected':
+        return 'Call declined';
+      case 'missed':
+        return 'No answer';
+      case 'ended':
+        return 'Call ended';
+      default:
+        return tr('calling') || 'Calling...';
     }
   };
 
-  // Start call when component mounts
-  useEffect(() => {
-    if ((resolvedCalleeProfileId || resolvedUnitId) && !isInCall) {
-      handleInitiateCall();
-    }
-    
-    // Simulate call progression for demo
-    const timer1 = setTimeout(() => {
-      setCallStatus('ringing');
-    }, 2000);
-
-    const timer2 = setTimeout(() => {
-      setCallStatus('connected');
-      startCallTimer();
-    }, 5000);
-
-    return () => {
-      clearTimeout(timer1);
-      clearTimeout(timer2);
-      stopCallTimer();
-    };
-  }, [resolvedCalleeProfileId, resolvedUnitId, isInCall]);
-
-  const handleInitiateCall = async () => {
+  const handleEndCall = async () => {
     try {
-      setCallStatus('connecting');
-      // Calls must stay in-app; resolve callee profile directly when available.
-      await initiateCall(resolvedCalleeProfileId, normalizedCallType, resolvedUnitId, {
-        actualHostName: actualHostName,
-        passFlatNumber: passFlatNumber,
-        hostPhone: hostPhone,
-        originalPass: originalPass
-      });
-      setCallStatus('ringing');
-    } catch (error) {
+      await endCall();
       setCallStatus('ended');
-      setTimeout(() => navigation.goBack(), 2000);
+    } catch (_error) {
+      navigation.goBack();
     }
   };
-  const backAction = () => {
-    // End call before going back
-    if (isInCall) {
-      stopCallTimer();
-      endCall();
-    } else {
-      stopCallTimer();
+
+  const handleToggleMute = async () => {
+    try {
+      await toggleMute();
+    } catch (_error) {
+      // local-only control; ignore toggle errors
     }
-    navigation.pop();
-    return true;
   };
-
-  useEffect(() => {
-    const backSub = BackHandler.addEventListener("hardwareBackPress", backAction);
-    return () => {
-      backSub.remove();
-      stopCallTimer();
-    };
-  }, [isInCall]);
-
-  // Handle call end
-  const handleEndCall = () => {
-    stopCallTimer();
-    setCallStatus('ended');
-    endCall();
-    navigation.goBack();
-  };
-
-  // Handle mute toggle
-  const handleToggleMute = () => {
-    toggleMute();
-  };
-  const [mic, setMic] = useState(false);
-  const [mute, setMute] = useState(false);
 
   const Ring = ({ index }) => {
     const opacityValue = useSharedValue(0.9);
@@ -204,19 +262,14 @@ const CallScreen = ({ navigation, route }) => {
           false
         )
       );
-    }, [opacityValue, scaleValue, index]);
+    }, [index, opacityValue, scaleValue]);
 
-    const rStyle = useAnimatedStyle(() => {
-      return {
-        transform: [
-          {
-            scale: scaleValue.value,
-          },
-        ],
-        opacity: opacityValue.value,
-      };
-    });
-    return <Animated.View style={[styles.ring, rStyle]} />;
+    const animatedStyle = useAnimatedStyle(() => ({
+      transform: [{ scale: scaleValue.value }],
+      opacity: opacityValue.value,
+    }));
+
+    return <Animated.View style={[styles.ring, animatedStyle]} />;
   };
 
   return (
@@ -225,26 +278,17 @@ const CallScreen = ({ navigation, route }) => {
       <View style={{ flex: 1.2 }}>
         <View
           style={{
-            justifyContent: "center",
-            alignItems: "center",
+            justifyContent: 'center',
+            alignItems: 'center',
             marginTop: Default.fixPadding * 2,
           }}
         >
-          <Text
-            style={{ ...Fonts.Medium18grey, marginBottom: Default.fixPadding }}
-          >
-            {callStatus === 'connecting' ? (tr("connecting") || 'Connecting...') : 
-             callStatus === 'ringing' ? (tr("calling") || 'Calling...') : 
-             callStatus === 'connected' ? formatTime(callDuration) :
-             (tr("connecting") || 'Connecting...')}
+          <Text style={{ ...Fonts.Medium18grey, marginBottom: Default.fixPadding }}>
+            {getCallStatusText()}
           </Text>
-          <Text style={{ ...Fonts.SemiBold18black }}>
-            {hostName || "Connecting to Host..."}
-          </Text>
+          <Text style={{ ...Fonts.SemiBold18black }}>{displayName}</Text>
           {resolvedUnitLabel ? (
-            <Text style={{ ...Fonts.Medium16grey, marginTop: 5 }}>
-              Flat {resolvedUnitLabel}
-            </Text>
+            <Text style={{ ...Fonts.Medium16grey, marginTop: 5 }}>Flat {resolvedUnitLabel}</Text>
           ) : null}
         </View>
       </View>
@@ -252,12 +296,12 @@ const CallScreen = ({ navigation, route }) => {
       <View
         style={{
           flex: 6,
-          justifyContent: "center",
-          alignItems: "center",
+          justifyContent: 'center',
+          alignItems: 'center',
         }}
       >
         <Image
-          source={require("../assets/images/call.png")}
+          source={avatarSource}
           style={{
             zIndex: 1,
             width: ms(259),
@@ -265,71 +309,77 @@ const CallScreen = ({ navigation, route }) => {
             borderRadius: 130,
           }}
         />
-        {[...Array(3).keys()].map((index) => (
-          <Ring key={index} index={index} />
-        ))}
+        {callStatus === 'connecting' || callStatus === 'ringing'
+          ? [...Array(3).keys()].map((index) => <Ring key={index} index={index} />)
+          : null}
       </View>
 
       <View
         style={{
           flex: 2.8,
-          justifyContent: "flex-end",
+          justifyContent: 'flex-end',
         }}
       >
         <View
           style={{
-            flexDirection: isRtl ? "row-reverse" : "row",
-            justifyContent: "space-between",
-            alignItems: "center",
+            flexDirection: isRtl ? 'row-reverse' : 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
             marginHorizontal: Default.fixPadding * 7,
           }}
         >
-          <View style={{ ...styles.bottomBtn, backgroundColor: Colors.silver }}>
+          <TouchableOpacity
+            onPress={handleToggleMute}
+            style={{
+              ...styles.bottomBtn,
+              backgroundColor: localAudioMuted ? Colors.darkRed : Colors.silver,
+            }}
+          >
             <Ionicons
-              name={localAudioMuted ? "mic-off-outline" : "mic-outline"}
+              name={localAudioMuted ? 'mic-off-outline' : 'mic-outline'}
               size={28}
               color={Colors.white}
-              onPress={handleToggleMute}
             />
-          </View>
+          </TouchableOpacity>
 
-          <View
+          <TouchableOpacity
+            onPress={() => setSpeakerMuted((previous) => !previous)}
             style={{
               marginHorizontal: Default.fixPadding * 2,
-              backgroundColor: Colors.silver,
+              backgroundColor: speakerMuted ? Colors.darkRed : Colors.silver,
               ...styles.bottomBtn,
             }}
           >
             <Ionicons
-              name={mute ? "volume-mute-outline" : "volume-medium-outline"}
+              name={speakerMuted ? 'volume-mute-outline' : 'volume-medium-outline'}
               size={28}
               color={Colors.white}
-              onPress={() => setMute((prev) => !prev)}
             />
-          </View>
+          </TouchableOpacity>
 
           <TouchableOpacity
             onPress={() =>
-              navigation.push("chatScreen", {
-                image: image || require("../assets/images/call.png"),
-                name: name || "Host",
-                key: "2",
+              navigation.push('messageScreen', {
+                image: avatarSource,
+                name: displayName,
+                key: '2',
+                phone: phone || memberPhone || hostPhone,
+                id: resolvedCalleeProfileId,
+                memberId: resolvedCalleeProfileId,
+                memberPhone: phone || memberPhone || hostPhone,
+                email,
               })
             }
             style={{ ...styles.bottomBtn, backgroundColor: Colors.silver }}
           >
-            <Ionicons
-              name={"chatbox-ellipses-outline"}
-              size={24}
-              color={Colors.white}
-            />
+            <Ionicons name={'chatbox-ellipses-outline'} size={24} color={Colors.white} />
           </TouchableOpacity>
         </View>
 
         <TouchableOpacity
           onPress={handleEndCall}
           style={{
-            alignSelf: "center",
+            alignSelf: 'center',
             marginVertical: Default.fixPadding * 4,
             backgroundColor: Colors.darkRed,
             ...styles.bottomBtn,
@@ -346,14 +396,14 @@ export default CallScreen;
 
 const styles = StyleSheet.create({
   bottomBtn: {
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     width: 50,
     height: 50,
     borderRadius: 25,
   },
   ring: {
-    position: "absolute",
+    position: 'absolute',
     width: ms(200),
     height: ms(200),
     borderRadius: 100,
