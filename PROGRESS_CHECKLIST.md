@@ -726,6 +726,14 @@ Date: 2026-02-06
   - Added canonical tabbed routes `/guards/manage` and `/agency/manage` with `?tab=` section switching and kept the existing operation pages compatible.
   - Updated `useAdminCapabilities` and backend capability output to include workspace-level capability keys (`guards:workspace:view`, `agency:workspace:view`) so the new single-entry navigation remains permission-driven.
   - Repointed Settings relocation notices to the new canonical manage routes so operational flows always land in the tabbed workspace.
+- [x] Closed the remaining Phase 34 frontend scope-verification gap for module toggles:
+  - Updated `superadmin/src/app/(admin)/settings/module-settings/page.tsx` to consume admin scope/capabilities at the UI layer.
+  - Non-superadmin admins are now constrained to scoped communities only, cannot remain in a misleading `Global Settings` state, and get explicit empty-scope messaging instead of relying on backend 403 responses alone.
+  - Revalidated the superadmin production build after the scope UX hardening.
+- [x] Closed the Guard resident-directory module-toggle enforcement gap:
+  - Added `/Users/andromeda/casanirvana/Guard/services/moduleSettingsService.js` as the guard-side scoped module cache/service so Guard module reads use the canonical Supabase client and fail closed for known slugs.
+  - Added `/Users/andromeda/casanirvana/Guard/hooks/useGuardModuleAccess.js` and applied it to `/Users/andromeda/casanirvana/Guard/screens/chatScreen.js`, `/Users/andromeda/casanirvana/Guard/screens/searchScreen.js`, and `/Users/andromeda/casanirvana/Guard/components/residentsTab.js`.
+  - Resident discovery/search surfaces now stop rendering and stop querying when the `resident_directory` module is disabled for a community, while guard chats remain available.
 - [x] Build verification completed:
   - `backend`: `npm run build` passed.
   - `superadmin`: `npm run build` passed.

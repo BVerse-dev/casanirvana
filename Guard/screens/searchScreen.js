@@ -21,6 +21,8 @@ import {
   useGuardCommunityDirectoryMembers,
   useGuardCommunityDirectorySubscription,
 } from '../hooks/useCommunityDirectoryMembers';
+import ModuleUnavailableState from '../components/ModuleUnavailableState';
+import { useGuardModuleAccess, MODULE_SLUGS } from '../hooks/useGuardModuleAccess';
 
 const roleLabel = (role) => {
   if (role === 'admin') return 'Admin';
@@ -74,9 +76,14 @@ const SearchScreen = ({ navigation }) => {
   const [search, setSearch] = useState('');
   const [clearAll, setClearAll] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const { modulesLoaded, enabled: residentDirectoryEnabled } = useGuardModuleAccess(
+    MODULE_SLUGS.RESIDENT_DIRECTORY,
+  );
 
-  const { data: residents = [], isLoading, error } = useGuardCommunityDirectoryMembers();
-  useGuardCommunityDirectorySubscription();
+  const { data: residents = [], isLoading, error } = useGuardCommunityDirectoryMembers({
+    enabled: residentDirectoryEnabled,
+  });
+  useGuardCommunityDirectorySubscription({ enabled: residentDirectoryEnabled });
 
   const conversationsByPartner = useMemo(() => {
     const map = new Map();
@@ -263,6 +270,28 @@ const SearchScreen = ({ navigation }) => {
       </TouchableOpacity>
     );
   };
+
+  if (!modulesLoaded) {
+    return (
+      <View style={{ flex: 1, backgroundColor: Colors.white }}>
+        <MyStatusBar />
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size='large' color={Colors.primary} />
+        </View>
+      </View>
+    );
+  }
+
+  if (modulesLoaded && !residentDirectoryEnabled) {
+    return (
+      <ModuleUnavailableState
+        title='Resident Directory Unavailable'
+        message='Resident directory access is disabled for this community.'
+        actionLabel='Go Back'
+        onAction={() => navigation.goBack()}
+      />
+    );
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: Colors.white }}>

@@ -135,7 +135,7 @@ const fetchDirectoryMembers = async (communityId) => {
     .sort((a, b) => a.name.localeCompare(b.name));
 };
 
-export const useGuardCommunityDirectoryMembers = () => {
+export const useGuardCommunityDirectoryMembers = ({ enabled = true } = {}) => {
   const { guard, isAuthenticated } = useGuardAuth();
 
   return useQuery({
@@ -144,17 +144,17 @@ export const useGuardCommunityDirectoryMembers = () => {
       if (!guard?.community_id) return [];
       return fetchDirectoryMembers(guard.community_id);
     },
-    enabled: isAuthenticated && !!guard?.community_id,
+    enabled: enabled && isAuthenticated && !!guard?.community_id,
     staleTime: 2 * 60 * 1000,
   });
 };
 
-export const useGuardCommunityDirectorySubscription = () => {
+export const useGuardCommunityDirectorySubscription = ({ enabled = true } = {}) => {
   const { guard, isAuthenticated } = useGuardAuth();
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    if (!isAuthenticated || !guard?.community_id) return undefined;
+    if (!enabled || !isAuthenticated || !guard?.community_id) return undefined;
 
     const communityId = guard.community_id;
     const channel = supabase
@@ -192,5 +192,5 @@ export const useGuardCommunityDirectorySubscription = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [guard?.community_id, isAuthenticated, queryClient]);
+  }, [enabled, guard?.community_id, isAuthenticated, queryClient]);
 };

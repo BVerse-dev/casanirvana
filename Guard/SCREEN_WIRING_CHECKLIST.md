@@ -54,7 +54,11 @@ Date: 2026-02-22
 ## 2) Residents + Community Directory
 | Screen/Component | Data-Bound UI Elements | Current Wiring | Status | Wiring Checklist |
 |---|---|---|---|---|
-| `TBD` | `TBD` | `TBD` | `Partial` | Start deep audit |
+| `/Users/andromeda/casanirvana/Guard/services/moduleSettingsService.js` + `/Users/andromeda/casanirvana/Guard/hooks/useGuardModuleAccess.js` | Guard module-toggle resolution (`resident_directory`, entry modules, emergency module) | Added scoped guard-aware module settings service (auth + community scoped cache, fail-closed known slugs) and shared access hook for resident-directory gating. | `Wired` | Keep guard module reads community-scoped and never default known slugs to enabled on missing data |
+| `/Users/andromeda/casanirvana/Guard/hooks/useCommunityDirectoryMembers.js` | Community member directory query + realtime subscription | Directory query/subscription now accepts an `enabled` gate so resident lookups and invalidations stop cleanly when the resident-directory module is disabled. | `Wired` | Preserve disabled-query behavior to avoid hidden background reads for disabled modules |
+| `/Users/andromeda/casanirvana/Guard/screens/chatScreen.js` | Residents tab visibility + resident search entrypoint | Residents top-tab and search icon now honor the `resident_directory` module toggle; chat conversations remain available even when the directory is disabled. | `Wired` | Keep chats independent from directory visibility so guards retain message access without exposing resident discovery |
+| `/Users/andromeda/casanirvana/Guard/screens/searchScreen.js` | Resident search UI, quick message/call launch | Search route now blocks cleanly with a disabled-module state when resident directory is turned off for the guard's community. | `Wired` | Do not allow direct route access to bypass resident-directory module settings |
+| `/Users/andromeda/casanirvana/Guard/components/residentsTab.js` | Resident directory list, grouped blocks, quick message/call launch | Residents tab now respects module settings and shows a branded unavailable state instead of querying/rendering hidden directory data when disabled. | `Wired` | Keep resident discovery fail-closed whenever `resident_directory` is disabled |
 
 ## 3) Visitors + Entry/Exit Operations
 | Screen/Component | Data-Bound UI Elements | Current Wiring | Status | Wiring Checklist |

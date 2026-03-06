@@ -15,6 +15,8 @@ import {
   useGuardCommunityDirectoryMembers,
   useGuardCommunityDirectorySubscription,
 } from "../hooks/useCommunityDirectoryMembers";
+import ModuleUnavailableState from "./ModuleUnavailableState";
+import { useGuardModuleAccess, MODULE_SLUGS } from "../hooks/useGuardModuleAccess";
 
 const roleLabel = (role) => {
   if (role === "admin") return "Admin";
@@ -25,13 +27,16 @@ const roleLabel = (role) => {
 const ResidentsTab = ({ navigation }) => {
   const { i18n } = useTranslation();
   const isRtl = i18n.dir() === "rtl";
+  const { modulesLoaded, enabled: residentDirectoryEnabled } = useGuardModuleAccess(
+    MODULE_SLUGS.RESIDENT_DIRECTORY
+  );
 
   const {
     data: residents = [],
     isLoading,
     error,
-  } = useGuardCommunityDirectoryMembers();
-  useGuardCommunityDirectorySubscription();
+  } = useGuardCommunityDirectoryMembers({ enabled: residentDirectoryEnabled });
+  useGuardCommunityDirectorySubscription({ enabled: residentDirectoryEnabled });
 
   const groupedResidents = useMemo(() => {
     const byBlock = new Map();
@@ -64,6 +69,39 @@ const ResidentsTab = ({ navigation }) => {
       a.title.localeCompare(b.title),
     );
   }, [residents]);
+
+  if (!modulesLoaded) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: Colors.white,
+        }}
+      >
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
+
+  if (modulesLoaded && !residentDirectoryEnabled) {
+    return (
+      <ModuleUnavailableState
+        title="Resident Directory Unavailable"
+        message="Resident directory access is disabled for this community."
+        actionLabel="Go Back"
+        onAction={() => {
+          if (navigation?.canGoBack?.()) {
+            navigation.goBack();
+            return;
+          }
+
+          navigation?.navigate?.("chatsTab");
+        }}
+      />
+    );
+  }
 
   const renderItem = ({ item }) => {
     return (

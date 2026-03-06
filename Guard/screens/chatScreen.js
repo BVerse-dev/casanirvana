@@ -7,11 +7,15 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import ChatsTab from "../components/chatsTab";
 import ResidentsTab from "../components/residentsTab";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
+import { useGuardModuleAccess, MODULE_SLUGS } from "../hooks/useGuardModuleAccess";
 
 const Tab = createMaterialTopTabNavigator();
 
 const ChatScreen = () => {
   const { t, i18n } = useTranslation();
+  const { enabled: residentDirectoryEnabled, modulesLoaded } = useGuardModuleAccess(
+    MODULE_SLUGS.RESIDENT_DIRECTORY
+  );
 
   const isRtl = i18n.dir() == "rtl";
 
@@ -20,6 +24,8 @@ const ChatScreen = () => {
   }
 
   const CustomTabBar = ({ state, descriptors, navigation }) => {
+    const totalTabs = state.routes.length;
+
     return (
       <View>
         <View
@@ -42,12 +48,14 @@ const ChatScreen = () => {
               {tr("chats")}
             </Text>
           </View>
-          <TouchableOpacity
-            onPress={() => navigation.push("searchScreen")}
-            style={{ alignItems: isRtl ? "flex-start" : "flex-end" }}
-          >
-            <Ionicons name="search-sharp" size={22} color={Colors.primary} />
-          </TouchableOpacity>
+          {modulesLoaded && residentDirectoryEnabled ? (
+            <TouchableOpacity
+              onPress={() => navigation.push("searchScreen")}
+              style={{ alignItems: isRtl ? "flex-start" : "flex-end" }}
+            >
+              <Ionicons name="search-sharp" size={22} color={Colors.primary} />
+            </TouchableOpacity>
+          ) : null}
         </View>
 
         <View
@@ -100,14 +108,14 @@ const ChatScreen = () => {
                   marginBottom: Default.fixPadding,
                   padding: Default.fixPadding * 1.1,
                   borderTopLeftRadius: isRtl
-                    ? index === 1
+                    ? index === totalTabs - 1
                       ? 5
                       : 0
                     : index === 0
                     ? 5
                     : 0,
                   borderBottomLeftRadius: isRtl
-                    ? index === 1
+                    ? index === totalTabs - 1
                       ? 5
                       : 0
                     : index === 0
@@ -117,14 +125,14 @@ const ChatScreen = () => {
                     ? index === 0
                       ? 5
                       : 0
-                    : index === 1
+                    : index === totalTabs - 1
                     ? 5
                     : 0,
                   borderBottomRightRadius: isRtl
                     ? index === 0
                       ? 5
                       : 0
-                    : index === 1
+                    : index === totalTabs - 1
                     ? 5
                     : 0,
                   backgroundColor: isFocused
@@ -167,13 +175,15 @@ const ChatScreen = () => {
             title: tr("chats"),
           }}
         />
-        <Tab.Screen
-          name={"residentsTab"}
-          component={ResidentsTab}
-          options={{
-            title: tr("residents"),
-          }}
-        />
+        {residentDirectoryEnabled ? (
+          <Tab.Screen
+            name={"residentsTab"}
+            component={ResidentsTab}
+            options={{
+              title: tr("residents"),
+            }}
+          />
+        ) : null}
       </Tab.Navigator>
     </View>
   );

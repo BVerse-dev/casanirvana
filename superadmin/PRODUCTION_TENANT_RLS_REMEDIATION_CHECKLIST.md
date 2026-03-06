@@ -66,7 +66,7 @@ Acceptance criteria:
 - [x] SQL verification script for policy inventory and `USING/WITH CHECK` assertions.
 - [x] Positive tests: superadmin/global admin/scope admin expected access.
 - [x] Negative tests: cross-agency and cross-community denial cases.
-- [ ] App-level checks for module toggles and scoped community visibility.
+- [x] App-level checks for module toggles and scoped community visibility.
 
 ## Rollback Plan
 - [x] Keep each migration atomic and reversible.
@@ -86,3 +86,4 @@ Acceptance criteria:
 - 2026-03-03: Applied Phase 34 RLS migration to Casa Nirvana remote DB (`pswnlowvmdgeifhxilao`) and validated function/policy presence plus migration metadata record (`version=20260303`).
 - 2026-03-06: Rewired active Guard and Agency directory pages off direct Supabase reads/writes and onto backend-scoped admin APIs (`/admin/guards/profiles`, `/admin/agencies/directory`) so People list/grid/details flows now enforce tenant scope at the API layer.
 - 2026-03-06: Normalized backend admin role aliases in auth and capability resolution so capability-filtered Guard and Agency submenu entries do not disappear for aliased admin roles.
+- 2026-03-06: Hardened `/settings/module-settings` app-level scope UX so non-superadmin admins are pinned to scoped communities, cannot fall into misleading global-toggle state, and only see community-scoped module management in the UI.

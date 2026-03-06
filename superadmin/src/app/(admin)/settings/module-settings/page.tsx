@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Card, CardBody, Row, Col, Button, Nav, Tab, Badge, Spinner, Form, Alert } from 'react-bootstrap';
 import PageTitle from '@/components/PageTitle';
 import IconifyIcon from '@/components/wrappers/IconifyIcon';
+import { useAdminCapabilities } from '@/hooks/useAdminCapabilities';
 
 interface ModuleSetting {
     id: number;
@@ -30,6 +31,9 @@ interface ModulesGrouped {
     guard_hub?: ModuleSetting[];
 }
 
+const normalizeRoleName = (role?: string | null) =>
+    typeof role === 'string' ? role.trim().toLowerCase().replace(/\s+/g, '_') : '';
+
 const ModuleSettingsPage = () => {
     const [activeTab, setActiveTab] = useState<'RESIDENT' | 'GUARD'>('RESIDENT');
     const [modules, setModules] = useState<ModulesGrouped>({});
@@ -38,8 +42,23 @@ const ModuleSettingsPage = () => {
     const [feedback, setFeedback] = useState<{ type: 'success' | 'danger' | 'warning'; message: string } | null>(null);
     const [communities, setCommunities] = useState<Community[]>([]);
     const [selectedCommunity, setSelectedCommunity] = useState<string>('');
+    const { data: capabilities, isLoading: capabilitiesLoading } = useAdminCapabilities();
+    const normalizedRole = normalizeRoleName(capabilities?.role);
+    const isSuperadmin = normalizedRole === 'superadmin' || normalizedRole === 'super_admin';
+    const scopedCommunityIds = capabilities?.scope?.community_ids || [];
+    const hasScopedCommunityAccess = scopedCommunityIds.length > 0;
 
     const fetchModules = useCallback(async () => {
+        if (!capabilitiesLoading && !isSuperadmin && !hasScopedCommunityAccess) {
+            setModules({});
+            setFeedback({
+                type: 'warning',
+                message: 'No community scope is assigned to this admin account. Module settings are unavailable until a community is assigned.',
+            });
+            setLoading(false);
+            return;
+        }
+
         setLoading(true);
         try {
             const params = new URLSearchParams({ user_type: activeTab });
@@ -62,14 +81,20 @@ const ModuleSettingsPage = () => {
         } finally {
             setLoading(false);
         }
-    }, [activeTab, selectedCommunity]);
+    }, [activeTab, selectedCommunity, capabilitiesLoading, isSuperadmin, hasScopedCommunityAccess]);
 
-    const fetchCommunities = async () => {
+    const fetchCommunities = useCallback(async () => {
         try {
             const response = await fetch('/api/module-settings/communities');
             const data = await response.json();
             if (data.status === 'success') {
                 setCommunities(data.data || []);
+                if (!isSuperadmin && (data.data || []).length === 0) {
+                    setFeedback({
+                        type: 'warning',
+                        message: 'No scoped communities are available for this admin account.',
+                    });
+                }
             } else {
                 setFeedback({ type: 'warning', message: data.message?.[0] || 'Unable to load communities. Global settings are still available.' });
             }
@@ -77,7 +102,7 @@ const ModuleSettingsPage = () => {
             console.error('Error fetching communities:', error);
             setFeedback({ type: 'warning', message: 'Unable to load communities. Global settings are still available.' });
         }
-    };
+    }, [isSuperadmin]);
 
     useEffect(() => {
         fetchModules();
@@ -85,9 +110,42 @@ const ModuleSettingsPage = () => {
 
     useEffect(() => {
         fetchCommunities();
-    }, []);
+    }, [fetchCommunities]);
+
+    useEffect(() => {
+        if (isSuperadmin) {
+            return;
+        }
+
+        if (communities.length === 0) {
+            if (selectedCommunity) {
+                setSelectedCommunity('');
+            }
+            return;
+        }
+
+        const allowedCommunityIds = new Set(
+            (scopedCommunityIds.length > 0 ? communities.filter((community) => scopedCommunityIds.includes(community.id)) : communities)
+                .map((community) => community.id)
+        );
+
+        if (!selectedCommunity || !allowedCommunityIds.has(selectedCommunity)) {
+            const nextCommunityId = communities.find((community) => allowedCommunityIds.has(community.id))?.id || communities[0].id;
+            if (nextCommunityId && nextCommunityId !== selectedCommunity) {
+                setSelectedCommunity(nextCommunityId);
+            }
+        }
+    }, [communities, isSuperadmin, scopedCommunityIds, selectedCommunity]);
 
     const toggleModule = async (module: ModuleSetting) => {
+        if (!isSuperadmin && !selectedCommunity) {
+            setFeedback({
+                type: 'warning',
+                message: 'Select a scoped community before changing module settings.',
+            });
+            return;
+        }
+
         setSaving(module.id);
         const newStatus = module.effective_status === 1 ? 0 : 1;
 
@@ -262,8 +320,9 @@ const ModuleSettingsPage = () => {
                                     value={selectedCommunity}
                                     onChange={(e) => setSelectedCommunity(e.target.value)}
                                     size="sm"
+                                    disabled={!isSuperadmin && communities.length <= 1}
                                 >
-                                    <option value="">Global Settings</option>
+                                    {isSuperadmin ? <option value="">Global Settings</option> : null}
                                     {communities.map((community) => (
                                         <option key={community.id} value={community.id}>
                                             {community.name}
@@ -282,6 +341,15 @@ const ModuleSettingsPage = () => {
                             </Button>
                         </div>
                     </div>
+
+                    {!capabilitiesLoading && !isSuperadmin && hasScopedCommunityAccess && (
+                        <div className="alert alert-secondary mt-3 mb-0 d-flex align-items-center">
+                            <IconifyIcon icon="ri:shield-check-line" className="me-2" />
+                            <span>
+                                Community-scoped admin mode is active. You can only manage module settings for your assigned communities.
+                            </span>
+                        </div>
+                    )}
 
                     {selectedCommunity && (
                         <div className="alert alert-info mt-3 mb-0 d-flex align-items-center">
