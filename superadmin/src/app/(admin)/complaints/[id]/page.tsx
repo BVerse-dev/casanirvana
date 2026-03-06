@@ -1,6 +1,6 @@
 "use client";
 import { useParams } from "next/navigation";
-import { Card, CardBody, CardHeader, CardTitle, Row, Col, Badge, Button, Tab, Tabs } from "react-bootstrap";
+import { Alert, Card, CardBody, CardHeader, CardTitle, Row, Col, Badge, Button, Tab, Tabs } from "react-bootstrap";
 import { useComplaintMetrics, useGetComplaint, useUpdateComplaint } from "@/hooks/useComplaints";
 import PageTitle from "@/components/PageTitle";
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
@@ -9,6 +9,23 @@ import Link from "next/link";
 import ComplaintComments from "../components/ComplaintComments";
 import ComplaintActions from "../components/ComplaintActions";
 
+const formatLabel = (value?: string | null) =>
+  (value || "unknown")
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+
+const buildActionSuccessMessage = (status: "pending" | "in_progress" | "resolved") => {
+  switch (status) {
+    case "in_progress":
+      return "Complaint moved to In Progress.";
+    case "resolved":
+      return "Complaint marked as Resolved.";
+    default:
+      return "Complaint reopened successfully.";
+  }
+};
+
 const ComplaintDetailsPage = () => {
   const params = useParams();
   const complaintId = params.id as string;
@@ -16,14 +33,10 @@ const ComplaintDetailsPage = () => {
   const { data: complaintMetrics } = useComplaintMetrics();
   const updateComplaintMutation = useUpdateComplaint(complaintId);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-
-  // Debug logging
-  console.log('📊 Complaint details page state:', { 
-    complaintId,
-    isLoading, 
-    error: error?.message, 
-    complaint: complaint ? { id: complaint.id, subject: complaint.subject } : null
-  });
+  const [feedback, setFeedback] = useState<{
+    variant: "success" | "danger";
+    message: string;
+  } | null>(null);
 
   if (isLoading) {
     return (
@@ -77,9 +90,9 @@ const ComplaintDetailsPage = () => {
       case "resolved":
         return "bg-success-subtle text-success";
       case "in_progress":
-        return "bg-warning-subtle text-warning";
+        return "bg-info-subtle text-info";
       case "pending":
-        return "bg-danger-subtle text-danger";
+        return "bg-warning-subtle text-warning";
       default:
         return "bg-secondary-subtle text-secondary";
     }
@@ -125,6 +138,7 @@ const ComplaintDetailsPage = () => {
     if (status === "in_progress") {
       updates.in_progress_at = now;
       updates.resolved_at = null;
+      updates.resolution_notes = null;
     } else if (status === "resolved") {
       updates.resolved_at = now;
       if (options?.resolutionNotes) {
@@ -132,6 +146,8 @@ const ComplaintDetailsPage = () => {
       }
     } else if (status === "pending") {
       updates.in_progress_at = null;
+      updates.resolved_at = null;
+      updates.resolution_notes = null;
     }
 
     await updateComplaintMutation.mutateAsync(updates);
@@ -148,20 +164,71 @@ const ComplaintDetailsPage = () => {
     });
   };
 
-  const runSafeAction = async (action: () => Promise<void>) => {
+  const runSafeAction = async (
+    action: () => Promise<void>,
+    successMessage: string,
+  ) => {
+    setFeedback(null);
     try {
       await action();
+      setFeedback({
+        variant: "success",
+        message: successMessage,
+      });
     } catch (mutationError) {
       console.error("Complaint action failed:", mutationError);
-      window.alert("Failed to apply complaint action. Please try again.");
+      setFeedback({
+        variant: "danger",
+        message: "Failed to apply complaint action. Please try again.",
+      });
+      throw mutationError;
     }
   };
+
+  const timelineEvents = [
+    complaint.created_at
+      ? {
+          key: "filed",
+          title: "Complaint Filed",
+          description: "The complaint was submitted into the complaints workflow.",
+          timestamp: complaint.created_at,
+          markerClass: "bg-primary",
+        }
+      : null,
+    complaint.in_progress_at
+      ? {
+          key: "in-progress",
+          title: "Marked In Progress",
+          description: "The complaint is currently being handled by operations.",
+          timestamp: complaint.in_progress_at,
+          markerClass: "bg-info",
+        }
+      : null,
+    complaint.resolved_at
+      ? {
+          key: "resolved",
+          title: "Complaint Resolved",
+          description: "The complaint was resolved and closed by the admin team.",
+          timestamp: complaint.resolved_at,
+          markerClass: "bg-success",
+        }
+      : null,
+  ].filter(Boolean) as Array<{
+    key: string;
+    title: string;
+    description: string;
+    timestamp: string;
+    markerClass: string;
+  }>;
+
+  const canStartProgress = complaint.status === "pending";
+  const canResolve = complaint.status === "pending" || complaint.status === "in_progress";
+  const canReopen = complaint.status === "resolved";
 
   return (
     <>
       <PageTitle title="Complaint Details" subName="Complaints Management" />
       
-      {/* Header Actions */}
       <Row className="mb-3">
         <Col xl={12}>
           <div className="d-flex justify-content-between align-items-center">
@@ -181,27 +248,33 @@ const ComplaintDetailsPage = () => {
               Back to Complaints
             </Link>
             <div className="d-flex gap-2">
-              <Button variant="soft-primary" disabled title="Coming soon">
-                <IconifyIcon icon="ri:edit-line" className="me-1" />
-                Edit
-              </Button>
-              <Button variant="soft-secondary" disabled title="Coming soon">
-                <IconifyIcon icon="ri:download-line" className="me-1" />
-                Export PDF
-              </Button>
-              {complaint.status === "pending" && (
+              {canStartProgress && (
                 <>
                   <Button
                     variant="warning"
-                    onClick={() => void runSafeAction(() => handleStatusChange("in_progress"))}
+                    onClick={() =>
+                      void runSafeAction(
+                        () => handleStatusChange("in_progress"),
+                        buildActionSuccessMessage("in_progress"),
+                      )
+                    }
                     disabled={updateComplaintMutation.isPending}
                   >
                     <IconifyIcon icon="ri:play-line" className="me-1" />
                     Start Progress
                   </Button>
+                </>
+              )}
+              {canResolve && (
+                <>
                   <Button
                     variant="success"
-                    onClick={() => void runSafeAction(() => handleStatusChange("resolved"))}
+                    onClick={() =>
+                      void runSafeAction(
+                        () => handleStatusChange("resolved"),
+                        buildActionSuccessMessage("resolved"),
+                      )
+                    }
                     disabled={updateComplaintMutation.isPending}
                   >
                     <IconifyIcon icon="ri:check-line" className="me-1" />
@@ -209,14 +282,19 @@ const ComplaintDetailsPage = () => {
                   </Button>
                 </>
               )}
-              {complaint.status === "in_progress" && (
+              {canReopen && (
                 <Button
-                  variant="success"
-                  onClick={() => void runSafeAction(() => handleStatusChange("resolved"))}
+                  variant="secondary"
+                  onClick={() =>
+                    void runSafeAction(
+                      () => handleStatusChange("pending"),
+                      buildActionSuccessMessage("pending"),
+                    )
+                  }
                   disabled={updateComplaintMutation.isPending}
                 >
-                  <IconifyIcon icon="ri:check-line" className="me-1" />
-                  Mark as Resolved
+                  <IconifyIcon icon="ri:refresh-line" className="me-1" />
+                  Reopen
                 </Button>
               )}
             </div>
@@ -225,8 +303,17 @@ const ComplaintDetailsPage = () => {
       </Row>
 
       <Row>
-        {/* Main Complaint Information */}
         <Col xl={8}>
+          {feedback ? (
+            <Alert
+              variant={feedback.variant}
+              className="mb-3"
+              dismissible
+              onClose={() => setFeedback(null)}
+            >
+              {feedback.message}
+            </Alert>
+          ) : null}
           <Card className="mb-4">
             <CardHeader className="border-bottom">
               <div className="d-flex justify-content-between align-items-start">
@@ -236,13 +323,13 @@ const ComplaintDetailsPage = () => {
                   </CardTitle>
                   <div className="d-flex align-items-center gap-3 mt-2">
                     <Badge className={`py-1 px-2 fs-13 ${getStatusBadgeClass(complaint.status)}`}>
-                      {(complaint.status || "pending").replace("_", " ").toUpperCase()}
+                      {formatLabel(complaint.status || "pending")}
                     </Badge>
                     <Badge className={`py-1 px-2 fs-13 ${getPriorityBadgeClass(complaint.priority)}`}>
-                      {(complaint.priority || "medium").toUpperCase()} PRIORITY
+                      {formatLabel(complaint.priority || "medium")} Priority
                     </Badge>
                     <Badge className="bg-info-subtle text-info py-1 px-2 fs-13">
-                      {complaint.category}
+                      {formatLabel(complaint.category || "uncategorized")}
                     </Badge>
                     <Badge className="bg-primary-subtle text-primary py-1 px-2 fs-13">
                       {getComplaintType(complaint.complaint_type)}
@@ -290,7 +377,7 @@ const ComplaintDetailsPage = () => {
                   )}
 
                   {/* Resolution Notes */}
-                  {complaint.resolution_notes && (
+                  {complaint.resolution_notes && complaint.resolved_at && (
                     <div className="mb-4">
                       <h6 className="mb-2">Resolution Notes</h6>
                       <div className="p-3 bg-success-subtle rounded">
@@ -299,7 +386,9 @@ const ComplaintDetailsPage = () => {
                         </p>
                         {complaint.resolved_by_profile && (
                           <small className="text-muted">
-                            Resolved by: {(complaint.resolved_by_profile as any)?.first_name || 'N/A'} {(complaint.resolved_by_profile as any)?.last_name || ''}
+                            Resolved by: {`${(complaint.resolved_by_profile as any)?.first_name || ""} ${(complaint.resolved_by_profile as any)?.last_name || ""}`.trim() ||
+                              (complaint.resolved_by_profile as any)?.full_name ||
+                              "N/A"}
                           </small>
                         )}
                         {complaint.resolved_by_profile_id && !complaint.resolved_by_profile && (
@@ -315,31 +404,16 @@ const ComplaintDetailsPage = () => {
                   <div>
                     <h6 className="mb-3">Timeline</h6>
                     <div className="timeline">
-                      <div className="timeline-item">
-                        <div className="timeline-marker bg-primary"></div>
-                        <div className="timeline-content">
-                          <h6 className="mb-1">Complaint Filed</h6>
-                          <small className="text-muted">{formatDate(complaint.created_at)}</small>
-                        </div>
-                      </div>
-                      {complaint.updated_at !== complaint.created_at && (
-                        <div className="timeline-item">
-                          <div className="timeline-marker bg-warning"></div>
+                      {timelineEvents.map((event) => (
+                        <div className="timeline-item" key={event.key}>
+                          <div className={`timeline-marker ${event.markerClass}`}></div>
                           <div className="timeline-content">
-                            <h6 className="mb-1">Last Updated</h6>
-                            <small className="text-muted">{formatDate(complaint.updated_at)}</small>
+                            <h6 className="mb-1">{event.title}</h6>
+                            <p className="text-muted mb-1">{event.description}</p>
+                            <small className="text-muted">{formatDate(event.timestamp)}</small>
                           </div>
                         </div>
-                      )}
-                      {complaint.status === "resolved" && (
-                        <div className="timeline-item">
-                          <div className="timeline-marker bg-success"></div>
-                          <div className="timeline-content">
-                            <h6 className="mb-1">Resolved</h6>
-                            <small className="text-muted">{formatDate(complaint.updated_at)}</small>
-                          </div>
-                        </div>
-                      )}
+                      ))}
                     </div>
                   </div>
                 </Tab>
@@ -352,8 +426,18 @@ const ComplaintDetailsPage = () => {
                   <ComplaintActions
                     complaint={complaint}
                     isUpdating={updateComplaintMutation.isPending}
-                    onStatusChange={handleStatusChange}
-                    onPriorityChange={handlePriorityChange}
+                    onStatusChange={(status, options) =>
+                      runSafeAction(
+                        () => handleStatusChange(status, options),
+                        buildActionSuccessMessage(status),
+                      )
+                    }
+                    onPriorityChange={(priority, options) =>
+                      runSafeAction(
+                        () => handlePriorityChange(priority, options),
+                        `Complaint priority updated to ${formatLabel(priority)}.`,
+                      )
+                    }
                   />
                 </Tab>
               </Tabs>
@@ -383,7 +467,7 @@ const ComplaintDetailsPage = () => {
                       <small className="text-muted d-block">ID: {complaint.raised_by.substring(0, 8)}...</small>
                     )}
                   </h6>
-                  <p className="text-muted mb-0 fs-13">Resident</p>
+                  <p className="text-muted mb-0 fs-13">{complaint.reporter_email || "Resident"}</p>
                 </div>
               </div>
               
@@ -408,7 +492,6 @@ const ComplaintDetailsPage = () => {
             </CardBody>
           </Card>
 
-          {/* Quick Actions */}
           <Card className="mb-4">
             <CardHeader>
               <CardTitle as="h5" className="mb-0">
@@ -418,55 +501,65 @@ const ComplaintDetailsPage = () => {
             </CardHeader>
             <CardBody>
               <div className="d-grid gap-2">
-                {complaint.status === "pending" && (
+                {canResolve && (
                   <>
+                    {canStartProgress ? (
+                      <Button
+                        variant="warning"
+                        size="sm"
+                        onClick={() =>
+                          void runSafeAction(
+                            () => handleStatusChange("in_progress"),
+                            buildActionSuccessMessage("in_progress"),
+                          )
+                        }
+                        disabled={updateComplaintMutation.isPending}
+                      >
+                        <IconifyIcon icon="ri:play-line" className="me-1" />
+                        Start Progress
+                      </Button>
+                    ) : null}
                     <Button
                       variant="success"
                       size="sm"
-                      onClick={() => void runSafeAction(() => handleStatusChange("resolved"))}
+                      onClick={() =>
+                        void runSafeAction(
+                          () => handleStatusChange("resolved"),
+                          buildActionSuccessMessage("resolved"),
+                        )
+                      }
                       disabled={updateComplaintMutation.isPending}
                     >
                       <IconifyIcon icon="ri:check-line" className="me-1" />
                       Mark as Resolved
                     </Button>
-                    <Button
-                      variant="warning"
-                      size="sm"
-                      onClick={() => void runSafeAction(() => handleStatusChange("in_progress"))}
-                      disabled={updateComplaintMutation.isPending}
-                    >
-                      <IconifyIcon icon="ri:play-line" className="me-1" />
-                      Start Progress
-                    </Button>
                   </>
                 )}
-                {complaint.status === "in_progress" && (
+                {canReopen ? (
                   <Button
-                    variant="success"
+                    variant="secondary"
                     size="sm"
-                    onClick={() => void runSafeAction(() => handleStatusChange("resolved"))}
+                    onClick={() =>
+                      void runSafeAction(
+                        () => handleStatusChange("pending"),
+                        buildActionSuccessMessage("pending"),
+                      )
+                    }
                     disabled={updateComplaintMutation.isPending}
                   >
-                    <IconifyIcon icon="ri:check-line" className="me-1" />
-                    Mark as Resolved
+                    <IconifyIcon icon="ri:refresh-line" className="me-1" />
+                    Reopen Complaint
                   </Button>
-                )}
-                <Button variant="outline-primary" size="sm" disabled title="Coming soon">
-                  <IconifyIcon icon="ri:phone-line" className="me-1" />
-                  Contact Resident
-                </Button>
-                <Button variant="outline-info" size="sm" disabled title="Coming soon">
-                  <IconifyIcon icon="ri:mail-line" className="me-1" />
-                  Send Email
-                </Button>
-                <Button variant="outline-warning" size="sm" disabled title="Coming soon">
-                  <IconifyIcon icon="ri:calendar-line" className="me-1" />
-                  Schedule Visit
-                </Button>
+                ) : null}
                 <Button
                   variant="outline-danger"
                   size="sm"
-                  onClick={() => void runSafeAction(() => handlePriorityChange("high"))}
+                  onClick={() =>
+                    void runSafeAction(
+                      () => handlePriorityChange("high"),
+                      "Complaint escalated to High priority.",
+                    )
+                  }
                   disabled={complaint.priority === "high" || updateComplaintMutation.isPending}
                 >
                   <IconifyIcon icon="ri:arrow-up-line" className="me-1" />
@@ -476,7 +569,6 @@ const ComplaintDetailsPage = () => {
             </CardBody>
           </Card>
 
-          {/* Complaint Statistics */}
           <Card>
             <CardHeader>
               <CardTitle as="h5" className="mb-0">
@@ -523,7 +615,10 @@ const ComplaintDetailsPage = () => {
           style={{ backgroundColor: 'rgba(0,0,0,0.8)' }}
           onClick={() => setSelectedImage(null)}
         >
-          <div className="modal-dialog modal-lg modal-dialog-centered">
+          <div
+            className="modal-dialog modal-lg modal-dialog-centered"
+            onClick={(event) => event.stopPropagation()}
+          >
             <div className="modal-content">
               <div className="modal-header">
                 <h5 className="modal-title">Attachment Preview</h5>

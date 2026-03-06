@@ -18,8 +18,8 @@ const ComplaintOverviewCard = () => {
   const urgentComplaints = complaints.filter(c => c.priority === "high" && c.status !== "resolved").length;
   const resolvedToday = complaints.filter(complaint => {
     const today = new Date();
-    const complaintDate = new Date(complaint.updated_at);
-    return complaintDate.toDateString() === today.toDateString() && complaint.status === "resolved";
+    const resolvedAt = complaint.resolved_at ? new Date(complaint.resolved_at) : null;
+    return Boolean(resolvedAt) && resolvedAt?.toDateString() === today.toDateString();
   }).length;
 
   return (

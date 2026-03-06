@@ -3,34 +3,41 @@ import PageTitle from "@/components/PageTitle";
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
 import Link from "next/link";
 import {
+  Alert,
   Button,
   Card,
-  CardBody,
   CardFooter,
   CardHeader,
   CardTitle,
   Col,
-  Dropdown,
-  DropdownItem,
-  DropdownMenu,
-  DropdownToggle,
   Row,
 } from "react-bootstrap";
 import { useDeleteComplaint, useListComplaints, useUpdateComplaint } from "@/hooks/useComplaints";
 import ComplaintGridCard from "./components/ComplaintGridCard";
+import { useState } from "react";
+
+const formatLabel = (value?: string | null) =>
+  (value || "unknown")
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+
+const truncateText = (value?: string | null, maxLength = 80) => {
+  if (!value) return "No details available";
+  return value.length > maxLength ? `${value.substring(0, maxLength)}...` : value;
+};
+
+const getComplaintTypeLabel = (value?: string | null) =>
+  value === "personal" ? "Personal" : "Community";
 
 const ComplaintsPage = () => {
   const { data: complaints = [], isLoading, error } = useListComplaints();
   const updateComplaintMutation = useUpdateComplaint();
   const deleteComplaintMutation = useDeleteComplaint();
-
-  // Debug logging
-  console.log('📊 Complaints page state:', { 
-    isLoading, 
-    error: error?.message, 
-    complaintsCount: complaints?.length,
-    firstComplaint: complaints?.[0] 
-  });
+  const [feedback, setFeedback] = useState<{
+    variant: "success" | "danger";
+    message: string;
+  } | null>(null);
 
   if (isLoading) {
     return (
@@ -74,9 +81,9 @@ const ComplaintsPage = () => {
       case "resolved":
         return "bg-success-subtle text-success";
       case "in_progress":
-        return "bg-warning-subtle text-warning";
+        return "bg-info-subtle text-info";
       case "pending":
-        return "bg-danger-subtle text-danger";
+        return "bg-warning-subtle text-warning";
       default:
         return "bg-secondary-subtle text-secondary";
     }
@@ -107,6 +114,7 @@ const ComplaintsPage = () => {
     complaintId: string,
     status: "pending" | "in_progress" | "resolved",
   ) => {
+    setFeedback(null);
     try {
       const now = new Date().toISOString();
       const updates: Record<string, string | null> = {
@@ -118,21 +126,40 @@ const ComplaintsPage = () => {
         updates.resolved_at = null;
       } else if (status === "resolved") {
         updates.resolved_at = now;
+      } else if (status === "pending") {
+        updates.in_progress_at = null;
+        updates.resolved_at = null;
+        updates.resolution_notes = null;
       }
       await updateComplaintMutation.mutateAsync({ id: complaintId, data: updates });
+      setFeedback({
+        variant: "success",
+        message: `Complaint ${complaintId.slice(0, 8)} updated to ${formatLabel(status)}.`,
+      });
     } catch (mutationError) {
       console.error("Failed to update complaint status:", mutationError);
-      window.alert("Failed to update complaint status. Please try again.");
+      setFeedback({
+        variant: "danger",
+        message: `Failed to update complaint ${complaintId.slice(0, 8)}.`,
+      });
     }
   };
 
   const handleDeleteComplaint = async (complaintId: string) => {
     if (!window.confirm("Delete this complaint? This action cannot be undone.")) return;
+    setFeedback(null);
     try {
       await deleteComplaintMutation.mutateAsync(complaintId);
+      setFeedback({
+        variant: "success",
+        message: `Complaint ${complaintId.slice(0, 8)} deleted.`,
+      });
     } catch (mutationError) {
       console.error("Failed to delete complaint:", mutationError);
-      window.alert("Failed to delete complaint. Please try again.");
+      setFeedback({
+        variant: "danger",
+        message: `Failed to delete complaint ${complaintId.slice(0, 8)}.`,
+      });
     }
   };
 
@@ -153,42 +180,24 @@ const ComplaintsPage = () => {
                   All Complaints ({complaints?.length || 0})
                 </CardTitle>
               </div>
-              <Dropdown>
-                <DropdownToggle
-                  as={"a"}
-                  className="btn btn-sm btn-outline-light rounded content-none icons-center"
-                  data-bs-toggle="dropdown"
-                  aria-expanded="false"
-                >
-                  This Month{" "}
-                  <IconifyIcon
-                    className="ms-1"
-                    width={16}
-                    height={16}
-                    icon="ri:arrow-down-s-line"
-                  />
-                </DropdownToggle>
-                <DropdownMenu className="dropdown-menu-end">
-                  <DropdownItem>Download</DropdownItem>
-                  <DropdownItem>Export</DropdownItem>
-                  <DropdownItem>Import</DropdownItem>
-                </DropdownMenu>
-              </Dropdown>
+              <span className="badge bg-light-subtle text-muted border">
+                Real-time list
+              </span>
             </CardHeader>
+            {feedback ? (
+              <Alert
+                variant={feedback.variant}
+                className="m-3 mb-0"
+                dismissible
+                onClose={() => setFeedback(null)}
+              >
+                {feedback.message}
+              </Alert>
+            ) : null}
             <div className="table-responsive">
               <table className="table align-middle text-nowrap table-hover table-centered mb-0">
                 <thead className="bg-light-subtle">
                   <tr>
-                    <th style={{ width: 20 }}>
-                      <div className="form-check">
-                        <input
-                          type="checkbox"
-                          className="form-check-input"
-                          id="customCheck1"
-                        />
-                        <label className="form-check-label" htmlFor="customCheck1" />
-                      </div>
-                    </th>
                     <th>Complaint Details</th>
                     <th>Resident</th>
                     <th>Type</th>
@@ -200,20 +209,37 @@ const ComplaintsPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {complaints.map((complaint) => (
-                    <tr key={complaint.id}>
-                      <td>
-                        <div className="form-check">
-                          <input
-                            type="checkbox"
-                            className="form-check-input"
-                            id={`complaint-check-${complaint.id}`}
-                          />
-                          <label className="form-check-label" htmlFor={`complaint-check-${complaint.id}`}>
-                            &nbsp;
-                          </label>
-                        </div>
+                  {complaints.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="text-center py-5 text-muted">
+                        No complaints found.
                       </td>
+                    </tr>
+                  ) : complaints.map((complaint) => {
+                    const actionConfig =
+                      complaint.status === "pending"
+                        ? {
+                            title: "Start Progress",
+                            icon: "ri:play-line",
+                            variant: "soft-warning",
+                            nextStatus: "in_progress" as const,
+                          }
+                        : complaint.status === "in_progress"
+                          ? {
+                              title: "Mark as Resolved",
+                              icon: "ri:check-line",
+                              variant: "soft-success",
+                              nextStatus: "resolved" as const,
+                            }
+                          : {
+                              title: "Reopen Complaint",
+                              icon: "ri:refresh-line",
+                              variant: "soft-secondary",
+                              nextStatus: "pending" as const,
+                            };
+
+                    return (
+                    <tr key={complaint.id}>
                       <td>
                         <div className="d-flex align-items-start gap-3">
                           <div className="avatar-md bg-primary bg-opacity-10 rounded flex-centered">
@@ -231,7 +257,7 @@ const ComplaintsPage = () => {
                                 {complaint.subject}
                               </h6>
                               <p className="text-muted mb-0 fs-13 hover-primary">
-                                {complaint.details ? complaint.details.substring(0, 80) + '...' : 'No details available'}
+                                {truncateText(complaint.details)}
                               </p>
                             </Link>
                           </div>
@@ -247,12 +273,12 @@ const ComplaintsPage = () => {
                       </td>
                       <td>
                         <span className={`badge ${complaint.complaint_type === 'personal' ? 'bg-primary-subtle text-primary' : 'bg-success-subtle text-success'} py-1 px-2 fs-13`}>
-                          {complaint.complaint_type === 'personal' ? 'Personal' : 'Community'}
+                          {getComplaintTypeLabel(complaint.complaint_type)}
                         </span>
                       </td>
                       <td>
                         <span className="badge bg-info-subtle text-info py-1 px-2 fs-13">
-                          {complaint.category}
+                          {formatLabel(complaint.category || "uncategorized")}
                         </span>
                       </td>
                       <td>
@@ -261,7 +287,7 @@ const ComplaintsPage = () => {
                             complaint.priority
                           )} py-1 px-2 fs-13`}
                         >
-                          {complaint.priority || "medium"}
+                          {formatLabel(complaint.priority || "medium")}
                         </span>
                       </td>
                       <td>
@@ -270,7 +296,7 @@ const ComplaintsPage = () => {
                             complaint.status
                           )} py-1 px-2 fs-13`}
                         >
-                          {complaint.status || "pending"}
+                          {formatLabel(complaint.status || "pending")}
                         </span>
                       </td>
                       <td>{formatDate(complaint.created_at)}</td>
@@ -289,34 +315,17 @@ const ComplaintsPage = () => {
                             </Button>
                           </Link>
                           <Button
-                            variant="soft-primary"
+                            variant={actionConfig.variant}
                             size="sm"
-                            onClick={() =>
-                              handleStatusUpdate(
-                                complaint.id,
-                            complaint.status === "pending" ? "in_progress" : "pending",
-                              )
-                            }
+                            onClick={() => handleStatusUpdate(complaint.id, actionConfig.nextStatus)}
                             disabled={updateComplaintMutation.isPending}
+                            title={actionConfig.title}
                           >
                             <IconifyIcon
-                              icon="ri:play-line"
+                              icon={actionConfig.icon}
                               className="align-middle fs-18"
                             />
                           </Button>
-                          {complaint.status === "pending" && (
-                            <Button
-                              variant="soft-success"
-                              size="sm"
-                              onClick={() => handleStatusUpdate(complaint.id, "resolved")}
-                              disabled={updateComplaintMutation.isPending}
-                            >
-                              <IconifyIcon
-                                icon="ri:check-line"
-                                className="align-middle fs-18"
-                              />
-                            </Button>
-                          )}
                           <Button
                             variant="soft-danger"
                             size="sm"
@@ -331,47 +340,19 @@ const ComplaintsPage = () => {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
             <CardFooter className="d-flex align-items-center justify-content-between">
-              <div>
-                <p className="text-muted mb-0">
-                  Showing{" "}
-                  <span className="fw-semibold">{complaints.length}</span> of{" "}
-                  <span className="fw-semibold">{complaints.length}</span> results
-                </p>
-              </div>
-              <div>
-                <ul className="pagination pagination-sm mb-0">
-                  <li key="prev" className="page-item disabled">
-                    <a className="page-link" href="#" tabIndex={-1}>
-                      Previous
-                    </a>
-                  </li>
-                  <li key="page-1" className="page-item active">
-                    <a className="page-link" href="#">
-                      1
-                    </a>
-                  </li>
-                  <li key="page-2" className="page-item">
-                    <a className="page-link" href="#">
-                      2
-                    </a>
-                  </li>
-                  <li key="page-3" className="page-item">
-                    <a className="page-link" href="#">
-                      3
-                    </a>
-                  </li>
-                  <li key="next" className="page-item">
-                    <a className="page-link" href="#">
-                      Next
-                    </a>
-                  </li>
-                </ul>
-              </div>
+              <p className="text-muted mb-0">
+                Showing <span className="fw-semibold">{complaints.length}</span> live complaint
+                {complaints.length === 1 ? "" : "s"}.
+              </p>
+              <span className="text-muted fs-13">
+                Updates sync automatically when complaint records change.
+              </span>
             </CardFooter>
           </Card>
         </Col>

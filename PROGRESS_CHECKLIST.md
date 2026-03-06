@@ -795,6 +795,12 @@ Date: 2026-02-06
   - Removed the remaining fake list controls in `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/maintenance-requests/page.tsx`: deleted non-wired select-all checkboxes and fake pagination links, added honest empty-state + live action feedback, and kept the footer truthful about rendering the full live request set.
   - Hardened `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/maintenance-requests/[id]/page.tsx` so quick actions now respect a valid request-state progression (`pending -> in_progress -> completed`, with only `completed -> pending` reopen), expose actual cost / assigned-to / resolved-by metadata, and avoid duplicate back-navigation chrome.
   - Revalidated the superadmin production build after the maintenance remediation (`npm run build` in `/Users/andromeda/casanirvana/superadmin` passed).
+- [x] Focused remediation for `Operations -> Complaints -> List/Details`:
+  - Removed non-production list controls from `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/complaints/page.tsx`: fake export/import dropdown, fake row-selection checkboxes, and fake pagination links are gone; the page now shows honest empty-state/live-state feedback and a truthful footer for the real complaint dataset.
+  - Hardened complaint list actions to follow a clear lifecycle path (`pending -> in_progress -> resolved`, with `resolved -> pending` reopen) and normalized status/category/priority labels so the list no longer exposes misleading play-button behavior for resolved complaints.
+  - Hardened `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/complaints/[id]/page.tsx` by removing debug logging and dead header/sidebar placeholder actions, switching the timeline to real lifecycle fields (`created_at`, `in_progress_at`, `resolved_at`), and adding visible success/error feedback for status and priority mutations on the active detail surface.
+  - Corrected `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/complaints/components/ComplaintOverviewCard.tsx` so “Resolved Today” is derived from `resolved_at` instead of the generic `updated_at` field.
+  - Revalidated the superadmin production build after the complaints remediation (`npm run build` in `/Users/andromeda/casanirvana/superadmin` passed).
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)
