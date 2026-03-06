@@ -4,7 +4,6 @@ import PageTitle from '@/components/PageTitle'
 import { Col, Row } from 'react-bootstrap'
 import ResidentAdd from './components/ResidentAdd_Enhanced'
 import ResidentAddCard from './components/ResidentAddCard'
-import { Metadata } from 'next'
 import { useState } from 'react'
 import { CreateResidentData } from '@/hooks/useResidents'
 import { useRouter } from 'next/navigation'
@@ -21,6 +20,7 @@ const ResidentAddPage = () => {
     status: 'active'
   })
   const router = useRouter()
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleFormChange = (data: CreateResidentData) => {
     setFormData(data)
@@ -46,10 +46,12 @@ const ResidentAddPage = () => {
           formData={formData}
           onAddResident={handleAddResident}
           onCancel={handleCancel}
+          isSubmitting={isSubmitting}
+          submittingLabel="Adding..."
         />
         <Col xl={9} lg={8}>
           <FileUpload title="Add Resident Photo" />
-          <ResidentAdd onFormChange={handleFormChange} />
+          <ResidentAdd onFormChange={handleFormChange} onSubmittingChange={setIsSubmitting} />
         </Col>
       </Row>
     </>

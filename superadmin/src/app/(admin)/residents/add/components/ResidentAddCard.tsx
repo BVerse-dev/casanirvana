@@ -10,9 +10,19 @@ interface ResidentAddCardProps {
   formData?: CreateResidentData
   onAddResident?: () => void
   onCancel?: () => void
+  submitLabel?: string
+  submittingLabel?: string
+  isSubmitting?: boolean
 }
 
-const ResidentAddCard = ({ formData, onAddResident, onCancel }: ResidentAddCardProps) => {
+const ResidentAddCard = ({
+  formData,
+  onAddResident,
+  onCancel,
+  submitLabel = 'Add Resident',
+  submittingLabel = 'Saving...',
+  isSubmitting = false,
+}: ResidentAddCardProps) => {
   const displayName = formData?.first_name || formData?.last_name 
     ? `${formData.first_name || ''} ${formData.last_name || ''}`.trim()
     : 'New Resident'
@@ -101,9 +111,9 @@ const ResidentAddCard = ({ formData, onAddResident, onCancel }: ResidentAddCardP
                 variant="outline-primary" 
                 className="w-100"
                 onClick={onAddResident}
-                disabled={!formData?.first_name || !formData?.last_name || !formData?.email}
+                disabled={isSubmitting || !formData?.first_name || !formData?.last_name || !formData?.email}
               >
-                Add Resident
+                {isSubmitting ? submittingLabel : submitLabel}
               </Button>
             </Col>
             <Col lg={6}>
