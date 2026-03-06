@@ -43,6 +43,26 @@ export const useListMaintenanceRequests = (
             phone,
             role
           ),
+          assigned_profile:profiles!maintenance_requests_assigned_to_fkey(
+            id,
+            first_name,
+            last_name,
+            full_name,
+            email,
+            avatar_url,
+            phone,
+            role
+          ),
+          resolved_by_profile:profiles!maintenance_requests_resolved_by_profile_id_fkey(
+            id,
+            first_name,
+            last_name,
+            full_name,
+            email,
+            avatar_url,
+            phone,
+            role
+          ),
           unit:units!maintenance_requests_unit_id_fkey(
             id,
             block,
@@ -84,6 +104,26 @@ export const useGetMaintenanceRequest = (id: string) => {
         .select(`
           *,
           requester_profile:profiles!maintenance_requests_requested_by_fkey(
+            id,
+            first_name,
+            last_name,
+            full_name,
+            email,
+            avatar_url,
+            phone,
+            role
+          ),
+          assigned_profile:profiles!maintenance_requests_assigned_to_fkey(
+            id,
+            first_name,
+            last_name,
+            full_name,
+            email,
+            avatar_url,
+            phone,
+            role
+          ),
+          resolved_by_profile:profiles!maintenance_requests_resolved_by_profile_id_fkey(
             id,
             first_name,
             last_name,

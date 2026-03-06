@@ -11,6 +11,7 @@ import { mapAvatarUrl } from "@/utils/avatarMapper";
 import Image from "next/image";
 import Link from "next/link";
 import {
+  Alert,
   Button,
   Card,
   CardBody,
@@ -21,10 +22,14 @@ import {
   Row,
 } from "react-bootstrap";
 import MaintenanceRequestGridCard from "./components/MaintenanceRequestGridCard";
+import { useMaintenanceRequestsSubscription } from "@/hooks/useMaintenanceRequests";
+import { useState } from "react";
 
 type MaintenanceWithProfiles =
   Database["public"]["Tables"]["maintenance_requests"]["Row"] & {
     requester_profile?: Database["public"]["Tables"]["profiles"]["Row"];
+    assigned_profile?: Database["public"]["Tables"]["profiles"]["Row"];
+    resolved_by_profile?: Database["public"]["Tables"]["profiles"]["Row"];
     unit?: Database["public"]["Tables"]["units"]["Row"];
   };
 
@@ -51,15 +56,41 @@ const getPriorityVariant = (value?: string | null) => {
   }
 };
 
+const getStatusVariant = (value?: string | null) => {
+  switch ((value || "").toLowerCase()) {
+    case "completed":
+      return "success";
+    case "in_progress":
+      return "info";
+    case "pending":
+      return "warning";
+    case "cancelled":
+      return "secondary";
+    default:
+      return "danger";
+  }
+};
+
+const truncateText = (value?: string | null, maxLength = 50) => {
+  if (!value) return "No description";
+  return value.length > maxLength ? `${value.substring(0, maxLength)}...` : value;
+};
+
 const MaintenanceRequestsPage = () => {
+  useMaintenanceRequestsSubscription();
   const { data: maintenanceRequests = [], isLoading } =
     useListMaintenanceRequests();
   const updateMaintenanceRequestById = useUpdateMaintenanceRequestById();
   const deleteMaintenanceRequest = useDeleteMaintenanceRequest();
+  const [feedback, setFeedback] = useState<{
+    variant: "success" | "danger";
+    message: string;
+  } | null>(null);
 
   const handleToggleCompletion = async (
     request: MaintenanceWithProfiles,
   ) => {
+    setFeedback(null);
     const newStatus = request.status === "completed" ? "pending" : "completed";
 
     try {
@@ -78,12 +109,24 @@ const MaintenanceRequestsPage = () => {
           }),
         },
       });
+      setFeedback({
+        variant: "success",
+        message:
+          newStatus === "completed"
+            ? `Maintenance request #${request.id} marked as completed.`
+            : `Maintenance request #${request.id} reopened successfully.`,
+      });
     } catch (error) {
       console.error("Failed to update maintenance status:", error);
+      setFeedback({
+        variant: "danger",
+        message: `Failed to update maintenance request #${request.id}.`,
+      });
     }
   };
 
   const handleDelete = async (request: MaintenanceWithProfiles) => {
+    setFeedback(null);
     const shouldDelete = window.confirm(
       `Delete maintenance request #${request.id}? This action cannot be undone.`,
     );
@@ -91,8 +134,16 @@ const MaintenanceRequestsPage = () => {
 
     try {
       await deleteMaintenanceRequest.mutateAsync(request.id);
+      setFeedback({
+        variant: "success",
+        message: `Maintenance request #${request.id} was deleted.`,
+      });
     } catch (error) {
       console.error("Failed to delete maintenance request:", error);
+      setFeedback({
+        variant: "danger",
+        message: `Failed to delete maintenance request #${request.id}.`,
+      });
     }
   };
 
@@ -119,23 +170,20 @@ const MaintenanceRequestsPage = () => {
               </span>
             </CardHeader>
             <CardBody className="p-0">
+              {feedback ? (
+                <Alert
+                  variant={feedback.variant}
+                  className="m-3 mb-0"
+                  onClose={() => setFeedback(null)}
+                  dismissible
+                >
+                  {feedback.message}
+                </Alert>
+              ) : null}
               <div className="table-responsive">
                 <table className="table align-middle text-nowrap table-hover table-centered mb-0">
                   <thead className="bg-light-subtle">
                     <tr>
-                      <th style={{ width: 20 }}>
-                        <div className="form-check">
-                          <input
-                            type="checkbox"
-                            className="form-check-input"
-                            id="customCheck1"
-                          />
-                          <label
-                            className="form-check-label"
-                            htmlFor="customCheck1"
-                          />
-                        </div>
-                      </th>
                       <th>Requester &amp; Unit</th>
                       <th>Request Date</th>
                       <th>Type</th>
@@ -147,24 +195,15 @@ const MaintenanceRequestsPage = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {maintenanceRequests.map((request) => {
+                    {maintenanceRequests.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="text-center py-5 text-muted">
+                          No maintenance requests found.
+                        </td>
+                      </tr>
+                    ) : maintenanceRequests.map((request) => {
                       return (
                         <tr key={request.id}>
-                          <td>
-                            <div className="form-check">
-                              <input
-                                type="checkbox"
-                                className="form-check-input"
-                                id={`customCheck${request.id}`}
-                              />
-                              <label
-                                className="form-check-label"
-                                htmlFor={`customCheck${request.id}`}
-                              >
-                                &nbsp;
-                              </label>
-                            </div>
-                          </td>
                           <td>
                             <div className="d-flex align-items-center gap-2">
                               <div>
@@ -204,7 +243,7 @@ const MaintenanceRequestsPage = () => {
                               ? new Date(request.created_at).toLocaleDateString()
                               : "N/A"}
                           </td>
-                          <td>{request.request_type}</td>
+                          <td>{formatStatusLabel(request.request_type)}</td>
                           <td>
                             <span
                               className={`badge bg-${getPriorityVariant(request.priority)} text-white fs-11`}
@@ -214,26 +253,12 @@ const MaintenanceRequestsPage = () => {
                           </td>
                           <td>
                             <span
-                              className={`badge bg-${
-                                request.status === "pending"
-                                  ? "warning"
-                                  : request.status === "in_progress"
-                                    ? "info"
-                                    : request.status === "completed"
-                                      ? "success"
-                                      : "danger"
-                              } text-white fs-11`}
+                              className={`badge bg-${getStatusVariant(request.status)} text-white fs-11`}
                             >
                               {formatStatusLabel(request.status)}
                             </span>
                           </td>
-                          <td>
-                            {request.description
-                              ? request.description.length > 50
-                                ? `${request.description.substring(0, 50)}...`
-                                : request.description
-                              : "No description"}
-                          </td>
+                          <td>{truncateText(request.description)}</td>
                           <td>{formatMoney(request.estimated_cost)}</td>
                           <td>
                             <div className="d-flex gap-2">
@@ -294,35 +319,15 @@ const MaintenanceRequestsPage = () => {
               </div>
             </CardBody>
             <CardFooter className="border-top">
-              <nav aria-label="Page navigation example">
-                <ul className="pagination justify-content-end mb-0">
-                  <li key="prev" className="page-item">
-                    <Link className="page-link" href="">
-                      Previous
-                    </Link>
-                  </li>
-                  <li key="page-1" className="page-item active">
-                    <Link className="page-link" href="">
-                      1
-                    </Link>
-                  </li>
-                  <li key="page-2" className="page-item">
-                    <Link className="page-link" href="">
-                      2
-                    </Link>
-                  </li>
-                  <li key="page-3" className="page-item">
-                    <Link className="page-link" href="">
-                      3
-                    </Link>
-                  </li>
-                  <li key="next" className="page-item">
-                    <Link className="page-link" href="">
-                      Next
-                    </Link>
-                  </li>
-                </ul>
-              </nav>
+              <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <span className="text-muted fs-13">
+                  Showing {maintenanceRequests.length.toLocaleString()} live request
+                  {maintenanceRequests.length === 1 ? "" : "s"}.
+                </span>
+                <span className="text-muted fs-13">
+                  Updates sync automatically when request records change.
+                </span>
+              </div>
             </CardFooter>
           </Card>
         </Col>

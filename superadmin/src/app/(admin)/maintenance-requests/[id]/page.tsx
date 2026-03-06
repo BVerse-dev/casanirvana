@@ -1,7 +1,7 @@
 "use client";
 import { useParams } from "next/navigation";
-import { Card, CardBody, CardHeader, CardTitle, Row, Col, Badge, Button, Tab, Tabs } from "react-bootstrap";
-import { useGetMaintenanceRequest, useUpdateMaintenanceRequest } from "@/hooks/useMaintenanceRequests";
+import { Card, CardBody, CardHeader, CardTitle, Row, Col, Badge, Button, Tab, Tabs, Alert } from "react-bootstrap";
+import { useGetMaintenanceRequest, useMaintenanceRequestsSubscription, useUpdateMaintenanceRequest } from "@/hooks/useMaintenanceRequests";
 import PageTitle from "@/components/PageTitle";
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
 import { mapAvatarUrl } from "@/utils/avatarMapper";
@@ -25,13 +25,33 @@ const getResolutionTimestamp = (request: {
   resolved_at?: string | null;
 }) => request.completed_at || request.resolved_at || null;
 
+const getStatusActionLabel = (status: string) => {
+  switch (status) {
+    case "completed":
+      return "Closed";
+    case "in_progress":
+      return "Work In Progress";
+    case "pending":
+      return "Awaiting Action";
+    case "cancelled":
+      return "Cancelled";
+    default:
+      return formatStatusLabel(status);
+  }
+};
+
 const MaintenanceRequestDetailsPage = () => {
+  useMaintenanceRequestsSubscription();
   const params = useParams();
   const requestId = params.id as string;
   const { data: request, isLoading, error } = useGetMaintenanceRequest(requestId);
   const updateMaintenanceRequest = useUpdateMaintenanceRequest(requestId);
   const [activeTab, setActiveTab] = useState("details");
   const [selectedAttachment, setSelectedAttachment] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<{
+    variant: "success" | "danger";
+    message: string;
+  } | null>(null);
 
   if (isLoading) {
     return (
@@ -74,10 +94,12 @@ const MaintenanceRequestDetailsPage = () => {
     switch (status) {
       case "completed":
         return "bg-success-subtle text-success";
-      case "in_progress":
-        return "bg-warning-subtle text-warning";
       case "pending":
+        return "bg-warning-subtle text-warning";
+      case "in_progress":
         return "bg-info-subtle text-info";
+      case "cancelled":
+        return "bg-secondary-subtle text-secondary";
       default:
         return "bg-secondary-subtle text-secondary";
     }
@@ -155,63 +177,54 @@ const MaintenanceRequestDetailsPage = () => {
     iconClass: string;
   }>;
 
-  // Handle status updates
   const handleStatusUpdate = async (newStatus: string) => {
+    if (!request || request.status === newStatus) return;
+
+    setFeedback(null);
+
     try {
       await updateMaintenanceRequest.mutateAsync({
         status: newStatus,
         updated_at: new Date().toISOString(),
-        // Add completion fields when closing request
-        ...(newStatus === 'completed' && {
+        ...(newStatus === "completed" && {
           resolved_at: new Date().toISOString(),
           completed_at: new Date().toISOString(),
         }),
-        // Clear completion fields if reopening
-        ...(newStatus !== 'completed' && {
+        ...(newStatus !== "completed" && {
           resolved_at: null,
           completed_at: null,
-        })
+        }),
+      });
+      setFeedback({
+        variant: "success",
+        message: `Maintenance request #${request.id} updated to ${formatStatusLabel(newStatus)}.`,
       });
     } catch (error) {
-      console.error('Error updating maintenance request status:', error);
+      console.error("Error updating maintenance request status:", error);
+      setFeedback({
+        variant: "danger",
+        message: `Failed to update maintenance request #${request.id}.`,
+      });
     }
   };
 
-  // Handle resolve/reopen toggle
   const handleToggleResolve = async () => {
-    const currentStatus = request?.status || 'pending';
-    const newStatus = currentStatus === 'completed' ? 'pending' : 'completed';
+    const currentStatus = request?.status || "pending";
+    const newStatus = currentStatus === "completed" ? "pending" : "completed";
     await handleStatusUpdate(newStatus);
   };
+
+  const canMarkInProgress = request.status === "pending";
+  const canMarkCompleted = ["pending", "in_progress"].includes(request.status);
+  const canReopen = request.status === "completed";
+  const requesterName = request.requester_profile?.full_name || "Unknown User";
+  const assignedToName = request.assigned_profile?.full_name || "Unassigned";
+  const resolvedByName = request.resolved_by_profile?.full_name || "Not recorded";
 
   return (
     <>
       <PageTitle title="Maintenance Request Details" subName="Maintenance Management" />
-      
-      {/* Header Actions */}
-      <Row className="mb-3">
-        <Col xl={12}>
-          <div className="d-flex justify-content-between align-items-center">
-            <Link 
-              href="/maintenance-requests" 
-              className="btn text-white fw-semibold"
-              style={{
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                border: 'none',
-                borderRadius: '8px',
-                padding: '10px 20px',
-                boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
-                transition: 'all 0.3s ease'
-              }}
-            >
-              <IconifyIcon icon="ri:arrow-left-line" className="me-1" />
-              Back to Maintenance Requests
-            </Link>
-          </div>
-        </Col>
-      </Row>
-      
-      {/* Header Section */}
+
       <Row className="mb-4">
         <Col xl={12}>
           <Card>
@@ -361,6 +374,16 @@ const MaintenanceRequestDetailsPage = () => {
       {/* Main Content */}
       <Row>
         <Col xl={8}>
+          {feedback ? (
+            <Alert
+              variant={feedback.variant}
+              className="mb-3"
+              dismissible
+              onClose={() => setFeedback(null)}
+            >
+              {feedback.message}
+            </Alert>
+          ) : null}
           <Card>
             <CardHeader>
               <Tabs
@@ -372,7 +395,7 @@ const MaintenanceRequestDetailsPage = () => {
                   <div className="tab-content mt-3">
                     <div className="mb-4">
                       <h6 className="fw-semibold mb-3">Description</h6>
-                      <p className="text-muted mb-0">{request.description}</p>
+                      <p className="text-muted mb-0">{request.description || "No description provided."}</p>
                     </div>
 
                     <div className="mb-4">
@@ -381,7 +404,7 @@ const MaintenanceRequestDetailsPage = () => {
                         <Col md={6}>
                           <div className="mb-3">
                             <label className="form-label text-muted">Request Type:</label>
-                            <p className="mb-0 fw-medium">{formatStatusLabel(request.request_type)}</p>
+                            <p className="mb-0 fw-medium">{formatStatusLabel(request.request_type || "general")}</p>
                           </div>
                         </Col>
                         <Col md={6}>
@@ -416,20 +439,36 @@ const MaintenanceRequestDetailsPage = () => {
                           <div className="mb-3">
                             <label className="form-label text-muted">Estimated Cost:</label>
                             <p className="mb-0 fw-medium text-success">
-                              {request.estimated_cost ? formatMoney(request.estimated_cost) : "To be determined"}
+                              {request.estimated_cost !== null ? formatMoney(request.estimated_cost) : "To be determined"}
                             </p>
                           </div>
                         </Col>
                         <Col md={6}>
                           <div className="mb-3">
-                            <label className="form-label text-muted">Resolution Status:</label>
+                            <label className="form-label text-muted">Actual Cost:</label>
+                            <p className="mb-0 fw-medium text-success">
+                              {request.actual_cost !== null ? formatMoney(request.actual_cost) : "Not recorded"}
+                            </p>
+                          </div>
+                        </Col>
+                        <Col md={6}>
+                          <div className="mb-3">
+                            <label className="form-label text-muted">Assigned To:</label>
+                            <p className="mb-0 fw-medium">{assignedToName}</p>
+                          </div>
+                        </Col>
+                        <Col md={6}>
+                          <div className="mb-3">
+                            <label className="form-label text-muted">Resolved By:</label>
+                            <p className="mb-0 fw-medium">{resolvedByName}</p>
+                          </div>
+                        </Col>
+                        <Col md={6}>
+                          <div className="mb-3">
+                            <label className="form-label text-muted">Operational Status:</label>
                             <p className="mb-0">
                               <Badge className={`${getStatusBadgeClass(request.status)} fs-12`}>
-                                {request.status === "completed"
-                                  ? "Closed"
-                                  : request.status === "in_progress"
-                                    ? "Work In Progress"
-                                    : "Awaiting Action"}
+                                {getStatusActionLabel(request.status)}
                               </Badge>
                             </p>
                           </div>
@@ -536,7 +575,7 @@ const MaintenanceRequestDetailsPage = () => {
                   })()}
                 </div>
                 <div>
-                  <h6 className="mb-1">{request.requester_profile?.full_name || "Unknown User"}</h6>
+                  <h6 className="mb-1">{requesterName}</h6>
                   <p className="text-muted mb-0 fs-13">{request.requester_profile?.email || "N/A"}</p>
                 </div>
               </div>
@@ -554,6 +593,10 @@ const MaintenanceRequestDetailsPage = () => {
                   <span className="text-muted">Block:</span>
                   <span className="fw-medium">{request.unit?.block || "N/A"}</span>
                 </div>
+                <div className="d-flex justify-content-between mt-2">
+                  <span className="text-muted">Assigned To:</span>
+                  <span className="fw-medium">{assignedToName}</span>
+                </div>
               </div>
             </CardBody>
           </Card>
@@ -570,22 +613,22 @@ const MaintenanceRequestDetailsPage = () => {
                 <Button 
                   variant="primary" 
                   size="sm"
-                  onClick={() => handleStatusUpdate('in_progress')}
-                  disabled={updateMaintenanceRequest.isPending || request?.status === 'in_progress'}
+                  onClick={() => handleStatusUpdate("in_progress")}
+                  disabled={updateMaintenanceRequest.isPending || !canMarkInProgress}
                 >
                   <IconifyIcon icon="ri:check-line" className="me-1" />
-                  {updateMaintenanceRequest.isPending ? 'Updating...' : 'Mark as In Progress'}
+                  {updateMaintenanceRequest.isPending ? "Updating..." : "Mark as In Progress"}
                 </Button>
                 <Button 
-                  variant={request?.status === 'completed' ? 'warning' : 'success'} 
+                  variant={canReopen ? "warning" : "success"} 
                   size="sm"
                   onClick={handleToggleResolve}
-                  disabled={updateMaintenanceRequest.isPending}
+                  disabled={updateMaintenanceRequest.isPending || (!canMarkCompleted && !canReopen)}
                 >
-                  <IconifyIcon icon={request?.status === 'completed' ? 'ri:refresh-line' : 'ri:check-double-line'} className="me-1" />
+                  <IconifyIcon icon={canReopen ? "ri:refresh-line" : "ri:check-double-line"} className="me-1" />
                   {updateMaintenanceRequest.isPending 
-                    ? 'Updating...' 
-                    : (request?.status === 'completed' ? 'Reopen Request' : 'Mark as Completed')
+                    ? "Updating..." 
+                    : (canReopen ? "Reopen Request" : "Mark as Completed")
                   }
                 </Button>
               </div>
