@@ -3,112 +3,73 @@ import IconifyIcon from "@/components/wrappers/IconifyIcon";
 import { Badge, Button, Card, CardBody, CardHeader, Col, ProgressBar, Row, Table } from "react-bootstrap";
 import { 
   useListNotificationCampaigns, 
-  useListNotificationMetrics, 
   useTodayActivitySummary,
-  useChannelPerformance
+  useChannelPerformance,
+  useCreateNotificationCampaign,
 } from "@/hooks/useNotificationsDashboard";
-import { useEffect, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Modal, Form, FloatingLabel } from "react-bootstrap";
+import { Modal, Form, FloatingLabel, Alert } from "react-bootstrap";
 import { toast } from "react-hot-toast";
-import { useSession } from "next-auth/react";
+import {
+  useCreateNotificationTemplate,
+} from "@/hooks/useNotificationTemplates";
+import { useNotificationRealtime } from "@/hooks/useNotificationRealtime";
 
+const formatSignedPercent = (value: unknown) => {
+  const numericValue =
+    typeof value === "number"
+      ? value
+      : Number.parseFloat(String(value ?? "0").replace("%", ""));
+
+  if (!Number.isFinite(numericValue)) {
+    return "0%";
+  }
+
+  const prefix = numericValue > 0 ? "+" : numericValue < 0 ? "-" : "";
+  return `${prefix}${Math.abs(numericValue).toFixed(1).replace(/\.0$/, "")}%`;
+};
+
+const formatPercent = (value: unknown) => {
+  const numericValue =
+    typeof value === "number"
+      ? value
+      : Number.parseFloat(String(value ?? "0").replace("%", ""));
+
+  if (!Number.isFinite(numericValue)) {
+    return "0%";
+  }
+
+  return `${numericValue.toFixed(1).replace(/\.0$/, "")}%`;
+};
 
 const NotificationsDashboardView = () => {
-  // ALL HOOKS MUST BE CALLED AT THE TOP LEVEL - NO CONDITIONAL HOOKS!
-  const queryClient = useQueryClient();
   const router = useRouter();
-  const { data: session } = useSession();
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
-  // Fetch data from Supabase - these hooks must always be called
   const { data: campaigns = [], isLoading: campaignsLoading, error: campaignsError } = useListNotificationCampaigns(undefined, 5);
-  const { data: metrics = [], isLoading: metricsLoading, error: metricsError } = useListNotificationMetrics(7);
   const { data: todayStats, isLoading: statsLoading, error: statsError } = useTodayActivitySummary();
   const { data: channelPerformance, isLoading: channelLoading, error: channelError } = useChannelPerformance();
+  const createCampaignMutation = useCreateNotificationCampaign();
+  const createTemplateMutation = useCreateNotificationTemplate();
 
-  // State hooks - must always be called
   const [showSendBroadcastModal, setShowSendBroadcastModal] = useState(false);
   const [showCreateTemplateModal, setShowCreateTemplateModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Real-time subscriptions - useEffect must always be called
-  useEffect(() => {
-    // Subscribe to notification campaigns changes
-    const campaignsChannel = supabase
-      .channel('notification_campaigns_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'notification_campaigns'
-        },
-        (payload) => {
-          console.log('Notification campaign changed:', payload);
-          // Invalidate campaigns queries to refetch data
-          queryClient.invalidateQueries({ queryKey: ['notification_campaigns'] });
-          queryClient.invalidateQueries({ queryKey: ['notification_analytics'] });
-        }
-      )
-      .subscribe();
+  useNotificationRealtime({
+    channelName: "superadmin-notifications-dashboard",
+    tables: ["notification_campaigns", "notification_analytics", "notification_templates"],
+    queryKeys: [
+      ["notification_campaigns"],
+      ["notification_analytics"],
+      ["notification_dashboard_stats"],
+      ["notification-templates"],
+    ],
+  });
 
-    // Subscribe to notification metrics changes  
-    const metricsChannel = supabase
-      .channel('notification_metrics_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'notification_metrics'
-        },
-        (payload) => {
-          console.log('Notification metrics changed:', payload);
-          // Invalidate metrics queries to refetch data
-          queryClient.invalidateQueries({ queryKey: ['notification_metrics'] });
-          queryClient.invalidateQueries({ queryKey: ['notification_analytics'] });
-        }
-      )
-      .subscribe();
+  const isLoading = campaignsLoading || statsLoading || channelLoading;
+  const hasError = campaignsError || statsError || channelError;
 
-    // Subscribe to notification analytics changes
-    const analyticsChannel = supabase
-      .channel('notification_analytics_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'notification_analytics'
-        },
-        (payload) => {
-          console.log('Notification analytics changed:', payload);
-          // Invalidate analytics queries to refetch data
-          queryClient.invalidateQueries({ queryKey: ['notification_analytics'] });
-          queryClient.invalidateQueries({ queryKey: ['notification_dashboard_stats'] });
-        }
-      )
-      .subscribe();
-
-    // Cleanup subscriptions on unmount
-    return () => {
-      supabase.removeChannel(campaignsChannel);
-      supabase.removeChannel(metricsChannel);
-      supabase.removeChannel(analyticsChannel);
-    };
-  }, [queryClient]);
-
-  // ALL HOOKS ABOVE THIS LINE - NO HOOKS BELOW THIS LINE!
-  // NOW WE CAN DO CONDITIONAL LOGIC AND EARLY RETURNS
-
-  // Check loading states
-  const isLoading = campaignsLoading || metricsLoading || statsLoading || channelLoading;
-  const hasError = campaignsError || metricsError || statsError || channelError;
-
-  // Handler functions
   const handleSendBroadcastClick = () => {
     setShowSendBroadcastModal(true);
   };
@@ -137,41 +98,26 @@ const NotificationsDashboardView = () => {
       return;
     }
 
-    setIsSubmitting(true);
     try {
-      const token = session?.accessToken as string | undefined;
-      if (!token) {
-        throw new Error("Missing admin session. Please sign in again.");
-      }
+      setIsSubmitting(true);
+      const recipientCount = recipients
+        .split(",")
+        .map((recipientValue) => recipientValue.trim())
+        .filter(Boolean).length;
 
-      const recipientCount = recipients.split(',').length;
-      const response = await fetch(`${apiBaseUrl}/admin/notification-campaigns`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
+      await createCampaignMutation.mutateAsync({
         title,
         type,
         recipients_count: recipientCount,
+        audience: recipients,
         message,
         sent_at: new Date().toISOString(),
-        }),
       });
-
-      if (!response.ok) {
-        const payload = await response.json().catch(() => ({}));
-        throw new Error(payload.error || payload.message || 'Failed to create campaign');
-      }
 
       toast.success(`Broadcast "${title}" sent to ${recipientCount} recipients!`);
       setShowSendBroadcastModal(false);
-      queryClient.invalidateQueries({ queryKey: ['notification_campaigns'] });
-      queryClient.invalidateQueries({ queryKey: ['notification_analytics'] });
     } catch (err) {
-      console.error("Error creating broadcast:", err);
-      toast.error("Failed to send broadcast. Please try again.");
+      toast.error(err instanceof Error ? err.message : "Failed to send broadcast. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -190,18 +136,25 @@ const NotificationsDashboardView = () => {
       return;
     }
 
-    setIsSubmitting(true);
     try {
-      // For now, we'll just simulate template creation and navigate to templates page
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+      setIsSubmitting(true);
+      await createTemplateMutation.mutateAsync({
+        name: templateName,
+        template_name: templateName,
+        content: templateContent,
+        template_content: templateContent,
+        type: "in-app",
+        category: "general",
+        status: "draft",
+        usage_count: 0,
+        variables: [],
+      });
       
       toast.success("Template created successfully!");
       setShowCreateTemplateModal(false);
-      // Navigate to templates page to view the new template
       router.push('/notifications/templates');
     } catch (err) {
-      console.error("Error creating template:", err);
-      toast.error("Failed to create template. Please try again.");
+      toast.error(err instanceof Error ? err.message : "Failed to create template. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -233,312 +186,76 @@ const NotificationsDashboardView = () => {
         <p>Failed to load notifications dashboard data. Please try again later.</p>
         <hr />
         <p className="mb-0">
-          {campaignsError?.message || metricsError?.message || statsError?.message || 
-           channelError?.message}
+          {campaignsError?.message || statsError?.message || channelError?.message}
         </p>
       </div>
     );
   }
 
-  // Process metrics data for charts
-  const processMetricsForChart = () => {
-    const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-    const pushData = new Array(7).fill(0);
-    const smsData = new Array(7).fill(0);
-    const emailData = new Array(7).fill(0);
+  const todaySummary = (todayStats?.data ?? {}) as Record<string, any>;
+  const todayChanges = (todaySummary.change_vs_yesterday ?? {}) as Record<string, unknown>;
 
-    // Use trends data if available, otherwise calculate from metrics
-    if (trendsData?.data) {
-      const trends = trendsData.data as any;
-      return {
-        labels: trends.days || days,
-        datasets: [
-          {
-            label: "Push Notifications",
-            data: trends.push_notifications || pushData,
-            borderColor: "rgb(99, 102, 241)",
-            backgroundColor: "rgba(99, 102, 241, 0.1)",
-            tension: 0.4,
-          },
-          {
-            label: "SMS Notifications", 
-            data: trends.sms_notifications || smsData,
-            borderColor: "rgb(16, 185, 129)",
-            backgroundColor: "rgba(16, 185, 129, 0.1)",
-            tension: 0.4,
-          },
-          {
-            label: "Email Notifications",
-            data: trends.email_notifications || emailData,
-            borderColor: "rgb(245, 158, 11)",
-            backgroundColor: "rgba(245, 158, 11, 0.1)",
-            tension: 0.4,
-          },
-        ],
-      };
-    }
-
-    // Fallback: process metrics data
-    metrics.forEach((metric) => {
-      const dayIndex = new Date(metric.date).getDay();
-      const adjustedIndex = dayIndex === 0 ? 6 : dayIndex - 1; // Convert Sunday=0 to Sunday=6
-      
-      if (metric.channel === 'push') pushData[adjustedIndex] = metric.total_sent;
-      if (metric.channel === 'sms') smsData[adjustedIndex] = metric.total_sent;
-      if (metric.channel === 'email') emailData[adjustedIndex] = metric.total_sent;
-    });
-
-    return {
-      labels: days,
-      datasets: [
-        {
-          label: "Push Notifications",
-          data: pushData,
-          borderColor: "rgb(99, 102, 241)",
-          backgroundColor: "rgba(99, 102, 241, 0.1)",
-          tension: 0.4,
-        },
-        {
-          label: "SMS Notifications",
-          data: smsData,
-          borderColor: "rgb(16, 185, 129)",
-          backgroundColor: "rgba(16, 185, 129, 0.1)",
-          tension: 0.4,
-        },
-        {
-          label: "Email Notifications",
-          data: emailData,
-          borderColor: "rgb(245, 158, 11)",
-          backgroundColor: "rgba(245, 158, 11, 0.1)",
-          tension: 0.4,
-        },
-      ],
-    };
-  };
-
-  // Process engagement data for doughnut chart
-  const processEngagementData = () => {
-    if (engagementData?.data) {
-      const engagement = engagementData.data as any;
-      return {
-        labels: ["Delivered", "Opened", "Clicked", "Failed"],
-        datasets: [
-          {
-            data: [
-              engagement.delivered || 75,
-              engagement.opened || 55,
-              engagement.clicked || 25,
-              engagement.failed || 5,
-            ],
-            backgroundColor: [
-              "rgb(34, 197, 94)",
-              "rgb(59, 130, 246)",
-              "rgb(168, 85, 247)",
-              "rgb(239, 68, 68)",
-            ],
-            borderWidth: 0,
-          },
-        ],
-      };
-    }
-
-    return {
-      labels: ["Delivered", "Opened", "Clicked", "Failed"],
-      datasets: [
-        {
-          data: [75, 55, 25, 5],
-          backgroundColor: [
-            "rgb(34, 197, 94)",
-            "rgb(59, 130, 246)",
-            "rgb(168, 85, 247)",
-            "rgb(239, 68, 68)",
-          ],
-          borderWidth: 0,
-        },
-      ],
-    };
-  };
-
-  // Process today's stats for notification stats cards
   const getNotificationStats = () => {
-    if (todayStats?.data) {
-      const stats = todayStats.data as any;
-      return [
-        {
-          title: "Total Sent Today",
-          value: stats.total_sent?.toLocaleString() || "12,547",
-          change: stats.change_vs_yesterday?.total_sent || "+15.2%",
-          changeType: "increase",
-          icon: "ri:send-plane-2-line",
-          color: "primary",
-        },
-        {
-          title: "Delivery Rate",
-          value: `${stats.delivery_rate || 94.8}%`,
-          change: stats.change_vs_yesterday?.delivery_rate || "+2.1%",
-          changeType: "increase",
-          icon: "ri:checkbox-circle-line",
-          color: "success",
-        },
-        {
-          title: "Open Rate",
-          value: `${stats.open_rate || 68.3}%`,
-          change: stats.change_vs_yesterday?.open_rate || "-1.4%",
-          changeType: stats.change_vs_yesterday?.open_rate?.startsWith('-') ? "decrease" : "increase",
-          icon: "ri:eye-line",
-          color: "info",
-        },
-        {
-          title: "Click Rate",
-          value: `${stats.click_rate || 23.7}%`,
-          change: stats.change_vs_yesterday?.click_rate || "+5.8%",
-          changeType: "increase",
-          icon: "ri:cursor-line",
-          color: "warning",
-        },
-      ];
-    }
-
-    // Fallback data
     return [
       {
         title: "Total Sent Today",
-        value: "12,547",
-        change: "+15.2%",
-        changeType: "increase",
+        value: Number(todaySummary.total_sent ?? 0).toLocaleString(),
+        change: formatSignedPercent(todayChanges.total_sent),
+        changeType: Number.parseFloat(String(todayChanges.total_sent ?? 0)) < 0 ? "decrease" : "increase",
         icon: "ri:send-plane-2-line",
         color: "primary",
       },
       {
         title: "Delivery Rate",
-        value: "94.8%",
-        change: "+2.1%",
-        changeType: "increase",
+        value: formatPercent(todaySummary.delivery_rate),
+        change: formatSignedPercent(todayChanges.delivery_rate),
+        changeType: Number.parseFloat(String(todayChanges.delivery_rate ?? 0)) < 0 ? "decrease" : "increase",
         icon: "ri:checkbox-circle-line",
         color: "success",
       },
       {
         title: "Open Rate",
-        value: "68.3%",
-        change: "-1.4%",
-        changeType: "decrease",
+        value: formatPercent(todaySummary.open_rate),
+        change: formatSignedPercent(todayChanges.open_rate),
+        changeType: Number.parseFloat(String(todayChanges.open_rate ?? 0)) < 0 ? "decrease" : "increase",
         icon: "ri:eye-line",
         color: "info",
       },
       {
         title: "Click Rate",
-        value: "23.7%",
-        change: "+5.8%",
-        changeType: "increase",
+        value: formatPercent(todaySummary.click_rate),
+        change: formatSignedPercent(todayChanges.click_rate),
+        changeType: Number.parseFloat(String(todayChanges.click_rate ?? 0)) < 0 ? "decrease" : "increase",
         icon: "ri:cursor-line",
         color: "warning",
       },
     ];
   };
 
-  // Process channel performance data
   const getChannelPerformance = () => {
-    if (channelPerformance?.data) {
-      const performance = channelPerformance.data as any;
-      return [
-        { name: "Push Notifications", score: performance.push?.performance_score || 85 },
-        { name: "SMS Messages", score: performance.sms?.performance_score || 92 },
-        { name: "Email Campaigns", score: performance.email?.performance_score || 68 },
-        { name: "In-App Messages", score: performance["in-app"]?.performance_score || 78 },
-      ];
-    }
-
+    const performance = (channelPerformance?.data ?? {}) as Record<string, { performance_score?: number } | undefined>;
     return [
-      { name: "Push Notifications", score: 85 },
-      { name: "SMS Messages", score: 92 },
-      { name: "Email Campaigns", score: 68 },
-      { name: "In-App Messages", score: 78 },
+      { name: "Push Notifications", score: Number(performance.push?.performance_score ?? 0) },
+      { name: "SMS Messages", score: Number(performance.sms?.performance_score ?? 0) },
+      { name: "Email Campaigns", score: Number(performance.email?.performance_score ?? 0) },
+      { name: "In-App Messages", score: Number(performance["in-app"]?.performance_score ?? 0) },
     ];
   };
 
-  // Process activity summary data
   const getActivitySummary = () => {
-    if (todayStats?.data) {
-      const stats = todayStats.data as any;
-      return [
-        {
-          icon: "ri:send-plane-2-line",
-          value: stats.total_sent?.toLocaleString() || "12,547",
-          label: "Total Sent",
-          color: "primary"
-        },
-        {
-          icon: "ri:checkbox-circle-line", 
-          value: stats.total_delivered?.toLocaleString() || "11,894",
-          label: "Delivered",
-          color: "success"
-        },
-        {
-          icon: "ri:eye-line",
-          value: stats.total_opened?.toLocaleString() || "8,123", 
-          label: "Opened",
-          color: "info"
-        },
-        {
-          icon: "ri:cursor-line",
-          value: stats.total_clicked?.toLocaleString() || "2,976",
-          label: "Clicked", 
-          color: "warning"
-        },
-        {
-          icon: "ri:close-circle-line",
-          value: stats.total_failed?.toLocaleString() || "653",
-          label: "Failed",
-          color: "danger"
-        },
-        {
-          icon: "ri:calendar-schedule-line",
-          value: stats.total_scheduled?.toLocaleString() || "47",
-          label: "Scheduled",
-          color: "purple"
-        },
-      ];
-    }
-
     return [
-      { icon: "ri:send-plane-2-line", value: "12,547", label: "Total Sent", color: "primary" },
-      { icon: "ri:checkbox-circle-line", value: "11,894", label: "Delivered", color: "success" },
-      { icon: "ri:eye-line", value: "8,123", label: "Opened", color: "info" },
-      { icon: "ri:cursor-line", value: "2,976", label: "Clicked", color: "warning" },
-      { icon: "ri:close-circle-line", value: "653", label: "Failed", color: "danger" },
-      { icon: "ri:calendar-schedule-line", value: "47", label: "Scheduled", color: "purple" },
+      { icon: "ri:send-plane-2-line", value: Number(todaySummary.total_sent ?? 0).toLocaleString(), label: "Total Sent", color: "primary" },
+      { icon: "ri:checkbox-circle-line", value: Number(todaySummary.total_delivered ?? 0).toLocaleString(), label: "Delivered", color: "success" },
+      { icon: "ri:eye-line", value: Number(todaySummary.total_opened ?? 0).toLocaleString(), label: "Opened", color: "info" },
+      { icon: "ri:cursor-line", value: Number(todaySummary.total_clicked ?? 0).toLocaleString(), label: "Clicked", color: "warning" },
+      { icon: "ri:close-circle-line", value: Number(todaySummary.total_failed ?? 0).toLocaleString(), label: "Failed", color: "danger" },
+      { icon: "ri:calendar-schedule-line", value: Number(todaySummary.total_scheduled ?? 0).toLocaleString(), label: "Scheduled", color: "purple" },
     ];
   };
 
   const notificationStats = getNotificationStats();
   const channelPerformanceData = getChannelPerformance();
   const activitySummaryData = getActivitySummary();
-
-  const chartOptions = {
-    responsive: true,
-    plugins: {
-      legend: {
-        position: "top" as const,
-      },
-      title: {
-        display: false,
-      },
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-      },
-    },
-  };
-
-  const doughnutOptions = {
-    responsive: true,
-    plugins: {
-      legend: {
-        position: "bottom" as const,
-      },
-    },
-  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -670,6 +387,11 @@ const NotificationsDashboardView = () => {
               <h5 className="card-title">Channel Performance</h5>
             </CardHeader>
             <CardBody>
+              {channelPerformanceData.every((channel) => channel.score === 0) && (
+                <Alert variant="light" className="border mb-3">
+                  No channel performance data has been recorded yet.
+                </Alert>
+              )}
               {channelPerformanceData.map((channel, index) => {
                 const variants = ["primary", "success", "warning", "info"];
                 const variant = variants[index % variants.length];
@@ -717,7 +439,7 @@ const NotificationsDashboardView = () => {
                                 icon={getTypeIcon(campaign.type)} 
                                 className="me-2 text-muted" 
                               />
-                              <span className="fw-medium">{campaign.title}</span>
+                              <span className="fw-medium">{campaign.title || campaign.name}</span>
                             </div>
                           </td>
                           <td>
