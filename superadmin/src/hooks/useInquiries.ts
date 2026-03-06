@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type { Database } from "@/lib/database.types";
@@ -31,6 +32,18 @@ export type InquiriesFilters = {
   inquiryType?: string;
   priority?: string;
   communityId?: string;
+};
+
+const normalizeInquiryTypeFilter = (value?: string) => {
+  if (!value) {
+    return null;
+  }
+
+  if (value === "suggestion" || value === "suggestions") {
+    return ["suggestion", "suggestions"];
+  }
+
+  return value;
 };
 
 const enrichInquiries = async (inquiries: InquiryRow[]): Promise<InquiryRecord[]> => {
@@ -128,6 +141,8 @@ const enrichInquiries = async (inquiries: InquiryRow[]): Promise<InquiryRecord[]
 };
 
 export const useListInquiries = (filters?: InquiriesFilters) => {
+  useInquiriesRealTime();
+
   return useQuery({
     queryKey: ["inquiries", filters],
     queryFn: async () => {
@@ -137,8 +152,11 @@ export const useListInquiries = (filters?: InquiriesFilters) => {
         query = query.eq("status", filters.status);
       }
 
-      if (filters?.inquiryType) {
-        query = query.eq("inquiry_type", filters.inquiryType);
+      const normalizedInquiryType = normalizeInquiryTypeFilter(filters?.inquiryType);
+      if (Array.isArray(normalizedInquiryType)) {
+        query = query.in("inquiry_type", normalizedInquiryType);
+      } else if (normalizedInquiryType) {
+        query = query.eq("inquiry_type", normalizedInquiryType);
       }
 
       if (filters?.priority) {
@@ -161,6 +179,8 @@ export const useListInquiries = (filters?: InquiriesFilters) => {
 };
 
 export const useGetInquiry = (inquiryId?: string) => {
+  useInquiriesRealTime();
+
   return useQuery({
     queryKey: ["inquiry", inquiryId],
     enabled: Boolean(inquiryId),
@@ -183,6 +203,43 @@ export const useGetInquiry = (inquiryId?: string) => {
       return inquiry;
     },
   });
+};
+
+let inquiriesChannel: ReturnType<typeof supabase.channel> | null = null;
+let inquiriesSubscriberCount = 0;
+
+export const useInquiriesRealTime = () => {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    inquiriesSubscriberCount += 1;
+
+    if (!inquiriesChannel) {
+      inquiriesChannel = supabase
+        .channel("public:inquiries")
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "inquiries",
+          },
+          () => {
+            queryClient.invalidateQueries({ queryKey: ["inquiries"] });
+            queryClient.invalidateQueries({ queryKey: ["inquiry"] });
+          },
+        )
+        .subscribe();
+    }
+
+    return () => {
+      inquiriesSubscriberCount -= 1;
+      if (inquiriesSubscriberCount === 0 && inquiriesChannel) {
+        supabase.removeChannel(inquiriesChannel);
+        inquiriesChannel = null;
+      }
+    };
+  }, [queryClient]);
 };
 
 export const useListAssignableInquiryAdmins = (communityId?: string | null) => {
@@ -228,6 +285,13 @@ export const useUpdateInquiry = () => {
 
       if (updates.status === "resolved") {
         payload.resolved_at = updates.resolved_at ?? nowIso;
+      } else if (updates.status === "closed") {
+        payload.resolved_at = updates.resolved_at ?? nowIso;
+      } else if (updates.status === "open" || updates.status === "in_progress") {
+        payload.resolved_at = null;
+        if (updates.status === "open") {
+          payload.resolution_notes = null;
+        }
       }
 
       const { data, error } = await supabase

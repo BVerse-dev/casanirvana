@@ -4,9 +4,10 @@ import { useMemo, useState } from "react";
 
 import PageTitle from "@/components/PageTitle";
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
-import { useListInquiries } from "@/hooks/useInquiries";
+import { useListInquiries, useUpdateInquiry } from "@/hooks/useInquiries";
 import Link from "next/link";
 import {
+  Alert,
   Button,
   Card,
   CardBody,
@@ -20,12 +21,16 @@ import {
 } from "react-bootstrap";
 
 const STATUS_OPTIONS = ["all", "open", "in_progress", "resolved", "closed"] as const;
-const TYPE_OPTIONS = ["all", "general_inquiry", "technical_support", "feedback", "suggestions"] as const;
+const TYPE_OPTIONS = ["all", "general_inquiry", "technical_support", "feedback", "suggestion"] as const;
 const PRIORITY_OPTIONS = ["all", "low", "medium", "high", "urgent"] as const;
 
 const formatTypeLabel = (value: string | null | undefined) => {
   if (!value) {
     return "N/A";
+  }
+
+  if (value === "suggestion" || value === "suggestions") {
+    return "Suggestion";
   }
 
   return value
@@ -48,9 +53,9 @@ const formatStatusLabel = (value: string | null | undefined) => {
 const statusBadgeClass = (status: string | null) => {
   switch (status) {
     case "open":
-      return "bg-danger-subtle text-danger";
-    case "in_progress":
       return "bg-warning-subtle text-warning";
+    case "in_progress":
+      return "bg-info-subtle text-info";
     case "resolved":
       return "bg-success-subtle text-success";
     case "closed":
@@ -75,12 +80,24 @@ const priorityBadgeClass = (priority: string | null) => {
   }
 };
 
+const truncateText = (value: string | null | undefined, maxLength = 88) => {
+  if (!value) {
+    return "No details provided";
+  }
+
+  return value.length > maxLength ? `${value.slice(0, maxLength)}...` : value;
+};
+
 const InquiriesPage = () => {
   const [statusFilter, setStatusFilter] = useState<(typeof STATUS_OPTIONS)[number]>("all");
   const [typeFilter, setTypeFilter] = useState<(typeof TYPE_OPTIONS)[number]>("all");
   const [priorityFilter, setPriorityFilter] = useState<(typeof PRIORITY_OPTIONS)[number]>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [feedback, setFeedback] = useState<{
+    variant: "success" | "danger";
+    message: string;
+  } | null>(null);
 
   const pageSize = 15;
 
@@ -89,6 +106,7 @@ const InquiriesPage = () => {
     inquiryType: typeFilter === "all" ? undefined : typeFilter,
     priority: priorityFilter === "all" ? undefined : priorityFilter,
   });
+  const updateInquiryMutation = useUpdateInquiry();
 
   const searchedInquiries = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -122,6 +140,37 @@ const InquiriesPage = () => {
     }),
     [inquiries],
   );
+
+  const handleStatusUpdate = async (
+    inquiryId: string,
+    nextStatus: "open" | "in_progress" | "resolved" | "closed",
+  ) => {
+    setFeedback(null);
+
+    try {
+      const nowIso = new Date().toISOString();
+
+      await updateInquiryMutation.mutateAsync({
+        inquiryId,
+        updates: {
+          status: nextStatus,
+          resolved_at: nextStatus === "resolved" || nextStatus === "closed" ? nowIso : null,
+          resolution_notes: nextStatus === "open" ? null : undefined,
+        },
+      });
+
+      setFeedback({
+        variant: "success",
+        message: `Inquiry ${inquiryId.slice(0, 8)} updated to ${formatStatusLabel(nextStatus)}.`,
+      });
+    } catch (mutationError) {
+      console.error("Failed to update inquiry status:", mutationError);
+      setFeedback({
+        variant: "danger",
+        message: `Failed to update inquiry ${inquiryId.slice(0, 8)}.`,
+      });
+    }
+  };
 
   return (
     <>
@@ -249,6 +298,16 @@ const InquiriesPage = () => {
         </CardHeader>
 
         <CardBody className="p-0">
+          {feedback ? (
+            <Alert
+              variant={feedback.variant}
+              className="m-3 mb-0"
+              dismissible
+              onClose={() => setFeedback(null)}
+            >
+              {feedback.message}
+            </Alert>
+          ) : null}
           {isLoading ? (
             <div className="text-center py-5">Loading inquiries...</div>
           ) : error ? (
@@ -282,7 +341,7 @@ const InquiriesPage = () => {
                           {inquiry.subject}
                         </Link>
                         <div className="text-muted fs-12 text-truncate" style={{ maxWidth: 280 }}>
-                          {inquiry.description}
+                          {truncateText(inquiry.description)}
                         </div>
                       </td>
                       <td>{formatTypeLabel(inquiry.inquiry_type)}</td>
@@ -301,12 +360,47 @@ const InquiriesPage = () => {
                       <td>{assigneeName}</td>
                       <td>{inquiry.created_at ? new Date(inquiry.created_at).toLocaleString() : "N/A"}</td>
                       <td className="text-end">
-                        <Link href={`/help-desk/inquiries/${inquiry.id}`}>
-                          <Button variant="soft-primary" size="sm">
-                            <IconifyIcon icon="ri:eye-line" className="me-1" />
-                            Details
-                          </Button>
-                        </Link>
+                        <div className="d-flex justify-content-end gap-2">
+                          <Link href={`/help-desk/inquiries/${inquiry.id}`}>
+                            <Button variant="soft-primary" size="sm">
+                              <IconifyIcon icon="ri:eye-line" className="me-1" />
+                              Details
+                            </Button>
+                          </Link>
+                          {inquiry.status === "open" ? (
+                            <Button
+                              variant="soft-warning"
+                              size="sm"
+                              onClick={() => void handleStatusUpdate(inquiry.id, "in_progress")}
+                              disabled={updateInquiryMutation.isPending}
+                              title="Start Progress"
+                            >
+                              <IconifyIcon icon="ri:play-line" className="align-middle fs-18" />
+                            </Button>
+                          ) : null}
+                          {inquiry.status === "open" || inquiry.status === "in_progress" ? (
+                            <Button
+                              variant="soft-success"
+                              size="sm"
+                              onClick={() => void handleStatusUpdate(inquiry.id, "resolved")}
+                              disabled={updateInquiryMutation.isPending}
+                              title="Resolve Inquiry"
+                            >
+                              <IconifyIcon icon="ri:check-line" className="align-middle fs-18" />
+                            </Button>
+                          ) : null}
+                          {inquiry.status === "resolved" || inquiry.status === "closed" ? (
+                            <Button
+                              variant="soft-secondary"
+                              size="sm"
+                              onClick={() => void handleStatusUpdate(inquiry.id, "open")}
+                              disabled={updateInquiryMutation.isPending}
+                              title="Reopen Inquiry"
+                            >
+                              <IconifyIcon icon="ri:refresh-line" className="align-middle fs-18" />
+                            </Button>
+                          ) : null}
+                        </div>
                       </td>
                     </tr>
                   );

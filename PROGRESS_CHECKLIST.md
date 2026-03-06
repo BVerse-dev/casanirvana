@@ -801,6 +801,11 @@ Date: 2026-02-06
   - Hardened `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/complaints/[id]/page.tsx` by removing debug logging and dead header/sidebar placeholder actions, switching the timeline to real lifecycle fields (`created_at`, `in_progress_at`, `resolved_at`), and adding visible success/error feedback for status and priority mutations on the active detail surface.
   - Corrected `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/complaints/components/ComplaintOverviewCard.tsx` so “Resolved Today” is derived from `resolved_at` instead of the generic `updated_at` field.
   - Revalidated the superadmin production build after the complaints remediation (`npm run build` in `/Users/andromeda/casanirvana/superadmin` passed).
+- [x] Focused remediation for `Operations -> Help Desk / Inquiries -> List/Details`:
+  - Hardened `/Users/andromeda/casanirvana/superadmin/src/hooks/useInquiries.ts` with realtime invalidation for the live inquiries table, normalized `suggestion`/`suggestions` inquiry-type filtering for backward compatibility, and constrained inquiry updates so reopening clears terminal resolution state while resolved/closed transitions stamp `resolved_at`.
+  - Updated `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/help-desk/inquiries/page.tsx` to normalize help-desk labels and badges, add live success/error feedback for queue actions, support production-safe quick transitions directly from the list, and remove the stale type mismatch between historical `suggestions` rows and current user-app `suggestion` writes.
+  - Hardened `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/help-desk/inquiries/[id]/page.tsx` by replacing passive status editing with lifecycle-aware actions (`open -> in_progress -> resolved -> closed`, plus reopen), surfacing real response/resolution timestamps, rendering a truthful inquiry timeline, and showing operator-friendly attachment labels instead of raw URLs.
+  - Revalidated the superadmin production build after the help desk remediation (`npm run build` in `/Users/andromeda/casanirvana/superadmin` passed).
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)
