@@ -721,6 +721,11 @@ Date: 2026-02-06
 - [x] Hardened Guard/Agency submenu visibility for superadmin sessions:
   - Updated `backend/src/services/adminScope.ts` so aliased platform-admin roles (`super_admin`, `Administrator`) resolve as global scope, matching the auth/capability logic.
   - Updated `superadmin/src/components/layout/VerticalNavigationBar/components/AppMenu.tsx` to fall back to platform-admin Guard/Agency capabilities from the signed-in session role when the capability API payload is temporarily empty, preventing those operational submenu items from disappearing for superadmin users.
+- [x] Simplified Guard/Agency sidebar IA to single manage entries while keeping tabbed operational workspaces:
+  - Replaced the multiple operational submenu items with `Manage Guards` and `Manage Agencies` in `superadmin/src/assets/data/menu-items.ts`.
+  - Added canonical tabbed routes `/guards/manage` and `/agency/manage` with `?tab=` section switching and kept the existing operation pages compatible.
+  - Updated `useAdminCapabilities` and backend capability output to include workspace-level capability keys (`guards:workspace:view`, `agency:workspace:view`) so the new single-entry navigation remains permission-driven.
+  - Repointed Settings relocation notices to the new canonical manage routes so operational flows always land in the tabbed workspace.
 - [x] Build verification completed:
   - `backend`: `npm run build` passed.
   - `superadmin`: `npm run build` passed.

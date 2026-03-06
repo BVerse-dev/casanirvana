@@ -6,8 +6,8 @@ const Page = () => (
     subName="Agency document operations now live in the Agency module."
     scopeLabel="Agency Operations"
     reason="Agency document libraries are operational records. Settings keeps only retention, approval, and compliance defaults."
-    destinationLabel="Open Documents & Records"
-    destinationUrl="/agency/documents"
+    destinationLabel="Open Manage Agencies"
+    destinationUrl="/agency/manage?tab=documents"
     secondaryLabel="Open Agency Configuration"
     secondaryUrl="/settings/agencies/configuration"
   />

@@ -43,6 +43,7 @@ function buildMenuCapabilities({ role, permissions }: CapabilityBuildInput): str
   }
 
   if (canReadProfiles || isPlatformAdmin) {
+    capabilities.add('guards:workspace:view');
     capabilities.add('guards:profiles:view');
     capabilities.add('guards:schedules:view');
     capabilities.add('guards:assignments:view');
@@ -50,6 +51,7 @@ function buildMenuCapabilities({ role, permissions }: CapabilityBuildInput): str
     capabilities.add('guards:performance:view');
     capabilities.add('guards:training:view');
 
+    capabilities.add('agency:workspace:view');
     capabilities.add('agency:profiles:view');
     capabilities.add('agency:staff:view');
     capabilities.add('agency:services:view');
@@ -57,6 +59,7 @@ function buildMenuCapabilities({ role, permissions }: CapabilityBuildInput): str
   }
 
   if (canReadPayments || isPlatformAdmin) {
+    capabilities.add('agency:workspace:view');
     capabilities.add('agency:finance:view');
   }
 

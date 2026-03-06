@@ -32,12 +32,12 @@ import {
 } from "@/hooks/useGuardOperations";
 
 const GUARD_TABS = [
-  { key: "profiles", label: "Guard Profiles", href: "/guards/profiles", capability: "guards:profiles:view" },
-  { key: "schedules", label: "Schedules & Shifts", href: "/guards/schedules", capability: "guards:schedules:view" },
-  { key: "assignments", label: "Community Assignments", href: "/guards/assignments", capability: "guards:assignments:view" },
-  { key: "equipment", label: "Equipment", href: "/guards/equipment", capability: "guards:equipment:view" },
-  { key: "performance", label: "Performance", href: "/guards/performance", capability: "guards:performance:view" },
-  { key: "training", label: "Training", href: "/guards/training", capability: "guards:training:view" },
+  { key: "profiles", label: "Guard Profiles", href: "/guards/manage?tab=profiles", capability: "guards:profiles:view" },
+  { key: "schedules", label: "Schedules & Shifts", href: "/guards/manage?tab=schedules", capability: "guards:schedules:view" },
+  { key: "assignments", label: "Community Assignments", href: "/guards/manage?tab=assignments", capability: "guards:assignments:view" },
+  { key: "equipment", label: "Equipment", href: "/guards/manage?tab=equipment", capability: "guards:equipment:view" },
+  { key: "performance", label: "Performance", href: "/guards/manage?tab=performance", capability: "guards:performance:view" },
+  { key: "training", label: "Training & Certification", href: "/guards/manage?tab=training", capability: "guards:training:view" },
 ] as const;
 
 const defaultColumns: CrudColumn[] = [
@@ -47,7 +47,7 @@ const defaultColumns: CrudColumn[] = [
 
 const toErrorText = (error: unknown) => (error instanceof Error ? error.message : null);
 
-type GuardSectionKey = (typeof GUARD_TABS)[number]["key"];
+export type GuardSectionKey = (typeof GUARD_TABS)[number]["key"];
 
 const GuardProfilesSection = () => {
   const profilesQuery = useGuardProfiles();
@@ -360,15 +360,17 @@ const GuardTrainingSection = () => {
 const GuardOperationsWorkspace = ({ section }: { section: GuardSectionKey }) => {
   const { data: capabilities } = useAdminCapabilities();
   const capabilitySet = new Set(capabilities?.menu_capabilities || []);
-  const activeTab = GUARD_TABS.find((tab) => tab.key === section);
-
   const visibleTabs = GUARD_TABS.filter((tab) => capabilitySet.has(tab.capability));
-  const hasAccess = activeTab ? capabilitySet.has(activeTab.capability) : false;
+  const resolvedSection = visibleTabs.some((tab) => tab.key === section)
+    ? section
+    : visibleTabs[0]?.key;
+  const activeTab = GUARD_TABS.find((tab) => tab.key === resolvedSection);
+  const hasAccess = Boolean(activeTab);
 
   return (
     <>
       <PageTitle
-        title={activeTab?.label || "Guard Operations"}
+        title="Manage Guards"
         subName="Operational workspace under People → Guards"
       />
 
@@ -376,7 +378,7 @@ const GuardOperationsWorkspace = ({ section }: { section: GuardSectionKey }) => 
         <Nav variant="tabs" className="mb-4">
           {visibleTabs.map((tab) => (
             <Nav.Item key={tab.key}>
-              <Nav.Link as={Link} href={tab.href} active={tab.key === section}>
+              <Nav.Link as={Link} href={tab.href} active={tab.key === resolvedSection}>
                 {tab.label}
               </Nav.Link>
             </Nav.Item>
@@ -390,12 +392,12 @@ const GuardOperationsWorkspace = ({ section }: { section: GuardSectionKey }) => 
         </Alert>
       ) : null}
 
-      {hasAccess && section === "profiles" ? <GuardProfilesSection /> : null}
-      {hasAccess && section === "schedules" ? <GuardSchedulesSection /> : null}
-      {hasAccess && section === "assignments" ? <GuardAssignmentsSection /> : null}
-      {hasAccess && section === "equipment" ? <GuardEquipmentSection /> : null}
-      {hasAccess && section === "performance" ? <GuardPerformanceSection /> : null}
-      {hasAccess && section === "training" ? <GuardTrainingSection /> : null}
+      {hasAccess && resolvedSection === "profiles" ? <GuardProfilesSection /> : null}
+      {hasAccess && resolvedSection === "schedules" ? <GuardSchedulesSection /> : null}
+      {hasAccess && resolvedSection === "assignments" ? <GuardAssignmentsSection /> : null}
+      {hasAccess && resolvedSection === "equipment" ? <GuardEquipmentSection /> : null}
+      {hasAccess && resolvedSection === "performance" ? <GuardPerformanceSection /> : null}
+      {hasAccess && resolvedSection === "training" ? <GuardTrainingSection /> : null}
       {hasAccess && !activeTab ? (
         <Alert variant="danger">Unsupported guard operations section.</Alert>
       ) : null}
@@ -404,4 +406,3 @@ const GuardOperationsWorkspace = ({ section }: { section: GuardSectionKey }) => 
 };
 
 export default GuardOperationsWorkspace;
-

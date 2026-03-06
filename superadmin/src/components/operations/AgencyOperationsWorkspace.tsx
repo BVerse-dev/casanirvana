@@ -29,16 +29,16 @@ import {
 } from "@/hooks/useAgencyOperations";
 
 const AGENCY_TABS = [
-  { key: "profiles", label: "Agency Profile", href: "/agency/profiles", capability: "agency:profiles:view" },
-  { key: "staff", label: "Staff Management", href: "/agency/staff", capability: "agency:staff:view" },
-  { key: "services", label: "Services Management", href: "/agency/services", capability: "agency:services:view" },
-  { key: "finance", label: "Finance & Billing", href: "/agency/finance", capability: "agency:finance:view" },
-  { key: "documents", label: "Documents & Records", href: "/agency/documents", capability: "agency:documents:view" },
+  { key: "profiles", label: "Agency Profile", href: "/agency/manage?tab=profiles", capability: "agency:profiles:view" },
+  { key: "staff", label: "Staff Management", href: "/agency/manage?tab=staff", capability: "agency:staff:view" },
+  { key: "services", label: "Services Management", href: "/agency/manage?tab=services", capability: "agency:services:view" },
+  { key: "finance", label: "Finance & Billing", href: "/agency/manage?tab=finance", capability: "agency:finance:view" },
+  { key: "documents", label: "Documents & Records", href: "/agency/manage?tab=documents", capability: "agency:documents:view" },
 ] as const;
 
 const toErrorText = (error: unknown) => (error instanceof Error ? error.message : null);
 
-type AgencySectionKey = (typeof AGENCY_TABS)[number]["key"];
+export type AgencySectionKey = (typeof AGENCY_TABS)[number]["key"];
 
 const AgencyProfilesSection = () => {
   const profilesQuery = useAgencyProfilesOperations();
@@ -267,15 +267,17 @@ const AgencyDocumentsSection = () => {
 const AgencyOperationsWorkspace = ({ section }: { section: AgencySectionKey }) => {
   const { data: capabilities } = useAdminCapabilities();
   const capabilitySet = new Set(capabilities?.menu_capabilities || []);
-  const activeTab = AGENCY_TABS.find((tab) => tab.key === section);
-
   const visibleTabs = AGENCY_TABS.filter((tab) => capabilitySet.has(tab.capability));
-  const hasAccess = activeTab ? capabilitySet.has(activeTab.capability) : false;
+  const resolvedSection = visibleTabs.some((tab) => tab.key === section)
+    ? section
+    : visibleTabs[0]?.key;
+  const activeTab = AGENCY_TABS.find((tab) => tab.key === resolvedSection);
+  const hasAccess = Boolean(activeTab);
 
   return (
     <>
       <PageTitle
-        title={activeTab?.label || "Agency Operations"}
+        title="Manage Agencies"
         subName="Operational workspace under People → Agency"
       />
 
@@ -283,7 +285,7 @@ const AgencyOperationsWorkspace = ({ section }: { section: AgencySectionKey }) =
         <Nav variant="tabs" className="mb-4">
           {visibleTabs.map((tab) => (
             <Nav.Item key={tab.key}>
-              <Nav.Link as={Link} href={tab.href} active={tab.key === section}>
+              <Nav.Link as={Link} href={tab.href} active={tab.key === resolvedSection}>
                 {tab.label}
               </Nav.Link>
             </Nav.Item>
@@ -297,15 +299,14 @@ const AgencyOperationsWorkspace = ({ section }: { section: AgencySectionKey }) =
         </Alert>
       ) : null}
 
-      {hasAccess && section === "profiles" ? <AgencyProfilesSection /> : null}
-      {hasAccess && section === "staff" ? <AgencyStaffSection /> : null}
-      {hasAccess && section === "services" ? <AgencyServicesSection /> : null}
-      {hasAccess && section === "finance" ? <AgencyFinanceSection /> : null}
-      {hasAccess && section === "documents" ? <AgencyDocumentsSection /> : null}
+      {hasAccess && resolvedSection === "profiles" ? <AgencyProfilesSection /> : null}
+      {hasAccess && resolvedSection === "staff" ? <AgencyStaffSection /> : null}
+      {hasAccess && resolvedSection === "services" ? <AgencyServicesSection /> : null}
+      {hasAccess && resolvedSection === "finance" ? <AgencyFinanceSection /> : null}
+      {hasAccess && resolvedSection === "documents" ? <AgencyDocumentsSection /> : null}
       {hasAccess && !activeTab ? <Alert variant="danger">Unsupported agency operations section.</Alert> : null}
     </>
   );
 };
 
 export default AgencyOperationsWorkspace;
-

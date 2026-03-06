@@ -6,8 +6,8 @@ const Page = () => (
     subName="Assignment management now lives in the Guards module."
     scopeLabel="Guard Operations"
     reason="Community assignments are operational scheduling data. Settings keeps only assignment rules and policy defaults."
-    destinationLabel="Open Community Assignments"
-    destinationUrl="/guards/assignments"
+    destinationLabel="Open Manage Guards"
+    destinationUrl="/guards/manage?tab=assignments"
     secondaryLabel="Open Guard Configuration"
     secondaryUrl="/settings/guards/configuration"
   />
