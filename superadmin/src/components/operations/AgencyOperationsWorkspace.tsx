@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Alert, Nav } from "react-bootstrap";
+import { Alert, Nav, Spinner } from "react-bootstrap";
+import { useMemo } from "react";
 
 import PageTitle from "@/components/PageTitle";
 import AdminCrudSection, {
@@ -15,10 +16,12 @@ import {
   useAgencyProfilesOperations,
   useAgencyServicesOperations,
   useAgencyStaffOperations,
+  useCreateAgencyProfileOperation,
   useCreateAgencyDocumentOperation,
   useCreateAgencyFinanceOperation,
   useCreateAgencyServiceOperation,
   useCreateAgencyStaffOperation,
+  useUpdateAgencyProfileOperation,
   useDeleteAgencyDocumentOperation,
   useDeleteAgencyServiceOperation,
   useDeleteAgencyStaffOperation,
@@ -27,6 +30,7 @@ import {
   useUpdateAgencyServiceOperation,
   useUpdateAgencyStaffOperation,
 } from "@/hooks/useAgencyOperations";
+import { useGetAgencyDirectory } from "@/hooks/useAgencyDirectory";
 
 const AGENCY_TABS = [
   { key: "profiles", label: "Agency Profile", href: "/agency/manage?tab=profiles", capability: "agency:profiles:view" },
@@ -40,10 +44,21 @@ const toErrorText = (error: unknown) => (error instanceof Error ? error.message 
 
 export type AgencySectionKey = (typeof AGENCY_TABS)[number]["key"];
 
-const AgencyProfilesSection = () => {
-  const profilesQuery = useAgencyProfilesOperations();
+type AgencyOperationsWorkspaceProps = {
+  section: AgencySectionKey;
+  agencyId?: string;
+};
+
+const AgencyProfilesSection = ({ agencyId }: { agencyId?: string }) => {
+  const filters = useMemo(() => (agencyId ? { agencyId } : undefined), [agencyId]);
+  const profilesQuery = useAgencyProfilesOperations(filters);
+  const agencyDirectoryQuery = useGetAgencyDirectory(agencyId || "");
+  const createMutation = useCreateAgencyProfileOperation();
+  const updateMutation = useUpdateAgencyProfileOperation();
+  const selectedAgency = agencyDirectoryQuery.data;
 
   const columns: CrudColumn[] = [
+    { key: "id", label: "Agency ID" },
     { key: "name", label: "Agency" },
     { key: "city", label: "City" },
     { key: "state", label: "State" },
@@ -52,28 +67,83 @@ const AgencyProfilesSection = () => {
     { key: "total_agents", label: "Agents" },
   ];
 
+  const fields: CrudField[] = [
+    { key: "id", label: "Agency ID", type: "text", required: true, initialValue: agencyId || "" },
+    { key: "name", label: "Agency Name", type: "text", required: true, initialValue: selectedAgency?.name || "" },
+    { key: "email", label: "Email", type: "text", initialValue: selectedAgency?.email || "" },
+    { key: "phone", label: "Phone", type: "text", initialValue: selectedAgency?.phone || "" },
+    { key: "address", label: "Address", type: "textarea", required: true, initialValue: selectedAgency?.address || "" },
+    { key: "city", label: "City", type: "text", required: true, initialValue: selectedAgency?.city || "" },
+    { key: "state", label: "State", type: "text", required: true, initialValue: selectedAgency?.state || "" },
+    { key: "pincode", label: "Postal Code", type: "text", required: true, initialValue: selectedAgency?.postal_code || "" },
+    {
+      key: "agency_type",
+      label: "Agency Type",
+      type: "select",
+      initialValue: "residential",
+      options: [
+        { label: "Residential", value: "residential" },
+        { label: "Commercial", value: "commercial" },
+        { label: "Mixed", value: "mixed" },
+      ],
+    },
+    { key: "category", label: "Category", type: "text" },
+    { key: "owner_name", label: "Owner Name", type: "text" },
+    { key: "manager_name", label: "Manager Name", type: "text", initialValue: selectedAgency?.contact_person_name || "" },
+    { key: "license_number", label: "License Number", type: "text" },
+    { key: "website", label: "Website", type: "text", initialValue: selectedAgency?.website || "" },
+    { key: "description", label: "Description", type: "textarea", initialValue: selectedAgency?.description || "" },
+    {
+      key: "status",
+      label: "Status",
+      type: "select",
+      initialValue: selectedAgency?.is_active ? "active" : "inactive",
+      options: [
+        { label: "Active", value: "active" },
+        { label: "Inactive", value: "inactive" },
+        { label: "Pending", value: "pending" },
+      ],
+    },
+    { key: "established_year", label: "Established Year", type: "text" },
+    { key: "commission_rate", label: "Commission Rate", type: "number" },
+    { key: "total_agents", label: "Total Agents", type: "number" },
+    { key: "total_clients", label: "Total Clients", type: "number" },
+    { key: "total_properties", label: "Total Properties", type: "number" },
+    { key: "average_deal_value", label: "Average Deal Value", type: "number" },
+  ];
+
   return (
     <AdminCrudSection
       id="agency-profiles-workspace"
       title="Agency Profile"
-      subTitle="Agency profile directory scoped to your assigned agencies."
-      badgeLabel="Read Only"
+      subTitle={
+        agencyId
+          ? "Agency profile directory filtered to the selected agency."
+          : "Agency profile directory scoped to your assigned agencies."
+      }
       rows={profilesQuery.data || []}
-      isLoading={profilesQuery.isLoading}
+      isLoading={profilesQuery.isLoading || agencyDirectoryQuery.isLoading}
       error={toErrorText(profilesQuery.error)}
       columns={columns}
-      fields={[]}
-      canCreate={false}
-      canUpdate={false}
+      fields={fields}
+      canCreate={!agencyId || (profilesQuery.data || []).length === 0}
+      canUpdate={true}
       canDelete={false}
+      onCreate={(payload) => createMutation.mutateAsync(payload)}
+      onUpdate={(id, payload) => updateMutation.mutateAsync({ id, payload })}
       onRefresh={() => profilesQuery.refetch()}
-      emptyText="No agency profiles available."
+      emptyText={
+        agencyId
+          ? "No agency profile exists for this agency yet. Use Add to create the operational profile."
+          : "No agency profiles available."
+      }
     />
   );
 };
 
-const AgencyStaffSection = () => {
-  const staffQuery = useAgencyStaffOperations();
+const AgencyStaffSection = ({ agencyId }: { agencyId?: string }) => {
+  const filters = useMemo(() => (agencyId ? { agencyId } : undefined), [agencyId]);
+  const staffQuery = useAgencyStaffOperations(filters);
   const createMutation = useCreateAgencyStaffOperation();
   const updateMutation = useUpdateAgencyStaffOperation();
   const deleteMutation = useDeleteAgencyStaffOperation();
@@ -88,7 +158,7 @@ const AgencyStaffSection = () => {
   ];
 
   const fields: CrudField[] = [
-    { key: "agency_id", label: "Agency ID", type: "text", required: true },
+    { key: "agency_id", label: "Agency ID", type: "text", required: !agencyId, initialValue: agencyId || "" },
     { key: "first_name", label: "First Name", type: "text", required: true },
     { key: "last_name", label: "Last Name", type: "text", required: true },
     { key: "email", label: "Email", type: "text", required: true },
@@ -122,8 +192,9 @@ const AgencyStaffSection = () => {
   );
 };
 
-const AgencyServicesSection = () => {
-  const servicesQuery = useAgencyServicesOperations();
+const AgencyServicesSection = ({ agencyId }: { agencyId?: string }) => {
+  const filters = useMemo(() => (agencyId ? { agencyId } : undefined), [agencyId]);
+  const servicesQuery = useAgencyServicesOperations(filters);
   const createMutation = useCreateAgencyServiceOperation();
   const updateMutation = useUpdateAgencyServiceOperation();
   const deleteMutation = useDeleteAgencyServiceOperation();
@@ -138,7 +209,7 @@ const AgencyServicesSection = () => {
   ];
 
   const fields: CrudField[] = [
-    { key: "agency_id", label: "Agency ID", type: "text", required: true },
+    { key: "agency_id", label: "Agency ID", type: "text", required: !agencyId, initialValue: agencyId || "" },
     { key: "service_name", label: "Service Name", type: "text", required: true },
     { key: "category", label: "Category", type: "text" },
     { key: "description", label: "Description", type: "textarea" },
@@ -170,8 +241,9 @@ const AgencyServicesSection = () => {
   );
 };
 
-const AgencyFinanceSection = () => {
-  const financeQuery = useAgencyFinanceOperations();
+const AgencyFinanceSection = ({ agencyId }: { agencyId?: string }) => {
+  const filters = useMemo(() => (agencyId ? { agencyId } : undefined), [agencyId]);
+  const financeQuery = useAgencyFinanceOperations(filters);
   const createMutation = useCreateAgencyFinanceOperation();
   const updateMutation = useUpdateAgencyFinanceOperation();
 
@@ -185,7 +257,7 @@ const AgencyFinanceSection = () => {
   ];
 
   const fields: CrudField[] = [
-    { key: "agency_id", label: "Agency ID", type: "text", required: true },
+    { key: "agency_id", label: "Agency ID", type: "text", required: !agencyId, initialValue: agencyId || "" },
     { key: "date", label: "Date", type: "date", required: true },
     { key: "type", label: "Type", type: "text", required: true },
     { key: "category", label: "Category", type: "text", required: true },
@@ -215,8 +287,9 @@ const AgencyFinanceSection = () => {
   );
 };
 
-const AgencyDocumentsSection = () => {
-  const documentsQuery = useAgencyDocumentsOperations();
+const AgencyDocumentsSection = ({ agencyId }: { agencyId?: string }) => {
+  const filters = useMemo(() => (agencyId ? { agencyId } : undefined), [agencyId]);
+  const documentsQuery = useAgencyDocumentsOperations(filters);
   const createMutation = useCreateAgencyDocumentOperation();
   const updateMutation = useUpdateAgencyDocumentOperation();
   const deleteMutation = useDeleteAgencyDocumentOperation();
@@ -231,7 +304,7 @@ const AgencyDocumentsSection = () => {
   ];
 
   const fields: CrudField[] = [
-    { key: "agency_id", label: "Agency ID", type: "text", required: true },
+    { key: "agency_id", label: "Agency ID", type: "text", required: !agencyId, initialValue: agencyId || "" },
     { key: "name", label: "Document Name", type: "text", required: true },
     { key: "category", label: "Category", type: "text", required: true },
     { key: "type", label: "Type", type: "text", required: true },
@@ -264,8 +337,8 @@ const AgencyDocumentsSection = () => {
   );
 };
 
-const AgencyOperationsWorkspace = ({ section }: { section: AgencySectionKey }) => {
-  const { data: capabilities } = useAdminCapabilities();
+const AgencyOperationsWorkspace = ({ section, agencyId }: AgencyOperationsWorkspaceProps) => {
+  const { data: capabilities, isLoading: isCapabilitiesLoading } = useAdminCapabilities();
   const capabilitySet = new Set(capabilities?.menu_capabilities || []);
   const visibleTabs = AGENCY_TABS.filter((tab) => capabilitySet.has(tab.capability));
   const resolvedSection = visibleTabs.some((tab) => tab.key === section)
@@ -285,7 +358,11 @@ const AgencyOperationsWorkspace = ({ section }: { section: AgencySectionKey }) =
         <Nav variant="tabs" className="mb-4">
           {visibleTabs.map((tab) => (
             <Nav.Item key={tab.key}>
-              <Nav.Link as={Link} href={tab.href} active={tab.key === resolvedSection}>
+              <Nav.Link
+                as={Link}
+                href={agencyId ? `${tab.href}&agencyId=${agencyId}` : tab.href}
+                active={tab.key === resolvedSection}
+              >
                 {tab.label}
               </Nav.Link>
             </Nav.Item>
@@ -293,17 +370,24 @@ const AgencyOperationsWorkspace = ({ section }: { section: AgencySectionKey }) =
         </Nav>
       ) : null}
 
-      {!hasAccess ? (
+      {isCapabilitiesLoading ? (
+        <Alert variant="light" className="mb-4 d-flex align-items-center gap-2">
+          <Spinner animation="border" size="sm" />
+          <span>Loading agency permissions…</span>
+        </Alert>
+      ) : null}
+
+      {!isCapabilitiesLoading && !hasAccess ? (
         <Alert variant="warning" className="mb-0">
           You do not have permission to access this agency operations page.
         </Alert>
       ) : null}
 
-      {hasAccess && resolvedSection === "profiles" ? <AgencyProfilesSection /> : null}
-      {hasAccess && resolvedSection === "staff" ? <AgencyStaffSection /> : null}
-      {hasAccess && resolvedSection === "services" ? <AgencyServicesSection /> : null}
-      {hasAccess && resolvedSection === "finance" ? <AgencyFinanceSection /> : null}
-      {hasAccess && resolvedSection === "documents" ? <AgencyDocumentsSection /> : null}
+      {hasAccess && resolvedSection === "profiles" ? <AgencyProfilesSection agencyId={agencyId} /> : null}
+      {hasAccess && resolvedSection === "staff" ? <AgencyStaffSection agencyId={agencyId} /> : null}
+      {hasAccess && resolvedSection === "services" ? <AgencyServicesSection agencyId={agencyId} /> : null}
+      {hasAccess && resolvedSection === "finance" ? <AgencyFinanceSection agencyId={agencyId} /> : null}
+      {hasAccess && resolvedSection === "documents" ? <AgencyDocumentsSection agencyId={agencyId} /> : null}
       {hasAccess && !activeTab ? <Alert variant="danger">Unsupported agency operations section.</Alert> : null}
     </>
   );

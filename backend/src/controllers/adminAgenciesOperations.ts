@@ -65,6 +65,39 @@ const toAgencyProfileType = (value: string | null) => {
   }
 };
 
+const buildAgencyProfilePayload = (payload: Record<string, any>) => ({
+  id: normalizeOptionalString(payload.id),
+  name: normalizeOptionalString(payload.name),
+  address: normalizeOptionalString(payload.address),
+  city: normalizeOptionalString(payload.city),
+  state: normalizeOptionalString(payload.state),
+  pincode: normalizeOptionalString(payload.pincode),
+  agency_type: toAgencyProfileType(normalizeOptionalString(payload.agency_type)),
+  category: normalizeOptionalString(payload.category),
+  owner_name: normalizeOptionalString(payload.owner_name),
+  manager_name: normalizeOptionalString(payload.manager_name),
+  license_number: normalizeOptionalString(payload.license_number),
+  website: normalizeOptionalString(payload.website),
+  description: normalizeOptionalString(payload.description),
+  email: normalizeOptionalString(payload.email),
+  phone: normalizeOptionalString(payload.phone),
+  status: normalizeOptionalString(payload.status),
+  established_year: extractYear(payload.established_year),
+  commission_rate: normalizeOptionalNumber(payload.commission_rate),
+  total_agents: normalizeOptionalNumber(payload.total_agents),
+  total_clients: normalizeOptionalNumber(payload.total_clients),
+  total_properties: normalizeOptionalNumber(payload.total_properties),
+  average_deal_value: normalizeOptionalNumber(payload.average_deal_value),
+  account_holder_name: normalizeOptionalString(payload.account_holder_name),
+  account_number: normalizeOptionalString(payload.account_number),
+  bank_name: normalizeOptionalString(payload.bank_name),
+  ifsc_code: normalizeOptionalString(payload.ifsc_code),
+  specializations: normalizeStringArray(payload.specializations),
+  services: normalizeStringArray(payload.services),
+  contact_persons: Array.isArray(payload.contact_persons) ? payload.contact_persons : null,
+  documents: Array.isArray(payload.documents) ? payload.documents : null,
+});
+
 async function rollbackCreatedAgency(agencyId: string) {
   if (!isUuid(agencyId)) return;
 
@@ -72,6 +105,76 @@ async function rollbackCreatedAgency(agencyId: string) {
   await supabase.from('agency_profiles').delete().eq('id', agencyId);
   await supabase.from('agencies').delete().eq('id', agencyId);
 }
+
+const formatActivityTimestamp = (value: string | null | undefined) =>
+  typeof value === 'string' && value.length > 0 ? value : new Date().toISOString();
+
+const buildAgencyActivityFeed = ({
+  communities,
+  staff,
+  services,
+  documents,
+  finance,
+}: {
+  communities: Array<Record<string, any>>;
+  staff: Array<Record<string, any>>;
+  services: Array<Record<string, any>>;
+  documents: Array<Record<string, any>>;
+  finance: Array<Record<string, any>>;
+}) => {
+  const activities = [
+    ...communities.map((community) => ({
+      id: `community:${community.id}`,
+      type: 'community',
+      title: community.name || 'Community onboarded',
+      description: community.address || community.city || 'Community assigned to agency portfolio.',
+      status: community.status || 'active',
+      occurred_at: formatActivityTimestamp(community.updated_at || community.created_at),
+      href: isUuid(community.id) ? `/communities/details?id=${community.id}` : null,
+    })),
+    ...staff.map((member) => ({
+      id: `staff:${member.id}`,
+      type: 'staff',
+      title:
+        [member.first_name, member.last_name].filter(Boolean).join(' ').trim() || member.email || 'Agency staff record',
+      description: member.role ? `${member.role} added to agency staff.` : 'Agency staff record updated.',
+      status: member.status || (member.is_active ? 'active' : 'inactive') || 'active',
+      occurred_at: formatActivityTimestamp(member.updated_at || member.created_at),
+      href: null,
+    })),
+    ...services.map((service) => ({
+      id: `service:${service.id}`,
+      type: 'service',
+      title: service.service_name || 'Agency service',
+      description: service.category ? `${service.category} service catalog entry.` : 'Agency service catalog updated.',
+      status: service.status || 'active',
+      occurred_at: formatActivityTimestamp(service.updated_at || service.created_at),
+      href: null,
+    })),
+    ...documents.map((document) => ({
+      id: `document:${document.id}`,
+      type: 'document',
+      title: document.name || 'Agency document',
+      description: document.category ? `${document.category} document uploaded.` : 'Agency document updated.',
+      status: document.status || 'active',
+      occurred_at: formatActivityTimestamp(document.updated_at || document.created_at),
+      href: null,
+    })),
+    ...finance.map((entry) => ({
+      id: `finance:${entry.id}`,
+      type: 'finance',
+      title: entry.category || entry.type || 'Finance entry',
+      description: entry.description || entry.reference || 'Agency finance ledger updated.',
+      status: entry.status || 'completed',
+      occurred_at: formatActivityTimestamp(entry.date || entry.created_at),
+      href: null,
+    })),
+  ];
+
+  return activities
+    .sort((left, right) => new Date(right.occurred_at).getTime() - new Date(left.occurred_at).getTime())
+    .slice(0, 12);
+};
 
 async function ensureAgencyScope(
   scope: Awaited<ReturnType<typeof resolveAdminScope>>,
@@ -126,6 +229,104 @@ export async function listAgencyProfiles(req: Request, res: Response, next: Next
     }
 
     return res.json({ data: data || [] });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function createAgencyProfile(req: Request, res: Response, next: NextFunction) {
+  try {
+    const scope = await resolveAdminScope(req);
+    const payload = buildAgencyProfilePayload({ ...(req.body || {}) });
+
+    if (!isUuid(payload.id)) {
+      return res.status(400).json({ error: 'Agency ID is required to create a profile.' });
+    }
+
+    const agencyScope = await ensureAgencyScope(scope, payload.id);
+    if (!agencyScope.ok) {
+      return toScopeError(res, agencyScope.reason);
+    }
+
+    const [{ data: agency, error: agencyError }, { data: existing, error: existingError }] = await Promise.all([
+      supabase.from('agencies').select('id').eq('id', payload.id).maybeSingle(),
+      supabase.from('agency_profiles').select('id').eq('id', payload.id).maybeSingle(),
+    ]);
+
+    if (agencyError) {
+      return res.status(500).json({ error: 'Failed to load agency record', details: agencyError.message });
+    }
+    if (!agency) {
+      return res.status(404).json({ error: 'Agency not found for the selected profile id.' });
+    }
+    if (existingError) {
+      return res.status(500).json({ error: 'Failed to validate agency profile state', details: existingError.message });
+    }
+    if (existing) {
+      return res.status(409).json({ error: 'Agency profile already exists for this agency.' });
+    }
+
+    const { data, error } = await supabase
+      .from('agency_profiles')
+      .insert({
+        ...payload,
+        id: payload.id,
+        updated_at: new Date().toISOString(),
+      })
+      .select('*')
+      .single();
+
+    if (error) {
+      return res.status(500).json({ error: 'Failed to create agency profile', details: error.message });
+    }
+
+    return res.status(201).json({ data });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updateAgencyProfile(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { id } = req.params;
+    if (!isUuid(id)) return res.status(400).json({ error: 'Invalid agency profile id' });
+
+    const scope = await resolveAdminScope(req);
+    if (!canAccessAgency(scope, id)) {
+      return toScopeError(res, 'Access denied for the selected agency.');
+    }
+
+    const { data: existing, error: existingError } = await supabase
+      .from('agency_profiles')
+      .select('id')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (existingError) {
+      return res.status(500).json({ error: 'Failed to load agency profile', details: existingError.message });
+    }
+    if (!existing) {
+      return res.status(404).json({ error: 'Agency profile not found' });
+    }
+
+    const payload = buildAgencyProfilePayload({ ...(req.body || {}) });
+    delete (payload as Record<string, unknown>).id;
+
+    const { data, error } = await supabase
+      .from('agency_profiles')
+      .update({
+        ...payload,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .select('*')
+      .single();
+
+    if (error) {
+      return res.status(500).json({ error: 'Failed to update agency profile', details: error.message });
+    }
+
+    return res.json({ data });
   } catch (error) {
     next(error);
   }
@@ -372,6 +573,144 @@ export async function createAgencyDirectory(req: Request, res: Response, next: N
     if (agencyId) {
       await rollbackCreatedAgency(agencyId);
     }
+    next(error);
+  }
+}
+
+export async function getAgencyDirectorySummary(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { id } = req.params;
+    if (!isUuid(id)) return res.status(400).json({ error: 'Invalid agency id' });
+
+    const scope = await resolveAdminScope(req);
+    if (!canAccessAgency(scope, id)) {
+      return toScopeError(res, 'Access denied for the selected agency.');
+    }
+
+    const [
+      agencyResult,
+      profileResult,
+      communitiesResult,
+      staffResult,
+      servicesResult,
+      documentsResult,
+      financeResult,
+      amountResult,
+    ] = await Promise.all([
+      supabase.from('agencies').select('*').eq('id', id).maybeSingle(),
+      supabase.from('agency_profiles').select('*').eq('id', id).maybeSingle(),
+      supabase
+        .from('communities')
+        .select('id,name,address,city,state,country,status,created_at,updated_at')
+        .eq('agency_id', id)
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('agency_staff')
+        .select('id,first_name,last_name,email,role,status,is_active,created_at,updated_at')
+        .eq('agency_id', id)
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('agency_services')
+        .select('id,service_name,category,status,base_price,rate_type,created_at,updated_at')
+        .eq('agency_id', id)
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('agency_documents')
+        .select('id,name,category,type,status,uploaded_by_name,created_at,updated_at')
+        .eq('agency_id', id)
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('agency_transactions')
+        .select('id,date,type,category,amount,status,payment_method,reference,description,created_at')
+        .eq('agency_id', id)
+        .order('date', { ascending: false }),
+      supabase.from('agency_transactions').select('amount').eq('agency_id', id),
+    ]);
+
+    if (agencyResult.error) {
+      return res.status(500).json({ error: 'Failed to load agency record', details: agencyResult.error.message });
+    }
+    if (!agencyResult.data) {
+      return res.status(404).json({ error: 'Agency not found' });
+    }
+    if (profileResult.error) {
+      return res.status(500).json({ error: 'Failed to load agency profile', details: profileResult.error.message });
+    }
+    if (communitiesResult.error) {
+      return res.status(500).json({ error: 'Failed to load agency communities', details: communitiesResult.error.message });
+    }
+    if (staffResult.error) {
+      return res.status(500).json({ error: 'Failed to load agency staff', details: staffResult.error.message });
+    }
+    if (servicesResult.error) {
+      return res.status(500).json({ error: 'Failed to load agency services', details: servicesResult.error.message });
+    }
+    if (documentsResult.error) {
+      return res.status(500).json({ error: 'Failed to load agency documents', details: documentsResult.error.message });
+    }
+    if (financeResult.error) {
+      return res.status(500).json({ error: 'Failed to load agency finance entries', details: financeResult.error.message });
+    }
+    if (amountResult.error) {
+      return res.status(500).json({ error: 'Failed to load agency finance totals', details: amountResult.error.message });
+    }
+
+    const communities = (communitiesResult.data || []) as Array<Record<string, any>>;
+    const staff = (staffResult.data || []) as Array<Record<string, any>>;
+    const services = (servicesResult.data || []) as Array<Record<string, any>>;
+    const documents = (documentsResult.data || []) as Array<Record<string, any>>;
+    const finance = (financeResult.data || []) as Array<Record<string, any>>;
+    const amounts = (amountResult.data || []) as Array<{ amount: number | string | null }>;
+
+    const unitsCount = communities.length
+      ? (
+          await supabase
+            .from('units')
+            .select('id', { head: true, count: 'exact' })
+            .in(
+              'community_id',
+              communities
+                .map((community) => community.id)
+                .filter((communityId): communityId is string => isUuid(communityId))
+            )
+        ).count || 0
+      : 0;
+
+    const financeTotalAmount = amounts.reduce((total, entry) => {
+      const parsed = normalizeOptionalNumber(entry.amount);
+      return total + (parsed || 0);
+    }, 0);
+
+    return res.json({
+      data: {
+        agency: agencyResult.data,
+        profile: profileResult.data,
+        communities,
+        staff: staff.slice(0, 10),
+        services: services.slice(0, 10),
+        documents: documents.slice(0, 10),
+        finance: finance.slice(0, 10),
+        stats: {
+          communities_count: communities.length,
+          active_communities_count: communities.filter((community) => community.status === 'active').length,
+          inactive_communities_count: communities.filter((community) => community.status && community.status !== 'active').length,
+          units_count: unitsCount,
+          staff_count: staff.length,
+          services_count: services.length,
+          documents_count: documents.length,
+          finance_entries_count: finance.length,
+          finance_total_amount: financeTotalAmount,
+        },
+        activities: buildAgencyActivityFeed({
+          communities,
+          staff: staff.slice(0, 5),
+          services: services.slice(0, 5),
+          documents: documents.slice(0, 5),
+          finance: finance.slice(0, 5),
+        }),
+      },
+    });
+  } catch (error) {
     next(error);
   }
 }

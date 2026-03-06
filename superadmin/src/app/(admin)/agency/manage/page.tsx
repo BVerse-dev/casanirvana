@@ -12,6 +12,7 @@ const VALID_SECTIONS = new Set<AgencySectionKey>([
 
 type ManageAgencyPageProps = {
   searchParams?: {
+    agencyId?: string;
     tab?: string;
   };
 };
@@ -22,7 +23,10 @@ const resolveSection = (tab?: string): AgencySectionKey =>
     : "profiles";
 
 const Page = ({ searchParams }: ManageAgencyPageProps) => (
-  <AgencyOperationsWorkspace section={resolveSection(searchParams?.tab)} />
+  <AgencyOperationsWorkspace
+    section={resolveSection(searchParams?.tab)}
+    agencyId={typeof searchParams?.agencyId === "string" ? searchParams.agencyId : undefined}
+  />
 );
 
 export default Page;

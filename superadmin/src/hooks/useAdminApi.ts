@@ -5,19 +5,41 @@ import { useSession } from 'next-auth/react';
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 export const useAdminApi = () => {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const token = session?.accessToken as string | undefined;
 
-  const fetchAdmin = async <T = any>(path: string, options: RequestInit = {}): Promise<T> => {
-    if (!token) {
+  const resolveToken = async () => {
+    if (token) return token;
+
+    const sessionResponse = await fetch('/api/auth/session', {
+      credentials: 'same-origin',
+    });
+
+    if (!sessionResponse.ok) {
       throw new Error('Missing admin session. Please sign in again.');
     }
+
+    const sessionPayload = await sessionResponse.json().catch(() => ({}));
+    const resolvedToken =
+      typeof sessionPayload?.accessToken === 'string' && sessionPayload.accessToken.length > 0
+        ? sessionPayload.accessToken
+        : null;
+
+    if (!resolvedToken) {
+      throw new Error('Missing admin session. Please sign in again.');
+    }
+
+    return resolvedToken;
+  };
+
+  const fetchAdmin = async <T = any>(path: string, options: RequestInit = {}): Promise<T> => {
+    const resolvedToken = await resolveToken();
 
     const response = await fetch(`${API_BASE_URL}${path}`, {
       ...options,
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${resolvedToken}`,
         ...options.headers,
       },
     });
@@ -32,6 +54,6 @@ export const useAdminApi = () => {
 
   return {
     fetchAdmin,
-    hasToken: !!token,
+    hasToken: status !== 'loading',
   };
 };

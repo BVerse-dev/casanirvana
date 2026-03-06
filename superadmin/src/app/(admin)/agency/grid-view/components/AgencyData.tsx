@@ -13,11 +13,20 @@ import Row from 'react-bootstrap/Row'
 import Col from 'react-bootstrap/Col'
 import Dropdown from 'react-bootstrap/Dropdown'
 
+const SOCIAL_LINKS = [
+  { key: 'facebook', icon: 'ri:facebook-fill', variant: 'soft-primary' },
+  { key: 'instagram', icon: 'ri:instagram-line', variant: 'soft-danger' },
+  { key: 'twitter', icon: 'ri:twitter-line', variant: 'soft-info' },
+  { key: 'linkedin', icon: 'ri:linkedin-fill', variant: 'soft-primary' },
+] as const
+
 const AgencyCard = ({ agency, onDelete }: { agency: any; onDelete: (id: string) => void }) => {
   // Get the correct avatar image from the centralized mapping
   const avatarImage = getAgencyAvatar(agency.logo_url)
   // Get property image for banner using static import (same as details page)
   const bannerImage = getAgencyPropertyImage(agency)
+  const socialMedia = agency.social_media || {}
+  const availableSocialLinks = SOCIAL_LINKS.filter((item) => typeof socialMedia[item.key] === 'string' && socialMedia[item.key])
 
   return (
     <Card className="h-100">
@@ -65,7 +74,7 @@ const AgencyCard = ({ agency, onDelete }: { agency: any; onDelete: (id: string) 
               </Dropdown.Toggle>
               <Dropdown.Menu className="dropdown-menu-end">
                 <Dropdown.Item as={Link} href={`/agency/details?id=${agency.id}`}>View Details</Dropdown.Item>
-                <Dropdown.Item as={Link} href={`/agency/edit?id=${agency.id}`}>Edit</Dropdown.Item>
+                <Dropdown.Item as={Link} href={`/agency/manage?tab=profiles&agencyId=${agency.id}`}>Manage</Dropdown.Item>
                 <Dropdown.Item onClick={() => onDelete(agency.id)}>Delete</Dropdown.Item>
               </Dropdown.Menu>
             </Dropdown>
@@ -85,53 +94,64 @@ const AgencyCard = ({ agency, onDelete }: { agency: any; onDelete: (id: string) 
             {agency.is_active ? 'Active' : 'Inactive'}
           </span>
         </div>
-        <ul className="list-inline d-flex gap-1 mb-0 align-items-center">
-          <li className="list-inline-item">
-            <Button variant="soft-primary" className="d-flex avatar-xs align-items-center justify-content-center fs-16">
-              <span>
-                <IconifyIcon icon="ri:facebook-fill" />
-              </span>
-            </Button>
-          </li>
-          <li className="list-inline-item">
-            <Button variant="soft-danger" className="d-flex avatar-xs align-items-center justify-content-center fs-16">
-              <span>
-                <IconifyIcon icon="ri:instagram-line" />
-              </span>
-            </Button>
-          </li>
-          <li className="list-inline-item">
-            <Button variant="soft-info" className="d-flex avatar-xs align-items-center justify-content-center fs-16">
-              <span>
-                <IconifyIcon icon="ri:twitter-line" />
-              </span>
-            </Button>
-          </li>
-          <li className="list-inline-item">
-            <Button variant="soft-success" className="d-flex avatar-xs align-items-center justify-content-center fs-16">
-              <span>
-                <IconifyIcon icon="ri:whatsapp-line" />
-              </span>
-            </Button>
-          </li>
-          <li className="list-inline-item">
-            <Button variant="soft-warning" className="d-flex avatar-xs align-items-center justify-content-center fs-16">
-              <span>
-                <IconifyIcon icon="ri:mail-line" />
-              </span>
-            </Button>
-          </li>
-        </ul>
+        {availableSocialLinks.length > 0 ? (
+          <ul className="list-inline d-flex gap-1 mb-0 align-items-center">
+            {availableSocialLinks.map((item) => (
+              <li className="list-inline-item" key={item.key}>
+                <Button
+                  as="a"
+                  href={socialMedia[item.key]}
+                  target="_blank"
+                  rel="noreferrer"
+                  variant={item.variant}
+                  className="d-flex avatar-xs align-items-center justify-content-center fs-16"
+                >
+                  <span>
+                    <IconifyIcon icon={item.icon} />
+                  </span>
+                </Button>
+              </li>
+            ))}
+            {agency.email ? (
+              <li className="list-inline-item">
+                <Button
+                  as="a"
+                  href={`mailto:${agency.email}`}
+                  variant="soft-warning"
+                  className="d-flex avatar-xs align-items-center justify-content-center fs-16"
+                >
+                  <span>
+                    <IconifyIcon icon="ri:mail-line" />
+                  </span>
+                </Button>
+              </li>
+            ) : null}
+          </ul>
+        ) : (
+          <p className="text-muted small mb-0">No social or contact links configured.</p>
+        )}
       </Card.Body>
       <Card.Footer className="border-top">
         <Row className="g-2">
           <Col lg={6}>
-            <Button variant="primary" className="w-100 btn-sm">
+            <Button
+              as="a"
+              href={agency.phone ? `tel:${agency.phone}` : undefined}
+              variant="primary"
+              className="w-100 btn-sm"
+              disabled={!agency.phone}
+            >
               <IconifyIcon icon="solar:outgoing-call-rounded-broken" className="align-middle fs-16" /> Call Us
             </Button>
           </Col>
           <Col lg={6}>
-            <Button variant="light" className="w-100 btn-sm">
+            <Button
+              as="a"
+              href={agency.email ? `mailto:${agency.email}` : undefined}
+              variant="light"
+              className="w-100 btn-sm"
+              disabled={!agency.email}
+            >
               <IconifyIcon icon="solar:chat-round-dots-broken" className="align-middle fs-14" /> Message
             </Button>
           </Col>

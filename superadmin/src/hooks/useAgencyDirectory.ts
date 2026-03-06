@@ -47,6 +47,36 @@ type AgencyDirectoryApiRecord = {
 
 export type AgencyDirectoryItem = LegacyAgency;
 
+export type AgencyDirectorySummary = {
+  agency: AgencyDirectoryItem;
+  profile: Record<string, any> | null;
+  communities: Array<Record<string, any>>;
+  staff: Array<Record<string, any>>;
+  services: Array<Record<string, any>>;
+  documents: Array<Record<string, any>>;
+  finance: Array<Record<string, any>>;
+  stats: {
+    communities_count: number;
+    active_communities_count: number;
+    inactive_communities_count: number;
+    units_count: number;
+    staff_count: number;
+    services_count: number;
+    documents_count: number;
+    finance_entries_count: number;
+    finance_total_amount: number;
+  };
+  activities: Array<{
+    id: string;
+    type: string;
+    title: string;
+    description: string;
+    status: string;
+    occurred_at: string;
+    href: string | null;
+  }>;
+};
+
 type AgencyDirectoryFilters = {
   agencyId?: string;
   search?: string;
@@ -105,6 +135,25 @@ export const useGetAgencyDirectory = (agencyId: string) => {
       const agency = (payload.data || [])[0];
       if (!agency) throw new Error("Agency not found");
       return mapAgencyDirectoryRecord(agency);
+    },
+  });
+};
+
+export const useGetAgencyDirectorySummary = (agencyId: string) => {
+  const { fetchAdmin, hasToken } = useAdminApi();
+
+  return useQuery({
+    queryKey: ["agencies-directory", "summary", agencyId],
+    enabled: hasToken && !!agencyId,
+    queryFn: async () => {
+      const payload = await fetchAdmin<{
+        data: Omit<AgencyDirectorySummary, "agency"> & { agency: AgencyDirectoryApiRecord };
+      }>(`/admin/agencies/directory/${agencyId}/summary`);
+
+      return {
+        ...payload.data,
+        agency: mapAgencyDirectoryRecord(payload.data.agency),
+      } satisfies AgencyDirectorySummary;
     },
   });
 };

@@ -429,6 +429,13 @@ router.get(
   validateRequest({ query: schemas.adminAgencyOperationsQuery }),
   adminAgenciesOperationsController.listAgencyDirectory
 );
+router.get(
+  '/agencies/directory/:id/summary',
+  requireAuth,
+  requirePermission('read:all_profiles'),
+  validateRequest({ params: schemas.idParam }),
+  adminAgenciesOperationsController.getAgencyDirectorySummary
+);
 router.post(
   '/agencies/directory',
   requireAuth,
@@ -449,6 +456,20 @@ router.get(
   requirePermission('read:all_profiles'),
   validateRequest({ query: schemas.adminAgencyOperationsQuery }),
   adminAgenciesOperationsController.listAgencyProfiles
+);
+router.post(
+  '/agencies/profiles',
+  requireAuth,
+  requirePermission('create:profiles'),
+  validateRequest({ body: schemas.adminAgencyProfileCreate }),
+  adminAgenciesOperationsController.createAgencyProfile
+);
+router.patch(
+  '/agencies/profiles/:id',
+  requireAuth,
+  requirePermission('update:all_profiles'),
+  validateRequest({ params: schemas.idParam, body: schemas.adminAgencyProfileUpdate }),
+  adminAgenciesOperationsController.updateAgencyProfile
 );
 router.get(
   '/agencies/staff',

@@ -235,9 +235,9 @@ const AgencyList = ({ searchTerm: externalSearchTerm }: AgencyListProps) => {
                                   <IconifyIcon icon="solar:eye-broken" className="align-middle fs-18" />
                                 </Button>
                               </Link>
-                              <Link href={`/agency/edit?id=${agency.id}`}>
-                                <Button variant="soft-primary" size="sm" title="Edit Agency">
-                                  <IconifyIcon icon="solar:pen-2-broken" className="align-middle fs-18" />
+                              <Link href={`/agency/manage?tab=profiles&agencyId=${agency.id}`}>
+                                <Button variant="soft-primary" size="sm" title="Manage Agency">
+                                  <IconifyIcon icon="solar:settings-bold-duotone" className="align-middle fs-18" />
                                 </Button>
                               </Link>
                               <Button 

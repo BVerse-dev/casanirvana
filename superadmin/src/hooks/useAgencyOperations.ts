@@ -90,6 +90,10 @@ const useDeleteMutation = (resourceKey: string, path: string) => {
 
 export const useAgencyProfilesOperations = (filters?: AgencyOperationsFilters) =>
   useAgencyOperationsResource("/admin/agencies/profiles", filters);
+export const useCreateAgencyProfileOperation = () =>
+  useCreateMutation("/admin/agencies/profiles", "/admin/agencies/profiles");
+export const useUpdateAgencyProfileOperation = () =>
+  useUpdateMutation("/admin/agencies/profiles", "/admin/agencies/profiles");
 
 export const useAgencyStaffOperations = (filters?: AgencyOperationsFilters) =>
   useAgencyOperationsResource("/admin/agencies/staff", filters);
@@ -124,4 +128,3 @@ export const useUpdateAgencyDocumentOperation = () =>
   useUpdateMutation("/admin/agencies/documents", "/admin/agencies/documents");
 export const useDeleteAgencyDocumentOperation = () =>
   useDeleteMutation("/admin/agencies/documents", "/admin/agencies/documents");
-
