@@ -1,36 +1,26 @@
 "use client";
-import ChoicesFormInput from "@/components/from/ChoicesFormInput";
-import TextAreaFormInput from "@/components/from/TextAreaFormInput";
-import TextFormInput from "@/components/from/TextFormInput";
-import SelectFormInput from "@/components/from/SelectFormInput";
-import { yupResolver } from "@hookform/resolvers/yup";
-import {
-  Button,
-  Card,
-  CardBody,
-  CardHeader,
-  CardTitle,
-  Col,
-  Row,
-  Spinner,
-  Alert,
-} from "react-bootstrap";
-import { useForm, Controller } from "react-hook-form";
-import * as yup from "yup";
-import { useCreateNotice, useGetNotice, useUpdateNotice, type CreateNoticeData } from "@/hooks/useNotices";
-import { useRouter } from "next/navigation";
+
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { Controller, useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
+import { Alert, Button, Card, CardBody, CardHeader, CardTitle, Col, Form, Row, Spinner } from "react-bootstrap";
+
+import { useCreateNotice, useGetNotice, useUpdateNotice, type CreateNoticeData } from "@/hooks/useNotices";
 
 interface NoticeFormData {
   title: string;
   body: string;
-  tags: string[];
   author_name: string;
   category: string;
-  priority: 'low' | 'medium' | 'high' | 'urgent';
+  priority: "low" | "medium" | "high" | "urgent";
+  status: "draft" | "published" | "archived";
+  tags: string;
   image_url: string;
   video_url: string;
+  is_featured: boolean;
 }
 
 interface CreatePostProps {
@@ -38,7 +28,18 @@ interface CreatePostProps {
   noticeId?: string;
 }
 
-const normalizeCategory = (value?: string | null) => (value || "").toLowerCase();
+const noticeSchema = yup.object({
+  title: yup.string().required("Please enter notice title"),
+  body: yup.string().required("Please enter notice content"),
+  author_name: yup.string().required("Please enter author name"),
+  category: yup.string().required("Please select a category"),
+  priority: yup.string().oneOf(["low", "medium", "high", "urgent"]).required(),
+  status: yup.string().oneOf(["draft", "published", "archived"]).required(),
+  tags: yup.string().default(""),
+  image_url: yup.string().url("Please enter a valid image URL").nullable().transform((value) => value || null),
+  video_url: yup.string().url("Please enter a valid video URL").nullable().transform((value) => value || null),
+  is_featured: yup.boolean().required(),
+});
 
 const CreatePost = ({ mode = "create", noticeId }: CreatePostProps) => {
   const router = useRouter();
@@ -46,47 +47,38 @@ const CreatePost = ({ mode = "create", noticeId }: CreatePostProps) => {
   const isEditMode = mode === "edit";
   const createNoticeMutation = useCreateNotice();
   const updateNoticeMutation = useUpdateNotice();
-  const { data: existingNotice, isLoading: isNoticeLoading, error: noticeLoadError } = useGetNotice(
-    isEditMode && noticeId ? noticeId : ""
-  );
+  const { data: existingNotice, isLoading: isNoticeLoading, error: noticeLoadError } = useGetNotice(isEditMode && noticeId ? noticeId : "");
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const scopedCommunityId = useMemo(() => {
-    const directCommunityId = session?.user?.communityId;
+    const directCommunityId = (session?.user as any)?.communityId;
     if (typeof directCommunityId === "string" && directCommunityId.length > 0) {
       return directCommunityId;
     }
 
-    const firstScopedCommunityId = session?.user?.scopedCommunityIds?.find(
-      (id): id is string => typeof id === "string" && id.length > 0
-    );
+    const scopedIds = (session?.user as any)?.scopedCommunityIds;
+    if (Array.isArray(scopedIds)) {
+      const first = scopedIds.find((value) => typeof value === "string" && value.length > 0);
+      if (first) return first;
+    }
 
-    return firstScopedCommunityId || null;
-  }, [session?.user?.communityId, session?.user?.scopedCommunityIds]);
+    return null;
+  }, [session?.user]);
 
-  const noticeSchema = yup.object({
-    title: yup.string().required("Please enter notice title"),
-    body: yup.string().required("Please enter notice content"),
-    author_name: yup.string().required("Please enter author name"),
-    category: yup.string().required("Please select a category"),
-    priority: yup.string().oneOf(['low', 'medium', 'high', 'urgent']).required("Please select priority"),
-    tags: yup.array().of(yup.string().required()).min(1, "Please select at least one tag").required(),
-    image_url: yup.string().url("Please enter a valid URL").optional().default(''),
-    video_url: yup.string().url("Please enter a valid URL").optional().default(''),
-  });
-
-  const { handleSubmit, control, reset, formState: { isSubmitting } } = useForm<NoticeFormData>({
+  const { control, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<NoticeFormData>({
     resolver: yupResolver(noticeSchema),
     defaultValues: {
-      title: '',
-      body: '',
-      author_name: 'Administrator',
-      category: '',
-      priority: 'medium',
-      tags: [],
-      image_url: '',
-      video_url: '',
-    }
+      title: "",
+      body: "",
+      author_name: session?.user?.name || session?.user?.email || "Administrator",
+      category: "general",
+      priority: "medium",
+      status: "published",
+      tags: "",
+      image_url: "",
+      video_url: "",
+      is_featured: false,
+    },
   });
 
   useEffect(() => {
@@ -95,322 +87,212 @@ const CreatePost = ({ mode = "create", noticeId }: CreatePostProps) => {
     reset({
       title: existingNotice.title || "",
       body: existingNotice.body || "",
-      author_name: existingNotice.author_name || "Administrator",
-      category: normalizeCategory(existingNotice.category),
-      priority: ((existingNotice.priority || "medium") as NoticeFormData["priority"]),
-      tags: Array.isArray(existingNotice.tags) ? existingNotice.tags : [],
+      author_name: existingNotice.author_name || session?.user?.name || session?.user?.email || "Administrator",
+      category: existingNotice.category || "general",
+      priority: (existingNotice.priority as NoticeFormData["priority"]) || "medium",
+      status: ((existingNotice.status || "published") as NoticeFormData["status"]),
+      tags: Array.isArray(existingNotice.tags) ? existingNotice.tags.join(", ") : "",
       image_url: existingNotice.image_url || "",
       video_url: existingNotice.video_url || "",
+      is_featured: Boolean(existingNotice.is_featured),
     });
-  }, [isEditMode, existingNotice, reset]);
+  }, [existingNotice, isEditMode, reset, session?.user?.email, session?.user?.name]);
 
   const onSubmit = async (formData: NoticeFormData) => {
+    setSubmitError(null);
+
+    const targetCommunityId = existingNotice?.community_id || scopedCommunityId;
+    if (!targetCommunityId) {
+      setSubmitError("No community scope is assigned to this admin account. Contact superadmin.");
+      return;
+    }
+
+    const tags = formData.tags
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter(Boolean);
+
+    const noticeData: CreateNoticeData = {
+      community_id: targetCommunityId,
+      title: formData.title.trim(),
+      body: formData.body.trim(),
+      author_name: formData.author_name.trim(),
+      author_avatar: session?.user?.image || undefined,
+      category: formData.category,
+      priority: formData.priority,
+      status: formData.status,
+      tags,
+      image_url: formData.image_url || undefined,
+      video_url: formData.video_url || undefined,
+      is_featured: formData.is_featured,
+      posted_at: formData.status === "published" ? existingNotice?.posted_at || new Date().toISOString() : null,
+    };
+
     try {
-      setSubmitError(null);
-      const targetCommunityId = existingNotice?.community_id || scopedCommunityId;
-
-      if (!targetCommunityId) {
-        setSubmitError("No community scope is assigned to this admin account. Contact superadmin.");
-        return;
-      }
-      
-      // Prepare notice data for Supabase
-      const noticeData: CreateNoticeData = {
-        community_id: targetCommunityId,
-        title: formData.title,
-        body: formData.body,
-        author_name: formData.author_name,
-        author_avatar: '/images/users/avatar-6.jpg', // Default avatar
-        category: formData.category,
-        priority: formData.priority,
-        tags: formData.tags,
-        image_url: formData.image_url || undefined,
-        video_url: formData.video_url || undefined,
-        is_featured: false,
-      };
-
       if (isEditMode) {
         if (!noticeId) {
           setSubmitError("Missing notice ID for edit operation.");
           return;
         }
-
-        await updateNoticeMutation.mutateAsync({
-          id: noticeId,
-          ...noticeData,
-        });
+        await updateNoticeMutation.mutateAsync({ id: noticeId, ...noticeData });
         router.push(`/post/details?id=${noticeId}`);
       } else {
-        await createNoticeMutation.mutateAsync(noticeData);
-        router.push('/post');
+        const createdNotice = await createNoticeMutation.mutateAsync(noticeData);
+        router.push(`/post/details?id=${createdNotice.id}`);
       }
-    } catch (error) {
-      console.error(`Failed to ${isEditMode ? "update" : "create"} notice:`, error);
-      setSubmitError(error instanceof Error ? error.message : `Failed to ${isEditMode ? "update" : "create"} notice`);
+    } catch (submitMutationError) {
+      console.error(`Failed to ${isEditMode ? "update" : "create"} notice:`, submitMutationError);
+      setSubmitError(submitMutationError instanceof Error ? submitMutationError.message : `Failed to ${isEditMode ? "update" : "create"} notice.`);
     }
   };
 
   if (isEditMode && isNoticeLoading) {
-    return (
-      <Alert variant="info" className="mb-3">
-        Loading notice details...
-      </Alert>
-    );
+    return <Alert variant="info">Loading notice details...</Alert>;
   }
 
   if (isEditMode && noticeLoadError) {
-    return (
-      <Alert variant="danger" className="mb-3">
-        Failed to load notice for editing.
-      </Alert>
-    );
+    return <Alert variant="danger">Failed to load notice for editing.</Alert>;
   }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} data-notice-form>
-      {submitError && (
-        <Alert variant="danger" className="mb-3">
-          {submitError}
-        </Alert>
-      )}
-      {!isEditMode && !scopedCommunityId && (
-        <Alert variant="warning" className="mb-3">
-          No community scope was found for your admin account. Assign a community before creating notices.
-        </Alert>
-      )}
-      
-      <Card>
+      {submitError ? <Alert variant="danger">{submitError}</Alert> : null}
+      {!isEditMode && !scopedCommunityId ? (
+        <Alert variant="warning">No community scope was found for your admin account. Assign a community before creating notices.</Alert>
+      ) : null}
+
+      <Card className="mb-4">
         <CardHeader>
-          <CardTitle as={"h4"}>Notice Information</CardTitle>
+          <CardTitle as="h4">Notice Content</CardTitle>
         </CardHeader>
         <CardBody>
-          <Row>
-            <Col lg={6}>
-              <div className="mb-3">
-                <TextFormInput
-                  control={control}
-                  name="title"
-                  placeholder="Enter notice title"
-                  label="Notice Title *"
-                />
-              </div>
+          <Row className="g-3">
+            <Col lg={8}>
+              <Form.Label>Title *</Form.Label>
+              <Controller name="title" control={control} render={({ field }) => <Form.Control {...field} placeholder="Enter notice title" isInvalid={Boolean(errors.title)} />} />
+              <Form.Control.Feedback type="invalid" className={errors.title ? "d-block" : ""}>{errors.title?.message}</Form.Control.Feedback>
             </Col>
-            <Col lg={6}>
-              <div className="mb-3">
-                <label htmlFor="notice-tags" className="form-label">
-                  Notice Tags *
-                </label>
-                <Controller
-                  name="tags"
-                  control={control}
-                  render={({ field, fieldState }) => (
-                    <div>
-                      <select 
-                        {...field}
-                        multiple
-                        className="form-control"
-                        style={{ height: '140px' }}
-                        value={field.value || []}
-                        onChange={(e) => {
-                          const values = Array.from(e.target.selectedOptions, option => option.value);
-                          field.onChange(values);
-                        }}
-                      >
-                        <option value="Important">Important</option>
-                        <option value="Urgent">Urgent</option>
-                        <option value="Notice">Notice</option>
-                        <option value="Announcement">Announcement</option>
-                        <option value="Community Guidelines">Community Guidelines</option>
-                        <option value="Safety & Security">Safety & Security</option>
-                        <option value="Maintenance Updates">Maintenance Updates</option>
-                        <option value="Community Events">Community Events</option>
-                        <option value="Amenity Management">Amenity Management</option>
-                        <option value="Emergency">Emergency</option>
-                        <option value="Monthly Updates">Monthly Updates</option>
-                        <option value="Billing & Payments">Billing & Payments</option>
-                        <option value="Community Rules">Community Rules</option>
-                        <option value="Parking">Parking</option>
-                        <option value="Water Supply">Water Supply</option>
-                        <option value="Electricity">Electricity</option>
-                        <option value="Waste Management">Waste Management</option>
-                        <option value="Gym & Fitness">Gym & Fitness</option>
-                        <option value="Swimming Pool">Swimming Pool</option>
-                        <option value="Clubhouse">Clubhouse</option>
-                        <option value="Garden & Landscaping">Garden & Landscaping</option>
-                        <option value="Pest Control">Pest Control</option>
-                        <option value="Housekeeping">Housekeeping</option>
-                        <option value="Elevator Maintenance">Elevator Maintenance</option>
-                        <option value="CCTV & Surveillance">CCTV & Surveillance</option>
-                        <option value="Visitor Management">Visitor Management</option>
-                        <option value="Intercom System">Intercom System</option>
-                        <option value="Fire Safety">Fire Safety</option>
-                        <option value="Power Backup">Power Backup</option>
-                        <option value="WiFi & Internet">WiFi & Internet</option>
-                        <option value="Children's Play Area">Children&apos;s Play Area</option>
-                        <option value="Senior Citizens">Senior Citizens</option>
-                        <option value="Pet Policy">Pet Policy</option>
-                        <option value="Festivals & Celebrations">Festivals & Celebrations</option>
-                        <option value="Health & Wellness">Health & Wellness</option>
-                        <option value="Environment">Environment</option>
-                        <option value="Meeting & AGM">Meeting & AGM</option>
-                        <option value="Committee Updates">Committee Updates</option>
-                        <option value="Feedback & Suggestions">Feedback & Suggestions</option>
-                        <option value="New Community Members">New Community Members</option>
-                        <option value="Legal Matters">Legal Matters</option>
-                        <option value="Insurance">Insurance</option>
-                        <option value="Weather Alert">Weather Alert</option>
-                        <option value="Traffic & Transportation">Traffic & Transportation</option>
-                      </select>
-                      {fieldState.error && (
-                        <div className="invalid-feedback d-block">
-                          {fieldState.error.message}
-                        </div>
-                      )}
-                      <small className="text-muted">Hold Ctrl/Cmd to select multiple tags</small>
-                    </div>
-                  )}
-                />
-              </div>
+            <Col lg={4}>
+              <Form.Label>Author *</Form.Label>
+              <Controller name="author_name" control={control} render={({ field }) => <Form.Control {...field} placeholder="Author name" isInvalid={Boolean(errors.author_name)} />} />
+              <Form.Control.Feedback type="invalid" className={errors.author_name ? "d-block" : ""}>{errors.author_name?.message}</Form.Control.Feedback>
             </Col>
             <Col lg={12}>
-              <div className="mb-3">
-                <TextAreaFormInput
-                  control={control}
-                  name="body"
-                  label="Notice Content *"
-                  className="Customer-address"
-                  id="schedule-textarea"
-                  rows={5}
-                  placeholder="Enter detailed notice content..."
-                />
-              </div>
+              <Form.Label>Body *</Form.Label>
+              <Controller name="body" control={control} render={({ field }) => <Form.Control as="textarea" rows={8} {...field} placeholder="Write the notice content..." isInvalid={Boolean(errors.body)} />} />
+              <Form.Control.Feedback type="invalid" className={errors.body ? "d-block" : ""}>{errors.body?.message}</Form.Control.Feedback>
+            </Col>
+            <Col lg={12}>
+              <Form.Label>Tags</Form.Label>
+              <Controller name="tags" control={control} render={({ field }) => <Form.Control {...field} placeholder="Comma-separated tags, e.g. Security, Community Update" />} />
+              <Form.Text className="text-muted">Use comma-separated tags for filtering and discovery.</Form.Text>
             </Col>
           </Row>
         </CardBody>
       </Card>
-      
-      <Card>
+
+      <Card className="mb-4">
         <CardHeader>
-          <CardTitle as={"h4"}>Additional Settings</CardTitle>
+          <CardTitle as="h4">Publication Settings</CardTitle>
         </CardHeader>
         <CardBody>
-          <Row>
-            <Col lg={6}>
-              <div className="mb-3">
-                <TextFormInput
-                  control={control}
-                  name="author_name"
-                  placeholder="Author name"
-                  label="Author Name *"
-                />
-              </div>
+          <Row className="g-3">
+            <Col lg={4}>
+              <Form.Label>Category *</Form.Label>
+              <Controller
+                name="category"
+                control={control}
+                render={({ field }) => (
+                  <Form.Select {...field} isInvalid={Boolean(errors.category)}>
+                    <option value="general">General Announcements</option>
+                    <option value="maintenance">Maintenance & Repairs</option>
+                    <option value="events">Community Events</option>
+                    <option value="security">Security & Safety</option>
+                    <option value="amenities">Amenities Management</option>
+                    <option value="administrative">Administrative</option>
+                    <option value="emergency">Emergency Alerts</option>
+                    <option value="financial">Financial & Billing</option>
+                    <option value="rules">Rules & Regulations</option>
+                    <option value="visitors">Visitor Management</option>
+                    <option value="utilities">Utilities & Services</option>
+                  </Form.Select>
+                )}
+              />
+            </Col>
+            <Col lg={4}>
+              <Form.Label>Priority *</Form.Label>
+              <Controller
+                name="priority"
+                control={control}
+                render={({ field }) => (
+                  <Form.Select {...field} isInvalid={Boolean(errors.priority)}>
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="urgent">Urgent</option>
+                  </Form.Select>
+                )}
+              />
+            </Col>
+            <Col lg={4}>
+              <Form.Label>Status *</Form.Label>
+              <Controller
+                name="status"
+                control={control}
+                render={({ field }) => (
+                  <Form.Select {...field} isInvalid={Boolean(errors.status)}>
+                    <option value="draft">Draft</option>
+                    <option value="published">Published</option>
+                    <option value="archived">Archived</option>
+                  </Form.Select>
+                )}
+              />
             </Col>
             <Col lg={6}>
-              <div className="mb-3">
-                <SelectFormInput
-                  control={control}
-                  name="priority"
-                  label="Priority Level *"
-                  placeholder="Select priority level"
-                  options={[
-                    { value: 'low', label: 'Low Priority' },
-                    { value: 'medium', label: 'Medium Priority' },
-                    { value: 'high', label: 'High Priority' },
-                    { value: 'urgent', label: 'Urgent' },
-                  ]}
-                />
-              </div>
+              <Form.Label>Image URL</Form.Label>
+              <Controller name="image_url" control={control} render={({ field }) => <Form.Control {...field} placeholder="https://example.com/image.jpg" isInvalid={Boolean(errors.image_url)} />} />
+              <Form.Control.Feedback type="invalid" className={errors.image_url ? "d-block" : ""}>{errors.image_url?.message}</Form.Control.Feedback>
             </Col>
             <Col lg={6}>
-              <div className="mb-3">
-                <SelectFormInput
-                  control={control}
-                  name="category"
-                  label="Category *"
-                  placeholder="Select category"
-                  options={[
-                    { value: '', label: 'Select Category' },
-                    { value: 'general', label: 'General Announcements' },
-                    { value: 'maintenance', label: 'Maintenance & Repairs' },
-                    { value: 'events', label: 'Community Events' },
-                    { value: 'security', label: 'Security & Safety' },
-                    { value: 'amenities', label: 'Amenities Management' },
-                    { value: 'administrative', label: 'Administrative' },
-                    { value: 'emergency', label: 'Emergency Alerts' },
-                    { value: 'financial', label: 'Financial & Billing' },
-                    { value: 'rules', label: 'Rules & Regulations' },
-                    { value: 'social', label: 'Social Activities' },
-                    { value: 'health', label: 'Health & Wellness' },
-                    { value: 'environment', label: 'Environmental' },
-                    { value: 'technology', label: 'Technology Updates' },
-                    { value: 'parking', label: 'Parking Management' },
-                    { value: 'visitors', label: 'Visitor Management' },
-                    { value: 'utilities', label: 'Utilities & Services' },
-                    { value: 'legal', label: 'Legal Matters' },
-                    { value: 'newsletter', label: 'Newsletter' },
-                    { value: 'feedback', label: 'Feedback & Suggestions' },
-                    { value: 'celebration', label: 'Celebrations & Festivals' },
-                  ]}
-                />
-              </div>
-            </Col>
-            <Col lg={6}>
-              <div className="mb-3">
-                <TextFormInput
-                  control={control}
-                  name="image_url"
-                  placeholder="https://example.com/image.jpg"
-                  label="Image URL (Optional)"
-                />
-                <small className="text-muted">
-                  Enter image URL if you have an external image link
-                </small>
-              </div>
+              <Form.Label>Video URL</Form.Label>
+              <Controller name="video_url" control={control} render={({ field }) => <Form.Control {...field} placeholder="https://example.com/video.mp4" isInvalid={Boolean(errors.video_url)} />} />
+              <Form.Control.Feedback type="invalid" className={errors.video_url ? "d-block" : ""}>{errors.video_url?.message}</Form.Control.Feedback>
             </Col>
             <Col lg={12}>
-              <div className="mb-3">
-                <TextFormInput
-                  control={control}
-                  name="video_url"
-                  placeholder="https://example.com/video.mp4"
-                  label="Video URL (Optional)"
-                />
-              </div>
+              <Controller
+                name="is_featured"
+                control={control}
+                render={({ field }) => (
+                  <Form.Check
+                    type="switch"
+                    id="notice-featured"
+                    label="Mark as featured notice"
+                    checked={field.value}
+                    onChange={(event) => field.onChange(event.target.checked)}
+                  />
+                )}
+              />
             </Col>
           </Row>
         </CardBody>
       </Card>
-      
-      <div className="mb-3 rounded">
-        <Row className="justify-content-end g-2">
-          <Col lg={2}>
-            <Button 
-              variant="outline-primary" 
-              type="submit" 
-              className="w-100"
-              disabled={isSubmitting || (!isEditMode && !scopedCommunityId)}
-            >
-              {isSubmitting ? (
-                <>
-                  <Spinner size="sm" className="me-1" />
-                  {isEditMode ? "Updating..." : "Creating..."}
-                </>
-              ) : (
-                isEditMode ? "Update Notice" : "Create Notice"
-              )}
-            </Button>
-          </Col>
-          <Col lg={2}>
-            <Button 
-              variant="danger" 
-              className="w-100"
-              onClick={() => router.push('/post')}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
-          </Col>
-        </Row>
+
+      <div className="d-flex justify-content-end gap-2">
+        <Button variant="outline-secondary" onClick={() => router.push("/post")} disabled={isSubmitting}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={isSubmitting || (!isEditMode && !scopedCommunityId)}>
+          {isSubmitting ? (
+            <>
+              <Spinner size="sm" className="me-2" />
+              {isEditMode ? "Updating..." : "Creating..."}
+            </>
+          ) : isEditMode ? (
+            "Update Notice"
+          ) : (
+            "Create Notice"
+          )}
+        </Button>
       </div>
     </form>
   );

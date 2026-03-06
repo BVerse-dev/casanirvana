@@ -1,12 +1,12 @@
-import FileUpload from "@/components/FileUpload";
-import PageTitle from "@/components/PageTitle";
+import Link from "next/link";
 import { Alert, Col, Row } from "react-bootstrap";
 import { Metadata } from "next";
-import Link from "next/link";
+
+import PageTitle from "@/components/PageTitle";
 import CreatePost from "../create/components/CreatePost";
 import CreatePostCard from "../create/components/CreatePostCard";
 
-export const metadata: Metadata = { title: "Notice Edit" };
+export const metadata: Metadata = { title: "Edit Notice" };
 
 interface PostEditPageProps {
   searchParams?: {
@@ -19,23 +19,20 @@ const PostEditPage = ({ searchParams }: PostEditPageProps) => {
 
   return (
     <>
-      <PageTitle title="Notice Edit" subName="Notice" />
+      <PageTitle title="Edit Notice" subName="Communication" />
       {!noticeId ? (
         <>
-          <Alert variant="warning">
-            Missing notice ID. Select a notice from the list and retry edit.
-          </Alert>
-          <Link href="/post" className="btn btn-primary">
+          <Alert variant="warning">Missing notice ID. Select a notice from the list and retry edit.</Alert>
+          <Link href="/post" className="btn btn-outline-secondary btn-sm">
             Back to Notices
           </Link>
         </>
       ) : (
-        <Row>
-          <Col xl={3} lg={4}>
+        <Row className="g-4">
+          <Col xl={4} lg={5}>
             <CreatePostCard mode="edit" />
           </Col>
-          <Col xl={9} lg={8}>
-            <FileUpload title="Update Notice Image" />
+          <Col xl={8} lg={7}>
             <CreatePost mode="edit" noticeId={noticeId} />
           </Col>
         </Row>

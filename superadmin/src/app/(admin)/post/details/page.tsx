@@ -1,736 +1,337 @@
 "use client";
 
-import blogImg from "@/assets/images/blog/blog.jpg";
-import avatarImg from "@/assets/images/users/avatar-6.jpg";
-import PageTitle from "@/components/PageTitle";
-import IconifyIcon from "@/components/wrappers/IconifyIcon";
-import Image from "next/image";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import {
-  Button,
-  Card,
-  CardBody,
-  CardTitle,
-  Col,
-  Dropdown,
-  DropdownItem,
-  DropdownMenu,
-  DropdownToggle,
-  Row,
-  Spinner,
-  Alert,
-} from "react-bootstrap";
-import Blogs from "./components/Blogs";
-import Comments from "./components/Comments";
-import PhotoCard from "./components/PhotoCard";
-import { useGetNotice, useUpdateNotice, useDeleteNotice } from "@/hooks/useNotices";
-import { useCreateComment, useListComments } from "@/hooks/useComments";
-import { useSearchParams } from "next/navigation";
-import { Suspense, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Alert, Badge, Button, Card, CardBody, CardHeader, CardTitle, Col, Form, Row, Spinner } from "react-bootstrap";
 import { useSession } from "next-auth/react";
 
-// Notice Details Content Component
-const NoticeDetailsContent = () => {
-  const searchParams = useSearchParams();
+import PageTitle from "@/components/PageTitle";
+import {
+  formatNoticeLabel,
+  getNoticeStatus,
+  useDeleteNotice,
+  useGetNotice,
+  useIncrementNoticeLikes,
+  useIncrementNoticeViews,
+} from "@/hooks/useNotices";
+import { useCreateComment, useListComments } from "@/hooks/useComments";
+
+const getStatusVariant = (status?: string | null) => {
+  switch (getNoticeStatus({ status })) {
+    case "draft":
+      return "secondary";
+    case "archived":
+      return "dark";
+    case "published":
+    default:
+      return "success";
+  }
+};
+
+const getPriorityVariant = (priority?: string | null) => {
+  switch (priority) {
+    case "urgent":
+      return "danger";
+    case "high":
+      return "warning";
+    case "low":
+      return "success";
+    case "medium":
+    default:
+      return "info";
+  }
+};
+
+const NoticeDetailsPage = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: session } = useSession();
-  const noticeId = searchParams.get('id');
-  const staticId = searchParams.get('staticId');
-  const [commentText, setCommentText] = useState('');
-  
-  // Extract all static notice data from URL parameters
-  const staticData = staticId ? {
-    staticId,
-    title: searchParams.get('title') || '',
-    description: searchParams.get('description') || '',
-    name: searchParams.get('name') || '',
-    date: searchParams.get('date') || '',
-    tags: searchParams.get('tags') || '',
-    link: searchParams.get('link') || '',
-    image: searchParams.get('image') || '',
-    type: searchParams.get('type') || ''
-  } : null;
-  
-  const { data: notice, isLoading, error } = useGetNotice(noticeId || '');
-  const updateNoticeMutation = useUpdateNotice();
-  const deleteNoticeMutation = useDeleteNotice();
-  const createCommentMutation = useCreateComment();
-  const { data: noticeComments } = useListComments(noticeId || "");
-  const currentAuthorName = session?.user?.name || session?.user?.email || "Administrator";
-  const currentAuthorAvatar = session?.user?.image || "/images/users/avatar-6.jpg";
+  const noticeId = searchParams.get("id") || "";
+  const { data: notice, isLoading, error } = useGetNotice(noticeId);
+  const { data: comments = [] } = useListComments(noticeId);
+  const createComment = useCreateComment();
+  const deleteNotice = useDeleteNotice();
+  const incrementViews = useIncrementNoticeViews();
+  const incrementLikes = useIncrementNoticeLikes();
+  const [commentText, setCommentText] = useState("");
+  const [feedback, setFeedback] = useState<{ variant: "success" | "danger"; message: string } | null>(null);
+  const hasTrackedView = useRef(false);
+
+  useEffect(() => {
+    if (!notice?.id || hasTrackedView.current) return;
+    hasTrackedView.current = true;
+    void incrementViews.mutateAsync({ id: notice.id, currentCount: notice.views_count });
+  }, [incrementViews, notice]);
+
   const totalComments = useMemo(
-    () =>
-      (noticeComments || []).reduce(
-        (count, comment) => count + 1 + (comment.replies?.length || 0),
-        0
-      ),
-    [noticeComments]
+    () => comments.reduce((count, comment) => count + 1 + (comment.replies?.length || 0), 0),
+    [comments],
   );
 
-  const handleCommentSubmit = async () => {
-    if (!commentText.trim()) return;
-    if (!noticeId) return;
-    
-    try {
-      await createCommentMutation.mutateAsync({
-        notice_id: noticeId,
-        author_name: currentAuthorName,
-        author_avatar: currentAuthorAvatar,
-        content: commentText.trim()
-      });
-      setCommentText('');
-    } catch (error) {
-      console.error('Failed to post comment:', error);
-    }
-  };
-
-  const handleLike = () => {
-    if (notice) {
-      updateNoticeMutation.mutate({
-        id: notice.id,
-        likes_count: (notice.likes_count || 0) + 1
-      });
-    }
-  };
-
-  const handleShare = () => {
-    if (navigator.share) {
-      navigator.share({
-        title: notice?.title || 'Notice',
-        text: notice?.body || 'Community Notice',
-        url: window.location.href,
-      });
-    } else {
-      // Fallback: copy to clipboard
-      navigator.clipboard.writeText(window.location.href);
-      console.log('Link copied to clipboard');
-    }
-  };
-
-  const handleStar = () => {
-    // In production, save to user favorites
-    console.log('Starred notice:', notice?.id);
-  };
-
-  const handleEditNotice = () => {
-    // Navigate to edit page or open edit modal
-    router.push(`/post/edit?id=${notice?.id}`);
-  };
-
-  const handleDeleteNotice = async () => {
+  const handleDelete = async () => {
     if (!notice?.id) return;
-    
-    if (window.confirm('Are you sure you want to delete this notice? This action cannot be undone.')) {
-      try {
-        await deleteNoticeMutation.mutateAsync(notice.id);
-        router.push('/post'); // Navigate back to notices list
-      } catch (error) {
-        console.error('Failed to delete notice:', error);
-        alert('Failed to delete notice. Please try again.');
-      }
+    if (!window.confirm(`Delete \"${notice.title}\"? This cannot be undone.`)) return;
+
+    setFeedback(null);
+    try {
+      await deleteNotice.mutateAsync(notice.id);
+      router.push("/post");
+    } catch (deleteError) {
+      console.error("Failed to delete notice:", deleteError);
+      setFeedback({ variant: "danger", message: "Failed to delete notice." });
     }
   };
 
-  // If this is a static notice (video post, article)
-  if (staticData) {
-    return <StaticNoticeContent staticData={staticData} />;
-  }
+  const handleCommentSubmit = async () => {
+    if (!notice?.id || !commentText.trim()) return;
+    setFeedback(null);
+
+    try {
+      await createComment.mutateAsync({
+        notice_id: notice.id,
+        author_name: session?.user?.name || session?.user?.email || "Administrator",
+        author_avatar: session?.user?.image || undefined,
+        content: commentText.trim(),
+      });
+      setCommentText("");
+      setFeedback({ variant: "success", message: "Comment posted successfully." });
+    } catch (commentError) {
+      console.error("Failed to create comment:", commentError);
+      setFeedback({ variant: "danger", message: "Failed to post comment." });
+    }
+  };
+
+  const handleLike = async () => {
+    if (!notice?.id) return;
+    setFeedback(null);
+    try {
+      await incrementLikes.mutateAsync({ id: notice.id, currentCount: notice.likes_count });
+      setFeedback({ variant: "success", message: "Notice like count updated." });
+    } catch (likeError) {
+      console.error("Failed to update likes:", likeError);
+      setFeedback({ variant: "danger", message: "Failed to update notice likes." });
+    }
+  };
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setFeedback({ variant: "success", message: "Notice link copied to clipboard." });
+    } catch (copyError) {
+      console.error("Failed to copy link:", copyError);
+      setFeedback({ variant: "danger", message: "Failed to copy notice link." });
+    }
+  };
 
   if (isLoading) {
     return (
-      <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '400px' }}>
-        <Spinner animation="border" role="status">
-          <span className="visually-hidden">Loading...</span>
-        </Spinner>
-      </div>
+      <>
+        <PageTitle title="Notice Details" subName="Communication" />
+        <div className="d-flex justify-content-center align-items-center" style={{ minHeight: 320 }}>
+          <Spinner animation="border" />
+        </div>
+      </>
     );
   }
 
   if (error || !notice) {
     return (
       <>
-        <PageTitle title="Notice Details" subName="Notice" />
-        <Alert variant="warning">
-          This notice could not be loaded. It may have been deleted or is outside your tenant scope.
-        </Alert>
-        <Button variant="primary" onClick={() => router.push('/post')}>
+        <PageTitle title="Notice Details" subName="Communication" />
+        <Alert variant="danger">{error ? "Failed to load this notice." : "Notice not found."}</Alert>
+        <Link href="/post" className="btn btn-outline-secondary btn-sm">
           Back to Notices
-        </Button>
+        </Link>
       </>
     );
   }
 
-  // Format tags for display
-  const displayTags = notice.tags && Array.isArray(notice.tags) ? notice.tags : ['General'];
-
   return (
     <>
-      <PageTitle title="Notice Details" subName="Notice" />
-      
-      {/* Header Actions */}
+      <PageTitle title="Notice Details" subName="Communication" />
+
       <Row className="mb-3">
         <Col xl={12}>
-          <div className="d-flex justify-content-between align-items-center">
-            <Link 
-              href="/post" 
-              className="btn text-white fw-semibold"
-              style={{
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                border: 'none',
-                borderRadius: '8px',
-                padding: '10px 20px',
-                boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
-                transition: 'all 0.3s ease'
-              }}
-            >
-              <IconifyIcon icon="ri:arrow-left-line" className="me-1" />
+          <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <Link href="/post" className="btn btn-outline-secondary btn-sm">
               Back to Notices
             </Link>
+            <div className="d-flex gap-2 flex-wrap">
+              <Link href={`/post/edit?id=${notice.id}`} className="btn btn-outline-primary btn-sm">
+                Edit Notice
+              </Link>
+              <Button variant="outline-secondary" size="sm" onClick={() => void handleCopyLink()}>
+                Copy Link
+              </Button>
+              <Button variant="outline-danger" size="sm" onClick={() => void handleDelete()} disabled={deleteNotice.isPending}>
+                Delete
+              </Button>
+            </div>
           </div>
         </Col>
       </Row>
-      
-      <Row>
-        <Col lg={8}>
-          <Card>
+
+      <Row className="g-4">
+        <Col xl={8}>
+          {feedback ? (
+            <Alert variant={feedback.variant} dismissible onClose={() => setFeedback(null)}>
+              {feedback.message}
+            </Alert>
+          ) : null}
+
+          <Card className="mb-4">
             <CardBody>
-              <div className="position-relative">
+              <div className="d-flex flex-wrap gap-2 mb-3">
+                <Badge bg={getStatusVariant(notice.status)}>{formatNoticeLabel(getNoticeStatus(notice))}</Badge>
+                <Badge bg={getPriorityVariant(notice.priority)}>{formatNoticeLabel(notice.priority || "medium")}</Badge>
+                {notice.is_featured ? <Badge bg="primary">Featured</Badge> : null}
+                {notice.category ? <Badge bg="light" text="dark" className="border">{formatNoticeLabel(notice.category)}</Badge> : null}
+              </div>
+              <h2 className="mb-3">{notice.title}</h2>
+              <div className="text-muted d-flex flex-wrap gap-4 mb-4 fs-13">
+                <span>{notice.author_name || "Administrator"}</span>
+                <span>{new Date(notice.posted_at || notice.created_at || new Date().toISOString()).toLocaleString()}</span>
+                <span>{notice.communities?.name || "All Communities"}</span>
+              </div>
+
+              <div className="mb-4 rounded overflow-hidden bg-light" style={{ minHeight: 260 }}>
                 {notice.image_url ? (
-                  <div style={{ position: 'relative', width: '100%', height: '400px' }}>
-                    <Image 
-                      src={notice.image_url}
-                      alt={notice.title}
-                      className="rounded"
-                      fill
-                      style={{ objectFit: 'cover' }}
-                      onError={(e) => {
-                        console.error('Image failed to load:', notice.image_url);
-                        // Use fallback image on error
-                        e.currentTarget.src = blogImg.src;
-                      }}
-                    />
-                  </div>
+                  <img src={notice.image_url} alt={notice.title} className="w-100" style={{ objectFit: "cover", maxHeight: 420 }} />
                 ) : notice.video_url ? (
-                  <video 
-                    src={notice.video_url}
-                    className="img-fluid rounded"
-                    controls
-                    style={{ width: '100%', height: '400px', objectFit: 'cover' }}
-                  />
+                  <video src={notice.video_url} className="w-100" controls style={{ maxHeight: 420 }} />
                 ) : (
-                  <Image src={blogImg} alt="blog" className="img-fluid rounded" />
+                  <div className="d-flex align-items-center justify-content-center text-muted" style={{ minHeight: 260 }}>
+                    No media attached
+                  </div>
                 )}
               </div>
-              <div className="d-flex align-items-center gap-1 my-3">
-                <div className="position-relative">
-                  <Image
-                    src={avatarImg}
-                    alt="avatar"
-                    className="avatar rounded-circle flex-shrink-0"
-                  />
+
+              <div className="mb-4" style={{ whiteSpace: "pre-wrap", lineHeight: 1.7 }}>
+                {notice.body}
+              </div>
+
+              {notice.tags?.length ? (
+                <div className="d-flex flex-wrap gap-2">
+                  {notice.tags.map((tag) => (
+                    <Badge bg="light" text="dark" className="border" key={tag}>
+                      {tag}
+                    </Badge>
+                  ))}
                 </div>
-                <div className="d-block ms-2 flex-grow-1">
-                  <span>
-                    <Link href="" className="text-dark fw-medium">
-                      {notice.author_name || 'Administrator'}
-                    </Link>
-                  </span>
-                  <p className="text-muted mb-0">
-                    <IconifyIcon icon="ti:calendar-due" /> 
-                    {new Date(notice.posted_at || notice.created_at || new Date()).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric'
-                    })}
-                  </p>
-                </div>
-                <div className="ms-auto">
-                  <div>
-                    <ul className="list-inline float-end d-flex gap-1 mb-0 align-items-center">
-                      <li className="list-inline-item fs-20 dropdown">
-                        <Button
-                          variant="light"
-                          className="avatar-sm d-flex align-items-center justify-content-center text-dark fs-20 icons-center"
-                          onClick={handleShare}
-                        >
-                          <span>
-                            <IconifyIcon icon="solar:share-bold-duotone" />
-                          </span>
-                        </Button>
-                      </li>
-                      <li className="list-inline-item fs-20 dropdown">
-                        <Button
-                          variant="light"
-                          className="avatar-sm d-flex align-items-center justify-content-center text-danger fs-20 icons-center"
-                          onClick={handleLike}
-                        >
-                          <span>
-                            <IconifyIcon icon="solar:heart-angle-bold-duotone" />
-                          </span>
-                        </Button>
-                      </li>
-                      <li className="list-inline-item fs-20 dropdown">
-                        <Button
-                          variant="light"
-                          className="avatar-sm d-flex align-items-center justify-content-center text-warning fs-20 icons-center"
-                          onClick={handleStar}
-                        >
-                          <span>
-                            <IconifyIcon icon="solar:star-bold-duotone" />
-                          </span>
-                        </Button>
-                      </li>
-                      <Dropdown
-                        as={"li"}
-                        className="list-inline-item fs-20 d-none d-md-flex"
-                      >
-                        <DropdownToggle
-                          as={"a"}
-                          className="arrow-none text-dark icons-center"
-                          data-bs-toggle="dropdown"
-                          aria-expanded="false"
-                        >
-                          <span>
-                            <IconifyIcon icon="ri:more-2-fill" />
-                          </span>
-                        </DropdownToggle>
-                        <DropdownMenu className="dropdown-menu-end">
-                          <DropdownItem onClick={handleEditNotice}>
-                            <IconifyIcon
-                              icon="ri:edit-line"
-                              className="me-2"
-                            />
-                            Edit Notice
-                          </DropdownItem>
-                          <DropdownItem className="text-danger" onClick={handleDeleteNotice}>
-                            <IconifyIcon
-                              icon="ri:delete-bin-line"
-                              className="me-2"
-                            />
-                            Delete Notice
-                          </DropdownItem>
-                        </DropdownMenu>
-                      </Dropdown>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-              <div className="d-flex gap-2 flex-wrap my-2">
-                {displayTags.map((tag, idx) => (
-                  <span key={idx} className="badge bg-light text-dark px-2 py-1 fs-12">
-                    {tag}
-                  </span>
-                ))}
-              </div>
-              <span className="text-dark d-inline-block mb-2 mt-1">
-                <Link href="" className="text-dark fs-4 fw-medium">
-                  {notice.title}
-                </Link>
-              </span>
-              <div className="text-muted" dangerouslySetInnerHTML={{ __html: notice.body }} />
-              
-              {/* Stats */}
-              <div className="d-flex gap-3 my-3">
-                <span className="text-muted fs-14">
-                  <IconifyIcon icon="solar:eye-bold" className="me-1" />
-                  {notice.views_count || 0} views
-                </span>
-                <span className="text-muted fs-14">
-                  <IconifyIcon icon="solar:heart-bold" className="me-1" />
-                  {notice.likes_count || 0} likes
-                </span>
-              </div>
-              
-              {/* Notice Comments Section - moved to main content area to match StaticNoticeContent layout */}
-              <div className="border-start border-primary border-2 p-3 bg-primary bg-opacity-10 rounded mt-3">
-                <h5>Notice Comments</h5>
-                <p className="mb-0">
-                  Share your thoughts and feedback about this notice with the community.
-                </p>
-              </div>
-              <div className="d-flex bg-light border border-dashed gap-3 rounded my-4 p-3">
-                <span className="d-flex align-items-center fs-16 text-dark">
-                  <IconifyIcon
-                    icon="solar:like-bold-duotone"
-                    className="me-1"
-                  />{" "}
-                  {notice.likes_count || 0}
-                </span>
-                <span className="d-flex align-items-center fs-16 text-dark">
-                  <IconifyIcon icon="solar:eye-bold" className="me-1" /> {notice.views_count || 0}
-                </span>
-                <span className="d-flex align-items-center fs-16 text-dark">
-                  <IconifyIcon
-                    icon="solar:chat-square-call-bold"
-                    className="me-1"
-                  />{" "}
-                  {totalComments}
-                </span>
-              </div>
-              <CardTitle as={"h4"}>Notice Comments</CardTitle>
-              <textarea
-                className="form-control my-3"
-                rows={5}
-                placeholder="Write Comment ......"
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-              />
-              <div className="d-flex justify-content-end">
-                <Button 
-                  variant="primary" 
-                  onClick={handleCommentSubmit}
-                  disabled={!commentText.trim() || createCommentMutation.isPending}
-                >
-                  {createCommentMutation.isPending ? 'Posting...' : 'Post Comment'}
+              ) : null}
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle as="h5" className="mb-0">
+                Comments
+              </CardTitle>
+            </CardHeader>
+            <CardBody>
+              <Form.Group className="mb-3">
+                <Form.Label>Add Comment</Form.Label>
+                <Form.Control as="textarea" rows={3} value={commentText} onChange={(event) => setCommentText(event.target.value)} placeholder="Write an internal comment or reply..." />
+              </Form.Group>
+              <div className="d-flex justify-content-end mb-4">
+                <Button onClick={() => void handleCommentSubmit()} disabled={createComment.isPending || !commentText.trim()}>
+                  {createComment.isPending ? "Posting..." : "Post Comment"}
                 </Button>
               </div>
-              <CardTitle as={"h4"} className="d-flex align-items-center mt-3">
-                <IconifyIcon
-                  icon="solar:chat-square-like-outline"
-                  className="me-1"
-                />{" "}
-                Comment
-              </CardTitle>
-              <Comments noticeId={notice.id} />
-            </CardBody>
-          </Card>
-        </Col>
-        <Col lg={4} md={6}>
-          <Blogs />
-          <PhotoCard />
-        </Col>
-      </Row>
-    </>
-  );
-};
 
-// Static notice content component with dynamic data
-const StaticNoticeContent = ({ staticData }: { staticData: any }) => {
-  const displayTitle = staticData?.title || "Important Community Update";
-  const displayDescription = staticData?.description || "This is a community notice with important information for all community members.";
-  const displayAuthor = staticData?.name || "Administrator";
-  const displayDate = staticData?.date ? new Date(staticData.date) : new Date();
-  const displayTags = staticData?.tags ? staticData.tags.split(',') : ['General'];
-  const mediaUrl = staticData?.link || staticData?.image;
- 
-
-  const handleLike = () => {
-    // Static placeholder interactions are intentionally non-persistent.
-    console.log('Liked static notice');
-  };
-
-  const handleShare = () => {
-    if (navigator.share) {
-      navigator.share({
-        title: displayTitle,
-        text: displayDescription,
-        url: window.location.href,
-      });
-    } else {
-      // Fallback: copy to clipboard
-      navigator.clipboard.writeText(window.location.href);
-      // You could show a toast notification here
-      console.log('Link copied to clipboard');
-    }
-  };
-
-  const handleStar = () => {
-    // Static placeholder interactions are intentionally non-persistent.
-    console.log('Starred static notice');
-  };
-  const isVideo = staticData?.type === 'video' && staticData?.link;
-  
-  // Check if image URL is valid (starts with http or is a valid path)
-  const isValidImage = staticData?.image && (
-    staticData.image.startsWith('http') || 
-    staticData.image.startsWith('/') || 
-    staticData.image.startsWith('_next')
-  );
-  const isImage = isValidImage && !isVideo;
-  
-  return (
-    <>
-      <PageTitle title="Notice Details" subName="Notice" />
-      
-      {/* Header Actions */}
-      <Row className="mb-3">
-        <Col xl={12}>
-          <div className="d-flex justify-content-between align-items-center">
-            <Link 
-              href="/post" 
-              className="btn text-white fw-semibold"
-              style={{
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                border: 'none',
-                borderRadius: '8px',
-                padding: '10px 20px',
-                boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
-                transition: 'all 0.3s ease'
-              }}
-            >
-              <IconifyIcon icon="ri:arrow-left-line" className="me-1" />
-              Back to Notices
-            </Link>
-          </div>
-        </Col>
-      </Row>
-      
-      <Row>
-        <Col lg={8}>
-          <Card>
-            <CardBody>
-              <div className="position-relative">
-                {isVideo ? (
-                  <iframe 
-                    src={mediaUrl}
-                    className="img-fluid rounded"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    style={{ width: '100%', height: '400px' }}
-                  />
-                ) : isImage ? (
-                  <div style={{ position: 'relative', width: '100%', height: '400px' }}>
-                    <Image 
-                      src={staticData.image}
-                      alt={displayTitle}
-                      className="rounded"
-                      fill
-                      style={{ objectFit: 'cover' }}
-                      onError={(e) => {
-                        console.error('Image failed to load:', staticData.image);
-                        // Use fallback image on error
-                        e.currentTarget.src = blogImg.src;
-                      }}
-                    />
-                  </div>
+              <div className="d-grid gap-3">
+                {comments.length ? (
+                  comments.map((comment) => (
+                    <div key={comment.id} className="border rounded p-3">
+                      <div className="d-flex justify-content-between gap-3 mb-2">
+                        <div>
+                          <div className="fw-semibold">{comment.author_name}</div>
+                          <div className="text-muted fs-13">{new Date(comment.created_at).toLocaleString()}</div>
+                        </div>
+                        <Badge bg="light" text="dark" className="border">
+                          {Number(comment.likes_count || 0)} likes
+                        </Badge>
+                      </div>
+                      <div style={{ whiteSpace: "pre-wrap" }}>{comment.content}</div>
+                      {comment.replies?.length ? (
+                        <div className="mt-3 d-grid gap-2">
+                          {comment.replies.map((reply) => (
+                            <div key={reply.id} className="bg-light rounded p-2 ms-3">
+                              <div className="fw-semibold fs-13">{reply.author_name}</div>
+                              <div className="text-muted fs-12 mb-1">{new Date(reply.created_at).toLocaleString()}</div>
+                              <div className="fs-13" style={{ whiteSpace: "pre-wrap" }}>{reply.content}</div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  ))
                 ) : (
-                  <Image src={blogImg} alt="blog" className="img-fluid rounded" />
+                  <p className="text-muted mb-0">No comments have been posted yet.</p>
                 )}
               </div>
-              <div className="d-flex align-items-center gap-1 my-3">
-                <div className="position-relative">
-                  <Image
-                    src={avatarImg}
-                    alt="avatar"
-                    className="avatar rounded-circle flex-shrink-0"
-                  />
-                </div>
-                <div className="d-block ms-2 flex-grow-1">
-                  <span>
-                    <span className="text-dark fw-medium">
-                      {displayAuthor}
-                    </span>
-                  </span>
-                  <p className="text-muted mb-0">
-                    <IconifyIcon icon="ti:calendar-due" /> 
-                    {displayDate.toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric'
-                    })}
-                  </p>
-                </div>
-                <div className="ms-auto">
-                  <div>
-                    <ul className="list-inline float-end d-flex gap-1 mb-0 align-items-center">
-                      <li className="list-inline-item fs-20 dropdown">
-                        <Button
-                          variant="light"
-                          className="avatar-sm d-flex align-items-center justify-content-center text-dark fs-20 icons-center"
-                          onClick={handleShare}
-                        >
-                          <span>
-                            {" "}
-                            <IconifyIcon icon="solar:share-bold-duotone" />{" "}
-                          </span>
-                        </Button>
-                      </li>
-                      <li className="list-inline-item fs-20 dropdown">
-                        <Button
-                          variant="light"
-                          className=" avatar-sm d-flex align-items-center justify-content-center text-danger fs-20 icons-center"
-                          onClick={handleLike}
-                        >
-                          <span>
-                            {" "}
-                            <IconifyIcon icon="solar:heart-angle-bold-duotone" />{" "}
-                          </span>
-                        </Button>
-                      </li>
-                      <li className="list-inline-item fs-20 dropdown">
-                        <button
-                          className="btn btn-light avatar-sm d-flex align-items-center justify-content-center text-warning fs-20 icons-center"
-                          onClick={handleStar}
-                        >
-                          <span>
-                            {" "}
-                            <IconifyIcon icon="solar:star-bold-duotone" />{" "}
-                          </span>
-                        </button>
-                      </li>
-                      <Dropdown
-                        as={"li"}
-                        className="list-inline-item fs-20 d-none d-md-flex"
-                      >
-                        <DropdownToggle
-                          as={"a"}
-                          className="arrow-none text-dark icons-center"
-                          data-bs-toggle="dropdown"
-                          aria-expanded="false"
-                        >
-                          <span>
-                            {" "}
-                            <IconifyIcon icon="ri:more-2-fill" />{" "}
-                          </span>
-                        </DropdownToggle>
-                        <DropdownMenu className="dropdown-menu-end">
-                          <DropdownItem>
-                            <IconifyIcon
-                              icon="ri:edit-line"
-                              className="me-2"
-                            />
-                            Edit Notice
-                          </DropdownItem>
-                          <DropdownItem>
-                            <IconifyIcon
-                              icon="ri:user-6-line"
-                              className="me-2"
-                            />
-                            View Author
-                          </DropdownItem>
-                          <DropdownItem>
-                            <IconifyIcon
-                              icon="ri:bar-chart-line"
-                              className="me-2"
-                            />
-                            View Statistics
-                          </DropdownItem>
-                          <DropdownItem>
-                            <IconifyIcon
-                              icon="ri:archive-line"
-                              className="me-2"
-                            />
-                            Archive Notice
-                          </DropdownItem>
-                          <DropdownItem className="text-danger">
-                            <IconifyIcon
-                              icon="ri:delete-bin-line"
-                              className="me-2"
-                            />
-                            Delete Notice
-                          </DropdownItem>
-                        </DropdownMenu>
-                      </Dropdown>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-              <div className="d-flex gap-2 flex-wrap my-2">
-                {displayTags.map((tag: string, idx: number) => (
-                  <span key={idx} className="badge bg-light text-dark px-2 py-1 fs-12">
-                    {tag.trim()}
-                  </span>
-                ))}
-              </div>
-              <span className="text-dark d-inline-block mb-2 mt-1">
-                <span className="text-dark fs-4 fw-medium">
-                  {displayTitle}
-                </span>
-              </span>
-              <p className="text-muted">
-                {displayDescription}
-              </p>
-              <p className="mb-2 text-muted">
-                <span className="text-dark fw-semibold mb-0">
-                  Additional Information :{" "}
-                </span>
-                This notice contains important information for all community members. 
-                Please review the details carefully and contact management if you have any questions.
-              </p>
-              
-              {/* Stats */}
-              <div className="d-flex gap-3 my-3">
-                <span className="text-muted fs-14">
-                  <IconifyIcon icon="solar:eye-bold" className="me-1" />
-                  {Math.floor(Math.random() * 500) + 100} views
-                </span>
-                <span className="text-muted fs-14">
-                  <IconifyIcon icon="solar:heart-bold" className="me-1" />
-                  {Math.floor(Math.random() * 50) + 10} likes
-                </span>
-              </div>
-              <div className="border-start border-primary border-2 p-3 bg-primary bg-opacity-10 rounded mt-3">
-                <h5>Important Reminder</h5>
-                <p className="mb-0">
-                  Community management is committed to maintaining a safe and secure environment for all community members. 
-                  Please report any safety concerns immediately to the management office.
-                </p>
-              </div>
-              <div className="d-flex bg-light border border-dashed gap-3 rounded my-4 p-3">
-                <Link
-                  href=""
-                  className="d-flex align-items-center fs-16 text-dark"
-                >
-                  <IconifyIcon
-                    icon="solar:like-bold-duotone"
-                    className="me-1"
-                  />{" "}
-                  3,422
-                </Link>
-                <Link
-                  href=""
-                  className="d-flex align-items-center fs-16 text-dark"
-                >
-                  <IconifyIcon icon="solar:eye-bold" className="me-1" /> 4,565
-                </Link>
-                <Link
-                  href=""
-                  className="d-flex align-items-center fs-16 text-dark"
-                >
-                  <IconifyIcon
-                    icon="solar:chat-square-call-bold"
-                    className="me-1"
-                  />{" "}
-                  356
-                </Link>
-              </div>
-              <CardTitle as={"h4"}>Notice Comments</CardTitle>
-              <Alert variant="info" className="mt-3">
-                Comments are disabled for static placeholder notices. Create or open a database-backed notice to use comments.
-              </Alert>
-              <CardTitle as={"h4"} className="d-flex align-items-center mt-3">
-                <IconifyIcon
-                  icon="solar:chat-square-like-outline"
-                  className="me-1"
-                />{" "}
-                Comment
-              </CardTitle>
             </CardBody>
           </Card>
         </Col>
-        <Col lg={4} md={6}>
-          <Blogs />
-          <PhotoCard />
+
+        <Col xl={4}>
+          <Card className="mb-4">
+            <CardHeader>
+              <CardTitle as="h5" className="mb-0">
+                Engagement
+              </CardTitle>
+            </CardHeader>
+            <CardBody>
+              <div className="d-flex justify-content-between mb-2">
+                <span className="text-muted">Views</span>
+                <span className="fw-semibold">{Number(notice.views_count || 0)}</span>
+              </div>
+              <div className="d-flex justify-content-between mb-2">
+                <span className="text-muted">Likes</span>
+                <span className="fw-semibold">{Number(notice.likes_count || 0)}</span>
+              </div>
+              <div className="d-flex justify-content-between">
+                <span className="text-muted">Comments</span>
+                <span className="fw-semibold">{totalComments}</span>
+              </div>
+              <div className="d-grid gap-2 mt-3">
+                <Button variant="outline-primary" size="sm" onClick={() => void handleLike()} disabled={incrementLikes.isPending}>
+                  {incrementLikes.isPending ? "Updating..." : "Add Like"}
+                </Button>
+              </div>
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle as="h5" className="mb-0">
+                Publication Details
+              </CardTitle>
+            </CardHeader>
+            <CardBody>
+              <div className="d-flex justify-content-between mb-2">
+                <span className="text-muted">Community</span>
+                <span className="fw-semibold">{notice.communities?.name || "All Communities"}</span>
+              </div>
+              <div className="d-flex justify-content-between mb-2">
+                <span className="text-muted">Posted</span>
+                <span className="fw-semibold">{new Date(notice.posted_at || notice.created_at || new Date().toISOString()).toLocaleDateString()}</span>
+              </div>
+              <div className="d-flex justify-content-between mb-2">
+                <span className="text-muted">Updated</span>
+                <span className="fw-semibold">{notice.updated_at ? new Date(notice.updated_at).toLocaleDateString() : "N/A"}</span>
+              </div>
+              <div className="d-flex justify-content-between">
+                <span className="text-muted">Media</span>
+                <span className="fw-semibold">{notice.video_url ? "Video" : notice.image_url ? "Image" : "None"}</span>
+              </div>
+            </CardBody>
+          </Card>
         </Col>
       </Row>
     </>
   );
 };
 
-// Main component with Suspense wrapper
-const PostDetailsPage = () => {
-  return (
-    <Suspense fallback={
-      <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '400px' }}>
-        <Spinner animation="border" role="status">
-          <span className="visually-hidden">Loading...</span>
-        </Spinner>
-      </div>
-    }>
-      <NoticeDetailsContent />
-    </Suspense>
-  );
-};
-
-export default PostDetailsPage;
+export default NoticeDetailsPage;

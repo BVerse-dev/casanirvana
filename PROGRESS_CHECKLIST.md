@@ -199,6 +199,7 @@ Date: 2026-02-06
 - [x] Superadmin notice comments/replies now attribute `author_name`/`author_avatar` from active session instead of hardcoded placeholders.
 - [x] Superadmin notice details sidebar (`Blogs`/`PhotoCard`) now uses DB-only notice/media data (static fallback content removed), with functional search/tag filtering and empty states.
 - [x] Superadmin notice details metrics row now displays live notice like/view counts and computed comment totals; non-functional overflow menu actions removed.
+- [x] Completed the focused superadmin notice follow-up for `Communication -> Notice -> List/Details/Create`: replaced placeholder notice list composition with DB-backed filters/stats/cards, rebuilt notice details around live notice/comment/engagement data with lifecycle-safe actions, and rewired create/edit surfaces to scoped authenticated notice forms (media URLs instead of fake upload widgets). No SQL migration was required, and `npm run build` in `/Users/andromeda/casanirvana/superadmin` passed after the changes.
 
 ## Phase 14 - Payments Domain Hardening
 - [x] Applied migration `supabase/migrations/20260221101410_phase14_payments_rls_and_datafix.sql`.

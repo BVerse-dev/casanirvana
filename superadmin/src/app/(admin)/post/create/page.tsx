@@ -1,22 +1,21 @@
-import FileUpload from "@/components/FileUpload";
-import PageTitle from "@/components/PageTitle";
 import { Col, Row } from "react-bootstrap";
-import CreatePost from "./components/CreatePost";
-import CreatePostCard from "./components/CreatePostCard";
 import { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Notice Create" };
+import PageTitle from "@/components/PageTitle";
+import CreatePost from "./components/CreatePost";
+import CreatePostCard from "./components/CreatePostCard";
+
+export const metadata: Metadata = { title: "Create Notice" };
 
 const PostCreatePage = () => {
   return (
     <>
-      <PageTitle title="Notice Create" subName="Notice" />
-      <Row>
-        <Col xl={3} lg={4}>
+      <PageTitle title="Create Notice" subName="Communication" />
+      <Row className="g-4">
+        <Col xl={4} lg={5}>
           <CreatePostCard />
         </Col>
-        <Col xl={9} lg={8}>
-          <FileUpload title="Add Notice Image" />
+        <Col xl={8} lg={7}>
           <CreatePost />
         </Col>
       </Row>
