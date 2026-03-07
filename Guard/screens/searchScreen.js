@@ -30,12 +30,6 @@ import {
   replaceRecentResidentSearches,
 } from '../services/residentSearchHistoryService';
 
-const roleLabel = (role) => {
-  if (role === 'admin') return 'Admin';
-  if (role === 'committee') return 'Committee';
-  return 'Member';
-};
-
 const formatMessagePreview = (message) => {
   if (!message) return 'Tap to start a conversation';
 
@@ -62,11 +56,20 @@ const SearchScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
   const isRtl = i18n.dir() === 'rtl';
   const { conversations = [] } = useConversations();
-  const { authUser } = useGuardAuth();
+  const { authUser, guard } = useGuardAuth();
 
   function tr(key) {
     return t(`searchScreen:${key}`);
   }
+
+  const roleLabel = useCallback(
+    (role) => {
+      if (role === 'admin') return t('residentsTab:roleAdmin');
+      if (role === 'committee') return t('residentsTab:roleCommittee');
+      return t('residentsTab:roleMember');
+    },
+    [t],
+  );
 
   const backAction = useCallback(() => {
     navigation.pop();
@@ -86,7 +89,12 @@ const SearchScreen = ({ navigation }) => {
     MODULE_SLUGS.RESIDENT_DIRECTORY,
   );
 
-  const { data: residents = [], isLoading, error } = useGuardCommunityDirectoryMembers({
+  const {
+    data: residents = [],
+    isLoading,
+    error,
+    isSuccess,
+  } = useGuardCommunityDirectoryMembers({
     enabled: residentDirectoryEnabled,
   });
   useGuardCommunityDirectorySubscription({ enabled: residentDirectoryEnabled });
@@ -95,7 +103,14 @@ const SearchScreen = ({ navigation }) => {
     let mounted = true;
 
     const hydrateRecentSearches = async () => {
-      const nextRecentSearches = await loadRecentResidentSearches(authUser?.id);
+      if (mounted) {
+        setRecentSearches([]);
+      }
+
+      const nextRecentSearches = await loadRecentResidentSearches(
+        authUser?.id,
+        guard?.community_id || null,
+      );
       if (mounted) {
         setRecentSearches(nextRecentSearches);
       }
@@ -106,7 +121,7 @@ const SearchScreen = ({ navigation }) => {
     return () => {
       mounted = false;
     };
-  }, [authUser?.id]);
+  }, [authUser?.id, guard?.community_id]);
 
   const conversationsByPartner = useMemo(() => {
     const map = new Map();
@@ -126,10 +141,12 @@ const SearchScreen = ({ navigation }) => {
       unit:
         resident.block === 'N/A'
           ? roleLabel(resident.role)
-          : `Block ${resident.block}-${resident.flatNo} (${roleLabel(resident.role)})`,
+          : `${t('residentsTab:block')} ${resident.block}-${resident.flatNo} (${roleLabel(
+              resident.role,
+            )})`,
       image: resident.avatarUrl,
     }));
-  }, [residents]);
+  }, [residents, roleLabel, t]);
 
   const filteredResults = useMemo(() => {
     if (!search.trim()) return [];
@@ -145,7 +162,12 @@ const SearchScreen = ({ navigation }) => {
   }, [allResidents, search]);
 
   useEffect(() => {
-    if (!authUser?.id || recentSearches.length === 0) {
+    if (
+      !authUser?.id ||
+      !guard?.community_id ||
+      !isSuccess ||
+      recentSearches.length === 0
+    ) {
       return;
     }
 
@@ -174,9 +196,9 @@ const SearchScreen = ({ navigation }) => {
 
     if (currentSerialized !== nextSerialized) {
       setRecentSearches(syncedRecentSearches);
-      replaceRecentResidentSearches(authUser.id, syncedRecentSearches);
+      replaceRecentResidentSearches(authUser.id, guard.community_id, syncedRecentSearches);
     }
-  }, [allResidents, authUser?.id, recentSearches]);
+  }, [allResidents, authUser?.id, guard?.community_id, isSuccess, recentSearches]);
 
   const recentSearchList = useMemo(() => {
     return recentSearches.map((resident, index) => ({
@@ -188,8 +210,12 @@ const SearchScreen = ({ navigation }) => {
 
   const openResidentThread = useCallback(
     async (resident) => {
-      if (authUser?.id) {
-        const nextRecentSearches = await saveRecentResidentSearch(authUser.id, resident);
+      if (authUser?.id && guard?.community_id) {
+        const nextRecentSearches = await saveRecentResidentSearch(
+          authUser.id,
+          guard.community_id,
+          resident,
+        );
         setRecentSearches(nextRecentSearches);
       }
 
@@ -203,13 +229,13 @@ const SearchScreen = ({ navigation }) => {
         memberId: resident.memberId,
       });
     },
-    [authUser?.id, navigation],
+    [authUser?.id, guard?.community_id, navigation],
   );
 
   const handleClearRecentSearches = useCallback(async () => {
-    await clearRecentResidentSearches(authUser?.id);
+    await clearRecentResidentSearches(authUser?.id, guard?.community_id || null);
     setRecentSearches([]);
-  }, [authUser?.id]);
+  }, [authUser?.id, guard?.community_id]);
 
   const formatRecentSearchTime = useCallback((timestamp) => {
     if (!timestamp) return '';
@@ -238,7 +264,7 @@ const SearchScreen = ({ navigation }) => {
           textAlign: 'center',
         }}
       >
-        No recent resident lookups yet.
+        {tr('noRecentLookups')}
       </Text>
       <Text
         style={{
@@ -247,7 +273,7 @@ const SearchScreen = ({ navigation }) => {
           textAlign: 'center',
         }}
       >
-        Search by resident name, unit, phone number, or email.
+        {tr('recentLookupHint')}
       </Text>
     </View>
   );
@@ -329,7 +355,7 @@ const SearchScreen = ({ navigation }) => {
                 fontStyle: 'italic',
               }}
             >
-              Last: {lastMessage}
+              {`${tr('lastMessagePrefix')} ${lastMessage}`}
             </Text>
           )}
         </View>
@@ -399,7 +425,7 @@ const SearchScreen = ({ navigation }) => {
               marginTop: Default.fixPadding * 0.3,
             }}
           >
-            Opened {formatRecentSearchTime(item.updatedAt)}
+            {`${tr('openedPrefix')} ${formatRecentSearchTime(item.updatedAt)}`}
           </Text>
         </View>
         </View>
@@ -428,9 +454,9 @@ const SearchScreen = ({ navigation }) => {
   if (modulesLoaded && !residentDirectoryEnabled) {
     return (
       <ModuleUnavailableState
-        title='Resident Directory Unavailable'
-        message='Resident directory access is disabled for this community.'
-        actionLabel='Go Back'
+        title={tr('directoryUnavailableTitle')}
+        message={tr('directoryUnavailableMessage')}
+        actionLabel={t('residentsTab:goBack')}
         onAction={() => navigation.goBack()}
       />
     );
@@ -503,7 +529,7 @@ const SearchScreen = ({ navigation }) => {
         </View>
       ) : error ? (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <Text style={{ ...Fonts.SemiBold16grey }}>Unable to load residents</Text>
+          <Text style={{ ...Fonts.SemiBold16grey }}>{tr('loadError')}</Text>
         </View>
       ) : search.trim() ? (
         filteredResults.length > 0 ? (
@@ -521,7 +547,7 @@ const SearchScreen = ({ navigation }) => {
                 }}
               >
                 <Text style={{ ...Fonts.SemiBold16black }}>
-                  Search Results ({filteredResults.length})
+                  {`${tr('searchResultsPrefix')} (${filteredResults.length})`}
                 </Text>
               </View>
             )}
@@ -530,7 +556,7 @@ const SearchScreen = ({ navigation }) => {
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
             <MaterialIcons name='search-off' size={40} color={Colors.grey} />
             <Text style={{ ...Fonts.SemiBold16grey, marginTop: Default.fixPadding }}>
-              No results found for "{search}"
+              {`${tr('noResultsPrefix')} "${search}"`}
             </Text>
           </View>
         )

@@ -3,16 +3,16 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const CACHE_KEY_PREFIX = "casa_nirvana_guard_recent_resident_searches";
 const MAX_RECENT_SEARCHES = 6;
 
-const buildStorageKey = (authUserId) =>
-  `${CACHE_KEY_PREFIX}:${authUserId || "anonymous"}`;
+const buildStorageKey = (authUserId, communityId) =>
+  `${CACHE_KEY_PREFIX}:${authUserId || "anonymous"}:${communityId || "no-community"}`;
 
-export async function loadRecentResidentSearches(authUserId) {
-  if (!authUserId) {
+export async function loadRecentResidentSearches(authUserId, communityId) {
+  if (!authUserId || !communityId) {
     return [];
   }
 
   try {
-    const raw = await AsyncStorage.getItem(buildStorageKey(authUserId));
+    const raw = await AsyncStorage.getItem(buildStorageKey(authUserId, communityId));
     if (!raw) return [];
 
     const parsed = JSON.parse(raw);
@@ -23,13 +23,13 @@ export async function loadRecentResidentSearches(authUserId) {
   }
 }
 
-export async function saveRecentResidentSearch(authUserId, resident) {
-  if (!authUserId || !resident?.id) {
+export async function saveRecentResidentSearch(authUserId, communityId, resident) {
+  if (!authUserId || !communityId || !resident?.id) {
     return [];
   }
 
   try {
-    const existing = await loadRecentResidentSearches(authUserId);
+    const existing = await loadRecentResidentSearches(authUserId, communityId);
     const nextEntry = {
       id: resident.id,
       memberId: resident.memberId || resident.id,
@@ -44,7 +44,7 @@ export async function saveRecentResidentSearch(authUserId, resident) {
     const deduped = existing.filter((item) => item.id !== nextEntry.id);
     const next = [nextEntry, ...deduped].slice(0, MAX_RECENT_SEARCHES);
 
-    await AsyncStorage.setItem(buildStorageKey(authUserId), JSON.stringify(next));
+    await AsyncStorage.setItem(buildStorageKey(authUserId, communityId), JSON.stringify(next));
     return next;
   } catch (error) {
     console.error("[ResidentSearchHistory] Failed to save recent search:", error);
@@ -52,26 +52,29 @@ export async function saveRecentResidentSearch(authUserId, resident) {
   }
 }
 
-export async function clearRecentResidentSearches(authUserId) {
-  if (!authUserId) {
+export async function clearRecentResidentSearches(authUserId, communityId) {
+  if (!authUserId || !communityId) {
     return;
   }
 
   try {
-    await AsyncStorage.removeItem(buildStorageKey(authUserId));
+    await AsyncStorage.removeItem(buildStorageKey(authUserId, communityId));
   } catch (error) {
     console.error("[ResidentSearchHistory] Failed to clear recent searches:", error);
   }
 }
 
-export async function replaceRecentResidentSearches(authUserId, entries = []) {
-  if (!authUserId) {
+export async function replaceRecentResidentSearches(authUserId, communityId, entries = []) {
+  if (!authUserId || !communityId) {
     return [];
   }
 
   try {
     const normalizedEntries = Array.isArray(entries) ? entries.slice(0, MAX_RECENT_SEARCHES) : [];
-    await AsyncStorage.setItem(buildStorageKey(authUserId), JSON.stringify(normalizedEntries));
+    await AsyncStorage.setItem(
+      buildStorageKey(authUserId, communityId),
+      JSON.stringify(normalizedEntries),
+    );
     return normalizedEntries;
   } catch (error) {
     console.error("[ResidentSearchHistory] Failed to replace recent searches:", error);

@@ -187,6 +187,20 @@ export const useGuardCommunityDirectorySubscription = ({ enabled = true } = {}) 
           });
         },
       )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'units',
+          filter: `community_id=eq.${communityId}`,
+        },
+        () => {
+          queryClient.invalidateQueries({
+            queryKey: ['guardCommunityDirectoryMembers', communityId],
+          });
+        },
+      )
       .subscribe();
 
     return () => {

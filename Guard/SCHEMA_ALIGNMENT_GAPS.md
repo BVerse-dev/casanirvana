@@ -43,6 +43,7 @@ Date: 2026-02-22
 | Guard settings screens used local-only placeholder state (no DB persistence) | `/Users/andromeda/casanirvana/Guard/screens/notificationSettingsScreen.js`, `/Users/andromeda/casanirvana/Guard/screens/chatSettingsScreen.js` | Settings reset after restart/device and produced non-production UX behavior | `Code alignment (completed)` |
 | Guard call create flow could insert `calls` with null/invalid callee and non-profile caller fallback | `/Users/andromeda/casanirvana/Guard/screens/callScreen.js`, `/Users/andromeda/casanirvana/Guard/hooks/useCallManager.js` | Violated hardened call RLS contract (`caller_id/callee_id` must map to actor-accessible `profiles.id`) and caused runtime call failures | `Code alignment (completed)` |
 | Visitor-detail call policy required split behavior (resident host in-app, visitor/personnel direct phone) | `/Users/andromeda/casanirvana/Guard/screens/visitorDetailScreen.js` | Needed explicit production rule so host/resident calls stay auditable in-app while guest/cab/delivery/service contacts use submitted phone numbers | `Code alignment (completed)` |
+| `community_memberships` lacked tenant backfill and profile/community sync enforcement after direct resident profile edits | `supabase/migrations/20260220160000_phase10_community_directory_memberships.sql`, `/Users/andromeda/casanirvana/superadmin/src/hooks/useResidents.ts`, `/Users/andromeda/casanirvana/Guard/hooks/useCommunityDirectoryMembers.js` | Resident/tenant directory rows could disappear from Guard/User flows or remain active in the wrong community after profile edits moved the source-of-truth `profiles.community_id` | `Migration + Code alignment (completed via 20260307220000_phase35_community_directory_membership_integrity.sql + Guard/User directory freshness hardening)` |
 
 ## Migration vs Code Alignment Plan
 ### A) Objects to Migrate
@@ -55,6 +56,7 @@ Date: 2026-02-22
 7. `supabase/migrations/20260223000500_phase25_guard_emergency_recipient_notify_policy.sql`
 8. `supabase/migrations/20260223003000_phase25_guard_notify_user_profile_fallback.sql`
 9. `supabase/migrations/20260223103000_phase26_guard_profile_update_policy.sql`
+10. `supabase/migrations/20260307220000_phase35_community_directory_membership_integrity.sql`
 
 ### B) Objects to Refactor/Remove
 1. Replace mock QR scanner path with camera + DB lookup in `/Users/andromeda/casanirvana/Guard/screens/qrScanner.js`

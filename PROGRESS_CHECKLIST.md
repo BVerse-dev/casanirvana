@@ -152,6 +152,7 @@ Date: 2026-02-06
 - [x] Phase 10: Rewired user app member/admin/committee directories to `community_memberships` with safe legacy fallback (`profiles` + `community_admins`) and realtime invalidation.
 - [x] Phase 10: Rewired guard residents/search directories to `community_memberships` with safe legacy fallback; removed hardcoded resident ID mapping source.
 - [x] Phase 10: Added `Units` and `Residents` tabs to superadmin community details (positioned before `Analytics`) with searchable, DB-backed visibility for resident-to-unit/community mapping.
+- [x] Phase 35: Hardened canonical community directory integrity via migration `supabase/migrations/20260307220000_phase35_community_directory_membership_integrity.sql` (tenant-aware backfill, stale-membership deactivation, profile-driven sync trigger, and membership community-scope validation).
 
 ## Phase 11 - Tenant Scope + RLS Hardening (Superadmin)
 - [x] Created execution checklist: `superadmin/PRODUCTION_TENANT_RLS_REMEDIATION_CHECKLIST.md`.
@@ -382,7 +383,7 @@ Date: 2026-02-06
 - [x] Fixed Guard emergency admin-notify RLS blocker:
   - Hardened recipient resolution in `/Users/andromeda/casanirvana/Guard/hooks/useEmergencyAlerts.js` to include only profiles mapped to valid `users.id` rows before insert.
   - Applied migration `supabase/migrations/20260223003000_phase25_guard_notify_user_profile_fallback.sql` to expand `guard_can_notify_user(uuid)` community resolution with profile fallback when `users.community_id` is null.
-- [ ] Continue Guard module-by-module production wiring/remediation (next: Residents/Directory module and end-to-end guard lifecycle QA).
+- [ ] Continue Guard module-by-module production wiring/remediation (next: targeted end-to-end guard lifecycle QA).
 
 ## Phase 26 - Guard Profile + Settings Persistence Hardening
 - [x] Added shared profile resolver utility `/Users/andromeda/casanirvana/Guard/utils/profileResolver.js` for `profiles.user_id` -> `profiles.id` fallback-safe resolution.
@@ -742,6 +743,11 @@ Date: 2026-02-06
   - Updated `/Users/andromeda/casanirvana/Guard/screens/searchScreen.js` to persist resident lookups, support name/unit/phone/email search, and replace the non-production voice-search placeholder with a standard clear-search control.
 - [x] Fixed Guard resident-directory route payload consistency:
   - Updated `/Users/andromeda/casanirvana/Guard/components/residentsTab.js` so resident avatar URLs are normalized to React Native image-source objects before navigating to `/Users/andromeda/casanirvana/Guard/screens/messageScreen.js` and `/Users/andromeda/casanirvana/Guard/screens/callScreen.js`.
+- [x] Hardened Guard resident-directory source-of-truth and freshness:
+  - Added `supabase/migrations/20260307220000_phase35_community_directory_membership_integrity.sql` so `community_memberships` now backfills missing resident/tenant rows, deactivates cross-community drift, syncs from `profiles` create/update flows, and rejects future membership rows whose `community_id` no longer matches the linked profile.
+  - Updated `/Users/andromeda/casanirvana/Guard/services/residentSearchHistoryService.js` and `/Users/andromeda/casanirvana/Guard/screens/searchScreen.js` so recent resident lookups are scoped by authenticated guard and active community, and only prune stale entries after the resident directory query hydrates successfully.
+  - Updated `/Users/andromeda/casanirvana/Guard/hooks/useCommunityDirectoryMembers.js` and `/Users/andromeda/casanirvana/user/hooks/useCommunityMembers.ts` so resident directory caches now invalidate on `units` changes as well as `community_memberships` / `profiles`, keeping Guard and User block/flat labels aligned with live unit metadata.
+  - Updated `/Users/andromeda/casanirvana/Guard/components/residentsTab.js` and `/Users/andromeda/casanirvana/Guard/screens/searchScreen.js` to use i18n-backed resident-directory copy while preserving the existing UI and keeping resident call/chat actions in-app.
 - [x] Closed the remaining Guard Visitors + Entry/Exit partials:
   - Updated `/Users/andromeda/casanirvana/Guard/screens/confirmScreen.js`, `/Users/andromeda/casanirvana/Guard/screens/allowedScreen.js`, and `/Users/andromeda/casanirvana/Guard/screens/cancelledScreen.js` so host attribution resolves from the selected unit instead of persisting generic `Resident` fallbacks in approval/denial flows.
   - Updated `/Users/andromeda/casanirvana/Guard/services/visitorEntryService.js` to carry through stored host fields when present.
