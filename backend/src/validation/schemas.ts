@@ -224,11 +224,13 @@ export const schemas = {
       recipients_count: z.number().int().min(0).optional(),
       message: z.string().optional(),
       template: z.string().optional(),
+      template_id: z.coerce.number().int().positive().optional().nullable(),
       audience: z.any().optional(),
       budget: z.number().optional().nullable(),
       spent: z.number().optional().nullable(),
       scheduled_at: z.string().optional().nullable(),
       sent_at: z.string().optional().nullable(),
+      status: z.enum(['draft', 'scheduled', 'active', 'completed', 'paused', 'processing', 'delivered', 'failed']).optional(),
     })
     .refine((value) => value.name || value.title, {
       message: 'name or title is required',
@@ -241,8 +243,34 @@ export const schemas = {
         name: optionalString,
         message: z.string().optional(),
         template: z.string().optional(),
+        template_id: z.coerce.number().int().positive().optional().nullable(),
+        status: z.enum(['draft', 'scheduled', 'active', 'completed', 'paused', 'processing', 'delivered', 'failed']).optional(),
       })
       .passthrough()
+  ),
+  adminNotificationTemplateCreate: z.object({
+    name: nonEmptyString,
+    template_name: optionalString,
+    type: nonEmptyString,
+    category: optionalString,
+    subject: optionalString.nullable(),
+    content: nonEmptyString,
+    template_content: optionalString,
+    variables: z.array(z.string()).optional(),
+    status: z.enum(['active', 'draft', 'archived']).optional(),
+  }),
+  adminNotificationTemplateUpdate: atLeastOne(
+    z.object({
+      name: optionalString,
+      template_name: optionalString,
+      type: optionalString,
+      category: optionalString,
+      subject: optionalString.nullable(),
+      content: optionalString,
+      template_content: optionalString,
+      variables: z.array(z.string()).optional(),
+      status: z.enum(['active', 'draft', 'archived']).optional(),
+    })
   ),
 
   adminSocietyCreate: z.object({

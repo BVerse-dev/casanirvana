@@ -840,6 +840,11 @@ Date: 2026-02-06
   - Rebuilt `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/notifications/templates/components/NotificationTemplatesView.tsx` into a single template-library workspace with cross-channel filters, truthful library coverage summaries, and cleaner template create/preview/archive/delete flows instead of splitting the page into a second analytics mini-product.
   - Rebuilt `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/notifications/analytics/components/NotificationAnalyticsView.tsx` into a single reports workspace with shared filters, delivery/engagement trend sections, cross-channel comparison, and top-campaign reporting instead of four separate tabbed report surfaces.
   - Revalidated `npm run build` in `/Users/andromeda/casanirvana/superadmin`; no SQL migration was required for this slice.
+- [x] Notifications data-contract closure slice completed:
+  - Added backend-managed notification template CRUD endpoints in `/Users/andromeda/casanirvana/backend/src/routes/admin.ts` and `/Users/andromeda/casanirvana/backend/src/controllers/adminNotifications.ts`, then moved `/Users/andromeda/casanirvana/superadmin/src/hooks/useNotificationTemplates.ts` off direct browser Supabase CRUD onto the scoped admin API so template create/update/delete now follows the same production access path as campaigns.
+  - Extended the notification campaign contract in `/Users/andromeda/casanirvana/backend/src/validation/schemas.ts`, `/Users/andromeda/casanirvana/backend/src/controllers/adminNotifications.ts`, `/Users/andromeda/casanirvana/backend/src/middleware/auth.ts`, `/Users/andromeda/casanirvana/superadmin/src/hooks/useNotificationCampaigns.ts`, and `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/notifications/campaigns/components/NotificationCampaignsView.tsx` so campaigns now store a stable `template_id`, keep canonical template naming, and enforce notification read/write permissions consistently for template-linked operations.
+  - Added and applied `/Users/andromeda/casanirvana/supabase/migrations/20260307191500_phase34_notification_template_linkage.sql` to Casa Nirvana so `public.notification_campaigns` now has `template_id`, foreign-key linkage to `notification_templates`, and a legacy-name backfill path for truthful template usage reporting.
+  - Revalidated `npm run build` in `/Users/andromeda/casanirvana/backend` and `/Users/andromeda/casanirvana/superadmin`, and verified the remote Casa Nirvana schema now exposes `notification_campaigns.template_id`.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)
@@ -848,6 +853,7 @@ Date: 2026-02-06
 
 ## Endpoints Added/Updated (Summary)
 - [x] `POST /admin/invites` (admin invite flow)
+- [x] `GET/POST/PUT/DELETE /admin/notification-templates` (scoped admin template management)
 - [x] `GET /admin/system-settings` (read system settings)
 - [x] `GET /admin/system-settings/exists` (system settings existence check)
 - [x] `PUT /admin/system-settings` (upsert system settings)

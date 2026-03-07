@@ -24,6 +24,7 @@ const LEGACY_ROUTE_PERMISSIONS = [
   'manage:users',
   'read:all_complaints',
   'read:all_maintenance_requests',
+  'read:all_notifications',
   'read:all_payments',
   'read:all_profiles',
   'read:analytics',
@@ -85,7 +86,7 @@ const MODULE_ALIASES: Record<string, string[]> = {
   system_settings: ['manage:settings', 'manage:roles'],
   reports: ['read:analytics', 'read:all_complaints', 'read:all_maintenance_requests', 'read:all_payments'],
   maintenance: ['read:all_maintenance_requests', 'update:maintenance_requests'],
-  notices: ['create:notices', 'write:all_notifications'],
+  notices: ['create:notices', 'read:all_notifications', 'write:all_notifications'],
   complaints: ['create:complaints', 'update:complaints', 'delete:complaints', 'read:all_complaints'],
 };
 

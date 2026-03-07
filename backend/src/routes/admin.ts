@@ -271,6 +271,40 @@ router.delete(
   validateRequest({ params: schemas.idParam }),
   adminNotificationsController.deleteNotificationCampaign
 );
+router.get(
+  '/notification-templates',
+  requireAuth,
+  requirePermission('read:all_notifications'),
+  adminNotificationsController.listNotificationTemplates
+);
+router.get(
+  '/notification-templates/:id',
+  requireAuth,
+  requirePermission('read:all_notifications'),
+  validateRequest({ params: schemas.idParam }),
+  adminNotificationsController.getNotificationTemplate
+);
+router.post(
+  '/notification-templates',
+  requireAuth,
+  requirePermission('write:all_notifications'),
+  validateRequest({ body: schemas.adminNotificationTemplateCreate }),
+  adminNotificationsController.createNotificationTemplate
+);
+router.put(
+  '/notification-templates/:id',
+  requireAuth,
+  requirePermission('write:all_notifications'),
+  validateRequest({ params: schemas.idParam, body: schemas.adminNotificationTemplateUpdate }),
+  adminNotificationsController.updateNotificationTemplate
+);
+router.delete(
+  '/notification-templates/:id',
+  requireAuth,
+  requirePermission('write:all_notifications'),
+  validateRequest({ params: schemas.idParam }),
+  adminNotificationsController.deleteNotificationTemplate
+);
 
 // Guard operational routes (People -> Guards)
 router.post(

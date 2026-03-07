@@ -1,157 +1,129 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+'use client'
 
-// Template type matching our frontend interface
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useSession } from 'next-auth/react'
+
 export interface Template {
-  id: number;
-  template_name?: string | null;
-  template_content?: string | null;
-  created_at?: string | null;
-  updated_at?: string | null;
-  name?: string | null;
-  type?: string | null;
-  category?: string | null;
-  subject?: string | null;
-  content?: string | null;
-  variables?: string[] | null;
-  status?: string | null;
-  usage_count?: number | null;
-  last_used?: string | null;
+  id: number
+  template_name?: string | null
+  template_content?: string | null
+  created_at?: string | null
+  updated_at?: string | null
+  name?: string | null
+  type?: string | null
+  category?: string | null
+  subject?: string | null
+  content?: string | null
+  variables?: string[] | null
+  status?: string | null
+  usage_count?: number | null
+  last_used?: string | null
 }
 
-export type TemplateInsert = Omit<Template, 'id' | 'created_at' | 'updated_at'>;
-export type TemplateUpdate = Partial<TemplateInsert>;
+export type TemplateInsert = Omit<Template, 'id' | 'created_at' | 'updated_at' | 'usage_count' | 'last_used'>
+export type TemplateUpdate = Partial<TemplateInsert>
 
-// List all notification templates
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
+
+const useAdminFetch = () => {
+  const { data: session } = useSession()
+  const token = session?.accessToken as string | undefined
+
+  const fetchAdmin = async (path: string, options: RequestInit = {}) => {
+    if (!token) {
+      throw new Error('Missing admin session. Please sign in again.')
+    }
+
+    const response = await fetch(`${API_BASE_URL}${path}`, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        ...options.headers,
+      },
+    })
+
+    const payload = await response.json().catch(() => ({}))
+    if (!response.ok) {
+      throw new Error(payload.error || payload.message || 'Request failed')
+    }
+
+    return payload
+  }
+
+  return { fetchAdmin }
+}
+
 export const useListNotificationTemplates = () => {
+  const { fetchAdmin } = useAdminFetch()
+
   return useQuery({
     queryKey: ['notification-templates'],
     queryFn: async (): Promise<Template[]> => {
-      const { data, error } = await supabase
-        .from('notification_templates')
-        .select('*')
-        .order('usage_count', { ascending: false });
-
-      if (error) throw error;
-      return data || [];
+      const data = await fetchAdmin('/admin/notification-templates')
+      return Array.isArray(data) ? data : []
     },
-  });
-};
+  })
+}
 
-// Get single notification template
 export const useGetNotificationTemplate = (id: number) => {
+  const { fetchAdmin } = useAdminFetch()
+
   return useQuery({
     queryKey: ['notification-templates', id],
     queryFn: async (): Promise<Template | null> => {
-      const { data, error } = await supabase
-        .from('notification_templates')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (error) throw error;
-      return data;
+      const data = await fetchAdmin(`/admin/notification-templates/${id}`)
+      return data || null
     },
     enabled: !!id,
-  });
-};
+  })
+}
 
-// Create notification template
 export const useCreateNotificationTemplate = () => {
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient()
+  const { fetchAdmin } = useAdminFetch()
 
   return useMutation({
     mutationFn: async (template: TemplateInsert): Promise<Template> => {
-      const { data, error } = await (supabase as any)
-        .from('notification_templates')
-        .insert(template)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      return fetchAdmin('/admin/notification-templates', {
+        method: 'POST',
+        body: JSON.stringify(template),
+      })
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notification-templates'] });
+      queryClient.invalidateQueries({ queryKey: ['notification-templates'] })
     },
-  });
-};
+  })
+}
 
-// Update notification template
 export const useUpdateNotificationTemplate = () => {
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient()
+  const { fetchAdmin } = useAdminFetch()
 
   return useMutation({
     mutationFn: async ({ id, ...updates }: TemplateUpdate & { id: number }): Promise<Template> => {
-      const { data, error } = await (supabase as any)
-        .from('notification_templates')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      return fetchAdmin(`/admin/notification-templates/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(updates),
+      })
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['notification-templates'] });
-      queryClient.invalidateQueries({ queryKey: ['notification-templates', data.id] });
+      queryClient.invalidateQueries({ queryKey: ['notification-templates'] })
+      queryClient.invalidateQueries({ queryKey: ['notification-templates', data.id] })
     },
-  });
-};
+  })
+}
 
-// Delete notification template
 export const useDeleteNotificationTemplate = () => {
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient()
+  const { fetchAdmin } = useAdminFetch()
 
   return useMutation({
     mutationFn: async (id: number): Promise<void> => {
-      const { error } = await supabase
-        .from('notification_templates')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+      await fetchAdmin(`/admin/notification-templates/${id}`, { method: 'DELETE' })
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notification-templates'] });
+      queryClient.invalidateQueries({ queryKey: ['notification-templates'] })
     },
-  });
-};
-
-// Increment usage count
-export const useIncrementTemplateUsage = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (id: number): Promise<Template> => {
-      // First get current usage count
-      const { data: current, error: fetchError } = await (supabase as any)
-        .from('notification_templates')
-        .select('usage_count')
-        .eq('id', id)
-        .single();
-
-      if (fetchError) throw fetchError;
-
-      // Increment the usage count
-      const newUsageCount = (current.usage_count || 0) + 1;
-
-      const { data, error } = await (supabase as any)
-        .from('notification_templates')
-        .update({ 
-          usage_count: newUsageCount,
-          last_used: new Date().toISOString()
-        })
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notification-templates'] });
-    },
-  });
-};
+  })
+}

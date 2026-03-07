@@ -3,7 +3,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSession } from 'next-auth/react'
 import { supabase } from '@/lib/supabase'
-import type { Database } from '@/lib/database.types'
 
 export interface Campaign {
   id: string
@@ -12,6 +11,7 @@ export interface Campaign {
   type: 'sms' | 'email' | 'push' | 'in-app'
   status: 'draft' | 'scheduled' | 'active' | 'completed' | 'paused' | 'processing' | 'delivered' | 'failed'
   template: string
+  templateId?: number | null
   audience: string
   audienceCount: number
   scheduledDate?: string
@@ -36,6 +36,7 @@ export interface CreateCampaignData {
   type: 'sms' | 'email' | 'push' | 'in-app'
   status?: 'draft' | 'scheduled' | 'active' | 'completed' | 'paused' | 'processing' | 'delivered' | 'failed'
   template?: string
+  template_id?: number | null
   audience?: string
   recipients_count?: number
   scheduled_at?: string
@@ -49,6 +50,7 @@ export interface UpdateCampaignData {
   type?: 'sms' | 'email' | 'push' | 'in-app'
   status?: 'draft' | 'scheduled' | 'active' | 'completed' | 'paused' | 'processing' | 'delivered' | 'failed'
   template?: string
+  template_id?: number | null
   audience?: string
   recipients_count?: number
   delivered_count?: number
@@ -99,7 +101,8 @@ const transformCampaign = (record: any): Campaign => {
     title: record.title || record.name,
     type: record.type,
     status: record.status,
-    template: record.template || 'Standard Template',
+    template: record.template || '',
+    templateId: record.template_id ?? null,
     audience: record.audience || 'all-residents',
     audienceCount: record.recipients_count || 0,
     scheduledDate: record.scheduled_at,

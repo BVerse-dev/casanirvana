@@ -282,6 +282,7 @@ const NotificationCampaignsView = () => {
         title: formData.name.trim(),
         type: formData.type,
         template: selectedTemplate?.name,
+        template_id: selectedTemplate ? Number(selectedTemplate.id) : null,
         audience,
         recipients_count: formData.recipientsCount ? Number(formData.recipientsCount) : undefined,
         scheduled_at:
