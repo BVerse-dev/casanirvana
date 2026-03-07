@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   Dimensions,
   Modal,
-  Image,
   StyleSheet,
   TextInput,
   ScrollView,
@@ -18,9 +17,6 @@ import {
 import { Colors, Fonts, Default } from "../constants/styles";
 import { useTranslation } from "react-i18next";
 import Ionicons from "react-native-vector-icons/Ionicons";
-import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
-import Feather from "react-native-vector-icons/Feather";
-import DashedLine from "react-native-dashed-line";
 
 import CameraModule from "./cameraModule";
 import { Camera } from "expo-camera";
@@ -28,15 +24,17 @@ import * as ImagePicker from "expo-image-picker";
 import * as Contacts from 'expo-contacts';
 import SnackbarToast from "./snackbarToast";
 import AddImageBottomSheet from "./addImageBottomSheet";
+import AppAvatar from "./AppAvatar";
 import { useAuth } from "../contexts/AuthContext";
 import { useUpdateFamilyMember } from "../hooks/useFamilyMembers";
 import { useUpdateDailyHelp } from "../hooks/useDailyHelp";
 import { useUpdateFrequentEntry } from "../hooks/useFrequentEntries";
+import { uploadDirectoryAvatarIfNeeded } from "../utils/directoryAvatarStorage";
 
 const { width, height } = Dimensions.get("window");
 
 const EditFamilyMemberModal = (props) => {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const { user, profile } = useAuth();
   const updateFamilyMember = useUpdateFamilyMember();
   const updateDailyHelp = useUpdateDailyHelp();
@@ -44,10 +42,6 @@ const EditFamilyMemberModal = (props) => {
 
   const isRtl = i18n.dir() == "rtl";
   const activeUserId = user?.id || profile?.user_id || null;
-
-  function tr(key) {
-    return t(`addFamilyMemberModal:${key}`);
-  }
 
   const [openAddImageBottomSheet, setOpenAddImageBottomSheet] = useState(false);
 
@@ -253,10 +247,21 @@ const EditFamilyMemberModal = (props) => {
         return;
       }
 
+      const uploadScope = props.entryType === 'family_member'
+        ? 'family-members'
+        : props.entryType === 'daily_help'
+          ? 'daily-help'
+          : 'frequent-entries';
+      const avatarUrl = await uploadDirectoryAvatarIfNeeded({
+        imageUri: pickedImage,
+        ownerId: activeUserId,
+        scope: uploadScope,
+        existingAvatarUrl: props.entryData?.image || null,
+      });
       const commonData = {
-        name: name,
-        phone: phoneNumber,
-        avatar_url: pickedImage,
+        name: name.trim(),
+        phone: phoneNumber.trim(),
+        avatar_url: avatarUrl,
         user_id: activeUserId,
       };
 
@@ -342,14 +347,15 @@ const EditFamilyMemberModal = (props) => {
                       style={styles.imageContainer}
                       onPress={() => setOpenAddImageBottomSheet(true)}
                     >
-                      {pickedImage ? (
-                        <Image source={{ uri: pickedImage }} style={styles.selectedImage} />
-                      ) : (
-                        <View style={styles.placeholderImage}>
-                          <MaterialCommunityIcons name="camera" size={30} color={Colors.grey} />
-                          <Text style={styles.placeholderText}>Add Photo</Text>
-                        </View>
-                      )}
+                      <AppAvatar
+                        avatarUrl={pickedImage}
+                        name={name || relationText || selectedRelation?.name || "Entry"}
+                        seed={`${props.entryType || 'entry'}:${props.entryData?.key || activeUserId || 'resident'}`}
+                        size={120}
+                        borderRadius={20}
+                        style={styles.selectedImage}
+                        imageStyle={styles.selectedImage}
+                      />
                     </TouchableOpacity>
                   </View>
 

@@ -1,5 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../utils/supabase';
+import {
+  buildVehicleQrCode,
+  createDirectoryEntryIdentity,
+  resolveDirectoryEntryIdentity,
+} from '../utils/directoryEntryQr';
 
 // Hook to list vehicles for a user
 export const useListVehicles = (userId) => {
@@ -28,23 +33,15 @@ export const useCreateVehicle = () => {
   
   return useMutation({
     mutationFn: async (vehicleData) => {
-      // Generate unique vehicle ID for QR code
-      const vehicleId = `VH-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      
-      // Generate entry code from vehicle ID (last 8 characters)
-      const entryCode = vehicleId.slice(-8).toUpperCase();
-
-      // Generate unique QR code data with vehicle information
-      const qrCodeData = JSON.stringify({
-        id: vehicleId,
-        vehicle_number: vehicleData.vehicle_number,
-        model: vehicleData.model,
-        color: vehicleData.color,
-        user_id: vehicleData.user_id,
-        type: 'vehicle',
-        entry_code: entryCode,
-        created_at: new Date().toISOString(),
-        expires_at: null // Vehicles don't expire
+      const createdAt = new Date().toISOString();
+      const { entityId, entryCode } = createDirectoryEntryIdentity('VH');
+      const qrCodeData = buildVehicleQrCode({
+        entityId,
+        entryCode,
+        data: {
+          ...vehicleData,
+          created_at: createdAt,
+        },
       });
       
       const { data, error } = await supabase
@@ -53,9 +50,9 @@ export const useCreateVehicle = () => {
           ...vehicleData,
           qr_code: qrCodeData,
           entry_code: entryCode,
-          expires_at: null, // Vehicles don't expire
+          expires_at: null,
           is_active: true,
-          created_at: new Date().toISOString()
+          created_at: createdAt,
         }])
         .select()
         .single();
@@ -75,9 +72,39 @@ export const useUpdateVehicle = () => {
   
   return useMutation({
     mutationFn: async ({ id, updates }) => {
+      const { data: existingData, error: existingError } = await supabase
+        .from('vehicles')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (existingError) throw existingError;
+
+      const mergedData = {
+        ...existingData,
+        ...updates,
+      };
+      const { entityId, entryCode } = resolveDirectoryEntryIdentity({
+        prefix: 'VH',
+        existingEntryCode: existingData.entry_code,
+        existingQrCode: existingData.qr_code,
+      });
+      const qrCode = buildVehicleQrCode({
+        entityId,
+        entryCode,
+        data: {
+          ...mergedData,
+          created_at: existingData.created_at,
+        },
+      });
+
       const { data, error } = await supabase
         .from('vehicles')
-        .update(updates)
+        .update({
+          ...updates,
+          entry_code: entryCode,
+          qr_code: qrCode,
+        })
         .eq('id', id)
         .select()
         .single();

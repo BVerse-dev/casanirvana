@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   Dimensions,
   Modal,
-  Image,
   StyleSheet,
   TextInput,
   ScrollView,
@@ -18,7 +17,6 @@ import { Colors, Fonts, Default } from "../constants/styles";
 import { useTranslation } from "react-i18next";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
-import Feather from "react-native-vector-icons/Feather";
 import DashedLine from "react-native-dashed-line";
 import AwesomeButton from "react-native-really-awesome-button";
 import CameraModule from "./cameraModule";
@@ -28,10 +26,12 @@ import * as Contacts from 'expo-contacts';
 import SnackbarToast from "./snackbarToast";
 import AddImageBottomSheet from "./addImageBottomSheet";
 import GatePassModal from "./gatePassModal";
+import AppAvatar from "./AppAvatar";
 import { useAuth } from "../contexts/AuthContext";
 import { useCreateFamilyMember } from "../hooks/useFamilyMembers";
 import { useCreateDailyHelp } from "../hooks/useDailyHelp";
 import { useCreateFrequentEntry } from "../hooks/useFrequentEntries";
+import { uploadDirectoryAvatarIfNeeded } from "../utils/directoryAvatarStorage";
 
 const { width, height } = Dimensions.get("window");
 
@@ -385,11 +385,21 @@ const AddFamilyMemberModal = (props) => {
         return;
       }
 
+      const uploadScope = isFamily
+        ? 'family-members'
+        : isDailyHelp
+          ? 'daily-help'
+          : 'frequent-entries';
+      const avatarUrl = await uploadDirectoryAvatarIfNeeded({
+        imageUri: pickedImage,
+        ownerId: activeUserId,
+        scope: uploadScope,
+      });
       const commonData = {
         user_id: activeUserId,
         name: name.trim(),
-        phone: phoneNumber || null,
-        avatar_url: pickedImage,
+        phone: phoneNumber?.trim() || null,
+        avatar_url: avatarUrl,
       };
 
       let result;
@@ -487,19 +497,13 @@ const AddFamilyMemberModal = (props) => {
                     onPress={() => setOpenAddImageBottomSheet(true)}
                     style={styles.imageTouchOpacity}
                   >
-                    {!pickedImage ? (
-                      <Feather name="camera" size={28} color={Colors.black} />
-                    ) : (
-                      <Image
-                        source={{ uri: pickedImage }}
-                        style={{
-                          resizeMode: "cover",
-                          width: 84,
-                          height: 84,
-                          borderRadius: 42,
-                        }}
-                      />
-                    )}
+                    <AppAvatar
+                      avatarUrl={pickedImage}
+                      name={name || relation || selectedType || "Entry"}
+                      seed={`directory-create:${props.id}:${activeUserId || 'resident'}:${name || relation || selectedType || 'entry'}`}
+                      size={84}
+                      borderRadius={42}
+                    />
                   </TouchableOpacity>
                 </View>
                 <TouchableOpacity

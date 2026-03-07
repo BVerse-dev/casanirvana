@@ -23,6 +23,7 @@ import { useDeleteDailyHelp } from '../hooks/useDailyHelp';
 import { useDeleteVehicle } from '../hooks/useVehicles';
 import { useDeleteFrequentEntry } from '../hooks/useFrequentEntries';
 import { useAuth } from '../contexts/AuthContext';
+import AppAvatar from './AppAvatar';
 
 const { width, height } = Dimensions.get('window');
 
@@ -194,6 +195,8 @@ const EntryDetailModal = ({ visible, onClose, entry, entryType, onEditFamilyMemb
 
   if (!entry) return null;
 
+  const resolvedEntryCode = entry.entryCode || entry.entry_code || null;
+
   return (
     <Modal
       transparent={true}
@@ -235,21 +238,12 @@ const EntryDetailModal = ({ visible, onClose, entry, entryType, onEditFamilyMemb
                   <View
                     style={{ justifyContent: "center", alignItems: "center" }}
                   >
-                    <Image
-                      source={
-                        typeof entry.image === 'number' 
-                          ? entry.image 
-                          : typeof entry.image === 'string' && entry.image.startsWith('http')
-                            ? { uri: entry.image }
-                            : entry.avatar_url 
-                              ? { uri: entry.avatar_url }
-                              : require("../assets/images/pic1.png")
-                      }
-                      style={{
-                        width: ms(79),
-                        height: ms(79),
-                        borderRadius: 5,
-                      }}
+                    <AppAvatar
+                      avatarUrl={entry.image || entry.avatar_url || null}
+                      name={entry.name || entry.full_name || getEntryTypeTitle()}
+                      seed={`${entryType}:${entry.key || entry.entryCode || entry.name || 'entry'}`}
+                      size={ms(79)}
+                      borderRadius={5}
                     />
 
                     <Text
@@ -271,17 +265,6 @@ const EntryDetailModal = ({ visible, onClose, entry, entryType, onEditFamilyMemb
                         {entry.phone}
                       </Text>
                     )}
-                    {/* Vehicle Number */}
-                    {entryType === 'vehicle' && hasContent(entry.plate_number) && (
-                      <Text
-                        style={{
-                          ...Fonts.Medium14grey,
-                          marginTop: Default.fixPadding * 0.5,
-                        }}
-                      >
-                        {entry.plate_number}
-                      </Text>
-                    )}
                     {/* Vehicle Model and Color */}
                     {entryType === 'vehicle' && (hasContent(entry.model) || hasContent(entry.color)) && (
                       <Text
@@ -299,7 +282,7 @@ const EntryDetailModal = ({ visible, onClose, entry, entryType, onEditFamilyMemb
                         marginTop: Default.fixPadding * 0.5,
                       }}
                     >
-                      {entry.relation || entry.type || getEntryTypeTitle()}
+                      {entry.other || entry.relation || entry.type || getEntryTypeTitle()}
                     </Text>
                   </View>
 
@@ -441,7 +424,7 @@ const EntryDetailModal = ({ visible, onClose, entry, entryType, onEditFamilyMemb
                   </View>
 
                   {/* Additional Details Section */}
-                  {(hasContent(entry.entry_code) || hasContent(entry.created_at) || hasContent(entry.plate_number)) && (
+                  {(hasContent(resolvedEntryCode) || hasContent(entry.created_at)) && (
                     <View
                       style={{
                         flexDirection: isRtl ? "row-reverse" : "row",
@@ -450,10 +433,8 @@ const EntryDetailModal = ({ visible, onClose, entry, entryType, onEditFamilyMemb
                         marginHorizontal: Default.fixPadding * 1.5,
                       }}
                     >
-
-
-                                            {/* Entry Code Card */}
-                      {hasContent(entry.entry_code) && (
+                      {/* Entry Code Card */}
+                      {hasContent(resolvedEntryCode) && (
                         <>
                           <View
                             style={{
@@ -487,58 +468,7 @@ const EntryDetailModal = ({ visible, onClose, entry, entryType, onEditFamilyMemb
                                 ...Fonts.Medium14black,
                               }}
                             >
-                              {entry.entry_code}
-                            </Text>
-                          </View>
-                        </>
-                      )}
-
-
-
-                      {/* Plate Number Card */}
-                      {hasContent(entry.plate_number) && (
-                        <>
-                          {hasContent(entry.entry_code) && (
-                            <View
-                              style={{
-                                height: 60,
-                                borderLeftWidth: 1,
-                                borderLeftColor: Colors.grey,
-                              }}
-                            />
-                          )}
-                          <View
-                            style={{
-                              flex: 1,
-                              justifyContent: "center",
-                              alignItems: "center",
-                              paddingHorizontal: Default.fixPadding * 0.5,
-                            }}
-                          >
-                            <View style={styles.circle}>
-                              <MaterialCommunityIcons
-                                name="card-text"
-                                size={20}
-                                color={Colors.primary}
-                              />
-                            </View>
-
-                            <Text
-                              numberOfLines={1}
-                              style={{
-                                ...Fonts.Medium14black,
-                                overflow: "hidden",
-                                marginTop: Default.fixPadding,
-                              }}
-                            >
-                              Plate Number
-                            </Text>
-                            <Text
-                              style={{
-                                ...Fonts.Medium14black,
-                              }}
-                            >
-                              {entry.plate_number}
+                              {resolvedEntryCode}
                             </Text>
                           </View>
                         </>
@@ -547,7 +477,7 @@ const EntryDetailModal = ({ visible, onClose, entry, entryType, onEditFamilyMemb
                       {/* Date Added Card */}
                       {hasContent(entry.created_at) && (
                         <>
-                          {(hasContent(entry.entry_code) || hasContent(entry.plate_number)) && (
+                          {hasContent(resolvedEntryCode) && (
                             <View
                               style={{
                                 height: 60,

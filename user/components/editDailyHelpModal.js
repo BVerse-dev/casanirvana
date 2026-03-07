@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   Dimensions,
   Modal,
-  Image,
   StyleSheet,
   TextInput,
   ScrollView,
@@ -17,7 +16,6 @@ import {
 import { Colors, Fonts, Default } from "../constants/styles";
 import { useTranslation } from "react-i18next";
 import Ionicons from "react-native-vector-icons/Ionicons";
-import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 
 import CameraModule from "./cameraModule";
 import { Camera } from "expo-camera";
@@ -25,22 +23,20 @@ import * as ImagePicker from "expo-image-picker";
 import * as Contacts from 'expo-contacts';
 import SnackbarToast from "./snackbarToast";
 import AddImageBottomSheet from "./addImageBottomSheet";
+import AppAvatar from "./AppAvatar";
 import { useAuth } from "../contexts/AuthContext";
 import { useUpdateDailyHelp } from "../hooks/useDailyHelp";
+import { uploadDirectoryAvatarIfNeeded } from "../utils/directoryAvatarStorage";
 
 const { width, height } = Dimensions.get("window");
 
 const EditDailyHelpModal = (props) => {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const { user, profile } = useAuth();
   const updateDailyHelp = useUpdateDailyHelp();
 
   const isRtl = i18n.dir() == "rtl";
   const activeUserId = user?.id || profile?.user_id || null;
-
-  function tr(key) {
-    return t(`addFamilyMemberModal:${key}`);
-  }
 
   const [openAddImageBottomSheet, setOpenAddImageBottomSheet] = useState(false);
 
@@ -179,11 +175,17 @@ const EditDailyHelpModal = (props) => {
         return;
       }
 
+      const avatarUrl = await uploadDirectoryAvatarIfNeeded({
+        imageUri: pickedImage,
+        ownerId: activeUserId,
+        scope: 'daily-help',
+        existingAvatarUrl: props.entryData?.image || null,
+      });
       const dailyHelpData = {
-        name: name,
-        phone: phoneNumber,
+        name: name.trim(),
+        phone: phoneNumber.trim(),
         type: selectedType.name,
-        avatar_url: pickedImage,
+        avatar_url: avatarUrl,
         user_id: activeUserId,
       };
 
@@ -233,14 +235,15 @@ const EditDailyHelpModal = (props) => {
                       style={styles.imageContainer}
                       onPress={() => setOpenAddImageBottomSheet(true)}
                     >
-                      {pickedImage ? (
-                        <Image source={{ uri: pickedImage }} style={styles.selectedImage} />
-                      ) : (
-                        <View style={styles.placeholderImage}>
-                          <MaterialCommunityIcons name="account-cog" size={30} color={Colors.grey} />
-                          <Text style={styles.placeholderText}>Add Photo</Text>
-                        </View>
-                      )}
+                      <AppAvatar
+                        avatarUrl={pickedImage}
+                        name={name || selectedType?.name || "Daily Help"}
+                        seed={`daily-help:${props.entryData?.key || activeUserId || 'resident'}`}
+                        size={120}
+                        borderRadius={20}
+                        style={styles.selectedImage}
+                        imageStyle={styles.selectedImage}
+                      />
                     </TouchableOpacity>
                   </View>
 

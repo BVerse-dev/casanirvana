@@ -26,6 +26,7 @@ import EditFamilyMemberModal from "../components/editFamilyMemberModal";
 import EditVehicleModal from "../components/editVehicleModal";
 import EditFrequentEntryModal from "../components/editFrequentEntryModal";
 import EditDailyHelpModal from "../components/editDailyHelpModal";
+import AppAvatar from "../components/AppAvatar";
 import { useListFamilyMembers } from "../hooks/useFamilyMembers";
 import { useListDailyHelp } from "../hooks/useDailyHelp";
 import { useListVehicles } from "../hooks/useVehicles";
@@ -81,7 +82,8 @@ const ProfileScreen = ({ navigation }) => {
   // Transform data for UI
   const myFamilyList = familyMembers?.map((member, index) => ({
     key: member.id,
-    image: member.avatar_url || require("../assets/images/pic1.png"),
+    image: member.avatar_url || null,
+    avatar_url: member.avatar_url || null,
     name: member.name,
     phone: member.phone,
     community_name: displayCommunityName,
@@ -94,7 +96,8 @@ const ProfileScreen = ({ navigation }) => {
   
   const dailyHelpList = dailyHelp?.map((help, index) => ({
     key: help.id,
-    image: help.avatar_url || require("../assets/images/pic1.png"),
+    image: help.avatar_url || null,
+    avatar_url: help.avatar_url || null,
     name: help.name,
     phone: help.phone,
     community_name: displayCommunityName,
@@ -106,12 +109,11 @@ const ProfileScreen = ({ navigation }) => {
   })) || [];
   const myVehiclesList = vehicles?.map((vehicle, index) => ({
     key: vehicle.id,
-    image: vehicle.avatar_url || require("../assets/images/pic1.png"),
+    image: vehicle.avatar_url || null,
+    avatar_url: vehicle.avatar_url || null,
     name: vehicle.vehicle_number,
-    phone: vehicle.phone,
     model: vehicle.model,
     color: vehicle.color,
-    plate_number: vehicle.plate_number,
     community_name: displayCommunityName,
     unit_number: displayUnitNumber,
     block_number: displayBlockNumber,
@@ -122,7 +124,8 @@ const ProfileScreen = ({ navigation }) => {
   
   const frequentEntriesList = frequentEntries?.map((entry, index) => ({
     key: entry.id,
-    image: entry.avatar_url || require("../assets/images/pic1.png"),
+    image: entry.avatar_url || null,
+    avatar_url: entry.avatar_url || null,
     name: entry.name,
     phone: entry.phone,
     community_name: displayCommunityName,
@@ -159,20 +162,12 @@ const ProfileScreen = ({ navigation }) => {
             justifyContent: "flex-start",
           }}
         >
-          <Image
-            source={
-              typeof item.image === 'number' 
-                ? item.image 
-                : typeof item.image === 'string' && item.image.startsWith('http')
-                  ? { uri: item.image }
-                  : require("../assets/images/pic1.png")
-            }
-            style={{
-              resizeMode: "cover",
-              width: 48,
-              height: 48,
-              borderRadius: 24,
-            }}
+          <AppAvatar
+            avatarUrl={item.image}
+            name={item.name}
+            seed={`family-member:${item.key}`}
+            size={48}
+            borderRadius={24}
           />
           <TouchableOpacity
             onPress={() => {
@@ -240,20 +235,12 @@ const ProfileScreen = ({ navigation }) => {
             justifyContent: "flex-start",
           }}
         >
-          <Image
-            source={
-              typeof item.image === 'number' 
-                ? item.image 
-                : typeof item.image === 'string' && item.image.startsWith('http')
-                  ? { uri: item.image }
-                  : require("../assets/images/pic1.png")
-            }
-            style={{
-              resizeMode: "cover",
-              width: 48,
-              height: 48,
-              borderRadius: 24,
-            }}
+          <AppAvatar
+            avatarUrl={item.image}
+            name={item.name}
+            seed={`daily-help:${item.key}`}
+            size={48}
+            borderRadius={24}
           />
           <TouchableOpacity
             onPress={() => {
@@ -321,20 +308,12 @@ const ProfileScreen = ({ navigation }) => {
             justifyContent: "flex-start",
           }}
         >
-          <Image
-            source={
-              typeof item.image === 'number' 
-                ? item.image 
-                : typeof item.image === 'string' && item.image.startsWith('http')
-                  ? { uri: item.image }
-                  : require("../assets/images/pic1.png")
-            }
-            style={{
-              resizeMode: "cover",
-              width: 48,
-              height: 48,
-              borderRadius: 24,
-            }}
+          <AppAvatar
+            avatarUrl={item.image}
+            name={item.name}
+            seed={`vehicle:${item.key}`}
+            size={48}
+            borderRadius={24}
           />
           <TouchableOpacity
             onPress={() => {
@@ -402,20 +381,12 @@ const ProfileScreen = ({ navigation }) => {
             justifyContent: "flex-start",
           }}
         >
-          <Image
-            source={
-              typeof item.image === 'number' 
-                ? item.image 
-                : typeof item.image === 'string' && item.image.startsWith('http')
-                  ? { uri: item.image }
-                  : require("../assets/images/pic1.png")
-            }
-            style={{
-              resizeMode: "cover",
-              width: 48,
-              height: 48,
-              borderRadius: 24,
-            }}
+          <AppAvatar
+            avatarUrl={item.image}
+            name={item.name}
+            seed={`frequent-entry:${item.key}`}
+            size={48}
+            borderRadius={24}
           />
           <TouchableOpacity
             onPress={() => {
@@ -541,13 +512,12 @@ const ProfileScreen = ({ navigation }) => {
                   ...Default.shadow,
                 }}
               >
-                <Image
-                  source={require("../assets/images/pic1.png")}
-                  style={{
-                    width: 52,
-                    height: 52,
-                    borderRadius: 26,
-                  }}
+                <AppAvatar
+                  avatarUrl={profile?.avatar_url || null}
+                  name={displayName}
+                  seed={`profile:${profile?.user_id || user?.id || displayName}`}
+                  size={52}
+                  borderRadius={26}
                 />
               </View>
             </View>
