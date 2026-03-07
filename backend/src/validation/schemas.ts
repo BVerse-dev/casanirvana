@@ -61,6 +61,10 @@ const payoutDestinationType = z.enum(['bank_account', 'mobile_money']);
 const payoutRequestAction = z.enum(['cancel', 'approve', 'reject', 'mark_processing', 'mark_paid', 'fail']);
 const payoutRuleShareMode = z.enum(['fixed', 'percentage']);
 const payoutRuleAgencyShareMode = z.enum(['remainder', 'fixed', 'percentage']);
+const adminEmailFolder = z.enum(['all', 'inbox', 'sent', 'drafts', 'draft', 'archive', 'archived', 'deleted', 'trash', 'starred', 'important']);
+const adminEmailPriority = z.enum(['low', 'normal', 'high', 'urgent']);
+const adminEmailAction = z.enum(['draft', 'queue']);
+const adminEmailStatus = z.enum(['draft', 'queued', 'processing', 'sent', 'delivered', 'failed']);
 const paymentChargeTemplateTargetSchema = z.object({
   target_type: paymentChargeTargetType,
   target_value: z.union([z.string(), z.array(z.string()), z.record(z.any())]).optional(),
@@ -270,6 +274,34 @@ export const schemas = {
       template_content: optionalString,
       variables: z.array(z.string()).optional(),
       status: z.enum(['active', 'draft', 'archived']).optional(),
+    })
+  ),
+  adminEmailsListQuery: pageLimitQuery.extend({
+    folder: adminEmailFolder.optional(),
+    status: adminEmailStatus.optional(),
+    priority: adminEmailPriority.optional(),
+    search: optionalString,
+  }),
+  adminEmailsContactsQuery: z.object({
+    search: optionalString,
+  }),
+  adminEmailCreate: z.object({
+    recipient_id: nonEmptyString,
+    subject: nonEmptyString,
+    body: nonEmptyString,
+    priority: adminEmailPriority.optional(),
+    action: adminEmailAction.optional(),
+  }),
+  adminEmailUpdate: atLeastOne(
+    z.object({
+      is_read: booleanFromString.optional(),
+      is_starred: booleanFromString.optional(),
+      is_important: booleanFromString.optional(),
+      folder: adminEmailFolder.exclude(['all']).optional(),
+      status: adminEmailStatus.optional(),
+      subject: optionalString,
+      body: optionalString,
+      priority: adminEmailPriority.optional(),
     })
   ),
 

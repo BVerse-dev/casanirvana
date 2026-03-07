@@ -845,6 +845,11 @@ Date: 2026-02-06
   - Extended the notification campaign contract in `/Users/andromeda/casanirvana/backend/src/validation/schemas.ts`, `/Users/andromeda/casanirvana/backend/src/controllers/adminNotifications.ts`, `/Users/andromeda/casanirvana/backend/src/middleware/auth.ts`, `/Users/andromeda/casanirvana/superadmin/src/hooks/useNotificationCampaigns.ts`, and `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/notifications/campaigns/components/NotificationCampaignsView.tsx` so campaigns now store a stable `template_id`, keep canonical template naming, and enforce notification read/write permissions consistently for template-linked operations.
   - Added and applied `/Users/andromeda/casanirvana/supabase/migrations/20260307191500_phase34_notification_template_linkage.sql` to Casa Nirvana so `public.notification_campaigns` now has `template_id`, foreign-key linkage to `notification_templates`, and a legacy-name backfill path for truthful template usage reporting.
   - Revalidated `npm run build` in `/Users/andromeda/casanirvana/backend` and `/Users/andromeda/casanirvana/superadmin`, and verified the remote Casa Nirvana schema now exposes `notification_campaigns.template_id`.
+- [x] Focused remediation for `Communication -> Email Management`:
+  - Added scoped backend email operations in `/Users/andromeda/casanirvana/backend/src/controllers/adminEmails.ts` and `/Users/andromeda/casanirvana/backend/src/routes/admin.ts` for list/detail/contact lookup, draft/queue creation, and lifecycle-safe email updates, all enforced through admin auth + tenant scope checks instead of the previous browser-only placeholder client.
+  - Rebuilt the active superadmin inbox workspace off demo `userData` helpers and onto `/Users/andromeda/casanirvana/superadmin/src/hooks/useAdminEmails.ts`, `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/inbox/components/EmailOverview.tsx`, `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/inbox/components/EmailNavigationMenu.tsx`, `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/inbox/components/InboxMail.tsx`, and `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/inbox/components/EmailArea.tsx` so summary cards, folder counts, list/detail selection, and compose actions now reflect the real `emails` table with scoped contacts and realtime invalidation.
+  - Added and applied `/Users/andromeda/casanirvana/supabase/migrations/20260307203000_phase34_email_scope_backfill.sql` to backfill `emails.community_id` where it could be inferred from sender/recipient profiles and to add `idx_emails_community_id`; post-apply verification showed `4` live email rows now scoped to Casa Nirvana instead of all `emails.community_id` values being null.
+  - Revalidated `npm run build` in `/Users/andromeda/casanirvana/backend` and `/Users/andromeda/casanirvana/superadmin` after the email-management remediation.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)
@@ -854,6 +859,7 @@ Date: 2026-02-06
 ## Endpoints Added/Updated (Summary)
 - [x] `POST /admin/invites` (admin invite flow)
 - [x] `GET/POST/PUT/DELETE /admin/notification-templates` (scoped admin template management)
+- [x] `GET /admin/emails`, `GET /admin/emails/:id`, `GET /admin/emails/contacts`, `POST /admin/emails`, `PATCH /admin/emails/:id` (scoped admin email management)
 - [x] `GET /admin/system-settings` (read system settings)
 - [x] `GET /admin/system-settings/exists` (system settings existence check)
 - [x] `PUT /admin/system-settings` (upsert system settings)

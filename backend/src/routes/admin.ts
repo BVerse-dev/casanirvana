@@ -20,6 +20,7 @@ import * as adminTenantConfigurationsController from '../controllers/adminTenant
 import * as adminCapabilitiesController from '../controllers/adminCapabilities';
 import * as adminGuardsOperationsController from '../controllers/adminGuardsOperations';
 import * as adminAgenciesOperationsController from '../controllers/adminAgenciesOperations';
+import * as adminEmailsController from '../controllers/adminEmails';
 
 const router = express.Router();
 
@@ -304,6 +305,43 @@ router.delete(
   requirePermission('write:all_notifications'),
   validateRequest({ params: schemas.idParam }),
   adminNotificationsController.deleteNotificationTemplate
+);
+
+// Email Management (admin operations)
+router.get(
+  '/emails/contacts',
+  requireAuth,
+  requirePermission('read:all_notifications'),
+  validateRequest({ query: schemas.adminEmailsContactsQuery }),
+  adminEmailsController.listEmailContacts
+);
+router.get(
+  '/emails',
+  requireAuth,
+  requirePermission('read:all_notifications'),
+  validateRequest({ query: schemas.adminEmailsListQuery }),
+  adminEmailsController.listEmails
+);
+router.get(
+  '/emails/:id',
+  requireAuth,
+  requirePermission('read:all_notifications'),
+  validateRequest({ params: schemas.idParam }),
+  adminEmailsController.getEmail
+);
+router.post(
+  '/emails',
+  requireAuth,
+  requirePermission('write:all_notifications'),
+  validateRequest({ body: schemas.adminEmailCreate }),
+  adminEmailsController.createEmail
+);
+router.patch(
+  '/emails/:id',
+  requireAuth,
+  requirePermission('write:all_notifications'),
+  validateRequest({ params: schemas.idParam, body: schemas.adminEmailUpdate }),
+  adminEmailsController.updateEmail
 );
 
 // Guard operational routes (People -> Guards)

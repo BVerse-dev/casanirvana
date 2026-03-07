@@ -21,7 +21,7 @@ export const useEmailContext = () => {
 
 export const EmailProvider = ({ children }: ChildrenType) => {
   const [activeLabel, setActiveLabel] = useState<EmailLabelType>("inbox");
-  const [activeMail, setActiveMail] = useState<EmailType["id"]>("1");
+  const [activeMail, setActiveMail] = useState<EmailType["id"]>("");
   const [offcanvasStates, setOffcanvasStates] =
     useState<EmailOffcanvasStatesType>({
       showNavigationMenu: false,
@@ -37,28 +37,31 @@ export const EmailProvider = ({ children }: ChildrenType) => {
 
   const changeActiveMail: EmailContextType["changeActiveMail"] = (newMail) => {
     setActiveMail(newMail);
-    toggleEmailDetails();
+    setOffcanvasStates((previous) => ({
+      ...previous,
+      showEmailDetails: true,
+    }));
   };
 
   const toggleNavigationMenu: OffcanvasControlType["toggle"] = () => {
-    setOffcanvasStates({
-      ...offcanvasStates,
-      showNavigationMenu: !offcanvasStates.showNavigationMenu,
-    });
+    setOffcanvasStates((previous) => ({
+      ...previous,
+      showNavigationMenu: !previous.showNavigationMenu,
+    }));
   };
 
   const toggleEmailDetails: OffcanvasControlType["toggle"] = () => {
-    setOffcanvasStates({
-      ...offcanvasStates,
-      showEmailDetails: !offcanvasStates.showEmailDetails,
-    });
+    setOffcanvasStates((previous) => ({
+      ...previous,
+      showEmailDetails: !previous.showEmailDetails,
+    }));
   };
 
   const toggleComposeEmail: OffcanvasControlType["toggle"] = () => {
-    setOffcanvasStates({
-      ...offcanvasStates,
-      showComposeEmail: !offcanvasStates.showComposeEmail,
-    });
+    setOffcanvasStates((previous) => ({
+      ...previous,
+      showComposeEmail: !previous.showComposeEmail,
+    }));
   };
 
   const navigationBar: EmailContextType["navigationBar"] = {
