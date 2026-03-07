@@ -850,6 +850,11 @@ Date: 2026-02-06
   - Rebuilt the active superadmin inbox workspace off demo `userData` helpers and onto `/Users/andromeda/casanirvana/superadmin/src/hooks/useAdminEmails.ts`, `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/inbox/components/EmailOverview.tsx`, `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/inbox/components/EmailNavigationMenu.tsx`, `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/inbox/components/InboxMail.tsx`, and `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/inbox/components/EmailArea.tsx` so summary cards, folder counts, list/detail selection, and compose actions now reflect the real `emails` table with scoped contacts and realtime invalidation.
   - Added and applied `/Users/andromeda/casanirvana/supabase/migrations/20260307203000_phase34_email_scope_backfill.sql` to backfill `emails.community_id` where it could be inferred from sender/recipient profiles and to add `idx_emails_community_id`; post-apply verification showed `4` live email rows now scoped to Casa Nirvana instead of all `emails.community_id` values being null.
   - Revalidated `npm run build` in `/Users/andromeda/casanirvana/backend` and `/Users/andromeda/casanirvana/superadmin` after the email-management remediation.
+- [x] Focused remediation for `Personal Hub -> Reports`:
+  - Added scoped backend reporting read model `GET /admin/personal-hub/reports` in `/Users/andromeda/casanirvana/backend/src/controllers/payment.ts`, `/Users/andromeda/casanirvana/backend/src/routes/admin.ts`, and `/Users/andromeda/casanirvana/backend/src/validation/schemas.ts`, enforcing the same global-platform admin boundary as the Personal Hub dashboard while supporting period, service, status, provider, search, and amount filters.
+  - Rebuilt the active reports workspace around `/Users/andromeda/casanirvana/superadmin/src/hooks/usePersonalHubReports.ts` and rewired `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/personal-hub/reports/page.tsx` plus all report components so transaction tables, detail modal, filters, export flow, and financial/engagement/performance charts now use truthful Personal Hub transaction data instead of static demo datasets, fake export/email options, or fabricated technical/compliance details.
+  - Simplified export behavior to supported CSV/JSON downloads for the currently loaded filtered dataset, normalized the full workspace to `GH₵`, and removed placeholder filters that did not match the real Personal Hub domain.
+  - Revalidated `npm run build` in `/Users/andromeda/casanirvana/backend` and `/Users/andromeda/casanirvana/superadmin`; no SQL migration was required for this slice.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)
@@ -860,6 +865,7 @@ Date: 2026-02-06
 - [x] `POST /admin/invites` (admin invite flow)
 - [x] `GET/POST/PUT/DELETE /admin/notification-templates` (scoped admin template management)
 - [x] `GET /admin/emails`, `GET /admin/emails/:id`, `GET /admin/emails/contacts`, `POST /admin/emails`, `PATCH /admin/emails/:id` (scoped admin email management)
+- [x] `GET /admin/personal-hub/reports` (scoped Personal Hub reports read model for superadmin operations)
 - [x] `GET /admin/system-settings` (read system settings)
 - [x] `GET /admin/system-settings/exists` (system settings existence check)
 - [x] `PUT /admin/system-settings` (upsert system settings)

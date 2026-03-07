@@ -703,6 +703,13 @@ router.get(
   paymentController.getAdminPersonalHubDashboard
 );
 router.get(
+  '/personal-hub/reports',
+  requireAuth,
+  requirePermission('read:all_payments'),
+  validateRequest({ query: schemas.adminPersonalHubReportsQuery }),
+  paymentController.getAdminPersonalHubReports
+);
+router.get(
   '/payments/transactions',
   requireAuth,
   requirePermission('read:all_payments'),

@@ -446,6 +446,340 @@ const buildPersonalHubAlerts = ({
   return alerts.slice(0, 4);
 };
 
+const PERSONAL_HUB_TRANSACTION_FIELDS = [
+  'transaction_id',
+  'payment_id',
+  'profile_id',
+  'user_id',
+  'transaction_type',
+  'provider',
+  'recipient_name',
+  'recipient_identifier',
+  'amount',
+  'total_amount',
+  'status',
+  'created_at',
+  'updated_at',
+].join(', ');
+
+const parseCsvFilter = (value: unknown) =>
+  typeof value === 'string'
+    ? value
+        .split(',')
+        .map((entry) => entry.trim())
+        .filter(Boolean)
+    : [];
+
+const fetchAllPersonalHubTransactions = async ({
+  startIso,
+  endIso,
+}: {
+  startIso: string;
+  endIso: string;
+}) => {
+  const pageSize = 1000;
+  const rows: Array<Record<string, any>> = [];
+
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await adminSupabase
+      .from('personal_hub_transactions')
+      .select(PERSONAL_HUB_TRANSACTION_FIELDS)
+      .gte('created_at', startIso)
+      .lte('created_at', endIso)
+      .order('created_at', { ascending: false })
+      .range(offset, offset + pageSize - 1);
+
+    if (error) {
+      throw new Error(`Failed to load Personal Hub transactions: ${error.message}`);
+    }
+
+    const batch = (data || []) as Array<Record<string, any>>;
+    rows.push(...batch);
+
+    if (batch.length < pageSize) {
+      break;
+    }
+  }
+
+  return rows;
+};
+
+const loadPersonalHubProfileContext = async (transactions: Array<Record<string, any>>) => {
+  const profileIds = Array.from(
+    new Set(transactions.map((transaction) => transaction.profile_id).filter(Boolean) as string[])
+  );
+  const userIds = Array.from(
+    new Set(transactions.map((transaction) => transaction.user_id).filter(Boolean) as string[])
+  );
+
+  const profileMapById = new Map<string, Record<string, any>>();
+  const profileMapByUserId = new Map<string, Record<string, any>>();
+
+  const profileSelect =
+    'id, user_id, first_name, last_name, full_name, email, phone, community_id, unit_id, avatar_url';
+
+  if (profileIds.length > 0) {
+    const { data, error } = await adminSupabase
+      .from('profiles')
+      .select(profileSelect)
+      .in('id', profileIds);
+
+    if (error) {
+      throw new Error(`Failed to load Personal Hub profile context: ${error.message}`);
+    }
+
+    for (const row of data || []) {
+      if (row.id) profileMapById.set(row.id, row as Record<string, any>);
+      if (row.user_id) profileMapByUserId.set(row.user_id, row as Record<string, any>);
+    }
+  }
+
+  const unresolvedUserIds = userIds.filter((userId) => !profileMapByUserId.has(userId));
+  if (unresolvedUserIds.length > 0) {
+    const { data, error } = await adminSupabase
+      .from('profiles')
+      .select(profileSelect)
+      .in('user_id', unresolvedUserIds);
+
+    if (error) {
+      throw new Error(`Failed to load Personal Hub user context: ${error.message}`);
+    }
+
+    for (const row of data || []) {
+      if (row.id) profileMapById.set(row.id, row as Record<string, any>);
+      if (row.user_id) profileMapByUserId.set(row.user_id, row as Record<string, any>);
+    }
+  }
+
+  const communityIds = Array.from(
+    new Set(
+      Array.from(profileMapById.values())
+        .map((profile) => profile.community_id)
+        .filter(Boolean) as string[]
+    )
+  );
+  const unitIds = Array.from(
+    new Set(
+      Array.from(profileMapById.values())
+        .map((profile) => profile.unit_id)
+        .filter(Boolean) as string[]
+    )
+  );
+
+  const [communityResponse, unitResponse] = await Promise.all([
+    communityIds.length > 0
+      ? adminSupabase.from('communities').select('id, name').in('id', communityIds)
+      : Promise.resolve({ data: [], error: null } as any),
+    unitIds.length > 0
+      ? adminSupabase.from('units').select('id, number, unit_number, block').in('id', unitIds)
+      : Promise.resolve({ data: [], error: null } as any),
+  ]);
+
+  if (communityResponse.error) {
+    throw new Error(`Failed to load Personal Hub community context: ${communityResponse.error.message}`);
+  }
+
+  if (unitResponse.error) {
+    throw new Error(`Failed to load Personal Hub unit context: ${unitResponse.error.message}`);
+  }
+
+  return {
+    profileMapById,
+    profileMapByUserId,
+    communityMap: new Map<string, Record<string, any>>(
+      ((communityResponse.data || []) as Array<Record<string, any>>).map((row) => [row.id, row])
+    ),
+    unitMap: new Map<string, Record<string, any>>(
+      ((unitResponse.data || []) as Array<Record<string, any>>).map((row) => [row.id, row])
+    ),
+  };
+};
+
+const enrichPersonalHubTransactions = (
+  transactions: Array<Record<string, any>>,
+  context: {
+    profileMapById: Map<string, Record<string, any>>;
+    profileMapByUserId: Map<string, Record<string, any>>;
+    communityMap: Map<string, Record<string, any>>;
+    unitMap: Map<string, Record<string, any>>;
+  }
+) =>
+  transactions.map((transaction) => {
+    const profile =
+      (transaction.profile_id && context.profileMapById.get(transaction.profile_id)) ||
+      (transaction.user_id && context.profileMapByUserId.get(transaction.user_id)) ||
+      null;
+    const community = profile?.community_id ? context.communityMap.get(profile.community_id) || null : null;
+    const unit = profile?.unit_id ? context.unitMap.get(profile.unit_id) || null : null;
+    const fullName =
+      profile?.full_name ||
+      [profile?.first_name, profile?.last_name].filter(Boolean).join(' ') ||
+      profile?.email ||
+      'Unknown user';
+    const normalizedService = typeof transaction.transaction_type === 'string' ? transaction.transaction_type : 'unknown';
+    const amount = asNumber(transaction.total_amount ?? transaction.amount);
+
+    return {
+      id: transaction.transaction_id || transaction.payment_id || `${normalizedService}-${transaction.created_at}`,
+      transaction_id: transaction.transaction_id || null,
+      payment_id: transaction.payment_id || null,
+      transaction_type: normalizedService,
+      service: PERSONAL_HUB_SERVICE_LABELS[normalizedService] || normalizedService,
+      provider: transaction.provider || null,
+      recipient_name: transaction.recipient_name || null,
+      recipient_identifier: transaction.recipient_identifier || null,
+      amount,
+      amount_formatted: formatDashboardMoney(amount),
+      status: normalizePersonalHubStatus(transaction.status),
+      raw_status: transaction.status || null,
+      created_at: transaction.created_at || null,
+      updated_at: transaction.updated_at || null,
+      user: {
+        id: profile?.id || null,
+        name: fullName,
+        email: profile?.email || null,
+        phone: profile?.phone || null,
+        avatar_url: profile?.avatar_url || null,
+      },
+      community: community
+        ? {
+            id: community.id,
+            name: community.name || null,
+          }
+        : null,
+      unit: unit
+        ? {
+            id: unit.id,
+            number: unit.number || unit.unit_number || null,
+            block: unit.block || null,
+          }
+        : null,
+    };
+  });
+
+const filterPersonalHubTransactions = (
+  transactions: Array<{
+    transaction_type: string;
+    status: string;
+    provider: string | null;
+    amount: number;
+    transaction_id: string | null;
+    payment_id: string | null;
+    recipient_name: string | null;
+    recipient_identifier: string | null;
+    service: string;
+    user: { name: string; email: string | null; phone: string | null };
+    community: { name: string | null } | null;
+    unit: { number: string | null; block: string | null } | null;
+  }>,
+  filters: {
+    serviceTypes: string[];
+    statuses: string[];
+    providers: string[];
+    search: string;
+    minAmount: number | null;
+    maxAmount: number | null;
+  }
+) => {
+  const normalizedSearch = filters.search.trim().toLowerCase();
+
+  return transactions.filter((transaction) => {
+    if (filters.serviceTypes.length > 0 && !filters.serviceTypes.includes(transaction.transaction_type)) {
+      return false;
+    }
+
+    if (filters.statuses.length > 0 && !filters.statuses.includes(transaction.status)) {
+      return false;
+    }
+
+    if (filters.providers.length > 0 && !filters.providers.includes(transaction.provider || '')) {
+      return false;
+    }
+
+    if (filters.minAmount !== null && transaction.amount < filters.minAmount) {
+      return false;
+    }
+
+    if (filters.maxAmount !== null && transaction.amount > filters.maxAmount) {
+      return false;
+    }
+
+    if (!normalizedSearch) {
+      return true;
+    }
+
+    const haystack = [
+      transaction.transaction_id,
+      transaction.payment_id,
+      transaction.service,
+      transaction.provider,
+      transaction.recipient_name,
+      transaction.recipient_identifier,
+      transaction.user.name,
+      transaction.user.email,
+      transaction.user.phone,
+      transaction.community?.name,
+      transaction.unit?.number,
+      transaction.unit?.block,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+
+    return haystack.includes(normalizedSearch);
+  });
+};
+
+const buildPersonalHubEngagementBuckets = (
+  transactions: Array<{ created_at: string | null; user: { id: string | null; email: string | null }; status: string }>,
+  periodDays: number
+) => {
+  const buckets = new Map<
+    string,
+    {
+      date: string;
+      transactions: number;
+      successfulTransactions: number;
+      activeUsers: Set<string>;
+    }
+  >();
+
+  for (const transaction of transactions) {
+    const bucketDate = getBucketDate(transaction.created_at, periodDays);
+    if (!bucketDate) continue;
+
+    const key = bucketDate.toISOString().slice(0, 10);
+    const current = buckets.get(key) || {
+      date: key,
+      transactions: 0,
+      successfulTransactions: 0,
+      activeUsers: new Set<string>(),
+    };
+
+    current.transactions += 1;
+    if (transaction.status === 'completed') {
+      current.successfulTransactions += 1;
+    }
+
+    const actorKey = transaction.user.id || transaction.user.email;
+    if (actorKey) {
+      current.activeUsers.add(actorKey);
+    }
+
+    buckets.set(key, current);
+  }
+
+  return Array.from(buckets.values())
+    .sort((left, right) => left.date.localeCompare(right.date))
+    .map((bucket) => ({
+      date: bucket.date,
+      transactions: bucket.transactions,
+      successful_transactions: bucket.successfulTransactions,
+      active_users: bucket.activeUsers.size,
+      success_rate: bucket.transactions > 0 ? (bucket.successfulTransactions / bucket.transactions) * 100 : 0,
+    }));
+};
+
 const getAdminPayoutScope = (req: Request) => ({
   userProfile: req.userProfile,
   actorUserId: getActorUserId(req),
@@ -952,6 +1286,275 @@ export async function getAdminPersonalHubDashboard(req: Request, res: Response) 
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to load Personal Hub dashboard',
+    });
+  }
+}
+
+export async function getAdminPersonalHubReports(req: Request, res: Response) {
+  try {
+    const scope = await resolveAdminScope(req);
+
+    if (!scope.isGlobal) {
+      return res.status(403).json({
+        success: false,
+        error: 'Personal Hub reports are available to platform admins only.',
+      });
+    }
+
+    const periodDays = Number(req.query.period || 30);
+    const resultLimit = Math.min(Math.max(Number(req.query.limit || 500), 50), 1000);
+    const serviceTypes = parseCsvFilter(req.query.service_types);
+    const statuses = parseCsvFilter(req.query.statuses).map((status) => normalizePersonalHubStatus(status));
+    const providers = parseCsvFilter(req.query.providers);
+    const search = typeof req.query.search === 'string' ? req.query.search : '';
+    const minAmount =
+      req.query.min_amount !== undefined && req.query.min_amount !== ''
+        ? asNumber(req.query.min_amount)
+        : null;
+    const maxAmount =
+      req.query.max_amount !== undefined && req.query.max_amount !== ''
+        ? asNumber(req.query.max_amount)
+        : null;
+
+    const { now, currentStart, previousStart, previousEnd } = getWindowRange(periodDays);
+
+    const [currentTransactions, previousTransactions] = await Promise.all([
+      fetchAllPersonalHubTransactions({
+        startIso: currentStart.toISOString(),
+        endIso: now.toISOString(),
+      }),
+      fetchAllPersonalHubTransactions({
+        startIso: previousStart.toISOString(),
+        endIso: previousEnd.toISOString(),
+      }),
+    ]);
+
+    const context = await loadPersonalHubProfileContext([...currentTransactions, ...previousTransactions]);
+    const enrichedCurrentTransactions = enrichPersonalHubTransactions(currentTransactions, context);
+    const enrichedPreviousTransactions = enrichPersonalHubTransactions(previousTransactions, context);
+
+    const activeFilters = {
+      serviceTypes,
+      statuses,
+      providers,
+      search,
+      minAmount,
+      maxAmount,
+    };
+
+    const filteredCurrentTransactions = filterPersonalHubTransactions(enrichedCurrentTransactions, activeFilters);
+    const filteredPreviousTransactions = filterPersonalHubTransactions(enrichedPreviousTransactions, activeFilters);
+
+    const totalTransactions = filteredCurrentTransactions.length;
+    const previousTotalTransactions = filteredPreviousTransactions.length;
+    const totalVolume = filteredCurrentTransactions.reduce((sum, transaction) => sum + transaction.amount, 0);
+    const previousTotalVolume = filteredPreviousTransactions.reduce((sum, transaction) => sum + transaction.amount, 0);
+    const successfulTransactions = filteredCurrentTransactions.filter((transaction) => transaction.status === 'completed').length;
+    const previousSuccessfulTransactions = filteredPreviousTransactions.filter(
+      (transaction) => transaction.status === 'completed'
+    ).length;
+    const activeUserKeys = new Set(
+      filteredCurrentTransactions
+        .map((transaction) => transaction.user.id || transaction.user.email)
+        .filter(Boolean) as string[]
+    );
+    const previousActiveUserKeys = new Set(
+      filteredPreviousTransactions
+        .map((transaction) => transaction.user.id || transaction.user.email)
+        .filter(Boolean) as string[]
+    );
+    const averageSuccessRate = totalTransactions > 0 ? (successfulTransactions / totalTransactions) * 100 : 0;
+    const previousAverageSuccessRate =
+      previousTotalTransactions > 0 ? (previousSuccessfulTransactions / previousTotalTransactions) * 100 : 0;
+
+    const serviceAggregateMap = new Map<
+      string,
+      {
+        service: string;
+        label: string;
+        totalTransactions: number;
+        successfulTransactions: number;
+        failedTransactions: number;
+        pendingTransactions: number;
+        totalVolume: number;
+        activeUsers: Set<string>;
+      }
+    >();
+
+    for (const transaction of filteredCurrentTransactions) {
+      const current = serviceAggregateMap.get(transaction.transaction_type) || {
+        service: transaction.transaction_type,
+        label: PERSONAL_HUB_SERVICE_LABELS[transaction.transaction_type] || transaction.transaction_type,
+        totalTransactions: 0,
+        successfulTransactions: 0,
+        failedTransactions: 0,
+        pendingTransactions: 0,
+        totalVolume: 0,
+        activeUsers: new Set<string>(),
+      };
+
+      current.totalTransactions += 1;
+      current.totalVolume += transaction.amount;
+
+      if (transaction.status === 'completed') {
+        current.successfulTransactions += 1;
+      } else if (transaction.status === 'failed') {
+        current.failedTransactions += 1;
+      } else {
+        current.pendingTransactions += 1;
+      }
+
+      const actorKey = transaction.user.id || transaction.user.email;
+      if (actorKey) {
+        current.activeUsers.add(actorKey);
+      }
+
+      serviceAggregateMap.set(transaction.transaction_type, current);
+    }
+
+    const serviceAggregates = Array.from(serviceAggregateMap.values())
+      .map((service) => ({
+        service: service.service,
+        label: service.label,
+        total_transactions: service.totalTransactions,
+        successful_transactions: service.successfulTransactions,
+        failed_transactions: service.failedTransactions,
+        pending_transactions: service.pendingTransactions,
+        total_volume: service.totalVolume,
+        total_volume_formatted: formatDashboardMoney(service.totalVolume),
+        success_rate:
+          service.totalTransactions > 0 ? (service.successfulTransactions / service.totalTransactions) * 100 : 0,
+        error_rate: service.totalTransactions > 0 ? (service.failedTransactions / service.totalTransactions) * 100 : 0,
+        active_users: service.activeUsers.size,
+        adoption_rate: activeUserKeys.size > 0 ? (service.activeUsers.size / activeUserKeys.size) * 100 : 0,
+      }))
+      .sort((left, right) => right.total_volume - left.total_volume);
+
+    const filterOptionsSource = enrichedCurrentTransactions;
+    const serviceOptions = Array.from(
+      filterOptionsSource.reduce((map, transaction) => {
+        const key = transaction.transaction_type;
+        const current = map.get(key) || {
+          value: key,
+          label: PERSONAL_HUB_SERVICE_LABELS[key] || key,
+          count: 0,
+        };
+        current.count += 1;
+        map.set(key, current);
+        return map;
+      }, new Map<string, { value: string; label: string; count: number }>())
+        .values()
+    ).sort((left, right) => left.label.localeCompare(right.label));
+
+    const statusOptions = Array.from(
+      filterOptionsSource.reduce((map, transaction) => {
+        const key = transaction.status;
+        const current = map.get(key) || {
+          value: key,
+          label: key.charAt(0).toUpperCase() + key.slice(1),
+          count: 0,
+        };
+        current.count += 1;
+        map.set(key, current);
+        return map;
+      }, new Map<string, { value: string; label: string; count: number }>())
+        .values()
+    ).sort((left, right) => left.label.localeCompare(right.label));
+
+    const providerOptions = Array.from(
+      filterOptionsSource.reduce((map, transaction) => {
+        const key = transaction.provider?.trim();
+        if (!key) {
+          return map;
+        }
+
+        const current = map.get(key) || {
+          value: key,
+          label: key,
+          count: 0,
+        };
+        current.count += 1;
+        map.set(key, current);
+        return map;
+      }, new Map<string, { value: string; label: string; count: number }>())
+        .values()
+    ).sort((left, right) => left.label.localeCompare(right.label));
+
+    res.json({
+      success: true,
+      data: {
+        period: String(periodDays),
+        currency_code: DEFAULT_PAYMENT_DISPLAY.currencyCode,
+        currency_symbol: DEFAULT_PAYMENT_DISPLAY.currencySymbol,
+        summary: {
+          total_transactions: totalTransactions,
+          total_transactions_formatted: totalTransactions.toLocaleString('en-GH'),
+          total_volume: totalVolume,
+          total_volume_formatted: formatDashboardMoney(totalVolume),
+          successful_transactions: successfulTransactions,
+          successful_transactions_formatted: successfulTransactions.toLocaleString('en-GH'),
+          failed_transactions: filteredCurrentTransactions.filter((transaction) => transaction.status === 'failed').length,
+          failed_transactions_formatted: filteredCurrentTransactions
+            .filter((transaction) => transaction.status === 'failed')
+            .length.toLocaleString('en-GH'),
+          active_users: activeUserKeys.size,
+          active_users_formatted: activeUserKeys.size.toLocaleString('en-GH'),
+          average_success_rate: averageSuccessRate,
+          average_success_rate_formatted: `${averageSuccessRate.toFixed(1)}%`,
+          growth: {
+            total_transactions: getGrowthRate(totalTransactions, previousTotalTransactions),
+            total_volume: getGrowthRate(totalVolume, previousTotalVolume),
+            active_users: getGrowthRate(activeUserKeys.size, previousActiveUserKeys.size),
+            average_success_rate: getGrowthRate(averageSuccessRate, previousAverageSuccessRate),
+          },
+        },
+        filters: {
+          applied: {
+            service_types: serviceTypes,
+            statuses,
+            providers,
+            search,
+            min_amount: minAmount,
+            max_amount: maxAmount,
+          },
+          options: {
+            services: serviceOptions,
+            statuses: statusOptions,
+            providers: providerOptions,
+          },
+        },
+        transactions_total: totalTransactions,
+        transactions_returned: Math.min(totalTransactions, resultLimit),
+        transactions_truncated: totalTransactions > resultLimit,
+        transactions: filteredCurrentTransactions.slice(0, resultLimit),
+        charts: {
+          revenue_by_service: serviceAggregates,
+          user_engagement: buildPersonalHubEngagementBuckets(filteredCurrentTransactions, periodDays),
+          service_performance: serviceAggregates.map((service) => ({
+            service: service.service,
+            label: service.label,
+            success_rate: service.success_rate,
+            error_rate: service.error_rate,
+            pending_rate:
+              service.total_transactions > 0
+                ? (service.pending_transactions / service.total_transactions) * 100
+                : 0,
+            total_transactions: service.total_transactions,
+          })),
+          service_adoption: serviceAggregates.map((service) => ({
+            service: service.service,
+            label: service.label,
+            active_users: service.active_users,
+            adoption_rate: service.adoption_rate,
+            total_transactions: service.total_transactions,
+          })),
+        },
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to load Personal Hub reports',
     });
   }
 }

@@ -1437,6 +1437,16 @@ export const schemas = {
     period: z.enum(['7', '30', '90', '365']).optional(),
     recent_limit: z.coerce.number().int().min(1).max(25).optional(),
   }),
+  adminPersonalHubReportsQuery: z.object({
+    period: z.enum(['7', '30', '90', '365']).optional(),
+    service_types: optionalString,
+    statuses: optionalString,
+    providers: optionalString,
+    search: optionalString,
+    min_amount: z.coerce.number().min(0).optional(),
+    max_amount: z.coerce.number().min(0).optional(),
+    limit: z.coerce.number().int().min(50).max(1000).optional(),
+  }),
   adminPayoutDestinationCreate: z.object({
     agency_id: optionalString.nullable(),
     community_id: optionalString.nullable(),
