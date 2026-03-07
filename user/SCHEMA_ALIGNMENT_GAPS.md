@@ -23,7 +23,7 @@ Date: 2026-02-07 (updated 2026-02-21)
 | Object | Used As | Referenced In | Decision |
 |---|---|---|---|
 | `attachments` | Supabase Storage bucket | `/Users/andromeda/casanirvana/user/hooks/useTechnicalSupport.js` | Not a Postgres migration; bucket + storage policies required |
-| `chat-attachments` | Supabase Storage bucket | `/Users/andromeda/casanirvana/user/screens/messageScreen.js`, `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/messages/components/ChatArea.tsx` | `Migration` (completed via `supabase/migrations/20260221175254_phase19_chat_calls_and_storage_hardening.sql`) |
+| `chat-attachments` | Supabase Storage bucket | `/Users/andromeda/casanirvana/user/screens/messageScreen.js`, `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/messages/components/ChatArea.tsx` | `Migration` (completed via `supabase/migrations/20260221175254_phase19_chat_calls_and_storage_hardening.sql` + `supabase/migrations/20260307221500_phase19_chat_attachment_privacy_alignment.sql`) |
 
 ## Additional Alignment Gaps (Code vs Runtime Contract)
 | Gap | Evidence | Impact | Decision |
@@ -47,6 +47,9 @@ Date: 2026-02-07 (updated 2026-02-21)
 | Mobile money flow used fake success timer and did not persist save toggles | `mobileMoneyScreen` marked success after timeout without provider callback and skipped `saved_bill_accounts`/`saved_policies` writes | Incorrect transaction state UX and lost user preferences | `Code alignment` (completed: pending-state confirmation + saved account/policy upsert wiring) |
 | Calls table retained permissive legacy RLS policies | `public.calls` had overlapping permissive policies (including unconditional `with check true`) from legacy phases | Cross-tenant call visibility/update risk and inconsistent runtime behavior | `Migration` (completed via `supabase/migrations/20260221175254_phase19_chat_calls_and_storage_hardening.sql`) |
 | Chat attachment bucket had no explicit policies | `storage.objects` had no `chat-attachments` policy set | Chat file uploads/reads could fail or behave inconsistently by environment/session | `Migration` (completed via `supabase/migrations/20260221175254_phase19_chat_calls_and_storage_hardening.sql`) |
+| Chat attachments were persisted as public URLs and payload keys drifted across user / Guard / superadmin | Direct chat uploaders stored `getPublicUrl(...)` results and mixed `name`/`size` vs `fileName`/`fileSize` keys | Chat files were shareable outside authenticated scope and attachments rendered inconsistently across apps | `Migration + Code alignment` (completed via `supabase/migrations/20260307221500_phase19_chat_attachment_privacy_alignment.sql` + shared attachment helpers/signed-url hydration) |
+| User direct-message reads ignored soft-deleted rows | User `useMessages` thread/conversation queries omitted `deleted_at IS NULL` while backend admin delete is soft-delete based | Messages deleted in superadmin could remain visible to residents | `Code alignment` (completed: user message queries now filter soft-deleted rows) |
+| User direct-call UX used fake Expo alerts instead of DB-driven signaling | User `useCallManager` and `callScreen` auto-progressed through alerts/local timers and did not route inbound `calls` rows into the active call screen | Resident call state drifted from Guard/backend reality and inbound calls were not production-wired | `Code alignment` (completed: user call flow now follows realtime `calls` row updates with incoming-route handoff) |
 
 ## Migration vs Code Alignment Plan
 
@@ -65,7 +68,7 @@ Date: 2026-02-07 (updated 2026-02-21)
 
 ### C) Storage Prerequisite
 1. Ensure storage bucket `attachments` exists for support/help-desk file uploads.
-2. Ensure storage bucket `chat-attachments` exists with owner-scoped write/delete policies for messaging.
+2. Ensure storage bucket `chat-attachments` exists with owner-scoped write/delete policies and scoped private-read policies for messaging.
 3. Ensure bucket-level write/read policies match messaging + support workflows.
 
 ## Recommended Immediate Sequence

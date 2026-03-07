@@ -3,6 +3,13 @@ import { supabase } from '../utils/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useState, useEffect } from 'react';
 
+import {
+  buildStoredChatAttachment,
+  hydrateChatAttachments,
+  hydrateMessageChatAttachment,
+  normalizeChatAttachment,
+} from '../utils/chatAttachments';
+
 export const useMessages = (otherUserId) => {
   const queryClient = useQueryClient();
   const { profile } = useAuth(); // Use profile instead of user
@@ -13,6 +20,7 @@ export const useMessages = (otherUserId) => {
     data: messages = [],
     isLoading,
     error,
+    refetch,
   } = useQuery({
     queryKey: ['messages', profile?.id, otherUserId],
     queryFn: async () => {
@@ -24,6 +32,7 @@ export const useMessages = (otherUserId) => {
       const { data: messageData, error: messageError } = await supabase
         .from('messages')
         .select('*')
+        .is('deleted_at', null)
         .or(`and(from_user.eq.${profile.id},to_user.eq.${otherUserId}),and(from_user.eq.${otherUserId},to_user.eq.${profile.id})`)
         .order('sent_at', { ascending: true }); // Oldest first for proper chat flow
 
@@ -65,8 +74,10 @@ export const useMessages = (otherUserId) => {
         }
       }));
 
+      const hydratedMessages = await hydrateChatAttachments(supabase.storage, messageData || []);
+
       // Combine and sort by timestamp
-      const allMessages = [...(messageData || []), ...callMessages].sort((a, b) => 
+      const allMessages = [...hydratedMessages, ...callMessages].sort((a, b) => 
         new Date(a.sent_at) - new Date(b.sent_at)
       );
 
@@ -93,12 +104,15 @@ export const useMessages = (otherUserId) => {
       }
 
       const isAttachmentMessage = messageType !== 'text' && !!attachments;
+      const storedAttachment = isAttachmentMessage
+        ? buildStoredChatAttachment(attachments, messageType)
+        : null;
       const messageData = {
         from_user: profile.id,
         to_user: toUserId,
         body: content,
         message_type: isAttachmentMessage ? 'file' : 'text',
-        attachments: isAttachmentMessage ? { type: messageType, ...attachments } : null,
+        attachments: storedAttachment,
         sent_at: new Date().toISOString(),
         read: false,
         is_read: false,
@@ -120,7 +134,9 @@ export const useMessages = (otherUserId) => {
     },
     onMutate: async ({ toUserId, content, messageType = 'text', attachments = null }) => {
       const isAttachmentMessage = messageType !== 'text' && !!attachments;
-      const normalizedAttachments = isAttachmentMessage ? { type: messageType, ...attachments } : null;
+      const normalizedAttachments = isAttachmentMessage
+        ? normalizeChatAttachment(attachments, messageType)
+        : null;
 
       // Create optimistic message
       const optimisticMessage = {
@@ -145,30 +161,34 @@ export const useMessages = (otherUserId) => {
 
       return { optimisticMessage };
     },
-    onSuccess: (data, variables, context) => {
+    onSuccess: async (data, variables, context) => {
+      const hydratedMessage = await hydrateMessageChatAttachment(supabase.storage, data);
+
       // Immediately update the cache with the real message to avoid disappearing
       const queryKey = ['messages', profile.id, data.to_user];
       queryClient.setQueryData(queryKey, (oldData) => {
-        if (!oldData) return [data];
+        if (!oldData) return [hydratedMessage];
         
         // Check if message already exists to avoid duplicates
         const messageExists = oldData.some(msg => msg.id === data.id);
         if (messageExists) return oldData;
         
         // Add the new message and sort by timestamp
-        return [...oldData, data].sort((a, b) => new Date(a.sent_at) - new Date(b.sent_at));
+        return [...oldData, hydratedMessage].sort((a, b) => new Date(a.sent_at) - new Date(b.sent_at));
       });
 
       // Also update the reverse query key for the other participant
       const reverseQueryKey = ['messages', data.to_user, profile.id];
       queryClient.setQueryData(reverseQueryKey, (oldData) => {
-        if (!oldData) return [data];
+        if (!oldData) return [hydratedMessage];
         
         const messageExists = oldData.some(msg => msg.id === data.id);
         if (messageExists) return oldData;
         
-        return [...oldData, data].sort((a, b) => new Date(a.sent_at) - new Date(b.sent_at));
+        return [...oldData, hydratedMessage].sort((a, b) => new Date(a.sent_at) - new Date(b.sent_at));
       });
+
+      queryClient.invalidateQueries({ queryKey: ['conversations', profile.id] });
       
       // Remove the specific optimistic message that was sent
       if (context?.optimisticMessage) {
@@ -246,6 +266,7 @@ export const useMessages = (otherUserId) => {
     markAsRead: markAsReadMutation.mutate,
     deleteMessage: deleteMessageMutation.mutate,
     isSending: sendMessageMutation.isPending, // Use isPending from mutation
+    refetch,
   };
 };
 
@@ -267,6 +288,7 @@ export const useConversations = () => {
       const { data: messageRows, error: messageError } = await supabase
         .from('messages')
         .select('id, from_user, to_user, body, sent_at, is_read, read, message_type, attachments')
+        .is('deleted_at', null)
         .or(`from_user.eq.${profile.id},to_user.eq.${profile.id}`)
         .order('sent_at', { ascending: false });
 
@@ -275,7 +297,11 @@ export const useConversations = () => {
         throw messageError;
       }
 
-      const rows = messageRows || [];
+      const rows = (messageRows || []).map((message) =>
+        message.message_type === 'file' && message.attachments
+          ? { ...message, attachments: normalizeChatAttachment(message.attachments) }
+          : message,
+      );
       const partnerIds = [...new Set(
         rows
           .map((message) => (message.from_user === profile.id ? message.to_user : message.from_user))

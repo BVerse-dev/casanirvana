@@ -278,6 +278,11 @@ Date: 2026-02-06
 - [x] Aligned user chat attachment uploads to bucket `chat-attachments` with owner-scoped key prefix (`{auth.uid}/chat/{file}`).
 - [x] Normalized remaining React Query invalidation calls in user messaging hooks to TanStack v5 object-form query keys.
 - [x] Applied migration `supabase/migrations/20260221175254_phase19_chat_calls_and_storage_hardening.sql` (legacy calls policy cleanup, scoped calls RLS rebuild, and explicit `chat-attachments` storage policies for authenticated owner + service role).
+- [x] Applied migration `supabase/migrations/20260307221500_phase19_chat_attachment_privacy_alignment.sql` to make `chat-attachments` private, normalize legacy object-path checks, and scope storage reads to message participants, scoped admins, and `service_role`.
+- [x] Standardized direct-chat attachment payloads across user, Guard, and superadmin on canonical signed-url metadata (`type`, `path`, `fileName`, `fileSize`, `mimeType`) while keeping legacy public-url rows readable during migration overlap.
+- [x] Filtered soft-deleted direct messages out of user thread + conversation reads and removed public-URL storage from direct-chat upload paths.
+- [x] Replaced the user Expo-Go call simulation path with signaling-only realtime call-state wiring (`calls` row subscription, incoming-call navigation handoff, and DB-driven answer/reject/end transitions).
+- [x] Reworked user `messageScreen` to show explicit loading/error/empty states and to open hydrated attachment URLs instead of placeholder demo actions.
 - [ ] Manual runtime QA pending for end-to-end chat lifecycle (`superadmin -> user`, attachments, read receipts, call state transitions).
 
 ## Phase 20 - Service Module Hardening (Bottom Tab)

@@ -1,5 +1,6 @@
 import "react-native-gesture-handler";
 import 'react-native-reanimated';
+import { useRef } from "react";
 import { useFonts } from "expo-font";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import {
@@ -14,6 +15,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
 import { AppLockProvider } from "./contexts/AppLockContext";
 import { NotificationNavigationHandler } from "./components/NotificationNavigationHandler";
+import { IncomingCallNavigationHandler } from "./components/IncomingCallNavigationHandler";
 import SplashScreen from "./screens/splashScreen";
 import OnboardingScreen from "./screens/auth/onboardingScreen";
 import LoginScreen from "./screens/auth/loginScreen";
@@ -124,11 +126,14 @@ const GuardedInsuranceScreen = withModuleGuard("insuranceScreen", InsuranceScree
 const GuardedMarketplaceHomeScreen = withModuleGuard("marketplaceHomeScreen", MarketplaceHomeScreen);
 
 const MainNavigation = () => {
+  const navigationRef = useRef(null);
+
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <AppLockProvider>
         <NotificationProvider>
           <NotificationNavigationHandler>
+          <IncomingCallNavigationHandler navigationRef={navigationRef} />
           <Stack.Navigator
           initialRouteName="splashScreen"
           screenOptions={{

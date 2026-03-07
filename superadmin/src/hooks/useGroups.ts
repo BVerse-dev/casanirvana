@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 
 import { supabase } from "../lib/supabase";
 import type { Database } from "../lib/database.types";
+import { hydrateChatAttachments } from "@/utils/chatAttachments";
 
 type Group = Database["public"]["Tables"]["groups"]["Row"];
 type GroupUpdate = Database["public"]["Tables"]["groups"]["Update"];
@@ -328,7 +329,7 @@ export const useListGroupMessages = (groupId: string) => {
         .order("sent_at", { ascending: true });
 
       if (error) throw error;
-      return data;
+      return hydrateChatAttachments(supabase.storage, data || []);
     },
     enabled: !!groupId,
   });

@@ -17,7 +17,6 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { Audio } from 'expo-av';
-import * as FileSystem from 'expo-file-system';
 import * as LegacyFileSystem from 'expo-file-system/legacy';
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useTranslation } from "react-i18next";
@@ -33,8 +32,21 @@ import { useAuth } from "../contexts/AuthContext";
 import { useUserStatus } from "../hooks/useUserStatus";
 import { useCallsSubscription } from "../hooks/useCalls";
 import { supabase } from "../utils/supabase";
+import { buildStoredChatAttachment, normalizeChatAttachment } from "../utils/chatAttachments";
 
 const { width } = Dimensions.get("window");
+
+const resolveAttachmentType = (mimeType = "") => {
+  if (mimeType.startsWith("image/")) {
+    return "image";
+  }
+
+  if (mimeType.startsWith("audio/")) {
+    return "audio";
+  }
+
+  return "document";
+};
 
 const MessageScreen = ({ navigation, route }) => {
   const { image, name, key, phone, id, memberId, memberPhone, email } = route.params;
@@ -176,7 +188,6 @@ const MessageScreen = ({ navigation, route }) => {
       
       // Generate unique filename
       const timestamp = Date.now();
-      const fileExtension = fileName.split('.').pop();
       const ownerFolderId = user?.id || profile?.user_id || profile?.id;
       if (!ownerFolderId) {
         throw new Error("Unable to resolve upload owner for attachment.");
@@ -185,7 +196,7 @@ const MessageScreen = ({ navigation, route }) => {
       const uniqueFileName = `${ownerFolderId}/chat/${timestamp}-${fileName}`;
       
       // Upload to Supabase Storage using ArrayBuffer
-      const { data, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from('chat-attachments')
         .upload(uniqueFileName, arrayBuffer, {
           contentType: mimeType,
@@ -195,16 +206,18 @@ const MessageScreen = ({ navigation, route }) => {
         throw error;
       }
       
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('chat-attachments')
-        .getPublicUrl(uniqueFileName);
-      
       return {
-        url: publicUrl,
-        fileName: fileName,
-        fileSize: arrayBuffer.byteLength,
-        mimeType: mimeType
+        ...buildStoredChatAttachment(
+          {
+            path: uniqueFileName,
+            url: fileUri,
+            fileName,
+            fileSize: arrayBuffer.byteLength,
+            mimeType,
+          },
+          resolveAttachmentType(mimeType)
+        ),
+        url: fileUri,
       };
       
     } catch (error) {
@@ -545,7 +558,7 @@ const MessageScreen = ({ navigation, route }) => {
   }, [message, isSending, id, memberId, sendMessage, scrollToBottom]);
 
   // Transform messages for display
-  const transformedMessages = (messages || []).map((msg, index) => {
+  const transformedMessages = (messages || []).map((msg) => {
     const isMe = msg.from_user === profile?.id;
     
     // Parse message body if it contains JSON (for attachments or calls)
@@ -557,7 +570,9 @@ const MessageScreen = ({ navigation, route }) => {
     // Check if message is from optimistic update (has temporary fields)
     if (msg._messageType) {
       messageType = msg._messageType;
-      attachments = msg._attachments || msg._callData;
+      attachments = msg._attachments
+        ? normalizeChatAttachment(msg._attachments, msg._messageType)
+        : msg._callData;
       messageStatus = msg._status || 'sent';
     } else if (msg._isCall) {
       // Handle call records
@@ -565,9 +580,9 @@ const MessageScreen = ({ navigation, route }) => {
       // Use _callData if available, otherwise try to parse from body
       attachments = msg._callData || (msg.body && msg.body.startsWith('{') ? JSON.parse(msg.body) : { type: 'call', call_type: 'voice', status: 'ended' });
     } else if (msg.message_type === 'file' && msg.attachments) {
-      messageType = msg.attachments.type || 'document';
-      attachments = msg.attachments;
-      messageContent = msg.body || msg.attachments.fileName || 'Attachment';
+      attachments = normalizeChatAttachment(msg.attachments);
+      messageType = attachments.type || 'document';
+      messageContent = msg.body || attachments.fileName || 'Attachment';
     } else {
       // Try to parse JSON from body for stored messages
       try {
@@ -575,7 +590,9 @@ const MessageScreen = ({ navigation, route }) => {
         if (parsed.type && (parsed.attachment || parsed.call_type)) {
           messageType = parsed.type;
           messageContent = parsed.content || 'Call';
-          attachments = parsed.attachment || parsed;
+          attachments = parsed.attachment
+            ? normalizeChatAttachment(parsed.attachment, parsed.type)
+            : parsed;
         }
       } catch (e) {
         // Not JSON, treat as plain text
@@ -620,22 +637,29 @@ const MessageScreen = ({ navigation, route }) => {
       id: id || memberId,
       memberId,
       memberPhone,
+      calleeProfileId: memberId || id,
+      mode: "outgoing",
     });
   };
 
-  // Use real messages or fallback to demo data if no real messages
-  const displayData = transformedMessages && transformedMessages.length > 0 ? transformedMessages : [
-    {
-      key: 8,
-      txtMsg: "Welcome! Start a conversation.",
-      msgTime: moment().format("h:mm A"),
-      isMe: false,
-    },
-  ];
+  const displayData = transformedMessages || [];
 
   const handleMsgSend = useCallback(() => {
     handleSendMessage();
   }, [handleSendMessage]);
+
+  const openAttachment = useCallback(async (attachment, fallbackMessage) => {
+    if (!attachment?.url) {
+      Alert.alert("Attachment Unavailable", "This attachment is still syncing. Please try again.");
+      return;
+    }
+
+    try {
+      await Linking.openURL(attachment.url);
+    } catch (openError) {
+      Alert.alert("Error", fallbackMessage);
+    }
+  }, []);
 
   // Render message content based on type
   const renderMessageContent = (item) => {
@@ -766,9 +790,7 @@ const MessageScreen = ({ navigation, route }) => {
         if (item.attachments?.url) {
           return (
             <TouchableOpacity
-              onPress={() => {
-                Alert.alert('Image', 'Image preview functionality can be enhanced with a full-screen viewer.');
-              }}
+              onPress={() => openAttachment(item.attachments, 'Unable to open image.')}
             >
               <Image
                 source={{ uri: item.attachments.url }}
@@ -799,9 +821,7 @@ const MessageScreen = ({ navigation, route }) => {
                 borderRadius: 10,
                 minWidth: 150,
               }}
-              onPress={() => {
-                Alert.alert('Voice Message', 'Audio playback functionality will be enhanced with audio controls.');
-              }}
+              onPress={() => openAttachment(item.attachments, 'Unable to play voice message.')}
             >
               <Ionicons 
                 name="play-circle" 
@@ -839,11 +859,7 @@ const MessageScreen = ({ navigation, route }) => {
                 borderRadius: 10,
                 minWidth: 180,
               }}
-              onPress={() => {
-                Linking.openURL(item.attachments.url).catch(() => {
-                  Alert.alert('Error', 'Unable to open document.');
-                });
-              }}
+              onPress={() => openAttachment(item.attachments, 'Unable to open document.')}
             >
               <Ionicons 
                 name="document-text" 
@@ -1016,6 +1032,35 @@ const MessageScreen = ({ navigation, route }) => {
   };
 
   const chatContainer = () => {
+    if (isLoading) {
+      return (
+        <View style={styles.stateContainer}>
+          <Text style={styles.stateTitle}>Loading conversation...</Text>
+          <Text style={styles.stateBody}>Messages are syncing from the server.</Text>
+        </View>
+      );
+    }
+
+    if (error) {
+      return (
+        <View style={styles.stateContainer}>
+          <Text style={styles.stateTitle}>Conversation unavailable</Text>
+          <Text style={styles.stateBody}>
+            {error.message || "We couldn't load this conversation right now."}
+          </Text>
+        </View>
+      );
+    }
+
+    if (displayData.length === 0) {
+      return (
+        <View style={styles.stateContainer}>
+          <Text style={styles.stateTitle}>Start a conversation</Text>
+          <Text style={styles.stateBody}>Your messages will appear here as soon as you send one.</Text>
+        </View>
+      );
+    }
+
     return (
       <FlatList
         data={displayData}
@@ -1285,6 +1330,21 @@ const styles = StyleSheet.create({
   uploadingText: {
     ...Fonts.Regular12primary,
     marginLeft: Default.fixPadding * 0.5,
+  },
+  stateContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: Default.fixPadding * 2,
+  },
+  stateTitle: {
+    ...Fonts.SemiBold18black,
+    textAlign: "center",
+  },
+  stateBody: {
+    ...Fonts.Medium14grey,
+    textAlign: "center",
+    marginTop: Default.fixPadding,
   },
   
   messageCircleImgStyle: {

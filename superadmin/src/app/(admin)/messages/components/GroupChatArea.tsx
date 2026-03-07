@@ -45,6 +45,7 @@ import small2 from "@/assets/images/small/img-2.jpg";
 import small3 from "@/assets/images/small/img-3.jpg";
 import TextFormInput from "@/components/from/TextFormInput";
 import Image from "next/image";
+import { buildStoredChatAttachment } from "@/utils/chatAttachments";
 
 interface GroupChatAreaProps {
   groupId: string;
@@ -571,19 +572,16 @@ const GroupChatArea = ({ groupId }: GroupChatAreaProps) => {
         throw uploadError;
       }
 
-      const { data: { publicUrl } } = supabase.storage.from('chat-attachments').getPublicUrl(storagePath);
-
       await createGroupMessageMutation.mutateAsync({
         group_id: groupId,
         body: `📎 ${file.name}`,
         message_type: "file",
-        attachments: { 
-          filename: file.name,
-          size: file.size,
+        attachments: buildStoredChatAttachment({
+          path: storagePath,
+          fileName: file.name,
+          fileSize: file.size,
           mimeType: file.type,
-          name: file.name,
-          url: publicUrl,
-        },
+        }),
       });
     } catch {
     }

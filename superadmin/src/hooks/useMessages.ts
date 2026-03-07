@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 
 import { supabase } from "../lib/supabase";
 import type { Database } from "../lib/database.types";
+import { buildStoredChatAttachment, hydrateChatAttachments, hydrateMessageChatAttachment } from "@/utils/chatAttachments";
 
 type Message = Database["public"]["Tables"]["messages"]["Row"];
 type MessageInsert = Database["public"]["Tables"]["messages"]["Insert"];
@@ -99,7 +100,7 @@ export const useListMessages = (fromUser?: string, toUser?: string) => {
         .order("sent_at", { ascending: true });
 
       if (error) throw error;
-      return data;
+      return hydrateChatAttachments(supabase.storage, data || []);
     },
     enabled: !!fromUser && !!toUser,
   });
@@ -113,7 +114,7 @@ export const useGetMessage = (id: string) => {
     queryFn: async () => {
       const { data, error } = await supabase.from("messages").select("*").eq("id", id).single();
       if (error) throw error;
-      return data;
+      return hydrateMessageChatAttachment(supabase.storage, data);
     },
     enabled: !!id,
   });

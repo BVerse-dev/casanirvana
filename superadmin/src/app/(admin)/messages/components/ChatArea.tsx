@@ -35,6 +35,7 @@ import { getFileExtensionIcon } from "@/utils/get-icons";
 import { useCreateMessage, useListMessages } from "@/hooks/useMessages";
 import { avatars } from "@/assets/images/users";
 import { supabase } from '@/lib/supabase';
+import { buildStoredChatAttachment } from "@/utils/chatAttachments";
 
 import small1 from "@/assets/images/small/img-1.jpg";
 import small2 from "@/assets/images/small/img-2.jpg";
@@ -761,24 +762,18 @@ const ChatArea = ({ selectedUser, selectedUserId }: { selectedUser: ChatUser; se
         });
         toast.error("File upload failed. A text notice was sent instead.");
       } else {
-        // Get public URL for the uploaded file
-        const { data: { publicUrl } } = supabase.storage
-          .from('chat-attachments')
-          .getPublicUrl(storagePath);
-
         // Send message with file attachment
         await createMessageMutation.mutateAsync({
           from_user: currentUserId,
           to_user: effectiveSelectedUserId,
           body: `📎 ${file.name}`,
           content: null,
-          attachments: {
-            type: 'file',
-            url: publicUrl,
-            name: file.name,
-            size: file.size,
-            mimeType: file.type
-          },
+          attachments: buildStoredChatAttachment({
+            path: storagePath,
+            fileName: file.name,
+            fileSize: file.size,
+            mimeType: file.type,
+          }),
           message_type: 'file',
           sent_at: new Date().toISOString(),
           read: false,
