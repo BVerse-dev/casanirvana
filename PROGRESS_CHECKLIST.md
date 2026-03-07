@@ -836,6 +836,10 @@ Date: 2026-02-06
   - Rebuilt `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/notifications/campaigns/components/NotificationCampaignsView.tsx` into a single cross-channel queue workspace with workflow tabs, channel filters, shared template selection, and cleaner operations-first list/detail UX instead of mixing analytics views into campaign management.
   - Extended `/Users/andromeda/casanirvana/backend/src/controllers/adminNotifications.ts` and `/Users/andromeda/casanirvana/superadmin/src/hooks/useNotificationCampaigns.ts` so campaign creation now supports explicit `draft`, `scheduled`, and `processing` orchestration states without forcing every new campaign directly into a live send path.
   - Revalidated both `npm run build` in `/Users/andromeda/casanirvana/backend` and `npm run build` in `/Users/andromeda/casanirvana/superadmin`; no SQL migration was required for this slice.
+- [x] Notifications templates and reports consolidation slice completed:
+  - Rebuilt `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/notifications/templates/components/NotificationTemplatesView.tsx` into a single template-library workspace with cross-channel filters, truthful library coverage summaries, and cleaner template create/preview/archive/delete flows instead of splitting the page into a second analytics mini-product.
+  - Rebuilt `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/notifications/analytics/components/NotificationAnalyticsView.tsx` into a single reports workspace with shared filters, delivery/engagement trend sections, cross-channel comparison, and top-campaign reporting instead of four separate tabbed report surfaces.
+  - Revalidated `npm run build` in `/Users/andromeda/casanirvana/superadmin`; no SQL migration was required for this slice.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)
