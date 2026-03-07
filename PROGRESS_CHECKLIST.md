@@ -906,6 +906,7 @@ Date: 2026-02-06
 - [x] `GET/POST/PATCH/DELETE /admin/agencies/services`
 - [x] `GET/POST/PATCH /admin/agencies/finance`
 - [x] `GET/POST/PATCH/DELETE /admin/agencies/documents`
+- [x] `GET /admin/personal-hub/dashboard` (scoped Personal Hub dashboard read model for superadmin operations)
 
 ## Environment Variables (Required)
 - `ADMIN_INVITE_REDIRECT_URL`

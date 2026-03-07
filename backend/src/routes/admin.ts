@@ -696,6 +696,13 @@ router.put(
 // Payment management routes
 router.get('/payments/stats', requireAuth, requirePermission('read:all_payments'), adminController.getPaymentStats);
 router.get(
+  '/personal-hub/dashboard',
+  requireAuth,
+  requirePermission('read:all_payments'),
+  validateRequest({ query: schemas.adminPersonalHubDashboardQuery }),
+  paymentController.getAdminPersonalHubDashboard
+);
+router.get(
   '/payments/transactions',
   requireAuth,
   requirePermission('read:all_payments'),

@@ -1433,6 +1433,10 @@ export const schemas = {
     agency_id: optionalString,
     community_id: optionalString,
   }),
+  adminPersonalHubDashboardQuery: z.object({
+    period: z.enum(['7', '30', '90', '365']).optional(),
+    recent_limit: z.coerce.number().int().min(1).max(25).optional(),
+  }),
   adminPayoutDestinationCreate: z.object({
     agency_id: optionalString.nullable(),
     community_id: optionalString.nullable(),

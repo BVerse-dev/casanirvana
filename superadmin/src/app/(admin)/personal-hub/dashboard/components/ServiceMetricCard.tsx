@@ -7,17 +7,18 @@ import IconifyIcon from '@/components/wrappers/IconifyIcon';
 interface ServiceMetricCardProps {
   title: string;
   value: string;
-  growth: string;
+  trend: number | null;
   icon: string;
   variant: 'primary' | 'success' | 'info' | 'warning' | 'danger' | 'secondary';
 }
 
-const ServiceMetricCard = ({ title, value, growth, icon, variant }: ServiceMetricCardProps) => {
-  // Determine if growth is positive or negative
-  const isPositiveGrowth = growth.startsWith('+');
-  const growthColor = isPositiveGrowth ? 'text-success' : 'text-danger';
-  const growthIcon = isPositiveGrowth ? 'ri:arrow-up-line' : 'ri:arrow-down-line';
-  
+const ServiceMetricCard = ({ title, value, trend, icon, variant }: ServiceMetricCardProps) => {
+  const hasTrend = typeof trend === 'number' && Number.isFinite(trend);
+  const isPositiveTrend = hasTrend && trend >= 0;
+  const trendColor = !hasTrend ? 'text-muted' : isPositiveTrend ? 'text-success' : 'text-danger';
+  const trendIcon = !hasTrend ? 'ri:subtract-line' : isPositiveTrend ? 'ri:arrow-up-line' : 'ri:arrow-down-line';
+  const trendLabel = hasTrend ? `${Math.abs(trend).toFixed(1)}%` : 'No prior period';
+
   return (
     <Card className="widget-flat mb-3">
       <Card.Body>
@@ -32,11 +33,11 @@ const ServiceMetricCard = ({ title, value, growth, icon, variant }: ServiceMetri
             <p className="text-muted mb-0 fw-semibold">{title}</p>
           </div>
           <div className="flex-shrink-0">
-            <div className={`${growthColor} d-flex align-items-center`}>
-              <IconifyIcon icon={growthIcon} className="font-16 me-1" />
-              {growth}
+            <div className={`${trendColor} d-flex align-items-center justify-content-end`}>
+              <IconifyIcon icon={trendIcon} className="font-16 me-1" />
+              {trendLabel}
             </div>
-            <p className="text-muted mb-0 small">vs. last month</p>
+            <p className="text-muted mb-0 small">vs previous period</p>
           </div>
         </div>
       </Card.Body>

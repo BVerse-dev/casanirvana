@@ -3,63 +3,38 @@
 import React from 'react';
 import { Card, CardBody, CardHeader, CardTitle } from 'react-bootstrap';
 import { ApexOptions } from 'apexcharts';
-import ReactApexChart from '@/components/wrappers/ReactApexChart';
 
-interface ServiceMetric {
-  service: string;
-  totalTransactions: number;
-  successfulTransactions: number;
-  failedTransactions: number;
-  totalVolume: number;
-  totalCommission: number;
-  averageResponseTime: number;
-  successRate: number;
-  growthRate: number;
-}
+import ReactApexChart from '@/components/wrappers/ReactApexChart';
+import type { PersonalHubServiceMetric } from '@/hooks/usePersonalHubDashboard';
 
 interface ServicePopularityChartProps {
-  serviceMetrics: ServiceMetric[];
+  serviceMetrics: PersonalHubServiceMetric[];
 }
 
 const ServicePopularityChart: React.FC<ServicePopularityChartProps> = ({ serviceMetrics }) => {
-  // Process real data or use fallback
-  const processServiceData = () => {
-    if (!serviceMetrics || serviceMetrics.length === 0) {
-      return {
-        series: [44, 25, 15, 10, 6],
-        labels: ['Airtime', 'Data', 'Money Transfer', 'Bill Payments', 'Marketplace']
-      };
-    }
+  const activeServices = serviceMetrics.filter((service) => service.totalTransactions > 0);
 
-    const serviceLabels = serviceMetrics.map(service => {
-      switch(service.service) {
-        case 'airtime': return 'Airtime';
-        case 'data': return 'Data';
-        case 'money_transfer': return 'Money Transfer';
-        case 'bill_payment': return 'Bill Payments';
-        case 'insurance': return 'Insurance';
-        case 'marketplace': return 'Marketplace';
-        default: return service.service;
-      }
-    });
-    
-    const serviceSeries = serviceMetrics.map(service => service.totalTransactions);
-    
-    return {
-      series: serviceSeries,
-      labels: serviceLabels
-    };
-  };
+  if (activeServices.length === 0) {
+    return (
+      <Card className="mb-3">
+        <CardHeader>
+          <CardTitle className="mb-0">Service Popularity</CardTitle>
+        </CardHeader>
+        <CardBody>
+          <div className="py-5 text-center text-muted">
+            No Personal Hub transactions are available for the selected period.
+          </div>
+        </CardBody>
+      </Card>
+    );
+  }
 
-  const { series, labels } = processServiceData();
-  
-  // Chart options
   const options: ApexOptions = {
     chart: {
       height: 320,
       type: 'donut',
     },
-    colors: ['#727cf5', '#39afd1', '#fa5c7c', '#ffbc00', '#43d39e'],
+    colors: ['#727cf5', '#39afd1', '#fa5c7c', '#ffbc00', '#43d39e', '#6c757d'],
     legend: {
       show: true,
       position: 'bottom',
@@ -69,7 +44,26 @@ const ServicePopularityChart: React.FC<ServicePopularityChartProps> = ({ service
       offsetX: 0,
       offsetY: 7,
     },
-    labels: labels,
+    labels: activeServices.map((service) => service.label),
+    plotOptions: {
+      pie: {
+        donut: {
+          size: '70%',
+          labels: {
+            show: true,
+            total: {
+              show: true,
+              fontSize: '16px',
+              color: '#333',
+              label: 'Total',
+              formatter(w) {
+                return w.globals.seriesTotals.reduce((left, right) => left + right, 0).toString();
+              },
+            },
+          },
+        },
+      },
+    },
     responsive: [
       {
         breakpoint: 600,
@@ -83,33 +77,6 @@ const ServicePopularityChart: React.FC<ServicePopularityChartProps> = ({ service
         },
       },
     ],
-    plotOptions: {
-      pie: {
-        donut: {
-          size: '70%',
-          labels: {
-            show: true,
-            total: {
-              show: true,
-              fontSize: '16px',
-              color: '#333',
-              label: 'Total',
-              formatter: function (w) {
-                return w.globals.seriesTotals.reduce((a, b) => a + b, 0).toString();
-              },
-            },
-            value: {
-              show: true,
-              fontSize: '22px',
-              fontWeight: 600,
-              formatter: function (val) {
-                return val.toFixed(0);
-              },
-            },
-          },
-        },
-      },
-    },
   };
 
   return (
@@ -119,20 +86,15 @@ const ServicePopularityChart: React.FC<ServicePopularityChartProps> = ({ service
       </CardHeader>
       <CardBody>
         <div className="text-center mb-3">
-          <p className="text-muted mb-1">Distribution of services used</p>
+          <p className="text-muted mb-1">Distribution of Personal Hub transactions by service</p>
         </div>
         <ReactApexChart
           options={options}
-          series={series}
+          series={activeServices.map((service) => service.totalTransactions)}
           type="donut"
           height={320}
           className="apex-charts"
         />
-        <div className="text-center mt-2">
-          <p className="text-muted mb-0 font-13">
-            <span className="fw-semibold">Note:</span> Based on total transaction count
-          </p>
-        </div>
       </CardBody>
     </Card>
   );
