@@ -1,40 +1,25 @@
 import { Metadata } from "next";
-import { Card, CardBody, CardHeader, Col, Row } from "react-bootstrap";
-import InAppNotificationsView from "./components/InAppNotificationsView";
+import WorkspaceRelocationNotice from "@/components/WorkspaceRelocationNotice";
 
 export const metadata: Metadata = {
   title: "In-App Notifications",
-  description: "Manage and send in-app notifications within the Casa Nirvana mobile and web applications",
+  description: "In-app notification operations now run from the shared notification campaigns workspace",
 };
 
 const InAppNotifications = () => {
   return (
-    <>
-      <Row>
-        <Col xs={12}>
-          <div className="page-title-box">
-            <div className="page-title-right"></div>
-            <h4 className="page-title">In-App Notifications</h4>
-          </div>
-        </Col>
-      </Row>
-
-      <Row>
-        <Col xs={12}>
-          <Card>
-            <CardHeader>
-              <h4 className="header-title">In-App Messaging System</h4>
-              <p className="text-muted mb-0">
-                Send real-time notifications within the mobile and web applications
-              </p>
-            </CardHeader>
-            <CardBody>
-              <InAppNotificationsView />
-            </CardBody>
-          </Card>
-        </Col>
-      </Row>
-    </>
+    <WorkspaceRelocationNotice
+      title="In-App Notifications"
+      subName="Notifications Workspace"
+      badgeLabel="Shared Campaigns"
+      reason="In-app messaging is now managed from the unified campaigns workspace so user, guard, and admin app notifications stay aligned. Keep inbox delivery behavior and display preferences in Notification Setup."
+      primaryLabel="Open Notification Campaigns"
+      primaryUrl="/notifications/campaigns"
+      secondaryLabel="Open In-App Setup"
+      secondaryUrl="/settings/notifications/in-app"
+      tertiaryLabel="Open Reports"
+      tertiaryUrl="/notifications/analytics"
+    />
   );
 };
 

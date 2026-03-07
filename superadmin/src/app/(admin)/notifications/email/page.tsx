@@ -1,40 +1,25 @@
 import { Metadata } from "next";
-import { Card, CardBody, CardHeader, Col, Row } from "react-bootstrap";
-import EmailNotificationsView from "./components/EmailNotificationsView";
+import WorkspaceRelocationNotice from "@/components/WorkspaceRelocationNotice";
 
 export const metadata: Metadata = {
   title: "Email Notifications",
-  description: "Manage and send email notifications to residents and staff members",
+  description: "Email operations now run from the shared notification campaigns workspace",
 };
 
 const EmailNotifications = () => {
   return (
-    <>
-      <Row>
-        <Col xs={12}>
-          <div className="page-title-box">
-            <div className="page-title-right"></div>
-            <h4 className="page-title">Email Notifications</h4>
-          </div>
-        </Col>
-      </Row>
-
-      <Row>
-        <Col xs={12}>
-          <Card>
-            <CardHeader>
-              <h4 className="header-title">Email Campaign Management</h4>
-              <p className="text-muted mb-0">
-                Create and send professional email notifications with rich content and templates
-              </p>
-            </CardHeader>
-            <CardBody>
-              <EmailNotificationsView />
-            </CardBody>
-          </Card>
-        </Col>
-      </Row>
-    </>
+    <WorkspaceRelocationNotice
+      title="Email Notifications"
+      subName="Notifications Workspace"
+      badgeLabel="Shared Campaigns"
+      reason="Email campaigns, drafts, and delivery review are now managed from the shared campaigns workspace. Keep SMTP, sender identity, and routing rules in Notification Setup."
+      primaryLabel="Open Notification Campaigns"
+      primaryUrl="/notifications/campaigns"
+      secondaryLabel="Open Email Setup"
+      secondaryUrl="/settings/notifications/email"
+      tertiaryLabel="Open Templates"
+      tertiaryUrl="/notifications/templates"
+    />
   );
 };
 

@@ -3,8 +3,8 @@ import { Card, CardBody, CardHeader, Col, Row } from "react-bootstrap";
 import NotificationsDashboardView from "./components/NotificationsDashboardView";
 
 export const metadata: Metadata = {
-  title: "Notifications Dashboard",
-  description: "Comprehensive overview of all notification activities and metrics",
+  title: "Notifications Overview",
+  description: "Unified operational overview of notification activity across all channels",
 };
 
 const NotificationsDashboard = () => {
@@ -14,7 +14,7 @@ const NotificationsDashboard = () => {
         <Col xs={12}>
           <div className="page-title-box">
             <div className="page-title-right"></div>
-            <h4 className="page-title">Notifications Dashboard</h4>
+            <h4 className="page-title">Notifications Overview</h4>
           </div>
         </Col>
       </Row>

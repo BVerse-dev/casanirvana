@@ -1,40 +1,25 @@
 import { Metadata } from "next";
-import { Card, CardBody, CardHeader, Col, Row } from "react-bootstrap";
-import SmsNotificationsView from "./components/SmsNotificationsView";
+import WorkspaceRelocationNotice from "@/components/WorkspaceRelocationNotice";
 
 export const metadata: Metadata = {
   title: "SMS Notifications",
-  description: "Manage and send SMS notifications to residents and staff members",
+  description: "SMS operations now run from the shared notification campaigns workspace",
 };
 
 const SmsNotifications = () => {
   return (
-    <>
-      <Row>
-        <Col xs={12}>
-          <div className="page-title-box">
-            <div className="page-title-right"></div>
-            <h4 className="page-title">SMS Notifications</h4>
-          </div>
-        </Col>
-      </Row>
-
-      <Row>
-        <Col xs={12}>
-          <Card>
-            <CardHeader>
-              <h4 className="header-title">SMS Management</h4>
-              <p className="text-muted mb-0">
-                Send and manage SMS notifications to residents, staff, and other stakeholders
-              </p>
-            </CardHeader>
-            <CardBody>
-              <SmsNotificationsView />
-            </CardBody>
-          </Card>
-        </Col>
-      </Row>
-    </>
+    <WorkspaceRelocationNotice
+      title="SMS Notifications"
+      subName="Notifications Workspace"
+      badgeLabel="Shared Campaigns"
+      reason="SMS sending, scheduling, and delivery review are now managed from the unified campaigns workspace. Keep SMS provider credentials and delivery limits in Notification Setup."
+      primaryLabel="Open Notification Campaigns"
+      primaryUrl="/notifications/campaigns"
+      secondaryLabel="Open SMS Setup"
+      secondaryUrl="/settings/notifications/sms"
+      tertiaryLabel="Open Reports"
+      tertiaryUrl="/notifications/analytics"
+    />
   );
 };
 

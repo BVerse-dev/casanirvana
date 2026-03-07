@@ -828,6 +828,10 @@ Date: 2026-02-06
   - Rebuilt `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/notifications/analytics/components/NotificationAnalyticsView.tsx` to derive overview charts, channel metrics, quick stats, top-campaign tables, and CSV export data from live `notification_campaigns` analytics instead of placeholder trend arrays and fake KPI copy.
   - Reworked `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/notifications/templates/components/NotificationTemplatesView.tsx` so preview/duplicate/archive/delete actions are real, dead footer actions are removed, and template analytics now reflect the stored template inventory without placeholder behavior.
   - Revalidated the superadmin production build after the notifications core remediation (`npm run build` in `/Users/andromeda/casanirvana/superadmin` passed).
+- [x] Notifications IA cleanup slice (menu + legacy route consolidation):
+  - Simplified `/Users/andromeda/casanirvana/superadmin/src/assets/data/menu-items.ts` so Notifications now exposes only `Overview`, `Campaigns`, `Templates`, and `Reports`, removing duplicated per-channel workspace links and the old `Settings & Preferences` entry.
+  - Added `/Users/andromeda/casanirvana/superadmin/src/components/WorkspaceRelocationNotice.tsx` and replaced the legacy `/notifications/push`, `/notifications/sms`, `/notifications/email`, and `/notifications/in-app` pages with clean relocation notices that route admins into the unified campaigns workspace or `Settings > Notification Setup`.
+  - Renamed the dashboard/reporting metadata and titles so the notifications area now reads as a single shared operations workspace instead of four separate mini-products.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)

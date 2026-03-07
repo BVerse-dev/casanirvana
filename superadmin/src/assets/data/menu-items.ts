@@ -405,32 +405,8 @@ export const MENU_ITEMS: MenuItemType[] = [
     children: [
       {
         key: "notifications-dashboard",
-        label: "Notifications Dashboard",
+        label: "Overview",
         url: "/notifications/dashboard",
-        parentKey: "notifications",
-      },
-      {
-        key: "push-notifications",
-        label: "Push Notifications",
-        url: "/notifications/push",
-        parentKey: "notifications",
-      },
-      {
-        key: "sms-notifications",
-        label: "SMS Notifications",
-        url: "/notifications/sms",
-        parentKey: "notifications",
-      },
-      {
-        key: "email-notifications",
-        label: "Email Notifications",
-        url: "/notifications/email",
-        parentKey: "notifications",
-      },
-      {
-        key: "in-app-notifications",
-        label: "In-App Notifications",
-        url: "/notifications/in-app",
         parentKey: "notifications",
       },
       {
@@ -447,14 +423,8 @@ export const MENU_ITEMS: MenuItemType[] = [
       },
       {
         key: "notification-analytics",
-        label: "Analytics & Reports",
+        label: "Reports",
         url: "/notifications/analytics",
-        parentKey: "notifications",
-      },
-      {
-        key: "notification-settings",
-        label: "Settings & Preferences",
-        url: "/notifications/settings",
         parentKey: "notifications",
       },
     ],

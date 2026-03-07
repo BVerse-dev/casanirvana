@@ -1,37 +1,25 @@
 import { Metadata } from "next";
-import { Card, CardBody, CardHeader, Col, Row } from "react-bootstrap";
-import PushNotificationsView from "./components/PushNotificationsView";
+import WorkspaceRelocationNotice from "@/components/WorkspaceRelocationNotice";
 
 export const metadata: Metadata = {
   title: "Push Notifications",
-  description: "Manage and send push notifications to mobile devices and web browsers",
+  description: "Push operations now run from the shared notification campaigns workspace",
 };
 
 const PushNotifications = () => {
   return (
-    <>
-      <Row>
-        <Col xs={12}>
-          <div className="page-title-box">
-            <div className="page-title-right"></div>
-            <h4 className="page-title">Push Notifications</h4>
-          </div>
-        </Col>
-      </Row>
-
-      <Row>
-        <Col xs={12}>
-          <Card>
-            <CardHeader className="d-flex justify-content-between align-items-center">
-              <h4 className="header-title">Push Notification Management</h4>
-            </CardHeader>
-            <CardBody>
-              <PushNotificationsView />
-            </CardBody>
-          </Card>
-        </Col>
-      </Row>
-    </>
+    <WorkspaceRelocationNotice
+      title="Push Notifications"
+      subName="Notifications Workspace"
+      badgeLabel="Shared Campaigns"
+      reason="Push is no longer managed as a separate admin module. Use the unified campaigns workspace for operational sending and history, then use Notification Setup for Firebase and delivery configuration."
+      primaryLabel="Open Notification Campaigns"
+      primaryUrl="/notifications/campaigns"
+      secondaryLabel="Open Push Setup"
+      secondaryUrl="/settings/notifications/push"
+      tertiaryLabel="Open Reports"
+      tertiaryUrl="/notifications/analytics"
+    />
   );
 };
 
