@@ -15,6 +15,7 @@ export async function createNotificationCampaign(req: Request, res: Response, ne
       spent,
       scheduled_at,
       sent_at,
+      status,
     } = req.body || {};
 
     const campaignName = name || title;
@@ -22,12 +23,37 @@ export async function createNotificationCampaign(req: Request, res: Response, ne
       return res.status(400).json({ error: 'name/title and type are required' });
     }
 
+    const allowedStatuses = new Set([
+      'draft',
+      'scheduled',
+      'active',
+      'completed',
+      'paused',
+      'processing',
+      'delivered',
+      'failed',
+    ]);
+
+    const normalizedStatus =
+      typeof status === 'string' && allowedStatuses.has(status)
+        ? status
+        : scheduled_at
+          ? 'scheduled'
+          : sent_at
+            ? 'processing'
+            : 'processing';
+    const normalizedScheduledAt = scheduled_at || null;
+    const normalizedSentAt =
+      sent_at || ['processing', 'active', 'completed', 'delivered'].includes(normalizedStatus)
+        ? (sent_at || new Date().toISOString())
+        : null;
+
     const { data, error } = await supabase
       .from('notification_campaigns')
       .insert({
         name: campaignName,
         type,
-        status: 'processing',
+        status: normalizedStatus,
         recipients_count: typeof recipients_count === 'number' ? recipients_count : 0,
         delivered_count: 0,
         opened_count: 0,
@@ -37,8 +63,8 @@ export async function createNotificationCampaign(req: Request, res: Response, ne
         audience: audience || null,
         budget: budget ?? null,
         spent: spent ?? null,
-        scheduled_at: scheduled_at || null,
-        sent_at: sent_at || new Date().toISOString(),
+        scheduled_at: normalizedScheduledAt,
+        sent_at: normalizedSentAt,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })

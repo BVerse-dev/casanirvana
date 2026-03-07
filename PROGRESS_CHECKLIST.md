@@ -832,6 +832,10 @@ Date: 2026-02-06
   - Simplified `/Users/andromeda/casanirvana/superadmin/src/assets/data/menu-items.ts` so Notifications now exposes only `Overview`, `Campaigns`, `Templates`, and `Reports`, removing duplicated per-channel workspace links and the old `Settings & Preferences` entry.
   - Added `/Users/andromeda/casanirvana/superadmin/src/components/WorkspaceRelocationNotice.tsx` and replaced the legacy `/notifications/push`, `/notifications/sms`, `/notifications/email`, and `/notifications/in-app` pages with clean relocation notices that route admins into the unified campaigns workspace or `Settings > Notification Setup`.
   - Renamed the dashboard/reporting metadata and titles so the notifications area now reads as a single shared operations workspace instead of four separate mini-products.
+- [x] Notifications campaigns consolidation slice completed:
+  - Rebuilt `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/notifications/campaigns/components/NotificationCampaignsView.tsx` into a single cross-channel queue workspace with workflow tabs, channel filters, shared template selection, and cleaner operations-first list/detail UX instead of mixing analytics views into campaign management.
+  - Extended `/Users/andromeda/casanirvana/backend/src/controllers/adminNotifications.ts` and `/Users/andromeda/casanirvana/superadmin/src/hooks/useNotificationCampaigns.ts` so campaign creation now supports explicit `draft`, `scheduled`, and `processing` orchestration states without forcing every new campaign directly into a live send path.
+  - Revalidated both `npm run build` in `/Users/andromeda/casanirvana/backend` and `npm run build` in `/Users/andromeda/casanirvana/superadmin`; no SQL migration was required for this slice.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)

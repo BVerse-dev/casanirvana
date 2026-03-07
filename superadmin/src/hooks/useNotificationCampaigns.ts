@@ -34,10 +34,12 @@ export interface CreateCampaignData {
   name: string
   title: string
   type: 'sms' | 'email' | 'push' | 'in-app'
+  status?: 'draft' | 'scheduled' | 'active' | 'completed' | 'paused' | 'processing' | 'delivered' | 'failed'
   template?: string
   audience?: string
   recipients_count?: number
   scheduled_at?: string
+  sent_at?: string
   budget?: number
 }
 
