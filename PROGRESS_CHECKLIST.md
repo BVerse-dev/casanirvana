@@ -14,7 +14,7 @@ Date: 2026-02-06
 - [x] Backend admin routes enforce auth/permissions (multiple write endpoints fixed).
 - [x] Upload endpoints require auth, size/type limits, and signed URLs.
 - [x] Backend CORS restricted to allowlist.
-- [ ] Verify NextAuth secret is only in env (no hardcoded secret) and demo auth paths removed everywhere.
+- [x] Verify NextAuth secret is only in env (no hardcoded secret) and demo auth paths removed everywhere.
 
 ## Phase 2 - Auth & RBAC Consolidation
 - [x] Roles & permissions UI updated to include `agency_manager` and `facility_manager`.
@@ -45,14 +45,14 @@ Date: 2026-02-06
 - [x] Choose single source of truth for Supabase migrations (`/supabase/migrations`).
 - [x] Generate and distribute shared `database.types.ts` to all apps (canonical: `/supabase/database.types.ts`).
 - [x] Lock down system + notification analytics/queues RLS (admin read, service role all).
-- [ ] Apply Phase 5B internal tables/marketplace/guard RLS (migration `20260206170000_phase5_rls_internal_tables.sql`).
+- [ ] Apply remaining marketplace/guard internal-table RLS cleanup (active migration `20260310184500_phase36_marketplace_guard_internal_rls_cleanup.sql`; replaces archived pre-baseline `20260206170000_phase5_rls_internal_tables.sql` reference).
 - [ ] Align seeds and RLS policies across apps.
 
 ## Phase 6 - Quality & Observability
 - [ ] Add request validation (Zod/Yup) on backend endpoints.
 - [ ] Normalize error responses across backend.
 - [ ] Add monitoring/logging (Sentry/Logtail or similar).
-- [ ] Add rate limiting and security headers (rate limiting pending).
+- [x] Add rate limiting and security headers (Express `helmet` + rate limiting middleware active in backend; runtime tuning remains part of release QA).
 - [ ] Add tests (backend unit/integration, admin Playwright smoke tests, mobile regression tests).
 
 ## Phase 7 - Migrations/Types Alignment
@@ -164,7 +164,7 @@ Date: 2026-02-06
 - [x] Applied follow-up migration `phase11_profile_resolution_prefer_user_id` (file: `supabase/migrations/20260220213000_phase11_profile_resolution_prefer_user_id.sql`) to fix canonical profile resolution for accounts with both `profiles.id = auth.uid()` and `profiles.user_id = auth.uid()` rows.
 - [x] Applied follow-up migration `phase11_profiles_identity_guard` (file: `supabase/migrations/20260220215500_phase11_profiles_identity_guard.sql`) to block future dual profile/auth mappings and clean known mis-mapped `profiles.user_id`.
 - [x] Added DB verification script: `supabase/audit/phase11_tenant_scope_verification.sql`.
-- [ ] Manual QA pass pending (superadmin + scoped admin + resident/guard app flows).
+- [ ] Manual QA pass pending (superadmin + scoped admin + resident/guard app flows). Execute `/Users/andromeda/casanirvana/MANUAL_RUNTIME_QA_PACK.md`.
 
 ## Phase 12 - Visitors Cross-App Sync Hardening
 - [x] Superadmin visitor create flow wired to real `visitor_passes` inserts (simulation removed).
@@ -883,6 +883,10 @@ Date: 2026-02-06
   - Added `/Users/andromeda/casanirvana/superadmin/src/hooks/useMarketplaceWorkspace.ts` and rewired `/Users/andromeda/casanirvana/superadmin/src/hooks/useMarketplaceService.ts` so the active marketplace workspace now reads truthful category, product, vendor, order, review, and shopping-payment data from the live marketplace tables instead of placeholder service-provider math, fake growth, or sample order/review/vendor records.
   - Rebuilt `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/personal-hub/marketplace/page.tsx` plus the active table/chart/modal components in `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/personal-hub/marketplace/components` so supported tabs (`Overview`, `Categories`, `Products`, `Orders`, `Vendors`, `Reviews`) are now DB-backed, lifecycle-safe, and normalized to `GH₵`, with simple truthful create/edit flows for the fields the production schema actually supports today.
   - Converted `Promotions` and `Visual Content` into explicit readiness notices because the current deployment does not have live schema-backed promotion or merchandising models; this removes the previous fully mocked controls instead of pretending those actions are operational. No SQL migration was required, and `npm run build` in `/Users/andromeda/casanirvana/superadmin` passed after the changes.
+- [x] Phase 36 cross-cutting audit/remediation prep for remaining baseline-era marketplace + guard RLS:
+  - Verified the old Phase 5B checklist reference points only to archived pre-baseline SQL (`/Users/andromeda/casanirvana/supabase/migrations/_archive/2026-02-06-pre-baseline/20260206170000_phase5_rls_internal_tables.sql`) and replaced it with an active cleanup migration path.
+  - Added `/Users/andromeda/casanirvana/supabase/migrations/20260310184500_phase36_marketplace_guard_internal_rls_cleanup.sql` to enable active RLS on the remaining marketplace tables, convert Personal Hub marketplace admin access to platform-only policies, enable missing guard performance/training RLS, and scope guard operational admin access by community where tenant metadata exists.
+  - Added `/Users/andromeda/casanirvana/MANUAL_RUNTIME_QA_PACK.md` to turn the remaining cross-app runtime QA backlog into one executable release checklist for superadmin, scoped admins, user app, and guard app flows.
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)
