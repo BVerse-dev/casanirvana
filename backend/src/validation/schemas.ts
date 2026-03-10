@@ -61,6 +61,8 @@ const payoutDestinationType = z.enum(['bank_account', 'mobile_money']);
 const payoutRequestAction = z.enum(['cancel', 'approve', 'reject', 'mark_processing', 'mark_paid', 'fail']);
 const payoutRuleShareMode = z.enum(['fixed', 'percentage']);
 const payoutRuleAgencyShareMode = z.enum(['remainder', 'fixed', 'percentage']);
+const personalHubServiceType = z.enum(['airtime', 'data', 'bill_payment', 'insurance', 'money_transfer']);
+const personalHubBillCategory = z.enum(['general', 'utilities', 'tv']);
 const adminEmailFolder = z.enum(['all', 'inbox', 'sent', 'drafts', 'draft', 'archive', 'archived', 'deleted', 'trash', 'starred', 'important']);
 const adminEmailPriority = z.enum(['low', 'normal', 'high', 'urgent']);
 const adminEmailAction = z.enum(['draft', 'queue']);
@@ -1447,6 +1449,56 @@ export const schemas = {
     max_amount: z.coerce.number().min(0).optional(),
     limit: z.coerce.number().int().min(50).max(1000).optional(),
   }),
+  personalHubCatalogProvidersQuery: z.object({
+    service_type: personalHubServiceType.optional(),
+    bill_category: personalHubBillCategory.optional(),
+  }),
+  adminPersonalHubCatalogProvidersQuery: z.object({
+    service_type: personalHubServiceType.optional(),
+    bill_category: personalHubBillCategory.optional(),
+    include_disabled: booleanFromString.optional(),
+  }),
+  adminPersonalHubCatalogPackagesQuery: z.object({
+    service_type: personalHubServiceType.optional(),
+    provider_id: z.string().uuid().optional(),
+    include_disabled: booleanFromString.optional(),
+  }),
+  adminPersonalHubCatalogProviderUpdateParams: uuidParam,
+  adminPersonalHubCatalogProviderUpdate: atLeastOne(
+    z.object({
+      provider_name: optionalString,
+      logo_url: z.string().optional().nullable(),
+      is_enabled_for_app: booleanFromString.optional(),
+    })
+  ),
+  personalHubCatalogQuery: z.object({
+    provider_id: optionalString,
+    external_service_code: optionalString,
+    service_type: personalHubServiceType.optional(),
+    bill_category: personalHubBillCategory.optional(),
+    payload: z.record(z.any()).default({}),
+  }).refine((value) => Boolean(value.provider_id || value.external_service_code), {
+    message: 'provider_id or external_service_code is required',
+    path: ['provider_id'],
+  }),
+  personalHubTransactionInitiate: z.object({
+    transaction_type: personalHubServiceType,
+    provider_id: optionalString,
+    external_service_code: optionalString,
+    bill_category: personalHubBillCategory.optional(),
+    payment_method: z.enum(['mobile_money', 'card']),
+    amount: z.coerce.number().positive(),
+    currency_code: optionalString,
+    description: optionalString,
+    query_context: z.record(z.any()).optional(),
+    recipient: z.record(z.any()).optional(),
+    selected_option: z.record(z.any()).optional(),
+    metadata: z.record(z.any()).optional(),
+    idempotency_key: optionalString,
+  }).refine((value) => Boolean(value.provider_id || value.external_service_code), {
+    message: 'provider_id or external_service_code is required',
+    path: ['provider_id'],
+  }),
   adminPayoutDestinationCreate: z.object({
     agency_id: optionalString.nullable(),
     community_id: optionalString.nullable(),
@@ -1524,6 +1576,9 @@ export const schemas = {
   }),
   expressPayStatusParams: z.object({
     paymentId: nonEmptyString,
+  }),
+  personalHubTransactionStatusParams: z.object({
+    id: nonEmptyString,
   }),
   expressPayVerify: z
     .object({

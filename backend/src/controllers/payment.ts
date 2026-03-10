@@ -39,6 +39,17 @@ import {
   updateAdminPayoutRequestStatus,
   upsertAdminPayoutRule,
 } from '../services/payouts';
+import {
+  listCachedPersonalHubPackages,
+  listCachedPersonalHubProviders,
+  queryExpressPayCatalogProvider,
+  syncExpressPayCatalogToCache,
+  updateCachedPersonalHubProvider,
+} from '../services/expresspayBillPay';
+import {
+  getPersonalHubTransactionStatus,
+  initiatePersonalHubTransaction,
+} from '../services/personalHubTransactions';
 
 /**
  * Get payments by unit ID with filtering and pagination
@@ -914,6 +925,303 @@ export async function generatePaymentStatement(req: Request, res: Response) {
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to generate payment statement',
+    });
+  }
+}
+
+export async function listPersonalHubCatalogProviders(req: Request, res: Response) {
+  try {
+    const providers = await listCachedPersonalHubProviders({
+      serviceType: typeof req.query.service_type === 'string' ? req.query.service_type : null,
+      billCategory: typeof req.query.bill_category === 'string' ? req.query.bill_category : null,
+      includeDisabled: false,
+    });
+
+    res.json({
+      success: true,
+      data: {
+        items: providers,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to load Personal Hub providers',
+    });
+  }
+}
+
+export async function queryPersonalHubCatalog(req: Request, res: Response) {
+  try {
+    const result = await queryExpressPayCatalogProvider({
+      providerId: typeof req.body?.provider_id === 'string' ? req.body.provider_id : null,
+      externalServiceCode:
+        typeof req.body?.external_service_code === 'string' ? req.body.external_service_code : null,
+      serviceType: typeof req.body?.service_type === 'string' ? (req.body.service_type as any) : null,
+      billCategory: typeof req.body?.bill_category === 'string' ? (req.body.bill_category as any) : null,
+      payload:
+        req.body?.payload && typeof req.body.payload === 'object' && !Array.isArray(req.body.payload)
+          ? req.body.payload
+          : {},
+    });
+
+    res.json({
+      success: true,
+      data: result,
+    });
+  } catch (error: any) {
+    res.status(400).json({
+      success: false,
+      error: error.message || 'Failed to query Personal Hub provider',
+    });
+  }
+}
+
+export async function initiatePersonalHubCheckout(req: Request, res: Response) {
+  try {
+    const actorUserId = getActorUserId(req);
+    const profile = (req.userProfile || {}) as Record<string, unknown>;
+    const unitId = getProfileUnitId(req);
+
+    if (!actorUserId) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required.',
+      });
+    }
+
+    if (!unitId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Your profile is missing a unit assignment.',
+      });
+    }
+
+    const amount = asNumber(req.body?.amount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'amount must be a positive number.',
+      });
+    }
+
+    const result = await initiatePersonalHubTransaction({
+      actorUserId,
+      profileId: typeof profile.id === 'string' ? profile.id : null,
+      unitId,
+      communityId: typeof profile.community_id === 'string' ? profile.community_id : null,
+      payerProfile: {
+        first_name: typeof profile.first_name === 'string' ? profile.first_name : null,
+        last_name: typeof profile.last_name === 'string' ? profile.last_name : null,
+        email: typeof profile.email === 'string' ? profile.email : null,
+        phone: typeof profile.phone === 'string' ? profile.phone : null,
+      },
+      transactionType: req.body.transaction_type,
+      paymentMethod: req.body.payment_method,
+      amount,
+      currencyCode: typeof req.body.currency_code === 'string' ? req.body.currency_code : 'GHS',
+      description: typeof req.body.description === 'string' ? req.body.description : null,
+      providerId: typeof req.body.provider_id === 'string' ? req.body.provider_id : null,
+      externalServiceCode:
+        typeof req.body.external_service_code === 'string' ? req.body.external_service_code : null,
+      billCategory: typeof req.body.bill_category === 'string' ? req.body.bill_category : null,
+      queryContext:
+        req.body?.query_context && typeof req.body.query_context === 'object' && !Array.isArray(req.body.query_context)
+          ? req.body.query_context
+          : {},
+      recipient:
+        req.body?.recipient && typeof req.body.recipient === 'object' && !Array.isArray(req.body.recipient)
+          ? req.body.recipient
+          : {},
+      selectedOption:
+        req.body?.selected_option &&
+        typeof req.body.selected_option === 'object' &&
+        !Array.isArray(req.body.selected_option)
+          ? req.body.selected_option
+          : {},
+      metadata:
+        req.body?.metadata && typeof req.body.metadata === 'object' && !Array.isArray(req.body.metadata)
+          ? req.body.metadata
+          : {},
+      idempotencyKey: typeof req.body.idempotency_key === 'string' ? req.body.idempotency_key : null,
+    });
+
+    res.status(201).json({
+      success: true,
+      data: {
+        source_type: result.source_type,
+        source_id: result.source_id,
+        provider: result.provider,
+        payment_id: result.payment.paymentId,
+        transaction_id: result.payment.transactionId,
+        checkout_url: result.payment.checkoutUrl,
+        provider_reference: result.payment.providerReference,
+        token: result.payment.token,
+        status: result.payment.status,
+        client_action: result.payment.checkoutUrl ? 'open_url' : 'poll',
+      },
+    });
+  } catch (error: any) {
+    res.status(400).json({
+      success: false,
+      error: error.message || 'Failed to initiate Personal Hub checkout',
+    });
+  }
+}
+
+export async function getPersonalHubTransactionStatusHandler(req: Request, res: Response) {
+  try {
+    const actorUserId = getActorUserId(req);
+    const role = typeof req.userProfile?.role === 'string' ? req.userProfile.role : '';
+
+    if (!actorUserId) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required.',
+      });
+    }
+
+    const result = await getPersonalHubTransactionStatus({
+      transactionId: req.params.id,
+      actorUserId,
+      isAdmin: ['admin', 'superadmin', 'agency_manager', 'facility_manager'].includes(role),
+    });
+
+    if (!result) {
+      return res.status(404).json({
+        success: false,
+        error: 'Personal Hub transaction not found.',
+      });
+    }
+
+    res.json({
+      success: true,
+      data: result,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to load Personal Hub transaction status',
+    });
+  }
+}
+
+export async function syncAdminPersonalHubCatalog(req: Request, res: Response) {
+  try {
+    const scope = await resolveAdminScope(req);
+
+    if (!scope.isGlobal) {
+      return res.status(403).json({
+        success: false,
+        error: 'Personal Hub catalog sync is available to platform admins only.',
+      });
+    }
+
+    const result = await syncExpressPayCatalogToCache();
+    res.json({
+      success: true,
+      data: result,
+    });
+  } catch (error: any) {
+    res.status(400).json({
+      success: false,
+      error: error.message || 'Failed to sync Personal Hub catalog',
+    });
+  }
+}
+
+export async function listAdminPersonalHubCatalogProviders(req: Request, res: Response) {
+  try {
+    const scope = await resolveAdminScope(req);
+
+    if (!scope.isGlobal) {
+      return res.status(403).json({
+        success: false,
+        error: 'Personal Hub catalog management is available to platform admins only.',
+      });
+    }
+
+    const providers = await listCachedPersonalHubProviders({
+      serviceType: typeof req.query.service_type === 'string' ? req.query.service_type : null,
+      billCategory: typeof req.query.bill_category === 'string' ? req.query.bill_category : null,
+      includeDisabled: req.query.include_disabled === 'true',
+    });
+
+    res.json({
+      success: true,
+      data: {
+        items: providers,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to load admin Personal Hub providers',
+    });
+  }
+}
+
+export async function updateAdminPersonalHubCatalogProvider(req: Request, res: Response) {
+  try {
+    const scope = await resolveAdminScope(req);
+
+    if (!scope.isGlobal) {
+      return res.status(403).json({
+        success: false,
+        error: 'Personal Hub catalog management is available to platform admins only.',
+      });
+    }
+
+    const provider = await updateCachedPersonalHubProvider({
+      id: req.params.id,
+      updates: {
+        provider_name: typeof req.body.provider_name === 'string' ? req.body.provider_name : undefined,
+        logo_url:
+          req.body.logo_url === null || typeof req.body.logo_url === 'string' ? req.body.logo_url : undefined,
+        is_enabled_for_app:
+          typeof req.body.is_enabled_for_app === 'boolean' ? req.body.is_enabled_for_app : undefined,
+      },
+    });
+
+    res.json({
+      success: true,
+      data: provider,
+    });
+  } catch (error: any) {
+    res.status(400).json({
+      success: false,
+      error: error.message || 'Failed to update admin Personal Hub provider',
+    });
+  }
+}
+
+export async function listAdminPersonalHubCatalogPackages(req: Request, res: Response) {
+  try {
+    const scope = await resolveAdminScope(req);
+
+    if (!scope.isGlobal) {
+      return res.status(403).json({
+        success: false,
+        error: 'Personal Hub catalog management is available to platform admins only.',
+      });
+    }
+
+    const packages = await listCachedPersonalHubPackages({
+      serviceType: typeof req.query.service_type === 'string' ? req.query.service_type : null,
+      providerId: typeof req.query.provider_id === 'string' ? req.query.provider_id : null,
+      includeDisabled: req.query.include_disabled === 'true',
+    });
+
+    res.json({
+      success: true,
+      data: {
+        items: packages,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to load admin Personal Hub packages',
     });
   }
 }

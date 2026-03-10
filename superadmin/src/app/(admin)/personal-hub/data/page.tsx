@@ -1,47 +1,58 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Row, Col, Card, Button, Badge, Nav, Spinner } from 'react-bootstrap';
+import { Row, Col, Card, Button, Nav, Spinner } from 'react-bootstrap';
+
 import PageTitle from '@/components/PageTitle';
 import IconifyIcon from '@/components/wrappers/IconifyIcon';
-// Components
+import ExpressPayCatalogSyncNotice from '../components/ExpressPayCatalogSyncNotice';
 import DataMetricCard from './components/DataMetricCard';
 import ProviderManagementTable from './components/ProviderManagementTable';
 import DataPackagesTable from './components/DataPackagesTable';
 import DataTransactionsTable from './components/DataTransactionsTable';
 import DataUsageChart from './components/DataUsageChart';
 import DataPackagePopularityChart from './components/DataPackagePopularityChart';
-import AddProviderModal from './components/AddProviderModal';
-import AddPackageModal from './components/AddPackageModal';
-// Hook
+import { useAdminPersonalHubCatalog } from '@/hooks/useAdminPersonalHubCatalog';
 import { useDataService } from '@/hooks/useDataService';
 
 const DataServicesPage = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'providers' | 'packages' | 'transactions'>('overview');
-  const [showAddProviderModal, setShowAddProviderModal] = useState(false);
-  const [showAddPackageModal, setShowAddPackageModal] = useState(false);
-  const [editProvider, setEditProvider] = useState(null);
-  const [editPackage, setEditPackage] = useState(null);
+  const [syncFeedback, setSyncFeedback] = useState<{ variant: 'success' | 'danger'; message: string } | null>(null);
+  const { metrics, loading, error, refetch } = useDataService();
+  const { providers: catalogProviders, syncCatalog, isSyncing } = useAdminPersonalHubCatalog({
+    serviceType: 'data',
+  });
 
-  // Fetch metrics from database
-  const { metrics, providers, loading, error } = useDataService();
-
-  // Format helpers
   const formatNumber = (num: number) => num.toLocaleString();
-  const formatCurrency = (num: number) => `₦${num.toLocaleString()}`;
+  const formatCurrency = (num: number) => `GH₵${num.toLocaleString()}`;
+
+  const handleSyncCatalog = async () => {
+    try {
+      const result = await syncCatalog();
+      await refetch();
+      setSyncFeedback({
+        variant: 'success',
+        message: `ExpressPay data catalog synced successfully. Imported ${result.data.imported_count} provider records.`,
+      });
+    } catch (syncError) {
+      setSyncFeedback({
+        variant: 'danger',
+        message: syncError instanceof Error ? syncError.message : 'Failed to sync ExpressPay data catalog.',
+      });
+    }
+  };
 
   return (
     <>
       <PageTitle title="Data Services" subName="Management Dashboard" />
 
-      {/* Top navigation tabs */}
       <Card className="mb-3">
         <Card.Body className="p-0">
           <Nav
             variant="tabs"
             className="nav-bordered"
             activeKey={activeTab}
-            onSelect={(k) => setActiveTab(k as any)}
+            onSelect={(k) => setActiveTab(k as 'overview' | 'providers' | 'packages' | 'transactions')}
           >
             <Nav.Item>
               <Nav.Link eventKey="overview">
@@ -67,9 +78,17 @@ const DataServicesPage = () => {
         </Card.Body>
       </Card>
 
+      <ExpressPayCatalogSyncNotice
+        providers={catalogProviders}
+        isSyncing={isSyncing}
+        onSync={handleSyncCatalog}
+        feedback={syncFeedback}
+        description="Data providers in this workspace are sourced from the cached ExpressPay Bill Payments catalog. Manual provider creation is disabled so package availability stays aligned with the live ExpressPay service contract."
+        secondaryNote="Package lists should be treated as provider query results. Use catalog sync when ExpressPay updates supported data services for your merchant profile."
+      />
+
       {activeTab === 'overview' && (
         <>
-          {/* Key metrics */}
           {loading ? (
             <div className="text-center py-4"><Spinner animation="border" /></div>
           ) : error ? (
@@ -115,7 +134,6 @@ const DataServicesPage = () => {
             </Row>
           )}
 
-          {/* Charts and analytics */}
           <Row>
             <Col xl={8}>
               <DataUsageChart />
@@ -125,7 +143,6 @@ const DataServicesPage = () => {
             </Col>
           </Row>
 
-          {/* Recent transactions preview */}
           <Card>
             <Card.Header className="d-flex align-items-center">
               <Card.Title className="mb-0">Recent Transactions</Card.Title>
@@ -148,18 +165,6 @@ const DataServicesPage = () => {
         <Card>
           <Card.Header className="d-flex align-items-center">
             <Card.Title className="mb-0">Network Providers</Card.Title>
-            <Button
-              variant="primary"
-              size="sm"
-              className="ms-auto"
-              onClick={() => {
-                setEditProvider(null);
-                setShowAddProviderModal(true);
-              }}
-            >
-              <IconifyIcon icon="ri:add-line" className="me-1" />
-              Add Provider
-            </Button>
           </Card.Header>
           <Card.Body>
             <ProviderManagementTable />
@@ -171,18 +176,7 @@ const DataServicesPage = () => {
         <Card>
           <Card.Header className="d-flex align-items-center">
             <Card.Title className="mb-0">Data Packages</Card.Title>
-            <Button
-              variant="primary"
-              size="sm"
-              className="ms-auto"
-              onClick={() => {
-                setEditPackage(null);
-                setShowAddPackageModal(true);
-              }}
-            >
-              <IconifyIcon icon="ri:add-line" className="me-1" />
-              Add Package
-            </Button>
+            <span className="ms-auto text-muted small">Package options are sourced from ExpressPay query responses.</span>
           </Card.Header>
           <Card.Body>
             <DataPackagesTable />
@@ -200,49 +194,8 @@ const DataServicesPage = () => {
           </Card.Body>
         </Card>
       )}
-
-      {/* Add/Edit Provider Modal */}
-      <AddProviderModal
-        show={showAddProviderModal}
-        onHide={() => setShowAddProviderModal(false)}
-        onSave={handleSaveProvider}
-        editProvider={editProvider}
-      />
-
-      {/* Add/Edit Package Modal */}
-      <AddPackageModal
-        show={showAddPackageModal}
-        onHide={() => setShowAddPackageModal(false)}
-        onSave={handleSavePackage}
-        editPackage={editPackage}
-        providers={providers.map(p => ({ id: p.id, name: p.provider_name }))}
-      />
     </>
   );
-
-  // Handler for saving provider data
-  function handleSaveProvider(providerData: any) {
-    // In a real application, this would call an API to save the provider
-    console.log('Saving data provider:', providerData);
-
-    // For now, just show a success message
-    alert(editProvider
-      ? `Provider ${providerData.name} updated successfully!`
-      : `Provider ${providerData.name} added successfully!`
-    );
-  }
-
-  // Handler for saving package data
-  function handleSavePackage(packageData: any) {
-    // In a real application, this would call an API to save the package
-    console.log('Saving data package:', packageData);
-
-    // For now, just show a success message
-    alert(editPackage
-      ? `Package ${packageData.name} updated successfully!`
-      : `Package ${packageData.name} added successfully!`
-    );
-  }
 };
 
 export default DataServicesPage;

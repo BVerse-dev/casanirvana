@@ -68,12 +68,14 @@ const DataScreen = ({ navigation }) => {
 
   const handleContinue = () => {
     if (selectedProvider) {
-        navigation.navigate("selectDataPackageScreen", {
+        navigation.navigate("dataAccountDetailsScreen", {
         provider: selectedProvider.providerCode,
+        externalServiceCode: selectedProvider.externalServiceCode || selectedProvider.providerCode,
         providerId: selectedProvider.providerId || null,
         providerName: selectedProvider.name,
         providerColor: selectedProvider.color,
-        providerLogo: selectedProvider.logo
+        providerLogo: selectedProvider.logo,
+        supportsQuery: selectedProvider.supportsQuery,
       });
     }
   };

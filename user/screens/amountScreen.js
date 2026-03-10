@@ -1,11 +1,9 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Text,
   View,
   TouchableOpacity,
-  StatusBar,
   ScrollView,
-  StyleSheet,
   SafeAreaView,
   BackHandler,
   Image,
@@ -13,70 +11,113 @@ import {
 import { Colors, Fonts, Default } from "../constants/styles";
 import { useTranslation } from "react-i18next";
 import Ionicons from "react-native-vector-icons/Ionicons";
-import MaterialIcons from "react-native-vector-icons/MaterialIcons";
-import { ms } from "react-native-size-matters/extend";
 import MyStatusBar from "../components/myStatusBar";
+import { ms } from "react-native-size-matters/extend";
+import { formatMoney } from "../utils/money";
+import { normalizeCatalogOptions } from "../services/personalHubCatalogFlowService";
+
+const FALLBACK_OPTIONS = [
+  { id: "starter", name: "Starter", amount: 2 },
+  { id: "value", name: "Value", amount: 5 },
+  { id: "extra", name: "Extra Value", amount: 10 },
+  { id: "supreme", name: "Supreme Value", amount: 20 },
+  { id: "maximum", name: "Maximum Value", amount: 30 },
+  { id: "elite", name: "Elite", amount: 50 },
+  { id: "ultimate", name: "Ultimate", amount: 100 },
+];
 
 const AmountScreen = ({ navigation, route }) => {
   const { t, i18n } = useTranslation();
   const isRtl = i18n.dir() === "rtl";
-  
-  // Get provider data from route params
-  const { provider, providerId, providerName, providerColor, providerLogo, packageType } = route.params || {};
+
+  const {
+    provider,
+    externalServiceCode,
+    providerId,
+    providerName,
+    providerColor,
+    providerLogo,
+    phoneNumber,
+    description,
+    saveAccount,
+    queryContext,
+    queryOptions,
+  } = route.params || {};
+
+  const amountOptions = useMemo(() => {
+    const normalized = normalizeCatalogOptions({ options: queryOptions || [], queryContext: queryContext || {} });
+    if (normalized.length) {
+      return normalized;
+    }
+
+    return FALLBACK_OPTIONS.map((item) => ({
+      id: item.id,
+      name: item.name,
+      amount: item.amount,
+      amountLabel: formatMoney(item.amount),
+      description: "Airtime top-up",
+      raw: {},
+    }));
+  }, [queryContext, queryOptions]);
+
   const [selectedAmount, setSelectedAmount] = useState(null);
 
-  // Safe translation function that ALWAYS returns a string
   function tr(key, fallback = "Missing Translation") {
     if (!key) return fallback || "";
     const translated = t(key);
     return translated || fallback;
   }
 
-  // Handle back button
   React.useEffect(() => {
     const backAction = () => {
       navigation.goBack();
       return true;
     };
-    
+
     const backHandler = BackHandler.addEventListener("hardwareBackPress", backAction);
     return () => backHandler.remove();
   }, [navigation]);
 
-  // Amount options based on provider
-  const amountOptions = [
-    { id: "ultimate", title: "Ultimate", amount: 100.00, description: "Ultimate package with bonus data" },
-    { id: "elite", title: "Elite", amount: 50.00, description: "Elite package with extra talk time" },
-    { id: "maximum", title: "Maximum Value", amount: 30.00, description: "Maximum value for your money" },
-    { id: "supreme", title: "Supreme Value", amount: 20.00, description: "Great value with bonus minutes" },
-    { id: "extra", title: "Extra Value", amount: 10.00, description: "Extra value for daily use" },
-    { id: "value", title: "Value", amount: 5.00, description: "Basic value package" },
-    { id: "starter", title: "Starter", amount: 2.00, description: "Small amount for quick top-up" },
-  ];
-
   const handleContinue = () => {
     if (!selectedAmount) return;
-    
-    const option = amountOptions.find(item => item.id === selectedAmount);
-    
-    navigation.navigate("accountDetailsScreen", {
+
+    const option = amountOptions.find((item) => item.id === selectedAmount);
+    if (!option || option.amount === null || option.amount === undefined) {
+      return;
+    }
+
+    navigation.navigate("paymentMethodScreen", {
       provider,
+      externalServiceCode: externalServiceCode || provider || null,
       providerId,
       providerName,
       providerColor,
       providerLogo,
-      packageType,
-      amountTitle: option.title,
+      amountTitle: option.name,
       amount: option.amount,
-      amountFormatted: `GHS ${option.amount.toFixed(2)}`
+      amountFormatted: option.amountLabel || formatMoney(option.amount),
+      phoneNumber,
+      description,
+      saveAccount,
+      transactionType: "airtime",
+      queryContext,
+      selectedOption: option.raw || {},
+      recipientInfo: {
+        phoneNumber,
+        name: description || phoneNumber,
+        provider: providerName,
+        logo: providerLogo,
+      },
+      isPersonalHubTransaction: true,
     });
   };
 
-  const renderItem = ({ item }) => {
+  const renderItem = (item) => {
     const isSelected = selectedAmount === item.id;
-    
+
     return (
       <TouchableOpacity
+        key={item.id}
         onPress={() => setSelectedAmount(item.id)}
         style={{
           flexDirection: isRtl ? "row-reverse" : "row",
@@ -92,12 +133,8 @@ const AmountScreen = ({ navigation, route }) => {
         }}
       >
         <View style={{ flex: 1 }}>
-          <View style={{ flexDirection: isRtl ? "row-reverse" : "row", alignItems: "center" }}>
-            <Text
-              style={{ ...Fonts.SemiBold16black }}
-            >
-              {item.title}
-            </Text>
+          <View style={{ flexDirection: isRtl ? "row-reverse" : "row", alignItems: "center", flexWrap: "wrap" }}>
+            <Text style={{ ...Fonts.SemiBold16black }}>{item.name}</Text>
             <View
               style={{
                 backgroundColor: Colors.lightLinkWater,
@@ -106,20 +143,18 @@ const AmountScreen = ({ navigation, route }) => {
                 borderRadius: 4,
                 marginLeft: isRtl ? 0 : Default.fixPadding,
                 marginRight: isRtl ? Default.fixPadding : 0,
+                marginTop: Default.fixPadding * 0.3,
               }}
             >
-              <Text style={{ ...Fonts.Medium12primary }}>
-                {`GHS ${item.amount.toFixed(2)}`}
-              </Text>
+              <Text style={{ ...Fonts.Medium12primary }}>{item.amountLabel || formatMoney(item.amount)}</Text>
             </View>
           </View>
-          
-          <Text
-            numberOfLines={1}
-            style={{ ...Fonts.Medium14grey, marginTop: Default.fixPadding * 0.5 }}
-          >
-            {item.description}
-          </Text>
+
+          {item.description ? (
+            <Text numberOfLines={2} style={{ ...Fonts.Medium14grey, marginTop: Default.fixPadding * 0.5 }}>
+              {item.description}
+            </Text>
+          ) : null}
         </View>
 
         <View
@@ -133,7 +168,7 @@ const AmountScreen = ({ navigation, route }) => {
             alignItems: "center",
           }}
         >
-          {isSelected && (
+          {isSelected ? (
             <View
               style={{
                 width: 14,
@@ -142,7 +177,7 @@ const AmountScreen = ({ navigation, route }) => {
                 backgroundColor: Colors.primary,
               }}
             />
-          )}
+          ) : null}
         </View>
       </TouchableOpacity>
     );
@@ -152,7 +187,6 @@ const AmountScreen = ({ navigation, route }) => {
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.extraLightGrey }}>
       <MyStatusBar />
       <View style={{ flex: 1 }}>
-        {/* Header */}
         <View
           style={{
             flexDirection: isRtl ? "row-reverse" : "row",
@@ -176,12 +210,9 @@ const AmountScreen = ({ navigation, route }) => {
               color={Colors.black}
             />
           </TouchableOpacity>
-          <Text style={{ ...Fonts.SemiBold18black }}>
-            {tr("Select Amount")}
-          </Text>
+          <Text style={{ ...Fonts.SemiBold18black }}>{tr("Select Amount")}</Text>
         </View>
 
-        {/* Provider Info */}
         <View
           style={{
             flexDirection: isRtl ? "row-reverse" : "row",
@@ -197,7 +228,7 @@ const AmountScreen = ({ navigation, route }) => {
               width: 50,
               height: 50,
               borderRadius: 25,
-              backgroundColor: providerColor ? providerColor + '15' : Colors.blue + '15',
+              backgroundColor: providerColor ? providerColor + "15" : Colors.blue + "15",
               justifyContent: "center",
               alignItems: "center",
               marginRight: isRtl ? 0 : Default.fixPadding * 1.5,
@@ -213,12 +244,12 @@ const AmountScreen = ({ navigation, route }) => {
               }}
             />
           </View>
-          <Text style={{ ...Fonts.SemiBold16black }}>
-            {providerName || "Airtime Purchase"}
-          </Text>
+          <View style={{ flex: 1 }}>
+            <Text style={{ ...Fonts.SemiBold16black }}>{providerName || "Airtime Purchase"}</Text>
+            <Text style={{ ...Fonts.Medium14grey, marginTop: 2 }}>{phoneNumber}</Text>
+          </View>
         </View>
 
-        {/* Amount Options */}
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ padding: Default.fixPadding * 2, paddingBottom: Default.fixPadding * 10 }}
@@ -226,20 +257,14 @@ const AmountScreen = ({ navigation, route }) => {
           <Text style={{ ...Fonts.SemiBold16black, marginBottom: Default.fixPadding * 1.5 }}>
             {tr("Choose Amount")}
           </Text>
-
-          {amountOptions.map((item) => (
-            <React.Fragment key={item.id}>
-              {renderItem({ item })}
-            </React.Fragment>
-          ))}
+          {amountOptions.map(renderItem)}
         </ScrollView>
 
-        {/* Continue Button */}
         <View
           style={{
             padding: Default.fixPadding * 2,
             backgroundColor: Colors.white,
-            position: 'absolute',
+            position: "absolute",
             bottom: 0,
             left: 0,
             right: 0,
@@ -256,9 +281,7 @@ const AmountScreen = ({ navigation, route }) => {
               alignItems: "center",
             }}
           >
-            <Text style={{ ...Fonts.SemiBold16white }}>
-              {tr("Continue")}
-            </Text>
+            <Text style={{ ...Fonts.SemiBold16white }}>{tr("Continue")}</Text>
           </TouchableOpacity>
         </View>
       </View>

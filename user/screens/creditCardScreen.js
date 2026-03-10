@@ -25,6 +25,7 @@ import { supabase } from "../utils/supabase";
 import { useHasJoinedCommunity } from "../hooks/useCommunityData";
 import {
   initiateExpressPayPayment,
+  initiatePersonalHubCheckout,
   reconcileExpressPayPayment,
 } from "../services/expressPayService";
 import { normalizeOptionalUuid } from "../utils/id";
@@ -32,7 +33,39 @@ import { normalizeOptionalUuid } from "../utils/id";
 const { width } = Dimensions.get("window");
 
 const CreditCardScreen = ({ navigation, route }) => {
-  const { bookingId, bookingData, paymentData, sourceType, sourceId, obligationId, isAddingPaymentMethod, onPaymentMethodAdded } = route.params || {};
+  const {
+    bookingId,
+    bookingData,
+    paymentData,
+    sourceType,
+    sourceId,
+    obligationId,
+    isAddingPaymentMethod,
+    onPaymentMethodAdded,
+    transactionType,
+    provider,
+    externalServiceCode,
+    providerId,
+    providerName,
+    amountTitle,
+    amount,
+    phoneNumber,
+    description,
+    recipientInfo,
+    dataAmount,
+    validity,
+    reference,
+    schedulePayment,
+    frequency,
+    firstPaymentNow,
+    platformFee,
+    totalAmount,
+    billInfo,
+    policyInfo,
+    billCategory,
+    queryContext,
+    selectedOption,
+  } = route.params || {};
   const { t, i18n } = useTranslation();
   const updateBookingMutation = useUpdateAmenityBooking();
   
@@ -92,6 +125,7 @@ const CreditCardScreen = ({ navigation, route }) => {
   }, [obligationId, paymentData?.obligationId, paymentData?.sourceId, resolvedSourceType]);
 
   const isRtl = i18n.dir() === "rtl";
+  const isPersonalHubTransaction = Boolean(transactionType);
 
   function tr(key) {
     return t(`creditCardScreen:${key}`);
@@ -784,8 +818,12 @@ const CreditCardScreen = ({ navigation, route }) => {
         return 'pending';
       };
 
-      const bookingType = bookingData?.type || paymentData?.type || 'community_dues';
-      const amountToCharge = Number(bookingData?.totalAmount ?? paymentData?.amount ?? 0);
+      const bookingType = isPersonalHubTransaction
+        ? transactionType
+        : bookingData?.type || paymentData?.type || 'community_dues';
+      const amountToCharge = Number(
+        isPersonalHubTransaction ? amount : bookingData?.totalAmount ?? paymentData?.amount ?? 0
+      );
       const displayTitle =
         bookingData?.amenityName ||
         bookingData?.serviceName ||
@@ -799,27 +837,81 @@ const CreditCardScreen = ({ navigation, route }) => {
         throw new Error('Invalid payment amount');
       }
 
-      const initiationResult = await initiateExpressPayPayment({
-        amount: amountToCharge,
-        currency: 'GHS',
-        payment_type: bookingType,
-        payment_method: 'card',
-        unit_id: unitId,
-        booking_id: resolvedSourceType === 'service_booking' ? resolvedBookingId || undefined : undefined,
-        source_type: resolvedSourceType || undefined,
-        source_id: resolvedSourceId || undefined,
-        obligation_id: resolvedObligationId || undefined,
-        description: displayTitle,
-        idempotency_key: `card-${payerId}-${bookingType}-${Date.now()}`,
-        metadata: {
-          source: 'user-credit-card-screen',
-          source_booking_id: resolvedBookingId || null,
-          source_booking_type: bookingType,
-          source_display_title: displayTitle,
-          source_display_description: paymentData?.description || null,
-          app_return_url: appReturnUrl,
-        },
-      });
+      const initiationResult = isPersonalHubTransaction
+        ? await initiatePersonalHubCheckout({
+            transaction_type: transactionType,
+            provider_id: providerId || undefined,
+            external_service_code: externalServiceCode || provider || undefined,
+            payment_method: 'card',
+            amount: amountToCharge,
+            currency_code: 'GHS',
+            description:
+              description || `${providerName || 'Service'} ${bookingType} for ${phoneNumber || 'resident'}`,
+            query_context: {
+              ...(queryContext || {}),
+              ...(billInfo || {}),
+              ...(policyInfo || {}),
+              ...(recipientInfo || {}),
+              provider_name: providerName || null,
+              data_amount: dataAmount || null,
+              validity_days: validity ? parseInt(validity, 10) : null,
+              reference: reference || null,
+            },
+            recipient: {
+              ...(recipientInfo || {}),
+              phone_number: phoneNumber || null,
+              account_number: phoneNumber || null,
+              policy_number: phoneNumber || null,
+              recipient_phone: phoneNumber || null,
+              recipient_name: description || recipientInfo?.name || null,
+              name: description || recipientInfo?.name || null,
+            },
+            bill_category: billCategory || undefined,
+            selected_option:
+              selectedOption && typeof selectedOption === 'object'
+                ? selectedOption
+                : transactionType === 'data'
+                  ? {
+                      name: amountTitle || 'Data Bundle',
+                      amount: amountToCharge,
+                      data_amount: dataAmount || null,
+                      validity_days: validity ? parseInt(validity, 10) : null,
+                    }
+                  : {},
+            metadata: {
+              source: 'user-credit-card-screen',
+              source_display_title: displayTitle,
+              source_display_description: paymentData?.description || null,
+              app_return_url: appReturnUrl,
+              schedule_payment: schedulePayment || false,
+              frequency: frequency || null,
+              first_payment_now: firstPaymentNow || false,
+              platform_fee: Number(platformFee) || 0,
+              total_amount: Number(totalAmount) || amountToCharge,
+            },
+            idempotency_key: `card-${payerId}-${bookingType}-${Date.now()}`,
+          })
+        : await initiateExpressPayPayment({
+            amount: amountToCharge,
+            currency: 'GHS',
+            payment_type: bookingType,
+            payment_method: 'card',
+            unit_id: unitId,
+            booking_id: resolvedSourceType === 'service_booking' ? resolvedBookingId || undefined : undefined,
+            source_type: resolvedSourceType || undefined,
+            source_id: resolvedSourceId || undefined,
+            obligation_id: resolvedObligationId || undefined,
+            description: displayTitle,
+            idempotency_key: `card-${payerId}-${bookingType}-${Date.now()}`,
+            metadata: {
+              source: 'user-credit-card-screen',
+              source_booking_id: resolvedBookingId || null,
+              source_booking_type: bookingType,
+              source_display_title: displayTitle,
+              source_display_description: paymentData?.description || null,
+              app_return_url: appReturnUrl,
+            },
+          });
 
       if (!initiationResult.success || !initiationResult.data?.payment_id) {
         throw new Error(initiationResult.error || 'Failed to initiate payment');
@@ -883,15 +975,29 @@ const CreditCardScreen = ({ navigation, route }) => {
         navigation.push("successScreen", {
           paymentMethod: maskedCard,
           transactionId,
-          paymentData: {
-            ...paymentData,
-            sourceType: resolvedSourceType || paymentData?.sourceType || null,
-            sourceId: resolvedSourceId || paymentData?.sourceId || null,
-            obligationId: resolvedObligationId || paymentData?.obligationId || null,
-            paymentMethod: maskedCard,
-            paymentDate: new Date().toISOString(),
-            transactionId,
-          }
+          paymentData: isPersonalHubTransaction
+            ? {
+                id: initiationResult.data?.source_id || null,
+                paymentId: initiationResult.data?.payment_id || null,
+                type: transactionType,
+                sourceType: transactionType,
+                sourceId: initiationResult.data?.source_id || null,
+                title: providerName || displayTitle,
+                description: description || providerName || "Personal Hub Payment",
+                amount: amountToCharge,
+                paymentMethod: maskedCard,
+                paymentDate: new Date().toISOString(),
+                transactionId,
+              }
+            : {
+                ...paymentData,
+                sourceType: resolvedSourceType || paymentData?.sourceType || null,
+                sourceId: resolvedSourceId || paymentData?.sourceId || null,
+                obligationId: resolvedObligationId || paymentData?.obligationId || null,
+                paymentMethod: maskedCard,
+                paymentDate: new Date().toISOString(),
+                transactionId,
+              }
         });
         return;
       }

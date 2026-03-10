@@ -1,45 +1,58 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Row, Col, Card, Button, Badge, Nav, Spinner } from 'react-bootstrap';
+import { Row, Col, Card, Button, Nav, Spinner } from 'react-bootstrap';
+
 import PageTitle from '@/components/PageTitle';
 import IconifyIcon from '@/components/wrappers/IconifyIcon';
-
-// Components
+import ExpressPayCatalogSyncNotice from '../components/ExpressPayCatalogSyncNotice';
 import BillMetricCard from './components/BillMetricCard';
 import BillerManagementTable from './components/BillerManagementTable';
 import BillTransactionsTable from './components/BillTransactionsTable';
 import BillPaymentTrendsChart from './components/BillPaymentTrendsChart';
 import BillCategoryDistributionChart from './components/BillCategoryDistributionChart';
 import PaymentValidationRules from './components/PaymentValidationRules';
-import AddBillerModal from './components/AddBillerModal';
-// Hook
+import { useAdminPersonalHubCatalog } from '@/hooks/useAdminPersonalHubCatalog';
 import { useBillPaymentService } from '@/hooks/useBillPaymentService';
 
 const BillPaymentPage = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'billers' | 'transactions' | 'validation'>('overview');
-  const [showAddBillerModal, setShowAddBillerModal] = useState(false);
-  const [editBiller, setEditBiller] = useState(null);
+  const [syncFeedback, setSyncFeedback] = useState<{ variant: 'success' | 'danger'; message: string } | null>(null);
+  const { metrics, loading, error, refetch } = useBillPaymentService();
+  const { providers: catalogProviders, syncCatalog, isSyncing } = useAdminPersonalHubCatalog({
+    serviceType: 'bill_payment',
+  });
 
-  // Fetch metrics from database
-  const { metrics, loading, error } = useBillPaymentService();
-
-  // Format helpers
   const formatNumber = (num: number) => num.toLocaleString();
-  const formatCurrency = (num: number) => `₦${num.toLocaleString()}`;
+  const formatCurrency = (num: number) => `GH₵${num.toLocaleString()}`;
+
+  const handleSyncCatalog = async () => {
+    try {
+      const result = await syncCatalog();
+      await refetch();
+      setSyncFeedback({
+        variant: 'success',
+        message: `ExpressPay bill-payment catalog synced successfully. Imported ${result.data.imported_count} provider records.`,
+      });
+    } catch (syncError) {
+      setSyncFeedback({
+        variant: 'danger',
+        message: syncError instanceof Error ? syncError.message : 'Failed to sync ExpressPay bill-payment catalog.',
+      });
+    }
+  };
 
   return (
     <>
       <PageTitle title="Bill Payments" subName="Management Dashboard" />
 
-      {/* Top navigation tabs */}
       <Card className="mb-3">
         <Card.Body className="p-0">
           <Nav
             variant="tabs"
             className="nav-bordered"
             activeKey={activeTab}
-            onSelect={(k) => setActiveTab(k as any)}
+            onSelect={(k) => setActiveTab(k as 'overview' | 'billers' | 'transactions' | 'validation')}
           >
             <Nav.Item>
               <Nav.Link eventKey="overview">
@@ -58,16 +71,24 @@ const BillPaymentPage = () => {
             </Nav.Item>
             <Nav.Item>
               <Nav.Link eventKey="validation">
-                <IconifyIcon icon="ri:shield-check-line" className="me-1" /> Validation Rules
+                <IconifyIcon icon="ri:shield-check-line" className="me-1" /> Provider Validation
               </Nav.Link>
             </Nav.Item>
           </Nav>
         </Card.Body>
       </Card>
 
+      <ExpressPayCatalogSyncNotice
+        providers={catalogProviders}
+        isSyncing={isSyncing}
+        onSync={handleSyncCatalog}
+        feedback={syncFeedback}
+        description="Billers in this workspace are sourced from the cached ExpressPay Bill Payments catalog. Manual biller creation is disabled so utility and TV payment flows stay aligned with provider-supported identifiers and account-query rules."
+        secondaryNote="Use catalog sync when ExpressPay updates supported utility, TV, or other bill-payment services for your merchant profile."
+      />
+
       {activeTab === 'overview' && (
         <>
-          {/* Key metrics */}
           {loading ? (
             <div className="text-center py-4"><Spinner animation="border" /></div>
           ) : error ? (
@@ -113,7 +134,6 @@ const BillPaymentPage = () => {
             </Row>
           )}
 
-          {/* Charts and analytics */}
           <Row>
             <Col xl={8}>
               <BillPaymentTrendsChart />
@@ -123,7 +143,6 @@ const BillPaymentPage = () => {
             </Col>
           </Row>
 
-          {/* Recent transactions preview */}
           <Card>
             <Card.Header className="d-flex align-items-center">
               <Card.Title className="mb-0">Recent Transactions</Card.Title>
@@ -146,18 +165,6 @@ const BillPaymentPage = () => {
         <Card>
           <Card.Header className="d-flex align-items-center">
             <Card.Title className="mb-0">Biller Management</Card.Title>
-            <Button
-              variant="primary"
-              size="sm"
-              className="ms-auto"
-              onClick={() => {
-                setEditBiller(null);
-                setShowAddBillerModal(true);
-              }}
-            >
-              <IconifyIcon icon="ri:add-line" className="me-1" />
-              Add Biller
-            </Button>
           </Card.Header>
           <Card.Body>
             <BillerManagementTable />
@@ -176,31 +183,9 @@ const BillPaymentPage = () => {
         </Card>
       )}
 
-      {activeTab === 'validation' && (
-        <PaymentValidationRules />
-      )}
-
-      {/* Add/Edit Biller Modal */}
-      <AddBillerModal
-        show={showAddBillerModal}
-        onHide={() => setShowAddBillerModal(false)}
-        onSave={handleSaveBiller}
-        editBiller={editBiller}
-      />
+      {activeTab === 'validation' && <PaymentValidationRules />}
     </>
   );
-
-  // Handler for saving biller data
-  function handleSaveBiller(billerData: any) {
-    // In a real application, this would call an API to save the biller
-    console.log('Saving biller data:', billerData);
-
-    // For now, just show a success message
-    alert(editBiller
-      ? `Biller ${billerData.name} updated successfully!`
-      : `Biller ${billerData.name} added successfully!`
-    );
-  }
 };
 
 export default BillPaymentPage;

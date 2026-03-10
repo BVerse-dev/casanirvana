@@ -14,6 +14,34 @@ router.get(
 );
 
 router.get(
+  '/personal-hub/catalog/providers',
+  requireAuth,
+  validateRequest({ query: schemas.personalHubCatalogProvidersQuery }),
+  PaymentController.listPersonalHubCatalogProviders
+);
+
+router.post(
+  '/personal-hub/catalog/query',
+  requireAuth,
+  validateRequest({ body: schemas.personalHubCatalogQuery }),
+  PaymentController.queryPersonalHubCatalog
+);
+
+router.post(
+  '/personal-hub/transactions/initiate',
+  requireAuth,
+  validateRequest({ body: schemas.personalHubTransactionInitiate }),
+  PaymentController.initiatePersonalHubCheckout
+);
+
+router.get(
+  '/personal-hub/transactions/:id/status',
+  requireAuth,
+  validateRequest({ params: schemas.personalHubTransactionStatusParams }),
+  PaymentController.getPersonalHubTransactionStatusHandler
+);
+
+router.get(
   '/payments/obligations',
   requireAuth,
   PaymentController.getPaymentObligations

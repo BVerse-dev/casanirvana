@@ -1,79 +1,97 @@
-import React, { useState, useRef } from "react";
+import React, { useRef, useState } from "react";
 import {
   Text,
   View,
   TouchableOpacity,
-  StatusBar,
   TextInput,
-  Keyboard,
-  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
   SafeAreaView,
   BackHandler,
   Image,
-  KeyboardAvoidingView,
-  Platform,
 } from "react-native";
 import { Colors, Fonts, Default } from "../constants/styles";
 import { useTranslation } from "react-i18next";
 import Ionicons from "react-native-vector-icons/Ionicons";
-import MaterialIcons from "react-native-vector-icons/MaterialIcons";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { ms } from "react-native-size-matters/extend";
 import MyStatusBar from "../components/myStatusBar";
+import { formatMoney } from "../utils/money";
 
 const OtherAmountScreen = ({ navigation, route }) => {
   const { t, i18n } = useTranslation();
   const isRtl = i18n.dir() === "rtl";
-  const [amount, setAmount] = useState("");
   const inputRef = useRef(null);
-  
-  // Get provider data from route params
-  const { provider, providerId, providerName, providerColor, providerLogo, packageType } = route.params || {};
+  const [amount, setAmount] = useState("");
 
-  // Safe translation function that ALWAYS returns a string
+  const {
+    provider,
+    externalServiceCode,
+    providerId,
+    providerName,
+    providerColor,
+    providerLogo,
+    phoneNumber,
+    description,
+    saveAccount,
+    queryContext,
+  } = route.params || {};
+
   function tr(key, fallback = "Missing Translation") {
     if (!key) return fallback || "";
     const translated = t(key);
     return translated || fallback;
   }
 
-  // Handle back button
   React.useEffect(() => {
     const backAction = () => {
       navigation.goBack();
       return true;
     };
-    
+
     const backHandler = BackHandler.addEventListener("hardwareBackPress", backAction);
     return () => backHandler.remove();
   }, [navigation]);
 
-  // Focus input on component mount
   React.useEffect(() => {
-    setTimeout(() => {
+    const timeout = setTimeout(() => {
       if (inputRef.current) {
         inputRef.current.focus();
       }
     }, 100);
+
+    return () => clearTimeout(timeout);
   }, []);
 
   const handleContinue = () => {
     if (!amount || parseFloat(amount) <= 0) {
-      // Show error or alert
       return;
     }
-    
+
     const numericAmount = parseFloat(amount);
-    
-    navigation.navigate("accountDetailsScreen", {
+
+    navigation.navigate("paymentMethodScreen", {
       provider,
+      externalServiceCode: externalServiceCode || provider || null,
       providerId,
       providerName,
       providerColor,
       providerLogo,
-      packageType,
       amountTitle: "Custom Amount",
       amount: numericAmount,
-      amountFormatted: `GHS ${numericAmount.toFixed(2)}`
+      amountFormatted: formatMoney(numericAmount),
+      phoneNumber,
+      description,
+      saveAccount,
+      transactionType: "airtime",
+      queryContext,
+      recipientInfo: {
+        phoneNumber,
+        name: description || phoneNumber,
+        provider: providerName,
+        logo: providerLogo,
+      },
+      isPersonalHubTransaction: true,
     });
   };
 
@@ -82,12 +100,8 @@ const OtherAmountScreen = ({ navigation, route }) => {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.extraLightGrey }}>
       <MyStatusBar />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : null}
-        style={{ flex: 1 }}
-      >
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : null} style={{ flex: 1 }}>
         <View style={{ flex: 1 }}>
-          {/* Header */}
           <View
             style={{
               flexDirection: isRtl ? "row-reverse" : "row",
@@ -111,12 +125,9 @@ const OtherAmountScreen = ({ navigation, route }) => {
                 color={Colors.black}
               />
             </TouchableOpacity>
-            <Text style={{ ...Fonts.SemiBold18black }}>
-              {tr("Enter Amount")}
-            </Text>
+            <Text style={{ ...Fonts.SemiBold18black }}>{tr("Enter Amount")}</Text>
           </View>
 
-          {/* Provider Info */}
           <View
             style={{
               flexDirection: isRtl ? "row-reverse" : "row",
@@ -132,7 +143,7 @@ const OtherAmountScreen = ({ navigation, route }) => {
                 width: 50,
                 height: 50,
                 borderRadius: 25,
-                backgroundColor: providerColor ? providerColor + '15' : Colors.blue + '15',
+                backgroundColor: providerColor ? providerColor + "15" : Colors.blue + "15",
                 justifyContent: "center",
                 alignItems: "center",
                 marginRight: isRtl ? 0 : Default.fixPadding * 1.5,
@@ -148,23 +159,25 @@ const OtherAmountScreen = ({ navigation, route }) => {
                 }}
               />
             </View>
-            <Text style={{ ...Fonts.SemiBold16black }}>
-              {providerName || "Airtime Purchase"}
-            </Text>
+            <View style={{ flex: 1 }}>
+              <Text style={{ ...Fonts.SemiBold16black }}>{providerName || "Airtime Purchase"}</Text>
+              <Text style={{ ...Fonts.Medium14grey, marginTop: 2 }}>{phoneNumber}</Text>
+            </View>
           </View>
 
-          {/* Amount Input */}
-          <View style={{ 
-            backgroundColor: Colors.white, 
-            margin: Default.fixPadding * 2,
-            borderRadius: 10,
-            padding: Default.fixPadding * 2,
-            ...Default.shadow,
-          }}>
+          <View
+            style={{
+              backgroundColor: Colors.white,
+              margin: Default.fixPadding * 2,
+              borderRadius: 10,
+              padding: Default.fixPadding * 2,
+              ...Default.shadow,
+            }}
+          >
             <Text style={{ ...Fonts.SemiBold14grey, marginBottom: Default.fixPadding }}>
               {tr("ENTER AMOUNT")}
             </Text>
-            
+
             <View
               style={{
                 flexDirection: isRtl ? "row-reverse" : "row",
@@ -175,9 +188,7 @@ const OtherAmountScreen = ({ navigation, route }) => {
                 marginBottom: Default.fixPadding * 2,
               }}
             >
-              <Text style={{ ...Fonts.Bold20black, marginRight: Default.fixPadding }}>
-                GHS
-              </Text>
+              <Text style={{ ...Fonts.Bold20black, marginRight: Default.fixPadding }}>GHS</Text>
               <TextInput
                 ref={inputRef}
                 style={{
@@ -194,24 +205,35 @@ const OtherAmountScreen = ({ navigation, route }) => {
               />
             </View>
 
-            <View style={{ 
-              backgroundColor: Colors.lightLinkWater,
-              padding: Default.fixPadding * 1.5,
-              borderRadius: 8,
-              marginTop: Default.fixPadding
-            }}>
-              <Text style={{ ...Fonts.Medium14black }}>
-                {tr("Enter any amount between GHS 1.00 and GHS 1,000.00")}
+            <View
+              style={{
+                backgroundColor: Colors.lightLinkWater,
+                padding: Default.fixPadding * 1.5,
+                borderRadius: 8,
+                marginTop: Default.fixPadding,
+                flexDirection: isRtl ? "row-reverse" : "row",
+              }}
+            >
+              <MaterialCommunityIcons
+                name="information-outline"
+                size={20}
+                color={Colors.primary}
+                style={{
+                  marginRight: isRtl ? 0 : Default.fixPadding,
+                  marginLeft: isRtl ? Default.fixPadding : 0,
+                }}
+              />
+              <Text style={{ ...Fonts.Medium14black, flex: 1 }}>
+                {tr("The selected provider did not return fixed denominations, so you can enter a custom amount.")}
               </Text>
             </View>
           </View>
 
-          {/* Continue Button */}
           <View
             style={{
               padding: Default.fixPadding * 2,
               backgroundColor: Colors.white,
-              position: 'absolute',
+              position: "absolute",
               bottom: 0,
               left: 0,
               right: 0,
@@ -228,9 +250,7 @@ const OtherAmountScreen = ({ navigation, route }) => {
                 alignItems: "center",
               }}
             >
-              <Text style={{ ...Fonts.SemiBold16white }}>
-                {tr("Continue")}
-              </Text>
+              <Text style={{ ...Fonts.SemiBold16white }}>{tr("Continue")}</Text>
             </TouchableOpacity>
           </View>
         </View>

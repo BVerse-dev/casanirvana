@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Text,
   View,
@@ -18,27 +18,32 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { ms } from "react-native-size-matters/extend";
 import MyStatusBar from "../components/myStatusBar";
+import { queryPersonalHubCatalog } from "../services/expressPayService";
+import {
+  buildCatalogQueryPayload,
+  getQueryContextLabel,
+  normalizeCatalogOptions,
+} from "../services/personalHubCatalogFlowService";
 
 const PolicyDetailsScreen = ({ navigation, route }) => {
   const { t, i18n } = useTranslation();
   const isRtl = i18n.dir() === "rtl";
-  
-  const { provider, providerId, providerName, providerLogo } = route.params || {};
-  
+
+  const { provider, externalServiceCode, providerId, providerName, providerLogo } = route.params || {};
+
   const [policyNumber, setPolicyNumber] = useState("");
   const [description, setDescription] = useState("");
   const [savePolicy, setSavePolicy] = useState(false);
   const [isValidPolicy, setIsValidPolicy] = useState(false);
   const [policyError, setPolicyError] = useState("");
+  const [isVerifying, setIsVerifying] = useState(false);
 
-  // Safe translation function that ALWAYS returns a string
   function tr(key, fallback = "Missing Translation") {
     if (!key) return fallback || "";
     const translated = t(key);
     return translated || fallback;
   }
 
-  // Get logo based on provider
   const getProviderLogo = () => {
     if (providerLogo) return providerLogo;
 
@@ -58,51 +63,73 @@ const PolicyDetailsScreen = ({ navigation, route }) => {
     }
   };
 
-  // Validate policy number
   const validatePolicy = (text) => {
     setPolicyNumber(text);
-    
-    // Simple validation - can be enhanced based on provider requirements
     if (text.length < 6) {
       setIsValidPolicy(false);
-      if (text.length > 0) {
-        setPolicyError("Policy number too short");
-      } else {
-        setPolicyError("");
-      }
-    } else {
-      setIsValidPolicy(true);
-      setPolicyError("");
+      setPolicyError(text.length > 0 ? "Policy number too short" : "");
+      return;
     }
+    setIsValidPolicy(true);
+    setPolicyError("");
   };
 
-  // Handle continue
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (!isValidPolicy) {
       Alert.alert("Invalid Policy", "Please enter a valid policy number");
       return;
     }
 
+    setIsVerifying(true);
+
+    const result = await queryPersonalHubCatalog({
+      provider_id: providerId || undefined,
+      external_service_code: externalServiceCode || provider || undefined,
+      service_type: "insurance",
+      payload: {
+        ...buildCatalogQueryPayload({
+          transactionType: "insurance",
+          identifier: policyNumber,
+        }),
+        provider_name: providerName || null,
+      },
+    });
+
+    setIsVerifying(false);
+
+    if (!result.success) {
+      Alert.alert(
+        tr("Unable to Verify Policy"),
+        result.error || tr("We could not validate this policy with the selected provider.")
+      );
+      return;
+    }
+
+    const queryContext = result.data?.query_context || {};
+    const queryOptions = normalizeCatalogOptions({
+      options: result.data?.options || [],
+      queryContext,
+    });
+
     navigation.navigate("insuranceAmountScreen", {
       provider,
+      externalServiceCode: externalServiceCode || provider || null,
       providerId,
       providerName,
       policyNumber,
-      description,
+      description: description || getQueryContextLabel(queryContext, null),
       savePolicy,
       providerLogo: getProviderLogo(),
+      queryContext,
+      queryOptions,
     });
   };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.extraLightGrey }}>
       <MyStatusBar />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={{ flex: 1 }}
-      >
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
         <View style={{ flex: 1 }}>
-          {/* Header */}
           <View
             style={{
               flexDirection: isRtl ? "row-reverse" : "row",
@@ -126,16 +153,13 @@ const PolicyDetailsScreen = ({ navigation, route }) => {
                 color={Colors.black}
               />
             </TouchableOpacity>
-            <Text style={{ ...Fonts.SemiBold18black }}>
-              {tr("Account Details")}
-            </Text>
+            <Text style={{ ...Fonts.SemiBold18black }}>{tr("Account Details")}</Text>
           </View>
 
           <ScrollView
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ flexGrow: 1, padding: Default.fixPadding * 2 }}
           >
-            {/* Provider Info */}
             <View
               style={{
                 backgroundColor: Colors.white,
@@ -155,7 +179,7 @@ const PolicyDetailsScreen = ({ navigation, route }) => {
                   justifyContent: "center",
                   alignItems: "center",
                   marginBottom: Default.fixPadding,
-                  overflow: "hidden"
+                  overflow: "hidden",
                 }}
               >
                 <Image
@@ -163,16 +187,13 @@ const PolicyDetailsScreen = ({ navigation, route }) => {
                   style={{
                     width: ms(60),
                     height: ms(60),
-                    resizeMode: "contain"
+                    resizeMode: "contain",
                   }}
                 />
               </View>
-              <Text style={{ ...Fonts.SemiBold18black }}>
-                {providerName}
-              </Text>
+              <Text style={{ ...Fonts.SemiBold18black }}>{providerName}</Text>
             </View>
 
-            {/* Policy Input */}
             <View
               style={{
                 backgroundColor: Colors.white,
@@ -201,12 +222,16 @@ const PolicyDetailsScreen = ({ navigation, route }) => {
                 keyboardType="numeric"
               />
               {policyError ? (
-                <Text style={{ ...Fonts.Medium12red, marginTop: Default.fixPadding * 0.5 }}>
-                  {policyError}
-                </Text>
+                <Text style={{ ...Fonts.Medium12red, marginTop: Default.fixPadding * 0.5 }}>{policyError}</Text>
               ) : null}
 
-              <Text style={{ ...Fonts.SemiBold14grey, marginTop: Default.fixPadding * 2, marginBottom: Default.fixPadding }}>
+              <Text
+                style={{
+                  ...Fonts.SemiBold14grey,
+                  marginTop: Default.fixPadding * 2,
+                  marginBottom: Default.fixPadding,
+                }}
+              >
                 {tr("DESCRIPTION (OPTIONAL)")}
               </Text>
               <TextInput
@@ -232,19 +257,16 @@ const PolicyDetailsScreen = ({ navigation, route }) => {
                   marginTop: Default.fixPadding * 2,
                 }}
               >
-                <Text style={{ ...Fonts.SemiBold14black }}>
-                  {tr("Save Policy")}
-                </Text>
+                <Text style={{ ...Fonts.SemiBold14black }}>{tr("Save Policy")}</Text>
                 <Switch
                   value={savePolicy}
                   onValueChange={setSavePolicy}
-                  trackColor={{ false: Colors.lightGrey, true: Colors.primary + '50' }}
+                  trackColor={{ false: Colors.lightGrey, true: Colors.primary + "50" }}
                   thumbColor={savePolicy ? Colors.primary : Colors.white}
                 />
               </View>
             </View>
-            
-            {/* Info Card */}
+
             <View
               style={{
                 backgroundColor: "#E3F2FD",
@@ -255,7 +277,7 @@ const PolicyDetailsScreen = ({ navigation, route }) => {
               }}
             >
               <MaterialCommunityIcons
-                name="information-outline"
+                name={isVerifying ? "progress-clock" : "information-outline"}
                 size={24}
                 color="#1976D2"
                 style={{
@@ -264,12 +286,13 @@ const PolicyDetailsScreen = ({ navigation, route }) => {
                 }}
               />
               <Text style={{ ...Fonts.Medium14black, flex: 1 }}>
-                {tr("Enter your policy number exactly as it appears on your insurance documents to ensure successful payment.")}
+                {isVerifying
+                  ? tr("Validating this policy with the insurer...")
+                  : tr("We will verify this policy with the insurer and load the available premium options before checkout.")}
               </Text>
             </View>
           </ScrollView>
 
-          {/* Continue Button */}
           <View
             style={{
               padding: Default.fixPadding * 2,
@@ -279,18 +302,15 @@ const PolicyDetailsScreen = ({ navigation, route }) => {
           >
             <TouchableOpacity
               onPress={handleContinue}
-              disabled={!isValidPolicy}
+              disabled={!isValidPolicy || isVerifying}
               style={{
-                backgroundColor: isValidPolicy ? Colors.primary : Colors.grey,
+                backgroundColor: isValidPolicy && !isVerifying ? Colors.primary : Colors.grey,
                 borderRadius: 10,
                 paddingVertical: Default.fixPadding * 1.5,
                 alignItems: "center",
-                justifyContent: "center",
               }}
             >
-              <Text style={{ ...Fonts.SemiBold16white }}>
-                {tr("Continue")}
-              </Text>
+              <Text style={{ ...Fonts.SemiBold16white }}>{isVerifying ? tr("Checking...") : tr("Continue")}</Text>
             </TouchableOpacity>
           </View>
         </View>

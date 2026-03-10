@@ -56,6 +56,7 @@ const PaymentMethodScreen = ({ navigation, route }) => {
     onPaymentMethodAdded,
     // Airtime purchase params
     provider,
+    externalServiceCode,
     providerId,
     providerName,
     providerColor,
@@ -80,6 +81,9 @@ const PaymentMethodScreen = ({ navigation, route }) => {
     totalAmount,
     billInfo,
     policyInfo,
+    billCategory,
+    queryContext,
+    selectedOption,
     isPersonalHubTransaction: isPersonalHubTransactionParam,
   } = route.params || {};
   
@@ -376,6 +380,7 @@ const PaymentMethodScreen = ({ navigation, route }) => {
       navigationParams = {
         transactionType,
         provider,
+        externalServiceCode,
         providerId,
         providerName,
         providerColor,
@@ -399,6 +404,9 @@ const PaymentMethodScreen = ({ navigation, route }) => {
         totalAmount,
         billInfo,
         policyInfo,
+        billCategory,
+        queryContext,
+        selectedOption,
         isPersonalHubTransaction: true,
       };
     } else if (isAddingMode) {

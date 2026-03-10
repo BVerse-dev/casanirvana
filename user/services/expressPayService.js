@@ -83,6 +83,45 @@ export const initiateExpressPayPayment = async (payload) =>
     fallbackError: "Failed to initiate payment. Please try again.",
   });
 
+export const getPersonalHubCatalogProviders = async ({
+  serviceType,
+  billCategory,
+}) => {
+  const params = new URLSearchParams();
+  if (serviceType) params.set("service_type", serviceType);
+  if (billCategory) params.set("bill_category", billCategory);
+
+  const query = params.toString();
+  return callExpressPayEndpoint({
+    path: `/personal-hub/catalog/providers${query ? `?${query}` : ""}`,
+    method: "GET",
+    fallbackError: "Failed to load Personal Hub providers.",
+  });
+};
+
+export const queryPersonalHubCatalog = async (payload) =>
+  callExpressPayEndpoint({
+    path: "/personal-hub/catalog/query",
+    method: "POST",
+    body: payload,
+    fallbackError: "Failed to validate the selected Personal Hub service.",
+  });
+
+export const initiatePersonalHubCheckout = async (payload) =>
+  callExpressPayEndpoint({
+    path: "/personal-hub/transactions/initiate",
+    method: "POST",
+    body: payload,
+    fallbackError: "Failed to initiate Personal Hub checkout.",
+  });
+
+export const getPersonalHubTransactionStatus = async (transactionId) =>
+  callExpressPayEndpoint({
+    path: `/personal-hub/transactions/${transactionId}/status`,
+    method: "GET",
+    fallbackError: "Failed to load Personal Hub transaction status.",
+  });
+
 export const verifyExpressPayPayment = async ({ paymentId, token, orderId }) =>
   callExpressPayEndpoint({
     path: "/payments/expresspay/verify",

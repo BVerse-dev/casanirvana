@@ -1,4 +1,4 @@
-import { supabase } from "../utils/supabase";
+import { getPersonalHubCatalogProviders } from "./expressPayService";
 
 const PROVIDER_THEMES = [
   { keywords: ["mtn"], logo: require("../assets/images/pay1.png"), color: "#FFB900" },
@@ -158,14 +158,22 @@ const mapProviderRow = (row) => {
   return {
     id: row.id || getProviderCode(serviceType, providerName),
     providerId: isUuid(row.id) ? row.id : null,
-    providerCode: getProviderCode(serviceType, providerName),
+    providerCode: row.external_service_code || getProviderCode(serviceType, providerName),
+    externalServiceCode: row.external_service_code || null,
     name: providerName,
     serviceType,
     subtitle: getSubtitle(serviceType, providerName),
     logo: theme.logo,
     color: theme.color,
     icon: getIcon(serviceType),
-    billCategory: serviceType === "bill_payment" ? inferBillCategory(providerName) : null,
+    billCategory:
+      serviceType === "bill_payment"
+        ? row.bill_category || inferBillCategory(providerName)
+        : null,
+    supportsQuery: Boolean(row.supports_query),
+    supportsPay: row.supports_pay !== false,
+    supportsStatus: row.supports_status !== false,
+    providerMetadata: row.provider_metadata || {},
   };
 };
 
@@ -185,8 +193,9 @@ const filterForBillCategory = (providers, billCategory) => {
 
 export const getActiveServiceProviders = async ({ serviceType, billCategory = null }) => {
   try {
-    const { data, error } = await supabase.rpc("list_active_service_providers", {
-      p_service_type: serviceType,
+    const { data, error } = await getPersonalHubCatalogProviders({
+      serviceType,
+      billCategory: serviceType === "bill_payment" ? billCategory : null,
     });
 
     if (error) {
@@ -194,7 +203,7 @@ export const getActiveServiceProviders = async ({ serviceType, billCategory = nu
       return { data: fallback, error };
     }
 
-    const mapped = (data || []).map(mapProviderRow);
+    const mapped = (data?.items || []).map(mapProviderRow);
     const filtered = serviceType === "bill_payment"
       ? filterForBillCategory(mapped, billCategory)
       : mapped;

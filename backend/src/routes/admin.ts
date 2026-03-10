@@ -703,6 +703,36 @@ router.get(
   paymentController.getAdminPersonalHubDashboard
 );
 router.get(
+  '/personal-hub/catalog/providers',
+  requireAuth,
+  requirePermission('read:all_payments'),
+  validateRequest({ query: schemas.adminPersonalHubCatalogProvidersQuery }),
+  paymentController.listAdminPersonalHubCatalogProviders
+);
+router.patch(
+  '/personal-hub/catalog/providers/:id',
+  requireAuth,
+  requirePermission('update:payments'),
+  validateRequest({
+    params: schemas.adminPersonalHubCatalogProviderUpdateParams,
+    body: schemas.adminPersonalHubCatalogProviderUpdate,
+  }),
+  paymentController.updateAdminPersonalHubCatalogProvider
+);
+router.get(
+  '/personal-hub/catalog/packages',
+  requireAuth,
+  requirePermission('read:all_payments'),
+  validateRequest({ query: schemas.adminPersonalHubCatalogPackagesQuery }),
+  paymentController.listAdminPersonalHubCatalogPackages
+);
+router.post(
+  '/personal-hub/catalog/sync',
+  requireAuth,
+  requirePermission('update:payments'),
+  paymentController.syncAdminPersonalHubCatalog
+);
+router.get(
   '/personal-hub/reports',
   requireAuth,
   requirePermission('read:all_payments'),

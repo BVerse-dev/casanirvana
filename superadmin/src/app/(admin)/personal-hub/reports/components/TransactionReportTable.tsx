@@ -14,6 +14,7 @@ interface TransactionReportTableProps {
   transactionsTotal: number;
   transactionsReturned: number;
   transactionsTruncated: boolean;
+  showServiceColumn?: boolean;
 }
 
 const ITEMS_PER_PAGE = 12;
@@ -48,6 +49,7 @@ const TransactionReportTable = ({
   transactionsTotal,
   transactionsReturned,
   transactionsTruncated,
+  showServiceColumn = true,
 }: TransactionReportTableProps) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedTransaction, setSelectedTransaction] = useState<PersonalHubReportTransaction | null>(null);
@@ -85,7 +87,7 @@ const TransactionReportTable = ({
             <tr>
               <th>Created</th>
               <th>Reference</th>
-              <th>Service</th>
+              {showServiceColumn ? <th>Service</th> : null}
               <th>Resident</th>
               <th>Provider</th>
               <th>Amount</th>
@@ -108,12 +110,14 @@ const TransactionReportTable = ({
                     <div className="fw-semibold">{transaction.transaction_id || transaction.payment_id || transaction.id}</div>
                     <div className="text-muted small">{transaction.recipient_name || transaction.recipient_identifier || 'No recipient detail'}</div>
                   </td>
-                  <td>
-                    <Badge bg={serviceMeta.bg} className="d-inline-flex align-items-center gap-1">
-                      <IconifyIcon icon={serviceMeta.icon} />
-                      {transaction.service}
-                    </Badge>
-                  </td>
+                  {showServiceColumn ? (
+                    <td>
+                      <Badge bg={serviceMeta.bg} className="d-inline-flex align-items-center gap-1">
+                        <IconifyIcon icon={serviceMeta.icon} />
+                        {transaction.service}
+                      </Badge>
+                    </td>
+                  ) : null}
                   <td>
                     <div className="fw-semibold">{transaction.user.name}</div>
                     <div className="text-muted small">{transaction.community?.name || 'No community'}</div>

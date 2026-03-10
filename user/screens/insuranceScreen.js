@@ -53,6 +53,7 @@ const InsuranceScreen = ({ navigation }) => {
   const handleProviderSelect = (item) => {
     navigation.navigate("policyDetailsScreen", {
       provider: item.providerCode,
+      externalServiceCode: item.externalServiceCode || item.providerCode,
       providerId: item.providerId || null,
       providerName: item.name,
       providerLogo: item.logo,

@@ -1,45 +1,58 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Row, Col, Card, Button, Badge, Nav, Spinner } from 'react-bootstrap';
+import { Row, Col, Card, Button, Nav, Spinner } from 'react-bootstrap';
+
 import PageTitle from '@/components/PageTitle';
 import IconifyIcon from '@/components/wrappers/IconifyIcon';
-
-// Components
+import ExpressPayCatalogSyncNotice from '../components/ExpressPayCatalogSyncNotice';
 import TransferMetricCard from './components/TransferMetricCard';
 import TransferServicesTable from './components/TransferServicesTable';
 import TransferTransactionsTable from './components/TransferTransactionsTable';
 import TransferVolumeChart from './components/TransferVolumeChart';
 import TransferCorridorChart from './components/TransferCorridorChart';
 import ComplianceMonitoring from './components/ComplianceMonitoring';
-import AddServiceModal from './components/AddServiceModal';
-// Hook
+import { useAdminPersonalHubCatalog } from '@/hooks/useAdminPersonalHubCatalog';
 import { useMoneyTransferService } from '@/hooks/useMoneyTransferService';
 
 const MoneyTransferPage = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'services' | 'transactions' | 'compliance'>('overview');
-  const [showAddServiceModal, setShowAddServiceModal] = useState(false);
-  const [editService, setEditService] = useState(null);
+  const [syncFeedback, setSyncFeedback] = useState<{ variant: 'success' | 'danger'; message: string } | null>(null);
+  const { metrics, loading, error, refetch } = useMoneyTransferService();
+  const { providers: catalogProviders, syncCatalog, isSyncing } = useAdminPersonalHubCatalog({
+    serviceType: 'money_transfer',
+  });
 
-  // Fetch metrics from database
-  const { metrics, loading, error } = useMoneyTransferService();
-
-  // Format helpers
   const formatNumber = (num: number) => num.toLocaleString();
-  const formatCurrency = (num: number) => `₦${num.toLocaleString()}`;
+  const formatCurrency = (num: number) => `GH₵${num.toLocaleString()}`;
+
+  const handleSyncCatalog = async () => {
+    try {
+      const result = await syncCatalog();
+      await refetch();
+      setSyncFeedback({
+        variant: 'success',
+        message: `ExpressPay money-transfer catalog synced successfully. Imported ${result.data.imported_count} provider records.`,
+      });
+    } catch (syncError) {
+      setSyncFeedback({
+        variant: 'danger',
+        message: syncError instanceof Error ? syncError.message : 'Failed to sync ExpressPay money-transfer catalog.',
+      });
+    }
+  };
 
   return (
     <>
       <PageTitle title="Money Transfer" subName="Management Dashboard" />
 
-      {/* Top navigation tabs */}
       <Card className="mb-3">
         <Card.Body className="p-0">
           <Nav
             variant="tabs"
             className="nav-bordered"
             activeKey={activeTab}
-            onSelect={(k) => setActiveTab(k as any)}
+            onSelect={(k) => setActiveTab(k as 'overview' | 'services' | 'transactions' | 'compliance')}
           >
             <Nav.Item>
               <Nav.Link eventKey="overview">
@@ -58,16 +71,24 @@ const MoneyTransferPage = () => {
             </Nav.Item>
             <Nav.Item>
               <Nav.Link eventKey="compliance">
-                <IconifyIcon icon="ri:shield-check-line" className="me-1" /> Compliance
+                <IconifyIcon icon="ri:shield-check-line" className="me-1" /> Operational Monitoring
               </Nav.Link>
             </Nav.Item>
           </Nav>
         </Card.Body>
       </Card>
 
+      <ExpressPayCatalogSyncNotice
+        providers={catalogProviders}
+        isSyncing={isSyncing}
+        onSync={handleSyncCatalog}
+        feedback={syncFeedback}
+        description="Transfer services in this workspace are sourced from the cached ExpressPay Bill Payments catalog. Manual transfer-service creation is disabled so the user app and backend only expose flows that ExpressPay currently supports for your merchant profile."
+        secondaryNote="Use catalog sync when ExpressPay enables or retires transfer rails such as mobile-money or bank transfer services."
+      />
+
       {activeTab === 'overview' && (
         <>
-          {/* Key metrics */}
           {loading ? (
             <div className="text-center py-4"><Spinner animation="border" /></div>
           ) : error ? (
@@ -113,7 +134,6 @@ const MoneyTransferPage = () => {
             </Row>
           )}
 
-          {/* Charts and analytics */}
           <Row>
             <Col xl={8}>
               <TransferVolumeChart />
@@ -123,7 +143,6 @@ const MoneyTransferPage = () => {
             </Col>
           </Row>
 
-          {/* Recent transactions preview */}
           <Card>
             <Card.Header className="d-flex align-items-center">
               <Card.Title className="mb-0">Recent Transactions</Card.Title>
@@ -146,18 +165,6 @@ const MoneyTransferPage = () => {
         <Card>
           <Card.Header className="d-flex align-items-center">
             <Card.Title className="mb-0">Transfer Services</Card.Title>
-            <Button
-              variant="primary"
-              size="sm"
-              className="ms-auto"
-              onClick={() => {
-                setEditService(null);
-                setShowAddServiceModal(true);
-              }}
-            >
-              <IconifyIcon icon="ri:add-line" className="me-1" />
-              Add Service
-            </Button>
           </Card.Header>
           <Card.Body>
             <TransferServicesTable />
@@ -176,31 +183,9 @@ const MoneyTransferPage = () => {
         </Card>
       )}
 
-      {activeTab === 'compliance' && (
-        <ComplianceMonitoring />
-      )}
-
-      {/* Add/Edit Service Modal */}
-      <AddServiceModal
-        show={showAddServiceModal}
-        onHide={() => setShowAddServiceModal(false)}
-        onSave={handleSaveService}
-        editService={editService}
-      />
+      {activeTab === 'compliance' && <ComplianceMonitoring />}
     </>
   );
-
-  // Handler for saving service data
-  function handleSaveService(serviceData: any) {
-    // In a real application, this would call an API to save the service
-    console.log('Saving transfer service:', serviceData);
-
-    // For now, just show a success message
-    alert(editService
-      ? `Service ${serviceData.name} updated successfully!`
-      : `Service ${serviceData.name} added successfully!`
-    );
-  }
 };
 
 export default MoneyTransferPage;

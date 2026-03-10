@@ -1,13 +1,11 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import {
   Text,
   View,
   TouchableOpacity,
-  StatusBar,
   TextInput,
   Switch,
   Image,
-  StyleSheet,
   SafeAreaView,
   KeyboardAvoidingView,
   Platform,
@@ -21,10 +19,14 @@ import { Colors, Fonts, Default } from "../constants/styles";
 import { useTranslation } from "react-i18next";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
-import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import { ms } from "react-native-size-matters/extend";
 import MyStatusBar from "../components/myStatusBar";
 import * as Contacts from "expo-contacts";
+import { queryPersonalHubCatalog } from "../services/expressPayService";
+import {
+  buildCatalogQueryPayload,
+  normalizeCatalogOptions,
+} from "../services/personalHubCatalogFlowService";
 
 const DataAccountDetailsScreen = ({ navigation, route }) => {
   const { t, i18n } = useTranslation();
@@ -32,87 +34,43 @@ const DataAccountDetailsScreen = ({ navigation, route }) => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [description, setDescription] = useState("");
   const [saveAccount, setSaveAccount] = useState(true);
-  
-  // Contact picker states
+  const [isVerifying, setIsVerifying] = useState(false);
   const [contacts, setContacts] = useState([]);
   const [showContactPicker, setShowContactPicker] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  
-  // Get data from route params
-  const { 
-    provider, 
+
+  const {
+    provider,
+    externalServiceCode,
     providerId,
-    providerName, 
+    providerName,
     providerColor,
     providerLogo,
-    packageType, 
-    amountTitle, 
-    amount, 
-    amountFormatted,
-    dataAmount,
-    validity,
-    transactionType
+    supportsQuery,
   } = route.params || {};
 
-  // Safe translation function that ALWAYS returns a string
   function tr(key, fallback = "Missing Translation") {
     if (!key) return fallback || "";
     const translated = t(key);
     return translated || fallback;
   }
 
-  // Handle back button
   React.useEffect(() => {
     const backAction = () => {
       navigation.goBack();
       return true;
     };
-    
+
     const backHandler = BackHandler.addEventListener("hardwareBackPress", backAction);
     return () => backHandler.remove();
   }, [navigation]);
 
-  const handleContinue = () => {
-    if (!phoneNumber || phoneNumber.length < 9) {
-      // Show error or alert
-      return;
-    }
-    
-    // Navigate to payment method selection
-    navigation.navigate("paymentMethodScreen", {
-      provider,
-      providerId,
-      providerName,
-      providerColor,
-      providerLogo,
-      packageType,
-      amountTitle,
-      amount,
-      amountFormatted,
-      phoneNumber,
-      description,
-      saveAccount,
-      dataAmount,
-      validity,
-      transactionType: 'data',
-      recipientInfo: {
-        phoneNumber,
-        name: description || phoneNumber,
-        provider: providerName,
-        logo: providerLogo,
-        dataAmount,
-        validity
-      }
-    });
-  };
-
-  // Contact permission and loading functions
   const requestContactsPermission = async () => {
     try {
       const { status } = await Contacts.requestPermissionsAsync();
-      return status === 'granted';
+      return status === "granted";
     } catch (error) {
-      console.log('Permission error:', error);
+      console.log("Permission error:", error);
       return false;
     }
   };
@@ -122,7 +80,7 @@ const DataAccountDetailsScreen = ({ navigation, route }) => {
       const hasPermission = await requestContactsPermission();
       if (!hasPermission) {
         Alert.alert(
-          tr("Permission Required"), 
+          tr("Permission Required"),
           tr("Please grant contacts permission to select from your contacts.")
         );
         return;
@@ -133,17 +91,14 @@ const DataAccountDetailsScreen = ({ navigation, route }) => {
       });
 
       if (data.length > 0) {
-        // Filter contacts that have phone numbers and names
-        const validContacts = data.filter(contact => 
-          contact.name && 
-          contact.phoneNumbers && 
-          contact.phoneNumbers.length > 0
-        ).map(contact => ({
-          id: contact.id,
-          name: contact.name,
-          phoneNumber: contact.phoneNumbers[0].number
-        }));
-        
+        const validContacts = data
+          .filter((contact) => contact.name && contact.phoneNumbers && contact.phoneNumbers.length > 0)
+          .map((contact) => ({
+            id: contact.id,
+            name: contact.name,
+            phoneNumber: contact.phoneNumbers[0].number,
+          }));
+
         setContacts(validContacts);
         setShowContactPicker(true);
       } else {
@@ -156,10 +111,10 @@ const DataAccountDetailsScreen = ({ navigation, route }) => {
 
   const selectContact = (contact) => {
     if (!contact) return;
-    
+
     const safeName = contact.name || "";
     const safePhone = contact.phoneNumber || "";
-    
+
     setPhoneNumber(safePhone);
     if (!description && safeName) {
       setDescription(safeName);
@@ -167,8 +122,65 @@ const DataAccountDetailsScreen = ({ navigation, route }) => {
     setShowContactPicker(false);
   };
 
-  const handleContactPicker = () => {
-    loadContacts();
+  const handleContinue = async () => {
+    if (!phoneNumber || phoneNumber.length < 9) {
+      Alert.alert(tr("Invalid Number"), tr("Please enter a valid phone number."));
+      return;
+    }
+
+    setIsVerifying(true);
+
+    const result = await queryPersonalHubCatalog({
+      provider_id: providerId || undefined,
+      external_service_code: externalServiceCode || provider || undefined,
+      service_type: "data",
+      payload: {
+        ...buildCatalogQueryPayload({
+          transactionType: "data",
+          identifier: phoneNumber,
+        }),
+        provider_name: providerName || null,
+      },
+    });
+
+    setIsVerifying(false);
+
+    if (!result.success) {
+      Alert.alert(
+        tr("Unable to Load Bundles"),
+        result.error || tr("We could not validate this number with the selected provider.")
+      );
+      return;
+    }
+
+    const queryContext = result.data?.query_context || {};
+    const queryOptions = normalizeCatalogOptions({
+      options: result.data?.options || [],
+      queryContext,
+    });
+
+    if (!queryOptions.length && supportsQuery !== false) {
+      Alert.alert(
+        tr("No Bundles Available"),
+        tr("This provider did not return any bundle options for the entered number.")
+      );
+      return;
+    }
+
+    navigation.navigate("dataAmountScreen", {
+      provider,
+      externalServiceCode: externalServiceCode || provider || null,
+      providerId,
+      providerName,
+      providerColor,
+      providerLogo,
+      phoneNumber,
+      description,
+      saveAccount,
+      queryContext,
+      queryOptions,
+      transactionType: "data",
+    });
   };
 
   const isValidPhoneNumber = phoneNumber && phoneNumber.length >= 9;
@@ -176,11 +188,7 @@ const DataAccountDetailsScreen = ({ navigation, route }) => {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.extraLightGrey }}>
       <MyStatusBar />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : null}
-        style={{ flex: 1 }}
-      >
-        {/* Header */}
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : null} style={{ flex: 1 }}>
         <View
           style={{
             flexDirection: isRtl ? "row-reverse" : "row",
@@ -204,33 +212,33 @@ const DataAccountDetailsScreen = ({ navigation, route }) => {
               color={Colors.black}
             />
           </TouchableOpacity>
-          <Text style={{ ...Fonts.SemiBold18black }}>
-            {tr("Account Details")}
-          </Text>
+          <Text style={{ ...Fonts.SemiBold18black }}>{tr("Account Details")}</Text>
         </View>
 
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ flexGrow: 1, paddingBottom: Default.fixPadding * 10 }}
         >
-          {/* Provider & Amount Info */}
-          <View style={{ 
-            backgroundColor: Colors.white, 
-            padding: Default.fixPadding * 2,
-            marginBottom: Default.fixPadding,
-            ...Default.shadow,
-          }}>
-            <View style={{ 
-              flexDirection: isRtl ? "row-reverse" : "row",
-              alignItems: "center",
-              marginBottom: Default.fixPadding * 2,
-            }}>
+          <View
+            style={{
+              backgroundColor: Colors.white,
+              padding: Default.fixPadding * 2,
+              marginBottom: Default.fixPadding,
+              ...Default.shadow,
+            }}
+          >
+            <View
+              style={{
+                flexDirection: isRtl ? "row-reverse" : "row",
+                alignItems: "center",
+              }}
+            >
               <View
                 style={{
                   width: 50,
                   height: 50,
                   borderRadius: 25,
-                  backgroundColor: providerColor ? providerColor + '15' : Colors.blue + '15',
+                  backgroundColor: providerColor ? providerColor + "15" : Colors.blue + "15",
                   justifyContent: "center",
                   alignItems: "center",
                   marginRight: isRtl ? 0 : Default.fixPadding * 1.5,
@@ -246,71 +254,23 @@ const DataAccountDetailsScreen = ({ navigation, route }) => {
                   }}
                 />
               </View>
-              <View>
-                <Text style={{ ...Fonts.SemiBold16black }}>
-                  {providerName || "Data Purchase"}
-                </Text>
-                <Text style={{ ...Fonts.Medium14primary, marginTop: 2 }}>
-                  {amountFormatted || `GHS ${amount?.toFixed(2) || '0.00'}`}
+              <View style={{ flex: 1 }}>
+                <Text style={{ ...Fonts.SemiBold16black }}>{providerName || "Data Purchase"}</Text>
+                <Text style={{ ...Fonts.Medium14grey, marginTop: 2 }}>
+                  {tr("We will validate the number and load the available bundles for this provider.")}
                 </Text>
               </View>
             </View>
-
-            <View style={{
-              height: 1,
-              backgroundColor: Colors.lightGrey,
-              marginVertical: Default.fixPadding,
-            }} />
-
-            <View style={{
-              flexDirection: isRtl ? "row-reverse" : "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: Default.fixPadding,
-            }}>
-              <Text style={{ ...Fonts.Medium14grey }}>
-                {tr("Package")}
-              </Text>
-              <Text style={{ ...Fonts.SemiBold14black }}>
-                {amountTitle || "Data Bundle"}
-              </Text>
-            </View>
-
-            <View style={{
-              flexDirection: isRtl ? "row-reverse" : "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: Default.fixPadding,
-            }}>
-              <Text style={{ ...Fonts.Medium14grey }}>
-                {tr("Data Amount")}
-              </Text>
-              <Text style={{ ...Fonts.SemiBold14black }}>
-                {dataAmount || "1GB"}
-              </Text>
-            </View>
-
-            <View style={{
-              flexDirection: isRtl ? "row-reverse" : "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}>
-              <Text style={{ ...Fonts.Medium14grey }}>
-                {tr("Validity")}
-              </Text>
-              <Text style={{ ...Fonts.SemiBold14black }}>
-                {validity || "30 days"}
-              </Text>
-            </View>
           </View>
 
-          {/* Phone Number Input */}
-          <View style={{ 
-            backgroundColor: Colors.white, 
-            padding: Default.fixPadding * 2,
-            marginBottom: Default.fixPadding,
-            ...Default.shadow,
-          }}>
+          <View
+            style={{
+              backgroundColor: Colors.white,
+              padding: Default.fixPadding * 2,
+              marginBottom: Default.fixPadding,
+              ...Default.shadow,
+            }}
+          >
             <Text style={{ ...Fonts.SemiBold14grey, marginBottom: Default.fixPadding }}>
               {tr("PHONE NUMBER")}
             </Text>
@@ -338,16 +298,11 @@ const DataAccountDetailsScreen = ({ navigation, route }) => {
                 placeholder={tr("Phone number")}
                 placeholderTextColor={Colors.grey}
               />
-              <TouchableOpacity onPress={handleContactPicker}>
-                <Ionicons
-                  name="person-circle-outline"
-                  size={24}
-                  color={Colors.primary}
-                />
+              <TouchableOpacity onPress={loadContacts}>
+                <Ionicons name="person-circle-outline" size={24} color={Colors.primary} />
               </TouchableOpacity>
             </View>
 
-            {/* Description Input */}
             <Text style={{ ...Fonts.SemiBold14grey, marginBottom: Default.fixPadding }}>
               {tr("DESCRIPTION")}
             </Text>
@@ -367,7 +322,6 @@ const DataAccountDetailsScreen = ({ navigation, route }) => {
               placeholderTextColor={Colors.grey}
             />
 
-            {/* Save Account Toggle */}
             <View
               style={{
                 flexDirection: isRtl ? "row-reverse" : "row",
@@ -375,10 +329,8 @@ const DataAccountDetailsScreen = ({ navigation, route }) => {
                 justifyContent: "space-between",
               }}
             >
-              <View>
-                <Text style={{ ...Fonts.SemiBold16black }}>
-                  {tr("Save Account")}
-                </Text>
+              <View style={{ flex: 1 }}>
+                <Text style={{ ...Fonts.SemiBold16black }}>{tr("Save Account")}</Text>
                 <Text style={{ ...Fonts.Medium14grey, marginTop: 2 }}>
                   {tr("Save this account for future transactions")}
                 </Text>
@@ -386,43 +338,45 @@ const DataAccountDetailsScreen = ({ navigation, route }) => {
               <Switch
                 value={saveAccount}
                 onValueChange={setSaveAccount}
-                trackColor={{ false: Colors.lightGrey, true: Colors.primary + '50' }}
+                trackColor={{ false: Colors.lightGrey, true: Colors.primary + "50" }}
                 thumbColor={saveAccount ? Colors.primary : Colors.white}
                 ios_backgroundColor={Colors.lightGrey}
               />
             </View>
           </View>
 
-          {/* Info Card */}
-          <View style={{ 
-            backgroundColor: Colors.lightLinkWater,
-            margin: Default.fixPadding * 2,
-            padding: Default.fixPadding * 1.5,
-            borderRadius: 8,
-            flexDirection: isRtl ? "row-reverse" : "row",
-          }}>
-            <MaterialIcons
-              name="info-outline"
+          <View
+            style={{
+              backgroundColor: Colors.lightLinkWater,
+              margin: Default.fixPadding * 2,
+              padding: Default.fixPadding * 1.5,
+              borderRadius: 8,
+              flexDirection: isRtl ? "row-reverse" : "row",
+            }}
+          >
+            <MaterialCommunityIcons
+              name={isVerifying ? "progress-clock" : "information-outline"}
               size={20}
-              color={Colors.blue}
-              style={{ 
+              color={Colors.primary}
+              style={{
                 marginRight: isRtl ? 0 : Default.fixPadding,
                 marginLeft: isRtl ? Default.fixPadding : 0,
                 marginTop: 2,
               }}
             />
             <Text style={{ ...Fonts.Medium14black, flex: 1 }}>
-              {tr("Enter the phone number you want to purchase data for. You can save this account for future transactions.")}
+              {isVerifying
+                ? tr("Checking available data bundles for this number...")
+                : tr("Enter the number you want to buy data for. The available bundles will come directly from the provider.")}
             </Text>
           </View>
         </ScrollView>
 
-        {/* Continue Button */}
         <View
           style={{
             padding: Default.fixPadding * 2,
             backgroundColor: Colors.white,
-            position: 'absolute',
+            position: "absolute",
             bottom: 0,
             left: 0,
             right: 0,
@@ -431,71 +385,72 @@ const DataAccountDetailsScreen = ({ navigation, route }) => {
         >
           <TouchableOpacity
             onPress={handleContinue}
-            disabled={!isValidPhoneNumber}
+            disabled={!isValidPhoneNumber || isVerifying}
             style={{
-              backgroundColor: isValidPhoneNumber ? Colors.primary : Colors.grey,
+              backgroundColor: isValidPhoneNumber && !isVerifying ? Colors.primary : Colors.grey,
               borderRadius: 10,
               paddingVertical: Default.fixPadding * 1.5,
               alignItems: "center",
             }}
           >
-            <Text style={{ ...Fonts.SemiBold16white }}>
-              {tr("Continue")}
-            </Text>
+            <Text style={{ ...Fonts.SemiBold16white }}>{isVerifying ? tr("Checking...") : tr("Continue")}</Text>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
 
-      {/* Contact Picker Modal */}
       <Modal
         animationType="slide"
-        transparent={true}
+        transparent
         visible={showContactPicker}
         onRequestClose={() => setShowContactPicker(false)}
       >
-        <View style={{
-          flex: 1,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          justifyContent: 'flex-end',
-        }}>
-          <View style={{
-            backgroundColor: Colors.white,
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-            height: '80%',
-            padding: Default.fixPadding * 2,
-          }}>
-            {/* Header */}
-            <View style={{
-              flexDirection: isRtl ? 'row-reverse' : 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: Default.fixPadding * 2,
-            }}>
-              <Text style={{ ...Fonts.SemiBold18black }}>
-                {tr("Select Contact")}
-              </Text>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            justifyContent: "flex-end",
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: Colors.white,
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20,
+              height: "80%",
+              padding: Default.fixPadding * 2,
+            }}
+          >
+            <View
+              style={{
+                flexDirection: isRtl ? "row-reverse" : "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: Default.fixPadding * 2,
+              }}
+            >
+              <Text style={{ ...Fonts.SemiBold18black }}>{tr("Select Contact")}</Text>
               <TouchableOpacity onPress={() => setShowContactPicker(false)}>
                 <Ionicons name="close" size={22} color={Colors.grey} />
               </TouchableOpacity>
             </View>
 
-            {/* Search Bar */}
-            <View style={{
-              flexDirection: isRtl ? 'row-reverse' : 'row',
-              alignItems: 'center',
-              backgroundColor: Colors.extraLightGrey,
-              borderRadius: 8,
-              paddingHorizontal: Default.fixPadding,
-              marginBottom: Default.fixPadding * 2,
-            }}>
+            <View
+              style={{
+                flexDirection: isRtl ? "row-reverse" : "row",
+                alignItems: "center",
+                backgroundColor: Colors.extraLightGrey,
+                borderRadius: 8,
+                paddingHorizontal: Default.fixPadding,
+                marginBottom: Default.fixPadding * 2,
+              }}
+            >
               <Ionicons name="search" size={20} color={Colors.grey} />
               <TextInput
                 style={{
                   flex: 1,
                   ...Fonts.Medium14black,
                   padding: Default.fixPadding,
-                  textAlign: isRtl ? 'right' : 'left',
+                  textAlign: isRtl ? "right" : "left",
                 }}
                 placeholder={tr("Search contacts")}
                 placeholderTextColor={Colors.grey}
@@ -504,53 +459,45 @@ const DataAccountDetailsScreen = ({ navigation, route }) => {
               />
             </View>
 
-            {/* Contacts List */}
             <FlatList
-              data={contacts.filter(contact => 
-                contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                contact.phoneNumber.includes(searchQuery)
+              data={contacts.filter(
+                (contact) =>
+                  contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  contact.phoneNumber.includes(searchQuery)
               )}
               keyExtractor={(item) => item.id}
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={{
-                    flexDirection: isRtl ? 'row-reverse' : 'row',
-                    alignItems: 'center',
+                    flexDirection: isRtl ? "row-reverse" : "row",
+                    alignItems: "center",
                     paddingVertical: Default.fixPadding,
                     borderBottomWidth: 1,
                     borderBottomColor: Colors.lightGrey,
                   }}
                   onPress={() => selectContact(item)}
                 >
-                  <View style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 20,
-                    backgroundColor: Colors.primary + '20',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    marginRight: isRtl ? 0 : Default.fixPadding,
-                    marginLeft: isRtl ? Default.fixPadding : 0,
-                  }}>
+                  <View
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 20,
+                      backgroundColor: Colors.primary + "20",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      marginRight: isRtl ? 0 : Default.fixPadding,
+                      marginLeft: isRtl ? Default.fixPadding : 0,
+                    }}
+                  >
                     <Ionicons name="person" size={20} color={Colors.primary} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ ...Fonts.SemiBold16black }}>{item.name}</Text>
-                    <Text style={{ ...Fonts.Medium14grey }}>{item.phoneNumber}</Text>
+                    <Text style={{ ...Fonts.SemiBold14black }}>{item.name}</Text>
+                    <Text style={{ ...Fonts.Medium12grey, marginTop: 2 }}>{item.phoneNumber}</Text>
                   </View>
                 </TouchableOpacity>
               )}
               showsVerticalScrollIndicator={false}
-              ListEmptyComponent={
-                <View style={{
-                  alignItems: 'center',
-                  paddingVertical: Default.fixPadding * 2,
-                }}>
-                  <Text style={{ ...Fonts.Medium14grey }}>
-                    {searchQuery ? tr("No matching contacts found") : tr("No contacts available")}
-                  </Text>
-                </View>
-              }
             />
           </View>
         </View>

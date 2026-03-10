@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Text,
   View,
@@ -17,78 +17,110 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { ms } from "react-native-size-matters/extend";
 import MyStatusBar from "../components/myStatusBar";
+import { formatMoney } from "../utils/money";
+import {
+  getQueryContextLabel,
+  normalizeCatalogOptions,
+} from "../services/personalHubCatalogFlowService";
 
 const BillAmountScreen = ({ navigation, route }) => {
   const { t, i18n } = useTranslation();
   const isRtl = i18n.dir() === "rtl";
-  
-  const { provider, providerId, providerName, accountNumber, description, saveAccount, providerLogo } = route.params || {};
-  
-  const [amount, setAmount] = useState("");
-  const [isValidAmount, setIsValidAmount] = useState(false);
+
+  const {
+    provider,
+    externalServiceCode,
+    providerId,
+    providerName,
+    billCategory,
+    accountNumber,
+    description,
+    saveAccount,
+    providerLogo,
+    queryContext,
+    queryOptions,
+  } = route.params || {};
+
+  const normalizedOptions = useMemo(
+    () => normalizeCatalogOptions({ options: queryOptions || [], queryContext: queryContext || {} }),
+    [queryContext, queryOptions]
+  );
+
+  const [selectedOptionId, setSelectedOptionId] = useState(normalizedOptions[0]?.id || null);
+  const [amount, setAmount] = useState(
+    normalizedOptions[0]?.amount !== null && normalizedOptions[0]?.amount !== undefined
+      ? String(normalizedOptions[0].amount)
+      : queryContext?.amount
+        ? String(queryContext.amount)
+        : ""
+  );
   const [amountError, setAmountError] = useState("");
 
-  // Safe translation function that ALWAYS returns a string
   function tr(key, fallback = "Missing Translation") {
     if (!key) return fallback || "";
     const translated = t(key);
     return translated || fallback;
   }
 
-  // Validate amount
+  const selectedOption = normalizedOptions.find((item) => item.id === selectedOptionId) || null;
+  const hasPresetOptions = normalizedOptions.length > 0;
+  const accountLabel = getQueryContextLabel(queryContext, description || accountNumber);
+
   const validateAmount = (text) => {
     setAmount(text);
-    
     const numAmount = parseFloat(text);
     if (isNaN(numAmount) || numAmount <= 0) {
-      setIsValidAmount(false);
-      if (text.length > 0) {
-        setAmountError("Please enter a valid amount");
-      } else {
-        setAmountError("");
-      }
-    } else {
-      setIsValidAmount(true);
-      setAmountError("");
+      setAmountError(text.length > 0 ? "Please enter a valid amount" : "");
+      return false;
+    }
+    setAmountError("");
+    return true;
+  };
+
+  const handleSelectOption = (option) => {
+    setSelectedOptionId(option.id);
+    if (option.amount !== null && option.amount !== undefined) {
+      validateAmount(String(option.amount));
     }
   };
 
-  // Handle continue
   const handleContinue = () => {
-    if (!isValidAmount) {
+    const parsedAmount = parseFloat(amount);
+    if (!validateAmount(amount)) {
       Alert.alert("Invalid Amount", "Please enter a valid amount");
       return;
     }
 
     navigation.navigate("paymentMethodScreen", {
       provider,
+      externalServiceCode: externalServiceCode || provider || null,
       providerId,
       providerName,
+      billCategory,
       accountNumber,
-      description,
+      description: description || accountLabel,
       saveAccount,
-      amount: parseFloat(amount),
-      amountFormatted: `GHS ${parseFloat(amount).toFixed(2)}`,
+      amount: parsedAmount,
+      amountFormatted: formatMoney(parsedAmount),
       transactionType: "bill_payment",
       providerLogo,
-      phoneNumber: accountNumber, // Pass account number as phone number for mobile money screen
+      phoneNumber: accountNumber,
+      billInfo: queryContext,
+      queryContext,
+      selectedOption: selectedOption?.raw || {},
       recipientInfo: {
-        name: description || "Bill Payment",
-        accountNumber: accountNumber
+        name: accountLabel || "Bill Payment",
+        accountNumber,
       },
-      isPersonalHubTransaction: true
+      isPersonalHubTransaction: true,
     });
   };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.extraLightGrey }}>
       <MyStatusBar />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={{ flex: 1 }}
-      >
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
         <View style={{ flex: 1 }}>
-          {/* Header */}
           <View
             style={{
               flexDirection: isRtl ? "row-reverse" : "row",
@@ -112,16 +144,13 @@ const BillAmountScreen = ({ navigation, route }) => {
                 color={Colors.black}
               />
             </TouchableOpacity>
-            <Text style={{ ...Fonts.SemiBold18black }}>
-              {tr("Payment Amount")}
-            </Text>
+            <Text style={{ ...Fonts.SemiBold18black }}>{tr("Payment Amount")}</Text>
           </View>
 
           <ScrollView
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ flexGrow: 1, padding: Default.fixPadding * 2 }}
           >
-            {/* Account Info */}
             <View
               style={{
                 backgroundColor: Colors.white,
@@ -131,11 +160,13 @@ const BillAmountScreen = ({ navigation, route }) => {
                 ...Default.shadow,
               }}
             >
-              <View style={{
-                flexDirection: isRtl ? "row-reverse" : "row",
-                alignItems: "center",
-                marginBottom: Default.fixPadding,
-              }}>
+              <View
+                style={{
+                  flexDirection: isRtl ? "row-reverse" : "row",
+                  alignItems: "center",
+                  marginBottom: Default.fixPadding,
+                }}
+              >
                 <View
                   style={{
                     width: 50,
@@ -146,7 +177,7 @@ const BillAmountScreen = ({ navigation, route }) => {
                     alignItems: "center",
                     marginRight: isRtl ? 0 : Default.fixPadding * 1.5,
                     marginLeft: isRtl ? Default.fixPadding * 1.5 : 0,
-                    overflow: "hidden"
+                    overflow: "hidden",
                   }}
                 >
                   <Image
@@ -154,21 +185,15 @@ const BillAmountScreen = ({ navigation, route }) => {
                     style={{
                       width: ms(35),
                       height: ms(35),
-                      resizeMode: "contain"
+                      resizeMode: "contain",
                     }}
                   />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ ...Fonts.SemiBold16black }}>
-                    {providerName}
-                  </Text>
-                  <Text style={{ ...Fonts.Medium14grey, marginTop: 2 }}>
-                    {accountNumber}
-                  </Text>
-                  {description ? (
-                    <Text style={{ ...Fonts.Medium14grey, marginTop: 2 }}>
-                      {description}
-                    </Text>
+                  <Text style={{ ...Fonts.SemiBold16black }}>{providerName}</Text>
+                  <Text style={{ ...Fonts.Medium14grey, marginTop: 2 }}>{accountNumber}</Text>
+                  {accountLabel ? (
+                    <Text style={{ ...Fonts.Medium14grey, marginTop: 2 }}>{accountLabel}</Text>
                   ) : null}
                 </View>
               </View>
@@ -184,11 +209,54 @@ const BillAmountScreen = ({ navigation, route }) => {
               }}
             >
               <Text style={{ ...Fonts.Medium14grey }}>
-                Bill verification is completed during provider processing after payment initiation.
+                {tr("Provider verification completed. Confirm the payable option below before continuing to checkout.")}
               </Text>
             </View>
 
-            {/* Amount Input */}
+            {hasPresetOptions ? (
+              <View
+                style={{
+                  backgroundColor: Colors.white,
+                  borderRadius: 10,
+                  padding: Default.fixPadding * 2,
+                  marginBottom: Default.fixPadding * 2,
+                  ...Default.shadow,
+                }}
+              >
+                <Text style={{ ...Fonts.SemiBold14grey, marginBottom: Default.fixPadding }}>
+                  {tr("AVAILABLE OPTIONS")}
+                </Text>
+                {normalizedOptions.map((option) => {
+                  const isSelected = selectedOptionId === option.id;
+                  return (
+                    <TouchableOpacity
+                      key={option.id}
+                      onPress={() => handleSelectOption(option)}
+                      style={{
+                        flexDirection: isRtl ? "row-reverse" : "row",
+                        alignItems: "center",
+                        paddingVertical: Default.fixPadding,
+                        borderBottomWidth: option.id === normalizedOptions[normalizedOptions.length - 1]?.id ? 0 : 1,
+                        borderBottomColor: Colors.lightGrey,
+                      }}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ ...Fonts.SemiBold14black }}>{option.name}</Text>
+                        <Text style={{ ...Fonts.Medium13grey, marginTop: 3 }}>
+                          {[option.amountLabel, option.description].filter(Boolean).join(" • ")}
+                        </Text>
+                      </View>
+                      <MaterialCommunityIcons
+                        name={isSelected ? "radiobox-marked" : "radiobox-blank"}
+                        size={22}
+                        color={isSelected ? Colors.primary : Colors.grey}
+                      />
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            ) : null}
+
             <View
               style={{
                 backgroundColor: Colors.white,
@@ -198,22 +266,24 @@ const BillAmountScreen = ({ navigation, route }) => {
                 ...Default.shadow,
               }}
             >
-              <Text style={{ ...Fonts.SemiBold14grey, marginBottom: Default.fixPadding }}>
-                {tr("AMOUNT")}
-              </Text>
-              <View style={{
-                flexDirection: isRtl ? "row-reverse" : "row",
-                alignItems: "center",
-                borderWidth: 1,
-                borderColor: amountError ? Colors.red : Colors.lightGrey,
-                borderRadius: 8,
-                paddingHorizontal: Default.fixPadding,
-              }}>
-                <Text style={{ 
-                  ...Fonts.SemiBold18black,
-                  marginRight: isRtl ? 0 : Default.fixPadding,
-                  marginLeft: isRtl ? Default.fixPadding : 0,
-                }}>
+              <Text style={{ ...Fonts.SemiBold14grey, marginBottom: Default.fixPadding }}>{tr("AMOUNT")}</Text>
+              <View
+                style={{
+                  flexDirection: isRtl ? "row-reverse" : "row",
+                  alignItems: "center",
+                  borderWidth: 1,
+                  borderColor: amountError ? Colors.red : Colors.lightGrey,
+                  borderRadius: 8,
+                  paddingHorizontal: Default.fixPadding,
+                }}
+              >
+                <Text
+                  style={{
+                    ...Fonts.SemiBold18black,
+                    marginRight: isRtl ? 0 : Default.fixPadding,
+                    marginLeft: isRtl ? Default.fixPadding : 0,
+                  }}
+                >
                   {tr("GHS")}
                 </Text>
                 <TextInput
@@ -228,16 +298,14 @@ const BillAmountScreen = ({ navigation, route }) => {
                   placeholder="0.00"
                   placeholderTextColor={Colors.grey}
                   keyboardType="numeric"
+                  editable={!hasPresetOptions}
                 />
               </View>
               {amountError ? (
-                <Text style={{ ...Fonts.Medium12red, marginTop: Default.fixPadding * 0.5 }}>
-                  {amountError}
-                </Text>
+                <Text style={{ ...Fonts.Medium12red, marginTop: Default.fixPadding * 0.5 }}>{amountError}</Text>
               ) : null}
             </View>
-            
-            {/* Info Card */}
+
             <View
               style={{
                 backgroundColor: "#FFF3E0",
@@ -257,12 +325,13 @@ const BillAmountScreen = ({ navigation, route }) => {
                 }}
               />
               <Text style={{ ...Fonts.Medium14black, flex: 1 }}>
-                {tr("For utility bills, you can pay the exact amount due or a different amount based on your preference.")}
+                {hasPresetOptions
+                  ? tr("The amount is tied to the option returned by the provider and cannot be changed on this step.")
+                  : tr("The provider did not return a fixed payable option, so you can enter the amount manually.")}
               </Text>
             </View>
           </ScrollView>
 
-          {/* Continue Button */}
           <View
             style={{
               padding: Default.fixPadding * 2,
@@ -272,18 +341,14 @@ const BillAmountScreen = ({ navigation, route }) => {
           >
             <TouchableOpacity
               onPress={handleContinue}
-              disabled={!isValidAmount}
               style={{
-                backgroundColor: isValidAmount ? Colors.primary : Colors.grey,
+                backgroundColor: Colors.primary,
                 borderRadius: 10,
                 paddingVertical: Default.fixPadding * 1.5,
                 alignItems: "center",
-                justifyContent: "center",
               }}
             >
-              <Text style={{ ...Fonts.SemiBold16white }}>
-                {tr("Continue")}
-              </Text>
+              <Text style={{ ...Fonts.SemiBold16white }}>{tr("Continue")}</Text>
             </TouchableOpacity>
           </View>
         </View>
