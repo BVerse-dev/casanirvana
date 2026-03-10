@@ -1,235 +1,186 @@
-"use client";
+'use client';
 
-import React, { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Card, Dropdown } from 'react-bootstrap';
-import { ApexOptions } from 'apexcharts';
+import type { ApexOptions } from 'apexcharts';
+
+import type { MarketplaceOrderView } from '@/hooks/useMarketplaceWorkspace';
 import ReactApexChart from '@/components/wrappers/ReactApexChart';
 import IconifyIcon from '@/components/wrappers/IconifyIcon';
 
-const MarketplaceSalesChart = () => {
-  const [timeRange, setTimeRange] = useState<'week' | 'month' | 'quarter' | 'year'>('month');
-  const [chartView, setChartView] = useState<'revenue' | 'orders'>('revenue');
-  
-  // Sample data - would be fetched from API in production
-  const chartData = {
-    week: {
-      dates: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-      revenue: [1250, 1420, 1680, 1490, 1850, 2100, 1950],
-      orders: [32, 38, 42, 35, 47, 55, 50],
-    },
-    month: {
-      dates: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-      revenue: [6890, 8450, 9230, 7980],
-      orders: [175, 210, 245, 198],
-    },
-    quarter: {
-      dates: ['Jan', 'Feb', 'Mar'],
-      revenue: [24500, 28700, 32400],
-      orders: [620, 745, 830],
-    },
-    year: {
-      dates: ['Q1', 'Q2', 'Q3', 'Q4'],
-      revenue: [85600, 102400, 115800, 128500],
-      orders: [2195, 2680, 3050, 3420],
-    },
-  };
-  
-  // Calculate totals
-  const calculateTotals = () => {
-    return {
-      revenue: chartData[timeRange].revenue.reduce((sum, value) => sum + value, 0),
-      orders: chartData[timeRange].orders.reduce((sum, value) => sum + value, 0),
-    };
-  };
-  
-  const totals = calculateTotals();
-  
-  // Format currency
-  const formatCurrency = (value: number) => {
-    if (value >= 1000000) {
-      return `$${(value / 1000000).toFixed(2)}M`;
-    } else if (value >= 1000) {
-      return `$${(value / 1000).toFixed(2)}K`;
-    }
-    return `$${value.toFixed(2)}`;
-  };
-  
-  // Chart options
-  const getChartOptions = (): ApexOptions => {
-    if (chartView === 'revenue') {
-      return {
-        chart: {
-          height: 350,
-          type: 'area',
-          toolbar: {
-            show: false,
-          },
-        },
-        colors: ['#727cf5'],
-        dataLabels: {
-          enabled: false,
-        },
-        stroke: {
-          width: 3,
-          curve: 'smooth',
-        },
-        fill: {
-          type: 'gradient',
-          gradient: {
-            shadeIntensity: 1,
-            inverseColors: false,
-            opacityFrom: 0.45,
-            opacityTo: 0.05,
-            stops: [20, 100, 100, 100],
-          },
-        },
-        xaxis: {
-          categories: chartData[timeRange].dates,
-        },
-        yaxis: {
-          title: {
-            text: 'Revenue ($)',
-          },
-          labels: {
-            formatter: function(val: number) {
-              return formatCurrency(val);
-            }
-          }
-        },
-        tooltip: {
-          y: {
-            formatter: function(val: number) {
-              return formatCurrency(val);
-            }
-          }
-        },
-        grid: {
-          borderColor: '#f1f3fa',
-        },
-      };
+interface MarketplaceSalesChartProps {
+  orders: MarketplaceOrderView[];
+}
+
+type TimeRange = 'week' | 'month' | 'quarter' | 'year';
+type ChartView = 'revenue' | 'orders';
+
+const formatCurrency = (value: number) => new Intl.NumberFormat('en-GH', { style: 'currency', currency: 'GHS', notation: value >= 1000 ? 'compact' : 'standard' }).format(value || 0);
+
+const getWeekStart = (date: Date) => {
+  const copy = new Date(date);
+  const day = copy.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  copy.setDate(copy.getDate() + diff);
+  copy.setHours(0, 0, 0, 0);
+  return copy;
+};
+
+const MarketplaceSalesChart = ({ orders }: MarketplaceSalesChartProps) => {
+  const [timeRange, setTimeRange] = useState<TimeRange>('month');
+  const [chartView, setChartView] = useState<ChartView>('revenue');
+
+  const seriesData = useMemo(() => {
+    const now = new Date();
+    const buckets: Array<{ key: string; label: string; revenue: number; orders: number }> = [];
+
+    if (timeRange === 'week') {
+      for (let offset = 6; offset >= 0; offset -= 1) {
+        const day = new Date(now);
+        day.setDate(now.getDate() - offset);
+        const label = day.toLocaleDateString('en-GH', { weekday: 'short' });
+        buckets.push({ key: day.toISOString().slice(0, 10), label, revenue: 0, orders: 0 });
+      }
+    } else if (timeRange === 'month') {
+      for (let offset = 3; offset >= 0; offset -= 1) {
+        const start = new Date(now.getFullYear(), now.getMonth(), 1);
+        start.setDate(1 + (7 * (3 - offset)));
+        const label = `Week ${4 - offset}`;
+        buckets.push({ key: String(4 - offset), label, revenue: 0, orders: 0 });
+      }
+    } else if (timeRange === 'quarter') {
+      for (let offset = 2; offset >= 0; offset -= 1) {
+        const date = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+        buckets.push({ key: `${date.getFullYear()}-${date.getMonth()}`, label: date.toLocaleDateString('en-GH', { month: 'short' }), revenue: 0, orders: 0 });
+      }
     } else {
-      return {
-        chart: {
-          height: 350,
-          type: 'bar',
-          toolbar: {
-            show: false,
-          },
-        },
-        colors: ['#0acf97'],
-        plotOptions: {
-          bar: {
-            borderRadius: 4,
-            columnWidth: '50%',
-          }
-        },
-        dataLabels: {
-          enabled: false,
-        },
-        xaxis: {
-          categories: chartData[timeRange].dates,
-        },
-        yaxis: {
-          title: {
-            text: 'Number of Orders',
-          },
-        },
-        grid: {
-          borderColor: '#f1f3fa',
-        },
-      };
+      for (let offset = 3; offset >= 0; offset -= 1) {
+        const quarter = 4 - offset;
+        buckets.push({ key: `Q${quarter}`, label: `Q${quarter}`, revenue: 0, orders: 0 });
+      }
     }
-  };
 
-  // Prepare series data based on selected view
-  const getSeriesData = () => {
-    if (chartView === 'revenue') {
-      return [
-        {
-          name: 'Revenue',
-          data: chartData[timeRange].revenue,
-        },
-      ];
-    } else {
-      return [
-        {
-          name: 'Orders',
-          data: chartData[timeRange].orders,
-        },
-      ];
-    }
-  };
+    orders.forEach((order) => {
+      if (!order.created_at) {
+        return;
+      }
 
-  const handleRangeChange = (range: 'week' | 'month' | 'quarter' | 'year') => {
-    setTimeRange(range);
-  };
+      const createdAt = new Date(order.created_at);
+      const amount = Number(order.final_amount || order.total_amount || 0);
 
-  const handleViewChange = (view: 'revenue' | 'orders') => {
-    setChartView(view);
-  };
+      if (timeRange === 'week') {
+        const key = createdAt.toISOString().slice(0, 10);
+        const bucket = buckets.find((candidate) => candidate.key === key);
+        if (bucket) {
+          bucket.revenue += amount;
+          bucket.orders += 1;
+        }
+        return;
+      }
+
+      if (timeRange === 'month') {
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        if (createdAt.getMonth() !== monthStart.getMonth() || createdAt.getFullYear() !== monthStart.getFullYear()) {
+          return;
+        }
+        const weekIndex = Math.min(3, Math.floor((createdAt.getDate() - 1) / 7));
+        const bucket = buckets[weekIndex];
+        bucket.revenue += amount;
+        bucket.orders += 1;
+        return;
+      }
+
+      if (timeRange === 'quarter') {
+        const key = `${createdAt.getFullYear()}-${createdAt.getMonth()}`;
+        const bucket = buckets.find((candidate) => candidate.key === key);
+        if (bucket) {
+          bucket.revenue += amount;
+          bucket.orders += 1;
+        }
+        return;
+      }
+
+      const quarter = Math.floor(createdAt.getMonth() / 3) + 1;
+      const bucket = buckets.find((candidate) => candidate.key === `Q${quarter}` && createdAt.getFullYear() === now.getFullYear());
+      if (bucket) {
+        bucket.revenue += amount;
+        bucket.orders += 1;
+      }
+    });
+
+    return buckets;
+  }, [orders, timeRange]);
+
+  const totals = useMemo(() => ({
+    revenue: seriesData.reduce((sum, entry) => sum + entry.revenue, 0),
+    orders: seriesData.reduce((sum, entry) => sum + entry.orders, 0),
+  }), [seriesData]);
+
+  const options = useMemo<ApexOptions>(() => ({
+    chart: {
+      height: 350,
+      type: chartView === 'revenue' ? 'area' : 'bar',
+      toolbar: { show: false },
+    },
+    colors: [chartView === 'revenue' ? '#f16e2b' : '#1abc9c'],
+    dataLabels: { enabled: false },
+    stroke: { width: 3, curve: 'smooth' },
+    fill: chartView === 'revenue' ? {
+      type: 'gradient',
+      gradient: {
+        shadeIntensity: 1,
+        opacityFrom: 0.35,
+        opacityTo: 0.05,
+        stops: [0, 95, 100],
+      },
+    } : undefined,
+    xaxis: { categories: seriesData.map((entry) => entry.label) },
+    yaxis: {
+      title: { text: chartView === 'revenue' ? 'GMV (GHS)' : 'Orders' },
+      labels: {
+        formatter: (value: number) => chartView === 'revenue' ? formatCurrency(value) : `${Math.round(value)}`,
+      },
+    },
+    tooltip: {
+      y: {
+        formatter: (value: number) => chartView === 'revenue' ? formatCurrency(value) : `${Math.round(value)} orders`,
+      },
+    },
+    grid: { borderColor: '#f1f3fa' },
+  }), [chartView, seriesData]);
+
+  const chartSeries = useMemo(() => ([{
+    name: chartView === 'revenue' ? 'GMV' : 'Orders',
+    data: seriesData.map((entry) => chartView === 'revenue' ? Number(entry.revenue.toFixed(2)) : entry.orders),
+  }]), [chartView, seriesData]);
 
   return (
     <Card className="mb-3">
       <Card.Header className="d-flex align-items-center">
         <div>
           <Card.Title className="mb-0">Marketplace Performance</Card.Title>
-          <small className="text-muted">Sales and order analytics</small>
+          <small className="text-muted">Live order volume and gross merchandise value</small>
         </div>
-        <div className="ms-auto d-flex">
-          <Dropdown className="me-2">
-            <Dropdown.Toggle variant="light" className="cursor-pointer">
-              {chartView === 'revenue' ? 'Revenue' : 'Orders'}
-              <IconifyIcon icon="ri:arrow-down-s-line" className="ms-1" />
+        <div className="ms-auto d-flex gap-2">
+          <Dropdown>
+            <Dropdown.Toggle variant="light">
+              {chartView === 'revenue' ? 'GMV' : 'Orders'} <IconifyIcon icon="ri:arrow-down-s-line" className="ms-1" />
             </Dropdown.Toggle>
             <Dropdown.Menu>
-              <Dropdown.Item 
-                active={chartView === 'revenue'} 
-                onClick={() => handleViewChange('revenue')}
-              >
-                Revenue
-              </Dropdown.Item>
-              <Dropdown.Item 
-                active={chartView === 'orders'} 
-                onClick={() => handleViewChange('orders')}
-              >
-                Orders
-              </Dropdown.Item>
+              <Dropdown.Item active={chartView === 'revenue'} onClick={() => setChartView('revenue')}>GMV</Dropdown.Item>
+              <Dropdown.Item active={chartView === 'orders'} onClick={() => setChartView('orders')}>Orders</Dropdown.Item>
             </Dropdown.Menu>
           </Dropdown>
-          
           <Dropdown>
-            <Dropdown.Toggle variant="light" className="cursor-pointer">
-              {timeRange === 'week' && 'This Week'}
-              {timeRange === 'month' && 'This Month'}
-              {timeRange === 'quarter' && 'This Quarter'}
-              {timeRange === 'year' && 'This Year'}
+            <Dropdown.Toggle variant="light">
+              {timeRange === 'week' ? 'This Week' : timeRange === 'month' ? 'This Month' : timeRange === 'quarter' ? 'This Quarter' : 'This Year'}
               <IconifyIcon icon="ri:arrow-down-s-line" className="ms-1" />
             </Dropdown.Toggle>
             <Dropdown.Menu>
-              <Dropdown.Item 
-                active={timeRange === 'week'} 
-                onClick={() => handleRangeChange('week')}
-              >
-                This Week
-              </Dropdown.Item>
-              <Dropdown.Item 
-                active={timeRange === 'month'} 
-                onClick={() => handleRangeChange('month')}
-              >
-                This Month
-              </Dropdown.Item>
-              <Dropdown.Item 
-                active={timeRange === 'quarter'} 
-                onClick={() => handleRangeChange('quarter')}
-              >
-                This Quarter
-              </Dropdown.Item>
-              <Dropdown.Item 
-                active={timeRange === 'year'} 
-                onClick={() => handleRangeChange('year')}
-              >
-                This Year
-              </Dropdown.Item>
+              <Dropdown.Item active={timeRange === 'week'} onClick={() => setTimeRange('week')}>This Week</Dropdown.Item>
+              <Dropdown.Item active={timeRange === 'month'} onClick={() => setTimeRange('month')}>This Month</Dropdown.Item>
+              <Dropdown.Item active={timeRange === 'quarter'} onClick={() => setTimeRange('quarter')}>This Quarter</Dropdown.Item>
+              <Dropdown.Item active={timeRange === 'year'} onClick={() => setTimeRange('year')}>This Year</Dropdown.Item>
             </Dropdown.Menu>
           </Dropdown>
         </div>
@@ -237,52 +188,26 @@ const MarketplaceSalesChart = () => {
       <Card.Body>
         <div className="row mb-3">
           <div className="col-md-6">
-            <div className="widget-rounded-circle card-box">
-              <div className="row">
-                <div className="col-6">
-                  <div className="avatar-lg rounded-circle bg-primary-lighten">
-                    <i className="fe-dollar-sign font-24 avatar-title text-primary"></i>
-                  </div>
-                </div>
-                <div className="col-6">
-                  <div className="text-end">
-                    <h3 className="text-dark mt-1">{formatCurrency(totals.revenue)}</h3>
-                    <p className="text-muted mb-1">Total Revenue</p>
-                  </div>
-                </div>
-              </div>
+            <div className="border rounded p-3 h-100">
+              <div className="text-muted small">Gross merchandise value</div>
+              <div className="fs-3 fw-semibold">{formatCurrency(totals.revenue)}</div>
             </div>
           </div>
           <div className="col-md-6">
-            <div className="widget-rounded-circle card-box">
-              <div className="row">
-                <div className="col-6">
-                  <div className="avatar-lg rounded-circle bg-success-lighten">
-                    <i className="fe-shopping-cart font-24 avatar-title text-success"></i>
-                  </div>
-                </div>
-                <div className="col-6">
-                  <div className="text-end">
-                    <h3 className="text-dark mt-1">{totals.orders}</h3>
-                    <p className="text-muted mb-1">Total Orders</p>
-                  </div>
-                </div>
-              </div>
+            <div className="border rounded p-3 h-100">
+              <div className="text-muted small">Order volume</div>
+              <div className="fs-3 fw-semibold">{totals.orders.toLocaleString()}</div>
             </div>
           </div>
         </div>
-        
-        <ReactApexChart
-          options={getChartOptions()}
-          series={getSeriesData()}
-          type={chartView === 'revenue' ? 'area' : 'bar'}
-          height={350}
-          className="apex-charts"
-        />
+        {seriesData.every((entry) => entry.orders === 0 && entry.revenue === 0) ? (
+          <div className="text-center py-5 text-muted">No marketplace order activity is available for the selected period.</div>
+        ) : (
+          <ReactApexChart options={options} series={chartSeries} type={chartView === 'revenue' ? 'area' : 'bar'} height={350} className="apex-charts" />
+        )}
       </Card.Body>
     </Card>
   );
 };
 
 export default MarketplaceSalesChart;
-
