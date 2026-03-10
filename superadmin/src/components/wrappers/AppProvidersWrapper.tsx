@@ -15,6 +15,7 @@ const LayoutProvider = dynamic(
 import { NotificationProvider } from "@/context/useNotificationContext";
 import { ChildrenType } from "@/types/component-props";
 import { supabase } from "@/lib/supabase";
+import ClientMonitoringProvider from "./ClientMonitoringProvider";
 
 // Create a client
 const queryClient = new QueryClient({
@@ -86,10 +87,12 @@ const AppProvidersWrapper = ({ children }: ChildrenType) => {
       <SupabaseSessionSync />
       <QueryClientProvider client={queryClient}>
         <LayoutProvider>
-          <NotificationProvider>
-            {children}
-            <ToastContainer theme="colored" />
-          </NotificationProvider>
+          <ClientMonitoringProvider>
+            <NotificationProvider>
+              {children}
+              <ToastContainer theme="colored" />
+            </NotificationProvider>
+          </ClientMonitoringProvider>
         </LayoutProvider>
         <ReactQueryDevtools initialIsOpen={false} />
       </QueryClientProvider>

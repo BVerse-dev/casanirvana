@@ -78,7 +78,8 @@ Acceptance criteria:
 - 2026-02-20: Implemented tenant claims in NextAuth and shared admin scope helper.
 - 2026-02-20: Enforced scoped module-settings API access and superadmin-only global writes.
 - 2026-02-20: Applied migration `phase11_tenant_scope_rls_hardening` and validated policy inventory.
-- 2026-03-10: Added backend observability baseline for release hardening: structured JSON request logging, normalized global error payload shape with `requestId`, process-level exception capture, optional Sentry sink via env, and rollout notes in `/Users/andromeda/casanirvana/backend/OBSERVABILITY.md`. Frontend/mobile monitoring coverage remains open.
+- 2026-03-10: Added backend observability baseline for release hardening: structured JSON request logging, normalized global error payload shape with `requestId`, process-level exception capture, optional Sentry sink via env, and rollout notes in `/Users/andromeda/casanirvana/backend/OBSERVABILITY.md`.
+- 2026-03-10: Extended monitoring coverage to the superadmin client runtime and both Expo apps through the backend `/observability/client-events` ingest path, client-side runtime listeners, and React error boundaries. Release env toggles were added to `/Users/andromeda/casanirvana/superadmin/.env.example`, `/Users/andromeda/casanirvana/user/.env.example`, and `/Users/andromeda/casanirvana/Guard/.env.example`.
 - 2026-02-20: Applied migration `phase11_profile_resolution_prefer_user_id` to fix canonical profile resolution and restore same-community profile visibility for member directory queries.
 - 2026-02-20: Applied migration `phase11_profiles_identity_guard` to prevent future profile/auth dual-link collisions at insert/update time.
 - 2026-03-03: Added shared backend scope service (`backend/src/services/adminScope.ts`) and capability endpoint (`GET /admin/me/capabilities`) for capability-driven navigation.

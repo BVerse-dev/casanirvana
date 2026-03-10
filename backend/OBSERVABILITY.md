@@ -25,6 +25,9 @@
   - `http.request.failed`
 - Captured exceptions:
   - `exception.captured`
+- Client-side error ingest:
+  - `POST /observability/client-events`
+  - accepts `superadmin`, `user`, and `guard` client runtime error events
 - Startup/shutdown:
   - `server.started`
   - `server.shutdown.requested`

@@ -59,3 +59,8 @@ export const uploadRateLimiter = createLimiter({
   windowMs: envNumber(process.env.UPLOAD_RATE_LIMIT_WINDOW_MS, DEFAULT_WINDOW_MS),
   max: envNumber(process.env.UPLOAD_RATE_LIMIT_MAX, 30),
 });
+
+export const observabilityRateLimiter = createLimiter({
+  windowMs: envNumber(process.env.OBSERVABILITY_RATE_LIMIT_WINDOW_MS, DEFAULT_WINDOW_MS),
+  max: envNumber(process.env.OBSERVABILITY_RATE_LIMIT_MAX, 60),
+});

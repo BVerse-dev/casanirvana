@@ -67,6 +67,7 @@ const adminEmailFolder = z.enum(['all', 'inbox', 'sent', 'drafts', 'draft', 'arc
 const adminEmailPriority = z.enum(['low', 'normal', 'high', 'urgent']);
 const adminEmailAction = z.enum(['draft', 'queue']);
 const adminEmailStatus = z.enum(['draft', 'queued', 'processing', 'sent', 'delivered', 'failed']);
+const clientObservabilityLevel = z.enum(['info', 'warn', 'error']);
 const paymentChargeTemplateTargetSchema = z.object({
   target_type: paymentChargeTargetType,
   target_value: z.union([z.string(), z.array(z.string()), z.record(z.any())]).optional(),
@@ -88,6 +89,18 @@ export const schemas = {
   authLogin: z.object({
     email,
     password: nonEmptyString,
+  }),
+  clientObservabilityEvent: z.object({
+    app: z.enum(['superadmin', 'user', 'guard']),
+    source: nonEmptyString.max(100),
+    level: clientObservabilityLevel,
+    message: z.string().min(1).max(4000),
+    errorName: z.string().max(255).optional(),
+    stack: z.string().max(20000).optional(),
+    route: z.string().max(512).optional(),
+    release: z.string().max(255).optional(),
+    environment: z.string().max(255).optional(),
+    metadata: z.record(z.unknown()).optional(),
   }),
   accountDelete: z.object({
     current_password: nonEmptyString,
