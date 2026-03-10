@@ -1,181 +1,116 @@
 "use client";
 
-import React, { useState } from 'react';
-import { Card, Dropdown } from 'react-bootstrap';
+import React, { useMemo, useState } from 'react';
+import { Alert, Card, Dropdown, Spinner } from 'react-bootstrap';
 import { ApexOptions } from 'apexcharts';
-import ReactApexChart from '@/components/wrappers/ReactApexChart';
+
+import { AdminPersonalHubCatalogProvider, useAdminPersonalHubCatalog } from '@/hooks/useAdminPersonalHubCatalog';
+import { PersonalHubReportsPeriod, usePersonalHubReports } from '@/hooks/usePersonalHubReports';
+import { buildSeriesByBucket, formatCurrencyCompact } from '@/lib/personalHubCharts';
 import IconifyIcon from '@/components/wrappers/IconifyIcon';
+import ReactApexChart from '@/components/wrappers/ReactApexChart';
+
+const PERIOD_OPTIONS: Array<{ value: PersonalHubReportsPeriod; label: string }> = [
+  { value: '7', label: 'Last 7 days' },
+  { value: '30', label: 'Last 30 days' },
+  { value: '90', label: 'Last 90 days' },
+  { value: '365', label: 'Last 12 months' },
+];
+
+const CATEGORY_LABELS: Record<string, string> = {
+  utilities: 'Utilities',
+  tv: 'TV / Subscription',
+  general: 'General',
+};
+
+const COLORS = ['#727cf5', '#0acf97', '#fa5c7c'];
+const CHART_LIMIT = 1000;
+
+const resolveCategoryLabel = (provider: string | null, catalogProviders: AdminPersonalHubCatalogProvider[]) => {
+  const normalizedProvider = provider?.trim().toLowerCase();
+  if (!normalizedProvider) {
+    return 'General';
+  }
+
+  const match = catalogProviders.find((item) => item.provider_name.trim().toLowerCase() === normalizedProvider);
+  const categoryKey = match?.bill_category || 'general';
+  return CATEGORY_LABELS[categoryKey] || 'General';
+};
 
 const BillPaymentTrendsChart = () => {
-  const [timeRange, setTimeRange] = useState<'week' | 'month' | 'quarter' | 'year'>('month');
-  const [chartView, setChartView] = useState<'volume' | 'count'>('volume');
-  
-  // Sample data - would be fetched from API in production
-  const chartData = {
-    week: {
-      dates: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-      volume: {
-        utilities: [5280, 4890, 5340, 6102, 5850, 4380, 3920],
-        telecom: [3450, 3280, 3560, 3720, 3640, 3290, 3120],
-        tv: [1240, 980, 1150, 1320, 1280, 1050, 890],
-        others: [2130, 1950, 2240, 2580, 2430, 1870, 1650],
-      },
-      count: {
-        utilities: [105, 98, 112, 124, 118, 92, 84],
-        telecom: [215, 205, 228, 236, 225, 210, 198],
-        tv: [42, 35, 40, 46, 44, 38, 32],
-        others: [68, 62, 75, 82, 76, 65, 58],
-      },
-    },
-    month: {
-      dates: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-      volume: {
-        utilities: [22450, 24680, 26120, 23780],
-        telecom: [14250, 15380, 16240, 14890],
-        tv: [5480, 6120, 6580, 5920],
-        others: [8750, 9680, 10240, 9350],
-      },
-      count: {
-        utilities: [450, 495, 520, 475],
-        telecom: [890, 925, 960, 905],
-        tv: [185, 205, 225, 195],
-        others: [280, 310, 335, 295],
-      },
-    },
-    quarter: {
-      dates: ['Jan', 'Feb', 'Mar'],
-      volume: {
-        utilities: [68450, 72680, 76120],
-        telecom: [42250, 45380, 48240],
-        tv: [16480, 18120, 19580],
-        others: [25750, 28680, 31240],
-      },
-      count: {
-        utilities: [1350, 1495, 1620],
-        telecom: [2650, 2825, 2960],
-        tv: [550, 605, 675],
-        others: [840, 930, 1005],
-      },
-    },
-    year: {
-      dates: ['Q1', 'Q2', 'Q3', 'Q4'],
-      volume: {
-        utilities: [210450, 225680, 236120, 248780],
-        telecom: [125250, 135380, 142240, 148890],
-        tv: [52480, 58120, 62580, 65920],
-        others: [78750, 86680, 92240, 97350],
-      },
-      count: {
-        utilities: [4250, 4595, 4820, 5075],
-        telecom: [7890, 8525, 8960, 9405],
-        tv: [1785, 1955, 2125, 2295],
-        others: [2580, 2810, 3035, 3295],
-      },
-    },
-  };
-  
-  // Prepare series data based on selected view and time range
-  const getSeriesData = () => {
-    const data = chartData[timeRange];
-    const viewData = chartView === 'volume' ? data.volume : data.count;
-    
-    return [
-      {
-        name: 'Utilities',
-        data: viewData.utilities,
-      },
-      {
-        name: 'Telecom',
-        data: viewData.telecom,
-      },
-      {
-        name: 'TV',
-        data: viewData.tv,
-      },
-      {
-        name: 'Others',
-        data: viewData.others,
-      },
-    ];
-  };
-  
-  // Calculate totals
-  const calculateTotals = () => {
-    const data = chartData[timeRange];
-    const viewData = chartView === 'volume' ? data.volume : data.count;
-    
-    return {
-      utilities: viewData.utilities.reduce((sum, value) => sum + value, 0),
-      telecom: viewData.telecom.reduce((sum, value) => sum + value, 0),
-      tv: viewData.tv.reduce((sum, value) => sum + value, 0),
-      others: viewData.others.reduce((sum, value) => sum + value, 0),
-    };
-  };
-  
-  const totals = calculateTotals();
-  const totalSum = totals.utilities + totals.telecom + totals.tv + totals.others;
-  
-  // Format currency
-  const formatCurrency = (value: number) => {
-    if (chartView === 'count') {
-      return value.toLocaleString();
+  const [period, setPeriod] = useState<PersonalHubReportsPeriod>('30');
+  const [view, setView] = useState<'volume' | 'count'>('volume');
+  const reports = usePersonalHubReports({ period, serviceTypes: ['bill_payment'], limit: CHART_LIMIT });
+  const catalog = useAdminPersonalHubCatalog({ serviceType: 'bill_payment' });
+
+  const categories = useMemo(() => {
+    const totals = new Map<string, number>();
+
+    for (const transaction of reports.transactions) {
+      const category = resolveCategoryLabel(transaction.provider, catalog.providers);
+      const increment = view === 'volume' ? transaction.amount : 1;
+      totals.set(category, (totals.get(category) || 0) + increment);
     }
-    
-    if (value >= 1000000) {
-      return `$${(value / 1000000).toFixed(2)}M`;
-    } else if (value >= 1000) {
-      return `$${(value / 1000).toFixed(2)}K`;
+
+    return Array.from(totals.entries())
+      .sort((left, right) => right[1] - left[1])
+      .slice(0, 3)
+      .map(([category]) => category);
+  }, [catalog.providers, reports.transactions, view]);
+
+  const chart = useMemo(() => {
+    if (categories.length === 0) {
+      return { categories: [] as string[], series: [] as Array<{ name: string; data: number[] }> };
     }
-    return `$${value.toFixed(2)}`;
-  };
-  
-  // Chart options
-  const options: ApexOptions = {
+
+    const categorySet = new Set(categories);
+    return buildSeriesByBucket({
+      transactions: reports.transactions,
+      period,
+      groups: categories,
+      getGroupKey: (transaction) => {
+        const category = resolveCategoryLabel(transaction.provider, catalog.providers);
+        return categorySet.has(category) ? category : null;
+      },
+      getValue: (transaction) => (view === 'volume' ? transaction.amount : 1),
+    });
+  }, [catalog.providers, categories, period, reports.transactions, view]);
+
+  const options: ApexOptions = useMemo(() => ({
     chart: {
       height: 350,
       type: 'bar',
       stacked: true,
-      toolbar: {
-        show: false,
-      },
+      toolbar: { show: false },
     },
-    colors: ['#727cf5', '#0acf97', '#fa5c7c', '#6c757d'],
+    colors: COLORS,
     plotOptions: {
       bar: {
         horizontal: false,
-        columnWidth: '50%',
+        columnWidth: '56%',
+        borderRadius: 4,
       },
     },
-    dataLabels: {
-      enabled: false,
-    },
+    dataLabels: { enabled: false },
     stroke: {
       width: 1,
       colors: ['#fff'],
     },
     xaxis: {
-      categories: chartData[timeRange].dates,
+      categories: chart.categories,
     },
     yaxis: {
-      title: {
-        text: chartView === 'volume' ? 'Payment Volume ($)' : 'Number of Transactions',
-      },
+      title: { text: view === 'volume' ? 'Transaction Volume' : 'Transactions' },
       labels: {
-        formatter: function(val: number) {
-          return formatCurrency(val);
-        }
-      }
+        formatter: (value: number) => (view === 'volume' ? formatCurrencyCompact(value) : value.toLocaleString('en-GH')),
+      },
     },
     tooltip: {
       y: {
-        formatter: function(val: number) {
-          return formatCurrency(val);
-        }
-      }
+        formatter: (value: number) => (view === 'volume' ? `GH₵${value.toLocaleString('en-GH', { maximumFractionDigits: 2 })}` : `${value.toLocaleString('en-GH')} transactions`),
+      },
     },
-    fill: {
-      opacity: 1,
-    },
+    fill: { opacity: 1 },
     legend: {
       position: 'top',
       horizontalAlign: 'right',
@@ -183,164 +118,63 @@ const BillPaymentTrendsChart = () => {
     grid: {
       borderColor: '#f1f3fa',
     },
-  };
-
-  const handleRangeChange = (range: 'week' | 'month' | 'quarter' | 'year') => {
-    setTimeRange(range);
-  };
-
-  const handleViewChange = (view: 'volume' | 'count') => {
-    setChartView(view);
-  };
+  }), [chart.categories, view]);
 
   return (
     <Card className="mb-3">
       <Card.Header className="d-flex align-items-center">
         <div>
           <Card.Title className="mb-0">Bill Payment Trends</Card.Title>
-          <small className="text-muted">Payment activity over time by category</small>
+          <small className="text-muted">Volume by ExpressPay bill category</small>
         </div>
-        <div className="ms-auto d-flex">
-          <Dropdown className="me-2">
-            <Dropdown.Toggle variant="light" className="cursor-pointer">
-              {chartView === 'volume' ? 'Volume ($)' : 'Count'}
-              <IconifyIcon icon="ri:arrow-down-s-line" className="ms-1" />
-            </Dropdown.Toggle>
-            <Dropdown.Menu>
-              <Dropdown.Item 
-                active={chartView === 'volume'} 
-                onClick={() => handleViewChange('volume')}
-              >
-                Volume ($)
-              </Dropdown.Item>
-              <Dropdown.Item 
-                active={chartView === 'count'} 
-                onClick={() => handleViewChange('count')}
-              >
-                Count
-              </Dropdown.Item>
-            </Dropdown.Menu>
-          </Dropdown>
-          
+        <div className="ms-auto d-flex gap-2">
           <Dropdown>
             <Dropdown.Toggle variant="light" className="cursor-pointer">
-              {timeRange === 'week' && 'This Week'}
-              {timeRange === 'month' && 'This Month'}
-              {timeRange === 'quarter' && 'This Quarter'}
-              {timeRange === 'year' && 'This Year'}
+              {view === 'volume' ? 'Volume (GH₵)' : 'Count'}
               <IconifyIcon icon="ri:arrow-down-s-line" className="ms-1" />
             </Dropdown.Toggle>
             <Dropdown.Menu>
-              <Dropdown.Item 
-                active={timeRange === 'week'} 
-                onClick={() => handleRangeChange('week')}
-              >
-                This Week
-              </Dropdown.Item>
-              <Dropdown.Item 
-                active={timeRange === 'month'} 
-                onClick={() => handleRangeChange('month')}
-              >
-                This Month
-              </Dropdown.Item>
-              <Dropdown.Item 
-                active={timeRange === 'quarter'} 
-                onClick={() => handleRangeChange('quarter')}
-              >
-                This Quarter
-              </Dropdown.Item>
-              <Dropdown.Item 
-                active={timeRange === 'year'} 
-                onClick={() => handleRangeChange('year')}
-              >
-                This Year
-              </Dropdown.Item>
+              <Dropdown.Item active={view === 'volume'} onClick={() => setView('volume')}>Volume (GH₵)</Dropdown.Item>
+              <Dropdown.Item active={view === 'count'} onClick={() => setView('count')}>Count</Dropdown.Item>
+            </Dropdown.Menu>
+          </Dropdown>
+          <Dropdown align="end">
+            <Dropdown.Toggle variant="light" className="cursor-pointer">
+              {PERIOD_OPTIONS.find((option) => option.value === period)?.label}
+              <IconifyIcon icon="ri:arrow-down-s-line" className="ms-1" />
+            </Dropdown.Toggle>
+            <Dropdown.Menu>
+              {PERIOD_OPTIONS.map((option) => (
+                <Dropdown.Item key={option.value} active={period === option.value} onClick={() => setPeriod(option.value)}>
+                  {option.label}
+                </Dropdown.Item>
+              ))}
             </Dropdown.Menu>
           </Dropdown>
         </div>
       </Card.Header>
       <Card.Body>
-        <div className="row mb-3">
-          <div className="col-md-3">
-            <div className="widget-rounded-circle card-box">
-              <div className="row">
-                <div className="col-6">
-                  <div className="avatar-lg rounded-circle bg-primary-lighten">
-                    <i className="fe-dollar-sign font-24 avatar-title text-primary"></i>
-                  </div>
-                </div>
-                <div className="col-6">
-                  <div className="text-end">
-                    <h3 className="text-dark mt-1">{formatCurrency(totalSum)}</h3>
-                    <p className="text-muted mb-1">Total</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+        {reports.loading && reports.transactions.length === 0 ? (
+          <div className="text-center py-5">
+            <Spinner animation="border" size="sm" className="me-2" />
+            Loading bill payment trends...
           </div>
-          <div className="col-md-3">
-            <div className="widget-rounded-circle card-box">
-              <div className="row">
-                <div className="col-6">
-                  <div className="avatar-lg rounded-circle bg-blue-lighten">
-                    <i className="fe-zap font-24 avatar-title text-blue"></i>
-                  </div>
-                </div>
-                <div className="col-6">
-                  <div className="text-end">
-                    <h3 className="text-dark mt-1">{formatCurrency(totals.utilities)}</h3>
-                    <p className="text-muted mb-1">Utilities</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="col-md-3">
-            <div className="widget-rounded-circle card-box">
-              <div className="row">
-                <div className="col-6">
-                  <div className="avatar-lg rounded-circle bg-success-lighten">
-                    <i className="fe-phone font-24 avatar-title text-success"></i>
-                  </div>
-                </div>
-                <div className="col-6">
-                  <div className="text-end">
-                    <h3 className="text-dark mt-1">{formatCurrency(totals.telecom)}</h3>
-                    <p className="text-muted mb-1">Telecom</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="col-md-3">
-            <div className="widget-rounded-circle card-box">
-              <div className="row">
-                <div className="col-6">
-                  <div className="avatar-lg rounded-circle bg-danger-lighten">
-                    <i className="fe-tv font-24 avatar-title text-danger"></i>
-                  </div>
-                </div>
-                <div className="col-6">
-                  <div className="text-end">
-                    <h3 className="text-dark mt-1">{formatCurrency(totals.tv)}</h3>
-                    <p className="text-muted mb-1">TV</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <ReactApexChart
-          options={options}
-          series={getSeriesData()}
-          type="bar"
-          height={350}
-          className="apex-charts"
-        />
+        ) : reports.error || catalog.error ? (
+          <Alert variant="danger" className="mb-0">{reports.error || catalog.error}</Alert>
+        ) : categories.length === 0 ? (
+          <div className="py-5 text-center text-muted">No bill payment activity is available for the selected filters.</div>
+        ) : (
+          <>
+            {reports.transactionsTruncated ? (
+              <div className="text-muted small mb-3">Chart is based on the newest 1,000 bill payment transactions returned for this filter.</div>
+            ) : null}
+            <ReactApexChart options={options} series={chart.series} type="bar" height={350} className="apex-charts" />
+          </>
+        )}
       </Card.Body>
     </Card>
   );
 };
 
 export default BillPaymentTrendsChart;
+
