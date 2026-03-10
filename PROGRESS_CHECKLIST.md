@@ -45,7 +45,7 @@ Date: 2026-02-06
 - [x] Choose single source of truth for Supabase migrations (`/supabase/migrations`).
 - [x] Generate and distribute shared `database.types.ts` to all apps (canonical: `/supabase/database.types.ts`).
 - [x] Lock down system + notification analytics/queues RLS (admin read, service role all).
-- [ ] Apply remaining marketplace/guard internal-table RLS cleanup (active migration `20260310184500_phase36_marketplace_guard_internal_rls_cleanup.sql`; replaces archived pre-baseline `20260206170000_phase5_rls_internal_tables.sql` reference).
+- [x] Apply remaining marketplace/guard internal-table RLS cleanup (active migration `20260310184500_phase36_marketplace_guard_internal_rls_cleanup.sql`; replaces archived pre-baseline `20260206170000_phase5_rls_internal_tables.sql` reference).
 - [ ] Align seeds and RLS policies across apps.
 
 ## Phase 6 - Quality & Observability
@@ -887,6 +887,10 @@ Date: 2026-02-06
   - Verified the old Phase 5B checklist reference points only to archived pre-baseline SQL (`/Users/andromeda/casanirvana/supabase/migrations/_archive/2026-02-06-pre-baseline/20260206170000_phase5_rls_internal_tables.sql`) and replaced it with an active cleanup migration path.
   - Added `/Users/andromeda/casanirvana/supabase/migrations/20260310184500_phase36_marketplace_guard_internal_rls_cleanup.sql` to enable active RLS on the remaining marketplace tables, convert Personal Hub marketplace admin access to platform-only policies, enable missing guard performance/training RLS, and scope guard operational admin access by community where tenant metadata exists.
   - Added `/Users/andromeda/casanirvana/MANUAL_RUNTIME_QA_PACK.md` to turn the remaining cross-app runtime QA backlog into one executable release checklist for superadmin, scoped admins, user app, and guard app flows.
+- [x] Phase 36 migration applied to Casa Nirvana remote DB (`pswnlowvmdgeifhxilao`) and verified:
+  - migration metadata recorded in `supabase_migrations.schema_migrations` with `version=20260310184500`
+  - `p36_*` policies present on marketplace and guard internal tables
+  - baseline-era broad marketplace admin policies replaced on the targeted active tables
 
 ## Cleanup / Hygiene
 - [x] Remove backup artifacts (`*.bak`, `*.backup`, etc.). (Left `backupRestoreScreen.js` files since they appear to be real features.)
