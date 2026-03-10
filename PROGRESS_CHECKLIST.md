@@ -50,8 +50,9 @@ Date: 2026-02-06
 
 ## Phase 6 - Quality & Observability
 - [ ] Add request validation (Zod/Yup) on backend endpoints.
-- [ ] Normalize error responses across backend.
-- [ ] Add monitoring/logging (Sentry/Logtail or similar).
+- [ ] Normalize error responses across backend (global handler now returns `{ error: { code, message, details, requestId } }`; route-level direct responses still need conversion).
+- [x] Add backend monitoring/logging baseline (structured JSON logger, request/process exception capture, optional Sentry sink via env).
+- [ ] Extend monitoring coverage to superadmin, user app, and Guard release builds.
 - [x] Add rate limiting and security headers (Express `helmet` + rate limiting middleware active in backend; runtime tuning remains part of release QA).
 - [ ] Add tests (backend unit/integration, admin Playwright smoke tests, mobile regression tests).
 
@@ -962,3 +963,4 @@ Date: 2026-02-06
 - Invite flow includes “Set Password” modal on the superadmin sign-up page when using invite links.
 - Admin writes are moving behind backend endpoints; verify any remaining admin write flows are not direct-to-Supabase.
 - Shared DB types are synced from `/supabase/database.types.ts` using `scripts/sync-db-types.sh`.
+- 2026-03-10: Added backend observability baseline in `/Users/andromeda/casanirvana/backend` with structured JSON logging, request/process exception capture, optional Sentry integration (`SENTRY_DSN`, `SENTRY_ENVIRONMENT`, `SENTRY_RELEASE`, `SENTRY_TRACES_SAMPLE_RATE`), and rollout notes in `/Users/andromeda/casanirvana/backend/OBSERVABILITY.md`.

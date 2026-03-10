@@ -28,7 +28,9 @@ import amenitiesRoutes from './routes/amenities';
 import { errorHandler } from './middleware/errorHandler';
 import { requestLogger } from './middleware/requestLogger';
 import { apiRateLimiter, adminRateLimiter, authRateLimiter, onboardingRateLimiter } from './middleware/rateLimit';
+import { initObservability } from './lib/observability';
 
+initObservability();
 const app = express();
 app.disable('x-powered-by');
 

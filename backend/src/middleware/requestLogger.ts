@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
+import { logger } from '../lib/logger';
 
 export function requestLogger(req: Request, res: Response, next: NextFunction) {
   const start = process.hrtime.bigint();
@@ -14,9 +15,8 @@ export function requestLogger(req: Request, res: Response, next: NextFunction) {
 
   res.on('finish', () => {
     const durationMs = Number(process.hrtime.bigint() - start) / 1_000_000;
-    const log = {
-      level: 'info',
-      msg: 'request',
+    const level = res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'warn' : 'info';
+    logger[level]('http.request.completed', {
       requestId,
       method: req.method,
       path: req.originalUrl || req.url,
@@ -24,8 +24,7 @@ export function requestLogger(req: Request, res: Response, next: NextFunction) {
       durationMs: Math.round(durationMs * 100) / 100,
       ip: req.ip,
       userId: req.user?.id ?? null,
-    };
-    console.log(JSON.stringify(log));
+    });
   });
 
   next();
