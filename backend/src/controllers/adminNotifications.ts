@@ -1,4 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
+
+import { createHttpError } from '../lib/httpError';
 import { supabase } from '../lib/supabase';
 
 const CAMPAIGN_STATUSES = new Set([
@@ -48,7 +50,7 @@ async function resolveTemplateReference(templateId?: number | null, templateLabe
     .single();
 
   if (error || !template) {
-    throw new Error('Notification template could not be found.');
+    throw createHttpError(404, 'NOTIFICATION_TEMPLATE_NOT_FOUND', 'Notification template could not be found.', error);
   }
 
   return {
@@ -145,7 +147,9 @@ export async function createNotificationCampaign(req: Request, res: Response, ne
 
     const campaignName = name || title;
     if (!campaignName || !type) {
-      return res.status(400).json({ error: 'name/title and type are required' });
+      return next(
+        createHttpError(400, 'NOTIFICATION_CAMPAIGN_REQUIRED_FIELDS', 'name/title and type are required')
+      );
     }
 
     const normalizedStatus =
@@ -165,7 +169,14 @@ export async function createNotificationCampaign(req: Request, res: Response, ne
     try {
       resolvedTemplate = await resolveTemplateReference(template_id, template || message || null);
     } catch (error) {
-      return res.status(400).json({ error: error instanceof Error ? error.message : 'Invalid notification template.' });
+      return next(
+        createHttpError(
+          400,
+          'NOTIFICATION_TEMPLATE_INVALID',
+          error instanceof Error ? error.message : 'Invalid notification template.',
+          error
+        )
+      );
     }
 
     const { data, error } = await supabase
@@ -193,7 +204,9 @@ export async function createNotificationCampaign(req: Request, res: Response, ne
       .single();
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to create notification campaign', details: error });
+      return next(
+        createHttpError(500, 'NOTIFICATION_CAMPAIGN_CREATE_FAILED', 'Failed to create notification campaign', error)
+      );
     }
 
     return res.status(201).json(data);
@@ -219,7 +232,14 @@ export async function updateNotificationCampaign(req: Request, res: Response, ne
       try {
         resolvedTemplate = await resolveTemplateReference(template_id, template || message || null);
       } catch (error) {
-        return res.status(400).json({ error: error instanceof Error ? error.message : 'Invalid notification template.' });
+        return next(
+          createHttpError(
+            400,
+            'NOTIFICATION_TEMPLATE_INVALID',
+            error instanceof Error ? error.message : 'Invalid notification template.',
+            error
+          )
+        );
       }
     }
 
@@ -245,11 +265,13 @@ export async function updateNotificationCampaign(req: Request, res: Response, ne
       .single();
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to update notification campaign', details: error });
+      return next(
+        createHttpError(500, 'NOTIFICATION_CAMPAIGN_UPDATE_FAILED', 'Failed to update notification campaign', error)
+      );
     }
 
     if (!data) {
-      return res.status(404).json({ error: 'Notification campaign not found' });
+      return next(createHttpError(404, 'NOTIFICATION_CAMPAIGN_NOT_FOUND', 'Notification campaign not found'));
     }
 
     return res.json(data);
@@ -267,7 +289,9 @@ export async function deleteNotificationCampaign(req: Request, res: Response, ne
       .eq('id', id);
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to delete notification campaign', details: error });
+      return next(
+        createHttpError(500, 'NOTIFICATION_CAMPAIGN_DELETE_FAILED', 'Failed to delete notification campaign', error)
+      );
     }
 
     return res.status(204).send();
@@ -292,7 +316,7 @@ export async function getNotificationTemplate(req: Request, res: Response, next:
     const template = templates.find((entry: any) => entry.id === id);
 
     if (!template) {
-      return res.status(404).json({ error: 'Notification template not found' });
+      return next(createHttpError(404, 'NOTIFICATION_TEMPLATE_NOT_FOUND', 'Notification template not found'));
     }
 
     return res.json(template);
@@ -318,7 +342,9 @@ export async function createNotificationTemplate(req: Request, res: Response, ne
       .single();
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to create notification template', details: error });
+      return next(
+        createHttpError(500, 'NOTIFICATION_TEMPLATE_CREATE_FAILED', 'Failed to create notification template', error)
+      );
     }
 
     return res.status(201).json(data);
@@ -370,11 +396,13 @@ export async function updateNotificationTemplate(req: Request, res: Response, ne
       .single();
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to update notification template', details: error });
+      return next(
+        createHttpError(500, 'NOTIFICATION_TEMPLATE_UPDATE_FAILED', 'Failed to update notification template', error)
+      );
     }
 
     if (!data) {
-      return res.status(404).json({ error: 'Notification template not found' });
+      return next(createHttpError(404, 'NOTIFICATION_TEMPLATE_NOT_FOUND', 'Notification template not found'));
     }
 
     return res.json(data);
@@ -392,7 +420,9 @@ export async function deleteNotificationTemplate(req: Request, res: Response, ne
       .eq('id', id);
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to delete notification template', details: error });
+      return next(
+        createHttpError(500, 'NOTIFICATION_TEMPLATE_DELETE_FAILED', 'Failed to delete notification template', error)
+      );
     }
 
     return res.status(204).send();

@@ -67,6 +67,8 @@ const adminEmailFolder = z.enum(['all', 'inbox', 'sent', 'drafts', 'draft', 'arc
 const adminEmailPriority = z.enum(['low', 'normal', 'high', 'urgent']);
 const adminEmailAction = z.enum(['draft', 'queue']);
 const adminEmailStatus = z.enum(['draft', 'queued', 'processing', 'sent', 'delivered', 'failed']);
+const adminMessageType = z.enum(['text', 'image', 'video', 'audio', 'file', 'system', 'location', 'contact']);
+const adminMessageStatus = z.enum(['sent', 'delivered', 'read', 'failed']);
 const clientObservabilityLevel = z.enum(['info', 'warn', 'error']);
 const ownershipType = z.enum(['owned', 'rented']);
 const paymentChargeTemplateTargetSchema = z.object({
@@ -384,8 +386,33 @@ export const schemas = {
       })
       .passthrough()
   ),
-  adminMessageCreate: nonEmptyObject,
-  adminMessageUpdate: nonEmptyObject,
+  adminMessageCreate: z
+    .object({
+      to_user: z.string().uuid(),
+      body: z.string().optional(),
+      content: z.string().optional().nullable(),
+      attachments: z.any().optional().nullable(),
+      message_type: adminMessageType.optional(),
+      reply_to_id: z.string().uuid().optional().nullable(),
+    })
+    .refine((value) => Boolean(value.body?.trim() || value.content?.trim() || value.attachments != null), {
+      message: 'Message body, content, or attachments are required',
+      path: ['body'],
+    }),
+  adminMessageUpdate: atLeastOne(
+    z.object({
+      body: z.string().optional(),
+      content: z.string().optional().nullable(),
+      attachments: z.any().optional().nullable(),
+      message_type: adminMessageType.optional(),
+      read: z.boolean().optional(),
+      is_read: z.boolean().optional(),
+      read_at: z.string().datetime({ offset: true }).optional().nullable(),
+      message_status: adminMessageStatus.optional(),
+      delivered_at: z.string().datetime({ offset: true }).optional().nullable(),
+      reply_to_id: z.string().uuid().optional().nullable(),
+    })
+  ),
 
   adminNotificationCreate: z
     .object({

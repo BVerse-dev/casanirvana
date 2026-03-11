@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 
+import { createHttpError } from '../lib/httpError';
 import { supabase } from '../lib/supabase';
 import { canAccessCommunity, resolveAdminScope } from '../services/adminScope';
 
@@ -29,7 +30,7 @@ export async function createMessage(req: Request, res: Response, next: NextFunct
   try {
     const senderProfileId = req.userProfile?.id;
     if (!senderProfileId) {
-      return res.status(401).json({ error: 'Missing admin profile context' });
+      return next(createHttpError(401, 'ADMIN_PROFILE_REQUIRED', 'Missing admin profile context'));
     }
 
     const scope = await resolveAdminScope(req);
@@ -41,11 +42,17 @@ export async function createMessage(req: Request, res: Response, next: NextFunct
     const replyToId = typeof req.body?.reply_to_id === 'string' ? req.body.reply_to_id : null;
 
     if (!toUser) {
-      return res.status(400).json({ error: 'Recipient is required' });
+      return next(createHttpError(400, 'MESSAGE_RECIPIENT_REQUIRED', 'Recipient is required'));
     }
 
     if (!body && !content && !attachments) {
-      return res.status(400).json({ error: 'Message body, content, or attachments are required' });
+      return next(
+        createHttpError(
+          400,
+          'MESSAGE_CONTENT_REQUIRED',
+          'Message body, content, or attachments are required'
+        )
+      );
     }
 
     const { data: recipient, error: recipientError } = await supabase
@@ -55,15 +62,19 @@ export async function createMessage(req: Request, res: Response, next: NextFunct
       .maybeSingle();
 
     if (recipientError) {
-      return res.status(500).json({ error: 'Failed to resolve message recipient' });
+      return next(
+        createHttpError(500, 'MESSAGE_RECIPIENT_LOOKUP_FAILED', 'Failed to resolve message recipient', recipientError)
+      );
     }
 
     if (!recipient) {
-      return res.status(404).json({ error: 'Recipient profile not found' });
+      return next(createHttpError(404, 'MESSAGE_RECIPIENT_NOT_FOUND', 'Recipient profile not found'));
     }
 
     if (!scope.isGlobal && (!recipient.community_id || !canAccessCommunity(scope, recipient.community_id))) {
-      return res.status(403).json({ error: 'Recipient is outside your tenant scope' });
+      return next(
+        createHttpError(403, 'MESSAGE_RECIPIENT_SCOPE_VIOLATION', 'Recipient is outside your tenant scope')
+      );
     }
 
     const insertPayload = {
@@ -88,7 +99,7 @@ export async function createMessage(req: Request, res: Response, next: NextFunct
       .single();
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to create message' });
+      return next(createHttpError(500, 'MESSAGE_CREATE_FAILED', 'Failed to create message', error));
     }
 
     return res.status(201).json(data);
@@ -103,7 +114,7 @@ export async function updateMessage(req: Request, res: Response, next: NextFunct
     const actorProfileId = req.userProfile?.id;
 
     if (!actorProfileId) {
-      return res.status(401).json({ error: 'Missing admin profile context' });
+      return next(createHttpError(401, 'ADMIN_PROFILE_REQUIRED', 'Missing admin profile context'));
     }
 
     const scope = await resolveAdminScope(req);
@@ -114,11 +125,11 @@ export async function updateMessage(req: Request, res: Response, next: NextFunct
       .maybeSingle();
 
     if (existingMessageError) {
-      return res.status(500).json({ error: 'Failed to load message' });
+      return next(createHttpError(500, 'MESSAGE_LOOKUP_FAILED', 'Failed to load message', existingMessageError));
     }
 
     if (!existingMessage) {
-      return res.status(404).json({ error: 'Message not found' });
+      return next(createHttpError(404, 'MESSAGE_NOT_FOUND', 'Message not found'));
     }
 
     if (
@@ -126,12 +137,14 @@ export async function updateMessage(req: Request, res: Response, next: NextFunct
       existingMessage.from_user !== actorProfileId &&
       existingMessage.to_user !== actorProfileId
     ) {
-      return res.status(403).json({ error: 'You cannot modify this message' });
+      return next(createHttpError(403, 'MESSAGE_UPDATE_FORBIDDEN', 'You cannot modify this message'));
     }
 
     const updates = pickAllowedMessageUpdates(req.body || {});
     if (Object.keys(updates).length === 0) {
-      return res.status(400).json({ error: 'No supported message updates were provided' });
+      return next(
+        createHttpError(400, 'MESSAGE_UPDATE_EMPTY', 'No supported message updates were provided')
+      );
     }
 
     const touchesContent = ['body', 'content', 'attachments', 'message_type', 'reply_to_id'].some((key) => key in updates);
@@ -147,7 +160,7 @@ export async function updateMessage(req: Request, res: Response, next: NextFunct
       .single();
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to update message' });
+      return next(createHttpError(500, 'MESSAGE_UPDATE_FAILED', 'Failed to update message', error));
     }
 
     return res.json(data);
@@ -163,7 +176,7 @@ export async function deleteMessage(req: Request, res: Response, next: NextFunct
     const actorRole = req.userProfile?.role;
 
     if (!actorProfileId) {
-      return res.status(401).json({ error: 'Missing admin profile context' });
+      return next(createHttpError(401, 'ADMIN_PROFILE_REQUIRED', 'Missing admin profile context'));
     }
 
     const { data: existingMessage, error: existingMessageError } = await supabase
@@ -173,15 +186,17 @@ export async function deleteMessage(req: Request, res: Response, next: NextFunct
       .maybeSingle();
 
     if (existingMessageError) {
-      return res.status(500).json({ error: 'Failed to load message' });
+      return next(createHttpError(500, 'MESSAGE_LOOKUP_FAILED', 'Failed to load message', existingMessageError));
     }
 
     if (!existingMessage) {
-      return res.status(404).json({ error: 'Message not found' });
+      return next(createHttpError(404, 'MESSAGE_NOT_FOUND', 'Message not found'));
     }
 
     if (!isGlobalAdminRole(actorRole) && existingMessage.from_user !== actorProfileId) {
-      return res.status(403).json({ error: 'You can only delete messages you sent' });
+      return next(
+        createHttpError(403, 'MESSAGE_DELETE_FORBIDDEN', 'You can only delete messages you sent')
+      );
     }
 
     const { error } = await supabase
@@ -190,7 +205,7 @@ export async function deleteMessage(req: Request, res: Response, next: NextFunct
       .eq('id', id);
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to delete message' });
+      return next(createHttpError(500, 'MESSAGE_DELETE_FAILED', 'Failed to delete message', error));
     }
 
     return res.status(204).send();
