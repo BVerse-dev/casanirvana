@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { supabase } from '../lib/supabase';
+import { createHttpError } from '../lib/httpError';
 
 const ALLOWED_ROLES = [
   'user',
@@ -14,6 +15,9 @@ type AllowedRole = typeof ALLOWED_ROLES[number];
 
 const isAllowedRole = (role: unknown): role is AllowedRole =>
   typeof role === 'string' && (ALLOWED_ROLES as readonly string[]).includes(role);
+
+const isSupabaseNotFoundError = (error: { code?: string | null } | null | undefined) =>
+  error?.code === 'PGRST116';
 
 // Analytics functions
 export async function getAnalytics(req: Request, res: Response, next: NextFunction) {
@@ -44,10 +48,14 @@ export async function getAnalytics(req: Request, res: Response, next: NextFuncti
       .gte('created_at', getTimeframeDate(timeFrame));
     
     if (userError || maintenanceError || complaintError || paymentError) {
-      return res.status(500).json({ 
-        error: 'Failed to fetch analytics data',
-        details: { userError, maintenanceError, complaintError, paymentError }
-      });
+      return next(
+        createHttpError(500, 'ADMIN_ANALYTICS_FETCH_FAILED', 'Failed to fetch analytics data', {
+          userError,
+          maintenanceError,
+          complaintError,
+          paymentError,
+        })
+      );
     }
     
     // Process maintenance request stats
@@ -127,7 +135,7 @@ export async function getAllUsers(req: Request, res: Response, next: NextFunctio
       .order('created_at', { ascending: false });
     
     if (error) {
-      return res.status(500).json({ error: 'Failed to fetch users', details: error });
+      return next(createHttpError(500, 'ADMIN_USERS_FETCH_FAILED', 'Failed to fetch users', error));
     }
     
     res.json({
@@ -149,11 +157,13 @@ export async function createUser(req: Request, res: Response, next: NextFunction
     const { email, password, first_name, last_name, role, phone } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
+      return next(
+        createHttpError(400, 'ADMIN_USER_EMAIL_PASSWORD_REQUIRED', 'Email and password are required')
+      );
     }
 
     if (role && !isAllowedRole(role)) {
-      return res.status(400).json({ error: 'Invalid role provided' });
+      return next(createHttpError(400, 'ADMIN_USER_ROLE_INVALID', 'Invalid role provided'));
     }
     
     // Create auth user
@@ -165,7 +175,7 @@ export async function createUser(req: Request, res: Response, next: NextFunction
     });
     
     if (authError || !authData.user) {
-      return res.status(500).json({ error: 'Failed to create user', details: authError });
+      return next(createHttpError(500, 'ADMIN_USER_CREATE_FAILED', 'Failed to create user', authError));
     }
     
     // Create profile
@@ -185,7 +195,9 @@ export async function createUser(req: Request, res: Response, next: NextFunction
     if (profileError) {
       // Rollback: delete auth user if profile creation fails
       await supabase.auth.admin.deleteUser(authData.user.id);
-      return res.status(500).json({ error: 'Failed to create user profile', details: profileError });
+      return next(
+        createHttpError(500, 'ADMIN_USER_PROFILE_CREATE_FAILED', 'Failed to create user profile', profileError)
+      );
     }
     
     res.status(201).json(profileData);
@@ -199,11 +211,11 @@ export async function inviteUser(req: Request, res: Response, next: NextFunction
     const { email, first_name, last_name, role, phone } = req.body;
 
     if (!email) {
-      return res.status(400).json({ error: 'Email is required' });
+      return next(createHttpError(400, 'ADMIN_INVITE_EMAIL_REQUIRED', 'Email is required'));
     }
 
     if (role && !isAllowedRole(role)) {
-      return res.status(400).json({ error: 'Invalid role provided' });
+      return next(createHttpError(400, 'ADMIN_INVITE_ROLE_INVALID', 'Invalid role provided'));
     }
 
     const redirectTo =
@@ -224,7 +236,7 @@ export async function inviteUser(req: Request, res: Response, next: NextFunction
     );
 
     if (inviteError || !inviteData.user) {
-      return res.status(500).json({ error: 'Failed to send invite', details: inviteError });
+      return next(createHttpError(500, 'ADMIN_INVITE_SEND_FAILED', 'Failed to send invite', inviteError));
     }
 
     // Create profile for invited user
@@ -243,7 +255,14 @@ export async function inviteUser(req: Request, res: Response, next: NextFunction
       .single();
 
     if (profileError) {
-      return res.status(500).json({ error: 'Invite sent, but profile creation failed', details: profileError });
+      return next(
+        createHttpError(
+          500,
+          'ADMIN_INVITE_PROFILE_CREATE_FAILED',
+          'Invite sent, but profile creation failed',
+          profileError
+        )
+      );
     }
 
     return res.status(201).json({
@@ -266,7 +285,10 @@ export async function getUserById(req: Request, res: Response, next: NextFunctio
       .single();
     
     if (error) {
-      return res.status(404).json({ error: 'User not found', details: error });
+      if (isSupabaseNotFoundError(error)) {
+        return next(createHttpError(404, 'ADMIN_USER_NOT_FOUND', 'User not found', error));
+      }
+      return next(createHttpError(500, 'ADMIN_USER_FETCH_FAILED', 'Failed to fetch user', error));
     }
     
     res.json(data);
@@ -281,7 +303,7 @@ export async function updateUser(req: Request, res: Response, next: NextFunction
     const { first_name, last_name, role, phone, profile_pic_url, is_active } = req.body;
 
     if (role && !isAllowedRole(role)) {
-      return res.status(400).json({ error: 'Invalid role provided' });
+      return next(createHttpError(400, 'ADMIN_USER_ROLE_INVALID', 'Invalid role provided'));
     }
     
     // Check if user exists
@@ -292,7 +314,7 @@ export async function updateUser(req: Request, res: Response, next: NextFunction
       .single();
     
     if (fetchError || !existingUser) {
-      return res.status(404).json({ error: 'User not found', details: fetchError });
+      return next(createHttpError(404, 'ADMIN_USER_NOT_FOUND', 'User not found', fetchError));
     }
     
     // Update profile
@@ -312,7 +334,7 @@ export async function updateUser(req: Request, res: Response, next: NextFunction
       .single();
     
     if (error) {
-      return res.status(500).json({ error: 'Failed to update user', details: error });
+      return next(createHttpError(500, 'ADMIN_USER_UPDATE_FAILED', 'Failed to update user', error));
     }
     
     res.json(data);
@@ -333,14 +355,14 @@ export async function deleteUser(req: Request, res: Response, next: NextFunction
       .single();
     
     if (fetchError || !existingUser) {
-      return res.status(404).json({ error: 'User not found', details: fetchError });
+      return next(createHttpError(404, 'ADMIN_USER_NOT_FOUND', 'User not found', fetchError));
     }
     
     // Delete auth user (cascade will delete profile)
     const { error } = await supabase.auth.admin.deleteUser(id);
     
     if (error) {
-      return res.status(500).json({ error: 'Failed to delete user', details: error });
+      return next(createHttpError(500, 'ADMIN_USER_DELETE_FAILED', 'Failed to delete user', error));
     }
     
     res.status(204).send();
@@ -354,11 +376,11 @@ export async function bulkUpdateUsers(req: Request, res: Response, next: NextFun
     const { userIds, updates } = req.body;
     
     if (!userIds || !userIds.length || !updates) {
-      return res.status(400).json({ error: 'Missing userIds or updates' });
+      return next(createHttpError(400, 'ADMIN_USERS_BULK_UPDATE_INVALID', 'Missing userIds or updates'));
     }
 
     if (updates.role && !isAllowedRole(updates.role)) {
-      return res.status(400).json({ error: 'Invalid role provided' });
+      return next(createHttpError(400, 'ADMIN_USER_ROLE_INVALID', 'Invalid role provided'));
     }
     
     // Update profiles
@@ -372,7 +394,7 @@ export async function bulkUpdateUsers(req: Request, res: Response, next: NextFun
       .select();
     
     if (error) {
-      return res.status(500).json({ error: 'Failed to update users', details: error });
+      return next(createHttpError(500, 'ADMIN_USERS_BULK_UPDATE_FAILED', 'Failed to update users', error));
     }
     
     res.json({ updated: data?.length || 0, data });
@@ -389,7 +411,7 @@ export async function getAllSocieties(req: Request, res: Response, next: NextFun
       .select('*');
     
     if (error) {
-      return res.status(500).json({ error: 'Failed to fetch societies', details: error });
+      return next(createHttpError(500, 'ADMIN_COMMUNITIES_FETCH_FAILED', 'Failed to fetch communities', error));
     }
     
     res.json(data);
@@ -409,7 +431,7 @@ export async function createSociety(req: Request, res: Response, next: NextFunct
       .single();
     
     if (error) {
-      return res.status(500).json({ error: 'Failed to create society', details: error });
+      return next(createHttpError(500, 'ADMIN_COMMUNITY_CREATE_FAILED', 'Failed to create community', error));
     }
     
     res.status(201).json(data);
@@ -431,7 +453,10 @@ export async function updateSociety(req: Request, res: Response, next: NextFunct
       .single();
     
     if (error) {
-      return res.status(500).json({ error: 'Failed to update society', details: error });
+      if (isSupabaseNotFoundError(error)) {
+        return next(createHttpError(404, 'ADMIN_COMMUNITY_NOT_FOUND', 'Community not found', error));
+      }
+      return next(createHttpError(500, 'ADMIN_COMMUNITY_UPDATE_FAILED', 'Failed to update community', error));
     }
     
     res.json(data);
@@ -450,7 +475,7 @@ export async function deleteSociety(req: Request, res: Response, next: NextFunct
       .eq('id', id);
     
     if (error) {
-      return res.status(500).json({ error: 'Failed to delete society', details: error });
+      return next(createHttpError(500, 'ADMIN_COMMUNITY_DELETE_FAILED', 'Failed to delete community', error));
     }
     
     res.status(204).send();
@@ -484,10 +509,12 @@ export async function getMaintenanceStats(req: Request, res: Response, next: Nex
       .eq('status', 'completed');
     
     if (statusError || resolutionError) {
-      return res.status(500).json({ 
-        error: 'Failed to fetch maintenance stats', 
-        details: { statusError, resolutionError } 
-      });
+      return next(
+        createHttpError(500, 'ADMIN_MAINTENANCE_STATS_FETCH_FAILED', 'Failed to fetch maintenance stats', {
+          statusError,
+          resolutionError,
+        })
+      );
     }
     
     // Calculate average resolution time in hours
@@ -515,7 +542,9 @@ export async function bulkUpdateMaintenanceRequests(req: Request, res: Response,
     const { requestIds, updates } = req.body;
     
     if (!requestIds || !requestIds.length || !updates) {
-      return res.status(400).json({ error: 'Missing requestIds or updates' });
+      return next(
+        createHttpError(400, 'ADMIN_MAINTENANCE_BULK_UPDATE_INVALID', 'Missing requestIds or updates')
+      );
     }
     
     const { data, error } = await supabase
@@ -528,7 +557,14 @@ export async function bulkUpdateMaintenanceRequests(req: Request, res: Response,
       .select();
     
     if (error) {
-      return res.status(500).json({ error: 'Failed to update maintenance requests', details: error });
+      return next(
+        createHttpError(
+          500,
+          'ADMIN_MAINTENANCE_BULK_UPDATE_FAILED',
+          'Failed to update maintenance requests',
+          error
+        )
+      );
     }
     
     res.json({ updated: data?.length || 0, data });
@@ -562,10 +598,12 @@ export async function getComplaintStats(req: Request, res: Response, next: NextF
       .eq('status', 'resolved');
     
     if (statusError || resolutionError) {
-      return res.status(500).json({ 
-        error: 'Failed to fetch complaint stats', 
-        details: { statusError, resolutionError } 
-      });
+      return next(
+        createHttpError(500, 'ADMIN_COMPLAINT_STATS_FETCH_FAILED', 'Failed to fetch complaint stats', {
+          statusError,
+          resolutionError,
+        })
+      );
     }
     
     // Calculate average resolution time in hours
@@ -593,7 +631,9 @@ export async function bulkUpdateComplaints(req: Request, res: Response, next: Ne
     const { complaintIds, updates } = req.body;
     
     if (!complaintIds || !complaintIds.length || !updates) {
-      return res.status(400).json({ error: 'Missing complaintIds or updates' });
+      return next(
+        createHttpError(400, 'ADMIN_COMPLAINTS_BULK_UPDATE_INVALID', 'Missing complaintIds or updates')
+      );
     }
     
     const { data, error } = await supabase
@@ -606,7 +646,9 @@ export async function bulkUpdateComplaints(req: Request, res: Response, next: Ne
       .select();
     
     if (error) {
-      return res.status(500).json({ error: 'Failed to update complaints', details: error });
+      return next(
+        createHttpError(500, 'ADMIN_COMPLAINTS_BULK_UPDATE_FAILED', 'Failed to update complaints', error)
+      );
     }
     
     res.json({ updated: data?.length || 0, data });
@@ -624,7 +666,9 @@ export async function getPaymentStats(req: Request, res: Response, next: NextFun
       .select('status, amount');
     
     if (paymentsError) {
-      return res.status(500).json({ error: 'Failed to fetch payment stats', details: paymentsError });
+      return next(
+        createHttpError(500, 'ADMIN_PAYMENT_STATS_FETCH_FAILED', 'Failed to fetch payment stats', paymentsError)
+      );
     }
     
     // Process payment data
@@ -657,7 +701,13 @@ export async function generatePayments(req: Request, res: Response, next: NextFu
     const { societyId, unitIds, amount, dueDate, description } = req.body;
     
     if (!societyId || !amount || !dueDate) {
-      return res.status(400).json({ error: 'Missing required fields: societyId, amount, dueDate' });
+      return next(
+        createHttpError(
+          400,
+          'ADMIN_PAYMENTS_GENERATE_INVALID',
+          'Missing required fields: societyId, amount, dueDate'
+        )
+      );
     }
     
     // Get units to generate payments for
@@ -674,11 +724,13 @@ export async function generatePayments(req: Request, res: Response, next: NextFu
     const { data: units, error: unitsError } = await unitsQuery;
     
     if (unitsError) {
-      return res.status(500).json({ error: 'Failed to fetch units', details: unitsError });
+      return next(createHttpError(500, 'ADMIN_PAYMENTS_UNITS_FETCH_FAILED', 'Failed to fetch units', unitsError));
     }
-    
+
     if (!units || !units.length) {
-      return res.status(400).json({ error: 'No units found for the specified criteria' });
+      return next(
+        createHttpError(400, 'ADMIN_PAYMENTS_UNITS_EMPTY', 'No units found for the specified criteria')
+      );
     }
     
     // Generate payment records
@@ -697,7 +749,9 @@ export async function generatePayments(req: Request, res: Response, next: NextFu
       .select();
     
     if (paymentsError) {
-      return res.status(500).json({ error: 'Failed to generate payments', details: paymentsError });
+      return next(
+        createHttpError(500, 'ADMIN_PAYMENTS_GENERATE_FAILED', 'Failed to generate payments', paymentsError)
+      );
     }
     
     res.status(201).json({
@@ -714,7 +768,7 @@ export async function bulkUpdatePayments(req: Request, res: Response, next: Next
     const { paymentIds, updates } = req.body;
     
     if (!paymentIds || !paymentIds.length || !updates) {
-      return res.status(400).json({ error: 'Missing paymentIds or updates' });
+      return next(createHttpError(400, 'ADMIN_PAYMENTS_BULK_UPDATE_INVALID', 'Missing paymentIds or updates'));
     }
     
     const { data, error } = await supabase
@@ -727,7 +781,7 @@ export async function bulkUpdatePayments(req: Request, res: Response, next: Next
       .select();
     
     if (error) {
-      return res.status(500).json({ error: 'Failed to update payments', details: error });
+      return next(createHttpError(500, 'ADMIN_PAYMENTS_BULK_UPDATE_FAILED', 'Failed to update payments', error));
     }
     
     res.json({ updated: data?.length || 0, data });
@@ -742,7 +796,7 @@ export async function bulkCreateNotices(req: Request, res: Response, next: NextF
     const { notices } = req.body;
     
     if (!notices || !notices.length) {
-      return res.status(400).json({ error: 'Missing notices array' });
+      return next(createHttpError(400, 'ADMIN_NOTICES_BULK_CREATE_INVALID', 'Missing notices array'));
     }
     
     // Add timestamps to each notice
@@ -758,7 +812,7 @@ export async function bulkCreateNotices(req: Request, res: Response, next: NextF
       .select();
     
     if (error) {
-      return res.status(500).json({ error: 'Failed to create notices', details: error });
+      return next(createHttpError(500, 'ADMIN_NOTICES_BULK_CREATE_FAILED', 'Failed to create notices', error));
     }
     
     res.status(201).json({
@@ -778,7 +832,7 @@ export async function getSettings(req: Request, res: Response, next: NextFunctio
       .select('*');
     
     if (error) {
-      return res.status(500).json({ error: 'Failed to fetch settings', details: error });
+      return next(createHttpError(500, 'ADMIN_SETTINGS_FETCH_FAILED', 'Failed to fetch settings', error));
     }
     
     // Convert to key-value format
@@ -798,7 +852,7 @@ export async function updateSettings(req: Request, res: Response, next: NextFunc
     const settings = req.body;
     
     if (!settings || Object.keys(settings).length === 0) {
-      return res.status(400).json({ error: 'No settings provided' });
+      return next(createHttpError(400, 'ADMIN_SETTINGS_UPDATE_INVALID', 'No settings provided'));
     }
     
     // Convert object to array of key-value pairs
@@ -815,7 +869,7 @@ export async function updateSettings(req: Request, res: Response, next: NextFunc
       .select();
     
     if (error) {
-      return res.status(500).json({ error: 'Failed to update settings', details: error });
+      return next(createHttpError(500, 'ADMIN_SETTINGS_UPDATE_FAILED', 'Failed to update settings', error));
     }
     
     res.json({
@@ -832,7 +886,7 @@ export async function deleteSetting(req: Request, res: Response, next: NextFunct
     const { key } = req.params;
 
     if (!key) {
-      return res.status(400).json({ error: 'Setting key is required' });
+      return next(createHttpError(400, 'ADMIN_SETTING_KEY_REQUIRED', 'Setting key is required'));
     }
 
     const { error } = await supabase
@@ -841,7 +895,7 @@ export async function deleteSetting(req: Request, res: Response, next: NextFunct
       .eq('key', key);
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to delete setting', details: error });
+      return next(createHttpError(500, 'ADMIN_SETTING_DELETE_FAILED', 'Failed to delete setting', error));
     }
 
     res.status(204).send();
@@ -858,7 +912,7 @@ export async function getRoles(req: Request, res: Response, next: NextFunction) 
       .select('*');
     
     if (error) {
-      return res.status(500).json({ error: 'Failed to fetch roles', details: error });
+      return next(createHttpError(500, 'ADMIN_ROLES_FETCH_FAILED', 'Failed to fetch roles', error));
     }
     
     // Group by role
@@ -882,7 +936,7 @@ export async function updateRolePermissions(req: Request, res: Response, next: N
     const { permissions } = req.body;
     
     if (!permissions || !Array.isArray(permissions)) {
-      return res.status(400).json({ error: 'Permissions must be an array' });
+      return next(createHttpError(400, 'ADMIN_ROLE_PERMISSIONS_INVALID', 'Permissions must be an array'));
     }
     
     // Start a transaction
@@ -893,7 +947,14 @@ export async function updateRolePermissions(req: Request, res: Response, next: N
       .eq('role', role);
     
     if (deleteError) {
-      return res.status(500).json({ error: 'Failed to update role permissions', details: deleteError });
+      return next(
+        createHttpError(
+          500,
+          'ADMIN_ROLE_PERMISSIONS_DELETE_FAILED',
+          'Failed to update role permissions',
+          deleteError
+        )
+      );
     }
     
     // 2. Insert new permissions
@@ -910,7 +971,14 @@ export async function updateRolePermissions(req: Request, res: Response, next: N
       .select();
     
     if (insertError) {
-      return res.status(500).json({ error: 'Failed to update role permissions', details: insertError });
+      return next(
+        createHttpError(
+          500,
+          'ADMIN_ROLE_PERMISSIONS_INSERT_FAILED',
+          'Failed to update role permissions',
+          insertError
+        )
+      );
     }
     
     res.json({
@@ -928,7 +996,7 @@ export async function deleteRole(req: Request, res: Response, next: NextFunction
     const { role } = req.params;
 
     if (!role) {
-      return res.status(400).json({ error: 'Role is required' });
+      return next(createHttpError(400, 'ADMIN_ROLE_REQUIRED', 'Role is required'));
     }
 
     const { error } = await supabase
@@ -937,7 +1005,7 @@ export async function deleteRole(req: Request, res: Response, next: NextFunction
       .eq('role', role);
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to delete role', details: error });
+      return next(createHttpError(500, 'ADMIN_ROLE_DELETE_FAILED', 'Failed to delete role', error));
     }
 
     res.status(204).send();
