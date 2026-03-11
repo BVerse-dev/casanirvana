@@ -323,30 +323,67 @@ export const schemas = {
       })
       .passthrough()
   ),
-  adminProfileCreate: nonEmptyObject.superRefine((value, ctx) => {
-    if ('role' in value && value.role !== undefined) {
-      const result = allowedRoles.safeParse(value.role);
-      if (!result.success) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['role'],
-          message: 'Invalid role provided',
-        });
-      }
-    }
-  }),
-  adminProfileUpdate: nonEmptyObject.superRefine((value, ctx) => {
-    if ('role' in value && value.role !== undefined) {
-      const result = allowedRoles.safeParse(value.role);
-      if (!result.success) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['role'],
-          message: 'Invalid role provided',
-        });
-      }
-    }
-  }),
+  adminProfileCreate: z
+    .object({
+      email,
+      first_name: nonEmptyString,
+      last_name: nonEmptyString,
+      role: allowedRoles.optional(),
+      avatar_url: z.string().url().optional().nullable(),
+      bio: z.string().optional().nullable(),
+      block_number: optionalString.nullable(),
+      community_id: z.string().uuid().optional().nullable(),
+      email_verified: z.boolean().optional().nullable(),
+      emergency_contact: z.string().optional().nullable(),
+      entry_code: z.string().optional().nullable(),
+      full_name: z.string().optional().nullable(),
+      id: z.string().uuid().optional(),
+      is_active: z.boolean().optional().nullable(),
+      notification_preferences: z.record(z.any()).optional().nullable(),
+      phone: z.string().optional().nullable(),
+      phone_verified: z.boolean().optional().nullable(),
+      preferences: z.record(z.any()).optional().nullable(),
+      push_notification_token: z.string().optional().nullable(),
+      push_notifications_enabled: z.boolean().optional().nullable(),
+      qr_code_data: z.string().optional().nullable(),
+      role_id: z.string().uuid().optional().nullable(),
+      status: optionalString.nullable(),
+      two_factor_enabled: z.boolean().optional().nullable(),
+      unit_id: z.string().uuid().optional().nullable(),
+      user_id: z.string().uuid().optional().nullable(),
+    })
+    .passthrough(),
+  adminProfileUpdate: atLeastOne(
+    z
+      .object({
+        email: email.optional(),
+        first_name: optionalString,
+        last_name: optionalString,
+        role: allowedRoles.optional(),
+        avatar_url: z.string().url().optional().nullable(),
+        bio: z.string().optional().nullable(),
+        block_number: optionalString.nullable(),
+        community_id: z.string().uuid().optional().nullable(),
+        email_verified: z.boolean().optional().nullable(),
+        emergency_contact: z.string().optional().nullable(),
+        entry_code: z.string().optional().nullable(),
+        full_name: z.string().optional().nullable(),
+        is_active: z.boolean().optional().nullable(),
+        notification_preferences: z.record(z.any()).optional().nullable(),
+        phone: z.string().optional().nullable(),
+        phone_verified: z.boolean().optional().nullable(),
+        preferences: z.record(z.any()).optional().nullable(),
+        push_notification_token: z.string().optional().nullable(),
+        push_notifications_enabled: z.boolean().optional().nullable(),
+        qr_code_data: z.string().optional().nullable(),
+        role_id: z.string().uuid().optional().nullable(),
+        status: optionalString.nullable(),
+        two_factor_enabled: z.boolean().optional().nullable(),
+        unit_id: z.string().uuid().optional().nullable(),
+        user_id: z.string().uuid().optional().nullable(),
+      })
+      .passthrough()
+  ),
   adminMessageCreate: nonEmptyObject,
   adminMessageUpdate: nonEmptyObject,
 
@@ -1461,8 +1498,67 @@ export const schemas = {
     paymentType: optionalString,
     unitId: optionalString,
   }),
-  paymentCreate: nonEmptyObject,
-  paymentUpdate: nonEmptyObject,
+  paymentCreate: z
+    .object({
+      amount: z.coerce.number().positive(),
+      booking_id: z.string().uuid().optional().nullable(),
+      completed_at: z.string().optional().nullable(),
+      created_at: z.string().optional().nullable(),
+      description: z.string().optional().nullable(),
+      due_date: z.string().optional().nullable(),
+      failed_at: z.string().optional().nullable(),
+      id: z.string().uuid().optional(),
+      initiated_at: z.string().optional().nullable(),
+      invoice_generated_at: z.string().optional().nullable(),
+      metadata: z.record(z.any()).optional().nullable(),
+      notes: z.string().optional().nullable(),
+      paid_at: z.string().optional().nullable(),
+      payer_id: z.string().uuid().optional().nullable(),
+      payment_date: z.string().optional().nullable(),
+      payment_gateway: z.string().optional().nullable(),
+      payment_method: z.string().optional().nullable(),
+      payment_type: z.string().optional().nullable(),
+      receipt_url: z.string().optional().nullable(),
+      reference_number: z.string().optional().nullable(),
+      reminder_sent_at: z.string().optional().nullable(),
+      status: z.string().optional().nullable(),
+      title: z.string().optional().nullable(),
+      transaction_id: z.string().optional().nullable(),
+      unit_id: z.string().uuid().optional().nullable(),
+      updated_at: z.string().optional().nullable(),
+    })
+    .passthrough(),
+  paymentUpdate: atLeastOne(
+    z
+      .object({
+        amount: z.coerce.number().positive().optional(),
+        booking_id: z.string().uuid().optional().nullable(),
+        completed_at: z.string().optional().nullable(),
+        created_at: z.string().optional().nullable(),
+        description: z.string().optional().nullable(),
+        due_date: z.string().optional().nullable(),
+        failed_at: z.string().optional().nullable(),
+        initiated_at: z.string().optional().nullable(),
+        invoice_generated_at: z.string().optional().nullable(),
+        metadata: z.record(z.any()).optional().nullable(),
+        notes: z.string().optional().nullable(),
+        paid_at: z.string().optional().nullable(),
+        payer_id: z.string().uuid().optional().nullable(),
+        payment_date: z.string().optional().nullable(),
+        payment_gateway: z.string().optional().nullable(),
+        payment_method: z.string().optional().nullable(),
+        payment_type: z.string().optional().nullable(),
+        receipt_url: z.string().optional().nullable(),
+        reference_number: z.string().optional().nullable(),
+        reminder_sent_at: z.string().optional().nullable(),
+        status: z.string().optional().nullable(),
+        title: z.string().optional().nullable(),
+        transaction_id: z.string().optional().nullable(),
+        unit_id: z.string().uuid().optional().nullable(),
+        updated_at: z.string().optional().nullable(),
+      })
+      .passthrough()
+  ),
   paymentStatusUpdate: z.object({
     status: nonEmptyString,
     notes: z.string().optional(),
