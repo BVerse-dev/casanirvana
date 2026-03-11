@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import * as PaymentService from '../services/payment';
 import { getClientPaymentMethodPolicy } from '../services/paymentMethodPolicy';
 import {
@@ -50,16 +50,17 @@ import {
   getPersonalHubTransactionStatus,
   initiatePersonalHubTransaction,
 } from '../services/personalHubTransactions';
+import { createHttpError } from '../lib/httpError';
 
 /**
  * Get payments by unit ID with filtering and pagination
  */
-export async function getPaymentsByUnit(req: Request, res: Response) {
+export async function getPaymentsByUnit(req: Request, res: Response, next: NextFunction) {
   try {
     const unitId = req.params.unitId || req.query.unitId as string;
 
     if (!unitId) {
-      return res.status(400).json({ error: 'Unit ID is required' });
+      return next(createHttpError(400, 'PAYMENT_UNIT_ID_REQUIRED', 'Unit ID is required'));
     }
 
     const options = {
@@ -74,20 +75,20 @@ export async function getPaymentsByUnit(req: Request, res: Response) {
 
     const result = await PaymentService.getPaymentsByUnit(unitId, options);
     res.json(result);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error) {
+    next(error);
   }
 }
 
 /**
  * Get payments by society ID with filtering and pagination
  */
-export async function getPaymentsBySociety(req: Request, res: Response) {
+export async function getPaymentsBySociety(req: Request, res: Response, next: NextFunction) {
   try {
     const societyId = req.params.societyId || req.query.societyId as string;
 
     if (!societyId) {
-      return res.status(400).json({ error: 'Society ID is required' });
+      return next(createHttpError(400, 'PAYMENT_COMMUNITY_ID_REQUIRED', 'Community ID is required'));
     }
 
     const options = {
@@ -104,122 +105,119 @@ export async function getPaymentsBySociety(req: Request, res: Response) {
 
     const result = await PaymentService.getPaymentsBySociety(societyId, options);
     res.json(result);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error) {
+    next(error);
   }
 }
 
 /**
  * Get payment by ID
  */
-export async function getPaymentById(req: Request, res: Response) {
+export async function getPaymentById(req: Request, res: Response, next: NextFunction) {
   try {
     const { id } = req.params;
 
     if (!id) {
-      return res.status(400).json({ error: 'Payment ID is required' });
+      return next(createHttpError(400, 'PAYMENT_ID_REQUIRED', 'Payment ID is required'));
     }
 
     const payment = await PaymentService.getPaymentById(id);
 
     if (!payment) {
-      return res.status(404).json({ error: 'Payment not found' });
+      return next(createHttpError(404, 'PAYMENT_NOT_FOUND', 'Payment not found'));
     }
 
     res.json(payment);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error) {
+    next(error);
   }
 }
 
 /**
  * Create a new payment
  */
-export async function createPayment(req: Request, res: Response) {
+export async function createPayment(req: Request, res: Response, next: NextFunction) {
   try {
     const payment = await PaymentService.createPayment(req.body);
     res.status(201).json(payment);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error) {
+    next(error);
   }
 }
 
 /**
  * Update a payment
  */
-export async function updatePayment(req: Request, res: Response) {
+export async function updatePayment(req: Request, res: Response, next: NextFunction) {
   try {
     const { id } = req.params;
     const payment = await PaymentService.updatePayment(id, req.body);
     res.json(payment);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error) {
+    next(error);
   }
 }
 
 /**
  * Update payment status
  */
-export async function updatePaymentStatus(req: Request, res: Response) {
+export async function updatePaymentStatus(req: Request, res: Response, next: NextFunction) {
   try {
     const { id } = req.params;
     const { status, notes } = req.body;
     const userId = req.user?.id; // Assuming you have user info in the request
 
     if (!status) {
-      return res.status(400).json({ error: 'Status is required' });
+      return next(createHttpError(400, 'PAYMENT_STATUS_REQUIRED', 'Status is required'));
     }
 
     const payment = await PaymentService.updatePaymentStatus(id, status, userId, notes);
     res.json(payment);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error) {
+    next(error);
   }
 }
 
 /**
  * Delete a payment
  */
-export async function deletePayment(req: Request, res: Response) {
+export async function deletePayment(req: Request, res: Response, next: NextFunction) {
   try {
     const { id } = req.params;
     await PaymentService.deletePayment(id);
     res.json({ id, success: true });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error) {
+    next(error);
   }
 }
 
 /**
  * Get payment statistics
  */
-export async function getPaymentStats(req: Request, res: Response) {
+export async function getPaymentStats(req: Request, res: Response, next: NextFunction) {
   try {
     const societyId = req.params.societyId || req.query.societyId as string;
     const timeFrame = (req.query.timeFrame as 'week' | 'month' | 'year') || 'month';
 
     const stats = await PaymentService.getPaymentStats(societyId, timeFrame);
     res.json(stats);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error) {
+    next(error);
   }
 }
 
 /**
  * Get sanitized payment method policy for authenticated clients.
  */
-export async function getPaymentMethodPolicy(req: Request, res: Response) {
+export async function getPaymentMethodPolicy(req: Request, res: Response, next: NextFunction) {
   try {
     const policy = await getClientPaymentMethodPolicy();
     res.json({
       success: true,
       data: policy,
     });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to load payment policy',
-    });
+  } catch (error) {
+    next(error);
   }
 }
 

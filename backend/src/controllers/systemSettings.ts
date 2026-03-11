@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { supabase } from '../lib/supabase';
+import { createHttpError } from '../lib/httpError';
 
-const parseSettingValue = (value: any, dataType?: string | null) => {
+const parseSettingValue = (value: unknown, dataType?: string | null) => {
   try {
     if (dataType === 'boolean') {
       return value === true || value === 'true';
@@ -21,7 +22,7 @@ const parseSettingValue = (value: any, dataType?: string | null) => {
   }
 };
 
-const inferDataType = (value: any): 'string' | 'boolean' | 'number' | 'json' => {
+const inferDataType = (value: unknown): 'string' | 'boolean' | 'number' | 'json' => {
   if (typeof value === 'boolean') return 'boolean';
   if (typeof value === 'number') return 'number';
   if (typeof value === 'object' && value !== null) return 'json';
@@ -52,17 +53,17 @@ export async function getSystemSettings(req: Request, res: Response, next: NextF
       if (error.code === '42P01') {
         return res.json(raw ? [] : { data: [], settings: {} });
       }
-      return res.status(500).json({ error: 'Failed to fetch system settings', details: error });
+      return next(createHttpError(500, 'SYSTEM_SETTINGS_FETCH_FAILED', 'Failed to fetch system settings', error));
     }
 
     if (raw === 'true') {
       return res.json(data || []);
     }
 
-    const settings = (data || []).reduce((acc: Record<string, any>, item: any) => {
+    const settings = (data || []).reduce((acc: Record<string, unknown>, item) => {
       acc[item.key] = parseSettingValue(item.value, item.data_type);
       return acc;
-    }, {});
+    }, {} as Record<string, unknown>);
 
     return res.json({ data: data || [], settings });
   } catch (err) {
@@ -93,7 +94,7 @@ export async function systemSettingsExists(req: Request, res: Response, next: Ne
       if (error.code === '42P01') {
         return res.json({ exists: false });
       }
-      return res.status(500).json({ error: 'Failed to check system settings', details: error });
+      return next(createHttpError(500, 'SYSTEM_SETTINGS_EXISTS_FAILED', 'Failed to check system settings', error));
     }
 
     return res.json({ exists: (count || 0) > 0 });
@@ -107,7 +108,7 @@ export async function upsertSystemSettings(req: Request, res: Response, next: Ne
     const { category, subcategory, settings, descriptions, sensitivities } = req.body || {};
 
     if (!settings || typeof settings !== 'object' || Array.isArray(settings)) {
-      return res.status(400).json({ error: 'settings object is required' });
+      return next(createHttpError(400, 'SYSTEM_SETTINGS_INVALID_BODY', 'settings object is required'));
     }
 
     const rows = Object.entries(settings).map(([key, value]) => ({
@@ -134,7 +135,7 @@ export async function upsertSystemSettings(req: Request, res: Response, next: Ne
       .select();
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to update system settings', details: error });
+      return next(createHttpError(500, 'SYSTEM_SETTINGS_UPDATE_FAILED', 'Failed to update system settings', error));
     }
 
     return res.json({ updated: data?.length || 0, data });
@@ -149,7 +150,7 @@ export async function deleteSystemSetting(req: Request, res: Response, next: Nex
     const { category, subcategory } = req.query;
 
     if (!key) {
-      return res.status(400).json({ error: 'settings key is required' });
+      return next(createHttpError(400, 'SYSTEM_SETTINGS_KEY_REQUIRED', 'settings key is required'));
     }
 
     let query = supabase
@@ -168,7 +169,7 @@ export async function deleteSystemSetting(req: Request, res: Response, next: Nex
     const { error } = await query;
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to delete system setting', details: error });
+      return next(createHttpError(500, 'SYSTEM_SETTINGS_DELETE_FAILED', 'Failed to delete system setting', error));
     }
 
     return res.status(204).send();
