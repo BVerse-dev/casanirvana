@@ -743,6 +743,7 @@ router.get(
   '/payments/transactions',
   requireAuth,
   requirePermission('read:all_payments'),
+  validateRequest({ query: schemas.adminPaymentTransactionsQuery }),
   paymentController.listAdminTransactions
 );
 router.get(
@@ -756,12 +757,14 @@ router.get(
   '/payments/obligations',
   requireAuth,
   requirePermission('read:all_payments'),
+  validateRequest({ query: schemas.adminPaymentObligationsQuery }),
   paymentController.listAdminObligations
 );
 router.get(
   '/payments/statements',
   requireAuth,
   requirePermission('read:all_payments'),
+  validateRequest({ query: schemas.adminPaymentStatementsQuery }),
   paymentController.listAdminStatements
 );
 router.get(

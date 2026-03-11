@@ -1572,6 +1572,18 @@ export const schemas = {
     notes: z.string().optional().nullable(),
     failure_reason: z.string().optional().nullable(),
   }),
+  adminPaymentTransactionsQuery: z.object({
+    status: optionalString,
+    source_type: optionalString,
+    unit_id: optionalString,
+  }),
+  adminPaymentObligationsQuery: z.object({
+    status: optionalString,
+    unit_id: optionalString,
+  }),
+  adminPaymentStatementsQuery: z.object({
+    unit_id: optionalString,
+  }),
   expressPayInitiate: z.object({
     amount: z.coerce.number().positive(),
     currency: optionalString,
@@ -1589,6 +1601,17 @@ export const schemas = {
   }),
   expressPayStatusParams: z.object({
     paymentId: nonEmptyString,
+  }),
+  expressPayCallbackPayload: z
+    .object({
+      token: optionalString,
+      order_id: optionalString,
+      'order-id': optionalString,
+    })
+    .passthrough(),
+  expressPayRedirectQuery: z.object({
+    return_url: optionalString,
+    payment_id: optionalString,
   }),
   personalHubTransactionStatusParams: z.object({
     id: nonEmptyString,
