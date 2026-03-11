@@ -33,17 +33,19 @@ export const usePersonalHubServiceMetrics = (
     [catalog.providers]
   );
 
+  const growth = reports.summary?.growth;
+
   const metrics = useMemo<PersonalHubServiceMetrics>(() => ({
     totalTransactions: reports.summary?.total_transactions || 0,
     revenue: reports.summary?.total_volume || 0,
     successRate: reports.summary?.average_success_rate || 0,
     activeProviders: activeProviders.length,
     growth: {
-      transactions: reports.summary?.growth.total_transactions || 0,
-      revenue: reports.summary?.growth.total_volume || 0,
-      successRate: reports.summary?.growth.average_success_rate || 0,
+      transactions: growth?.total_transactions || 0,
+      revenue: growth?.total_volume || 0,
+      successRate: growth?.average_success_rate || 0,
     },
-  }), [activeProviders.length, reports.summary]);
+  }), [activeProviders.length, growth, reports.summary]);
 
   return {
     metrics,

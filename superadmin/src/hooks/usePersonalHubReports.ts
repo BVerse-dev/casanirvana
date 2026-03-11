@@ -156,6 +156,12 @@ type PersonalHubReportsResponse = {
 
 const DEFAULT_PERIOD: PersonalHubReportsPeriod = '30';
 const DEFAULT_LIMIT = 500;
+const EMPTY_SUMMARY_GROWTH: PersonalHubReportSummary['growth'] = {
+  total_transactions: 0,
+  total_volume: 0,
+  active_users: 0,
+  average_success_rate: 0,
+};
 
 export function usePersonalHubReports(filters: Partial<PersonalHubReportsFilters> = {}) {
   const { fetchAdmin, hasToken } = useAdminApi();
@@ -221,8 +227,18 @@ export function usePersonalHubReports(filters: Partial<PersonalHubReportsFilters
     placeholderData: (previous) => previous,
   });
 
+  const summary = query.data?.data.summary
+    ? {
+        ...query.data.data.summary,
+        growth: {
+          ...EMPTY_SUMMARY_GROWTH,
+          ...(query.data.data.summary.growth || {}),
+        },
+      }
+    : null;
+
   return {
-    summary: query.data?.data.summary || null,
+    summary,
     filters: query.data?.data.filters || null,
     transactions: query.data?.data.transactions || [],
     transactionsTotal: query.data?.data.transactions_total || 0,
