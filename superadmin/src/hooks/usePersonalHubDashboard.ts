@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useAdminApi } from '@/hooks/useAdminApi';
@@ -111,6 +111,7 @@ type PersonalHubDashboardResponse = {
 export function usePersonalHubDashboard(period: PersonalHubDashboardPeriod = '30') {
   const { fetchAdmin, hasToken } = useAdminApi();
   const queryClient = useQueryClient();
+  const channelNameRef = useRef(`admin-personal-hub-dashboard-${Math.random().toString(36).slice(2)}`);
 
   useEffect(() => {
     const invalidate = () => {
@@ -118,7 +119,7 @@ export function usePersonalHubDashboard(period: PersonalHubDashboardPeriod = '30
     };
 
     const channel = supabase
-      .channel('admin-personal-hub-dashboard')
+      .channel(channelNameRef.current)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'personal_hub_analytics' }, invalidate)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'airtime_purchases' }, invalidate)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'data_purchases' }, invalidate)

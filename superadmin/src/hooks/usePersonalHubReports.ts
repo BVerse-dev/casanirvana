@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useAdminApi } from '@/hooks/useAdminApi';
@@ -166,6 +166,7 @@ const EMPTY_SUMMARY_GROWTH: PersonalHubReportSummary['growth'] = {
 export function usePersonalHubReports(filters: Partial<PersonalHubReportsFilters> = {}) {
   const { fetchAdmin, hasToken } = useAdminApi();
   const queryClient = useQueryClient();
+  const channelNameRef = useRef(`admin-personal-hub-reports-${Math.random().toString(36).slice(2)}`);
 
   const period = filters.period || DEFAULT_PERIOD;
   const serviceTypes = filters.serviceTypes || [];
@@ -182,7 +183,7 @@ export function usePersonalHubReports(filters: Partial<PersonalHubReportsFilters
     };
 
     const channel = supabase
-      .channel('admin-personal-hub-reports')
+      .channel(channelNameRef.current)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'personal_hub_analytics' }, invalidate)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'airtime_purchases' }, invalidate)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'data_purchases' }, invalidate)
