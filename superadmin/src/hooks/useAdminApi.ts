@@ -4,6 +4,26 @@ import { useSession } from 'next-auth/react';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
+const extractErrorMessage = (payload: any) => {
+  if (typeof payload?.error === 'string' && payload.error.trim().length > 0) {
+    return payload.error.trim();
+  }
+
+  if (typeof payload?.message === 'string' && payload.message.trim().length > 0) {
+    return payload.message.trim();
+  }
+
+  if (typeof payload?.error?.message === 'string' && payload.error.message.trim().length > 0) {
+    return payload.error.message.trim();
+  }
+
+  if (typeof payload?.error?.code === 'string' && payload.error.code.trim().length > 0) {
+    return payload.error.code.trim();
+  }
+
+  return 'Request failed';
+};
+
 export const useAdminApi = () => {
   const { data: session, status } = useSession();
   const token = session?.accessToken as string | undefined;
@@ -46,7 +66,7 @@ export const useAdminApi = () => {
 
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
-      throw new Error(payload.error || payload.message || 'Request failed');
+      throw new Error(extractErrorMessage(payload));
     }
 
     return payload as T;
