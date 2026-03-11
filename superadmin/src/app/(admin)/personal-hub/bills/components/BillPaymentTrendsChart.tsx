@@ -1,13 +1,12 @@
 "use client";
 
 import React, { useMemo, useState } from 'react';
-import { Alert, Card, Dropdown, Spinner } from 'react-bootstrap';
+import { Alert, Card, Form, Spinner } from 'react-bootstrap';
 import { ApexOptions } from 'apexcharts';
 
 import { AdminPersonalHubCatalogProvider, useAdminPersonalHubCatalog } from '@/hooks/useAdminPersonalHubCatalog';
 import { PersonalHubReportsPeriod, usePersonalHubReports } from '@/hooks/usePersonalHubReports';
 import { buildSeriesByBucket, formatCurrencyCompact } from '@/lib/personalHubCharts';
-import IconifyIcon from '@/components/wrappers/IconifyIcon';
 import ReactApexChart from '@/components/wrappers/ReactApexChart';
 
 const PERIOD_OPTIONS: Array<{ value: PersonalHubReportsPeriod; label: string }> = [
@@ -128,29 +127,27 @@ const BillPaymentTrendsChart = () => {
           <small className="text-muted">Volume by ExpressPay bill category</small>
         </div>
         <div className="ms-auto d-flex gap-2">
-          <Dropdown>
-            <Dropdown.Toggle variant="light" className="cursor-pointer">
-              {view === 'volume' ? 'Volume (GH₵)' : 'Count'}
-              <IconifyIcon icon="ri:arrow-down-s-line" className="ms-1" />
-            </Dropdown.Toggle>
-            <Dropdown.Menu>
-              <Dropdown.Item active={view === 'volume'} onClick={() => setView('volume')}>Volume (GH₵)</Dropdown.Item>
-              <Dropdown.Item active={view === 'count'} onClick={() => setView('count')}>Count</Dropdown.Item>
-            </Dropdown.Menu>
-          </Dropdown>
-          <Dropdown align="end">
-            <Dropdown.Toggle variant="light" className="cursor-pointer">
-              {PERIOD_OPTIONS.find((option) => option.value === period)?.label}
-              <IconifyIcon icon="ri:arrow-down-s-line" className="ms-1" />
-            </Dropdown.Toggle>
-            <Dropdown.Menu>
-              {PERIOD_OPTIONS.map((option) => (
-                <Dropdown.Item key={option.value} active={period === option.value} onClick={() => setPeriod(option.value)}>
-                  {option.label}
-                </Dropdown.Item>
-              ))}
-            </Dropdown.Menu>
-          </Dropdown>
+          <Form.Select
+            size="sm"
+            value={view}
+            onChange={(event) => setView(event.target.value as 'volume' | 'count')}
+            style={{ maxWidth: 150 }}
+          >
+            <option value="volume">Volume (GH₵)</option>
+            <option value="count">Count</option>
+          </Form.Select>
+          <Form.Select
+            size="sm"
+            value={period}
+            onChange={(event) => setPeriod(event.target.value as PersonalHubReportsPeriod)}
+            style={{ maxWidth: 180 }}
+          >
+            {PERIOD_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </Form.Select>
         </div>
       </Card.Header>
       <Card.Body>
@@ -177,4 +174,3 @@ const BillPaymentTrendsChart = () => {
 };
 
 export default BillPaymentTrendsChart;
-

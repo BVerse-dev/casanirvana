@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from 'react';
-import { Badge, Button, Dropdown, Form, InputGroup, Spinner, Table } from 'react-bootstrap';
+import { Badge, Button, Form, InputGroup, Spinner, Table } from 'react-bootstrap';
 
 import IconifyIcon from '@/components/wrappers/IconifyIcon';
 import { useAdminPersonalHubCatalogPackages } from '@/hooks/useAdminPersonalHubCatalog';
@@ -69,16 +69,15 @@ const PersonalHubCatalogPackagesTable = () => {
           </Button>
         </InputGroup>
 
-        <Dropdown>
-          <Dropdown.Toggle variant="outline-secondary">
-            {statusFilter === 'all' ? 'All package states' : statusFilter === 'active' ? 'Live in app' : 'Inactive or disabled'}
-          </Dropdown.Toggle>
-          <Dropdown.Menu>
-            <Dropdown.Item onClick={() => setStatusFilter('all')}>All package states</Dropdown.Item>
-            <Dropdown.Item onClick={() => setStatusFilter('active')}>Live in app</Dropdown.Item>
-            <Dropdown.Item onClick={() => setStatusFilter('inactive')}>Inactive or disabled</Dropdown.Item>
-          </Dropdown.Menu>
-        </Dropdown>
+        <Form.Select
+          value={statusFilter}
+          onChange={(event) => setStatusFilter(event.target.value as 'all' | 'active' | 'inactive')}
+          style={{ maxWidth: 190 }}
+        >
+          <option value="all">All package states</option>
+          <option value="active">Live in app</option>
+          <option value="inactive">Inactive or disabled</option>
+        </Form.Select>
       </div>
 
       {loading ? (

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from 'react';
-import { Badge, Button, Dropdown, Form, InputGroup, Spinner, Table } from 'react-bootstrap';
+import { Badge, Button, Form, InputGroup, Spinner, Table } from 'react-bootstrap';
 
 import IconifyIcon from '@/components/wrappers/IconifyIcon';
 import { AdminPersonalHubCatalogProvider, useAdminPersonalHubCatalog } from '@/hooks/useAdminPersonalHubCatalog';
@@ -98,16 +98,15 @@ const PersonalHubCatalogProvidersTable = ({
           </Button>
         </InputGroup>
 
-        <Dropdown>
-          <Dropdown.Toggle variant="outline-secondary">
-            {statusFilter === 'all' ? 'All app statuses' : statusFilter === 'enabled' ? 'Enabled in app' : 'Disabled in app'}
-          </Dropdown.Toggle>
-          <Dropdown.Menu>
-            <Dropdown.Item onClick={() => setStatusFilter('all')}>All app statuses</Dropdown.Item>
-            <Dropdown.Item onClick={() => setStatusFilter('enabled')}>Enabled in app</Dropdown.Item>
-            <Dropdown.Item onClick={() => setStatusFilter('disabled')}>Disabled in app</Dropdown.Item>
-          </Dropdown.Menu>
-        </Dropdown>
+        <Form.Select
+          value={statusFilter}
+          onChange={(event) => setStatusFilter(event.target.value as 'all' | 'enabled' | 'disabled')}
+          style={{ maxWidth: 190 }}
+        >
+          <option value="all">All app statuses</option>
+          <option value="enabled">Enabled in app</option>
+          <option value="disabled">Disabled in app</option>
+        </Form.Select>
       </div>
 
       {loading ? (
@@ -169,20 +168,18 @@ const PersonalHubCatalogProvidersTable = ({
                   </td>
                   <td className="text-muted small">{formatSyncTime(provider.last_synced_at)}</td>
                   <td className="text-end">
-                    <Dropdown align="end">
-                      <Dropdown.Toggle variant="link" className="card-drop arrow-none cursor-pointer p-0 shadow-none">
-                        <IconifyIcon icon="ri:more-2-fill" className="font-18" />
-                      </Dropdown.Toggle>
-                      <Dropdown.Menu>
-                        <Dropdown.Item onClick={() => void toggleProvider(provider)} disabled={isUpdatingProvider}>
-                          <IconifyIcon
-                            icon={provider.is_enabled_for_app ? 'ri:close-circle-line' : 'ri:check-line'}
-                            className="me-2"
-                          />
-                          {provider.is_enabled_for_app ? 'Disable in App' : 'Enable in App'}
-                        </Dropdown.Item>
-                      </Dropdown.Menu>
-                    </Dropdown>
+                    <Button
+                      variant={provider.is_enabled_for_app ? 'outline-warning' : 'outline-success'}
+                      size="sm"
+                      onClick={() => void toggleProvider(provider)}
+                      disabled={isUpdatingProvider}
+                    >
+                      <IconifyIcon
+                        icon={provider.is_enabled_for_app ? 'ri:close-circle-line' : 'ri:check-line'}
+                        className="me-1"
+                      />
+                      {provider.is_enabled_for_app ? 'Disable' : 'Enable'}
+                    </Button>
                   </td>
                 </tr>
               ))}

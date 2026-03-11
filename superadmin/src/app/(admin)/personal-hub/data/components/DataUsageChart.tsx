@@ -1,12 +1,11 @@
 "use client";
 
 import React, { useMemo, useState } from 'react';
-import { Alert, Badge, Card, CardBody, CardHeader, CardTitle, Dropdown, Spinner, Table } from 'react-bootstrap';
+import { Alert, Badge, Card, CardBody, CardHeader, CardTitle, Form, Spinner, Table } from 'react-bootstrap';
 import { ApexOptions } from 'apexcharts';
 
 import { PersonalHubReportsPeriod, usePersonalHubReports } from '@/hooks/usePersonalHubReports';
 import { buildSeriesByBucket } from '@/lib/personalHubCharts';
-import IconifyIcon from '@/components/wrappers/IconifyIcon';
 import ReactApexChart from '@/components/wrappers/ReactApexChart';
 
 const PERIOD_OPTIONS: Array<{ value: PersonalHubReportsPeriod; label: string }> = [
@@ -116,19 +115,19 @@ const DataUsageChart = () => {
           <CardTitle className="mb-0">Provider Usage Trend</CardTitle>
           <small className="text-muted">Data transactions by provider</small>
         </div>
-        <Dropdown align="end" className="ms-auto">
-          <Dropdown.Toggle variant="light" className="cursor-pointer">
-            {PERIOD_OPTIONS.find((option) => option.value === period)?.label}
-            <IconifyIcon icon="ri:arrow-down-s-line" className="ms-1" />
-          </Dropdown.Toggle>
-          <Dropdown.Menu>
-            {PERIOD_OPTIONS.map((option) => (
-              <Dropdown.Item key={option.value} active={period === option.value} onClick={() => setPeriod(option.value)}>
-                {option.label}
-              </Dropdown.Item>
-            ))}
-          </Dropdown.Menu>
-        </Dropdown>
+        <Form.Select
+          size="sm"
+          value={period}
+          onChange={(event) => setPeriod(event.target.value as PersonalHubReportsPeriod)}
+          className="ms-auto"
+          style={{ maxWidth: 180 }}
+        >
+          {PERIOD_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </Form.Select>
       </CardHeader>
       <CardBody>
         {loading && transactions.length === 0 ? (
@@ -183,4 +182,3 @@ const DataUsageChart = () => {
 };
 
 export default DataUsageChart;
-

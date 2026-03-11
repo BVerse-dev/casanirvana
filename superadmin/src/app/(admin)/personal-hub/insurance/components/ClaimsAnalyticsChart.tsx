@@ -1,12 +1,11 @@
 "use client";
 
 import React, { useMemo, useState } from 'react';
-import { Alert, Card, Dropdown, Spinner } from 'react-bootstrap';
+import { Alert, Card, Form, Spinner } from 'react-bootstrap';
 import { ApexOptions } from 'apexcharts';
 
 import { PersonalHubReportsPeriod, usePersonalHubReports } from '@/hooks/usePersonalHubReports';
 import { buildPeriodBuckets, getBucketKey } from '@/lib/personalHubCharts';
-import IconifyIcon from '@/components/wrappers/IconifyIcon';
 import ReactApexChart from '@/components/wrappers/ReactApexChart';
 
 const PERIOD_OPTIONS: Array<{ value: PersonalHubReportsPeriod; label: string }> = [
@@ -136,29 +135,27 @@ const ClaimsAnalyticsChart = () => {
           <small className="text-muted">Insurance payment outcomes over time</small>
         </div>
         <div className="ms-auto d-flex gap-2">
-          <Dropdown>
-            <Dropdown.Toggle variant="light" className="cursor-pointer">
-              {view === 'status' ? 'Status Mix' : 'Success Rate'}
-              <IconifyIcon icon="ri:arrow-down-s-line" className="ms-1" />
-            </Dropdown.Toggle>
-            <Dropdown.Menu>
-              <Dropdown.Item active={view === 'status'} onClick={() => setView('status')}>Status Mix</Dropdown.Item>
-              <Dropdown.Item active={view === 'successRate'} onClick={() => setView('successRate')}>Success Rate</Dropdown.Item>
-            </Dropdown.Menu>
-          </Dropdown>
-          <Dropdown align="end">
-            <Dropdown.Toggle variant="light" className="cursor-pointer">
-              {PERIOD_OPTIONS.find((option) => option.value === period)?.label}
-              <IconifyIcon icon="ri:arrow-down-s-line" className="ms-1" />
-            </Dropdown.Toggle>
-            <Dropdown.Menu>
-              {PERIOD_OPTIONS.map((option) => (
-                <Dropdown.Item key={option.value} active={period === option.value} onClick={() => setPeriod(option.value)}>
-                  {option.label}
-                </Dropdown.Item>
-              ))}
-            </Dropdown.Menu>
-          </Dropdown>
+          <Form.Select
+            size="sm"
+            value={view}
+            onChange={(event) => setView(event.target.value as 'status' | 'successRate')}
+            style={{ maxWidth: 150 }}
+          >
+            <option value="status">Status Mix</option>
+            <option value="successRate">Success Rate</option>
+          </Form.Select>
+          <Form.Select
+            size="sm"
+            value={period}
+            onChange={(event) => setPeriod(event.target.value as PersonalHubReportsPeriod)}
+            style={{ maxWidth: 180 }}
+          >
+            {PERIOD_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </Form.Select>
         </div>
       </Card.Header>
       <Card.Body>
@@ -191,4 +188,3 @@ const ClaimsAnalyticsChart = () => {
 };
 
 export default ClaimsAnalyticsChart;
-

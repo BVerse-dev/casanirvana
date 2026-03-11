@@ -1,10 +1,9 @@
 "use client";
 
 import React from 'react';
-import { Card, CardBody, CardHeader, CardTitle, Dropdown } from 'react-bootstrap';
+import { Card, CardBody, CardHeader, CardTitle, Form } from 'react-bootstrap';
 import { ApexOptions } from 'apexcharts';
 
-import IconifyIcon from '@/components/wrappers/IconifyIcon';
 import ReactApexChart from '@/components/wrappers/ReactApexChart';
 import type { PersonalHubDashboardPeriod, PersonalHubTrendPoint } from '@/hooks/usePersonalHubDashboard';
 
@@ -116,19 +115,18 @@ const TransactionActivityChart: React.FC<TransactionActivityChartProps> = ({
     <Card className="mb-3">
       <CardHeader className="d-flex align-items-center justify-content-between">
         <CardTitle className="mb-0">Transaction Activity</CardTitle>
-        <Dropdown align="end">
-          <Dropdown.Toggle variant="light" className="cursor-pointer">
-            {PERIOD_LABELS[period]}
-            <IconifyIcon icon="ri:arrow-down-s-line" className="ms-1" />
-          </Dropdown.Toggle>
-          <Dropdown.Menu>
-            {Object.entries(PERIOD_LABELS).map(([value, label]) => (
-              <Dropdown.Item key={value} onClick={() => onPeriodChange(value as PersonalHubDashboardPeriod)}>
-                {label}
-              </Dropdown.Item>
-            ))}
-          </Dropdown.Menu>
-        </Dropdown>
+        <Form.Select
+          size="sm"
+          value={period}
+          onChange={(event) => onPeriodChange(event.target.value as PersonalHubDashboardPeriod)}
+          style={{ maxWidth: 180 }}
+        >
+          {Object.entries(PERIOD_LABELS).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </Form.Select>
       </CardHeader>
       <CardBody>
         {hasData ? (
