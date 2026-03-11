@@ -68,6 +68,7 @@ const adminEmailPriority = z.enum(['low', 'normal', 'high', 'urgent']);
 const adminEmailAction = z.enum(['draft', 'queue']);
 const adminEmailStatus = z.enum(['draft', 'queued', 'processing', 'sent', 'delivered', 'failed']);
 const clientObservabilityLevel = z.enum(['info', 'warn', 'error']);
+const ownershipType = z.enum(['owned', 'rented']);
 const paymentChargeTemplateTargetSchema = z.object({
   target_type: paymentChargeTargetType,
   target_value: z.union([z.string(), z.array(z.string()), z.record(z.any())]).optional(),
@@ -204,10 +205,124 @@ export const schemas = {
     }
   }),
 
-  adminCommunityCreate: nonEmptyObject,
-  adminCommunityUpdate: nonEmptyObject,
-  adminUnitCreate: nonEmptyObject,
-  adminUnitUpdate: nonEmptyObject,
+  adminCommunityCreate: z
+    .object({
+      name: nonEmptyString,
+      society_type: optionalString,
+      community_type: optionalString,
+      address: optionalString,
+      city: optionalString,
+      state: optionalString,
+      country: optionalString,
+      pincode: optionalString,
+      phone: optionalString,
+      email: email.optional(),
+      website: z.string().url().optional(),
+      established_year: z.union([z.coerce.number().int(), z.string()]).optional(),
+      description: z.string().optional(),
+      total_units: z.coerce.number().int().nonnegative().optional(),
+      total_floors: z.coerce.number().int().nonnegative().optional(),
+      total_blocks: z.coerce.number().int().nonnegative().optional(),
+      parking_slots: z.coerce.number().int().nonnegative().optional(),
+      status: optionalString,
+      maintenance_charge: z.coerce.number().nonnegative().optional(),
+      security_deposit: z.coerce.number().nonnegative().optional(),
+      management_name: optionalString,
+      management_email: email.optional(),
+      management_phone: optionalString,
+      management_role: optionalString,
+      agency_id: z.string().uuid().optional().nullable(),
+    })
+    .passthrough(),
+  adminCommunityUpdate: atLeastOne(
+    z
+      .object({
+        name: optionalString,
+        society_type: optionalString,
+        community_type: optionalString,
+        address: optionalString,
+        city: optionalString,
+        state: optionalString,
+        country: optionalString,
+        pincode: optionalString,
+        phone: optionalString,
+        email: email.optional(),
+        website: z.string().url().optional(),
+        established_year: z.union([z.coerce.number().int(), z.string()]).optional(),
+        description: z.string().optional(),
+        total_units: z.coerce.number().int().nonnegative().optional(),
+        total_floors: z.coerce.number().int().nonnegative().optional(),
+        total_blocks: z.coerce.number().int().nonnegative().optional(),
+        parking_slots: z.coerce.number().int().nonnegative().optional(),
+        status: optionalString,
+        maintenance_charge: z.coerce.number().nonnegative().optional(),
+        security_deposit: z.coerce.number().nonnegative().optional(),
+        management_name: optionalString,
+        management_email: email.optional(),
+        management_phone: optionalString,
+        management_role: optionalString,
+        agency_id: z.string().uuid().optional().nullable(),
+      })
+      .passthrough()
+  ),
+  adminUnitCreate: z
+    .object({
+      community_id: z.string().uuid().optional(),
+      society_id: z.string().uuid().optional(),
+      block: nonEmptyString,
+      number: nonEmptyString,
+      floor: z.coerce.number().int(),
+      ownership_type: ownershipType,
+      floor_area: z.coerce.number().nonnegative().optional(),
+      bedrooms: z.coerce.number().int().nonnegative().optional(),
+      bathrooms: z.coerce.number().int().nonnegative().optional(),
+      balconies: z.coerce.number().int().nonnegative().optional(),
+      parking_slots: z.coerce.number().int().nonnegative().optional(),
+      owner_id: z.string().uuid().optional().nullable(),
+      owner_name: optionalString,
+      owner_email: email.optional(),
+      owner_phone: optionalString,
+      tenant_id: z.string().uuid().optional().nullable(),
+      tenant_name: optionalString,
+      tenant_email: email.optional(),
+      tenant_phone: optionalString,
+      occupancy_start_date: optionalString,
+      occupancy_end_date: optionalString,
+      status: optionalString,
+    })
+    .passthrough()
+    .refine((value) => Boolean(value.community_id || value.society_id), {
+      message: 'community_id or society_id is required',
+      path: ['community_id'],
+    }),
+  adminUnitUpdate: atLeastOne(
+    z
+      .object({
+        community_id: z.string().uuid().optional(),
+        society_id: z.string().uuid().optional(),
+        block: optionalString,
+        number: optionalString,
+        floor: z.coerce.number().int().optional(),
+        ownership_type: ownershipType.optional(),
+        floor_area: z.coerce.number().nonnegative().optional(),
+        bedrooms: z.coerce.number().int().nonnegative().optional(),
+        bathrooms: z.coerce.number().int().nonnegative().optional(),
+        balconies: z.coerce.number().int().nonnegative().optional(),
+        parking_slots: z.coerce.number().int().nonnegative().optional(),
+        owner_id: z.string().uuid().optional().nullable(),
+        owner_name: optionalString,
+        owner_email: email.optional(),
+        owner_phone: optionalString,
+        tenant_id: z.string().uuid().optional().nullable(),
+        tenant_name: optionalString,
+        tenant_email: email.optional(),
+        tenant_phone: optionalString,
+        occupancy_start_date: optionalString,
+        occupancy_end_date: optionalString,
+        status: optionalString,
+      })
+      .passthrough()
+  ),
   adminProfileCreate: nonEmptyObject.superRefine((value, ctx) => {
     if ('role' in value && value.role !== undefined) {
       const result = allowedRoles.safeParse(value.role);
