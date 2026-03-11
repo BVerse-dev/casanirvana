@@ -1,8 +1,12 @@
 import { supabase } from '../lib/supabase';
 import type { Request, Response, NextFunction } from 'express';
+import { createHttpError } from '../lib/httpError';
 
 // Helper function to extract error message
-const getErrorMessage = (error: any): string => {
+const getErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) {
+    return error.message;
+  }
   return error?.message || (typeof error === 'string' ? error : 'An unknown error occurred');
 };
 
@@ -10,11 +14,7 @@ const getErrorMessage = (error: any): string => {
 export const register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { email, password, firstName, lastName } = req.body;
-    if (!email || !password || !firstName || !lastName) {
-      res.status(400).json({ error: 'Missing required fields' });
-      return;
-    }
-    
+
     // Create user in Supabase Auth
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -53,11 +53,7 @@ export const register = async (req: Request, res: Response, next: NextFunction):
 export const login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { email, password } = req.body;
-    if (!email || !password) {
-      res.status(400).json({ error: 'Missing email or password' });
-      return;
-    }
-    
+
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -77,8 +73,7 @@ export const logout = async (req: Request, res: Response, next: NextFunction): P
   try {
     const token = req.headers['authorization']?.split(' ')[1];
     if (!token) {
-      res.status(401).json({ error: 'No authorization token provided' });
-      return;
+      return next(createHttpError(401, 'AUTH_TOKEN_MISSING', 'No authorization token provided'));
     }
 
     const { error } = await supabase.auth.signOut();
@@ -94,38 +89,16 @@ export const logout = async (req: Request, res: Response, next: NextFunction): P
 // GET /me
 export const me = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const token = req.headers['authorization']?.split(' ')[1];
-    if (!token) {
-      res.status(401).json({ error: 'No authorization token provided' });
-      return;
+    if (!req.user) {
+      return next(createHttpError(401, 'AUTH_INVALID_TOKEN', 'Invalid token'));
     }
 
-    const { data: { user }, error } = await supabase.auth.getUser(token);
-    if (error) {
-      throw new Error(getErrorMessage(error));
-    }
-
-    // Get user profile from profiles table
-    if (user) {
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      if (profileError) {
-        console.warn('Could not fetch user profile:', profileError);
-      }
-
-      res.status(200).json({ 
-        user: {
-          ...user,
-          profile
-        }
-      });
-    } else {
-      res.status(401).json({ error: 'Invalid token' });
-    }
+    res.status(200).json({
+      user: {
+        ...req.user,
+        profile: req.userProfile || null,
+      },
+    });
   } catch (err) {
     next(err);
   }

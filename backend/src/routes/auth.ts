@@ -11,15 +11,6 @@ router.post('/register', validateRequest({ body: schemas.authRegister }), AuthCo
 // Login
 router.post('/login', validateRequest({ body: schemas.authLogin }), AuthController.login);
 // Me (profile)
-router.get('/me', async (req, res, next) => {
-  try {
-    // First run authentication middleware
-    await requireAuth(req, res, next);
-    // Then call the controller
-    await AuthController.me(req, res);
-  } catch (error) {
-    next(error);
-  }
-});
+router.get('/me', requireAuth, AuthController.me);
 
 export default router;
