@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 
+import { createHttpError } from '../lib/httpError';
 import { supabase } from '../lib/supabase';
 import {
   canAccessCommunity,
@@ -21,8 +22,8 @@ const parseStringQueryParam = (req: Request, key: string): string | null => {
   return trimmed.length > 0 ? trimmed : null;
 };
 
-const toScopeError = (res: Response, message: string) =>
-  res.status(403).json({ error: message });
+const toScopeError = (message: string) =>
+  createHttpError(403, 'GUARD_SCOPE_VIOLATION', message);
 
 type GuardIdentity = {
   id: string;
@@ -237,13 +238,13 @@ export async function createGuardProfile(req: Request, res: Response, next: Next
     const status = String(payload.status || 'active').trim().toLowerCase();
 
     if (!firstName || !lastName || !email) {
-      return res.status(400).json({ error: 'first_name, last_name, and email are required.' });
+      return next(createHttpError(400, 'GUARD_REQUIRED_FIELDS', 'first_name, last_name, and email are required.'));
     }
     if (!communityId) {
-      return res.status(400).json({ error: 'community_id is required for guard provisioning.' });
+      return next(createHttpError(400, 'GUARD_COMMUNITY_REQUIRED', 'community_id is required for guard provisioning.'));
     }
     if (!canAccessCommunity(scope, communityId)) {
-      return toScopeError(res, 'Access denied for the selected community.');
+      return next(toScopeError('Access denied for the selected community.'));
     }
 
     const { data: existingUser, error: existingUserError } = await supabase
@@ -253,14 +254,19 @@ export async function createGuardProfile(req: Request, res: Response, next: Next
       .maybeSingle();
 
     if (existingUserError) {
-      return res.status(500).json({ error: 'Failed to validate existing guard users', details: existingUserError.message });
+      return next(
+        createHttpError(500, 'GUARD_EXISTING_USER_CHECK_FAILED', 'Failed to validate existing guard users', existingUserError)
+      );
     }
 
     if (existingUser?.id) {
-      return res.status(409).json({
-        error:
-          'A guard account already exists for this email. Use Manage Guards to assign or update the existing record instead.',
-      });
+      return next(
+        createHttpError(
+          409,
+          'GUARD_ALREADY_EXISTS',
+          'A guard account already exists for this email. Use Manage Guards to assign or update the existing record instead.'
+        )
+      );
     }
 
     const { data: communityRow, error: communityError } = await supabase
@@ -270,10 +276,10 @@ export async function createGuardProfile(req: Request, res: Response, next: Next
       .maybeSingle();
 
     if (communityError) {
-      return res.status(500).json({ error: 'Failed to load selected community', details: communityError.message });
+      return next(createHttpError(500, 'GUARD_COMMUNITY_LOOKUP_FAILED', 'Failed to load selected community', communityError));
     }
     if (!communityRow) {
-      return res.status(404).json({ error: 'Selected community not found.' });
+      return next(createHttpError(404, 'GUARD_COMMUNITY_NOT_FOUND', 'Selected community not found.'));
     }
 
     const redirectTo =
@@ -297,10 +303,14 @@ export async function createGuardProfile(req: Request, res: Response, next: Next
         inviteError &&
         /already exists|already registered|email address has already been registered/i.test(inviteMessage);
 
-      return res.status(duplicateInvite ? 409 : 500).json({
-        error: 'Failed to send guard invite',
-        details: inviteMessage,
-      });
+      return next(
+        createHttpError(
+          duplicateInvite ? 409 : 500,
+          duplicateInvite ? 'GUARD_INVITE_DUPLICATE' : 'GUARD_INVITE_FAILED',
+          'Failed to send guard invite',
+          inviteMessage
+        )
+      );
     }
 
     invitedAuthUserId = inviteData.user.id;
@@ -492,11 +502,11 @@ export async function listGuardProfiles(req: Request, res: Response, next: NextF
     const search = parseStringQueryParam(req, 'search');
 
     if (requestedCommunityId && !canAccessCommunity(scope, requestedCommunityId)) {
-      return toScopeError(res, 'Access denied for the requested community.');
+      return next(toScopeError('Access denied for the requested community.'));
     }
     if (requestedGuardId && !scope.isGlobal) {
       const guardScope = await ensureGuardScope(scope, requestedGuardId);
-      if (!guardScope.ok) return toScopeError(res, guardScope.reason);
+      if (!guardScope.ok) return next(toScopeError(guardScope.reason));
     }
 
     let query = supabase
@@ -530,7 +540,7 @@ export async function listGuardProfiles(req: Request, res: Response, next: NextF
 
     const { data, error } = await query;
     if (error) {
-      return res.status(500).json({ error: 'Failed to fetch guard profiles', details: error.message });
+      return next(createHttpError(500, 'GUARD_PROFILES_LIST_FAILED', 'Failed to fetch guard profiles', error));
     }
 
     const rows = data || [];
@@ -552,7 +562,14 @@ export async function listGuardProfiles(req: Request, res: Response, next: NextF
       .order('created_at', { ascending: false });
 
     if (assignmentError) {
-      return res.status(500).json({ error: 'Failed to fetch guard assignment summary', details: assignmentError.message });
+      return next(
+        createHttpError(
+          500,
+          'GUARD_ASSIGNMENT_SUMMARY_FAILED',
+          'Failed to fetch guard assignment summary',
+          assignmentError
+        )
+      );
     }
 
     const activeAssignmentByGuard = new Map<string, GuardAssignmentScope>();
@@ -577,7 +594,7 @@ export async function listGuardProfiles(req: Request, res: Response, next: NextF
         : { data: [], error: null };
 
     if (communityError) {
-      return res.status(500).json({ error: 'Failed to fetch guard communities', details: communityError.message });
+      return next(createHttpError(500, 'GUARD_COMMUNITIES_LOOKUP_FAILED', 'Failed to fetch guard communities', communityError));
     }
 
     const communityMap = new Map((communityRows || []).map((community) => [community.id, community.name]));
@@ -630,7 +647,7 @@ export async function deleteGuardProfile(req: Request, res: Response, next: Next
   try {
     const { id } = req.params;
     if (!isUuid(id)) {
-      return res.status(400).json({ error: 'Invalid guard id' });
+      return next(createHttpError(400, 'GUARD_ID_INVALID', 'Invalid guard id'));
     }
 
     const scope = await resolveAdminScope(req);
@@ -641,18 +658,18 @@ export async function deleteGuardProfile(req: Request, res: Response, next: Next
       .maybeSingle();
 
     if (existingError) {
-      return res.status(500).json({ error: 'Failed to load guard profile', details: existingError.message });
+      return next(createHttpError(500, 'GUARD_PROFILE_LOOKUP_FAILED', 'Failed to load guard profile', existingError));
     }
     if (!existing) {
-      return res.status(404).json({ error: 'Guard profile not found' });
+      return next(createHttpError(404, 'GUARD_PROFILE_NOT_FOUND', 'Guard profile not found'));
     }
     if (!isUuid(existing.community_id) || !canAccessCommunity(scope, existing.community_id)) {
-      return toScopeError(res, 'Access denied for the selected guard.');
+      return next(toScopeError('Access denied for the selected guard.'));
     }
 
     const { error } = await supabase.from('guards').delete().eq('id', id);
     if (error) {
-      return res.status(500).json({ error: 'Failed to delete guard profile', details: error.message });
+      return next(createHttpError(500, 'GUARD_PROFILE_DELETE_FAILED', 'Failed to delete guard profile', error));
     }
 
     return res.status(204).send();
@@ -668,12 +685,12 @@ export async function listGuardSchedules(req: Request, res: Response, next: Next
     const requestedGuardId = parseUuidQueryParam(req, 'guard_id');
 
     if (requestedCommunityId && !canAccessCommunity(scope, requestedCommunityId)) {
-      return toScopeError(res, 'Access denied for the requested community.');
+      return next(toScopeError('Access denied for the requested community.'));
     }
 
     if (requestedGuardId && !scope.isGlobal) {
       const guardScope = await ensureGuardScope(scope, requestedGuardId);
-      if (!guardScope.ok) return toScopeError(res, guardScope.reason);
+      if (!guardScope.ok) return next(toScopeError(guardScope.reason));
     }
 
     let query = supabase
@@ -697,7 +714,7 @@ export async function listGuardSchedules(req: Request, res: Response, next: Next
 
     const { data, error } = await query;
     if (error) {
-      return res.status(500).json({ error: 'Failed to fetch guard schedules', details: error.message });
+      return next(createHttpError(500, 'GUARD_SCHEDULES_LIST_FAILED', 'Failed to fetch guard schedules', error));
     }
 
     return res.json({ data: data || [] });
@@ -713,17 +730,17 @@ export async function createGuardSchedule(req: Request, res: Response, next: Nex
 
     const guardId = isUuid(payload.guard_id) ? payload.guard_id : null;
     if (!guardId) {
-      return res.status(400).json({ error: 'guard_id is required' });
+      return next(createHttpError(400, 'GUARD_ID_REQUIRED', 'guard_id is required'));
     }
 
     const derivedCommunityId =
       isUuid(payload.community_id) ? payload.community_id : await resolveGuardCommunityId(guardId);
 
     if (!derivedCommunityId) {
-      return res.status(400).json({ error: 'community_id is required for schedule scope.' });
+      return next(createHttpError(400, 'GUARD_SCHEDULE_COMMUNITY_REQUIRED', 'community_id is required for schedule scope.'));
     }
     if (!canAccessCommunity(scope, derivedCommunityId)) {
-      return toScopeError(res, 'Access denied for the selected community.');
+      return next(toScopeError('Access denied for the selected community.'));
     }
 
     payload.community_id = derivedCommunityId;
@@ -735,7 +752,7 @@ export async function createGuardSchedule(req: Request, res: Response, next: Nex
       .single();
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to create guard schedule', details: error.message });
+      return next(createHttpError(500, 'GUARD_SCHEDULE_CREATE_FAILED', 'Failed to create guard schedule', error));
     }
 
     return res.status(201).json({ data });
@@ -748,7 +765,7 @@ export async function updateGuardSchedule(req: Request, res: Response, next: Nex
   try {
     const { id } = req.params;
     if (!isUuid(id)) {
-      return res.status(400).json({ error: 'Invalid schedule id' });
+      return next(createHttpError(400, 'GUARD_SCHEDULE_ID_INVALID', 'Invalid schedule id'));
     }
 
     const scope = await resolveAdminScope(req);
@@ -761,10 +778,10 @@ export async function updateGuardSchedule(req: Request, res: Response, next: Nex
       .maybeSingle();
 
     if (existingError) {
-      return res.status(500).json({ error: 'Failed to load guard schedule', details: existingError.message });
+      return next(createHttpError(500, 'GUARD_SCHEDULE_LOOKUP_FAILED', 'Failed to load guard schedule', existingError));
     }
     if (!existing) {
-      return res.status(404).json({ error: 'Guard schedule not found' });
+      return next(createHttpError(404, 'GUARD_SCHEDULE_NOT_FOUND', 'Guard schedule not found'));
     }
 
     const scopeCommunityId =
@@ -772,15 +789,15 @@ export async function updateGuardSchedule(req: Request, res: Response, next: Nex
       (isUuid(existing.guard_id) ? await resolveGuardCommunityId(existing.guard_id) : null);
 
     if (!scopeCommunityId || !canAccessCommunity(scope, scopeCommunityId)) {
-      return toScopeError(res, 'Access denied for the selected schedule.');
+      return next(toScopeError('Access denied for the selected schedule.'));
     }
 
     if (isUuid(payload.guard_id) && !scope.isGlobal) {
       const guardScope = await ensureGuardScope(scope, payload.guard_id);
-      if (!guardScope.ok) return toScopeError(res, guardScope.reason);
+      if (!guardScope.ok) return next(toScopeError(guardScope.reason));
     }
     if (isUuid(payload.community_id) && !canAccessCommunity(scope, payload.community_id)) {
-      return toScopeError(res, 'Access denied for the selected community.');
+      return next(toScopeError('Access denied for the selected community.'));
     }
 
     payload.updated_at = new Date().toISOString();
@@ -793,7 +810,7 @@ export async function updateGuardSchedule(req: Request, res: Response, next: Nex
       .single();
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to update guard schedule', details: error.message });
+      return next(createHttpError(500, 'GUARD_SCHEDULE_UPDATE_FAILED', 'Failed to update guard schedule', error));
     }
 
     return res.json({ data });
@@ -806,7 +823,7 @@ export async function deleteGuardSchedule(req: Request, res: Response, next: Nex
   try {
     const { id } = req.params;
     if (!isUuid(id)) {
-      return res.status(400).json({ error: 'Invalid schedule id' });
+      return next(createHttpError(400, 'GUARD_SCHEDULE_ID_INVALID', 'Invalid schedule id'));
     }
 
     const scope = await resolveAdminScope(req);
@@ -817,10 +834,10 @@ export async function deleteGuardSchedule(req: Request, res: Response, next: Nex
       .maybeSingle();
 
     if (existingError) {
-      return res.status(500).json({ error: 'Failed to load guard schedule', details: existingError.message });
+      return next(createHttpError(500, 'GUARD_SCHEDULE_LOOKUP_FAILED', 'Failed to load guard schedule', existingError));
     }
     if (!existing) {
-      return res.status(404).json({ error: 'Guard schedule not found' });
+      return next(createHttpError(404, 'GUARD_SCHEDULE_NOT_FOUND', 'Guard schedule not found'));
     }
 
     const scopeCommunityId =
@@ -828,12 +845,12 @@ export async function deleteGuardSchedule(req: Request, res: Response, next: Nex
       (isUuid(existing.guard_id) ? await resolveGuardCommunityId(existing.guard_id) : null);
 
     if (!scopeCommunityId || !canAccessCommunity(scope, scopeCommunityId)) {
-      return toScopeError(res, 'Access denied for the selected schedule.');
+      return next(toScopeError('Access denied for the selected schedule.'));
     }
 
     const { error } = await supabase.from('guard_schedules').delete().eq('id', id);
     if (error) {
-      return res.status(500).json({ error: 'Failed to delete guard schedule', details: error.message });
+      return next(createHttpError(500, 'GUARD_SCHEDULE_DELETE_FAILED', 'Failed to delete guard schedule', error));
     }
 
     return res.status(204).send();
@@ -849,12 +866,12 @@ export async function listGuardAssignments(req: Request, res: Response, next: Ne
     const requestedGuardId = parseUuidQueryParam(req, 'guard_id');
 
     if (requestedCommunityId && !canAccessCommunity(scope, requestedCommunityId)) {
-      return toScopeError(res, 'Access denied for the requested community.');
+      return next(toScopeError('Access denied for the requested community.'));
     }
 
     if (requestedGuardId && !scope.isGlobal) {
       const guardScope = await ensureGuardScope(scope, requestedGuardId);
-      if (!guardScope.ok) return toScopeError(res, guardScope.reason);
+      if (!guardScope.ok) return next(toScopeError(guardScope.reason));
     }
 
     let query = supabase
@@ -878,7 +895,7 @@ export async function listGuardAssignments(req: Request, res: Response, next: Ne
 
     const { data, error } = await query;
     if (error) {
-      return res.status(500).json({ error: 'Failed to fetch guard assignments', details: error.message });
+      return next(createHttpError(500, 'GUARD_ASSIGNMENTS_LIST_FAILED', 'Failed to fetch guard assignments', error));
     }
 
     return res.json({ data: data || [] });
@@ -893,14 +910,14 @@ export async function createGuardAssignment(req: Request, res: Response, next: N
     const payload = { ...(req.body || {}) };
 
     if (!isUuid(payload.community_id)) {
-      return res.status(400).json({ error: 'community_id is required' });
+      return next(createHttpError(400, 'GUARD_ASSIGNMENT_COMMUNITY_REQUIRED', 'community_id is required'));
     }
     if (!isUuid(payload.guard_id)) {
-      return res.status(400).json({ error: 'guard_id is required' });
+      return next(createHttpError(400, 'GUARD_ID_REQUIRED', 'guard_id is required'));
     }
     const assignmentScope = await canAssignGuardToCommunity(scope, payload.guard_id, payload.community_id);
     if (!assignmentScope.ok) {
-      return toScopeError(res, assignmentScope.reason);
+      return next(toScopeError(assignmentScope.reason));
     }
 
     const { data, error } = await supabase
@@ -910,7 +927,7 @@ export async function createGuardAssignment(req: Request, res: Response, next: N
       .single();
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to create guard assignment', details: error.message });
+      return next(createHttpError(500, 'GUARD_ASSIGNMENT_CREATE_FAILED', 'Failed to create guard assignment', error));
     }
 
     await syncGuardAssignmentScope(payload.guard_id);
@@ -925,7 +942,7 @@ export async function updateGuardAssignment(req: Request, res: Response, next: N
   try {
     const { id } = req.params;
     if (!isUuid(id)) {
-      return res.status(400).json({ error: 'Invalid assignment id' });
+      return next(createHttpError(400, 'GUARD_ASSIGNMENT_ID_INVALID', 'Invalid assignment id'));
     }
 
     const scope = await resolveAdminScope(req);
@@ -938,13 +955,13 @@ export async function updateGuardAssignment(req: Request, res: Response, next: N
       .maybeSingle();
 
     if (existingError) {
-      return res.status(500).json({ error: 'Failed to load guard assignment', details: existingError.message });
+      return next(createHttpError(500, 'GUARD_ASSIGNMENT_LOOKUP_FAILED', 'Failed to load guard assignment', existingError));
     }
     if (!existing) {
-      return res.status(404).json({ error: 'Guard assignment not found' });
+      return next(createHttpError(404, 'GUARD_ASSIGNMENT_NOT_FOUND', 'Guard assignment not found'));
     }
     if (!canAccessCommunity(scope, existing.community_id)) {
-      return toScopeError(res, 'Access denied for the selected assignment.');
+      return next(toScopeError('Access denied for the selected assignment.'));
     }
 
     const nextGuardId = isUuid(payload.guard_id) ? payload.guard_id : existing.guard_id;
@@ -952,7 +969,7 @@ export async function updateGuardAssignment(req: Request, res: Response, next: N
 
     const assignmentScope = await canAssignGuardToCommunity(scope, nextGuardId, nextCommunityId);
     if (!assignmentScope.ok) {
-      return toScopeError(res, assignmentScope.reason);
+      return next(toScopeError(assignmentScope.reason));
     }
 
     payload.updated_at = new Date().toISOString();
@@ -965,7 +982,7 @@ export async function updateGuardAssignment(req: Request, res: Response, next: N
       .single();
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to update guard assignment', details: error.message });
+      return next(createHttpError(500, 'GUARD_ASSIGNMENT_UPDATE_FAILED', 'Failed to update guard assignment', error));
     }
 
     if (isUuid(existing.guard_id)) {
@@ -985,7 +1002,7 @@ export async function deleteGuardAssignment(req: Request, res: Response, next: N
   try {
     const { id } = req.params;
     if (!isUuid(id)) {
-      return res.status(400).json({ error: 'Invalid assignment id' });
+      return next(createHttpError(400, 'GUARD_ASSIGNMENT_ID_INVALID', 'Invalid assignment id'));
     }
 
     const scope = await resolveAdminScope(req);
@@ -996,20 +1013,20 @@ export async function deleteGuardAssignment(req: Request, res: Response, next: N
       .maybeSingle();
 
     if (existingError) {
-      return res.status(500).json({ error: 'Failed to load guard assignment', details: existingError.message });
+      return next(createHttpError(500, 'GUARD_ASSIGNMENT_LOOKUP_FAILED', 'Failed to load guard assignment', existingError));
     }
     if (!existing) {
-      return res.status(404).json({ error: 'Guard assignment not found' });
+      return next(createHttpError(404, 'GUARD_ASSIGNMENT_NOT_FOUND', 'Guard assignment not found'));
     }
     if (!canAccessCommunity(scope, existing.community_id)) {
-      return toScopeError(res, 'Access denied for the selected assignment.');
+      return next(toScopeError('Access denied for the selected assignment.'));
     }
 
     const guardId = existing.guard_id;
 
     const { error } = await supabase.from('guard_assignments').delete().eq('id', id);
     if (error) {
-      return res.status(500).json({ error: 'Failed to delete guard assignment', details: error.message });
+      return next(createHttpError(500, 'GUARD_ASSIGNMENT_DELETE_FAILED', 'Failed to delete guard assignment', error));
     }
 
     if (isUuid(guardId)) {
@@ -1029,7 +1046,7 @@ export async function listGuardEquipment(req: Request, res: Response, next: Next
 
     if (requestedGuardId && !scope.isGlobal) {
       const guardScope = await ensureGuardScope(scope, requestedGuardId);
-      if (!guardScope.ok) return toScopeError(res, guardScope.reason);
+      if (!guardScope.ok) return next(toScopeError(guardScope.reason));
     }
 
     let query = supabase
@@ -1049,7 +1066,7 @@ export async function listGuardEquipment(req: Request, res: Response, next: Next
 
     const { data, error } = await query;
     if (error) {
-      return res.status(500).json({ error: 'Failed to fetch guard equipment', details: error.message });
+      return next(createHttpError(500, 'GUARD_EQUIPMENT_LIST_FAILED', 'Failed to fetch guard equipment', error));
     }
 
     return res.json({ data: data || [] });
@@ -1065,12 +1082,12 @@ export async function createGuardEquipment(req: Request, res: Response, next: Ne
 
     const assignedGuardId = isUuid(payload.assigned_to) ? payload.assigned_to : null;
     if (!scope.isGlobal && !assignedGuardId) {
-      return res.status(400).json({ error: 'assigned_to is required for scoped admins.' });
+      return next(createHttpError(400, 'GUARD_EQUIPMENT_ASSIGNEE_REQUIRED', 'assigned_to is required for scoped admins.'));
     }
 
     if (assignedGuardId && !scope.isGlobal) {
       const guardScope = await ensureGuardScope(scope, assignedGuardId);
-      if (!guardScope.ok) return toScopeError(res, guardScope.reason);
+      if (!guardScope.ok) return next(toScopeError(guardScope.reason));
     }
 
     const { data, error } = await supabase
@@ -1080,7 +1097,7 @@ export async function createGuardEquipment(req: Request, res: Response, next: Ne
       .single();
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to create guard equipment', details: error.message });
+      return next(createHttpError(500, 'GUARD_EQUIPMENT_CREATE_FAILED', 'Failed to create guard equipment', error));
     }
 
     return res.status(201).json({ data });
@@ -1093,7 +1110,7 @@ export async function updateGuardEquipment(req: Request, res: Response, next: Ne
   try {
     const { id } = req.params;
     if (!isUuid(id)) {
-      return res.status(400).json({ error: 'Invalid equipment id' });
+      return next(createHttpError(400, 'GUARD_EQUIPMENT_ID_INVALID', 'Invalid equipment id'));
     }
 
     const scope = await resolveAdminScope(req);
@@ -1106,23 +1123,23 @@ export async function updateGuardEquipment(req: Request, res: Response, next: Ne
       .maybeSingle();
 
     if (existingError) {
-      return res.status(500).json({ error: 'Failed to load guard equipment', details: existingError.message });
+      return next(createHttpError(500, 'GUARD_EQUIPMENT_LOOKUP_FAILED', 'Failed to load guard equipment', existingError));
     }
     if (!existing) {
-      return res.status(404).json({ error: 'Guard equipment not found' });
+      return next(createHttpError(404, 'GUARD_EQUIPMENT_NOT_FOUND', 'Guard equipment not found'));
     }
 
     if (!scope.isGlobal) {
       const existingAssigned = isUuid(existing.assigned_to) ? existing.assigned_to : null;
       if (existingAssigned) {
         const guardScope = await ensureGuardScope(scope, existingAssigned);
-        if (!guardScope.ok) return toScopeError(res, guardScope.reason);
+        if (!guardScope.ok) return next(toScopeError(guardScope.reason));
       }
     }
 
     if (isUuid(payload.assigned_to) && !scope.isGlobal) {
       const guardScope = await ensureGuardScope(scope, payload.assigned_to);
-      if (!guardScope.ok) return toScopeError(res, guardScope.reason);
+      if (!guardScope.ok) return next(toScopeError(guardScope.reason));
     }
 
     payload.updated_at = new Date().toISOString();
@@ -1135,7 +1152,7 @@ export async function updateGuardEquipment(req: Request, res: Response, next: Ne
       .single();
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to update guard equipment', details: error.message });
+      return next(createHttpError(500, 'GUARD_EQUIPMENT_UPDATE_FAILED', 'Failed to update guard equipment', error));
     }
 
     return res.json({ data });
@@ -1148,7 +1165,7 @@ export async function deleteGuardEquipment(req: Request, res: Response, next: Ne
   try {
     const { id } = req.params;
     if (!isUuid(id)) {
-      return res.status(400).json({ error: 'Invalid equipment id' });
+      return next(createHttpError(400, 'GUARD_EQUIPMENT_ID_INVALID', 'Invalid equipment id'));
     }
 
     const scope = await resolveAdminScope(req);
@@ -1159,20 +1176,20 @@ export async function deleteGuardEquipment(req: Request, res: Response, next: Ne
       .maybeSingle();
 
     if (existingError) {
-      return res.status(500).json({ error: 'Failed to load guard equipment', details: existingError.message });
+      return next(createHttpError(500, 'GUARD_EQUIPMENT_LOOKUP_FAILED', 'Failed to load guard equipment', existingError));
     }
     if (!existing) {
-      return res.status(404).json({ error: 'Guard equipment not found' });
+      return next(createHttpError(404, 'GUARD_EQUIPMENT_NOT_FOUND', 'Guard equipment not found'));
     }
 
     if (!scope.isGlobal && isUuid(existing.assigned_to)) {
       const guardScope = await ensureGuardScope(scope, existing.assigned_to);
-      if (!guardScope.ok) return toScopeError(res, guardScope.reason);
+      if (!guardScope.ok) return next(toScopeError(guardScope.reason));
     }
 
     const { error } = await supabase.from('guard_equipment').delete().eq('id', id);
     if (error) {
-      return res.status(500).json({ error: 'Failed to delete guard equipment', details: error.message });
+      return next(createHttpError(500, 'GUARD_EQUIPMENT_DELETE_FAILED', 'Failed to delete guard equipment', error));
     }
 
     return res.status(204).send();
@@ -1188,7 +1205,7 @@ export async function listGuardPerformance(req: Request, res: Response, next: Ne
 
     if (requestedGuardId && !scope.isGlobal) {
       const guardScope = await ensureGuardScope(scope, requestedGuardId);
-      if (!guardScope.ok) return toScopeError(res, guardScope.reason);
+      if (!guardScope.ok) return next(toScopeError(guardScope.reason));
     }
 
     let query = supabase
@@ -1209,7 +1226,7 @@ export async function listGuardPerformance(req: Request, res: Response, next: Ne
 
     const { data, error } = await query;
     if (error) {
-      return res.status(500).json({ error: 'Failed to fetch guard performance', details: error.message });
+      return next(createHttpError(500, 'GUARD_PERFORMANCE_LIST_FAILED', 'Failed to fetch guard performance', error));
     }
 
     return res.json({ data: data || [] });
@@ -1224,12 +1241,12 @@ export async function createGuardPerformance(req: Request, res: Response, next: 
     const payload = { ...(req.body || {}) };
 
     if (!isUuid(payload.guard_id)) {
-      return res.status(400).json({ error: 'guard_id is required' });
+      return next(createHttpError(400, 'GUARD_ID_REQUIRED', 'guard_id is required'));
     }
 
     if (!scope.isGlobal) {
       const guardScope = await ensureGuardScope(scope, payload.guard_id);
-      if (!guardScope.ok) return toScopeError(res, guardScope.reason);
+      if (!guardScope.ok) return next(toScopeError(guardScope.reason));
     }
 
     const { data, error } = await supabase
@@ -1239,7 +1256,9 @@ export async function createGuardPerformance(req: Request, res: Response, next: 
       .single();
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to create guard performance record', details: error.message });
+      return next(
+        createHttpError(500, 'GUARD_PERFORMANCE_CREATE_FAILED', 'Failed to create guard performance record', error)
+      );
     }
 
     return res.status(201).json({ data });
@@ -1252,7 +1271,7 @@ export async function updateGuardPerformance(req: Request, res: Response, next: 
   try {
     const { id } = req.params;
     if (!isUuid(id)) {
-      return res.status(400).json({ error: 'Invalid performance id' });
+      return next(createHttpError(400, 'GUARD_PERFORMANCE_ID_INVALID', 'Invalid performance id'));
     }
 
     const scope = await resolveAdminScope(req);
@@ -1265,20 +1284,22 @@ export async function updateGuardPerformance(req: Request, res: Response, next: 
       .maybeSingle();
 
     if (existingError) {
-      return res.status(500).json({ error: 'Failed to load guard performance record', details: existingError.message });
+      return next(
+        createHttpError(500, 'GUARD_PERFORMANCE_LOOKUP_FAILED', 'Failed to load guard performance record', existingError)
+      );
     }
     if (!existing) {
-      return res.status(404).json({ error: 'Guard performance record not found' });
+      return next(createHttpError(404, 'GUARD_PERFORMANCE_NOT_FOUND', 'Guard performance record not found'));
     }
 
     if (!scope.isGlobal && isUuid(existing.guard_id)) {
       const guardScope = await ensureGuardScope(scope, existing.guard_id);
-      if (!guardScope.ok) return toScopeError(res, guardScope.reason);
+      if (!guardScope.ok) return next(toScopeError(guardScope.reason));
     }
 
     if (isUuid(payload.guard_id) && !scope.isGlobal) {
       const guardScope = await ensureGuardScope(scope, payload.guard_id);
-      if (!guardScope.ok) return toScopeError(res, guardScope.reason);
+      if (!guardScope.ok) return next(toScopeError(guardScope.reason));
     }
 
     payload.updated_at = new Date().toISOString();
@@ -1291,7 +1312,9 @@ export async function updateGuardPerformance(req: Request, res: Response, next: 
       .single();
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to update guard performance record', details: error.message });
+      return next(
+        createHttpError(500, 'GUARD_PERFORMANCE_UPDATE_FAILED', 'Failed to update guard performance record', error)
+      );
     }
 
     return res.json({ data });
@@ -1307,7 +1330,7 @@ export async function listGuardTraining(req: Request, res: Response, next: NextF
 
     if (requestedGuardId && !scope.isGlobal) {
       const guardScope = await ensureGuardScope(scope, requestedGuardId);
-      if (!guardScope.ok) return toScopeError(res, guardScope.reason);
+      if (!guardScope.ok) return next(toScopeError(guardScope.reason));
     }
 
     let query = supabase
@@ -1328,7 +1351,7 @@ export async function listGuardTraining(req: Request, res: Response, next: NextF
 
     const { data, error } = await query;
     if (error) {
-      return res.status(500).json({ error: 'Failed to fetch guard training records', details: error.message });
+      return next(createHttpError(500, 'GUARD_TRAINING_LIST_FAILED', 'Failed to fetch guard training records', error));
     }
 
     return res.json({ data: data || [] });
@@ -1343,12 +1366,12 @@ export async function createGuardTraining(req: Request, res: Response, next: Nex
     const payload = { ...(req.body || {}) };
 
     if (!isUuid(payload.guard_id)) {
-      return res.status(400).json({ error: 'guard_id is required' });
+      return next(createHttpError(400, 'GUARD_ID_REQUIRED', 'guard_id is required'));
     }
 
     if (!scope.isGlobal) {
       const guardScope = await ensureGuardScope(scope, payload.guard_id);
-      if (!guardScope.ok) return toScopeError(res, guardScope.reason);
+      if (!guardScope.ok) return next(toScopeError(guardScope.reason));
     }
 
     const { data, error } = await supabase
@@ -1358,7 +1381,7 @@ export async function createGuardTraining(req: Request, res: Response, next: Nex
       .single();
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to create guard training record', details: error.message });
+      return next(createHttpError(500, 'GUARD_TRAINING_CREATE_FAILED', 'Failed to create guard training record', error));
     }
 
     return res.status(201).json({ data });
@@ -1371,7 +1394,7 @@ export async function updateGuardTraining(req: Request, res: Response, next: Nex
   try {
     const { id } = req.params;
     if (!isUuid(id)) {
-      return res.status(400).json({ error: 'Invalid training id' });
+      return next(createHttpError(400, 'GUARD_TRAINING_ID_INVALID', 'Invalid training id'));
     }
 
     const scope = await resolveAdminScope(req);
@@ -1384,20 +1407,20 @@ export async function updateGuardTraining(req: Request, res: Response, next: Nex
       .maybeSingle();
 
     if (existingError) {
-      return res.status(500).json({ error: 'Failed to load guard training record', details: existingError.message });
+      return next(createHttpError(500, 'GUARD_TRAINING_LOOKUP_FAILED', 'Failed to load guard training record', existingError));
     }
     if (!existing) {
-      return res.status(404).json({ error: 'Guard training record not found' });
+      return next(createHttpError(404, 'GUARD_TRAINING_NOT_FOUND', 'Guard training record not found'));
     }
 
     if (!scope.isGlobal && isUuid(existing.guard_id)) {
       const guardScope = await ensureGuardScope(scope, existing.guard_id);
-      if (!guardScope.ok) return toScopeError(res, guardScope.reason);
+      if (!guardScope.ok) return next(toScopeError(guardScope.reason));
     }
 
     if (isUuid(payload.guard_id) && !scope.isGlobal) {
       const guardScope = await ensureGuardScope(scope, payload.guard_id);
-      if (!guardScope.ok) return toScopeError(res, guardScope.reason);
+      if (!guardScope.ok) return next(toScopeError(guardScope.reason));
     }
 
     payload.updated_at = new Date().toISOString();
@@ -1410,7 +1433,7 @@ export async function updateGuardTraining(req: Request, res: Response, next: Nex
       .single();
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to update guard training record', details: error.message });
+      return next(createHttpError(500, 'GUARD_TRAINING_UPDATE_FAILED', 'Failed to update guard training record', error));
     }
 
     return res.json({ data });

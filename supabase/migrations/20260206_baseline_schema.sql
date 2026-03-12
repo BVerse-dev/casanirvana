@@ -1875,17 +1875,28 @@ ALTER FUNCTION public.update_guard_performance_updated_at() OWNER TO postgres;
 CREATE FUNCTION public.update_guard_training_names() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
+DECLARE
+  target_user_id uuid := COALESCE(NEW.user_id, NEW.id);
+  target_guard_name text := trim(concat_ws(' ', NEW.first_name, NEW.last_name));
 BEGIN
-  -- Update guard_trainings table
-  UPDATE guard_trainings 
-  SET guard_name = NEW.first_name || ' ' || NEW.last_name
-  WHERE guard_id = NEW.id;
-  
-  -- Update guard_certifications table
-  UPDATE guard_certifications 
-  SET guard_name = NEW.first_name || ' ' || NEW.last_name
-  WHERE guard_id = NEW.id;
-  
+  UPDATE public.guard_trainings gt
+  SET guard_name = target_guard_name
+  WHERE EXISTS (
+    SELECT 1
+    FROM public.guards g
+    WHERE g.id = gt.guard_id
+      AND g.user_id = target_user_id
+  );
+
+  UPDATE public.guard_certifications gc
+  SET guard_name = target_guard_name
+  WHERE EXISTS (
+    SELECT 1
+    FROM public.guards g
+    WHERE g.id = gc.guard_id
+      AND g.user_id = target_user_id
+  );
+
   RETURN NEW;
 END;
 $$;
@@ -2150,6 +2161,7 @@ CREATE TABLE public.users (
     phone_number text,
     address text,
     date_of_birth date,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT users_role_check CHECK ((role = ANY (ARRAY['user'::text, 'guard'::text, 'admin'::text])))
 );
 
@@ -4466,7 +4478,7 @@ CREATE TABLE public.profiles (
     notification_preferences jsonb DEFAULT '{"sound": true, "notices": true, "payments": true, "visitors": true, "vibration": true, "quietHours": {"enabled": false, "endTime": "08:00", "startTime": "22:00"}, "emergencies": true, "maintenance": true}'::jsonb,
     qr_code_data text,
     entry_code text,
-    CONSTRAINT profiles_role_check CHECK ((role = ANY (ARRAY['resident'::text, 'guard'::text, 'admin'::text, 'maintenance'::text, 'management'::text, 'user'::text, 'superadmin'::text]))),
+    CONSTRAINT profiles_role_check CHECK ((role = ANY (ARRAY['resident'::text, 'guard'::text, 'admin'::text, 'maintenance'::text, 'management'::text, 'user'::text, 'superadmin'::text, 'agency_manager'::text, 'facility_manager'::text]))),
     CONSTRAINT profiles_status_check CHECK ((status = ANY (ARRAY['active'::text, 'inactive'::text, 'suspended'::text, 'pending'::text])))
 );
 
@@ -4841,14 +4853,23 @@ CREATE VIEW public.guard_performance_detailed AS
     gpm.monthly_progress,
     gpm.created_at,
     gpm.updated_at,
-    ((p.first_name || ' '::text) || p.last_name) AS guard_name,
-    p.avatar_url,
+    COALESCE(NULLIF(g.full_name, ''::text), NULLIF(TRIM(BOTH FROM concat_ws(' '::text, g.first_name, g.last_name)), ''::text), NULLIF(TRIM(BOTH FROM concat_ws(' '::text, p.first_name, p.last_name)), ''::text)) AS guard_name,
+    COALESCE(g.avatar_url, p.avatar_url) AS avatar_url,
     g.employee_id,
     g.shift_type,
     g.employment_date
    FROM ((public.guard_performance_metrics gpm
-     LEFT JOIN public.profiles p ON ((gpm.guard_id = p.id)))
-     LEFT JOIN public.guards g ON ((gpm.guard_id = g.user_id)));
+     LEFT JOIN public.guards g ON ((g.id = gpm.guard_id)))
+     LEFT JOIN LATERAL ( SELECT p_1.first_name,
+            p_1.last_name,
+            p_1.avatar_url
+           FROM public.profiles p_1
+          WHERE ((g.user_id IS NOT NULL) AND ((p_1.user_id = g.user_id) OR (p_1.id = g.user_id)))
+          ORDER BY (CASE
+                        WHEN (p_1.user_id = g.user_id) THEN 0
+                        ELSE 1
+                    END), p_1.id
+         LIMIT 1) p ON (true));
 
 
 ALTER TABLE public.guard_performance_detailed OWNER TO postgres;
@@ -4924,11 +4945,20 @@ CREATE VIEW public.guard_performance_reviews_detailed AS
     gpr.status,
     gpr.created_at,
     gpr.updated_at,
-    ((gp.first_name || ' '::text) || gp.last_name) AS guard_name,
-    ((rp.first_name || ' '::text) || rp.last_name) AS reviewer_name
-   FROM ((public.guard_performance_reviews gpr
-     LEFT JOIN public.profiles gp ON ((gpr.guard_id = gp.id)))
-     LEFT JOIN public.profiles rp ON ((gpr.reviewer_id = rp.id)));
+    COALESCE(NULLIF(g.full_name, ''::text), NULLIF(TRIM(BOTH FROM concat_ws(' '::text, g.first_name, g.last_name)), ''::text), NULLIF(TRIM(BOTH FROM concat_ws(' '::text, gp.first_name, gp.last_name)), ''::text)) AS guard_name,
+    NULLIF(TRIM(BOTH FROM concat_ws(' '::text, rp.first_name, rp.last_name)), ''::text) AS reviewer_name
+   FROM (((public.guard_performance_reviews gpr
+     LEFT JOIN public.guards g ON ((g.id = gpr.guard_id)))
+     LEFT JOIN LATERAL ( SELECT p.first_name,
+            p.last_name
+           FROM public.profiles p
+          WHERE ((g.user_id IS NOT NULL) AND ((p.user_id = g.user_id) OR (p.id = g.user_id)))
+          ORDER BY (CASE
+                        WHEN (p.user_id = g.user_id) THEN 0
+                        ELSE 1
+                    END), p.id
+         LIMIT 1) gp ON (true))
+     LEFT JOIN public.profiles rp ON ((rp.id = gpr.reviewer_id)));
 
 
 ALTER TABLE public.guard_performance_reviews_detailed OWNER TO postgres;
@@ -9432,7 +9462,6 @@ COPY public.groups (id, name, description, avatar_url, created_by, created_at, u
 --
 
 COPY public.guard_assignments (id, community_id, guard_id, assignment_name, shift_type, start_time, end_time, days_of_week, start_date, end_date, is_permanent, is_temporary, assigned_gate, assigned_location, patrol_areas, responsibilities, special_instructions, performance_rating, attendance_percentage, punctuality_score, last_performance_review, status, current_status, last_checkin, last_checkout, emergency_contact, backup_guard_id, supervisor_id, created_at, updated_at) FROM stdin;
-fa117d99-1db9-43a9-8ae1-1b4513c15b4d	e1d40ef7-f1d5-4756-88a2-054fe30cb06a	00000000-0000-0000-0000-000000000003	Main Gate Security	day	08:00:00	17:00:00	{1,2,3,4,5}	2024-01-01	\N	t	f	Main Gate	Main Gate	\N	{"Gate security","Visitor management"}	\N	\N	\N	\N	\N	active	off_duty	\N	\N	+1-555-0911	\N	\N	2025-07-08 23:22:59.090895+00	2025-07-08 23:22:59.090895+00
 0f955764-eded-4bdd-8263-22262b75a737	11111111-1111-1111-1111-111111111111	0b654222-6ef8-4fc2-a06e-6beab9eb0b69	Main Gate Day Shift	day	06:00:00	18:00:00	{1,2,3,4,5,6}	2025-08-11	2025-09-10	f	f	Main Gate	Casa Nirvana Main Entrance	{"Main Gate Area","Parking Zone A","Reception Area"}	{"Visitor Check-in/out","Vehicle Verification","Emergency Response","Incident Reporting"}	Regular day shift duties. Monitor all entries/exits, verify visitor passes, maintain security logs. Report any suspicious activities immediately.	4.50	95.00	98.00	\N	active	on_duty	2025-08-11 17:18:10.022581+00	\N	+1-555-0911	\N	\N	2025-08-11 19:18:10.022581+00	2025-08-11 19:18:10.022581+00
 \.
 
@@ -9442,9 +9471,6 @@ fa117d99-1db9-43a9-8ae1-1b4513c15b4d	e1d40ef7-f1d5-4756-88a2-054fe30cb06a	000000
 --
 
 COPY public.guard_certifications (id, guard_id, guard_name, certificate_type, issuing_authority, certificate_number, issue_date, expiry_date, status, document_url, renewal_required, reminder_sent, created_at, updated_at) FROM stdin;
-dddddddd-dddd-dddd-dddd-dddddddddddd	11111111-1111-1111-1111-111111111111	John Smith	Security License	State Security Board	SEC-2024-001	2024-01-01	2026-01-01	valid	/documents/john-security-license.pdf	f	f	2025-07-09 00:01:23.305924+00	2025-07-09 00:01:23.305924+00
-eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee	22222222-2222-2222-2222-222222222222	Mike Wilson	First Aid Certification	Red Cross	FA-2023-045	2023-06-15	2025-06-15	expiring_soon	/documents/mike-first-aid.pdf	t	t	2025-07-09 00:01:23.305924+00	2025-07-09 00:01:23.305924+00
-ffffffff-ffff-ffff-ffff-ffffffffffff	33333333-3333-3333-3333-333333333333	Sarah Johnson	Security License	State Security Board	SEC-2022-089	2022-03-10	2024-03-10	expired	/documents/sarah-security-license.pdf	t	t	2025-07-09 00:01:23.305924+00	2025-07-09 00:01:23.305924+00
 \.
 
 
@@ -9508,11 +9534,6 @@ COPY public.guard_performance (id, guard_id, evaluation_period, evaluation_date,
 --
 
 COPY public.guard_performance_metrics (id, guard_id, overall_rating, punctuality_rating, professionalism_rating, reliability_rating, communication_rating, attendance_percentage, total_shifts, completed_shifts, late_arrivals, incident_reports, compliments, complaints, last_review_date, next_review_date, status, monthly_progress, created_at, updated_at) FROM stdin;
-79538b67-e14a-47bb-9d9b-080290a72a13	00000000-0000-0000-0000-000000000003	4.50	4.80	4.60	4.40	4.20	96.00	120	115	3	0	8	1	2024-01-01	2024-04-01	excellent	[{"month": "Oct", "rating": 4.3, "attendance": 94}, {"month": "Nov", "rating": 4.4, "attendance": 96}, {"month": "Dec", "rating": 4.5, "attendance": 98}, {"month": "Jan", "rating": 4.5, "attendance": 96}]	2025-07-08 23:34:13.929628+00	2025-07-08 23:34:37.066024+00
-9a6ea182-fb3d-4933-834e-61368d447399	00000000-0000-0000-0000-000000000004	4.20	4.50	4.10	4.30	3.90	92.00	118	108	5	1	6	2	2024-01-01	2024-04-01	good	[{"month": "Oct", "rating": 4.0, "attendance": 89}, {"month": "Nov", "rating": 4.1, "attendance": 91}, {"month": "Dec", "rating": 4.2, "attendance": 94}, {"month": "Jan", "rating": 4.2, "attendance": 92}]	2025-07-10 05:43:20.486375+00	2025-07-10 05:43:20.486375+00
-b54cb44b-0527-416f-b6ed-044c7ade2517	00000000-0000-0000-0000-000000000005	4.40	4.60	4.40	4.50	4.20	94.50	125	118	2	0	10	0	2024-01-01	2024-04-01	excellent	[{"month": "Oct", "rating": 4.2, "attendance": 92}, {"month": "Nov", "rating": 4.3, "attendance": 94}, {"month": "Dec", "rating": 4.4, "attendance": 96}, {"month": "Jan", "rating": 4.4, "attendance": 95}]	2025-07-10 05:43:20.486375+00	2025-07-10 05:43:20.486375+00
-2c43522e-094b-4b26-b459-674a96778226	00000000-0000-0000-0000-000000000006	4.10	4.30	4.00	4.20	3.80	89.50	115	103	7	2	4	3	2024-01-01	2024-04-01	good	[{"month": "Oct", "rating": 3.9, "attendance": 87}, {"month": "Nov", "rating": 4.0, "attendance": 89}, {"month": "Dec", "rating": 4.1, "attendance": 91}, {"month": "Jan", "rating": 4.1, "attendance": 90}]	2025-07-10 05:45:42.772489+00	2025-07-10 05:45:42.772489+00
-7deb45fb-aa7a-43e6-b536-32e45c23d139	00000000-0000-0000-0000-000000000007	3.90	4.10	3.80	4.00	3.70	87.00	110	96	8	1	3	2	2024-01-01	2024-04-01	satisfactory	[{"month": "Oct", "rating": 3.7, "attendance": 85}, {"month": "Nov", "rating": 3.8, "attendance": 87}, {"month": "Dec", "rating": 3.9, "attendance": 89}, {"month": "Jan", "rating": 3.9, "attendance": 87}]	2025-07-10 05:45:42.772489+00	2025-07-10 05:45:42.772489+00
 \.
 
 
@@ -9521,8 +9542,6 @@ b54cb44b-0527-416f-b6ed-044c7ade2517	00000000-0000-0000-0000-000000000005	4.40	4
 --
 
 COPY public.guard_performance_reviews (id, guard_id, reviewer_id, review_date, overall_rating, punctuality_rating, professionalism_rating, reliability_rating, communication_rating, strengths, areas_for_improvement, goals, comments, action_plan, follow_up_date, status, created_at, updated_at) FROM stdin;
-880e8400-e29b-41d4-a716-446655440001	00000000-0000-0000-0000-000000000003	00000000-0000-0000-0000-000000000001	2024-01-01	4.5	4.8	4.6	4.4	4.2	Excellent punctuality, professional demeanor, strong security awareness	Could improve communication with residents	Complete advanced security training, improve resident interaction skills	Outstanding performance overall. One of our top guards.	Enroll in customer service training program	2024-02-01	completed	2025-07-08 23:34:13.929628+00	2025-07-08 23:34:13.929628+00
-880e8400-e29b-41d4-a716-446655440002	00000000-0000-0000-0000-000000000003	00000000-0000-0000-0000-000000000001	2023-10-01	4.3	4.6	4.4	4.2	4.0	Reliable and punctual, good security practices	Communication skills need development	Focus on resident relations training	Solid performance with room for growth	Monthly communication skills coaching	2023-11-01	completed	2025-07-08 23:34:13.929628+00	2025-07-08 23:34:13.929628+00
 \.
 
 
@@ -9531,9 +9550,6 @@ COPY public.guard_performance_reviews (id, guard_id, reviewer_id, review_date, o
 --
 
 COPY public.guard_schedules (id, guard_id, shift_type, start_time, end_time, assigned_date, end_date, community_id, post_location, status, notes, replacement_id, created_at, updated_at) FROM stdin;
-aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa	00000000-0000-0000-0000-000000000003	day	09:00:00	17:00:00	2024-12-10	\N	d43c2bee-7f16-4a9e-8165-110b114c3f13	Main Gate	scheduled	Regular day shift at main entrance	\N	2025-07-08 23:52:59.913473+00	2025-07-08 23:52:59.913473+00
-bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb	00000000-0000-0000-0000-000000000003	night	21:00:00	05:00:00	2024-12-11	\N	e1d40ef7-f1d5-4756-88a2-054fe30cb06a	Main Gate	active	Night patrol duty	\N	2025-07-08 23:52:59.913473+00	2025-07-08 23:52:59.913473+00
-cccccccc-cccc-cccc-cccc-cccccccccccc	00000000-0000-0000-0000-000000000003	rotating	12:00:00	20:00:00	2024-12-12	2024-12-20	3a47abc1-bb41-4c85-b134-8258d36d59e8	Side Gate	completed	Rotating shift assignment for the week	\N	2025-07-08 23:52:59.913473+00	2025-07-08 23:52:59.913473+00
 \.
 
 
@@ -9571,9 +9587,6 @@ d485e7c5-bd44-4975-8b43-7c997fea7db0	4e080222-d500-4a23-8de7-ff0f53e022fc	Fire S
 --
 
 COPY public.guard_trainings (id, guard_id, guard_name, program_id, program_name, enrollment_date, start_date, completion_date, expiry_date, status, score, instructor, certificate_url, notes, created_at, updated_at) FROM stdin;
-aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa	11111111-1111-1111-1111-111111111111	John Smith	11111111-1111-1111-1111-111111111111	Basic Security Training	2024-01-01	2024-01-15	2024-02-15	2026-02-15	completed	95	John Security	/certificates/john-smith-basic.pdf	Excellent performance throughout the training	2025-07-09 00:01:05.0514+00	2025-07-09 00:01:05.0514+00
-bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb	22222222-2222-2222-2222-222222222222	Mike Wilson	22222222-2222-2222-2222-222222222222	Fire Safety & Emergency Response	2024-01-10	2024-01-20	\N	\N	in_progress	\N	Jane Firefighter	\N	Currently attending weekend sessions	2025-07-09 00:01:05.0514+00	2025-07-09 00:01:05.0514+00
-cccccccc-cccc-cccc-cccc-cccccccccccc	33333333-3333-3333-3333-333333333333	Sarah Johnson	11111111-1111-1111-1111-111111111111	Basic Security Training	2024-01-05	2024-01-25	\N	\N	enrolled	\N	John Security	\N	Scheduled to start next week	2025-07-09 00:01:05.0514+00	2025-07-09 00:01:05.0514+00
 \.
 
 
@@ -14289,6 +14302,13 @@ CREATE INDEX guards_email_idx ON public.guards USING btree (email);
 
 
 --
+-- Name: guards_user_id_unique_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX guards_user_id_unique_idx ON public.guards USING btree (user_id) WHERE (user_id IS NOT NULL);
+
+
+--
 -- Name: guards_society_assignment_idx; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -16575,6 +16595,13 @@ CREATE TRIGGER update_user_groups_updated_at BEFORE UPDATE ON public.user_groups
 
 
 --
+-- Name: users users_set_updated_at; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER users_set_updated_at BEFORE UPDATE ON public.users FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
+--
 -- Name: user_payment_methods update_user_payment_methods_updated_at; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
@@ -17454,7 +17481,7 @@ ALTER TABLE ONLY public.groups
 --
 
 ALTER TABLE ONLY public.guard_assignments
-    ADD CONSTRAINT guard_assignments_backup_guard_id_fkey FOREIGN KEY (backup_guard_id) REFERENCES public.profiles(id);
+    ADD CONSTRAINT guard_assignments_backup_guard_id_fkey FOREIGN KEY (backup_guard_id) REFERENCES public.guards(id);
 
 
 --
@@ -17470,7 +17497,7 @@ ALTER TABLE ONLY public.guard_assignments
 --
 
 ALTER TABLE ONLY public.guard_assignments
-    ADD CONSTRAINT guard_assignments_guard_id_fkey FOREIGN KEY (guard_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+    ADD CONSTRAINT guard_assignments_guard_id_fkey FOREIGN KEY (guard_id) REFERENCES public.guards(id) ON DELETE CASCADE;
 
 
 --
@@ -17478,7 +17505,7 @@ ALTER TABLE ONLY public.guard_assignments
 --
 
 ALTER TABLE ONLY public.guard_assignments
-    ADD CONSTRAINT guard_assignments_supervisor_id_fkey FOREIGN KEY (supervisor_id) REFERENCES public.profiles(id);
+    ADD CONSTRAINT guard_assignments_supervisor_id_fkey FOREIGN KEY (supervisor_id) REFERENCES public.guards(id);
 
 
 --
@@ -17486,7 +17513,7 @@ ALTER TABLE ONLY public.guard_assignments
 --
 
 ALTER TABLE ONLY public.guard_certifications
-    ADD CONSTRAINT guard_certifications_guard_id_fkey FOREIGN KEY (guard_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+    ADD CONSTRAINT guard_certifications_guard_id_fkey FOREIGN KEY (guard_id) REFERENCES public.guards(id) ON DELETE CASCADE;
 
 
 --
@@ -17518,7 +17545,7 @@ ALTER TABLE ONLY public.guard_performance
 --
 
 ALTER TABLE ONLY public.guard_performance_metrics
-    ADD CONSTRAINT guard_performance_metrics_guard_id_fkey FOREIGN KEY (guard_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+    ADD CONSTRAINT guard_performance_metrics_guard_id_fkey FOREIGN KEY (guard_id) REFERENCES public.guards(id) ON DELETE CASCADE;
 
 
 --
@@ -17526,7 +17553,7 @@ ALTER TABLE ONLY public.guard_performance_metrics
 --
 
 ALTER TABLE ONLY public.guard_performance_reviews
-    ADD CONSTRAINT guard_performance_reviews_guard_id_fkey FOREIGN KEY (guard_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+    ADD CONSTRAINT guard_performance_reviews_guard_id_fkey FOREIGN KEY (guard_id) REFERENCES public.guards(id) ON DELETE CASCADE;
 
 
 --
@@ -17542,7 +17569,7 @@ ALTER TABLE ONLY public.guard_performance_reviews
 --
 
 ALTER TABLE ONLY public.guard_schedules
-    ADD CONSTRAINT guard_schedules_guard_id_fkey FOREIGN KEY (guard_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+    ADD CONSTRAINT guard_schedules_guard_id_fkey FOREIGN KEY (guard_id) REFERENCES public.guards(id) ON DELETE CASCADE;
 
 
 --
@@ -17550,7 +17577,7 @@ ALTER TABLE ONLY public.guard_schedules
 --
 
 ALTER TABLE ONLY public.guard_schedules
-    ADD CONSTRAINT guard_schedules_replacement_id_fkey FOREIGN KEY (replacement_id) REFERENCES public.profiles(id) ON DELETE SET NULL;
+    ADD CONSTRAINT guard_schedules_replacement_id_fkey FOREIGN KEY (replacement_id) REFERENCES public.guards(id) ON DELETE SET NULL;
 
 
 --
@@ -17590,7 +17617,7 @@ ALTER TABLE ONLY public.guard_training
 --
 
 ALTER TABLE ONLY public.guard_trainings
-    ADD CONSTRAINT guard_trainings_guard_id_fkey FOREIGN KEY (guard_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+    ADD CONSTRAINT guard_trainings_guard_id_fkey FOREIGN KEY (guard_id) REFERENCES public.guards(id) ON DELETE CASCADE;
 
 
 --
@@ -19581,14 +19608,18 @@ CREATE POLICY "Guards can view their own entry logs" ON public.entry_logs FOR SE
 -- Name: guard_performance_metrics Guards can view their own performance metrics; Type: POLICY; Schema: public; Owner: postgres
 --
 
-CREATE POLICY "Guards can view their own performance metrics" ON public.guard_performance_metrics FOR SELECT TO authenticated USING ((guard_id = auth.uid()));
+CREATE POLICY "Guards can view their own performance metrics" ON public.guard_performance_metrics FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
+   FROM public.guards g
+  WHERE ((g.id = guard_performance_metrics.guard_id) AND (g.user_id = auth.uid())))));
 
 
 --
 -- Name: guard_performance_reviews Guards can view their own performance reviews; Type: POLICY; Schema: public; Owner: postgres
 --
 
-CREATE POLICY "Guards can view their own performance reviews" ON public.guard_performance_reviews FOR SELECT TO authenticated USING ((guard_id = auth.uid()));
+CREATE POLICY "Guards can view their own performance reviews" ON public.guard_performance_reviews FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
+   FROM public.guards g
+  WHERE ((g.id = guard_performance_reviews.guard_id) AND (g.user_id = auth.uid())))));
 
 
 --
@@ -21899,7 +21930,9 @@ CREATE POLICY select_own_audit_logs ON public.audit_logs FOR SELECT TO authentic
 -- Name: guard_assignments select_own_guard_assignments; Type: POLICY; Schema: public; Owner: postgres
 --
 
-CREATE POLICY select_own_guard_assignments ON public.guard_assignments FOR SELECT TO authenticated USING ((guard_id = ( SELECT auth.uid() AS uid)));
+CREATE POLICY select_own_guard_assignments ON public.guard_assignments FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
+   FROM public.guards g
+  WHERE ((g.id = guard_assignments.guard_id) AND (g.user_id = auth.uid())))));
 
 
 --
@@ -24986,4 +25019,3 @@ ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public GRANT ALL ON T
 --
 
 \unrestrict iRXuFHSW7QoDpb8i2PPDjqdmIauzd5e2Y6aDD7ehLL9ErZ0JV3tOxfSl0WQtMvO
-

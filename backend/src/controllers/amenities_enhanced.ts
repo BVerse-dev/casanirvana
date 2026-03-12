@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { createHttpError } from '../lib/httpError';
 import { supabase } from '../lib/supabase';
 
 // Amenity CRUD operations with all fields support
@@ -190,10 +191,7 @@ export async function getAmenity(req: Request, res: Response, next: NextFunction
     if (error) throw error;
     
     if (!data) {
-      return res.status(404).json({
-        success: false,
-        message: 'Amenity not found'
-      });
+      return next(createHttpError(404, 'AMENITY_NOT_FOUND', 'Amenity not found'));
     }
     
     res.json({
@@ -245,10 +243,7 @@ export async function updateAmenity(req: Request, res: Response, next: NextFunct
     if (error) throw error;
     
     if (!data) {
-      return res.status(404).json({
-        success: false,
-        message: 'Amenity not found'
-      });
+      return next(createHttpError(404, 'AMENITY_NOT_FOUND', 'Amenity not found'));
     }
     
     res.json({
@@ -276,10 +271,7 @@ export async function createAmenityBooking(req: Request, res: Response, next: Ne
       .single();
     
     if (existingBooking) {
-      return res.status(400).json({
-        success: false,
-        message: 'Time slot already booked'
-      });
+      return next(createHttpError(400, 'AMENITY_BOOKING_CONFLICT', 'Time slot already booked'));
     }
     
     const { data, error } = await supabase
@@ -318,10 +310,7 @@ export async function searchAmenitiesByPhone(req: Request, res: Response, next: 
     const { phone } = req.query;
     
     if (!phone) {
-      return res.status(400).json({
-        success: false,
-        message: 'Phone number is required'
-      });
+      return next(createHttpError(400, 'PHONE_REQUIRED', 'Phone number is required'));
     }
     
     const { data, error } = await supabase
@@ -408,10 +397,7 @@ export async function deleteAmenity(req: Request, res: Response, next: NextFunct
     if (fetchError) throw fetchError;
     
     if (!existingAmenity) {
-      return res.status(404).json({
-        success: false,
-        message: 'Amenity not found'
-      });
+      return next(createHttpError(404, 'AMENITY_NOT_FOUND', 'Amenity not found'));
     }
     
     // Delete the amenity

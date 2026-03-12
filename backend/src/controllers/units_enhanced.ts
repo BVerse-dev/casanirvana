@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { createHttpError } from '../lib/httpError';
 import { supabase } from '../lib/supabase';
 
 // Unit CRUD operations with all fields support
@@ -180,10 +181,7 @@ export async function getUnit(req: Request, res: Response, next: NextFunction) {
     if (error) throw error;
     
     if (!data) {
-      return res.status(404).json({
-        success: false,
-        message: 'Unit not found'
-      });
+      return next(createHttpError(404, 'UNIT_NOT_FOUND', 'Unit not found'));
     }
     
     res.json({
@@ -235,10 +233,7 @@ export async function updateUnit(req: Request, res: Response, next: NextFunction
     if (error) throw error;
     
     if (!data) {
-      return res.status(404).json({
-        success: false,
-        message: 'Unit not found'
-      });
+      return next(createHttpError(404, 'UNIT_NOT_FOUND', 'Unit not found'));
     }
     
     res.json({
@@ -257,10 +252,7 @@ export async function searchUnitsByPhone(req: Request, res: Response, next: Next
     const { phone } = req.query;
     
     if (!phone) {
-      return res.status(400).json({
-        success: false,
-        message: 'Phone number is required'
-      });
+      return next(createHttpError(400, 'PHONE_REQUIRED', 'Phone number is required'));
     }
     
     const { data, error } = await supabase
@@ -338,10 +330,7 @@ export async function deleteUnit(req: Request, res: Response, next: NextFunction
     if (fetchError) throw fetchError;
     
     if (!existingUnit) {
-      return res.status(404).json({
-        success: false,
-        message: 'Unit not found'
-      });
+      return next(createHttpError(404, 'UNIT_NOT_FOUND', 'Unit not found'));
     }
     
     // Delete the unit

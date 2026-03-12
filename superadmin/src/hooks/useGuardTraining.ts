@@ -106,6 +106,19 @@ export interface TrainingStats {
   averageScore: number;
 }
 
+type GuardLookup = Pick<
+  Database['public']['Tables']['guards']['Row'],
+  'id' | 'full_name' | 'first_name' | 'last_name'
+>;
+
+const formatGuardName = (guard?: Partial<GuardLookup> | null) => {
+  if (!guard) return 'Unknown';
+  const fullName = guard.full_name?.trim();
+  if (fullName) return fullName;
+  const parts = [guard.first_name?.trim(), guard.last_name?.trim()].filter(Boolean);
+  return parts.length > 0 ? parts.join(' ') : 'Unknown';
+};
+
 // Transform functions
 const transformDbTrainingProgramToUI = (dbProgram: any): TrainingProgram => ({
   id: dbProgram.id,
@@ -366,14 +379,14 @@ export const useCreateGuardTraining = () => {
     mutationFn: async (data: CreateGuardTrainingData) => {
       // Get guard and program details first
       const [guardResult, programResult] = await Promise.all([
-        supabase.from('profiles').select('first_name, last_name').eq('id', data.guardId).single(),
+        supabase.from('guards').select('id, full_name, first_name, last_name').eq('id', data.guardId).single(),
         supabase.from('training_programs').select('name, instructor').eq('id', data.programId).single()
       ]);
 
       if (guardResult.error) throw guardResult.error;
       if (programResult.error) throw programResult.error;
 
-      const guardName = `${guardResult.data.first_name} ${guardResult.data.last_name}`;
+      const guardName = formatGuardName(guardResult.data);
       const programName = programResult.data.name;
       const instructor = programResult.data.instructor;
 
@@ -561,14 +574,14 @@ export const useCreateGuardCertification = () => {
     mutationFn: async (data: CreateCertificationData) => {
       // Get guard details first
       const { data: guardData, error: guardError } = await supabase
-        .from('profiles')
-        .select('first_name, last_name')
+        .from('guards')
+        .select('id, full_name, first_name, last_name')
         .eq('id', data.guardId)
         .single();
 
       if (guardError) throw guardError;
 
-      const guardName = `${guardData.first_name} ${guardData.last_name}`;
+      const guardName = formatGuardName(guardData);
 
       const { data: result, error } = await supabase
         .from('guard_certifications')
@@ -736,4 +749,4 @@ export const useGuardTrainingRealtime = () => {
       supabase.removeChannel(certificationChannel);
     };
   }, [queryClient]);
-}; 
+};

@@ -806,15 +806,26 @@ const getAdminPayoutScope = (req: Request) => ({
         : null,
 });
 
-export async function getPaymentObligations(req: Request, res: Response) {
+const forwardPaymentControllerError = (
+  next: NextFunction,
+  error: unknown,
+  code: string,
+  fallbackMessage: string
+) => {
+  if (error instanceof Error && 'statusCode' in error) {
+    return next(error);
+  }
+
+  const message = error instanceof Error && error.message ? error.message : fallbackMessage;
+  return next(createHttpError(500, code, message, error));
+};
+
+export async function getPaymentObligations(req: Request, res: Response, next: NextFunction) {
   try {
     const unitId = getProfileUnitId(req);
 
     if (!unitId) {
-      return res.status(400).json({
-        success: false,
-        error: 'Your profile is missing a unit assignment.',
-      });
+      return next(createHttpError(400, 'PAYMENT_UNIT_ASSIGNMENT_MISSING', 'Your profile is missing a unit assignment.'));
     }
 
     const obligations = await listPaymentObligationsForUnit(unitId);
@@ -827,23 +838,17 @@ export async function getPaymentObligations(req: Request, res: Response) {
         items: obligations,
       },
     });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to load payment obligations',
-    });
+  } catch (error) {
+    return forwardPaymentControllerError(next, error, 'PAYMENT_OBLIGATIONS_LOAD_FAILED', 'Failed to load payment obligations');
   }
 }
 
-export async function getPaymentHistoryFeed(req: Request, res: Response) {
+export async function getPaymentHistoryFeed(req: Request, res: Response, next: NextFunction) {
   try {
     const unitId = getProfileUnitId(req);
 
     if (!unitId) {
-      return res.status(400).json({
-        success: false,
-        error: 'Your profile is missing a unit assignment.',
-      });
+      return next(createHttpError(400, 'PAYMENT_UNIT_ASSIGNMENT_MISSING', 'Your profile is missing a unit assignment.'));
     }
 
     const history = await listPaymentHistoryForUnit(unitId);
@@ -856,23 +861,17 @@ export async function getPaymentHistoryFeed(req: Request, res: Response) {
         items: history,
       },
     });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to load payment history',
-    });
+  } catch (error) {
+    return forwardPaymentControllerError(next, error, 'PAYMENT_HISTORY_LOAD_FAILED', 'Failed to load payment history');
   }
 }
 
-export async function getPaymentStatementsFeed(req: Request, res: Response) {
+export async function getPaymentStatementsFeed(req: Request, res: Response, next: NextFunction) {
   try {
     const unitId = getProfileUnitId(req);
 
     if (!unitId) {
-      return res.status(400).json({
-        success: false,
-        error: 'Your profile is missing a unit assignment.',
-      });
+      return next(createHttpError(400, 'PAYMENT_UNIT_ASSIGNMENT_MISSING', 'Your profile is missing a unit assignment.'));
     }
 
     const statements = await listPaymentStatementsForUnit(unitId);
@@ -885,15 +884,12 @@ export async function getPaymentStatementsFeed(req: Request, res: Response) {
         items: statements,
       },
     });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to load payment statements',
-    });
+  } catch (error) {
+    return forwardPaymentControllerError(next, error, 'PAYMENT_STATEMENTS_LOAD_FAILED', 'Failed to load payment statements');
   }
 }
 
-export async function generatePaymentStatement(req: Request, res: Response) {
+export async function generatePaymentStatement(req: Request, res: Response, next: NextFunction) {
   try {
     const profile = (req.userProfile || {}) as Record<string, unknown>;
     const unitId = getProfileUnitId(req);
@@ -904,10 +900,7 @@ export async function generatePaymentStatement(req: Request, res: Response) {
         : unitId;
 
     if (!targetUnitId) {
-      return res.status(400).json({
-        success: false,
-        error: 'A target unit is required to generate a statement.',
-      });
+      return next(createHttpError(400, 'PAYMENT_STATEMENT_UNIT_REQUIRED', 'A target unit is required to generate a statement.'));
     }
 
     const result = await generatePaymentStatementForUnit({
@@ -919,15 +912,12 @@ export async function generatePaymentStatement(req: Request, res: Response) {
       success: true,
       data: result,
     });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to generate payment statement',
-    });
+  } catch (error) {
+    return forwardPaymentControllerError(next, error, 'PAYMENT_STATEMENT_GENERATE_FAILED', 'Failed to generate payment statement');
   }
 }
 
-export async function listPersonalHubCatalogProviders(req: Request, res: Response) {
+export async function listPersonalHubCatalogProviders(req: Request, res: Response, next: NextFunction) {
   try {
     const providers = await listCachedPersonalHubProviders({
       serviceType: typeof req.query.service_type === 'string' ? req.query.service_type : null,
@@ -941,15 +931,12 @@ export async function listPersonalHubCatalogProviders(req: Request, res: Respons
         items: providers,
       },
     });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to load Personal Hub providers',
-    });
+  } catch (error) {
+    return forwardPaymentControllerError(next, error, 'PERSONAL_HUB_PROVIDERS_LOAD_FAILED', 'Failed to load Personal Hub providers');
   }
 }
 
-export async function queryPersonalHubCatalog(req: Request, res: Response) {
+export async function queryPersonalHubCatalog(req: Request, res: Response, next: NextFunction) {
   try {
     const result = await queryExpressPayCatalogProvider({
       providerId: typeof req.body?.provider_id === 'string' ? req.body.provider_id : null,
@@ -967,40 +954,32 @@ export async function queryPersonalHubCatalog(req: Request, res: Response) {
       success: true,
       data: result,
     });
-  } catch (error: any) {
-    res.status(400).json({
-      success: false,
-      error: error.message || 'Failed to query Personal Hub provider',
-    });
+  } catch (error) {
+    if (error instanceof Error && 'statusCode' in error) {
+      return next(error);
+    }
+    const message = error instanceof Error && error.message ? error.message : 'Failed to query Personal Hub provider';
+    return next(createHttpError(400, 'PERSONAL_HUB_PROVIDER_QUERY_FAILED', message, error));
   }
 }
 
-export async function initiatePersonalHubCheckout(req: Request, res: Response) {
+export async function initiatePersonalHubCheckout(req: Request, res: Response, next: NextFunction) {
   try {
     const actorUserId = getActorUserId(req);
     const profile = (req.userProfile || {}) as Record<string, unknown>;
     const unitId = getProfileUnitId(req);
 
     if (!actorUserId) {
-      return res.status(401).json({
-        success: false,
-        error: 'Authentication required.',
-      });
+      return next(createHttpError(401, 'PERSONAL_HUB_AUTH_REQUIRED', 'Authentication required.'));
     }
 
     if (!unitId) {
-      return res.status(400).json({
-        success: false,
-        error: 'Your profile is missing a unit assignment.',
-      });
+      return next(createHttpError(400, 'PERSONAL_HUB_UNIT_ASSIGNMENT_MISSING', 'Your profile is missing a unit assignment.'));
     }
 
     const amount = asNumber(req.body?.amount);
     if (!Number.isFinite(amount) || amount <= 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'amount must be a positive number.',
-      });
+      return next(createHttpError(400, 'PERSONAL_HUB_AMOUNT_INVALID', 'amount must be a positive number.'));
     }
 
     const result = await initiatePersonalHubTransaction({
@@ -1059,24 +1038,22 @@ export async function initiatePersonalHubCheckout(req: Request, res: Response) {
         client_action: result.payment.checkoutUrl ? 'open_url' : 'poll',
       },
     });
-  } catch (error: any) {
-    res.status(400).json({
-      success: false,
-      error: error.message || 'Failed to initiate Personal Hub checkout',
-    });
+  } catch (error) {
+    if (error instanceof Error && 'statusCode' in error) {
+      return next(error);
+    }
+    const message = error instanceof Error && error.message ? error.message : 'Failed to initiate Personal Hub checkout';
+    return next(createHttpError(400, 'PERSONAL_HUB_CHECKOUT_INITIATE_FAILED', message, error));
   }
 }
 
-export async function getPersonalHubTransactionStatusHandler(req: Request, res: Response) {
+export async function getPersonalHubTransactionStatusHandler(req: Request, res: Response, next: NextFunction) {
   try {
     const actorUserId = getActorUserId(req);
     const role = typeof req.userProfile?.role === 'string' ? req.userProfile.role : '';
 
     if (!actorUserId) {
-      return res.status(401).json({
-        success: false,
-        error: 'Authentication required.',
-      });
+      return next(createHttpError(401, 'PERSONAL_HUB_AUTH_REQUIRED', 'Authentication required.'));
     }
 
     const result = await getPersonalHubTransactionStatus({
@@ -1086,33 +1063,29 @@ export async function getPersonalHubTransactionStatusHandler(req: Request, res: 
     });
 
     if (!result) {
-      return res.status(404).json({
-        success: false,
-        error: 'Personal Hub transaction not found.',
-      });
+      return next(createHttpError(404, 'PERSONAL_HUB_TRANSACTION_NOT_FOUND', 'Personal Hub transaction not found.'));
     }
 
     res.json({
       success: true,
       data: result,
     });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to load Personal Hub transaction status',
-    });
+  } catch (error) {
+    return forwardPaymentControllerError(
+      next,
+      error,
+      'PERSONAL_HUB_TRANSACTION_STATUS_FAILED',
+      'Failed to load Personal Hub transaction status'
+    );
   }
 }
 
-export async function syncAdminPersonalHubCatalog(req: Request, res: Response) {
+export async function syncAdminPersonalHubCatalog(req: Request, res: Response, next: NextFunction) {
   try {
     const scope = await resolveAdminScope(req);
 
     if (!scope.isGlobal) {
-      return res.status(403).json({
-        success: false,
-        error: 'Personal Hub catalog sync is available to platform admins only.',
-      });
+      return next(createHttpError(403, 'PERSONAL_HUB_CATALOG_SYNC_FORBIDDEN', 'Personal Hub catalog sync is available to platform admins only.'));
     }
 
     const result = await syncExpressPayCatalogToCache();
@@ -1120,23 +1093,21 @@ export async function syncAdminPersonalHubCatalog(req: Request, res: Response) {
       success: true,
       data: result,
     });
-  } catch (error: any) {
-    res.status(400).json({
-      success: false,
-      error: error.message || 'Failed to sync Personal Hub catalog',
-    });
+  } catch (error) {
+    if (error instanceof Error && 'statusCode' in error) {
+      return next(error);
+    }
+    const message = error instanceof Error && error.message ? error.message : 'Failed to sync Personal Hub catalog';
+    return next(createHttpError(400, 'PERSONAL_HUB_CATALOG_SYNC_FAILED', message, error));
   }
 }
 
-export async function listAdminPersonalHubCatalogProviders(req: Request, res: Response) {
+export async function listAdminPersonalHubCatalogProviders(req: Request, res: Response, next: NextFunction) {
   try {
     const scope = await resolveAdminScope(req);
 
     if (!scope.isGlobal) {
-      return res.status(403).json({
-        success: false,
-        error: 'Personal Hub catalog management is available to platform admins only.',
-      });
+      return next(createHttpError(403, 'PERSONAL_HUB_CATALOG_MANAGEMENT_FORBIDDEN', 'Personal Hub catalog management is available to platform admins only.'));
     }
 
     const providers = await listCachedPersonalHubProviders({
@@ -1151,23 +1122,17 @@ export async function listAdminPersonalHubCatalogProviders(req: Request, res: Re
         items: providers,
       },
     });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to load admin Personal Hub providers',
-    });
+  } catch (error) {
+    return forwardPaymentControllerError(next, error, 'ADMIN_PERSONAL_HUB_PROVIDERS_LOAD_FAILED', 'Failed to load admin Personal Hub providers');
   }
 }
 
-export async function updateAdminPersonalHubCatalogProvider(req: Request, res: Response) {
+export async function updateAdminPersonalHubCatalogProvider(req: Request, res: Response, next: NextFunction) {
   try {
     const scope = await resolveAdminScope(req);
 
     if (!scope.isGlobal) {
-      return res.status(403).json({
-        success: false,
-        error: 'Personal Hub catalog management is available to platform admins only.',
-      });
+      return next(createHttpError(403, 'PERSONAL_HUB_CATALOG_MANAGEMENT_FORBIDDEN', 'Personal Hub catalog management is available to platform admins only.'));
     }
 
     const provider = await updateCachedPersonalHubProvider({
@@ -1185,23 +1150,21 @@ export async function updateAdminPersonalHubCatalogProvider(req: Request, res: R
       success: true,
       data: provider,
     });
-  } catch (error: any) {
-    res.status(400).json({
-      success: false,
-      error: error.message || 'Failed to update admin Personal Hub provider',
-    });
+  } catch (error) {
+    if (error instanceof Error && 'statusCode' in error) {
+      return next(error);
+    }
+    const message = error instanceof Error && error.message ? error.message : 'Failed to update admin Personal Hub provider';
+    return next(createHttpError(400, 'ADMIN_PERSONAL_HUB_PROVIDER_UPDATE_FAILED', message, error));
   }
 }
 
-export async function listAdminPersonalHubCatalogPackages(req: Request, res: Response) {
+export async function listAdminPersonalHubCatalogPackages(req: Request, res: Response, next: NextFunction) {
   try {
     const scope = await resolveAdminScope(req);
 
     if (!scope.isGlobal) {
-      return res.status(403).json({
-        success: false,
-        error: 'Personal Hub catalog management is available to platform admins only.',
-      });
+      return next(createHttpError(403, 'PERSONAL_HUB_CATALOG_MANAGEMENT_FORBIDDEN', 'Personal Hub catalog management is available to platform admins only.'));
     }
 
     const packages = await listCachedPersonalHubPackages({
@@ -1216,23 +1179,17 @@ export async function listAdminPersonalHubCatalogPackages(req: Request, res: Res
         items: packages,
       },
     });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to load admin Personal Hub packages',
-    });
+  } catch (error) {
+    return forwardPaymentControllerError(next, error, 'ADMIN_PERSONAL_HUB_PACKAGES_LOAD_FAILED', 'Failed to load admin Personal Hub packages');
   }
 }
 
-export async function getAdminPersonalHubDashboard(req: Request, res: Response) {
+export async function getAdminPersonalHubDashboard(req: Request, res: Response, next: NextFunction) {
   try {
     const scope = await resolveAdminScope(req);
 
     if (!scope.isGlobal) {
-      return res.status(403).json({
-        success: false,
-        error: 'Personal Hub admin reporting is available to platform admins only.',
-      });
+      return next(createHttpError(403, 'PERSONAL_HUB_REPORTS_FORBIDDEN', 'Personal Hub admin reporting is available to platform admins only.'));
     }
 
     const periodDays = Number(req.query.period || 30);
@@ -1588,23 +1545,17 @@ export async function getAdminPersonalHubDashboard(req: Request, res: Response) 
         service_metrics: serviceMetrics,
       },
     });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to load Personal Hub dashboard',
-    });
+  } catch (error) {
+    return forwardPaymentControllerError(next, error, 'ADMIN_PERSONAL_HUB_DASHBOARD_FAILED', 'Failed to load Personal Hub dashboard');
   }
 }
 
-export async function getAdminPersonalHubReports(req: Request, res: Response) {
+export async function getAdminPersonalHubReports(req: Request, res: Response, next: NextFunction) {
   try {
     const scope = await resolveAdminScope(req);
 
     if (!scope.isGlobal) {
-      return res.status(403).json({
-        success: false,
-        error: 'Personal Hub reports are available to platform admins only.',
-      });
+      return next(createHttpError(403, 'PERSONAL_HUB_REPORTS_FORBIDDEN', 'Personal Hub reports are available to platform admins only.'));
     }
 
     const periodDays = Number(req.query.period || 30);
@@ -1857,15 +1808,12 @@ export async function getAdminPersonalHubReports(req: Request, res: Response) {
         },
       },
     });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to load Personal Hub reports',
-    });
+  } catch (error) {
+    return forwardPaymentControllerError(next, error, 'ADMIN_PERSONAL_HUB_REPORTS_FAILED', 'Failed to load Personal Hub reports');
   }
 }
 
-export async function listAdminTransactions(req: Request, res: Response) {
+export async function listAdminTransactions(req: Request, res: Response, next: NextFunction) {
   try {
     const items = await listAdminPaymentTransactions({
       status: typeof req.query.status === 'string' ? req.query.status : undefined,
@@ -1881,38 +1829,29 @@ export async function listAdminTransactions(req: Request, res: Response) {
         items,
       },
     });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to load payment transactions',
-    });
+  } catch (error) {
+    return forwardPaymentControllerError(next, error, 'ADMIN_PAYMENT_TRANSACTIONS_LOAD_FAILED', 'Failed to load payment transactions');
   }
 }
 
-export async function getAdminTransaction(req: Request, res: Response) {
+export async function getAdminTransaction(req: Request, res: Response, next: NextFunction) {
   try {
     const transaction = await getAdminPaymentTransaction(req.params.id);
 
     if (!transaction) {
-      return res.status(404).json({
-        success: false,
-        error: 'Payment transaction not found.',
-      });
+      return next(createHttpError(404, 'ADMIN_PAYMENT_TRANSACTION_NOT_FOUND', 'Payment transaction not found.'));
     }
 
     res.json({
       success: true,
       data: transaction,
     });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to load payment transaction',
-    });
+  } catch (error) {
+    return forwardPaymentControllerError(next, error, 'ADMIN_PAYMENT_TRANSACTION_LOAD_FAILED', 'Failed to load payment transaction');
   }
 }
 
-export async function listAdminObligations(req: Request, res: Response) {
+export async function listAdminObligations(req: Request, res: Response, next: NextFunction) {
   try {
     const items = await listAdminPaymentObligations({
       status: typeof req.query.status === 'string' ? req.query.status : undefined,
@@ -1927,15 +1866,12 @@ export async function listAdminObligations(req: Request, res: Response) {
         items,
       },
     });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to load payment obligations',
-    });
+  } catch (error) {
+    return forwardPaymentControllerError(next, error, 'ADMIN_PAYMENT_OBLIGATIONS_LOAD_FAILED', 'Failed to load payment obligations');
   }
 }
 
-export async function listAdminStatements(req: Request, res: Response) {
+export async function listAdminStatements(req: Request, res: Response, next: NextFunction) {
   try {
     const items = await listAdminPaymentStatements({
       unitId: typeof req.query.unit_id === 'string' ? req.query.unit_id : undefined,
@@ -1949,15 +1885,12 @@ export async function listAdminStatements(req: Request, res: Response) {
         items,
       },
     });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to load payment statements',
-    });
+  } catch (error) {
+    return forwardPaymentControllerError(next, error, 'ADMIN_PAYMENT_STATEMENTS_LOAD_FAILED', 'Failed to load payment statements');
   }
 }
 
-export async function listAdminPaymentChargeCatalog(req: Request, res: Response) {
+export async function listAdminPaymentChargeCatalog(req: Request, res: Response, next: NextFunction) {
   try {
     const items = await getPaymentChargeCatalog();
     res.json({
@@ -1966,15 +1899,12 @@ export async function listAdminPaymentChargeCatalog(req: Request, res: Response)
         items,
       },
     });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to load payment charge catalog',
-    });
+  } catch (error) {
+    return forwardPaymentControllerError(next, error, 'ADMIN_PAYMENT_CHARGE_CATALOG_LOAD_FAILED', 'Failed to load payment charge catalog');
   }
 }
 
-export async function listAdminPaymentChargeTemplates(req: Request, res: Response) {
+export async function listAdminPaymentChargeTemplates(req: Request, res: Response, next: NextFunction) {
   try {
     const items = await listPaymentChargeTemplates({
       scope_level: typeof req.query.scope_level === 'string' ? req.query.scope_level as 'agency' | 'community' : undefined,
@@ -1991,75 +1921,60 @@ export async function listAdminPaymentChargeTemplates(req: Request, res: Respons
         items,
       },
     });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to load payment charge templates',
-    });
+  } catch (error) {
+    return forwardPaymentControllerError(next, error, 'ADMIN_PAYMENT_CHARGE_TEMPLATES_LOAD_FAILED', 'Failed to load payment charge templates');
   }
 }
 
-export async function createAdminPaymentChargeTemplate(req: Request, res: Response) {
+export async function createAdminPaymentChargeTemplate(req: Request, res: Response, next: NextFunction) {
   try {
     const item = await createPaymentChargeTemplate(req.body, getActorUserId(req));
     res.status(201).json({
       success: true,
       data: item,
     });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to create payment charge template',
-    });
+  } catch (error) {
+    return forwardPaymentControllerError(next, error, 'ADMIN_PAYMENT_CHARGE_TEMPLATE_CREATE_FAILED', 'Failed to create payment charge template');
   }
 }
 
-export async function updateAdminPaymentChargeTemplate(req: Request, res: Response) {
+export async function updateAdminPaymentChargeTemplate(req: Request, res: Response, next: NextFunction) {
   try {
     const item = await updatePaymentChargeTemplate(req.params.id, req.body, getActorUserId(req));
     res.json({
       success: true,
       data: item,
     });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to update payment charge template',
-    });
+  } catch (error) {
+    return forwardPaymentControllerError(next, error, 'ADMIN_PAYMENT_CHARGE_TEMPLATE_UPDATE_FAILED', 'Failed to update payment charge template');
   }
 }
 
-export async function previewAdminPaymentChargeTemplate(req: Request, res: Response) {
+export async function previewAdminPaymentChargeTemplate(req: Request, res: Response, next: NextFunction) {
   try {
     const preview = await previewPaymentChargeTemplate(req.params.id, req.body || {});
     res.json({
       success: true,
       data: preview,
     });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to preview payment charge template',
-    });
+  } catch (error) {
+    return forwardPaymentControllerError(next, error, 'ADMIN_PAYMENT_CHARGE_TEMPLATE_PREVIEW_FAILED', 'Failed to preview payment charge template');
   }
 }
 
-export async function issueAdminPaymentChargeTemplate(req: Request, res: Response) {
+export async function issueAdminPaymentChargeTemplate(req: Request, res: Response, next: NextFunction) {
   try {
     const issued = await issuePaymentChargeTemplate(req.params.id, req.body || {}, getActorUserId(req));
     res.json({
       success: true,
       data: issued,
     });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to issue payment charges',
-    });
+  } catch (error) {
+    return forwardPaymentControllerError(next, error, 'ADMIN_PAYMENT_CHARGE_ISSUE_FAILED', 'Failed to issue payment charges');
   }
 }
 
-export async function listAdminPaymentChargeRuns(req: Request, res: Response) {
+export async function listAdminPaymentChargeRuns(req: Request, res: Response, next: NextFunction) {
   try {
     const items = await listPaymentChargeRuns({
       community_id: typeof req.query.community_id === 'string' ? req.query.community_id : undefined,
@@ -2073,38 +1988,29 @@ export async function listAdminPaymentChargeRuns(req: Request, res: Response) {
         items,
       },
     });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to load payment charge runs',
-    });
+  } catch (error) {
+    return forwardPaymentControllerError(next, error, 'ADMIN_PAYMENT_CHARGE_RUNS_LOAD_FAILED', 'Failed to load payment charge runs');
   }
 }
 
-export async function getAdminPaymentChargeRunDetails(req: Request, res: Response) {
+export async function getAdminPaymentChargeRunDetails(req: Request, res: Response, next: NextFunction) {
   try {
     const run = await getPaymentChargeRun(req.params.id);
 
     if (!run) {
-      return res.status(404).json({
-        success: false,
-        error: 'Payment charge run not found.',
-      });
+      return next(createHttpError(404, 'ADMIN_PAYMENT_CHARGE_RUN_NOT_FOUND', 'Payment charge run not found.'));
     }
 
     res.json({
       success: true,
       data: run,
     });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to load payment charge run',
-    });
+  } catch (error) {
+    return forwardPaymentControllerError(next, error, 'ADMIN_PAYMENT_CHARGE_RUN_LOAD_FAILED', 'Failed to load payment charge run');
   }
 }
 
-export async function runDueAdminPaymentCharges(req: Request, res: Response) {
+export async function runDueAdminPaymentCharges(req: Request, res: Response, next: NextFunction) {
   try {
     const result = await runDuePaymentCharges({
       communityId: typeof req.body?.community_id === 'string' ? req.body.community_id : undefined,
@@ -2116,27 +2022,21 @@ export async function runDueAdminPaymentCharges(req: Request, res: Response) {
       success: true,
       data: result,
     });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to run due payment charges',
-    });
+  } catch (error) {
+    return forwardPaymentControllerError(next, error, 'ADMIN_PAYMENT_CHARGES_RUN_FAILED', 'Failed to run due payment charges');
   }
 }
 
-export async function getAdminPayoutSummaryHandler(req: Request, res: Response) {
+export async function getAdminPayoutSummaryHandler(req: Request, res: Response, next: NextFunction) {
   try {
     const data = await getAdminPayoutSummary(getAdminPayoutScope(req));
     res.json({ success: true, data });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to load payout summary',
-    });
+  } catch (error) {
+    return forwardPaymentControllerError(next, error, 'ADMIN_PAYOUT_SUMMARY_LOAD_FAILED', 'Failed to load payout summary');
   }
 }
 
-export async function listAdminPayoutTransactionsHandler(req: Request, res: Response) {
+export async function listAdminPayoutTransactionsHandler(req: Request, res: Response, next: NextFunction) {
   try {
     const items = await listAdminPayoutTransactions(getAdminPayoutScope(req));
     res.json({
@@ -2145,15 +2045,12 @@ export async function listAdminPayoutTransactionsHandler(req: Request, res: Resp
         items,
       },
     });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to load payout transactions',
-    });
+  } catch (error) {
+    return forwardPaymentControllerError(next, error, 'ADMIN_PAYOUT_TRANSACTIONS_LOAD_FAILED', 'Failed to load payout transactions');
   }
 }
 
-export async function listAdminPayoutDestinationsHandler(req: Request, res: Response) {
+export async function listAdminPayoutDestinationsHandler(req: Request, res: Response, next: NextFunction) {
   try {
     const items = await listAdminPayoutDestinations(getAdminPayoutScope(req));
     res.json({
@@ -2162,45 +2059,36 @@ export async function listAdminPayoutDestinationsHandler(req: Request, res: Resp
         items,
       },
     });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to load payout destinations',
-    });
+  } catch (error) {
+    return forwardPaymentControllerError(next, error, 'ADMIN_PAYOUT_DESTINATIONS_LOAD_FAILED', 'Failed to load payout destinations');
   }
 }
 
-export async function createAdminPayoutDestinationHandler(req: Request, res: Response) {
+export async function createAdminPayoutDestinationHandler(req: Request, res: Response, next: NextFunction) {
   try {
     const item = await createAdminPayoutDestination(req.body, getAdminPayoutScope(req));
     res.status(201).json({
       success: true,
       data: item,
     });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to create payout destination',
-    });
+  } catch (error) {
+    return forwardPaymentControllerError(next, error, 'ADMIN_PAYOUT_DESTINATION_CREATE_FAILED', 'Failed to create payout destination');
   }
 }
 
-export async function updateAdminPayoutDestinationHandler(req: Request, res: Response) {
+export async function updateAdminPayoutDestinationHandler(req: Request, res: Response, next: NextFunction) {
   try {
     const item = await updateAdminPayoutDestination(req.params.id, req.body || {}, getAdminPayoutScope(req));
     res.json({
       success: true,
       data: item,
     });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to update payout destination',
-    });
+  } catch (error) {
+    return forwardPaymentControllerError(next, error, 'ADMIN_PAYOUT_DESTINATION_UPDATE_FAILED', 'Failed to update payout destination');
   }
 }
 
-export async function listAdminPayoutRulesHandler(req: Request, res: Response) {
+export async function listAdminPayoutRulesHandler(req: Request, res: Response, next: NextFunction) {
   try {
     const items = await listAdminPayoutRules(getAdminPayoutScope(req));
     res.json({
@@ -2209,30 +2097,24 @@ export async function listAdminPayoutRulesHandler(req: Request, res: Response) {
         items,
       },
     });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to load payout rules',
-    });
+  } catch (error) {
+    return forwardPaymentControllerError(next, error, 'ADMIN_PAYOUT_RULES_LOAD_FAILED', 'Failed to load payout rules');
   }
 }
 
-export async function upsertAdminPayoutRuleHandler(req: Request, res: Response) {
+export async function upsertAdminPayoutRuleHandler(req: Request, res: Response, next: NextFunction) {
   try {
     const item = await upsertAdminPayoutRule(req.body, getAdminPayoutScope(req));
     res.status(req.body?.id ? 200 : 201).json({
       success: true,
       data: item,
     });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to save payout rule',
-    });
+  } catch (error) {
+    return forwardPaymentControllerError(next, error, 'ADMIN_PAYOUT_RULE_SAVE_FAILED', 'Failed to save payout rule');
   }
 }
 
-export async function listAdminPayoutRequestsHandler(req: Request, res: Response) {
+export async function listAdminPayoutRequestsHandler(req: Request, res: Response, next: NextFunction) {
   try {
     const items = await listAdminPayoutRequests(getAdminPayoutScope(req));
     res.json({
@@ -2241,30 +2123,24 @@ export async function listAdminPayoutRequestsHandler(req: Request, res: Response
         items,
       },
     });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to load payout requests',
-    });
+  } catch (error) {
+    return forwardPaymentControllerError(next, error, 'ADMIN_PAYOUT_REQUESTS_LOAD_FAILED', 'Failed to load payout requests');
   }
 }
 
-export async function createAdminPayoutRequestHandler(req: Request, res: Response) {
+export async function createAdminPayoutRequestHandler(req: Request, res: Response, next: NextFunction) {
   try {
     const item = await createAdminPayoutRequest(req.body, getAdminPayoutScope(req));
     res.status(201).json({
       success: true,
       data: item,
     });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to create payout request',
-    });
+  } catch (error) {
+    return forwardPaymentControllerError(next, error, 'ADMIN_PAYOUT_REQUEST_CREATE_FAILED', 'Failed to create payout request');
   }
 }
 
-export async function updateAdminPayoutRequestStatusHandler(req: Request, res: Response) {
+export async function updateAdminPayoutRequestStatusHandler(req: Request, res: Response, next: NextFunction) {
   try {
     const item = await updateAdminPayoutRequestStatus(
       req.params.id,
@@ -2276,15 +2152,12 @@ export async function updateAdminPayoutRequestStatusHandler(req: Request, res: R
       success: true,
       data: item,
     });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to update payout request',
-    });
+  } catch (error) {
+    return forwardPaymentControllerError(next, error, 'ADMIN_PAYOUT_REQUEST_UPDATE_FAILED', 'Failed to update payout request');
   }
 }
 
-export async function recomputeInternalPayoutBalancesHandler(req: Request, res: Response) {
+export async function recomputeInternalPayoutBalancesHandler(req: Request, res: Response, next: NextFunction) {
   try {
     const data = await recomputePayoutBalances({
       agencyId: typeof req.body?.agency_id === 'string' ? req.body.agency_id : undefined,
@@ -2296,15 +2169,12 @@ export async function recomputeInternalPayoutBalancesHandler(req: Request, res: 
       success: true,
       data,
     });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to recompute payout balances',
-    });
+  } catch (error) {
+    return forwardPaymentControllerError(next, error, 'ADMIN_PAYOUT_RECOMPUTE_FAILED', 'Failed to recompute payout balances');
   }
 }
 
-export async function releaseInternalStalePayoutReservationsHandler(req: Request, res: Response) {
+export async function releaseInternalStalePayoutReservationsHandler(req: Request, res: Response, next: NextFunction) {
   try {
     const data = await releaseStalePayoutReservations({
       agencyId: typeof req.body?.agency_id === 'string' ? req.body.agency_id : undefined,
@@ -2317,10 +2187,12 @@ export async function releaseInternalStalePayoutReservationsHandler(req: Request
       success: true,
       data,
     });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to release stale payout reservations',
-    });
+  } catch (error) {
+    return forwardPaymentControllerError(
+      next,
+      error,
+      'ADMIN_PAYOUT_RESERVATIONS_RELEASE_FAILED',
+      'Failed to release stale payout reservations'
+    );
   }
 }

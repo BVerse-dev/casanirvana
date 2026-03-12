@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import { ZodError, type ZodTypeAny } from 'zod';
+import { createHttpError } from '../lib/httpError';
 
 type RequestSchemas = {
   body?: ZodTypeAny;
@@ -46,11 +47,7 @@ export const validateRequest =
       next();
     } catch (err) {
       if (err instanceof ZodError) {
-        return next({
-          statusCode: 400,
-          message: 'Validation failed',
-          details: err.flatten(),
-        });
+        return next(createHttpError(400, 'VALIDATION_ERROR', 'Validation failed', err.flatten()));
       }
       next(err);
     }

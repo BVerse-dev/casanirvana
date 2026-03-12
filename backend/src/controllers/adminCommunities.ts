@@ -1,4 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
+
+import { createHttpError } from '../lib/httpError';
 import { supabase } from '../lib/supabase';
 import { resolveAdminScope } from '../services/adminScope';
 
@@ -20,7 +22,7 @@ export async function listCommunities(req: Request, res: Response, next: NextFun
 
     const { data, error } = await query;
     if (error) {
-      return res.status(500).json({ error: 'Failed to load communities', details: error.message });
+      return next(createHttpError(500, 'COMMUNITIES_LIST_FAILED', 'Failed to load communities', error));
     }
 
     return res.json({ data: data || [] });
@@ -38,7 +40,7 @@ export async function createCommunity(req: Request, res: Response, next: NextFun
       .single();
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to create community', details: error });
+      return next(createHttpError(500, 'COMMUNITY_CREATE_FAILED', 'Failed to create community', error));
     }
 
     return res.status(201).json(data);
@@ -58,11 +60,11 @@ export async function updateCommunity(req: Request, res: Response, next: NextFun
       .single();
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to update community', details: error });
+      return next(createHttpError(500, 'COMMUNITY_UPDATE_FAILED', 'Failed to update community', error));
     }
 
     if (!data) {
-      return res.status(404).json({ error: 'Community not found' });
+      return next(createHttpError(404, 'COMMUNITY_NOT_FOUND', 'Community not found'));
     }
 
     return res.json(data);
@@ -80,7 +82,7 @@ export async function deleteCommunity(req: Request, res: Response, next: NextFun
       .eq('id', id);
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to delete community', details: error });
+      return next(createHttpError(500, 'COMMUNITY_DELETE_FAILED', 'Failed to delete community', error));
     }
 
     return res.status(204).send();

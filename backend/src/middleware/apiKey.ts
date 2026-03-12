@@ -1,15 +1,16 @@
 import { Request, Response, NextFunction } from 'express';
+import { createHttpError } from '../lib/httpError';
 
 export function requireOnboardingApiKey(req: Request, res: Response, next: NextFunction) {
   const expectedKey = process.env.ONBOARDING_REQUEST_API_KEY;
   const providedKey = req.header('x-onboarding-api-key');
 
   if (!expectedKey) {
-    return res.status(500).json({ error: 'Onboarding API key is not configured' });
+    return next(createHttpError(500, 'ONBOARDING_API_KEY_MISSING', 'Onboarding API key is not configured'));
   }
 
   if (!providedKey || providedKey !== expectedKey) {
-    return res.status(401).json({ error: 'Invalid onboarding API key' });
+    return next(createHttpError(401, 'ONBOARDING_API_KEY_INVALID', 'Invalid onboarding API key'));
   }
 
   next();
@@ -20,11 +21,11 @@ export function requirePaymentChargeCronApiKey(req: Request, res: Response, next
   const providedKey = req.header('x-payment-charge-cron-key');
 
   if (!expectedKey) {
-    return res.status(500).json({ error: 'Payment charge cron API key is not configured' });
+    return next(createHttpError(500, 'PAYMENT_CHARGE_CRON_KEY_MISSING', 'Payment charge cron API key is not configured'));
   }
 
   if (!providedKey || providedKey !== expectedKey) {
-    return res.status(401).json({ error: 'Invalid payment charge cron API key' });
+    return next(createHttpError(401, 'PAYMENT_CHARGE_CRON_KEY_INVALID', 'Invalid payment charge cron API key'));
   }
 
   next();
@@ -35,11 +36,11 @@ export function requirePayoutAutomationApiKey(req: Request, res: Response, next:
   const providedKey = req.header('x-payout-automation-key');
 
   if (!expectedKey) {
-    return res.status(500).json({ error: 'Payout automation API key is not configured' });
+    return next(createHttpError(500, 'PAYOUT_AUTOMATION_KEY_MISSING', 'Payout automation API key is not configured'));
   }
 
   if (!providedKey || providedKey !== expectedKey) {
-    return res.status(401).json({ error: 'Invalid payout automation API key' });
+    return next(createHttpError(401, 'PAYOUT_AUTOMATION_KEY_INVALID', 'Invalid payout automation API key'));
   }
 
   next();

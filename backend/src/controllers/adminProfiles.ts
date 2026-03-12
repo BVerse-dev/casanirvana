@@ -1,4 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
+
+import { createHttpError } from '../lib/httpError';
 import { supabase } from '../lib/supabase';
 
 const ALLOWED_ROLES = [
@@ -20,7 +22,7 @@ export async function createProfile(req: Request, res: Response, next: NextFunct
     const { role } = req.body || {};
 
     if (role && !isAllowedRole(role)) {
-      return res.status(400).json({ error: 'Invalid role provided' });
+      return next(createHttpError(400, 'PROFILE_ROLE_INVALID', 'Invalid role provided'));
     }
 
     const { data, error } = await supabase
@@ -30,7 +32,7 @@ export async function createProfile(req: Request, res: Response, next: NextFunct
       .single();
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to create profile', details: error });
+      return next(createHttpError(500, 'PROFILE_CREATE_FAILED', 'Failed to create profile', error));
     }
 
     return res.status(201).json(data);
@@ -45,7 +47,7 @@ export async function updateProfile(req: Request, res: Response, next: NextFunct
     const { role } = req.body || {};
 
     if (role && !isAllowedRole(role)) {
-      return res.status(400).json({ error: 'Invalid role provided' });
+      return next(createHttpError(400, 'PROFILE_ROLE_INVALID', 'Invalid role provided'));
     }
 
     const { data, error } = await supabase
@@ -56,11 +58,11 @@ export async function updateProfile(req: Request, res: Response, next: NextFunct
       .single();
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to update profile', details: error });
+      return next(createHttpError(500, 'PROFILE_UPDATE_FAILED', 'Failed to update profile', error));
     }
 
     if (!data) {
-      return res.status(404).json({ error: 'Profile not found' });
+      return next(createHttpError(404, 'PROFILE_NOT_FOUND', 'Profile not found'));
     }
 
     return res.json(data);
@@ -78,7 +80,7 @@ export async function deleteProfile(req: Request, res: Response, next: NextFunct
       .eq('id', id);
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to delete profile', details: error });
+      return next(createHttpError(500, 'PROFILE_DELETE_FAILED', 'Failed to delete profile', error));
     }
 
     return res.status(204).send();

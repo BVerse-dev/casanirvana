@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { createHttpError } from '../lib/httpError';
 import { supabase } from '../lib/supabase';
 
 export async function getUnreadNotificationsCount(req: Request, res: Response, next: NextFunction) {
@@ -8,7 +9,16 @@ export async function getUnreadNotificationsCount(req: Request, res: Response, n
       .from('notifications')
       .select('*', { count: 'exact', head: true })
       .eq('is_read', false);
-    if (error) return res.status(500).json({ error: 'Failed to fetch unread notifications count', details: error });
+    if (error) {
+      return next(
+        createHttpError(
+          500,
+          'UNREAD_NOTIFICATIONS_COUNT_FAILED',
+          'Failed to fetch unread notifications count',
+          error
+        )
+      );
+    }
     res.json({ count: count || 0 });
   } catch (err) {
     next(err);

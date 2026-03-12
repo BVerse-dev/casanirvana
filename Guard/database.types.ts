@@ -5039,7 +5039,7 @@ export type Database = {
             foreignKeyName: "guard_assignments_backup_guard_id_fkey"
             columns: ["backup_guard_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "guards"
             referencedColumns: ["id"]
           },
           {
@@ -5053,14 +5053,14 @@ export type Database = {
             foreignKeyName: "guard_assignments_guard_id_fkey"
             columns: ["guard_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "guards"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "guard_assignments_supervisor_id_fkey"
             columns: ["supervisor_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "guards"
             referencedColumns: ["id"]
           },
         ]
@@ -5119,7 +5119,7 @@ export type Database = {
             foreignKeyName: "guard_certifications_guard_id_fkey"
             columns: ["guard_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "guards"
             referencedColumns: ["id"]
           },
         ]
@@ -5468,7 +5468,7 @@ export type Database = {
             foreignKeyName: "guard_performance_reviews_guard_id_fkey"
             columns: ["guard_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "guards"
             referencedColumns: ["id"]
           },
           {
@@ -5534,14 +5534,14 @@ export type Database = {
             foreignKeyName: "guard_schedules_guard_id_fkey"
             columns: ["guard_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "guards"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "guard_schedules_replacement_id_fkey"
             columns: ["replacement_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "guards"
             referencedColumns: ["id"]
           },
           {
@@ -5750,7 +5750,7 @@ export type Database = {
             foreignKeyName: "guard_trainings_guard_id_fkey"
             columns: ["guard_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "guards"
             referencedColumns: ["id"]
           },
           {
@@ -11211,6 +11211,7 @@ export type Database = {
           push_token: string | null
           role: string
           unit_id: string | null
+          updated_at: string
         }
         Insert: {
           address?: string | null
@@ -11227,6 +11228,7 @@ export type Database = {
           push_token?: string | null
           role: string
           unit_id?: string | null
+          updated_at?: string
         }
         Update: {
           address?: string | null
@@ -11243,6 +11245,7 @@ export type Database = {
           push_token?: string | null
           role?: string
           unit_id?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
@@ -11683,7 +11686,7 @@ export type Database = {
             foreignKeyName: "guard_performance_reviews_guard_id_fkey"
             columns: ["guard_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "guards"
             referencedColumns: ["id"]
           },
           {

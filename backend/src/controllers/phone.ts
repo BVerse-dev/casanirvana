@@ -1,9 +1,24 @@
 import { Request, Response, NextFunction } from 'express';
+import { createHttpError } from '../lib/httpError';
 import { supabase } from '../lib/supabase';
 
 /**
  * Enhanced backend controllers with comprehensive phone field support
  */
+
+const forwardPhoneControllerError = (
+  next: NextFunction,
+  error: unknown,
+  code: string,
+  fallbackMessage: string
+) => {
+  if (error instanceof Error && 'statusCode' in error) {
+    return next(error);
+  }
+
+  const message = error instanceof Error && error.message ? error.message : fallbackMessage;
+  return next(createHttpError(500, code, message, error));
+};
 
 // Visitor Pass Management with Phone Fields
 export async function createVisitorPass(req: Request, res: Response, next: NextFunction) {
@@ -36,12 +51,12 @@ export async function createVisitorPass(req: Request, res: Response, next: NextF
       .single();
 
     if (error) {
-      return res.status(400).json({ error: 'Failed to create visitor pass', details: error });
+      return next(createHttpError(400, 'PHONE_VISITOR_PASS_CREATE_FAILED', 'Failed to create visitor pass', error));
     }
 
     res.status(201).json(data);
-  } catch (err) {
-    next(err);
+  } catch (error) {
+    return forwardPhoneControllerError(next, error, 'PHONE_VISITOR_PASS_CREATE_FAILED', 'Failed to create visitor pass');
   }
 }
 
@@ -73,12 +88,12 @@ export async function getVisitorPasses(req: Request, res: Response, next: NextFu
       .order('created_at', { ascending: false });
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to fetch visitor passes', details: error });
+      return next(createHttpError(500, 'PHONE_VISITOR_PASSES_LOAD_FAILED', 'Failed to fetch visitor passes', error));
     }
 
     res.json(data);
-  } catch (err) {
-    next(err);
+  } catch (error) {
+    return forwardPhoneControllerError(next, error, 'PHONE_VISITOR_PASSES_LOAD_FAILED', 'Failed to fetch visitor passes');
   }
 }
 
@@ -116,12 +131,12 @@ export async function createUnit(req: Request, res: Response, next: NextFunction
       .single();
 
     if (error) {
-      return res.status(400).json({ error: 'Failed to create unit', details: error });
+      return next(createHttpError(400, 'PHONE_UNIT_CREATE_FAILED', 'Failed to create unit', error));
     }
 
     res.status(201).json(data);
-  } catch (err) {
-    next(err);
+  } catch (error) {
+    return forwardPhoneControllerError(next, error, 'PHONE_UNIT_CREATE_FAILED', 'Failed to create unit');
   }
 }
 
@@ -153,12 +168,12 @@ export async function updateUnit(req: Request, res: Response, next: NextFunction
       .single();
 
     if (error) {
-      return res.status(400).json({ error: 'Failed to update unit', details: error });
+      return next(createHttpError(400, 'PHONE_UNIT_UPDATE_FAILED', 'Failed to update unit', error));
     }
 
     res.json(data);
-  } catch (err) {
-    next(err);
+  } catch (error) {
+    return forwardPhoneControllerError(next, error, 'PHONE_UNIT_UPDATE_FAILED', 'Failed to update unit');
   }
 }
 
@@ -197,12 +212,12 @@ export async function createGuard(req: Request, res: Response, next: NextFunctio
       .single();
 
     if (error) {
-      return res.status(400).json({ error: 'Failed to create guard', details: error });
+      return next(createHttpError(400, 'PHONE_GUARD_CREATE_FAILED', 'Failed to create guard', error));
     }
 
     res.status(201).json(data);
-  } catch (err) {
-    next(err);
+  } catch (error) {
+    return forwardPhoneControllerError(next, error, 'PHONE_GUARD_CREATE_FAILED', 'Failed to create guard');
   }
 }
 
@@ -238,12 +253,12 @@ export async function updateSociety(req: Request, res: Response, next: NextFunct
       .single();
 
     if (error) {
-      return res.status(400).json({ error: 'Failed to update society', details: error });
+      return next(createHttpError(400, 'PHONE_COMMUNITY_UPDATE_FAILED', 'Failed to update society', error));
     }
 
     res.json(data);
-  } catch (err) {
-    next(err);
+  } catch (error) {
+    return forwardPhoneControllerError(next, error, 'PHONE_COMMUNITY_UPDATE_FAILED', 'Failed to update society');
   }
 }
 
@@ -253,7 +268,7 @@ export async function searchByPhone(req: Request, res: Response, next: NextFunct
     const { phone, society_id } = req.query;
 
     if (!phone) {
-      return res.status(400).json({ error: 'Phone number is required' });
+      return next(createHttpError(400, 'PHONE_SEARCH_REQUIRED', 'Phone number is required'));
     }
 
     const phonePattern = `%${phone}%`;
@@ -298,8 +313,8 @@ export async function searchByPhone(req: Request, res: Response, next: NextFunct
       visitor_passes: visitorPasses.data || [],
       units: units.data || []
     });
-  } catch (err) {
-    next(err);
+  } catch (error) {
+    return forwardPhoneControllerError(next, error, 'PHONE_SEARCH_FAILED', 'Failed to search by phone');
   }
 }
 

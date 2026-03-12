@@ -41,7 +41,7 @@ const useGuardAssignment = () => {
         .from('guards')
         .select('*')
         .eq('user_id', userProfile.id)
-        .single();
+        .maybeSingle();
 
       if (guardError) {
         console.error('Guard profile error:', guardError);
@@ -49,7 +49,13 @@ const useGuardAssignment = () => {
         setGuardProfile(guard);
       }
 
-      // Fetch current assignment using profile ID
+      if (!guard?.id) {
+        setAssignment(null);
+        setSociety(null);
+        return;
+      }
+
+      // Fetch current assignment using canonical guard ID
       const { data: assignments, error: assignmentError } = await supabase
         .from('guard_assignments')
         .select(`
@@ -61,7 +67,7 @@ const useGuardAssignment = () => {
             email
           )
         `)
-        .eq('guard_id', userProfile.id)
+        .eq('guard_id', guard.id)
         .eq('status', 'active')
         .order('created_at', { ascending: false })
         .limit(1);

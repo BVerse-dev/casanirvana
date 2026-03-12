@@ -93,6 +93,19 @@ const QUERY_KEYS = {
   performanceStats: ['performance-stats'] as const,
 };
 
+type GuardLookup = Pick<
+  Database['public']['Tables']['guards']['Row'],
+  'id' | 'full_name' | 'first_name' | 'last_name' | 'avatar_url'
+>;
+
+const formatGuardName = (guard?: Partial<GuardLookup> | null) => {
+  if (!guard) return 'Unknown';
+  const fullName = guard.full_name?.trim();
+  if (fullName) return fullName;
+  const parts = [guard.first_name?.trim(), guard.last_name?.trim()].filter(Boolean);
+  return parts.length > 0 ? parts.join(' ') : 'Unknown';
+};
+
 // Hook for fetching all guard performance data
 export const useGuardPerformances = () => {
   return useQuery({
@@ -135,8 +148,8 @@ export const useGuardPerformances = () => {
 
       // Fetch guards data
       const { data: guardsData } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, avatar_url')
+        .from('guards')
+        .select('id, full_name, first_name, last_name, avatar_url')
         .in('id', guardIds);
 
       // Create lookup map
@@ -149,7 +162,7 @@ export const useGuardPerformances = () => {
         return {
           id: performance.id,
           guardId: performance.guard_id,
-          guardName: guard ? `${guard.first_name} ${guard.last_name}` : 'Unknown',
+          guardName: formatGuardName(guard),
           avatar: guard?.avatar_url,
           overallRating: Number(performance.overall_rating) || 0,
           punctualityRating: Number(performance.punctuality_rating) || 0,
@@ -218,8 +231,8 @@ export const usePerformanceReviews = () => {
 
       // Fetch guard and reviewer data
       const { data: guardsData } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name')
+        .from('guards')
+        .select('id, full_name, first_name, last_name')
         .in('id', guardIds);
 
       const { data: reviewersData } = await supabase
@@ -239,7 +252,7 @@ export const usePerformanceReviews = () => {
         return {
           id: review.id,
           guardId: review.guard_id,
-          guardName: guard ? `${guard.first_name} ${guard.last_name}` : 'Unknown',
+          guardName: formatGuardName(guard),
           reviewDate: review.review_date,
           reviewerId: review.reviewer_id || '',
           reviewerName: reviewer ? `${reviewer.first_name} ${reviewer.last_name}` : 'Unknown',
