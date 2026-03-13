@@ -22,6 +22,7 @@ import * as profilesAdminController from '../controllers/adminProfiles';
 import * as messagesAdminController from '../controllers/adminMessages';
 import * as messagesReadModelsAdminController from '../controllers/adminMessagesReadModels';
 import * as adminNotificationsController from '../controllers/adminNotifications';
+import * as adminNoticesController from '../controllers/adminNotices';
 import * as paymentController from '../controllers/payment';
 import * as adminPaymentGatewayController from '../controllers/adminPaymentGateway';
 import * as adminSecureSettingsController from '../controllers/adminSecureSettings';
@@ -705,6 +706,57 @@ router.delete(
   requirePermission('delete:payments'),
   validateRequest({ params: schemas.idParam }),
   paymentController.deletePayment
+);
+
+// Notification campaigns (admin writes)
+router.get(
+  '/notices',
+  requireAuth,
+  requirePermission('read:all_notifications'),
+  validateRequest({ query: schemas.adminNoticesListQuery }),
+  adminNoticesController.listNotices
+);
+router.get(
+  '/notices/:id',
+  requireAuth,
+  requirePermission('read:all_notifications'),
+  validateRequest({ params: schemas.idParam }),
+  adminNoticesController.getNotice
+);
+router.post(
+  '/notices',
+  requireAuth,
+  requirePermission('write:all_notifications'),
+  validateRequest({ body: schemas.adminNoticeCreate }),
+  adminNoticesController.createNotice
+);
+router.patch(
+  '/notices/:id',
+  requireAuth,
+  requirePermission('write:all_notifications'),
+  validateRequest({ params: schemas.idParam, body: schemas.adminNoticeUpdate }),
+  adminNoticesController.updateNotice
+);
+router.delete(
+  '/notices/:id',
+  requireAuth,
+  requirePermission('write:all_notifications'),
+  validateRequest({ params: schemas.idParam }),
+  adminNoticesController.deleteNotice
+);
+router.get(
+  '/notices/:id/comments',
+  requireAuth,
+  requirePermission('read:all_notifications'),
+  validateRequest({ params: schemas.idParam }),
+  adminNoticesController.listNoticeComments
+);
+router.post(
+  '/notices/:id/comments',
+  requireAuth,
+  requirePermission('write:all_notifications'),
+  validateRequest({ params: schemas.idParam, body: schemas.adminNoticeCommentCreate }),
+  adminNoticesController.createNoticeComment
 );
 
 // Notification campaigns (admin writes)

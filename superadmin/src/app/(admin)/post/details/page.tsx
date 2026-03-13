@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Alert, Badge, Button, Card, CardBody, CardHeader, CardTitle, Col, Form, Row, Spinner } from "react-bootstrap";
@@ -12,8 +12,6 @@ import {
   getNoticeStatus,
   useDeleteNotice,
   useGetNotice,
-  useIncrementNoticeLikes,
-  useIncrementNoticeViews,
 } from "@/hooks/useNotices";
 import { useCreateComment, useListComments } from "@/hooks/useComments";
 
@@ -52,17 +50,8 @@ const NoticeDetailsPage = () => {
   const { data: comments = [] } = useListComments(noticeId);
   const createComment = useCreateComment();
   const deleteNotice = useDeleteNotice();
-  const incrementViews = useIncrementNoticeViews();
-  const incrementLikes = useIncrementNoticeLikes();
   const [commentText, setCommentText] = useState("");
   const [feedback, setFeedback] = useState<{ variant: "success" | "danger"; message: string } | null>(null);
-  const hasTrackedView = useRef(false);
-
-  useEffect(() => {
-    if (!notice?.id || hasTrackedView.current) return;
-    hasTrackedView.current = true;
-    void incrementViews.mutateAsync({ id: notice.id, currentCount: notice.views_count });
-  }, [incrementViews, notice]);
 
   const totalComments = useMemo(
     () => comments.reduce((count, comment) => count + 1 + (comment.replies?.length || 0), 0),
@@ -99,18 +88,6 @@ const NoticeDetailsPage = () => {
     } catch (commentError) {
       console.error("Failed to create comment:", commentError);
       setFeedback({ variant: "danger", message: "Failed to post comment." });
-    }
-  };
-
-  const handleLike = async () => {
-    if (!notice?.id) return;
-    setFeedback(null);
-    try {
-      await incrementLikes.mutateAsync({ id: notice.id, currentCount: notice.likes_count });
-      setFeedback({ variant: "success", message: "Notice like count updated." });
-    } catch (likeError) {
-      console.error("Failed to update likes:", likeError);
-      setFeedback({ variant: "danger", message: "Failed to update notice likes." });
     }
   };
 
@@ -231,8 +208,9 @@ const NoticeDetailsPage = () => {
             </CardHeader>
             <CardBody>
               <Form.Group className="mb-3">
-                <Form.Label>Add Comment</Form.Label>
-                <Form.Control as="textarea" rows={3} value={commentText} onChange={(event) => setCommentText(event.target.value)} placeholder="Write an internal comment or reply..." />
+                <Form.Label>Post Public Comment</Form.Label>
+                <Form.Control as="textarea" rows={3} value={commentText} onChange={(event) => setCommentText(event.target.value)} placeholder="Write a resident-visible comment on this notice..." />
+                <Form.Text className="text-muted">Comments posted here are visible to residents who can access this notice.</Form.Text>
               </Form.Group>
               <div className="d-flex justify-content-end mb-4">
                 <Button onClick={() => void handleCommentSubmit()} disabled={createComment.isPending || !commentText.trim()}>
@@ -294,11 +272,6 @@ const NoticeDetailsPage = () => {
               <div className="d-flex justify-content-between">
                 <span className="text-muted">Comments</span>
                 <span className="fw-semibold">{totalComments}</span>
-              </div>
-              <div className="d-grid gap-2 mt-3">
-                <Button variant="outline-primary" size="sm" onClick={() => void handleLike()} disabled={incrementLikes.isPending}>
-                  {incrementLikes.isPending ? "Updating..." : "Add Like"}
-                </Button>
               </div>
             </CardBody>
           </Card>

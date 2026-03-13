@@ -995,6 +995,44 @@ $$;
 ALTER FUNCTION public.increment_notice_likes(notice_id uuid) OWNER TO postgres;
 
 --
+-- Name: increment_comment_likes(uuid); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION public.increment_comment_likes(comment_id uuid) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public'
+    SET row_security TO 'off'
+    AS $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.comments c
+    WHERE c.id = comment_id
+  ) THEN
+    RAISE EXCEPTION 'COMMENT_NOT_FOUND' USING ERRCODE = 'P0002';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.comments c
+    JOIN public.notices n ON n.id = c.notice_id
+    WHERE c.id = comment_id
+      AND public.can_access_community(n.community_id)
+  ) THEN
+    RAISE EXCEPTION 'COMMENT_SCOPE_VIOLATION' USING ERRCODE = '42501';
+  END IF;
+
+  UPDATE public.comments
+  SET likes_count = COALESCE(likes_count, 0) + 1,
+      updated_at = NOW()
+  WHERE id = comment_id;
+END;
+$$;
+
+
+ALTER FUNCTION public.increment_comment_likes(comment_id uuid) OWNER TO postgres;
+
+--
 -- Name: increment_notice_views(uuid); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -3204,9 +3242,10 @@ ALTER TABLE public.chats OWNER TO postgres;
 
 CREATE TABLE public.comments (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
-    notice_id text,
+    notice_id uuid NOT NULL,
     author_name text NOT NULL,
     author_avatar text,
+    author_user_id uuid DEFAULT auth.uid(),
     content text NOT NULL,
     likes_count integer DEFAULT 0,
     created_at timestamp with time zone DEFAULT now(),
@@ -3221,7 +3260,14 @@ ALTER TABLE public.comments OWNER TO postgres;
 -- Name: COLUMN comments.notice_id; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN public.comments.notice_id IS 'Can store either UUID (for database notices) or custom string (for static notices)';
+COMMENT ON COLUMN public.comments.notice_id IS 'References public.notices.id (UUID).';
+
+
+--
+-- Name: COLUMN comments.author_user_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.comments.author_user_id IS 'Authenticated user id that created the comment.';
 
 
 --
@@ -8661,59 +8707,44 @@ d2921ded-3d4d-46a2-90f8-06c9f3c967f5	11111111-1111-1111-1111-111111111111	2025-0
 -- Data for Name: comments; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.comments (id, notice_id, author_name, author_avatar, content, likes_count, created_at, updated_at, parent_id) FROM stdin;
-772744d7-2473-4227-9d56-3d7d77204801	331f7ab3-9171-4acb-b2d9-32ef54cd6b62	John Doe	/images/avatars/avatar1.jpg	Great post! This is very informative and helpful for our community.	12	2025-07-14 15:32:22.059942+00	2025-07-14 17:32:22.059942+00	\N
-5ac53bb8-3ed7-4f9f-8b8e-69694cd797ae	331f7ab3-9171-4acb-b2d9-32ef54cd6b62	Sarah Wilson	/images/avatars/avatar2.jpg	Thank you for sharing this. I have been waiting for this update.	8	2025-07-14 16:32:22.059942+00	2025-07-14 17:32:22.059942+00	\N
-5b41dd24-7ee4-47e6-8599-e813564fef93	331f7ab3-9171-4acb-b2d9-32ef54cd6b62	Mike Johnson	/images/avatars/avatar3.jpg	This is exactly what we needed. Looking forward to the implementation.	15	2025-07-14 17:02:22.059942+00	2025-07-14 17:32:22.059942+00	\N
-759285bd-d4f1-4fd7-a069-c29c0ef7120a	331f7ab3-9171-4acb-b2d9-32ef54cd6b62	Admin User	/images/avatars/admin.jpg	Thank you for your feedback! We're glad you found it helpful.	5	2025-07-14 16:02:22.059942+00	2025-07-14 17:32:22.059942+00	772744d7-2473-4227-9d56-3d7d77204801
-812e726a-fdb7-42f6-90b5-ecf67f232ccd	331f7ab3-9171-4acb-b2d9-32ef54cd6b62	Jane Smith	/images/avatars/avatar4.jpg	I completely agree with you on this.	3	2025-07-14 16:47:22.059942+00	2025-07-14 17:32:22.059942+00	772744d7-2473-4227-9d56-3d7d77204801
-d8e07a72-8da5-48e7-8d1f-9c48f07ecb41	331f7ab3-9171-4acb-b2d9-32ef54cd6b62	Community Manager	/images/avatars/manager.jpg	We're working on rolling this out as soon as possible!	7	2025-07-14 17:12:22.059942+00	2025-07-14 17:32:22.059942+00	5ac53bb8-3ed7-4f9f-8b8e-69694cd797ae
-d0522e3f-85cd-4ded-8d38-a3720957902c	a751eea5-5a27-43b9-ac0d-20c708b65bbd	Administrator	/images/users/avatar-6.jpg	hehehehe	0	2025-07-15 09:59:50.201068+00	2025-07-15 09:59:50.201068+00	\N
-e63a4b60-b18c-4184-8de5-0a1d5050e863	91b18a6a-c487-4403-8180-04f19950b154	Administrator	/images/users/avatar-6.jpg	Hello	0	2025-07-15 10:01:00.190775+00	2025-07-15 10:01:00.190775+00	\N
-b4f49e29-f8e0-4e37-910b-570893810c90	91b18a6a-c487-4403-8180-04f19950b154	Administrator	/images/users/avatar-6.jpg	Hello	0	2025-07-15 10:01:05.429612+00	2025-07-15 10:01:05.429612+00	\N
-4b059ce9-ed05-40ee-8eb1-7480f8c8b643	91b18a6a-c487-4403-8180-04f19950b154	Administrator	/images/users/avatar-6.jpg	hello	0	2025-07-15 10:01:16.024207+00	2025-07-15 10:01:16.024207+00	\N
-16e53ad7-3c64-4644-a904-64add8bc080c	91b18a6a-c487-4403-8180-04f19950b154	Administrator	/images/users/avatar-6.jpg	hello	0	2025-07-15 10:01:19.892625+00	2025-07-15 10:01:19.892625+00	\N
-4a355b58-b1da-4ceb-b716-7424a736f552	91b18a6a-c487-4403-8180-04f19950b154	Administrator	/images/users/avatar-6.jpg	hello	0	2025-07-15 10:01:28.312004+00	2025-07-15 10:01:28.312004+00	\N
-f35e1ab6-33db-4b24-acf8-b77fa6595b2b	91b18a6a-c487-4403-8180-04f19950b154	Administrator	/images/users/avatar-6.jpg	hello	0	2025-07-15 10:01:42.237655+00	2025-07-15 10:01:42.237655+00	\N
-d675791d-8caf-430e-8cc9-0d79b003de8d	static-notice-1	Administrator	/images/users/avatar-6.jpg	This is a test comment for a static notice.	0	2025-07-15 10:02:48.009224+00	2025-07-15 10:02:48.009224+00	\N
-c163f1d2-4f1b-417c-9b9a-66755f37ea50	static-notice-2	Community Manager	/images/users/avatar-6.jpg	Another test comment for static content.	1	2025-07-15 10:02:48.009224+00	2025-07-15 10:02:48.009224+00	\N
-82c65e4c-2e88-4537-adae-c7986f3f7fdb	179c78c2-9ea2-4c6f-94c1-5e14c5f78ff4	Administrator	/images/users/avatar-6.jpg	Helo	0	2025-07-15 10:03:22.49275+00	2025-07-15 10:03:22.49275+00	\N
-58e9c0b3-6601-4249-a596-d22d58fb04e6	2c88f901-7c18-49e6-acac-4b36499a39f5	Administrator	/images/users/avatar-6.jpg	hi	0	2025-07-15 10:03:32.961304+00	2025-07-15 10:03:32.961304+00	\N
-36297c25-8505-4732-99b5-15c9b9e1f507	e006d456-556d-4fa1-b040-263d67d2126b	Administrator	/images/users/avatar-6.jpg	hello	0	2025-07-15 10:03:42.787282+00	2025-07-15 10:03:42.787282+00	\N
-8f2b82a8-7c37-4524-840e-c360da5c4931	community-events-and-recreation-activities-schedule	Administrator	/images/users/avatar-6.jpg	hello	0	2025-07-15 10:05:28.547475+00	2025-07-15 10:05:28.547475+00	\N
-3fdd239a-3499-4481-ac24-d8eb6ffbca05	community-events-and-recreation-activities-schedule	Administrator	/images/users/avatar-6.jpg	hello	0	2025-07-15 10:05:32.896735+00	2025-07-15 10:05:32.896735+00	\N
-27317105-a2cd-4ac1-9625-14c43be5ff71	community-events-and-recreation-activities-schedule	Administrator	/images/users/avatar-6.jpg	hello	0	2025-07-15 10:05:36.305256+00	2025-07-15 10:05:36.305256+00	\N
-8923e37b-345a-4a96-89b9-9007b9f87c23	community-events-and-recreation-activities-schedule	Administrator	/images/users/avatar-6.jpg	hello	0	2025-07-15 10:05:41.435129+00	2025-07-15 10:05:41.435129+00	\N
-7b73da0e-6978-4e88-aba8-fdf84b5bad15	community-events-and-recreation-activities-schedule	Administrator	/images/users/avatar-6.jpg	Hi	0	2025-07-15 10:06:25.416993+00	2025-07-15 10:06:25.416993+00	8923e37b-345a-4a96-89b9-9007b9f87c23
-907260fa-8286-48f8-b068-44567adf132a	static-notice-1	Community Member	/images/users/avatar-6.jpg	Thank you for the information!	2	2025-07-15 10:06:50.100744+00	2025-07-15 10:06:50.100744+00	d675791d-8caf-430e-8cc9-0d79b003de8d
-a2881e86-1631-4489-acd5-24cff819ba2b	static-notice-1	Resident	/images/users/avatar-6.jpg	Great update, very helpful.	1	2025-07-15 10:06:50.100744+00	2025-07-15 10:06:50.100744+00	d675791d-8caf-430e-8cc9-0d79b003de8d
-43d6d595-9470-4385-ae51-53766f5341a8	331f7ab3-9171-4acb-b2d9-32ef54cd6b62	Administrator	/images/users/avatar-6.jpg	This is an important notice for all residents.	5	2025-07-15 10:07:12.141155+00	2025-07-15 10:07:12.141155+00	\N
-fe3eb9e2-7680-4bdf-8aba-665f79ff1a97	331f7ab3-9171-4acb-b2d9-32ef54cd6b62	Resident A	/images/users/avatar-6.jpg	Thank you for keeping us informed!	3	2025-07-15 10:07:20.52511+00	2025-07-15 10:07:20.52511+00	43d6d595-9470-4385-ae51-53766f5341a8
-86d18df4-e56c-4b19-b205-c842b3d7dcb4	331f7ab3-9171-4acb-b2d9-32ef54cd6b62	Resident B	/images/users/avatar-6.jpg	Very helpful information.	1	2025-07-15 10:07:20.52511+00	2025-07-15 10:07:20.52511+00	43d6d595-9470-4385-ae51-53766f5341a8
-6164e26e-2c31-4592-af19-749d7e1ba76e	community-events-and-recreation-activities-schedule	Administrator	/images/users/avatar-6.jpg	Okay	0	2025-07-15 10:08:08.275615+00	2025-07-15 10:08:08.275615+00	3fdd239a-3499-4481-ac24-d8eb6ffbca05
-9150068b-f995-499a-9d9e-275787ef2619	maintenance-schedule-updates-upcoming-building-improvements-and-temporary-service-disruptions	Administrator	/images/users/avatar-6.jpg	hello	0	2025-07-15 10:10:22.822151+00	2025-07-15 10:10:22.822151+00	\N
-39a7597d-568e-4af7-a9e4-0ed8c0f6de00	maintenance-schedule-updates-upcoming-building-improvements-and-temporary-service-disruptions	Administrator	/images/users/avatar-6.jpg	hello	0	2025-07-15 10:10:26.895048+00	2025-07-15 10:10:26.895048+00	\N
-cb7ba02c-0ce1-43bd-865f-74dbc253d67f	maintenance-schedule-updates-upcoming-building-improvements-and-temporary-service-disruptions	Administrator	/images/users/avatar-6.jpg	hello	0	2025-07-15 10:10:31.284747+00	2025-07-15 10:10:31.284747+00	\N
-5c602a93-d791-4b91-ab5c-9e692ca2de25	maintenance-schedule-updates-upcoming-building-improvements-and-temporary-service-disruptions	Administrator	/images/users/avatar-6.jpg	Hello	0	2025-07-15 10:23:17.608781+00	2025-07-15 10:23:17.608781+00	\N
-0e86f945-b6b3-4fa6-a1ea-7e63f7f16a28	static-notice	Administrator	/images/users/avatar-6.jpg	HBJKB	0	2025-07-15 10:50:28.813078+00	2025-07-15 10:50:28.813078+00	\N
-0043ad0a-b2a0-48dd-b714-8bb2c38406ef	6eb618ae-8ce0-4040-9bab-e06eedbd348d	Administrator	/images/users/avatar-6.jpg	hello	0	2025-07-15 11:36:01.957374+00	2025-07-15 11:36:01.957374+00	\N
-c82d8f06-0f70-4a7c-bb58-6d45c37adfa2	6eb618ae-8ce0-4040-9bab-e06eedbd348d	Administrator	/images/users/avatar-6.jpg	hello	0	2025-07-15 11:36:05.161416+00	2025-07-15 11:36:05.161416+00	\N
-e6bcdce7-aad5-479a-b316-086a299dc7c9	6eb618ae-8ce0-4040-9bab-e06eedbd348d	Administrator	/images/users/avatar-6.jpg	hello	0	2025-07-15 11:36:09.414925+00	2025-07-15 11:36:09.414925+00	\N
-fe70f04e-03e8-4973-a51d-f25ba4210bee	6eb618ae-8ce0-4040-9bab-e06eedbd348d	Administrator	/images/users/avatar-6.jpg	hjeehehe	0	2025-07-15 11:36:24.564553+00	2025-07-15 11:36:24.564553+00	\N
-a0126d46-38c4-49c4-b279-f9c3aff7a22d	6eb618ae-8ce0-4040-9bab-e06eedbd348d	Administrator	/images/users/avatar-6.jpg	hello	0	2025-07-15 11:36:40.629582+00	2025-07-15 11:36:40.629582+00	\N
-f0f34503-8851-40f8-9e8a-3337ee19ade4	f4b1342a-179f-43d8-90a9-01d12a47c13d	Administrator	/images/users/avatar-6.jpg	Hello	0	2025-07-15 11:43:40.292613+00	2025-07-15 11:43:40.292613+00	\N
-ae5492f5-9570-412d-9170-2b7ce702bf12	f4b1342a-179f-43d8-90a9-01d12a47c13d	Administrator	/images/users/avatar-6.jpg	hello	0	2025-07-15 11:43:55.097569+00	2025-07-15 11:43:55.097569+00	\N
-3384215e-dde5-4729-aebf-60e303479700	f4b1342a-179f-43d8-90a9-01d12a47c13d	Administrator	/images/users/avatar-6.jpg	d	0	2025-07-15 11:43:57.41767+00	2025-07-15 11:43:57.41767+00	\N
-1e8753e9-d997-43b8-bbde-40d811dc8f49	f4b1342a-179f-43d8-90a9-01d12a47c13d	Administrator	/images/users/avatar-6.jpg	s	0	2025-07-15 11:44:01.519555+00	2025-07-15 11:44:01.519555+00	\N
-deb42252-03ef-4476-826f-04930de0a08b	f4b1342a-179f-43d8-90a9-01d12a47c13d	Administrator	/images/users/avatar-6.jpg	s	0	2025-07-15 11:44:05.489255+00	2025-07-15 11:44:05.489255+00	\N
-d269bc4a-c543-48be-948e-44c8b21f514f	f4b1342a-179f-43d8-90a9-01d12a47c13d	Administrator	/images/users/avatar-6.jpg	Hello	0	2025-07-15 11:53:09.996946+00	2025-07-15 11:53:09.996946+00	\N
-7f590972-fe36-4137-9620-58d5a9aa763d	c970b73e-e65a-4d0b-989c-ab470700ef61	Demo User	\N	Hello.	1	2025-07-18 09:17:37.711463+00	2025-07-18 09:17:37.711463+00	\N
-493ce0b9-930b-45b8-a3f9-c1a480220059	c970b73e-e65a-4d0b-989c-ab470700ef61	Demo User	\N	Hi	0	2025-07-18 09:18:32.523113+00	2025-07-18 09:18:32.523113+00	\N
-58b92a9d-1df0-477c-bca4-0927b8cedda9	7628f8da-21e9-4337-98a2-c8e6fbcf093b	Demo User	\N	Great. 🙂	0	2025-07-18 09:43:10.751197+00	2025-07-18 09:43:10.751197+00	\N
-6363a46a-a608-47fc-ae71-3bf17d0d61a1	7628f8da-21e9-4337-98a2-c8e6fbcf093b	Demo User	\N	Dueh	0	2025-12-03 09:34:11.922398+00	2025-12-03 09:34:11.922398+00	58b92a9d-1df0-477c-bca4-0927b8cedda9
-3199946b-5080-492e-b635-84ae65e1c8d2	7628f8da-21e9-4337-98a2-c8e6fbcf093b	Demo User	\N	Shsh	0	2025-12-03 09:34:20.376526+00	2025-12-03 09:34:20.376526+00	58b92a9d-1df0-477c-bca4-0927b8cedda9
-6e3b5cbf-20ef-41f0-b066-1fb14004a808	7628f8da-21e9-4337-98a2-c8e6fbcf093b	Demo User	\N	Zusbe	0	2025-12-03 09:34:25.259184+00	2025-12-03 09:34:25.259184+00	\N
-38a7d1aa-70bb-40f1-b4de-5fed83713695	7628f8da-21e9-4337-98a2-c8e6fbcf093b	Demo User	\N	Diehe	0	2025-12-03 09:34:38.203415+00	2025-12-03 09:34:38.203415+00	\N
+COPY public.comments (id, notice_id, author_name, author_avatar, author_user_id, content, likes_count, created_at, updated_at, parent_id) FROM stdin;
+772744d7-2473-4227-9d56-3d7d77204801	331f7ab3-9171-4acb-b2d9-32ef54cd6b62	John Doe	/images/avatars/avatar1.jpg	\N	Great post! This is very informative and helpful for our community.	12	2025-07-14 15:32:22.059942+00	2025-07-14 17:32:22.059942+00	\N
+5ac53bb8-3ed7-4f9f-8b8e-69694cd797ae	331f7ab3-9171-4acb-b2d9-32ef54cd6b62	Sarah Wilson	/images/avatars/avatar2.jpg	\N	Thank you for sharing this. I have been waiting for this update.	8	2025-07-14 16:32:22.059942+00	2025-07-14 17:32:22.059942+00	\N
+5b41dd24-7ee4-47e6-8599-e813564fef93	331f7ab3-9171-4acb-b2d9-32ef54cd6b62	Mike Johnson	/images/avatars/avatar3.jpg	\N	This is exactly what we needed. Looking forward to the implementation.	15	2025-07-14 17:02:22.059942+00	2025-07-14 17:32:22.059942+00	\N
+759285bd-d4f1-4fd7-a069-c29c0ef7120a	331f7ab3-9171-4acb-b2d9-32ef54cd6b62	Admin User	/images/avatars/admin.jpg	\N	Thank you for your feedback! We're glad you found it helpful.	5	2025-07-14 16:02:22.059942+00	2025-07-14 17:32:22.059942+00	772744d7-2473-4227-9d56-3d7d77204801
+812e726a-fdb7-42f6-90b5-ecf67f232ccd	331f7ab3-9171-4acb-b2d9-32ef54cd6b62	Jane Smith	/images/avatars/avatar4.jpg	\N	I completely agree with you on this.	3	2025-07-14 16:47:22.059942+00	2025-07-14 17:32:22.059942+00	772744d7-2473-4227-9d56-3d7d77204801
+d8e07a72-8da5-48e7-8d1f-9c48f07ecb41	331f7ab3-9171-4acb-b2d9-32ef54cd6b62	Community Manager	/images/avatars/manager.jpg	\N	We're working on rolling this out as soon as possible!	7	2025-07-14 17:12:22.059942+00	2025-07-14 17:32:22.059942+00	5ac53bb8-3ed7-4f9f-8b8e-69694cd797ae
+d0522e3f-85cd-4ded-8d38-a3720957902c	a751eea5-5a27-43b9-ac0d-20c708b65bbd	Administrator	/images/users/avatar-6.jpg	\N	hehehehe	0	2025-07-15 09:59:50.201068+00	2025-07-15 09:59:50.201068+00	\N
+e63a4b60-b18c-4184-8de5-0a1d5050e863	91b18a6a-c487-4403-8180-04f19950b154	Administrator	/images/users/avatar-6.jpg	\N	Hello	0	2025-07-15 10:01:00.190775+00	2025-07-15 10:01:00.190775+00	\N
+b4f49e29-f8e0-4e37-910b-570893810c90	91b18a6a-c487-4403-8180-04f19950b154	Administrator	/images/users/avatar-6.jpg	\N	Hello	0	2025-07-15 10:01:05.429612+00	2025-07-15 10:01:05.429612+00	\N
+4b059ce9-ed05-40ee-8eb1-7480f8c8b643	91b18a6a-c487-4403-8180-04f19950b154	Administrator	/images/users/avatar-6.jpg	\N	hello	0	2025-07-15 10:01:16.024207+00	2025-07-15 10:01:16.024207+00	\N
+16e53ad7-3c64-4644-a904-64add8bc080c	91b18a6a-c487-4403-8180-04f19950b154	Administrator	/images/users/avatar-6.jpg	\N	hello	0	2025-07-15 10:01:19.892625+00	2025-07-15 10:01:19.892625+00	\N
+4a355b58-b1da-4ceb-b716-7424a736f552	91b18a6a-c487-4403-8180-04f19950b154	Administrator	/images/users/avatar-6.jpg	\N	hello	0	2025-07-15 10:01:28.312004+00	2025-07-15 10:01:28.312004+00	\N
+f35e1ab6-33db-4b24-acf8-b77fa6595b2b	91b18a6a-c487-4403-8180-04f19950b154	Administrator	/images/users/avatar-6.jpg	\N	hello	0	2025-07-15 10:01:42.237655+00	2025-07-15 10:01:42.237655+00	\N
+82c65e4c-2e88-4537-adae-c7986f3f7fdb	179c78c2-9ea2-4c6f-94c1-5e14c5f78ff4	Administrator	/images/users/avatar-6.jpg	\N	Helo	0	2025-07-15 10:03:22.49275+00	2025-07-15 10:03:22.49275+00	\N
+58e9c0b3-6601-4249-a596-d22d58fb04e6	2c88f901-7c18-49e6-acac-4b36499a39f5	Administrator	/images/users/avatar-6.jpg	\N	hi	0	2025-07-15 10:03:32.961304+00	2025-07-15 10:03:32.961304+00	\N
+36297c25-8505-4732-99b5-15c9b9e1f507	e006d456-556d-4fa1-b040-263d67d2126b	Administrator	/images/users/avatar-6.jpg	\N	hello	0	2025-07-15 10:03:42.787282+00	2025-07-15 10:03:42.787282+00	\N
+43d6d595-9470-4385-ae51-53766f5341a8	331f7ab3-9171-4acb-b2d9-32ef54cd6b62	Administrator	/images/users/avatar-6.jpg	\N	This is an important notice for all residents.	5	2025-07-15 10:07:12.141155+00	2025-07-15 10:07:12.141155+00	\N
+fe3eb9e2-7680-4bdf-8aba-665f79ff1a97	331f7ab3-9171-4acb-b2d9-32ef54cd6b62	Resident A	/images/users/avatar-6.jpg	\N	Thank you for keeping us informed!	3	2025-07-15 10:07:20.52511+00	2025-07-15 10:07:20.52511+00	43d6d595-9470-4385-ae51-53766f5341a8
+86d18df4-e56c-4b19-b205-c842b3d7dcb4	331f7ab3-9171-4acb-b2d9-32ef54cd6b62	Resident B	/images/users/avatar-6.jpg	\N	Very helpful information.	1	2025-07-15 10:07:20.52511+00	2025-07-15 10:07:20.52511+00	43d6d595-9470-4385-ae51-53766f5341a8
+0043ad0a-b2a0-48dd-b714-8bb2c38406ef	6eb618ae-8ce0-4040-9bab-e06eedbd348d	Administrator	/images/users/avatar-6.jpg	\N	hello	0	2025-07-15 11:36:01.957374+00	2025-07-15 11:36:01.957374+00	\N
+c82d8f06-0f70-4a7c-bb58-6d45c37adfa2	6eb618ae-8ce0-4040-9bab-e06eedbd348d	Administrator	/images/users/avatar-6.jpg	\N	hello	0	2025-07-15 11:36:05.161416+00	2025-07-15 11:36:05.161416+00	\N
+e6bcdce7-aad5-479a-b316-086a299dc7c9	6eb618ae-8ce0-4040-9bab-e06eedbd348d	Administrator	/images/users/avatar-6.jpg	\N	hello	0	2025-07-15 11:36:09.414925+00	2025-07-15 11:36:09.414925+00	\N
+fe70f04e-03e8-4973-a51d-f25ba4210bee	6eb618ae-8ce0-4040-9bab-e06eedbd348d	Administrator	/images/users/avatar-6.jpg	\N	hjeehehe	0	2025-07-15 11:36:24.564553+00	2025-07-15 11:36:24.564553+00	\N
+a0126d46-38c4-49c4-b279-f9c3aff7a22d	6eb618ae-8ce0-4040-9bab-e06eedbd348d	Administrator	/images/users/avatar-6.jpg	\N	hello	0	2025-07-15 11:36:40.629582+00	2025-07-15 11:36:40.629582+00	\N
+f0f34503-8851-40f8-9e8a-3337ee19ade4	f4b1342a-179f-43d8-90a9-01d12a47c13d	Administrator	/images/users/avatar-6.jpg	\N	Hello	0	2025-07-15 11:43:40.292613+00	2025-07-15 11:43:40.292613+00	\N
+ae5492f5-9570-412d-9170-2b7ce702bf12	f4b1342a-179f-43d8-90a9-01d12a47c13d	Administrator	/images/users/avatar-6.jpg	\N	hello	0	2025-07-15 11:43:55.097569+00	2025-07-15 11:43:55.097569+00	\N
+3384215e-dde5-4729-aebf-60e303479700	f4b1342a-179f-43d8-90a9-01d12a47c13d	Administrator	/images/users/avatar-6.jpg	\N	d	0	2025-07-15 11:43:57.41767+00	2025-07-15 11:43:57.41767+00	\N
+1e8753e9-d997-43b8-bbde-40d811dc8f49	f4b1342a-179f-43d8-90a9-01d12a47c13d	Administrator	/images/users/avatar-6.jpg	\N	s	0	2025-07-15 11:44:01.519555+00	2025-07-15 11:44:01.519555+00	\N
+deb42252-03ef-4476-826f-04930de0a08b	f4b1342a-179f-43d8-90a9-01d12a47c13d	Administrator	/images/users/avatar-6.jpg	\N	s	0	2025-07-15 11:44:05.489255+00	2025-07-15 11:44:05.489255+00	\N
+d269bc4a-c543-48be-948e-44c8b21f514f	f4b1342a-179f-43d8-90a9-01d12a47c13d	Administrator	/images/users/avatar-6.jpg	\N	Hello	0	2025-07-15 11:53:09.996946+00	2025-07-15 11:53:09.996946+00	\N
+7f590972-fe36-4137-9620-58d5a9aa763d	c970b73e-e65a-4d0b-989c-ab470700ef61	Demo User	\N	\N	Hello.	1	2025-07-18 09:17:37.711463+00	2025-07-18 09:17:37.711463+00	\N
+493ce0b9-930b-45b8-a3f9-c1a480220059	c970b73e-e65a-4d0b-989c-ab470700ef61	Demo User	\N	\N	Hi	0	2025-07-18 09:18:32.523113+00	2025-07-18 09:18:32.523113+00	\N
+58b92a9d-1df0-477c-bca4-0927b8cedda9	7628f8da-21e9-4337-98a2-c8e6fbcf093b	Demo User	\N	\N	Great. 🙂	0	2025-07-18 09:43:10.751197+00	2025-07-18 09:43:10.751197+00	\N
+6363a46a-a608-47fc-ae71-3bf17d0d61a1	7628f8da-21e9-4337-98a2-c8e6fbcf093b	Demo User	\N	\N	Dueh	0	2025-12-03 09:34:11.922398+00	2025-12-03 09:34:11.922398+00	58b92a9d-1df0-477c-bca4-0927b8cedda9
+3199946b-5080-492e-b635-84ae65e1c8d2	7628f8da-21e9-4337-98a2-c8e6fbcf093b	Demo User	\N	\N	Shsh	0	2025-12-03 09:34:20.376526+00	2025-12-03 09:34:20.376526+00	58b92a9d-1df0-477c-bca4-0927b8cedda9
+6e3b5cbf-20ef-41f0-b066-1fb14004a808	7628f8da-21e9-4337-98a2-c8e6fbcf093b	Demo User	\N	\N	Zusbe	0	2025-12-03 09:34:25.259184+00	2025-12-03 09:34:25.259184+00	\N
+38a7d1aa-70bb-40f1-b4de-5fed83713695	7628f8da-21e9-4337-98a2-c8e6fbcf093b	Demo User	\N	\N	Diehe	0	2025-12-03 09:34:38.203415+00	2025-12-03 09:34:38.203415+00	\N
 \.
 
 
@@ -14661,6 +14692,13 @@ CREATE INDEX idx_comments_notice_id ON public.comments USING btree (notice_id);
 
 
 --
+-- Name: idx_comments_author_user_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_comments_author_user_id ON public.comments USING btree (author_user_id);
+
+
+--
 -- Name: idx_comments_parent_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -16957,6 +16995,14 @@ ALTER TABLE ONLY public.chats
 
 
 --
+-- Name: comments comments_notice_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.comments
+    ADD CONSTRAINT comments_notice_id_fkey FOREIGN KEY (notice_id) REFERENCES public.notices(id) ON DELETE CASCADE;
+
+
+--
 -- Name: comments comments_parent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -18706,15 +18752,6 @@ CREATE POLICY "Admins can manage all notifications" ON public.notifications TO a
 
 
 --
--- Name: notices Admins can manage notices; Type: POLICY; Schema: public; Owner: postgres
---
-
-CREATE POLICY "Admins can manage notices" ON public.notices TO authenticated USING ((EXISTS ( SELECT 1
-   FROM public.community_admins
-  WHERE ((community_admins.community_id = notices.community_id) AND (community_admins.user_id = auth.uid()))))) WITH CHECK (true);
-
-
---
 -- Name: payments Admins can manage payments; Type: POLICY; Schema: public; Owner: postgres
 --
 
@@ -19401,10 +19438,12 @@ CREATE POLICY "Authenticated full access to society_documents" ON public.communi
 
 
 --
--- Name: comments Authenticated users can insert comments; Type: POLICY; Schema: public; Owner: postgres
+-- Name: comments p39_comments_insert_scoped; Type: POLICY; Schema: public; Owner: postgres
 --
 
-CREATE POLICY "Authenticated users can insert comments" ON public.comments FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY p39_comments_insert_scoped ON public.comments FOR INSERT TO authenticated WITH CHECK (((author_user_id = auth.uid()) AND (EXISTS ( SELECT 1
+   FROM public.notices n
+  WHERE ((n.id = comments.notice_id) AND public.can_access_community(n.community_id))))));
 
 
 --
@@ -19415,10 +19454,12 @@ CREATE POLICY "Authenticated users can view all profiles for messaging" ON publi
 
 
 --
--- Name: comments Comments are viewable by everyone; Type: POLICY; Schema: public; Owner: postgres
+-- Name: comments p39_comments_select_scoped; Type: POLICY; Schema: public; Owner: postgres
 --
 
-CREATE POLICY "Comments are viewable by everyone" ON public.comments FOR SELECT TO authenticated USING (true);
+CREATE POLICY p39_comments_select_scoped ON public.comments FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
+   FROM public.notices n
+  WHERE ((n.id = comments.notice_id) AND public.can_access_community(n.community_id)))));
 
 
 --
@@ -19655,12 +19696,10 @@ CREATE POLICY "Guards can view their own performance reviews" ON public.guard_pe
 
 
 --
--- Name: notices Notices are viewable by society members; Type: POLICY; Schema: public; Owner: postgres
+-- Name: notices p13_notices_select_scoped; Type: POLICY; Schema: public; Owner: postgres
 --
 
-CREATE POLICY "Notices are viewable by society members" ON public.notices FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
-   FROM public.units
-  WHERE ((units.community_id = notices.community_id) AND (units.owner_id = auth.uid())))));
+CREATE POLICY p13_notices_select_scoped ON public.notices FOR SELECT TO authenticated USING (public.can_access_community(community_id));
 
 
 --
@@ -19980,10 +20019,12 @@ CREATE POLICY "Users can create visitor passes for their own units" ON public.vi
 
 
 --
--- Name: comments Users can delete their own comments; Type: POLICY; Schema: public; Owner: postgres
+-- Name: comments p39_comments_delete_admin_scoped; Type: POLICY; Schema: public; Owner: postgres
 --
 
-CREATE POLICY "Users can delete their own comments" ON public.comments FOR DELETE TO authenticated USING (true);
+CREATE POLICY p39_comments_delete_admin_scoped ON public.comments FOR DELETE TO authenticated USING ((public.is_admin_role() AND (EXISTS ( SELECT 1
+   FROM public.notices n
+  WHERE ((n.id = comments.notice_id) AND public.can_access_community(n.community_id))))));
 
 
 --
@@ -20130,10 +20171,10 @@ CREATE POLICY "Users can update read status of received messages" ON public.mess
 
 
 --
--- Name: comments Users can update their own comments; Type: POLICY; Schema: public; Owner: postgres
+-- Name: notices p13_notices_delete_admin_scoped; Type: POLICY; Schema: public; Owner: postgres
 --
 
-CREATE POLICY "Users can update their own comments" ON public.comments FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY p13_notices_delete_admin_scoped ON public.notices FOR DELETE TO authenticated USING ((public.is_admin_role() AND public.can_access_community(community_id)));
 
 
 --
@@ -20727,10 +20768,10 @@ ALTER TABLE public.amenities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.amenity_bookings ENABLE ROW LEVEL SECURITY;
 
 --
--- Name: notices anon_read_notices; Type: POLICY; Schema: public; Owner: postgres
+-- Name: notices p13_notices_insert_admin_scoped; Type: POLICY; Schema: public; Owner: postgres
 --
 
-CREATE POLICY anon_read_notices ON public.notices FOR SELECT TO authenticated USING (true);
+CREATE POLICY p13_notices_insert_admin_scoped ON public.notices FOR INSERT TO authenticated WITH CHECK ((public.is_admin_role() AND public.can_access_community(community_id)));
 
 
 --
@@ -20765,10 +20806,10 @@ CREATE POLICY authenticated_read_complaints ON public.complaints FOR SELECT TO a
 
 
 --
--- Name: notices authenticated_read_notices; Type: POLICY; Schema: public; Owner: postgres
+-- Name: notices p13_notices_update_admin_scoped; Type: POLICY; Schema: public; Owner: postgres
 --
 
-CREATE POLICY authenticated_read_notices ON public.notices FOR SELECT TO authenticated USING (true);
+CREATE POLICY p13_notices_update_admin_scoped ON public.notices FOR UPDATE TO authenticated USING ((public.is_admin_role() AND public.can_access_community(community_id))) WITH CHECK ((public.is_admin_role() AND public.can_access_community(community_id)));
 
 
 --
@@ -22290,15 +22331,6 @@ CREATE POLICY superadmin_access_units ON public.units TO authenticated USING ((E
 
 
 --
--- Name: notices superadmin_all_notices; Type: POLICY; Schema: public; Owner: postgres
---
-
-CREATE POLICY superadmin_all_notices ON public.notices TO authenticated USING ((EXISTS ( SELECT 1
-   FROM public.profiles
-  WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'superadmin'::text)))));
-
-
---
 -- Name: payments superadmin_all_payments; Type: POLICY; Schema: public; Owner: postgres
 --
 
@@ -22878,6 +22910,14 @@ GRANT ALL ON FUNCTION public.handle_new_auth_user() TO supabase_admin;
 GRANT ALL ON FUNCTION public.increment_notice_likes(notice_id uuid) TO anon;
 GRANT ALL ON FUNCTION public.increment_notice_likes(notice_id uuid) TO authenticated;
 GRANT ALL ON FUNCTION public.increment_notice_likes(notice_id uuid) TO service_role;
+
+
+--
+-- Name: FUNCTION increment_comment_likes(comment_id uuid); Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON FUNCTION public.increment_comment_likes(comment_id uuid) TO authenticated;
+GRANT ALL ON FUNCTION public.increment_comment_likes(comment_id uuid) TO service_role;
 
 
 --

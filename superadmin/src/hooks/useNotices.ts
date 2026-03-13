@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { supabase } from "@/lib/supabase";
+import { useAdminApi } from "@/hooks/useAdminApi";
 
 export interface Notice {
   id: string;
@@ -25,6 +24,7 @@ export interface Notice {
   created_at?: string | null;
   updated_at?: string | null;
   communities?: {
+    id?: string | null;
     name?: string | null;
   } | null;
 }
@@ -33,8 +33,8 @@ export interface CreateNoticeData {
   community_id: string;
   title: string;
   body: string;
-  image_url?: string;
-  video_url?: string;
+  image_url?: string | null;
+  video_url?: string | null;
   tags?: string[];
   author_name?: string;
   author_avatar?: string;
@@ -47,12 +47,18 @@ export interface CreateNoticeData {
 
 export interface UpdateNoticeData extends Partial<CreateNoticeData> {
   id: string;
-  views_count?: number;
-  likes_count?: number;
 }
 
-let noticesChannel: ReturnType<typeof supabase.channel> | null = null;
-let noticesSubscriberCount = 0;
+type NoticeListResponse = {
+  data: Notice[];
+  count: number;
+};
+
+type NoticeDetailResponse = {
+  data: Notice;
+};
+
+const noticeQueryKey = ["admin-notices"] as const;
 
 export const getNoticeStatus = (notice?: Partial<Notice> | null) => {
   const normalized = String(notice?.status || "published").trim().toLowerCase();
@@ -67,234 +73,140 @@ export const formatNoticeLabel = (value?: string | null) => {
     .join(" ");
 };
 
-const transformNoticeData = (dbRow: any): Notice => ({
-  ...dbRow,
-  status: getNoticeStatus(dbRow),
+const transformNoticeData = (record: Notice): Notice => ({
+  ...record,
+  status: getNoticeStatus(record),
 });
 
-const transformToDbFormat = (noticeData: CreateNoticeData | UpdateNoticeData) => {
-  const normalizedStatus = String(noticeData.status || "published").toLowerCase();
-  const shouldSetPostedAt = normalizedStatus === "published";
-
-  return {
-    ...noticeData,
-    status: normalizedStatus,
-    posted_at: shouldSetPostedAt ? noticeData.posted_at || new Date().toISOString() : noticeData.posted_at || null,
-  };
+const invalidateNoticeQueries = (queryClient: ReturnType<typeof useQueryClient>) => {
+  queryClient.invalidateQueries({ queryKey: noticeQueryKey });
 };
-
-const useNoticesRealtime = () => {
-  const queryClient = useQueryClient();
-
-  useEffect(() => {
-    noticesSubscriberCount += 1;
-
-    if (!noticesChannel) {
-      noticesChannel = supabase
-        .channel("superadmin-notices")
-        .on("postgres_changes", { event: "*", schema: "public", table: "notices" }, () => {
-          queryClient.invalidateQueries({ queryKey: ["notices"] });
-        })
-        .on("postgres_changes", { event: "*", schema: "public", table: "comments" }, () => {
-          queryClient.invalidateQueries({ queryKey: ["comments"] });
-        })
-        .subscribe();
-    }
-
-    return () => {
-      noticesSubscriberCount -= 1;
-
-      if (noticesSubscriberCount <= 0 && noticesChannel) {
-        supabase.removeChannel(noticesChannel);
-        noticesChannel = null;
-        noticesSubscriberCount = 0;
-      }
-    };
-  }, [queryClient]);
-};
-
-const NOTICE_SELECT = `
-  *,
-  communities:community_id(name)
-`;
 
 export const useListNotices = () => {
-  useNoticesRealtime();
+  const { fetchAdmin, hasToken } = useAdminApi();
 
   return useQuery({
-    queryKey: ["notices"],
+    queryKey: noticeQueryKey,
+    enabled: hasToken,
     queryFn: async (): Promise<Notice[]> => {
-      const { data, error } = await supabase.from("notices").select(NOTICE_SELECT).order("posted_at", { ascending: false });
-      if (error) {
-        throw new Error(`Failed to fetch notices: ${error.message}`);
-      }
-      return (data || []).map(transformNoticeData);
+      const response = await fetchAdmin<NoticeListResponse>("/admin/notices");
+      return (response.data || []).map(transformNoticeData);
     },
+    staleTime: 30_000,
+    placeholderData: (previous) => previous,
   });
 };
 
 export const useFeaturedNotices = () => {
-  useNoticesRealtime();
+  const query = useListNotices();
 
-  return useQuery({
-    queryKey: ["notices", "featured"],
-    queryFn: async (): Promise<Notice[]> => {
-      const { data, error } = await supabase
-        .from("notices")
-        .select(NOTICE_SELECT)
-        .eq("is_featured", true)
-        .order("posted_at", { ascending: false })
-        .limit(3);
-
-      if (error) {
-        throw new Error(`Failed to fetch featured notices: ${error.message}`);
-      }
-
-      return (data || []).map(transformNoticeData);
-    },
-  });
+  return {
+    ...query,
+    data: (query.data || []).filter((notice) => notice.is_featured).slice(0, 3),
+  };
 };
 
 export const useNoticesByTag = (tag: string) => {
-  useNoticesRealtime();
+  const query = useListNotices();
+  const normalizedTag = tag.trim().toLowerCase();
 
-  return useQuery({
-    queryKey: ["notices", "tag", tag],
-    queryFn: async (): Promise<Notice[]> => {
-      const { data, error } = await supabase
-        .from("notices")
-        .select(NOTICE_SELECT)
-        .contains("tags", [tag])
-        .order("posted_at", { ascending: false });
-
-      if (error) {
-        throw new Error(`Failed to fetch notices by tag: ${error.message}`);
-      }
-
-      return (data || []).map(transformNoticeData);
-    },
-    enabled: Boolean(tag),
-  });
+  return {
+    ...query,
+    data: (query.data || []).filter((notice) =>
+      normalizedTag.length > 0
+        ? (notice.tags || []).some((entry) => entry.toLowerCase() === normalizedTag)
+        : true
+    ),
+  };
 };
 
 export const useVideoNotices = () => {
-  useNoticesRealtime();
+  const query = useListNotices();
 
-  return useQuery({
-    queryKey: ["notices", "video"],
-    queryFn: async (): Promise<Notice[]> => {
-      const { data, error } = await supabase
-        .from("notices")
-        .select(NOTICE_SELECT)
-        .not("video_url", "is", null)
-        .order("posted_at", { ascending: false });
-
-      if (error) {
-        throw new Error(`Failed to fetch video notices: ${error.message}`);
-      }
-
-      return (data || []).map(transformNoticeData);
-    },
-  });
+  return {
+    ...query,
+    data: (query.data || []).filter((notice) => Boolean(notice.video_url)),
+  };
 };
 
 export const useGetNotice = (id: string) => {
-  useNoticesRealtime();
+  const { fetchAdmin, hasToken } = useAdminApi();
 
   return useQuery({
-    queryKey: ["notices", id],
+    queryKey: [...noticeQueryKey, id],
+    enabled: hasToken && Boolean(id),
     queryFn: async (): Promise<Notice> => {
-      const { data, error } = await supabase.from("notices").select(NOTICE_SELECT).eq("id", id).single();
-      if (error) {
-        throw new Error(`Failed to fetch notice: ${error.message}`);
-      }
-      return transformNoticeData(data);
+      const response = await fetchAdmin<NoticeDetailResponse>(`/admin/notices/${id}`);
+      return transformNoticeData(response.data);
     },
-    enabled: Boolean(id),
   });
 };
 
 export const useCreateNotice = () => {
   const queryClient = useQueryClient();
+  const { fetchAdmin } = useAdminApi();
 
   return useMutation({
     mutationFn: async (newNotice: CreateNoticeData): Promise<Notice> => {
-      const dbData = transformToDbFormat(newNotice);
-      const { data, error } = await supabase.from("notices").insert([dbData]).select(NOTICE_SELECT).single();
-      if (error) {
-        throw new Error(`Failed to create notice: ${error.message}`);
-      }
-      return transformNoticeData(data);
+      const response = await fetchAdmin<NoticeDetailResponse>("/admin/notices", {
+        method: "POST",
+        body: JSON.stringify(newNotice),
+      });
+
+      return transformNoticeData(response.data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notices"] });
+      invalidateNoticeQueries(queryClient);
     },
   });
 };
 
 export const useUpdateNotice = () => {
   const queryClient = useQueryClient();
+  const { fetchAdmin } = useAdminApi();
 
   return useMutation({
-    mutationFn: async ({ id, ...updateData }: UpdateNoticeData): Promise<Notice> => {
-      const dbData = transformToDbFormat(updateData);
-      const { data, error } = await supabase.from("notices").update(dbData).eq("id", id).select(NOTICE_SELECT).single();
-      if (error) {
-        throw new Error(`Failed to update notice: ${error.message}`);
-      }
-      return transformNoticeData(data);
+    mutationFn: async ({ id, ...updates }: UpdateNoticeData): Promise<Notice> => {
+      const response = await fetchAdmin<NoticeDetailResponse>(`/admin/notices/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(updates),
+      });
+
+      return transformNoticeData(response.data);
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["notices"] });
-      queryClient.invalidateQueries({ queryKey: ["notices", data.id] });
+      invalidateNoticeQueries(queryClient);
+      queryClient.invalidateQueries({ queryKey: [...noticeQueryKey, data.id] });
     },
   });
 };
 
 export const useDeleteNotice = () => {
   const queryClient = useQueryClient();
+  const { fetchAdmin } = useAdminApi();
 
   return useMutation({
     mutationFn: async (id: string): Promise<void> => {
-      const { error } = await supabase.from("notices").delete().eq("id", id);
-      if (error) {
-        throw new Error(`Failed to delete notice: ${error.message}`);
-      }
+      await fetchAdmin(`/admin/notices/${id}`, { method: "DELETE" });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notices"] });
+      invalidateNoticeQueries(queryClient);
     },
   });
 };
 
-export const useIncrementNoticeViews = () => {
-  const queryClient = useQueryClient();
+const readOnlyEngagementMutationMessage = "Notice engagement is read-only in the admin workspace.";
 
-  return useMutation({
-    mutationFn: async ({ id, currentCount = 0 }: { id: string; currentCount?: number | null }): Promise<void> => {
-      const { error } = await supabase.from("notices").update({ views_count: Number(currentCount || 0) + 1 }).eq("id", id);
-      if (error) {
-        throw new Error(`Failed to increment views: ${error.message}`);
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notices"] });
+export const useIncrementNoticeViews = () =>
+  useMutation({
+    mutationFn: async () => {
+      throw new Error(readOnlyEngagementMutationMessage);
     },
   });
-};
 
-export const useIncrementNoticeLikes = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ id, currentCount = 0 }: { id: string; currentCount?: number | null }): Promise<void> => {
-      const { error } = await supabase.from("notices").update({ likes_count: Number(currentCount || 0) + 1 }).eq("id", id);
-      if (error) {
-        throw new Error(`Failed to increment likes: ${error.message}`);
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notices"] });
+export const useIncrementNoticeLikes = () =>
+  useMutation({
+    mutationFn: async () => {
+      throw new Error(readOnlyEngagementMutationMessage);
     },
   });
-};

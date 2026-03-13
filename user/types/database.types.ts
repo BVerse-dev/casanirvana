@@ -2158,37 +2158,47 @@ export type Database = {
         Row: {
           author_avatar: string | null
           author_name: string
+          author_user_id: string | null
           content: string
           created_at: string | null
           id: string
           likes_count: number | null
-          notice_id: string | null
+          notice_id: string
           parent_id: string | null
           updated_at: string | null
         }
         Insert: {
           author_avatar?: string | null
           author_name: string
+          author_user_id?: string | null
           content: string
           created_at?: string | null
           id?: string
           likes_count?: number | null
-          notice_id?: string | null
+          notice_id: string
           parent_id?: string | null
           updated_at?: string | null
         }
         Update: {
           author_avatar?: string | null
           author_name?: string
+          author_user_id?: string | null
           content?: string
           created_at?: string | null
           id?: string
           likes_count?: number | null
-          notice_id?: string | null
+          notice_id?: string
           parent_id?: string | null
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "comments_notice_id_fkey"
+            columns: ["notice_id"]
+            isOneToOne: false
+            referencedRelation: "notices"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "comments_parent_id_fkey"
             columns: ["parent_id"]
@@ -12167,6 +12177,10 @@ export type Database = {
       }
       increment_notice_likes: {
         Args: { notice_id: string }
+        Returns: undefined
+      }
+      increment_comment_likes: {
+        Args: { comment_id: string }
         Returns: undefined
       }
       increment_notice_views: {

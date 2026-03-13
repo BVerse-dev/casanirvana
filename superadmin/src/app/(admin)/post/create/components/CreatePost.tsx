@@ -8,9 +8,11 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { Alert, Button, Card, CardBody, CardHeader, CardTitle, Col, Form, Row, Spinner } from "react-bootstrap";
 
+import { useListCommunities } from "@/hooks/useCommunities";
 import { useCreateNotice, useGetNotice, useUpdateNotice, type CreateNoticeData } from "@/hooks/useNotices";
 
 interface NoticeFormData {
+  community_id: string;
   title: string;
   body: string;
   author_name: string;
@@ -29,6 +31,7 @@ interface CreatePostProps {
 }
 
 const noticeSchema = yup.object({
+  community_id: yup.string().required("Please select a community"),
   title: yup.string().required("Please enter notice title"),
   body: yup.string().required("Please enter notice content"),
   author_name: yup.string().required("Please enter author name"),
@@ -48,7 +51,9 @@ const CreatePost = ({ mode = "create", noticeId }: CreatePostProps) => {
   const createNoticeMutation = useCreateNotice();
   const updateNoticeMutation = useUpdateNotice();
   const { data: existingNotice, isLoading: isNoticeLoading, error: noticeLoadError } = useGetNotice(isEditMode && noticeId ? noticeId : "");
+  const { data: communitiesPayload, isLoading: isCommunitiesLoading } = useListCommunities({ pageSize: 200 });
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const communities = communitiesPayload?.data || [];
 
   const scopedCommunityId = useMemo(() => {
     const directCommunityId = (session?.user as any)?.communityId;
@@ -65,9 +70,34 @@ const CreatePost = ({ mode = "create", noticeId }: CreatePostProps) => {
     return null;
   }, [session?.user]);
 
-  const { control, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<NoticeFormData>({
+  const availableCommunities = useMemo(() => {
+    if (existingNotice?.community_id && existingNotice.communities?.name) {
+      const alreadyListed = communities.some((community) => community.id === existingNotice.community_id);
+      if (!alreadyListed) {
+        return [
+          ...communities,
+          {
+            id: existingNotice.community_id,
+            name: existingNotice.communities.name,
+          },
+        ];
+      }
+    }
+
+    return communities;
+  }, [communities, existingNotice?.communities?.name, existingNotice?.community_id]);
+
+  const {
+    control,
+    handleSubmit,
+    reset,
+    setValue,
+    watch,
+    formState: { errors, isSubmitting },
+  } = useForm<NoticeFormData>({
     resolver: yupResolver(noticeSchema),
     defaultValues: {
+      community_id: scopedCommunityId || "",
       title: "",
       body: "",
       author_name: session?.user?.name || session?.user?.email || "Administrator",
@@ -80,11 +110,13 @@ const CreatePost = ({ mode = "create", noticeId }: CreatePostProps) => {
       is_featured: false,
     },
   });
+  const selectedCommunityId = watch("community_id");
 
   useEffect(() => {
     if (!isEditMode || !existingNotice) return;
 
     reset({
+      community_id: existingNotice.community_id || "",
       title: existingNotice.title || "",
       body: existingNotice.body || "",
       author_name: existingNotice.author_name || session?.user?.name || session?.user?.email || "Administrator",
@@ -98,12 +130,26 @@ const CreatePost = ({ mode = "create", noticeId }: CreatePostProps) => {
     });
   }, [existingNotice, isEditMode, reset, session?.user?.email, session?.user?.name]);
 
+  useEffect(() => {
+    if (isEditMode || selectedCommunityId) return;
+
+    const preferredCommunityId =
+      scopedCommunityId && availableCommunities.some((community) => community.id === scopedCommunityId)
+        ? scopedCommunityId
+        : availableCommunities.length === 1
+          ? availableCommunities[0].id
+          : "";
+
+    if (preferredCommunityId) {
+      setValue("community_id", preferredCommunityId, { shouldDirty: false });
+    }
+  }, [availableCommunities, isEditMode, scopedCommunityId, selectedCommunityId, setValue]);
+
   const onSubmit = async (formData: NoticeFormData) => {
     setSubmitError(null);
 
-    const targetCommunityId = existingNotice?.community_id || scopedCommunityId;
-    if (!targetCommunityId) {
-      setSubmitError("No community scope is assigned to this admin account. Contact superadmin.");
+    if (!formData.community_id) {
+      setSubmitError("Select a community before publishing this notice.");
       return;
     }
 
@@ -113,7 +159,7 @@ const CreatePost = ({ mode = "create", noticeId }: CreatePostProps) => {
       .filter(Boolean);
 
     const noticeData: CreateNoticeData = {
-      community_id: targetCommunityId,
+      community_id: formData.community_id,
       title: formData.title.trim(),
       body: formData.body.trim(),
       author_name: formData.author_name.trim(),
@@ -157,8 +203,8 @@ const CreatePost = ({ mode = "create", noticeId }: CreatePostProps) => {
   return (
     <form onSubmit={handleSubmit(onSubmit)} data-notice-form>
       {submitError ? <Alert variant="danger">{submitError}</Alert> : null}
-      {!isEditMode && !scopedCommunityId ? (
-        <Alert variant="warning">No community scope was found for your admin account. Assign a community before creating notices.</Alert>
+      {!availableCommunities.length && !isCommunitiesLoading ? (
+        <Alert variant="warning">No publishable communities are available for this admin account. Assign a community before creating notices.</Alert>
       ) : null}
 
       <Card className="mb-4">
@@ -197,6 +243,26 @@ const CreatePost = ({ mode = "create", noticeId }: CreatePostProps) => {
         </CardHeader>
         <CardBody>
           <Row className="g-3">
+            <Col lg={12}>
+              <Form.Label>Community *</Form.Label>
+              <Controller
+                name="community_id"
+                control={control}
+                render={({ field }) => (
+                  <Form.Select {...field} isInvalid={Boolean(errors.community_id)} disabled={isCommunitiesLoading || !availableCommunities.length}>
+                    <option value="">{isCommunitiesLoading ? "Loading communities..." : "Select community"}</option>
+                    {availableCommunities.map((community) => (
+                      <option key={community.id} value={community.id}>
+                        {community.name || "Unnamed Community"}
+                      </option>
+                    ))}
+                  </Form.Select>
+                )}
+              />
+              <Form.Control.Feedback type="invalid" className={errors.community_id ? "d-block" : ""}>
+                {errors.community_id?.message}
+              </Form.Control.Feedback>
+            </Col>
             <Col lg={4}>
               <Form.Label>Category *</Form.Label>
               <Controller
@@ -281,7 +347,7 @@ const CreatePost = ({ mode = "create", noticeId }: CreatePostProps) => {
         <Button variant="outline-secondary" onClick={() => router.push("/post")} disabled={isSubmitting}>
           Cancel
         </Button>
-        <Button type="submit" disabled={isSubmitting || (!isEditMode && !scopedCommunityId)}>
+        <Button type="submit" disabled={isSubmitting || !selectedCommunityId}>
           {isSubmitting ? (
             <>
               <Spinner size="sm" className="me-2" />

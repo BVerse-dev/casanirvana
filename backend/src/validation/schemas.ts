@@ -50,6 +50,8 @@ const inquiryPriorities = z.enum(['low', 'medium', 'high', 'urgent']);
 const inquiryTypes = z.enum(['general_inquiry', 'technical_support', 'feedback', 'suggestion', 'suggestions']);
 const emergencyAlertStatuses = z.enum(['pending', 'active', 'investigating', 'escalated', 'resolved']);
 const emergencyAlertPriorities = z.enum(['low', 'medium', 'high', 'critical']);
+const noticeStatuses = z.enum(['draft', 'published', 'archived']);
+const noticePriorities = z.enum(['low', 'medium', 'high', 'urgent']);
 const notificationCampaignStatus = z.enum(['draft', 'scheduled', 'active', 'completed', 'paused', 'processing', 'delivered', 'failed']);
 const notificationChannel = z.enum(['sms', 'email', 'push', 'in-app']);
 const notificationAnalyticsDateRange = z.enum(['7days', '30days', '90days', 'custom']);
@@ -881,6 +883,48 @@ export const schemas = {
       unit_id: optionalString.nullable(),
     })
   ),
+  adminNoticesListQuery: pageLimitQuery.extend({
+    community_id: optionalString,
+    status: noticeStatuses.optional(),
+    category: optionalString,
+    search: optionalString,
+  }),
+  adminNoticeCreate: z.object({
+    community_id: z.string().uuid(),
+    title: nonEmptyString,
+    body: nonEmptyString,
+    author_name: optionalString,
+    author_avatar: z.string().url().optional().nullable(),
+    category: optionalString,
+    priority: noticePriorities.optional(),
+    status: noticeStatuses.optional(),
+    tags: z.array(nonEmptyString).optional(),
+    image_url: z.string().url().optional().nullable(),
+    video_url: z.string().url().optional().nullable(),
+    posted_at: z.string().optional().nullable(),
+    is_featured: z.boolean().optional(),
+  }),
+  adminNoticeUpdate: atLeastOne(
+    z.object({
+      community_id: z.string().uuid().optional(),
+      title: optionalString,
+      body: optionalString,
+      author_name: optionalString,
+      author_avatar: z.string().url().optional().nullable(),
+      category: optionalString,
+      priority: noticePriorities.optional(),
+      status: noticeStatuses.optional(),
+      tags: z.array(nonEmptyString).optional(),
+      image_url: z.string().url().optional().nullable(),
+      video_url: z.string().url().optional().nullable(),
+      posted_at: z.string().optional().nullable(),
+      is_featured: z.boolean().optional(),
+    })
+  ),
+  adminNoticeCommentCreate: z.object({
+    content: nonEmptyString,
+    parent_id: z.string().uuid().optional().nullable(),
+  }),
 
   adminSocietyCreate: z.object({
     name: nonEmptyString,
