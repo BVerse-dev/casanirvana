@@ -660,7 +660,8 @@ async function readSystemSettings(category: string): Promise<SystemSettingRow[]>
   const { data, error } = await supabase
     .from('system_settings')
     .select('key, value, data_type, is_sensitive')
-    .eq('category', category);
+    .eq('category', category)
+    .eq('subcategory', '');
 
   if (error) {
     throw new Error(`Failed to fetch ${category} settings`);
@@ -743,6 +744,7 @@ async function upsertSettingsCategory(
 ) {
   const rows = Object.entries(settings).map(([key, value]) => ({
     category,
+    subcategory: '',
     key,
     value: serializeValue(value),
     data_type: inferDataType(value),
@@ -752,7 +754,9 @@ async function upsertSettingsCategory(
     updated_at: new Date().toISOString(),
   }));
 
-  const { error } = await supabase.from('system_settings').upsert(rows, { onConflict: 'key' });
+  const { error } = await supabase.from('system_settings').upsert(rows, {
+    onConflict: 'category,subcategory,key',
+  });
   if (error) {
     throw new Error(`Failed to save ${category} settings`);
   }
@@ -800,6 +804,7 @@ async function upsertNamespacedSettingsCategory(
 ) {
   const rows = Object.entries(settings).map(([key, value]) => ({
     category,
+    subcategory: '',
     key: buildNamespacedKey(storageKeyPrefix, key),
     value: serializeValue(value),
     data_type: inferDataType(value),
@@ -809,7 +814,9 @@ async function upsertNamespacedSettingsCategory(
     updated_at: new Date().toISOString(),
   }));
 
-  const { error } = await supabase.from('system_settings').upsert(rows, { onConflict: 'key' });
+  const { error } = await supabase.from('system_settings').upsert(rows, {
+    onConflict: 'category,subcategory,key',
+  });
   if (error) {
     throw new Error(`Failed to save ${category} settings`);
   }

@@ -6,7 +6,7 @@ import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import PageTitle from '@/components/PageTitle';
-import { useUploadFile, StorageBucket } from '@/hooks/useFileUpload';
+import { useAdminSettingsAssetDelete, useAdminSettingsAssetUpload } from '@/hooks/useAdminSettingsAssets';
 import { useSettingsCategory } from '@/hooks/useSettingsCategory';
 
 // Onboarding step validation schema
@@ -15,6 +15,7 @@ const onboardingStepSchema = yup.object({
   subtitle: yup.string().required('Subtitle is required'),
   description: yup.string().required('Description is required'),
   image_url: yup.string().nullable(),
+  image_path: yup.string().nullable(),
   animation_type: yup.string().required('Animation type is required'),
   order: yup.number().required('Order is required'),
   enabled: yup.boolean().required(),
@@ -61,6 +62,7 @@ export default function OnboardingSettingsPage() {
           description:
             'Manage your community life with ease. Connect with community members, book amenities, and stay updated.',
           image_url: null,
+          image_path: null,
           animation_type: 'fadeIn',
           order: 1,
           enabled: true,
@@ -70,6 +72,7 @@ export default function OnboardingSettingsPage() {
           subtitle: 'Community Features',
           description: 'Chat with neighbors, join community groups, and participate in community events.',
           image_url: null,
+          image_path: null,
           animation_type: 'slideLeft',
           order: 2,
           enabled: true,
@@ -79,6 +82,7 @@ export default function OnboardingSettingsPage() {
           subtitle: 'Amenity Management',
           description: 'Book amenities, request maintenance, and manage payments all in one place.',
           image_url: null,
+          image_path: null,
           animation_type: 'slideRight',
           order: 3,
           enabled: true,
@@ -87,8 +91,8 @@ export default function OnboardingSettingsPage() {
     },
   });
 
-  // File upload hooks
-  const uploadFileMutation = useUploadFile();
+  const uploadAssetMutation = useAdminSettingsAssetUpload();
+  const deleteAssetMutation = useAdminSettingsAssetDelete();
 
   const { control, handleSubmit, watch, reset, setValue, formState: { errors } } = useForm<OnboardingSettingsFormData>({
     resolver: yupResolver(onboardingSettingsSchema),
@@ -116,12 +120,18 @@ export default function OnboardingSettingsPage() {
 
   const handleImageUpload = async (stepIndex: number, file: File) => {
     try {
-      const result = await uploadFileMutation.mutateAsync({
+      const currentImagePath = watchedValues.steps?.[stepIndex]?.image_path;
+      if (currentImagePath) {
+        await deleteAssetMutation.mutateAsync({
+          assetType: 'onboarding',
+          path: currentImagePath,
+        });
+      }
+
+      return uploadAssetMutation.mutateAsync({
+        assetType: 'onboarding',
         file,
-        bucket: StorageBucket.SPLASH_IMAGES,
-        path: `onboarding/step-${stepIndex + 1}-${Date.now()}.${file.name.split('.').pop()}`,
       });
-      return result.url;
     } catch (error) {
       console.error('Error uploading image:', error);
       throw error;
@@ -134,6 +144,7 @@ export default function OnboardingSettingsPage() {
       subtitle: 'Step Subtitle',
       description: 'Step description goes here.',
       image_url: null,
+      image_path: null,
       animation_type: 'fadeIn',
       order: fields.length + 1,
       enabled: true,
@@ -379,8 +390,21 @@ export default function OnboardingSettingsPage() {
                                     const file = event.target.files?.[0];
                                     if (!file) return;
                                     try {
-                                      const imageUrl = await handleImageUpload(index, file);
-                                      setValue(`steps.${index}.image_url`, imageUrl, { shouldDirty: true });
+                                      if (!file.type.startsWith('image/')) {
+                                        throw new Error('Please select a valid image file.');
+                                      }
+                                      if (file.size > 5 * 1024 * 1024) {
+                                        throw new Error('Image file size must be less than 5MB.');
+                                      }
+
+                                      const uploadedAsset = await handleImageUpload(index, file);
+                                      setValue(`steps.${index}.image_url`, uploadedAsset.url, { shouldDirty: true });
+                                      setValue(`steps.${index}.image_path`, uploadedAsset.path, { shouldDirty: true });
+                                      setShowAlert({
+                                        type: 'success',
+                                        message: `Step ${index + 1} image uploaded successfully.`,
+                                      });
+                                      setTimeout(() => setShowAlert(null), 3000);
                                     } catch {
                                       setShowAlert({
                                         type: 'danger',

@@ -59,44 +59,7 @@ const extensionsSettingsSchema = yup.object({
 
 type ExtensionsSettingsFormData = yup.InferType<typeof extensionsSettingsSchema>;
 
-const defaultInstalledExtensions: NonNullable<ExtensionsSettingsFormData['installed_extensions']> = [
-  {
-    name: 'ExpressPay Gateway Connector',
-    description: 'Official ExpressPay checkout and settlement connector',
-    version: '1.0.0',
-    author: 'Casa Nirvana Team',
-    enabled: true,
-    settings: {
-      mode: 'test',
-      provider: 'expresspay',
-    },
-    dependencies: ['payment-core'],
-  },
-  {
-    name: 'Notification Router',
-    description: 'Routes in-app, email, and SMS notifications through the platform pipeline',
-    version: '1.4.0',
-    author: 'Casa Nirvana Team',
-    enabled: true,
-    settings: {
-      channels: ['in_app', 'email', 'sms'],
-      priority: 'high',
-    },
-    dependencies: ['notification-core'],
-  },
-  {
-    name: 'Backup & Restore',
-    description: 'Automated daily backups to cloud storage',
-    version: '1.1.5',
-    author: 'Casa Nirvana Team',
-    enabled: false,
-    settings: {
-      backup_frequency: 'daily',
-      storage_provider: 'aws-s3',
-    },
-    dependencies: [],
-  },
-];
+const defaultInstalledExtensions: NonNullable<ExtensionsSettingsFormData['installed_extensions']> = [];
 
 const defaultExtensionsSettings: ExtensionsSettingsFormData = {
   allow_third_party_extensions: true,
@@ -124,73 +87,9 @@ const extensionSettingDescriptions = {
   installed_extensions: 'Installed extension inventory and enablement state.',
 };
 
-// Available extension categories
-const extensionCategories = [
-  { label: 'All', value: 'all' },
-  { label: 'Payment Gateway', value: 'payment' },
-  { label: 'Communication', value: 'communication' },
-  { label: 'Security', value: 'security' },
-  { label: 'Analytics', value: 'analytics' },
-  { label: 'Utilities', value: 'utilities' },
-  { label: 'Integrations', value: 'integrations' },
-];
-
-// Sample marketplace extensions
-const marketplaceExtensions = [
-  {
-    id: 'whatsapp-business',
-    name: 'WhatsApp Business Integration',
-    description: 'Send automated messages and notifications via WhatsApp Business API',
-    version: '2.1.0',
-    author: 'Casa Nirvana Team',
-    category: 'communication',
-    price: 'Free',
-    rating: 4.8,
-    downloads: 1250,
-    installed: false,
-  },
-  {
-    id: 'expresspay-toolkit',
-    name: 'ExpressPay Gateway Toolkit',
-    description: 'Managed ExpressPay checkout, webhooks, and payout tooling for community billing',
-    version: '1.0.0',
-    author: 'Casa Nirvana Team',
-    category: 'payment',
-    price: 'Free',
-    rating: 4.9,
-    downloads: 1340,
-    installed: true,
-  },
-  {
-    id: 'google-analytics',
-    name: 'Google Analytics Integration',
-    description: 'Track user behavior and app performance with Google Analytics',
-    version: '3.0.1',
-    author: 'Google',
-    category: 'analytics',
-    price: 'Free',
-    rating: 4.9,
-    downloads: 2100,
-    installed: false,
-  },
-  {
-    id: 'visitor-face-verification',
-    name: 'Visitor Face Verification',
-    description: 'Face verification add-on for gated visitor and access workflows',
-    version: '1.2.0',
-    author: 'SecureVision',
-    category: 'security',
-    price: 'Contact Sales',
-    rating: 4.6,
-    downloads: 340,
-    installed: false,
-  },
-];
-
 export default function ExtensionsSettingsPage() {
   const [showAlert, setShowAlert] = useState<{ type: 'success' | 'danger'; message: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState('all');
   const [showExtensionModal, setShowExtensionModal] = useState(false);
   const [selectedExtension, setSelectedExtension] = useState<any>(null);
 
@@ -211,13 +110,8 @@ export default function ExtensionsSettingsPage() {
     defaultValues: defaultExtensionsSettings,
   });
 
-  const {
-    fields: extensionFields,
-    append: appendExtension,
-    remove: removeExtension,
-    update: updateExtension,
-    replace: replaceExtensions,
-  } = useFieldArray({
+  const { fields: extensionFields, remove: removeExtension, update: updateExtension, replace: replaceExtensions } =
+    useFieldArray({
     control,
     name: 'installed_extensions',
   });
@@ -267,41 +161,6 @@ export default function ExtensionsSettingsPage() {
     );
   };
 
-  const handleInstallExtension = async (extension: any) => {
-    const alreadyInstalled = installedExtensions.some(
-      (installedExtension) => installedExtension.name === extension.name
-    );
-
-    if (alreadyInstalled) {
-      setShowAlert({ type: 'success', message: `${extension.name} is already installed.` });
-      setTimeout(() => setShowAlert(null), 3000);
-      return;
-    }
-
-    const nextExtension = {
-      name: extension.name,
-      description: extension.description,
-      version: extension.version,
-      author: extension.author,
-      enabled: true,
-      settings: {},
-      dependencies: [],
-    };
-
-    appendExtension(nextExtension);
-
-    const nextData: ExtensionsSettingsFormData = {
-      ...watchedValues,
-      installed_extensions: [...installedExtensions, nextExtension],
-    } as ExtensionsSettingsFormData;
-
-    await persistSettings(
-      nextData,
-      `${extension.name} installed successfully!`,
-      `Failed to install ${extension.name}. Please try again.`
-    );
-  };
-
   const handleUninstallExtension = async (index: number) => {
     const extension = extensionFields[index];
     const nextInstalledExtensions = installedExtensions.filter((_, currentIndex) => currentIndex !== index);
@@ -315,8 +174,8 @@ export default function ExtensionsSettingsPage() {
 
     await persistSettings(
       nextData,
-      `${extension.name} uninstalled successfully!`,
-      `Failed to uninstall ${extension.name}. Please try again.`
+      `${extension.name} was removed from the configured inventory.`,
+      `Failed to remove ${extension.name} from the configured inventory. Please try again.`
     );
   };
 
@@ -343,7 +202,7 @@ export default function ExtensionsSettingsPage() {
 
     await persistSettings(
       nextData,
-      `${extension.name} ${nextInstalledExtensions[index]?.enabled ? 'enabled' : 'disabled'} successfully!`,
+      `${extension.name} was ${nextInstalledExtensions[index]?.enabled ? 'enabled' : 'disabled'} in configuration.`,
       `Failed to update ${extension.name}. Please try again.`
     );
   };
@@ -352,14 +211,6 @@ export default function ExtensionsSettingsPage() {
     setSelectedExtension(extension);
     setShowExtensionModal(true);
   };
-
-  const filteredMarketplaceExtensions = (selectedCategory === 'all'
-    ? marketplaceExtensions
-    : marketplaceExtensions.filter((extension) => extension.category === selectedCategory)
-  ).map((extension) => ({
-    ...extension,
-    installed: installedExtensions.some((installedExtension) => installedExtension.name === extension.name),
-  }));
 
   return (
     <>
@@ -590,9 +441,13 @@ export default function ExtensionsSettingsPage() {
             {/* Installed Extensions */}
             <Card className="mt-4">
               <CardHeader>
-                <CardTitle as="h4">Installed Extensions</CardTitle>
+                <CardTitle as="h4">Configured Extension Inventory</CardTitle>
               </CardHeader>
               <CardBody>
+                <Alert variant="info">
+                  This page stores extension policy and configured inventory metadata. It does not deploy packages or
+                  pull a live marketplace catalog into production.
+                </Alert>
                 {extensionFields.length > 0 ? (
                   <Table responsive striped>
                     <thead>
@@ -657,7 +512,7 @@ export default function ExtensionsSettingsPage() {
                   </Table>
                 ) : (
                   <div className="text-center py-4 text-muted">
-                    No extensions installed. Browse the marketplace below to install extensions.
+                    No configured extensions have been saved yet.
                   </div>
                 )}
               </CardBody>
@@ -666,80 +521,15 @@ export default function ExtensionsSettingsPage() {
             {/* Extension Marketplace */}
             {watchedValues.marketplace_enabled && (
               <Card className="mt-4">
-                <CardHeader className="d-flex justify-content-between align-items-center">
-                  <CardTitle as="h4">Extension Marketplace</CardTitle>
-                  <div className="d-flex gap-2">
-                    {extensionCategories.map((category) => (
-                      <Button
-                        key={category.value}
-                        variant={selectedCategory === category.value ? 'primary' : 'outline-primary'}
-                        size="sm"
-                        onClick={() => setSelectedCategory(category.value)}
-                      >
-                        {category.label}
-                      </Button>
-                    ))}
-                  </div>
+                <CardHeader>
+                  <CardTitle as="h4">Extension Marketplace Catalog</CardTitle>
                 </CardHeader>
                 <CardBody>
-                  <Row>
-                    {filteredMarketplaceExtensions.map((extension) => (
-                      <Col md={6} lg={4} key={extension.id} className="mb-4">
-                        <Card className="h-100">
-                          <CardBody>
-                            <div className="d-flex justify-content-between align-items-start mb-2">
-                              <h6 className="card-title mb-1">{extension.name}</h6>
-                              <Badge bg={extension.installed ? 'success' : 'light'}>
-                                {extension.installed ? 'Installed' : extension.price}
-                              </Badge>
-                            </div>
-                            <p className="card-text small text-muted mb-2">
-                              {extension.description}
-                            </p>
-                            <div className="d-flex justify-content-between align-items-center mb-3">
-                              <div>
-                                <small className="text-muted">
-                                  <IconifyIcon icon="ri:star-fill" className="text-warning" />
-                                  {extension.rating} ({extension.downloads})
-                                </small>
-                              </div>
-                              <small className="text-muted">v{extension.version}</small>
-                            </div>
-                            <div className="d-flex gap-2">
-                              {!extension.installed ? (
-                                <Button
-                                  variant="primary"
-                                  size="sm"
-                                  className="flex-grow-1"
-                                  onClick={() => {
-                                    void handleInstallExtension(extension);
-                                  }}
-                                >
-                                  Install
-                                </Button>
-                              ) : (
-                                <Button
-                                  variant="success"
-                                  size="sm"
-                                  className="flex-grow-1"
-                                  disabled
-                                >
-                                  Installed
-                                </Button>
-                              )}
-                              <Button
-                                variant="outline-secondary"
-                                size="sm"
-                                onClick={() => handleViewExtension(extension)}
-                              >
-                                <IconifyIcon icon="ri:eye-line" />
-                              </Button>
-                            </div>
-                          </CardBody>
-                        </Card>
-                      </Col>
-                    ))}
-                  </Row>
+                  <Alert variant="warning" className="mb-0">
+                    The launch build does not have a live extension marketplace feed or package installation pipeline
+                    behind this route yet. Leave marketplace access disabled unless the backend catalog contract is
+                    introduced in a dedicated follow-up.
+                  </Alert>
                 </CardBody>
               </Card>
             )}

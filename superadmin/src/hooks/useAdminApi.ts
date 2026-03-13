@@ -54,14 +54,18 @@ export const useAdminApi = () => {
 
   const fetchAdmin = async <T = any>(path: string, options: RequestInit = {}): Promise<T> => {
     const resolvedToken = await resolveToken();
+    const headers = new Headers(options.headers || {});
+    const isFormDataBody = typeof FormData !== 'undefined' && options.body instanceof FormData;
+
+    if (!isFormDataBody && !headers.has('Content-Type')) {
+      headers.set('Content-Type', 'application/json');
+    }
+
+    headers.set('Authorization', `Bearer ${resolvedToken}`);
 
     const response = await fetch(`${API_BASE_URL}${path}`, {
       ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${resolvedToken}`,
-        ...options.headers,
-      },
+      headers,
     });
 
     const payload = await response.json().catch(() => ({}));

@@ -48,6 +48,7 @@ const serviceRequestPriorities = z.enum(['low', 'medium', 'high', 'urgent']);
 const inquiryStatuses = z.enum(['open', 'in_progress', 'resolved', 'closed']);
 const inquiryPriorities = z.enum(['low', 'medium', 'high', 'urgent']);
 const inquiryTypes = z.enum(['general_inquiry', 'technical_support', 'feedback', 'suggestion', 'suggestions']);
+const adminSettingsAssetType = z.enum(['splash', 'onboarding']);
 const emergencyAlertStatuses = z.enum(['pending', 'active', 'investigating', 'escalated', 'resolved']);
 const emergencyAlertPriorities = z.enum(['low', 'medium', 'high', 'critical']);
 const noticeStatuses = z.enum(['draft', 'published', 'archived']);
@@ -1845,6 +1846,12 @@ export const schemas = {
   systemSettingsDeleteQuery: z.object({
     category: optionalString,
     subcategory: optionalString,
+  }),
+  adminSettingsAssetParams: z.object({
+    assetType: adminSettingsAssetType,
+  }),
+  adminSettingsAssetDelete: z.object({
+    path: nonEmptyString,
   }),
 
   roleParams: z.object({ role: nonEmptyString }),

@@ -6,7 +6,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import PageTitle from '@/components/PageTitle';
-import { useUploadFile, useDeleteFile, StorageBucket } from '@/hooks/useFileUpload';
+import { useAdminSettingsAssetDelete, useAdminSettingsAssetUpload } from '@/hooks/useAdminSettingsAssets';
 import { useSettingsCategory } from '@/hooks/useSettingsCategory';
 
 // Comprehensive form validation schema
@@ -68,9 +68,8 @@ export default function SplashSettingsPage() {
     },
   });
 
-  // File upload hooks
-  const uploadFileMutation = useUploadFile();
-  const deleteFileMutation = useDeleteFile();
+  const uploadAssetMutation = useAdminSettingsAssetUpload();
+  const deleteAssetMutation = useAdminSettingsAssetDelete();
 
   const { control, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm<SplashSettingsFormData>({
     resolver: yupResolver(splashSettingsSchema),
@@ -112,17 +111,15 @@ export default function SplashSettingsPage() {
     try {
       // Delete previous image if exists
       if (currentImagePath) {
-        await deleteFileMutation.mutateAsync({
-          bucket: StorageBucket.SPLASH_IMAGES,
-          path: currentImagePath
+        await deleteAssetMutation.mutateAsync({
+          assetType: 'splash',
+          path: currentImagePath,
         });
       }
 
-      // Upload new image
-      const result = await uploadFileMutation.mutateAsync({
+      const result = await uploadAssetMutation.mutateAsync({
+        assetType: 'splash',
         file,
-        bucket: StorageBucket.SPLASH_IMAGES,
-        path: `splash-${Date.now()}.${file.name.split('.').pop()}`
       });
 
       setUploadedImageUrl(result.url);
@@ -143,9 +140,9 @@ export default function SplashSettingsPage() {
     if (!currentImagePath) return;
 
     try {
-      await deleteFileMutation.mutateAsync({
-        bucket: StorageBucket.SPLASH_IMAGES,
-        path: currentImagePath
+      await deleteAssetMutation.mutateAsync({
+        assetType: 'splash',
+        path: currentImagePath,
       });
 
       setUploadedImageUrl(null);
@@ -413,14 +410,14 @@ export default function SplashSettingsPage() {
                     type="file"
                     accept="image/*"
                     onChange={handleImageUpload}
-                    disabled={uploadFileMutation.isPending}
+                    disabled={uploadAssetMutation.isPending}
                   />
                   <Form.Text className="text-muted">
                     Recommended size: 414x896 pixels (mobile screen size). Max file size: 5MB.
                   </Form.Text>
                 </Form.Group>
 
-                {uploadFileMutation.isPending && (
+                {uploadAssetMutation.isPending && (
                   <div className="d-flex align-items-center mb-3">
                     <div className="spinner-border spinner-border-sm me-2" role="status">
                       <span className="visually-hidden">Uploading...</span>
@@ -443,9 +440,9 @@ export default function SplashSettingsPage() {
                         variant="outline-danger"
                         size="sm"
                         onClick={handleRemoveImage}
-                        disabled={deleteFileMutation.isPending}
+                        disabled={deleteAssetMutation.isPending}
                       >
-                        {deleteFileMutation.isPending ? (
+                        {deleteAssetMutation.isPending ? (
                           <>
                             <div className="spinner-border spinner-border-sm me-1" role="status">
                               <span className="visually-hidden">Removing...</span>

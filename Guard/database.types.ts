@@ -10569,36 +10569,42 @@ export type Database = {
       }
       system_settings: {
         Row: {
-          category: string | null
+          category: string
           created_at: string | null
           data_type: string | null
           description: string | null
           id: number
           is_sensitive: boolean | null
           key: string
+          subcategory: string
           updated_at: string | null
+          updated_by: string | null
           value: string
         }
         Insert: {
-          category?: string | null
+          category?: string
           created_at?: string | null
           data_type?: string | null
           description?: string | null
           id?: number
           is_sensitive?: boolean | null
           key: string
+          subcategory?: string
           updated_at?: string | null
+          updated_by?: string | null
           value: string
         }
         Update: {
-          category?: string | null
+          category?: string
           created_at?: string | null
           data_type?: string | null
           description?: string | null
           id?: number
           is_sensitive?: boolean | null
           key?: string
+          subcategory?: string
           updated_at?: string | null
+          updated_by?: string | null
           value?: string
         }
         Relationships: []

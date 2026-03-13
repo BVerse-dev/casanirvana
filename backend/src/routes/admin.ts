@@ -1,5 +1,6 @@
 
 import express from 'express';
+import multer from 'multer';
 import { requireAuth, requireAdmin, requireSuperAdmin, requirePermission } from '../middleware/auth';
 import { validateRequest } from '../middleware/validate';
 import { schemas } from '../validation/schemas';
@@ -33,8 +34,13 @@ import * as adminGuardsOperationsController from '../controllers/adminGuardsOper
 import * as adminAgenciesOperationsController from '../controllers/adminAgenciesOperations';
 import * as adminEmailsController from '../controllers/adminEmails';
 import * as adminEmergencyAlertsController from '../controllers/adminEmergencyAlerts';
+import * as adminSettingsAssetsController from '../controllers/adminSettingsAssets';
 
 const router = express.Router();
+const settingsAssetUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+});
 
 // Unread notifications count for dashboard
 router.get('/notifications/unread-count', requireAuth, requirePermission('read:all_profiles'), notificationsController.getUnreadNotificationsCount);
@@ -1842,6 +1848,24 @@ router.put(
   requirePermission('manage:settings'),
   validateRequest({ body: schemas.systemSettingsUpsert }),
   systemSettingsController.upsertSystemSettings
+);
+router.post(
+  '/system-settings/assets/:assetType',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ params: schemas.adminSettingsAssetParams }),
+  settingsAssetUpload.single('file'),
+  adminSettingsAssetsController.uploadSettingsAsset
+);
+router.delete(
+  '/system-settings/assets/:assetType',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({
+    params: schemas.adminSettingsAssetParams,
+    body: schemas.adminSettingsAssetDelete,
+  }),
+  adminSettingsAssetsController.deleteSettingsAsset
 );
 router.delete(
   '/system-settings/:key',

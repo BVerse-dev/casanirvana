@@ -7431,11 +7431,13 @@ CREATE TABLE public.system_settings (
     key text NOT NULL,
     value text NOT NULL,
     description text,
-    category character varying(50),
+    category character varying(50) DEFAULT ''::character varying NOT NULL,
+    subcategory text DEFAULT ''::text NOT NULL,
     data_type character varying(20) DEFAULT 'string'::character varying,
     is_sensitive boolean DEFAULT false,
     created_at timestamp with time zone DEFAULT now(),
-    updated_at timestamp with time zone DEFAULT now()
+    updated_at timestamp with time zone DEFAULT now(),
+    updated_by uuid
 );
 
 
@@ -14115,11 +14117,11 @@ ALTER TABLE ONLY public.system_performance
 
 
 --
--- Name: system_settings system_settings_key_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: system_settings system_settings_category_subcategory_key_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.system_settings
-    ADD CONSTRAINT system_settings_key_key UNIQUE (key);
+    ADD CONSTRAINT system_settings_category_subcategory_key_key UNIQUE (category, subcategory, key);
 
 
 --
@@ -16061,6 +16063,13 @@ CREATE INDEX idx_society_staff_society_id ON public.community_staff USING btree 
 --
 
 CREATE INDEX idx_system_settings_category ON public.system_settings USING btree (category);
+
+
+--
+-- Name: idx_system_settings_lookup; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_system_settings_lookup ON public.system_settings USING btree (category, subcategory, key);
 
 
 --
