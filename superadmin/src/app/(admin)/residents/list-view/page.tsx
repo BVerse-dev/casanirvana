@@ -12,17 +12,31 @@ const ListViewPage = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [showFilters, setShowFilters] = useState(false)
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
   
-  const { data: residents = [], isLoading, error } = useListResidents()
+  const {
+    data: residentResponse,
+    isLoading,
+    error,
+    refetch,
+  } = useListResidents({ pageSize: 200 })
+  const residents = residentResponse?.data || []
 
-  // Filter residents based on search term
-  const filteredResidents = residents.filter(resident =>
-    resident.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    resident.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    resident.phone?.includes(searchTerm) ||
-    resident.unit_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    resident.societies?.name?.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const filteredResidents = residents.filter((resident) => {
+    const matchesSearch =
+      resident.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      resident.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      resident.phone?.includes(searchTerm) ||
+      resident.unit_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      resident.societies?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+
+    const matchesStatus =
+      statusFilter === 'all' ||
+      (statusFilter === 'active' && resident.is_active) ||
+      (statusFilter === 'inactive' && !resident.is_active)
+
+    return Boolean(matchesSearch && matchesStatus)
+  })
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value)
@@ -31,6 +45,11 @@ const ListViewPage = () => {
 
   const handleClearSearch = () => {
     setSearchTerm('')
+    setCurrentPage(1)
+  }
+
+  const handleStatusFilter = (status: 'all' | 'active' | 'inactive') => {
+    setStatusFilter(status)
     setCurrentPage(1)
   }
 
@@ -99,7 +118,7 @@ const ListViewPage = () => {
                     >
                       <IconifyIcon icon="ri:filter-line" className="me-1" /> 
                       Filters
-                      {showFilters && <span className="badge bg-primary ms-1">1</span>}
+                      {(searchTerm || statusFilter !== 'all') && <span className="badge bg-primary ms-1">1</span>}
                     </button>
                     <Link href="/residents/add" className="btn btn-success me-1">
                       <IconifyIcon icon="ri:add-line" /> New Resident
@@ -113,23 +132,36 @@ const ListViewPage = () => {
                     <div className="d-flex gap-2 align-items-center">
                       <span className="text-muted">Quick Filters:</span>
                       <button 
-                        className={`btn btn-sm ${searchTerm === '' ? 'btn-primary' : 'btn-outline-primary'}`}
-                        onClick={() => setSearchTerm('')}
+                        className={`btn btn-sm ${statusFilter === 'all' ? 'btn-primary' : 'btn-outline-primary'}`}
+                        onClick={() => handleStatusFilter('all')}
                       >
                         All Residents
                       </button>
                       <button 
-                        className={`btn btn-sm ${searchTerm === 'active' ? 'btn-success' : 'btn-outline-success'}`}
-                        onClick={() => setSearchTerm('active')}
+                        className={`btn btn-sm ${statusFilter === 'active' ? 'btn-success' : 'btn-outline-success'}`}
+                        onClick={() => handleStatusFilter('active')}
                       >
                         Active Only
                       </button>
                       <button 
-                        className={`btn btn-sm ${searchTerm === 'inactive' ? 'btn-danger' : 'btn-outline-danger'}`}
-                        onClick={() => setSearchTerm('inactive')}
+                        className={`btn btn-sm ${statusFilter === 'inactive' ? 'btn-danger' : 'btn-outline-danger'}`}
+                        onClick={() => handleStatusFilter('inactive')}
                       >
                         Inactive Only
                       </button>
+                      {(searchTerm || statusFilter !== 'all') && (
+                        <button
+                          className="btn btn-sm btn-outline-secondary"
+                          onClick={() => {
+                            setSearchTerm('')
+                            setStatusFilter('all')
+                            setCurrentPage(1)
+                          }}
+                        >
+                          <IconifyIcon icon="solar:refresh-broken" className="me-1" />
+                          Clear All
+                        </button>
+                      )}
                     </div>
                   </Col>
                 </Row>
@@ -145,6 +177,9 @@ const ListViewPage = () => {
         currentPage={currentPage}
         onPageChange={setCurrentPage}
         searchTerm={searchTerm}
+        onRefresh={async () => {
+          await refetch()
+        }}
       />
     </>
   )

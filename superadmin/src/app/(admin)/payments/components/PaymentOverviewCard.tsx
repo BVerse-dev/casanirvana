@@ -1,22 +1,29 @@
 'use client'
 import IconifyIcon from '@/components/wrappers/IconifyIcon'
-import { useListPayments } from '@/hooks/usePayments'
+import { usePaymentAnalyticsSummary } from '@/hooks/usePaymentAnalyticsSummary'
 import React from 'react'
 import { Card, CardBody, Col } from 'react-bootstrap'
 
 const PaymentOverviewCard = () => {
-  const { data: payments = [] } = useListPayments()
+  const {
+    averageCompletedPayment,
+    completedTransactions,
+    error,
+    inFlightTransactions,
+    totalTransactions,
+  } = usePaymentAnalyticsSummary()
   const formatAmount = (amount: number) => `GH₵ ${Math.round(Number(amount || 0)).toLocaleString()}`
-  
-  // Calculate payment overview statistics
-  const totalPayments = payments.length
-  const completedPayments = payments.filter(p => p.status === 'completed').length
-  const completionRate = totalPayments > 0 ? (completedPayments / totalPayments) * 100 : 0
-  const pendingPayments = payments.filter(p => p.status === 'initiated' || p.status === 'processing').length
-  
-  // Calculate average payment amount
-  const totalAmount = payments.reduce((sum, payment) => sum + payment.amount, 0)
-  const avgPaymentAmount = totalPayments > 0 ? totalAmount / totalPayments : 0
+  const completionRate = totalTransactions > 0 ? (completedTransactions / totalTransactions) * 100 : 0
+
+  if (error) {
+    return (
+      <Col xl={12} lg={12}>
+        <Card className="bg-gradient-primary text-white border-0 overflow-hidden position-relative card-height-90">
+          <CardBody className="p-4 text-center">Payment overview is unavailable right now.</CardBody>
+        </Card>
+      </Col>
+    )
+  }
 
   return (
     <Col xl={12} lg={12}>
@@ -39,10 +46,10 @@ const PaymentOverviewCard = () => {
             
             <div className="mb-3">
               <h2 className="text-white fw-bold mb-1">
-                {completedPayments.toLocaleString()}
+                {completedTransactions.toLocaleString()}
               </h2>
               <p className="text-white-50 mb-0 fs-14">
-                of {totalPayments.toLocaleString()} total transactions ({pendingPayments.toLocaleString()} in flight)
+                of {totalTransactions.toLocaleString()} total transactions ({inFlightTransactions.toLocaleString()} in flight)
               </p>
             </div>
 
@@ -72,10 +79,10 @@ const PaymentOverviewCard = () => {
                   icon="ri:money-dollar-box-line" 
                   className="fs-16 text-success"
                 />
-                <span className="text-white-75 fs-13">Avg Payment</span>
+              <span className="text-white-75 fs-13">Avg Payment</span>
               </div>
               <span className="text-white fw-medium">
-                {formatAmount(avgPaymentAmount)}
+                {formatAmount(averageCompletedPayment)}
               </span>
             </div>
           </div>

@@ -1,23 +1,78 @@
 "use client";
 
-import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { supabase } from "../lib/supabase";
+import { useAdminApi } from "./useAdminApi";
 import type { Database } from "../lib/database.types";
 
-export type Service = Database["public"]["Tables"]["services"]["Row"] & {
-  communities?: { name?: string | null } | null;
-  name?: string | null;
-  service_name?: string | null;
-  is_active?: boolean | null;
+export type ServiceRequestCounts = {
+  cancelled: number;
+  completed: number;
+  completedRevenue: number;
+  inProgress: number;
+  pending: number;
+  total: number;
 };
 
-type ServiceInsert = Database["public"]["Tables"]["services"]["Insert"];
-type ServiceUpdate = Database["public"]["Tables"]["services"]["Update"];
+export type Service = Database["public"]["Tables"]["services"]["Row"] & {
+  communities?: {
+    agency_id?: string | null;
+    id?: string | null;
+    name?: string | null;
+  } | null;
+  communityName?: string | null;
+  is_active?: boolean | null;
+  name?: string | null;
+  request_counts?: ServiceRequestCounts;
+  service_name?: string | null;
+  status?: string | null;
+};
 
-let servicesChannel: ReturnType<typeof supabase.channel> | null = null;
-let servicesSubscriberCount = 0;
+type ServiceInsert = Database["public"]["Tables"]["services"]["Insert"] & {
+  features?: Record<string, unknown> | null;
+};
+
+type ServiceUpdate = Database["public"]["Tables"]["services"]["Update"] & {
+  features?: Record<string, unknown> | null;
+};
+
+type ServiceListPayload = {
+  data: Service[];
+};
+
+type ServiceRecordPayload = {
+  data: Service;
+};
+
+const SERVICE_FEATURE_LABELS: Record<string, string> = {
+  "24_7": "24/7 Available",
+  booking_required: "Booking Required",
+  emergency: "Emergency Service",
+  is_24_7_available: "24/7 Available",
+  is_booking_required: "Booking Required",
+  is_emergency_service: "Emergency Service",
+  is_premium_service: "Premium Service",
+};
+
+const buildServiceListQuery = (communityId?: string) => {
+  const params = new URLSearchParams();
+  if (communityId) {
+    params.set("community_id", communityId);
+  }
+
+  const query = params.toString();
+  return query ? `?${query}` : "";
+};
+
+const listQueryKey = (communityId?: string) => ["admin-services", communityId || "all"] as const;
+const detailQueryKey = (id: string | number) => ["admin-services", "detail", String(id)] as const;
+
+const formatKeyLabel = (value: string) =>
+  value
+    .split("_")
+    .filter(Boolean)
+    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+    .join(" ");
 
 export const getServiceDisplayName = (service?: Partial<Service> | null) => {
   return service?.name || service?.service_name || "Unnamed Service";
@@ -42,127 +97,108 @@ export const getServiceStatus = (service?: Partial<Service> | null) => {
 
 export const isServiceActive = (service?: Partial<Service> | null) => getServiceStatus(service) === "active";
 
-const useServicesRealtime = () => {
-  const queryClient = useQueryClient();
+export const getServiceFeatureLabels = (service?: Partial<Service> | null) => {
+  const rawFeatures = service?.features;
 
-  useEffect(() => {
-    servicesSubscriberCount += 1;
+  if (Array.isArray(rawFeatures)) {
+    return rawFeatures
+      .map((entry) => (typeof entry === "string" ? entry.trim() : ""))
+      .filter(Boolean);
+  }
 
-    if (!servicesChannel) {
-      servicesChannel = supabase
-        .channel("superadmin-services")
-        .on("postgres_changes", { event: "*", schema: "public", table: "services" }, () => {
-          queryClient.invalidateQueries({ queryKey: ["services"] });
-        })
-        .subscribe();
-    }
+  if (!rawFeatures || typeof rawFeatures !== "object") {
+    return [];
+  }
 
-    return () => {
-      servicesSubscriberCount -= 1;
-
-      if (servicesSubscriberCount <= 0 && servicesChannel) {
-        supabase.removeChannel(servicesChannel);
-        servicesChannel = null;
-        servicesSubscriberCount = 0;
-      }
-    };
-  }, [queryClient]);
+  return Object.entries(rawFeatures as Record<string, unknown>)
+    .filter(([, value]) => value === true || value === "true" || value === 1)
+    .map(([key]) => SERVICE_FEATURE_LABELS[key] || formatKeyLabel(key));
 };
 
+export const useServicesRealtime = () => {};
+
 export const useListServices = (communityId?: string) => {
+  const { fetchAdmin, hasToken } = useAdminApi();
+
   useServicesRealtime();
 
   return useQuery({
-    queryKey: ["services", communityId || "all"],
+    queryKey: listQueryKey(communityId),
+    enabled: hasToken,
     queryFn: async (): Promise<Service[]> => {
-      let query = supabase
-        .from("services")
-        .select(`
-          *,
-          communities:community_id(name)
-        `)
-        .order("created_at", { ascending: false });
-
-      if (communityId) {
-        query = query.eq("community_id", communityId);
-      }
-
-      const { data, error } = await query;
-      if (error) {
-        throw error;
-      }
-
-      return (data || []) as Service[];
+      const payload = await fetchAdmin<ServiceListPayload>(
+        `/admin/services${buildServiceListQuery(communityId)}`
+      );
+      return payload.data || [];
     },
   });
 };
 
-export const useGetService = (id: string) => {
+export const useGetService = (id: string | number) => {
+  const { fetchAdmin, hasToken } = useAdminApi();
+
   useServicesRealtime();
 
   return useQuery({
-    queryKey: ["services", id],
+    queryKey: detailQueryKey(id),
+    enabled: hasToken && Boolean(id),
     queryFn: async (): Promise<Service | null> => {
-      const { data, error } = await supabase
-        .from("services")
-        .select(`
-          *,
-          communities:community_id(name)
-        `)
-        .eq("id", id)
-        .single();
-
-      if (error) {
-        throw error;
-      }
-
-      return (data as Service) || null;
+      const payload = await fetchAdmin<ServiceRecordPayload>(`/admin/services/${id}`);
+      return payload.data || null;
     },
-    enabled: Boolean(id),
   });
 };
 
 export const useCreateService = () => {
   const queryClient = useQueryClient();
+  const { fetchAdmin } = useAdminApi();
 
   return useMutation({
     mutationFn: async (newService: ServiceInsert) => {
-      const { data, error } = await supabase.from("services").insert(newService).select().single();
-      if (error) throw error;
-      return data;
+      const payload = await fetchAdmin<ServiceRecordPayload>("/admin/services", {
+        method: "POST",
+        body: JSON.stringify(newService),
+      });
+      return payload.data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["services"] });
+    onSuccess: (service) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-services"] });
+      queryClient.setQueryData(detailQueryKey(service.id), service);
     },
   });
 };
 
-export const useUpdateService = (id: string) => {
+export const useUpdateService = (id: string | number) => {
   const queryClient = useQueryClient();
+  const { fetchAdmin } = useAdminApi();
 
   return useMutation({
     mutationFn: async (updates: ServiceUpdate) => {
-      const { data, error } = await supabase.from("services").update(updates).eq("id", id).select().single();
-      if (error) throw error;
-      return data;
+      const payload = await fetchAdmin<ServiceRecordPayload>(`/admin/services/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(updates),
+      });
+      return payload.data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["services"] });
-      queryClient.invalidateQueries({ queryKey: ["services", id] });
+    onSuccess: (service) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-services"] });
+      queryClient.setQueryData(detailQueryKey(id), service);
     },
   });
 };
 
 export const useDeleteService = () => {
   const queryClient = useQueryClient();
+  const { fetchAdmin } = useAdminApi();
 
   return useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("services").delete().eq("id", id);
-      if (error) throw error;
+    mutationFn: async (id: string | number) => {
+      await fetchAdmin(`/admin/services/${id}`, { method: "DELETE" });
+      return String(id);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["services"] });
+    onSuccess: (id) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-services"] });
+      queryClient.removeQueries({ queryKey: detailQueryKey(id) });
     },
   });
 };

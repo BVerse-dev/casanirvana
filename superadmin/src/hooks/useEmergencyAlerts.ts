@@ -1,289 +1,186 @@
-"use client";
+'use client';
 
-import { useEffect } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { PostgrestError } from "@supabase/supabase-js";
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { supabase } from "../lib/supabase";
-import type { Database } from "../lib/database.types";
+import { useAdminApi } from '@/hooks/useAdminApi';
+import type { Database } from '@/lib/database.types';
 
-type EmergencyAlertRow = Database["public"]["Tables"]["emergency_alerts"]["Row"];
-type EmergencyAlertInsert = Database["public"]["Tables"]["emergency_alerts"]["Insert"];
-type EmergencyAlertUpdate = Database["public"]["Tables"]["emergency_alerts"]["Update"];
+type EmergencyAlertRow = Database['public']['Tables']['emergency_alerts']['Row'];
 type Profile = Pick<
-  Database["public"]["Tables"]["profiles"]["Row"],
-  "id" | "first_name" | "last_name" | "email" | "phone" | "avatar_url" | "user_id"
+  Database['public']['Tables']['profiles']['Row'],
+  'id' | 'first_name' | 'last_name' | 'email' | 'phone' | 'avatar_url' | 'user_id'
 >;
-type Community = Pick<Database["public"]["Tables"]["communities"]["Row"], "id" | "name">;
-type Unit = Pick<Database["public"]["Tables"]["units"]["Row"], "id" | "block" | "number" | "unit_number">;
+type Community = Pick<Database['public']['Tables']['communities']['Row'], 'id' | 'name'>;
+type Unit = Pick<Database['public']['Tables']['units']['Row'], 'id' | 'block' | 'number' | 'unit_number'>;
 
-export type EmergencyAlertStatus = "pending" | "active" | "investigating" | "escalated" | "resolved";
+export type EmergencyAlertStatus = 'pending' | 'active' | 'investigating' | 'escalated' | 'resolved';
 
 export type EmergencyAlertRecord = EmergencyAlertRow & {
-  communities?: Community | null;
-  units?: Unit | null;
-  user_profile?: Profile | null;
-  resolved_by_profile?: Profile | null;
+  communities: Community | null;
+  units: Unit | null;
+  user_profile: Profile | null;
+  resolved_by_profile: Profile | null;
 };
 
-type EmergencyActorContext = {
-  profileId: string;
-  communityId: string | null;
+type EmergencyAlertListResponse = {
+  data: EmergencyAlertRecord[];
 };
 
-const EMERGENCY_ALERT_SELECT = `
-  *,
-  communities:communities!emergency_alerts_society_id_fkey (
-    id,
-    name
-  ),
-  units:units!emergency_alerts_unit_id_fkey (
-    id,
-    block,
-    number,
-    unit_number
-  ),
-  user_profile:profiles!emergency_alerts_user_id_fkey (
-    id,
-    first_name,
-    last_name,
-    email,
-    phone,
-    avatar_url,
-    user_id
-  ),
-  resolved_by_profile:profiles!emergency_alerts_resolved_by_fkey (
-    id,
-    first_name,
-    last_name,
-    email,
-    phone,
-    avatar_url,
-    user_id
-  )
-`;
+type EmergencyAlertDetailResponse = {
+  data: EmergencyAlertRecord;
+};
 
-let emergencyAlertsChannel: ReturnType<typeof supabase.channel> | null = null;
-let emergencyAlertsSubscriberCount = 0;
+type EmergencyAlertDeleteResponse = {
+  success: boolean;
+};
 
-const isNotFoundError = (error: PostgrestError | null) => error?.code === "PGRST116";
+type EmergencyAlertListFilters = {
+  communityId?: string;
+  status?: string;
+  search?: string;
+  limit?: number;
+};
+
+export type CreateEmergencyAlertInput = {
+  title: string;
+  description?: string | null;
+  alert_type: string;
+  priority?: string | null;
+  community_id?: string | null;
+  unit_id?: string | null;
+};
+
+export type UpdateEmergencyAlertInput = {
+  id: string;
+  title?: string;
+  description?: string | null;
+  alert_type?: string;
+  priority?: string | null;
+  status?: EmergencyAlertStatus;
+  community_id?: string | null;
+  unit_id?: string | null;
+};
+
+const REFRESH_INTERVAL_MS = 30_000;
+
+const normalizeFilters = (filters: EmergencyAlertListFilters = {}) => ({
+  communityId: filters.communityId?.trim() || '',
+  status: filters.status?.trim() || '',
+  search: filters.search?.trim() || '',
+  limit: filters.limit || 100,
+});
+
+const listQueryKey = (filters: EmergencyAlertListFilters = {}) =>
+  ['admin-emergency-alerts', normalizeFilters(filters)] as const;
 
 export const normalizeEmergencyAlertStatus = (value?: string | null): EmergencyAlertStatus => {
-  const normalized = String(value || "")
+  const normalized = String(value || '')
     .trim()
     .toLowerCase();
 
   switch (normalized) {
-    case "pending":
-    case "active":
-    case "investigating":
-    case "escalated":
-    case "resolved":
+    case 'pending':
+    case 'active':
+    case 'investigating':
+    case 'escalated':
+    case 'resolved':
       return normalized;
     default:
-      return "active";
+      return 'active';
   }
 };
 
 export const formatEmergencyAlertStatusLabel = (value?: string | null) =>
   normalizeEmergencyAlertStatus(value)
-    .split("_")
+    .split('_')
     .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
-    .join(" ");
-
-const resolveProfileByAuthId = async (authUserId: string) => {
-  const byUserId = await supabase
-    .from("profiles")
-    .select("id, user_id, community_id")
-    .eq("user_id", authUserId)
-    .maybeSingle();
-
-  if (byUserId.error && !isNotFoundError(byUserId.error)) {
-    throw byUserId.error;
-  }
-  if (byUserId.data) {
-    return byUserId.data;
-  }
-
-  const byId = await supabase
-    .from("profiles")
-    .select("id, user_id, community_id")
-    .eq("id", authUserId)
-    .maybeSingle();
-
-  if (byId.error && !isNotFoundError(byId.error)) {
-    throw byId.error;
-  }
-  if (byId.data) {
-    return byId.data;
-  }
-
-  throw new Error("Authenticated admin profile not found");
-};
-
-const resolveEmergencyActorContext = async (): Promise<EmergencyActorContext> => {
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError) {
-    throw userError;
-  }
-  if (!user?.id) {
-    throw new Error("Missing authenticated admin session");
-  }
-
-  const profile = await resolveProfileByAuthId(user.id);
-  return {
-    profileId: profile.id,
-    communityId: profile.community_id,
-  };
-};
-
-const useEmergencyAlertsRealtime = () => {
-  const queryClient = useQueryClient();
-
-  useEffect(() => {
-    emergencyAlertsSubscriberCount += 1;
-
-    if (!emergencyAlertsChannel) {
-      emergencyAlertsChannel = supabase
-        .channel("superadmin-emergency-alerts")
-        .on("postgres_changes", { event: "*", schema: "public", table: "emergency_alerts" }, () => {
-          queryClient.invalidateQueries({ queryKey: ["emergency_alerts"] });
-          queryClient.invalidateQueries({ queryKey: ["emergency_alert"] });
-        })
-        .subscribe();
-    }
-
-    return () => {
-      emergencyAlertsSubscriberCount -= 1;
-
-      if (emergencyAlertsSubscriberCount <= 0 && emergencyAlertsChannel) {
-        supabase.removeChannel(emergencyAlertsChannel);
-        emergencyAlertsChannel = null;
-        emergencyAlertsSubscriberCount = 0;
-      }
-    };
-  }, [queryClient]);
-};
+    .join(' ');
 
 export const useListEmergencyAlerts = (communityId?: string, status?: string) => {
-  useEmergencyAlertsRealtime();
+  const { fetchAdmin, hasToken } = useAdminApi();
+  const filters = normalizeFilters({ communityId, status });
 
   return useQuery({
-    queryKey: ["emergency_alerts", communityId || "all", status || "all"],
+    queryKey: listQueryKey(filters),
+    enabled: hasToken,
     queryFn: async (): Promise<EmergencyAlertRecord[]> => {
-      let query = supabase
-        .from("emergency_alerts")
-        .select(EMERGENCY_ALERT_SELECT)
-        .order("created_at", { ascending: false });
+      const params = new URLSearchParams();
+      if (filters.communityId) params.set('community_id', filters.communityId);
+      if (filters.status) params.set('status', filters.status);
+      if (filters.search) params.set('search', filters.search);
+      if (filters.limit) params.set('limit', String(filters.limit));
 
-      if (communityId) {
-        query = query.eq("community_id", communityId);
-      }
-
-      if (status) {
-        query = query.eq("status", status);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-
-      return (data || []) as EmergencyAlertRecord[];
+      const response = await fetchAdmin<EmergencyAlertListResponse>(`/admin/emergency-alerts?${params.toString()}`);
+      return response.data || [];
     },
+    staleTime: 30_000,
+    refetchInterval: REFRESH_INTERVAL_MS,
+    refetchOnWindowFocus: true,
+    placeholderData: (previous) => previous,
   });
 };
 
 export const useGetEmergencyAlert = (id: string) => {
-  useEmergencyAlertsRealtime();
+  const { fetchAdmin, hasToken } = useAdminApi();
 
   return useQuery({
-    queryKey: ["emergency_alert", id],
+    queryKey: ['admin-emergency-alert', id || 'none'],
+    enabled: hasToken && Boolean(id),
     queryFn: async (): Promise<EmergencyAlertRecord | null> => {
-      const { data, error } = await supabase.from("emergency_alerts").select(EMERGENCY_ALERT_SELECT).eq("id", id).single();
-      if (error) throw error;
-      return data as EmergencyAlertRecord;
+      const response = await fetchAdmin<EmergencyAlertDetailResponse>(`/admin/emergency-alerts/${id}`);
+      return response.data;
     },
-    enabled: Boolean(id),
+    staleTime: 30_000,
+    refetchInterval: REFRESH_INTERVAL_MS,
+    refetchOnWindowFocus: true,
   });
 };
 
 export const useCreateEmergencyAlert = () => {
   const queryClient = useQueryClient();
+  const { fetchAdmin } = useAdminApi();
 
   return useMutation({
-    mutationFn: async (newAlert: EmergencyAlertInsert) => {
-      const actorContext = await resolveEmergencyActorContext();
-      const payload: EmergencyAlertInsert = {
-        ...newAlert,
-        user_id: newAlert.user_id || actorContext.profileId,
-        community_id: newAlert.community_id || actorContext.communityId,
-        status: newAlert.status || "active",
-        priority: newAlert.priority || "medium",
-      };
-
-      if (!payload.community_id) {
-        throw new Error("No community scope is available for this admin account");
-      }
-
-      const { data, error } = await supabase
-        .from("emergency_alerts")
-        .insert(payload)
-        .select(EMERGENCY_ALERT_SELECT)
-        .single();
-
-      if (error) throw error;
-      return data as EmergencyAlertRecord;
-    },
+    mutationFn: async (payload: CreateEmergencyAlertInput) =>
+      fetchAdmin<EmergencyAlertDetailResponse>('/admin/emergency-alerts', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["emergency_alerts"] });
+      queryClient.invalidateQueries({ queryKey: ['admin-emergency-alerts'] });
     },
   });
 };
 
 export const useUpdateEmergencyAlert = () => {
   const queryClient = useQueryClient();
+  const { fetchAdmin } = useAdminApi();
 
   return useMutation({
-    mutationFn: async ({ id, ...updates }: EmergencyAlertUpdate & { id: string }) => {
-      const actorContext = await resolveEmergencyActorContext();
-      const payload: EmergencyAlertUpdate = { ...updates };
-
-      if (normalizeEmergencyAlertStatus(payload.status) === "resolved") {
-        payload.resolved_at = payload.resolved_at || new Date().toISOString();
-        payload.resolved_by = payload.resolved_by || actorContext.profileId;
-      }
-
-      const { data, error } = await supabase
-        .from("emergency_alerts")
-        .update(payload)
-        .eq("id", id)
-        .select(EMERGENCY_ALERT_SELECT)
-        .single();
-
-      if (error) throw error;
-      return data as EmergencyAlertRecord;
-    },
+    mutationFn: async ({ id, ...updates }: UpdateEmergencyAlertInput) =>
+      fetchAdmin<EmergencyAlertDetailResponse>(`/admin/emergency-alerts/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(updates),
+      }),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["emergency_alerts"] });
-      queryClient.invalidateQueries({ queryKey: ["emergency_alert", variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['admin-emergency-alerts'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-emergency-alert', variables.id] });
     },
   });
 };
 
 export const useDeleteEmergencyAlert = () => {
   const queryClient = useQueryClient();
+  const { fetchAdmin } = useAdminApi();
 
   return useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("emergency_alerts").delete().eq("id", id);
-      if (error) throw error;
-    },
+    mutationFn: async (id: string) =>
+      fetchAdmin<EmergencyAlertDeleteResponse>(`/admin/emergency-alerts/${id}`, {
+        method: 'DELETE',
+      }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["emergency_alerts"] });
-      queryClient.invalidateQueries({ queryKey: ["emergency_alert"] });
+      queryClient.invalidateQueries({ queryKey: ['admin-emergency-alerts'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-emergency-alert'] });
     },
   });
 };

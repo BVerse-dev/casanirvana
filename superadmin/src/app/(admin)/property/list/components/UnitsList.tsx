@@ -366,14 +366,17 @@ const UnitsList = () => {
                                 />
                               </Button>
                             </Link>
-                            <Link href={`/property/edit?id=${unit.id}`}>
-                              <Button variant="soft-primary" size="sm" title="Edit Unit">
-                                <IconifyIcon
-                                  icon="solar:pen-2-broken"
-                                  className="align-middle fs-18"
-                                />
-                              </Button>
-                            </Link>
+                            <Button
+                              variant="soft-primary"
+                              size="sm"
+                              title="Unit edit flow is not wired yet"
+                              disabled
+                            >
+                              <IconifyIcon
+                                icon="solar:pen-2-broken"
+                                className="align-middle fs-18"
+                              />
+                            </Button>
                             <Button
                               variant="soft-danger"
                               size="sm"

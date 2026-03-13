@@ -135,7 +135,6 @@ const InquiryDetailsPage = () => {
     }
 
     const nextStatus = statusOverride || (status as (typeof STATUS_OPTIONS)[number]);
-    const nowIso = new Date().toISOString();
 
     setFeedback(null);
 
@@ -148,8 +147,6 @@ const InquiryDetailsPage = () => {
           admin_response: adminResponse.trim() || null,
           resolution_notes:
             nextStatus === "open" ? null : resolutionNotes.trim() || null,
-          resolved_at:
-            nextStatus === "resolved" || nextStatus === "closed" ? nowIso : null,
         },
       });
 

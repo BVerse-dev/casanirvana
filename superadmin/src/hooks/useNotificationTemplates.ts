@@ -1,7 +1,8 @@
 'use client'
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useSession } from 'next-auth/react'
+
+import { useAdminApi } from '@/hooks/useAdminApi'
 
 export interface Template {
   id: number
@@ -23,65 +24,44 @@ export interface Template {
 export type TemplateInsert = Omit<Template, 'id' | 'created_at' | 'updated_at' | 'usage_count' | 'last_used'>
 export type TemplateUpdate = Partial<TemplateInsert>
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
-
-const useAdminFetch = () => {
-  const { data: session } = useSession()
-  const token = session?.accessToken as string | undefined
-
-  const fetchAdmin = async (path: string, options: RequestInit = {}) => {
-    if (!token) {
-      throw new Error('Missing admin session. Please sign in again.')
-    }
-
-    const response = await fetch(`${API_BASE_URL}${path}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-        ...options.headers,
-      },
-    })
-
-    const payload = await response.json().catch(() => ({}))
-    if (!response.ok) {
-      throw new Error(payload.error || payload.message || 'Request failed')
-    }
-
-    return payload
-  }
-
-  return { fetchAdmin }
-}
+const NOTIFICATION_REFRESH_INTERVAL_MS = 30_000
 
 export const useListNotificationTemplates = () => {
-  const { fetchAdmin } = useAdminFetch()
+  const { fetchAdmin, hasToken } = useAdminApi()
 
   return useQuery({
     queryKey: ['notification-templates'],
+    enabled: hasToken,
     queryFn: async (): Promise<Template[]> => {
       const data = await fetchAdmin('/admin/notification-templates')
       return Array.isArray(data) ? data : []
     },
+    staleTime: 30_000,
+    refetchInterval: NOTIFICATION_REFRESH_INTERVAL_MS,
+    refetchOnWindowFocus: true,
+    placeholderData: (previous) => previous,
   })
 }
 
 export const useGetNotificationTemplate = (id: number) => {
-  const { fetchAdmin } = useAdminFetch()
+  const { fetchAdmin, hasToken } = useAdminApi()
 
   return useQuery({
     queryKey: ['notification-templates', id],
+    enabled: hasToken && Boolean(id),
     queryFn: async (): Promise<Template | null> => {
       const data = await fetchAdmin(`/admin/notification-templates/${id}`)
       return data || null
     },
-    enabled: !!id,
+    staleTime: 30_000,
+    refetchInterval: NOTIFICATION_REFRESH_INTERVAL_MS,
+    refetchOnWindowFocus: true,
   })
 }
 
 export const useCreateNotificationTemplate = () => {
   const queryClient = useQueryClient()
-  const { fetchAdmin } = useAdminFetch()
+  const { fetchAdmin } = useAdminApi()
 
   return useMutation({
     mutationFn: async (template: TemplateInsert): Promise<Template> => {
@@ -92,13 +72,14 @@ export const useCreateNotificationTemplate = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notification-templates'] })
+      queryClient.invalidateQueries({ queryKey: ['admin-notification-dashboard'] })
     },
   })
 }
 
 export const useUpdateNotificationTemplate = () => {
   const queryClient = useQueryClient()
-  const { fetchAdmin } = useAdminFetch()
+  const { fetchAdmin } = useAdminApi()
 
   return useMutation({
     mutationFn: async ({ id, ...updates }: TemplateUpdate & { id: number }): Promise<Template> => {
@@ -110,13 +91,14 @@ export const useUpdateNotificationTemplate = () => {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['notification-templates'] })
       queryClient.invalidateQueries({ queryKey: ['notification-templates', data.id] })
+      queryClient.invalidateQueries({ queryKey: ['campaigns'] })
     },
   })
 }
 
 export const useDeleteNotificationTemplate = () => {
   const queryClient = useQueryClient()
-  const { fetchAdmin } = useAdminFetch()
+  const { fetchAdmin } = useAdminApi()
 
   return useMutation({
     mutationFn: async (id: number): Promise<void> => {
@@ -124,6 +106,7 @@ export const useDeleteNotificationTemplate = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notification-templates'] })
+      queryClient.invalidateQueries({ queryKey: ['campaigns'] })
     },
   })
 }

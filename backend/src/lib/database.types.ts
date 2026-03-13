@@ -7813,6 +7813,7 @@ export type Database = {
           audience: string | null
           budget: number | null
           clicked_count: number | null
+          community_id: string | null
           created_at: string | null
           delivered_count: number | null
           failed_count: number | null
@@ -7825,6 +7826,7 @@ export type Database = {
           spent: number | null
           status: string
           template: string | null
+          template_id: number | null
           title: string
           type: string
           updated_at: string | null
@@ -7833,6 +7835,7 @@ export type Database = {
           audience?: string | null
           budget?: number | null
           clicked_count?: number | null
+          community_id?: string | null
           created_at?: string | null
           delivered_count?: number | null
           failed_count?: number | null
@@ -7845,6 +7848,7 @@ export type Database = {
           spent?: number | null
           status?: string
           template?: string | null
+          template_id?: number | null
           title: string
           type: string
           updated_at?: string | null
@@ -7853,6 +7857,7 @@ export type Database = {
           audience?: string | null
           budget?: number | null
           clicked_count?: number | null
+          community_id?: string | null
           created_at?: string | null
           delivered_count?: number | null
           failed_count?: number | null
@@ -7865,11 +7870,27 @@ export type Database = {
           spent?: number | null
           status?: string
           template?: string | null
+          template_id?: number | null
           title?: string
           type?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "notification_campaigns_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_campaigns_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "notification_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notification_channel_configs: {
         Row: {

@@ -1,5 +1,9 @@
 "use client";
+
+import IconifyIcon from "@/components/wrappers/IconifyIcon";
+import { useResidentPerformanceTrends } from "@/hooks/useResidentDashboard";
 import ReactApexChart from "react-apexcharts";
+import { useMemo, useState } from "react";
 import {
   Card,
   CardBody,
@@ -12,65 +16,65 @@ import {
   DropdownToggle,
   Row,
 } from "react-bootstrap";
-import { useResidentPerformanceTrends } from "@/hooks/useResidentDashboard";
-import IconifyIcon from "@/components/wrappers/IconifyIcon";
-import { useState, useMemo } from "react";
+
+const computeDelta = (series: number[]) => {
+  const nonZeroValues = series.filter((value) => Number.isFinite(value) && value > 0);
+  if (nonZeroValues.length < 2) return null;
+  const first = nonZeroValues[0];
+  const last = nonZeroValues[nonZeroValues.length - 1];
+  if (first === 0) return null;
+  return ((last - first) / first) * 100;
+};
 
 const RecentResidents = () => {
-  const { data: performanceTrends, isLoading } = useResidentPerformanceTrends();
-  const [timeFilter, setTimeFilter] = useState<'month' | 'year' | 'alltime'>('year');
+  const { data: performanceTrends, error, isLoading } = useResidentPerformanceTrends();
+  const [timeFilter, setTimeFilter] = useState<"month" | "year" | "all">("year");
 
-  // Calculate data based on time filter
   const chartData = useMemo(() => {
     if (!performanceTrends) {
       return {
-        satisfactionScores: [4.2, 4.3, 4.1, 4.4, 4.5, 4.3, 4.6, 4.4, 4.5, 4.7, 4.6, 4.8],
-        communityEngagement: [65, 68, 72, 75, 78, 82, 85, 87, 89, 91, 93, 95],
-        labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-        avgSatisfaction: 4.6,
-        avgEngagement: 95,
-        responseTime: 1.4
+        satisfactionScores: [] as number[],
+        communityEngagement: [] as number[],
+        labels: [] as string[],
+        avgSatisfaction: 0,
+        avgEngagement: 0,
+        responseTime: 0,
+        engagementDelta: null as number | null,
+        responseDelta: null as number | null,
       };
     }
 
-    let satisfactionData = performanceTrends.satisfactionScores;
-    let engagementData = performanceTrends.communityEngagement;
-    let labelsData = performanceTrends.labels;
+    let labels = performanceTrends.labels;
+    let satisfactionScores = performanceTrends.satisfactionScores;
+    let communityEngagement = performanceTrends.communityEngagement;
+    let maintenanceResponseTime = performanceTrends.maintenanceResponseTime;
 
-    if (timeFilter === 'month') {
-      // Show last 4 weeks for monthly view
-      const weeklyLabels = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
-      satisfactionData = satisfactionData.slice(-4);
-      engagementData = engagementData.slice(-4);
-      labelsData = weeklyLabels;
-    } else if (timeFilter === 'year') {
-      // Show full year (default)
-      satisfactionData = performanceTrends.satisfactionScores;
-      engagementData = performanceTrends.communityEngagement;
-      labelsData = performanceTrends.labels;
-    } else if (timeFilter === 'alltime') {
-      // Show trend over multiple years
-      const yearlyLabels = ['2022', '2023', '2024'];
-      satisfactionData = [4.1, 4.4, 4.6];
-      engagementData = [78, 87, 95];
-      labelsData = yearlyLabels;
+    if (timeFilter === "month") {
+      labels = labels.slice(-4);
+      satisfactionScores = satisfactionScores.slice(-4);
+      communityEngagement = communityEngagement.slice(-4);
+      maintenanceResponseTime = maintenanceResponseTime.slice(-4);
     }
 
-    const avgSatisfaction = satisfactionData.reduce((a, b) => a + b, 0) / satisfactionData.length;
-    const avgEngagement = engagementData[engagementData.length - 1];
-    const responseTime = timeFilter === 'month' ? 1.2 : timeFilter === 'year' ? 1.4 : 1.8;
+    const satisfactionValues = satisfactionScores.filter((value) => value > 0);
+    const engagementValues = communityEngagement.filter((value) => value > 0);
+    const responseValues = maintenanceResponseTime.filter((value) => value > 0);
 
     return {
-      satisfactionScores: satisfactionData,
-      communityEngagement: engagementData,
-      labels: labelsData,
-      avgSatisfaction: avgSatisfaction,
-      avgEngagement: avgEngagement,
-      responseTime: responseTime
+      satisfactionScores,
+      communityEngagement,
+      labels,
+      avgSatisfaction:
+        satisfactionValues.length > 0
+          ? satisfactionValues.reduce((sum, value) => sum + value, 0) / satisfactionValues.length
+          : 0,
+      avgEngagement: engagementValues[engagementValues.length - 1] || 0,
+      responseTime: responseValues[responseValues.length - 1] || 0,
+      engagementDelta: computeDelta(communityEngagement),
+      responseDelta: computeDelta(maintenanceResponseTime),
     };
   }, [performanceTrends, timeFilter]);
 
-  // Chart options for resident satisfaction trends
   const residentOptions = {
     series: [
       {
@@ -97,7 +101,7 @@ const RecentResidents = () => {
       width: [0, 2],
     },
     fill: {
-      opacity: [4, 1],
+      opacity: [0.4, 1],
     },
     markers: {
       size: [0, 0],
@@ -155,20 +159,10 @@ const RecentResidents = () => {
       shared: true,
       y: [
         {
-          formatter: function (y: number) {
-            if (typeof y !== "undefined") {
-              return y.toFixed(1) + " / 5.0";
-            }
-            return y;
-          },
+          formatter: (value: number) => (typeof value === "number" ? `${value.toFixed(1)} / 5.0` : value),
         },
         {
-          formatter: function (y: number) {
-            if (typeof y !== "undefined") {
-              return y.toFixed(0) + "%";
-            }
-            return y;
-          },
+          formatter: (value: number) => (typeof value === "number" ? `${value.toFixed(0)}%` : value),
         },
       ],
     },
@@ -179,12 +173,27 @@ const RecentResidents = () => {
       <Col lg={12}>
         <Card>
           <CardHeader>
-            <CardTitle as={"h4"}>Recent Resident Activity</CardTitle>
+            <CardTitle as={"h4"}>Resident Satisfaction Trends</CardTitle>
           </CardHeader>
           <CardBody>
             <div className="placeholder-glow">
-              <div className="placeholder" style={{ height: '330px' }}></div>
+              <div className="placeholder" style={{ height: "330px" }}></div>
             </div>
+          </CardBody>
+        </Card>
+      </Col>
+    );
+  }
+
+  if (error) {
+    return (
+      <Col lg={12}>
+        <Card>
+          <CardHeader>
+            <CardTitle as={"h4"}>Resident Satisfaction Trends</CardTitle>
+          </CardHeader>
+          <CardBody className="text-center text-muted py-5">
+            Satisfaction and engagement trends are unavailable right now.
           </CardBody>
         </Card>
       </Col>
@@ -194,12 +203,12 @@ const RecentResidents = () => {
   return (
     <Col lg={12}>
       <Card>
-        <CardHeader className="d-flex  justify-content-between align-items-center border-0">
+        <CardHeader className="d-flex justify-content-between align-items-center border-0">
           <div>
             <CardTitle as={"h4"} className="mb-1">
               Resident Satisfaction Trends
             </CardTitle>
-            <p className="text-muted mb-0">Community engagement and satisfaction metrics</p>
+            <p className="text-muted mb-0">Feedback scores, login engagement, and maintenance response timing</p>
           </div>
           <Dropdown>
             <DropdownToggle
@@ -208,18 +217,13 @@ const RecentResidents = () => {
               data-bs-toggle="dropdown"
               aria-expanded="false"
             >
-              {timeFilter === 'month' ? 'This Month' : timeFilter === 'year' ? 'This Year' : 'All Time'}{" "}
-              <IconifyIcon
-                className="ms-1"
-                width={16}
-                height={16}
-                icon="ri:arrow-down-s-line"
-              />
+              {timeFilter === "month" ? "Last 4 Months" : timeFilter === "all" ? "All Available" : "This Year"}{" "}
+              <IconifyIcon className="ms-1" width={16} height={16} icon="ri:arrow-down-s-line" />
             </DropdownToggle>
             <DropdownMenu className="dropdown-menu-end">
-              <DropdownItem onClick={() => setTimeFilter('month')}>This Month</DropdownItem>
-              <DropdownItem onClick={() => setTimeFilter('year')}>This Year</DropdownItem>
-              <DropdownItem onClick={() => setTimeFilter('alltime')}>All Time</DropdownItem>
+              <DropdownItem onClick={() => setTimeFilter("month")}>Last 4 Months</DropdownItem>
+              <DropdownItem onClick={() => setTimeFilter("year")}>This Year</DropdownItem>
+              <DropdownItem onClick={() => setTimeFilter("all")}>All Available</DropdownItem>
             </DropdownMenu>
           </Dropdown>
         </CardHeader>
@@ -237,11 +241,21 @@ const RecentResidents = () => {
                   <div className="border bg-light-subtle p-2 rounded">
                     <p className="text-muted mb-1">Community Engagement</p>
                     <h5 className="text-dark mb-1">
-                      {chartData.avgEngagement}%{" "}
-                      <span className="text-success font-size-13">
-                        +{timeFilter === 'month' ? '8' : timeFilter === 'year' ? '12' : '22'}%{" "}
-                        <IconifyIcon icon="mdi:arrow-up" className="ms-1" />
-                      </span>
+                      {chartData.avgEngagement.toFixed(0)}%
+                      {chartData.engagementDelta !== null ? (
+                        <span
+                          className={`ms-2 font-size-13 ${
+                            chartData.engagementDelta >= 0 ? "text-success" : "text-danger"
+                          }`}
+                        >
+                          {chartData.engagementDelta >= 0 ? "+" : ""}
+                          {chartData.engagementDelta.toFixed(1)}%
+                          <IconifyIcon
+                            icon={chartData.engagementDelta >= 0 ? "mdi:arrow-up" : "mdi:arrow-down"}
+                            className="ms-1"
+                          />
+                        </span>
+                      ) : null}
                     </h5>
                   </div>
                 </Col>
@@ -249,23 +263,39 @@ const RecentResidents = () => {
                   <div className="border bg-light-subtle p-2 rounded">
                     <p className="text-muted mb-1">Response Time</p>
                     <h5 className="text-dark mb-1">
-                      {chartData.responseTime} days{" "}
-                      <span className="text-success font-size-13">
-                        -{timeFilter === 'month' ? '0.2' : timeFilter === 'year' ? '0.3' : '0.6'}{" "}
-                        <IconifyIcon icon="mdi:arrow-down" className="ms-1" />
-                      </span>
+                      {chartData.responseTime.toFixed(1)} days
+                      {chartData.responseDelta !== null ? (
+                        <span
+                          className={`ms-2 font-size-13 ${
+                            chartData.responseDelta <= 0 ? "text-success" : "text-danger"
+                          }`}
+                        >
+                          {chartData.responseDelta >= 0 ? "+" : ""}
+                          {chartData.responseDelta.toFixed(1)}%
+                          <IconifyIcon
+                            icon={chartData.responseDelta <= 0 ? "mdi:arrow-down" : "mdi:arrow-up"}
+                            className="ms-1"
+                          />
+                        </span>
+                      ) : null}
                     </h5>
                   </div>
                 </Col>
               </Row>
-              <ReactApexChart
-                key={`satisfaction-trends-${timeFilter}`}
-                options={residentOptions}
-                series={residentOptions.series}
-                height={330}
-                type="line"
-                className="apex-charts mt-5"
-              />
+              {chartData.labels.length > 0 ? (
+                <ReactApexChart
+                  key={`satisfaction-trends-${timeFilter}`}
+                  options={residentOptions}
+                  series={residentOptions.series}
+                  height={330}
+                  type="line"
+                  className="apex-charts mt-5"
+                />
+              ) : (
+                <div className="text-center text-muted py-5">
+                  No resident feedback or engagement history has been recorded yet.
+                </div>
+              )}
             </Col>
           </Row>
         </CardBody>

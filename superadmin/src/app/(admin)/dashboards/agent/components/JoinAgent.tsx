@@ -1,4 +1,5 @@
 "use client";
+
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
 import clsx from "clsx";
 import Image from "next/image";
@@ -15,31 +16,26 @@ import {
   DropdownMenu,
   DropdownToggle,
 } from "react-bootstrap";
-import { useListResidents } from "@/hooks/useResidents";
-import { useState, useMemo } from "react";
+import { useResidentDashboardRoster } from "@/hooks/useResidentDashboard";
+import { useMemo, useState } from "react";
 
 const RecentResidents = () => {
-  const { data: residents, isLoading } = useListResidents();
-  const [residentFilter, setResidentFilter] = useState<'new' | 'active'>('new');
-  
-  // Filter and get residents based on selection
+  const { data: residentRoster, isLoading } = useResidentDashboardRoster();
+  const [residentFilter, setResidentFilter] = useState<"new" | "active">("new");
+
   const filteredResidents = useMemo(() => {
-    if (!residents || residents.length === 0) return [];
-    
-    let filtered = residents;
-    
-    if (residentFilter === 'new') {
-      // Sort by created_at to get newest residents
-      filtered = residents
-        .filter(resident => resident.created_at)
-        .sort((a, b) => new Date(b.created_at!).getTime() - new Date(a.created_at!).getTime());
-    } else if (residentFilter === 'active') {
-      // Filter only active residents
-      filtered = residents.filter(resident => resident.is_active);
+    const residents = residentRoster?.recentResidents || [];
+    if (residents.length === 0) return [];
+
+    if (residentFilter === "active") {
+      return residents.filter((resident) => resident.is_active).slice(0, 5);
     }
-    
-    return filtered.slice(0, 5);
-  }, [residents, residentFilter]);
+
+    return residents
+      .filter((resident) => resident.created_at)
+      .sort((left, right) => new Date(right.created_at!).getTime() - new Date(left.created_at!).getTime())
+      .slice(0, 5);
+  }, [residentFilter, residentRoster?.recentResidents]);
 
   const joinDataLength = filteredResidents.length - 1;
 
@@ -51,9 +47,9 @@ const RecentResidents = () => {
         </CardHeader>
         <CardBody>
           <div className="placeholder-glow">
-            {[1, 2, 3, 4, 5].map(i => (
+            {[1, 2, 3, 4, 5].map((i) => (
               <div key={i} className="d-flex align-items-center gap-2 mb-3">
-                <div className="placeholder rounded-circle" style={{ width: '40px', height: '40px' }}></div>
+                <div className="placeholder rounded-circle" style={{ width: "40px", height: "40px" }}></div>
                 <div className="flex-grow-1">
                   <span className="placeholder col-6"></span>
                   <span className="placeholder col-4"></span>
@@ -68,35 +64,34 @@ const RecentResidents = () => {
 
   return (
     <Card>
-      <CardHeader className="d-flex  justify-content-between align-items-center border-0">
+      <CardHeader className="d-flex justify-content-between align-items-center border-0">
         <div>
           <CardTitle as={"h4"} className="mb-1">
             Recent Residents
           </CardTitle>
-          <p className="mb-0 fs-13">{residents?.length || 0} Total Residents</p>
+          <p className="mb-0 fs-13">{residentRoster?.totalResidents || 0} Total Residents</p>
         </div>
         <Dropdown>
-          <DropdownToggle
-            as={"a"}
-            className="rounded  arrow-none"
-            data-bs-toggle="dropdown"
-            aria-expanded="false"
-          >
+          <DropdownToggle as={"a"} className="rounded arrow-none" data-bs-toggle="dropdown" aria-expanded="false">
             <IconifyIcon icon="ri:edit-box-line" className="fs-20 text-dark" />
           </DropdownToggle>
           <DropdownMenu className="dropdown-menu-end">
-            <DropdownItem onClick={() => setResidentFilter('new')}>New Residents</DropdownItem>
-            <DropdownItem onClick={() => setResidentFilter('active')}>Active Residents</DropdownItem>
+            <DropdownItem onClick={() => setResidentFilter("new")}>Newest Residents</DropdownItem>
+            <DropdownItem onClick={() => setResidentFilter("active")}>Active Residents</DropdownItem>
           </DropdownMenu>
         </Dropdown>
       </CardHeader>
-              <CardBody className="pt-2" key={`residents-${residentFilter}`}>
+      <CardBody className="pt-2" key={`residents-${residentFilter}`}>
         {filteredResidents.map((resident, idx) => (
           <div
             className={clsx(
-              `d-flex flex-wrap align-items-center justify-content-between ${joinDataLength == idx ? "" : "border-bottom"}  ${joinDataLength == idx || idx == 0 ? "" : "py-3"} gap-2 ${idx == 0 && "pb-3"} ${joinDataLength == idx && "pt-3"}`,
+              `d-flex flex-wrap align-items-center justify-content-between ${
+                joinDataLength === idx ? "" : "border-bottom"
+              } ${joinDataLength === idx || idx === 0 ? "" : "py-3"} gap-2 ${idx === 0 && "pb-3"} ${
+                joinDataLength === idx && "pt-3"
+              }`
             )}
-            key={idx}
+            key={resident.id}
           >
             <div className="d-flex align-items-center gap-2">
               <div className="avatar">
@@ -111,22 +106,23 @@ const RecentResidents = () => {
               <div className="d-block">
                 <span className="text-dark">
                   <Link href={`/residents/details?id=${resident.id}`} className="text-dark fw-medium fs-15">
-                    {resident.full_name || `${resident.first_name} ${resident.last_name}`}
+                    {resident.full_name || `${resident.first_name} ${resident.last_name}`.trim()}
                   </Link>
                 </span>
                 <p className="mb-0 fs-13 text-muted">{resident.email}</p>
               </div>
             </div>
             <div>
-              <p className="text-muted fw-medium mb-0">
-                {resident.is_active ? 'Active' : 'Inactive'}
-              </p>
+              <p className="text-muted fw-medium mb-0">{resident.is_active ? "Active" : "Inactive"}</p>
             </div>
           </div>
         ))}
+        {filteredResidents.length === 0 ? (
+          <div className="text-center text-muted py-3">No residents match the current filter.</div>
+        ) : null}
       </CardBody>
       <CardFooter className="border-top">
-        <Button variant="primary" className="w-100">
+        <Button as={Link} href="/residents/list-view" variant="primary" className="w-100">
           View All Residents
         </Button>
       </CardFooter>

@@ -31,8 +31,8 @@ const GuardCard = ({ id, full_name, email, phone, avatar_url, societies, is_acti
       case 'view':
         window.open(`/guards/details?id=${id}`, '_blank')
         break
-      case 'edit':
-        window.open(`/guards/edit?id=${id}`, '_blank')
+      case 'manage':
+        window.open(`/guards/manage?tab=assignments&guardId=${id}`, '_blank')
         break
       case 'delete':
         onDelete({
@@ -88,9 +88,9 @@ const GuardCard = ({ id, full_name, email, phone, avatar_url, societies, is_acti
                   <IconifyIcon icon="solar:eye-broken" className="me-2" />
                   View Details
                 </DropdownItem>
-                <DropdownItem onClick={() => handleActionClick('edit')}>
-                  <IconifyIcon icon="solar:pen-2-broken" className="me-2" />
-                  Edit
+                <DropdownItem onClick={() => handleActionClick('manage')}>
+                  <IconifyIcon icon="ri:settings-3-line" className="me-2" />
+                  Manage Assignments
                 </DropdownItem>
                 <DropdownItem onClick={() => handleActionClick('delete')} className="text-danger">
                   <IconifyIcon icon="solar:trash-bin-minimalistic-2-broken" className="me-2" />
@@ -184,7 +184,7 @@ const GuardData = ({
         setShowDeleteModal(false)
         setSelectedGuard(null)
       } catch (error) {
-        toast.error('Failed to delete guard')
+        toast.error(error instanceof Error ? error.message : 'Failed to delete guard')
       }
     }
   }

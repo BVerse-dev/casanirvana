@@ -6,16 +6,11 @@ import { useSearchParams } from "next/navigation";
 import { useGetUnit } from "@/hooks/useUnits";
 import { mapUnitToPropertyImage } from "@/utils/propertyImageMapper";
 import Image from "next/image";
-import Link from "next/link";
 import {
   Button,
   Card,
   CardBody,
   Col,
-  Dropdown,
-  DropdownItem,
-  DropdownMenu,
-  DropdownToggle,
   Row,
   Spinner,
   Alert
@@ -61,6 +56,17 @@ const PropertyDetails = () => {
     );
   }
 
+  const amenityList = Array.isArray(unit.amenities)
+    ? unit.amenities.map((value) => String(value)).filter(Boolean)
+    : [];
+  const locationLabel =
+    unit.communities?.address ||
+    [unit.communities?.name, unit.communities?.city, unit.communities?.state].filter(Boolean).join(", ") ||
+    "No address available";
+  const detailsText =
+    unit.description?.trim() ||
+    "This unit does not have a detailed description yet. Core occupancy, pricing, and ownership data are connected above.";
+
   return (
     <Col xl={9} lg={8}>
       <Card>
@@ -83,97 +89,25 @@ const PropertyDetails = () => {
           </div>
           <div className="d-flex flex-wrap justify-content-between my-3 gap-2">
             <div>
-              <Link href="" className="fs-18 text-dark fw-medium">
+              <div className="fs-18 text-dark fw-medium">
                 Unit {unit.unit_number || unit.number} - {unit.type?.toUpperCase() || 'Standard Unit'}
-              </Link>
+              </div>
               <p className="d-flex align-items-center gap-1 mt-1 mb-0">
                 <IconifyIcon
                   icon="solar:map-point-wave-bold-duotone"
                   className="fs-18 text-primary"
                 />
-                {unit.societies?.address || 'No address available'}
+                {locationLabel}
               </p>
             </div>
-            <div>
-              <ul className="list-inline float-end d-flex gap-1 mb-0 align-items-center">
-                <li className="list-inline-item fs-20 dropdown">
-                  <Button
-                    variant="light"
-                    className="avatar-sm d-flex align-items-center justify-content-center text-dark fs-20"
-                    data-bs-toggle="modal"
-                    data-bs-target="#videocall"
-                  >
-                    <span>
-                      {" "}
-                      <IconifyIcon icon="solar:share-bold-duotone" />
-                    </span>
-                  </Button>
-                </li>
-                <li className="list-inline-item fs-20 dropdown">
-                  <Button
-                    variant="light"
-                    className="avatar-sm d-flex align-items-center justify-content-center text-danger fs-20"
-                    data-bs-toggle="modal"
-                    data-bs-target="#voicecall"
-                  >
-                    <span>
-                      {" "}
-                      <IconifyIcon icon="solar:heart-angle-bold-duotone" />
-                    </span>
-                  </Button>
-                </li>
-                <li className="list-inline-item fs-20 dropdown">
-                  <Button
-                    variant="light"
-                    data-bs-toggle="offcanvas"
-                    href="#user-profile"
-                    className="avatar-sm icons-center d-flex align-items-center justify-content-center text-warning fs-20"
-                  >
-                    <span>
-                      {" "}
-                      <IconifyIcon icon="solar:star-bold-duotone" />
-                    </span>
-                  </Button>
-                </li>
-                <Dropdown
-                  as={"li"}
-                  className="list-inline-item fs-20 d-none d-md-flex"
-                >
-                  <DropdownToggle
-                    as={"a"}
-                    className="arrow-none text-dark"
-                    data-bs-toggle="dropdown"
-                    aria-expanded="false"
-                  >
-                    <IconifyIcon icon="ri-more-2-fill" />
-                  </DropdownToggle>
-                  <DropdownMenu className="dropdown-menu-end">
-                    <DropdownItem>
-                      <IconifyIcon icon="ri:user-6-line" className=" me-2" />
-                      View Profile
-                    </DropdownItem>
-                    <DropdownItem>
-                      <IconifyIcon icon="ri:music-2-line" className=" me-2" />
-                      Media, Links and Docs
-                    </DropdownItem>
-                    <DropdownItem>
-                      <IconifyIcon icon="ri:search-2-line" className=" me-2" />
-                      Search
-                    </DropdownItem>
-                    <DropdownItem>
-                      <IconifyIcon icon="ri:image-line" className=" me-2" />
-                      Wallpaper
-                    </DropdownItem>
-                    <DropdownItem>
-                      <IconifyIcon
-                        icon="ri:arrow-right-circle-line"
-                        className=" me-2"
-                      />
-                      More
-                    </DropdownItem>
-                  </DropdownMenu>
-                </Dropdown>
-              </ul>
+            <div className="d-flex align-items-center gap-2">
+              <Button variant="light" className="avatar-sm d-flex align-items-center justify-content-center fs-20" disabled>
+                <IconifyIcon icon="solar:share-bold-duotone" />
+              </Button>
+              <Button variant="light" className="avatar-sm d-flex align-items-center justify-content-center fs-20" disabled>
+                <IconifyIcon icon="solar:star-bold-duotone" />
+              </Button>
+              <span className="text-muted small">Actions will be enabled on the dedicated unit lifecycle screens.</span>
             </div>
           </div>
           <div className="d-flex align-items-center gap-2">
@@ -230,14 +164,11 @@ const PropertyDetails = () => {
               </Col>
               <Col xl={2} lg={3} md={6} xs={6} className="border-end">
                 <p className="text-muted mb-0 fs-15 fw-medium d-flex align-items-center justify-content-center gap-1">
-                  <span className="badge p-1 bg-light fs-12 text-dark">
-                    <IconifyIcon
-                      icon="ri:star-fill"
-                      className="align-text-top fs-14 text-warning me-1"
-                    />{" "}
-                    {(unit as any).rating || '4.0'}
-                  </span>{" "}
-                  Review
+                  <IconifyIcon
+                    icon="solar:buildings-2-bold-duotone"
+                    className="fs-18 text-primary"
+                  />{" "}
+                  {unit.communities?.name || "Community"}
                 </p>
               </Col>
               <Col xl={2} lg={3} md={6} xs={6}>
@@ -251,51 +182,29 @@ const PropertyDetails = () => {
               </Col>
             </Row>
           </div>
-          <h5 className="text-dark fw-medium mt-3">Some Facility :</h5>
+          <h5 className="text-dark fw-medium mt-3">Amenities</h5>
           <div className="d-flex flex-wrap align-items-center gap-2 mt-3">
-            <span className="badge bg-light-subtle text-muted border fw-medium fs-13 px-2 py-1">
-              Big Swimming pool{" "}
-            </span>
-            <span className="badge bg-light-subtle text-muted border fw-medium fs-13 px-2 py-1">
-              Near Airport{" "}
-            </span>
-            <span className="badge bg-light-subtle text-muted border fw-medium fs-13 px-2 py-1">
-              Big Size Garden{" "}
-            </span>
-            <span className="badge bg-light-subtle text-muted border fw-medium fs-13 px-2 py-1">
-              4 Car Parking{" "}
-            </span>
-            <span className="badge bg-light-subtle text-muted border fw-medium fs-13 px-2 py-1">
-              24/7 Electricity{" "}
-            </span>
-            <span className="badge bg-light-subtle text-muted border fw-medium fs-13 px-2 py-1">
-              Personal Theater{" "}
-            </span>
+            {amenityList.length > 0 ? (
+              amenityList.map((amenity) => (
+                <span key={amenity} className="badge bg-light-subtle text-muted border fw-medium fs-13 px-2 py-1">
+                  {amenity.replace(/_/g, " ")}
+                </span>
+              ))
+            ) : (
+              <span className="text-muted small">No amenities have been recorded for this unit yet.</span>
+            )}
           </div>
-          <h5 className="text-dark fw-medium mt-3">Property Details :</h5>
-          <p className="mt-2">
-            Property refers to any item that an individual or a business holds
-            legal title to. This can include tangible items, such as houses,
-            cars, or appliances, as well as intangible items that hold potential
-            future value, such as stock and bond certificates. Legally, property
-            is classified into two categories: personal property and real
-            property. This distinction originates from English common law, and
-            our contemporary legal system continues to differentiate between
-            these two types.
-          </p>
+          <h5 className="text-dark fw-medium mt-3">Unit Details</h5>
+          <p className="mt-2">{detailsText}</p>
           <div className="d-flex align-items-center justify-content-between">
-            <Link href="" className="link-primary fw-medium">
-              View More Detail <IconifyIcon icon="ri:arrow-right-line" />
-            </Link>
-            <div>
-              <p className="mb-0 d-flex align-items-center gap-1">
-                <IconifyIcon
-                  icon="solar:calendar-date-broken"
-                  className="fs-18 text-primary"
-                />{" "}
-                10 May 2024
-              </p>
-            </div>
+            <p className="mb-0 d-flex align-items-center gap-1 text-muted">
+              <IconifyIcon icon="solar:calendar-date-broken" className="fs-18 text-primary" />
+              Created {unit.created_at ? new Date(unit.created_at).toLocaleDateString() : "N/A"}
+            </p>
+            <p className="mb-0 d-flex align-items-center gap-1 text-muted">
+              <IconifyIcon icon="solar:refresh-circle-bold-duotone" className="fs-18 text-primary" />
+              Updated {unit.updated_at ? new Date(unit.updated_at).toLocaleDateString() : "N/A"}
+            </p>
           </div>
         </CardBody>
       </Card>

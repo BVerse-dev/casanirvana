@@ -5818,10 +5818,12 @@ CREATE TABLE public.notification_campaigns (
     updated_at timestamp with time zone DEFAULT now(),
     name text,
     template text,
+    template_id integer,
+    community_id uuid,
     audience text,
     budget numeric DEFAULT 0,
     spent numeric DEFAULT 0,
-    CONSTRAINT notification_campaigns_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'scheduled'::text, 'processing'::text, 'delivered'::text, 'failed'::text, 'paused'::text]))),
+    CONSTRAINT notification_campaigns_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'scheduled'::text, 'active'::text, 'completed'::text, 'paused'::text, 'processing'::text, 'delivered'::text, 'failed'::text]))),
     CONSTRAINT notification_campaigns_type_check CHECK ((type = ANY (ARRAY['push'::text, 'sms'::text, 'email'::text, 'in-app'::text])))
 );
 
@@ -10232,42 +10234,42 @@ COPY public.notification_analytics (id, metric_type, metric_date, data, created_
 -- Data for Name: notification_campaigns; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.notification_campaigns (id, title, type, status, recipients_count, delivered_count, opened_count, clicked_count, failed_count, scheduled_at, sent_at, created_at, updated_at, name, template, audience, budget, spent) FROM stdin;
-302f752d-6b8c-41cf-8b62-c65ea760303a	January Community Newsletter 2025	email	delivered	487	487	342	89	0	\N	2025-01-15 10:00:00+00	2025-01-15 09:45:00+00	2025-01-15 10:30:00+00	January Community Newsletter 2025	Standard Email Template	all-residents	73.05	73.05
-a9569d91-93fa-417e-9e32-166c30f1beb2	December Holiday Notice 2024	email	delivered	487	487	398	124	0	\N	2024-12-20 14:30:00+00	2024-12-20 14:15:00+00	2024-12-20 15:00:00+00	December Holiday Notice 2024	Standard Email Template	all-residents	73.05	73.05
-98fff429-9fa2-4d8c-a926-71af96e43f71	Building A Maintenance Alert	email	delivered	156	156	128	45	0	\N	2024-12-15 09:15:00+00	2024-12-15 09:00:00+00	2024-12-15 10:00:00+00	Building A Maintenance Alert	Standard Email Template	building-a	23.40	23.40
-e5e7b296-c9fa-4ba3-b87c-c25c3f524105	November Payment Reminder	email	delivered	89	89	67	23	0	\N	2024-11-28 09:15:00+00	2024-11-28 09:00:00+00	2024-11-28 10:00:00+00	November Payment Reminder	Standard Email Template	specific-units	13.35	13.35
-9b26e069-211b-48a7-baa2-0fde27bc732d	New Resident Welcome Package	email	delivered	18	18	15	12	0	\N	2024-11-25 11:45:00+00	2024-11-25 11:30:00+00	2024-11-25 12:00:00+00	New Resident Welcome Package	Standard Email Template	specific-units	2.70	2.70
-137ba9dc-fbd5-4d7a-83d3-01331b5889b0	Security Update Notice	email	delivered	487	487	365	78	0	\N	2024-11-20 16:00:00+00	2024-11-20 15:45:00+00	2024-11-20 16:30:00+00	Security Update Notice	Standard Email Template	all-residents	73.05	73.05
-0b60c754-f7f3-4561-b430-a843880fba32	Amenity Booking Changes	email	delivered	487	487	298	45	0	\N	2024-11-10 12:00:00+00	2024-11-10 11:45:00+00	2024-11-10 12:30:00+00	Amenity Booking Changes	Standard Email Template	all-residents	73.05	73.05
-acdd8d8a-e9d4-4b22-bae9-ba8340f2be4e	Community Event Invitation	email	delivered	487	487	289	67	0	\N	2024-11-05 18:00:00+00	2024-11-05 17:45:00+00	2024-11-05 18:30:00+00	Community Event Invitation	Standard Email Template	all-residents	73.05	73.05
-bff0af58-a0eb-4c69-8509-fcf555c6ff80	Parking Policy Update	email	delivered	487	487	234	34	0	\N	2024-10-30 10:00:00+00	2024-10-30 09:45:00+00	2024-10-30 10:30:00+00	Parking Policy Update	Standard Email Template	all-residents	73.05	73.05
-a1bec315-9ea5-4d8b-8026-ac1113a9915b	Diwali Celebration Guidelines	email	delivered	487	487	412	156	0	\N	2024-10-25 15:00:00+00	2024-10-25 14:45:00+00	2024-10-25 15:30:00+00	Diwali Celebration Guidelines	Standard Email Template	all-residents	73.05	73.05
-d072f70f-4967-4d06-a04a-71cbe6f4330c	Holiday Special Promotion	email	delivered	850	840	425	180	10	2024-01-25 12:00:00+00	2024-01-25 12:00:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Holiday Special Promotion	Holiday Email Template	Premium Members	1200	980
-c21a707e-a560-4fd3-9c00-639c0723894f	Maintenance Alert System	sms	processing	2500	2450	2400	450	50	2024-01-26 08:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Maintenance Alert System	Maintenance SMS	All Residents	300	150
-7245a5a2-2d14-4f86-8293-aab807bb4070	Security Update Notice	push	delivered	1200	1180	980	120	20	2024-01-24 16:00:00+00	2024-01-24 16:00:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Security Update Notice	Security Push Template	Security Subscribers	0	0
-e57e4dcd-fd35-40fa-8b3a-e01b26210529	Birthday Wishes Campaign	in-app	processing	45	42	40	15	3	2024-01-27 00:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Birthday Wishes Campaign	Birthday Template	Birthday Today	0	0
-be5ee456-51af-416d-916b-24229e764eb8	Rent Reminder Series	email	scheduled	680	0	0	0	0	2024-01-30 09:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Rent Reminder Series	Rent Reminder Template	Rent Due Soon	500	0
-252b5215-b2da-4a7b-8810-624320971b65	Community Event Invite	push	delivered	920	900	780	290	20	2024-01-23 14:00:00+00	2024-01-23 14:00:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Community Event Invite	Event Invitation	Active Community Members	150	125
-64f089e3-ea0a-478d-8b32-1c54bb460ad2	Power Outage Alert	sms	delivered	2800	2780	2750	890	20	2024-01-22 06:30:00+00	2024-01-22 06:30:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Power Outage Alert	Emergency SMS	All Units	200	185
-09ad72cb-8c6e-45d3-827e-f5a1f265a3a7	New Feature Announcement	in-app	processing	1500	1480	1200	450	20	2024-01-28 10:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	New Feature Announcement	Feature Update Template	App Users	0	0
-c7a76d31-95db-4f5e-816b-a3bd80cef6d5	Monthly Newsletter Vol 2	email	scheduled	1800	0	0	0	0	2024-02-01 10:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Monthly Newsletter Vol 2	Newsletter Template v2	Newsletter Subscribers	800	0
-3aadb0e0-24e0-4ccf-bad0-bc4c5c4ef4c1	Visitor Policy Update	push	delivered	2200	2150	1950	580	50	2024-01-21 15:00:00+00	2024-01-21 15:00:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Visitor Policy Update	Policy Update Push	All Residents	100	85
-ecde3435-a664-4b79-a18d-9d95fd5d082b	Gym Membership Promo	email	processing	450	440	380	95	10	2024-01-29 11:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Gym Membership Promo	Fitness Promo Template	Fitness Interested	600	320
-40aee5e2-30c2-4a60-84be-69b79237a05f	Water Supply Notice	sms	delivered	580	575	570	280	5	2024-01-20 07:00:00+00	2024-01-20 07:00:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Water Supply Notice	Utility Notice SMS	Block A Residents	150	140
-136828ae-d8de-47fb-8cf8-694c5f53d04c	App Rating Request	in-app	processing	890	880	650	120	10	2024-01-26 12:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	App Rating Request	Rating Request Template	Long Term Users	0	0
-0bcd0af2-3e5f-4a72-9131-311d5cc9236f	Parking Policy Reminder	email	scheduled	720	0	0	0	0	2024-01-31 08:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Parking Policy Reminder	Parking Rules Template	Car Owners	250	0
-914b6a68-24c2-4d68-8fe0-cbeab3cb7d2f	Emergency Contact Update	push	delivered	2100	2050	1890	340	50	2024-01-19 13:00:00+00	2024-01-19 13:00:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Emergency Contact Update	Emergency Contact Push	All Profiles	0	0
-e135b878-058c-4356-9dda-77f0ee6c7bb5	Survey Participation	email	processing	650	640	520	85	10	2024-01-27 14:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Survey Participation	Survey Email Template	Survey Participants	300	180
-947cd945-8489-46ee-a127-9674cbb1e733	Garbage Collection Schedule	sms	delivered	2400	2380	2350	890	20	2024-01-18 18:00:00+00	2024-01-18 18:00:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Garbage Collection Schedule	Utility Schedule SMS	All Blocks	200	195
-5aa34642-7b89-4004-95f4-41bbcdea5439	Festival Celebration Notice	in-app	scheduled	340	0	0	0	0	2024-02-05 00:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Festival Celebration Notice	Festival Template	Cultural Group	0	0
-df8a7f54-50fa-4a50-871f-73c0632877ac	Late Fee Warning	email	processing	89	87	82	45	2	2024-01-25 09:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Late Fee Warning	Late Fee Template	Overdue Accounts	100	75
-9488ba25-cee0-4a8e-a0ec-b99c392711d7	Club Membership Drive	push	delivered	780	760	690	230	20	2024-01-17 16:00:00+00	2024-01-17 16:00:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Club Membership Drive	Club Invitation Push	Social Members	400	350
-bf5e1ea6-6a3b-48e6-9232-b3170d5fbf40	Internet Connectivity Issues	sms	delivered	125	122	120	45	3	2024-01-16 10:30:00+00	2024-01-16 10:30:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Internet Connectivity Issues	Tech Support SMS	Tech Issues Reported	150	130
-d0e4734d-c0d1-4ada-80f3-464f675da65f	Welcome Package Info	email	processing	25	24	20	8	1	2024-01-28 15:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Welcome Package Info	Welcome Package Template	New Residents	200	120
-6c555921-2e48-4cfd-9bb2-01679272263b	CCTV Maintenance Alert	in-app	scheduled	15	0	0	0	0	2024-02-02 06:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	CCTV Maintenance Alert	CCTV Alert Template	Security Team	0	0
-10f2fe13-0e0f-4f08-bcba-fa1b30ff1365	Pool Closure Notice	push	delivered	180	175	165	78	5	2024-01-15 12:00:00+00	2024-01-15 12:00:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Pool Closure Notice	Pool Closure Push	Pool Members	50	45
-06832ef5-ee6e-44f8-af79-9b43a2ea7ee8	Annual Meeting Reminder	email	scheduled	2500	0	0	0	0	2024-02-10 09:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Annual Meeting Reminder	Annual Meeting Template	All Members	500	0
+COPY public.notification_campaigns (id, title, type, status, recipients_count, delivered_count, opened_count, clicked_count, failed_count, scheduled_at, sent_at, created_at, updated_at, name, template, template_id, community_id, audience, budget, spent) FROM stdin;
+302f752d-6b8c-41cf-8b62-c65ea760303a	January Community Newsletter 2025	email	delivered	487	487	342	89	0	\N	2025-01-15 10:00:00+00	2025-01-15 09:45:00+00	2025-01-15 10:30:00+00	January Community Newsletter 2025	Standard Email Template	\N	\N	all-residents	73.05	73.05
+a9569d91-93fa-417e-9e32-166c30f1beb2	December Holiday Notice 2024	email	delivered	487	487	398	124	0	\N	2024-12-20 14:30:00+00	2024-12-20 14:15:00+00	2024-12-20 15:00:00+00	December Holiday Notice 2024	Standard Email Template	\N	\N	all-residents	73.05	73.05
+98fff429-9fa2-4d8c-a926-71af96e43f71	Building A Maintenance Alert	email	delivered	156	156	128	45	0	\N	2024-12-15 09:15:00+00	2024-12-15 09:00:00+00	2024-12-15 10:00:00+00	Building A Maintenance Alert	Standard Email Template	\N	\N	building-a	23.40	23.40
+e5e7b296-c9fa-4ba3-b87c-c25c3f524105	November Payment Reminder	email	delivered	89	89	67	23	0	\N	2024-11-28 09:15:00+00	2024-11-28 09:00:00+00	2024-11-28 10:00:00+00	November Payment Reminder	Standard Email Template	\N	\N	specific-units	13.35	13.35
+9b26e069-211b-48a7-baa2-0fde27bc732d	New Resident Welcome Package	email	delivered	18	18	15	12	0	\N	2024-11-25 11:45:00+00	2024-11-25 11:30:00+00	2024-11-25 12:00:00+00	New Resident Welcome Package	Standard Email Template	\N	\N	specific-units	2.70	2.70
+137ba9dc-fbd5-4d7a-83d3-01331b5889b0	Security Update Notice	email	delivered	487	487	365	78	0	\N	2024-11-20 16:00:00+00	2024-11-20 15:45:00+00	2024-11-20 16:30:00+00	Security Update Notice	Standard Email Template	\N	\N	all-residents	73.05	73.05
+0b60c754-f7f3-4561-b430-a843880fba32	Amenity Booking Changes	email	delivered	487	487	298	45	0	\N	2024-11-10 12:00:00+00	2024-11-10 11:45:00+00	2024-11-10 12:30:00+00	Amenity Booking Changes	Standard Email Template	\N	\N	all-residents	73.05	73.05
+acdd8d8a-e9d4-4b22-bae9-ba8340f2be4e	Community Event Invitation	email	delivered	487	487	289	67	0	\N	2024-11-05 18:00:00+00	2024-11-05 17:45:00+00	2024-11-05 18:30:00+00	Community Event Invitation	Standard Email Template	\N	\N	all-residents	73.05	73.05
+bff0af58-a0eb-4c69-8509-fcf555c6ff80	Parking Policy Update	email	delivered	487	487	234	34	0	\N	2024-10-30 10:00:00+00	2024-10-30 09:45:00+00	2024-10-30 10:30:00+00	Parking Policy Update	Standard Email Template	\N	\N	all-residents	73.05	73.05
+a1bec315-9ea5-4d8b-8026-ac1113a9915b	Diwali Celebration Guidelines	email	delivered	487	487	412	156	0	\N	2024-10-25 15:00:00+00	2024-10-25 14:45:00+00	2024-10-25 15:30:00+00	Diwali Celebration Guidelines	Standard Email Template	\N	\N	all-residents	73.05	73.05
+d072f70f-4967-4d06-a04a-71cbe6f4330c	Holiday Special Promotion	email	delivered	850	840	425	180	10	2024-01-25 12:00:00+00	2024-01-25 12:00:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Holiday Special Promotion	Holiday Email Template	\N	\N	Premium Members	1200	980
+c21a707e-a560-4fd3-9c00-639c0723894f	Maintenance Alert System	sms	processing	2500	2450	2400	450	50	2024-01-26 08:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Maintenance Alert System	Maintenance SMS	\N	\N	All Residents	300	150
+7245a5a2-2d14-4f86-8293-aab807bb4070	Security Update Notice	push	delivered	1200	1180	980	120	20	2024-01-24 16:00:00+00	2024-01-24 16:00:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Security Update Notice	Security Push Template	\N	\N	Security Subscribers	0	0
+e57e4dcd-fd35-40fa-8b3a-e01b26210529	Birthday Wishes Campaign	in-app	processing	45	42	40	15	3	2024-01-27 00:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Birthday Wishes Campaign	Birthday Template	\N	\N	Birthday Today	0	0
+be5ee456-51af-416d-916b-24229e764eb8	Rent Reminder Series	email	scheduled	680	0	0	0	0	2024-01-30 09:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Rent Reminder Series	Rent Reminder Template	\N	\N	Rent Due Soon	500	0
+252b5215-b2da-4a7b-8810-624320971b65	Community Event Invite	push	delivered	920	900	780	290	20	2024-01-23 14:00:00+00	2024-01-23 14:00:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Community Event Invite	Event Invitation	\N	\N	Active Community Members	150	125
+64f089e3-ea0a-478d-8b32-1c54bb460ad2	Power Outage Alert	sms	delivered	2800	2780	2750	890	20	2024-01-22 06:30:00+00	2024-01-22 06:30:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Power Outage Alert	Emergency SMS	\N	\N	All Units	200	185
+09ad72cb-8c6e-45d3-827e-f5a1f265a3a7	New Feature Announcement	in-app	processing	1500	1480	1200	450	20	2024-01-28 10:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	New Feature Announcement	Feature Update Template	\N	\N	App Users	0	0
+c7a76d31-95db-4f5e-816b-a3bd80cef6d5	Monthly Newsletter Vol 2	email	scheduled	1800	0	0	0	0	2024-02-01 10:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Monthly Newsletter Vol 2	Newsletter Template v2	\N	\N	Newsletter Subscribers	800	0
+3aadb0e0-24e0-4ccf-bad0-bc4c5c4ef4c1	Visitor Policy Update	push	delivered	2200	2150	1950	580	50	2024-01-21 15:00:00+00	2024-01-21 15:00:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Visitor Policy Update	Policy Update Push	\N	\N	All Residents	100	85
+ecde3435-a664-4b79-a18d-9d95fd5d082b	Gym Membership Promo	email	processing	450	440	380	95	10	2024-01-29 11:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Gym Membership Promo	Fitness Promo Template	\N	\N	Fitness Interested	600	320
+40aee5e2-30c2-4a60-84be-69b79237a05f	Water Supply Notice	sms	delivered	580	575	570	280	5	2024-01-20 07:00:00+00	2024-01-20 07:00:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Water Supply Notice	Utility Notice SMS	\N	\N	Block A Residents	150	140
+136828ae-d8de-47fb-8cf8-694c5f53d04c	App Rating Request	in-app	processing	890	880	650	120	10	2024-01-26 12:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	App Rating Request	Rating Request Template	\N	\N	Long Term Users	0	0
+0bcd0af2-3e5f-4a72-9131-311d5cc9236f	Parking Policy Reminder	email	scheduled	720	0	0	0	0	2024-01-31 08:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Parking Policy Reminder	Parking Rules Template	\N	\N	Car Owners	250	0
+914b6a68-24c2-4d68-8fe0-cbeab3cb7d2f	Emergency Contact Update	push	delivered	2100	2050	1890	340	50	2024-01-19 13:00:00+00	2024-01-19 13:00:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Emergency Contact Update	Emergency Contact Push	\N	\N	All Profiles	0	0
+e135b878-058c-4356-9dda-77f0ee6c7bb5	Survey Participation	email	processing	650	640	520	85	10	2024-01-27 14:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Survey Participation	Survey Email Template	\N	\N	Survey Participants	300	180
+947cd945-8489-46ee-a127-9674cbb1e733	Garbage Collection Schedule	sms	delivered	2400	2380	2350	890	20	2024-01-18 18:00:00+00	2024-01-18 18:00:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Garbage Collection Schedule	Utility Schedule SMS	\N	\N	All Blocks	200	195
+5aa34642-7b89-4004-95f4-41bbcdea5439	Festival Celebration Notice	in-app	scheduled	340	0	0	0	0	2024-02-05 00:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Festival Celebration Notice	Festival Template	\N	\N	Cultural Group	0	0
+df8a7f54-50fa-4a50-871f-73c0632877ac	Late Fee Warning	email	processing	89	87	82	45	2	2024-01-25 09:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Late Fee Warning	Late Fee Template	\N	\N	Overdue Accounts	100	75
+9488ba25-cee0-4a8e-a0ec-b99c392711d7	Club Membership Drive	push	delivered	780	760	690	230	20	2024-01-17 16:00:00+00	2024-01-17 16:00:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Club Membership Drive	Club Invitation Push	\N	\N	Social Members	400	350
+bf5e1ea6-6a3b-48e6-9232-b3170d5fbf40	Internet Connectivity Issues	sms	delivered	125	122	120	45	3	2024-01-16 10:30:00+00	2024-01-16 10:30:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Internet Connectivity Issues	Tech Support SMS	\N	\N	Tech Issues Reported	150	130
+d0e4734d-c0d1-4ada-80f3-464f675da65f	Welcome Package Info	email	processing	25	24	20	8	1	2024-01-28 15:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Welcome Package Info	Welcome Package Template	\N	\N	New Residents	200	120
+6c555921-2e48-4cfd-9bb2-01679272263b	CCTV Maintenance Alert	in-app	scheduled	15	0	0	0	0	2024-02-02 06:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	CCTV Maintenance Alert	CCTV Alert Template	\N	\N	Security Team	0	0
+10f2fe13-0e0f-4f08-bcba-fa1b30ff1365	Pool Closure Notice	push	delivered	180	175	165	78	5	2024-01-15 12:00:00+00	2024-01-15 12:00:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Pool Closure Notice	Pool Closure Push	\N	\N	Pool Members	50	45
+06832ef5-ee6e-44f8-af79-9b43a2ea7ee8	Annual Meeting Reminder	email	scheduled	2500	0	0	0	0	2024-02-10 09:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Annual Meeting Reminder	Annual Meeting Template	\N	\N	All Members	500	0
 68686dae-85f4-41ab-8517-f2f42a169d4c	Fire Safety Drill	sms	delivered	2600	2570	2580	1200	30	2024-01-14 11:00:00+00	2024-01-14 11:00:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Fire Safety Drill	Safety Drill SMS	Emergency Contacts	100	95
 c13b0a61-ae3d-45e8-acfa-43fe0c32d44c	Loyalty Program Launch	in-app	processing	560	550	480	125	10	2024-01-26 13:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Loyalty Program Launch	Loyalty Program Template	Premium Users	800	450
 01aa02b1-b4e0-43d5-ba9e-1ff33f852afc	Elevator Maintenance	push	delivered	890	870	820	234	20	2024-01-13 08:00:00+00	2024-01-13 08:00:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Elevator Maintenance	Elevator Alert Push	High Floor Residents	75	70
@@ -15338,6 +15340,13 @@ CREATE INDEX idx_notification_campaigns_created_at ON public.notification_campai
 
 
 --
+-- Name: idx_notification_campaigns_community_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_notification_campaigns_community_id ON public.notification_campaigns USING btree (community_id);
+
+
+--
 -- Name: idx_notification_campaigns_status; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -15349,6 +15358,13 @@ CREATE INDEX idx_notification_campaigns_status ON public.notification_campaigns 
 --
 
 CREATE INDEX idx_notification_campaigns_type ON public.notification_campaigns USING btree (type);
+
+
+--
+-- Name: idx_notification_campaigns_template_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_notification_campaigns_template_id ON public.notification_campaigns USING btree (template_id);
 
 
 --
@@ -17306,6 +17322,22 @@ ALTER TABLE ONLY public.guards
 
 ALTER TABLE ONLY public.notification_rules
     ADD CONSTRAINT fk_notification_rules_template_id FOREIGN KEY (template_id) REFERENCES public.email_templates(id);
+
+
+--
+-- Name: notification_campaigns notification_campaigns_community_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.notification_campaigns
+    ADD CONSTRAINT notification_campaigns_community_id_fkey FOREIGN KEY (community_id) REFERENCES public.communities(id) ON DELETE SET NULL;
+
+
+--
+-- Name: notification_campaigns notification_campaigns_template_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.notification_campaigns
+    ADD CONSTRAINT notification_campaigns_template_id_fkey FOREIGN KEY (template_id) REFERENCES public.notification_templates(id) ON DELETE SET NULL;
 
 
 --
@@ -21682,7 +21714,13 @@ ALTER TABLE public.notification_campaigns ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY notification_campaigns_admin_read ON public.notification_campaigns FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
    FROM public.profiles p
-  WHERE (((p.id = auth.uid()) OR (p.user_id = auth.uid())) AND (p.role = ANY (ARRAY['superadmin'::text, 'admin'::text, 'agency_manager'::text, 'facility_manager'::text]))))));
+  WHERE (((p.id = auth.uid()) OR (p.user_id = auth.uid())) AND (p.role = ANY (ARRAY['superadmin'::text, 'admin'::text]))))) OR ((community_id IS NOT NULL) AND (EXISTS ( SELECT 1
+   FROM public.profiles p
+  WHERE (((p.id = auth.uid()) OR (p.user_id = auth.uid())) AND (p.role = ANY (ARRAY['agency_manager'::text, 'facility_manager'::text])) AND ((p.community_id = notification_campaigns.community_id) OR (EXISTS ( SELECT 1
+           FROM public.community_admins ca
+          WHERE ((ca.community_id = notification_campaigns.community_id) AND (ca.user_id = p.id)))) OR (EXISTS ( SELECT 1
+           FROM public.communities c
+          WHERE ((c.id = notification_campaigns.community_id) AND (c.admins @> ARRAY[p.id])))))))));
 
 
 --
@@ -21691,9 +21729,21 @@ CREATE POLICY notification_campaigns_admin_read ON public.notification_campaigns
 
 CREATE POLICY notification_campaigns_admin_write ON public.notification_campaigns TO authenticated USING ((EXISTS ( SELECT 1
    FROM public.profiles p
-  WHERE (((p.id = auth.uid()) OR (p.user_id = auth.uid())) AND (p.role = ANY (ARRAY['superadmin'::text, 'admin'::text, 'agency_manager'::text, 'facility_manager'::text])))))) WITH CHECK ((EXISTS ( SELECT 1
+  WHERE (((p.id = auth.uid()) OR (p.user_id = auth.uid())) AND (p.role = ANY (ARRAY['superadmin'::text, 'admin'::text]))))) OR ((community_id IS NOT NULL) AND (EXISTS ( SELECT 1
    FROM public.profiles p
-  WHERE (((p.id = auth.uid()) OR (p.user_id = auth.uid())) AND (p.role = ANY (ARRAY['superadmin'::text, 'admin'::text, 'agency_manager'::text, 'facility_manager'::text]))))));
+  WHERE (((p.id = auth.uid()) OR (p.user_id = auth.uid())) AND (p.role = ANY (ARRAY['agency_manager'::text, 'facility_manager'::text])) AND ((p.community_id = notification_campaigns.community_id) OR (EXISTS ( SELECT 1
+           FROM public.community_admins ca
+          WHERE ((ca.community_id = notification_campaigns.community_id) AND (ca.user_id = p.id)))) OR (EXISTS ( SELECT 1
+           FROM public.communities c
+          WHERE ((c.id = notification_campaigns.community_id) AND (c.admins @> ARRAY[p.id])))))))))) WITH CHECK (((EXISTS ( SELECT 1
+   FROM public.profiles p
+  WHERE (((p.id = auth.uid()) OR (p.user_id = auth.uid())) AND (p.role = ANY (ARRAY['superadmin'::text, 'admin'::text]))))) OR ((community_id IS NOT NULL) AND (EXISTS ( SELECT 1
+   FROM public.profiles p
+  WHERE (((p.id = auth.uid()) OR (p.user_id = auth.uid())) AND (p.role = ANY (ARRAY['agency_manager'::text, 'facility_manager'::text])) AND ((p.community_id = notification_campaigns.community_id) OR (EXISTS ( SELECT 1
+           FROM public.community_admins ca
+          WHERE ((ca.community_id = notification_campaigns.community_id) AND (ca.user_id = p.id)))) OR (EXISTS ( SELECT 1
+           FROM public.communities c
+          WHERE ((c.id = notification_campaigns.community_id) AND (c.admins @> ARRAY[p.id]))))))))));
 
 
 --

@@ -4,7 +4,6 @@ import IconifyIcon from '@/components/wrappers/IconifyIcon'
 import { Card, CardHeader, Col, Row } from '@/components/ReactBootstrap'
 import AgencyList from './components/AgencyList'
 import SearchForm from './components/SearchForm'
-import { Metadata } from 'next'
 import Link from 'next/link'
 import { useState } from 'react'
 import { useListAgenciesDirectory } from '@/hooks/useAgencyDirectory'
@@ -14,7 +13,7 @@ import { useListAgenciesDirectory } from '@/hooks/useAgencyDirectory'
 
 const ListViewPage = () => {
   const [searchTerm, setSearchTerm] = useState('')
-  const { data: agenciesData = [] } = useListAgenciesDirectory()
+  const { data: agenciesData = [], isLoading, error, refetch } = useListAgenciesDirectory()
 
   return (
     <>
@@ -38,13 +37,13 @@ const ListViewPage = () => {
                 </Col>
                 <Col lg={6}>
                   <div className="text-md-end mt-3 mt-md-0">
-                    <button type="button" className="btn btn-outline-primary me-2">
+                    <Link href="/agency/manage?tab=profiles" className="btn btn-outline-primary me-2">
                       <IconifyIcon icon="ri:settings-2-line" className="me-1" />
-                      More Setting
-                    </button>
-                    <button type="button" className="btn btn-outline-primary me-2">
+                      Agency Workspace
+                    </Link>
+                    <Link href="#agency-list-filters" className="btn btn-outline-primary me-2">
                       <IconifyIcon icon="ri:filter-line" className="me-1" /> Filters
-                    </button>
+                    </Link>
                     <Link href="/agency/add" className="btn btn-success me-1">
                       <IconifyIcon icon="ri:add-line" /> New Agency
                     </Link>
@@ -55,7 +54,15 @@ const ListViewPage = () => {
           </Card>
         </Col>
       </Row>
-      <AgencyList searchTerm={searchTerm} />
+      <AgencyList
+        agencies={agenciesData}
+        isLoading={isLoading}
+        error={error instanceof Error ? error : null}
+        searchTerm={searchTerm}
+        onRefresh={() => {
+          void refetch()
+        }}
+      />
     </>
   )
 }

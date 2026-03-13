@@ -1,13 +1,13 @@
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
 import SimplebarReactClient from "@/components/wrappers/SimplebarReactClient";
-import type { UserType } from "@/types/data";
+import type { ChatUser } from "@/hooks/useProfiles";
 import { timeSince } from "@/utils/date";
 import Image from "next/image";
 
 type ChatUsersProps = {
-  onUserSelect: (value: UserType) => void;
-  users: UserType[];
-  selectedUser: UserType;
+  onUserSelect: (value: ChatUser) => void;
+  users: ChatUser[];
+  selectedUser: ChatUser;
 };
 
 const Chat = ({ onUserSelect, users, selectedUser }: ChatUsersProps) => {

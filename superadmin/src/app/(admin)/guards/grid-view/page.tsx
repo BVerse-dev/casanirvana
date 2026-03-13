@@ -49,7 +49,7 @@ const GridViewPage = () => {
   return (
     <>
       <PageTitle subName="Casa Nirvana" title="Guards Grid" />
-      <GuardGridCard />
+      <GuardGridCard guards={guards} />
       <Row>
         <Col lg={12}>
           <Card className="bg-body shadow-none">
@@ -97,10 +97,10 @@ const GridViewPage = () => {
                 </Col>
                 <Col lg={6}>
                   <div className="text-md-end mt-3 mt-md-0">
-                    <button type="button" className="btn btn-outline-primary me-1">
+                    <Link href="/guards/manage?tab=profiles" className="btn btn-outline-primary me-1">
                       <IconifyIcon icon="ri:settings-2-line" className="me-1" />
-                      More Setting
-                    </button>
+                      Guard Workspace
+                    </Link>
                     <button 
                       type="button" 
                       className={`btn btn-outline-primary me-1 ${showFilters ? 'active' : ''}`}

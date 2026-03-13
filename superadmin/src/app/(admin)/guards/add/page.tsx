@@ -1,6 +1,5 @@
-import FileUpload from '@/components/FileUpload'
 import PageTitle from '@/components/PageTitle'
-import { Col, Row } from 'react-bootstrap'
+import { Alert, Col, Row } from 'react-bootstrap'
 import GuardAdd from './components/GuardAdd_Enhanced'
 import GuardAddCard from './components/GuardAddCard'
 import { Metadata } from 'next'
@@ -16,7 +15,10 @@ const GuardAddPage = () => {
       <Row>
         <GuardAddCard formId={FORM_ID} />
         <Col xl={9} lg={8}>
-          <FileUpload title="Add Guard Photo" />
+          <Alert variant="info">
+            Guard photo upload is intentionally disabled on this launch path until storage and avatar
+            persistence are wired into guard provisioning. New guards will use the default avatar for now.
+          </Alert>
           <GuardAdd formId={FORM_ID} />
         </Col>
       </Row>

@@ -1,75 +1,60 @@
 "use client";
+
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
+import { useGuardShiftTrends, useGuardSummary } from "@/hooks/useGuardDashboard";
+import Link from "next/link";
 import ReactApexChart from "react-apexcharts";
-import {
-  Button,
-  Card,
-  CardBody,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-  Col,
-  Dropdown,
-  DropdownItem,
-  DropdownMenu,
-  DropdownToggle,
-  Row,
-} from "react-bootstrap";
-import { useState, useMemo } from "react";
-import { useGuardPerformances } from "@/hooks/useGuardPerformance";
-import { useGuardSummary } from "@/hooks/useGuardDashboard";
+import { useMemo, useState } from "react";
+import { Button, Card, CardBody, CardFooter, CardHeader, CardTitle, Col, Dropdown, DropdownItem, DropdownMenu, DropdownToggle, Row } from "react-bootstrap";
 import { ApexOptions } from "apexcharts";
 
 const GuardVisits = () => {
-  const [timeFilter, setTimeFilter] = useState<'today' | 'month' | 'year'>('today');
+  const [timeFilter, setTimeFilter] = useState<"latest" | "month" | "all">("month");
+  const { data: shiftTrends, isLoading: trendsLoading } = useGuardShiftTrends();
+  const { data: guardSummary, isLoading: summaryLoading } = useGuardSummary();
 
-  // Static data fallback to avoid hook issues
-  const staticData = {
-    totalCheckIns: 1247,
-    growth: 2.34,
-    mobileCount: 748,
-    desktopCount: 499,
-    chartData: [25, 66, 41, 89, 63, 25, 44, 12, 36, 9, 54],
-    periodLabel: timeFilter === 'today' ? 'Today' : timeFilter === 'month' ? 'This Month' : 'This Year'
-  };
+  const isLoading = trendsLoading || summaryLoading;
 
-  // Use static data for now to avoid hooks issues
-  const checkInData = useMemo(() => {
-    let multiplier = 1;
-    let growth = 2.34;
-    let periodLabel = 'Today';
-    
-    switch (timeFilter) {
-      case 'today':
-        multiplier = 1;
-        growth = 2.34;
-        periodLabel = 'Today';
-        break;
-      case 'month':
-        multiplier = 30;
-        growth = 8.7;
-        periodLabel = 'This Month';
-        break;
-      case 'year':
-        multiplier = 365;
-        growth = 15.2;
-        periodLabel = 'This Year';
-        break;
+  const visibleData = useMemo(() => {
+    if (!shiftTrends) {
+      return {
+        labels: [] as string[],
+        dutyHours: [] as number[],
+        overtimeHours: [] as number[],
+        totalHours: 0,
+        overtimeTotal: 0,
+        averageHours: 0,
+        periodLabel: "Last 4 Weeks",
+      };
     }
 
-    const totalCheckIns = Math.round(staticData.totalCheckIns * multiplier);
-    const mobileCount = Math.round(totalCheckIns * 0.6);
-    const desktopCount = totalCheckIns - mobileCount;
+    let labels = shiftTrends.labels;
+    let dutyHours = shiftTrends.totalDutyHours;
+    let overtimeHours = shiftTrends.overtimeHours;
+    let periodLabel = "Last 4 Weeks";
+
+    if (timeFilter === "latest") {
+      labels = shiftTrends.labels.slice(-1);
+      dutyHours = shiftTrends.totalDutyHours.slice(-1);
+      overtimeHours = shiftTrends.overtimeHours.slice(-1);
+      periodLabel = "Latest Week";
+    } else if (timeFilter === "all") {
+      periodLabel = "All Available";
+    }
+
+    const totalHours = dutyHours.reduce((sum, value) => sum + value, 0);
+    const overtimeTotal = overtimeHours.reduce((sum, value) => sum + value, 0);
 
     return {
-      totalCheckIns,
-      growth,
-      mobileCount,
-      desktopCount,
-      chartData: staticData.chartData,
-      periodLabel
+      labels,
+      dutyHours,
+      overtimeHours,
+      totalHours,
+      overtimeTotal,
+      averageHours: dutyHours.length > 0 ? totalHours / dutyHours.length : 0,
+      periodLabel,
     };
-  }, [timeFilter, staticData]);
+  }, [shiftTrends, timeFilter]);
 
   const chartOptions: ApexOptions = {
     chart: {
@@ -81,7 +66,7 @@ const GuardVisits = () => {
     },
     series: [
       {
-        data: checkInData.chartData,
+        data: visibleData.dutyHours,
       },
     ],
     stroke: {
@@ -111,10 +96,9 @@ const GuardVisits = () => {
       },
       y: {
         title: {
-          formatter: function (seriesName) {
-            return "";
-          },
+          formatter: () => "",
         },
+        formatter: (value) => `${value} hrs`,
       },
       marker: {
         show: false,
@@ -122,21 +106,18 @@ const GuardVisits = () => {
     },
   };
 
-  // No loading state needed for static data
-  const isLoading = false;
-
   if (isLoading) {
     return (
       <Col xl={4} lg={6}>
         <Card>
           <CardHeader>
-            <CardTitle>Guard Check-ins by Device</CardTitle>
+            <CardTitle>Guard Duty Hours</CardTitle>
           </CardHeader>
           <CardBody>
             <div className="placeholder-glow">
               <div className="placeholder col-8 mb-3"></div>
               <div className="placeholder col-6 mb-3"></div>
-              <div className="placeholder" style={{ height: '150px' }}></div>
+              <div className="placeholder" style={{ height: "150px" }}></div>
             </div>
           </CardBody>
         </Card>
@@ -148,7 +129,7 @@ const GuardVisits = () => {
     <Col xl={4} lg={6}>
       <Card>
         <CardHeader className="d-flex justify-content-between align-items-center pb-1">
-          <CardTitle>Guard Check-ins by Device</CardTitle>
+          <CardTitle>Guard Duty Hours</CardTitle>
           <Dropdown>
             <DropdownToggle
               as={"a"}
@@ -156,21 +137,15 @@ const GuardVisits = () => {
               data-bs-toggle="dropdown"
               aria-expanded="false"
             >
-              {checkInData.periodLabel}{" "}
+              {visibleData.periodLabel}{" "}
               <span>
-                {" "}
-                <IconifyIcon
-                  className="ms-1"
-                  width={16}
-                  height={16}
-                  icon="ri:arrow-down-s-line"
-                />
+                <IconifyIcon className="ms-1" width={16} height={16} icon="ri:arrow-down-s-line" />
               </span>
             </DropdownToggle>
             <DropdownMenu className="dropdown-menu-end">
-              <DropdownItem onClick={() => setTimeFilter('today')}>Today</DropdownItem>
-              <DropdownItem onClick={() => setTimeFilter('month')}>Month</DropdownItem>
-              <DropdownItem onClick={() => setTimeFilter('year')}>Year</DropdownItem>
+              <DropdownItem onClick={() => setTimeFilter("latest")}>Latest Week</DropdownItem>
+              <DropdownItem onClick={() => setTimeFilter("month")}>Last 4 Weeks</DropdownItem>
+              <DropdownItem onClick={() => setTimeFilter("all")}>All Available</DropdownItem>
             </DropdownMenu>
           </Dropdown>
         </CardHeader>
@@ -178,26 +153,18 @@ const GuardVisits = () => {
           <div className="d-flex align-items-center justify-content-between">
             <div>
               <h3 className="d-flex align-items-center text-dark gap-2 mb-0">
-                {checkInData.totalCheckIns.toLocaleString()}
-                <span className="badge text-success bg-success-subtle px-2 py-1 fs-12 ">
-                  <IconifyIcon icon="ri:arrow-up-line" />
-                  {checkInData.growth}%
-                </span>
+                {Math.round(visibleData.totalHours).toLocaleString()}
+                <span className="badge text-primary bg-primary-subtle px-2 py-1 fs-12">{guardSummary?.onDutyGuards || 0} on duty</span>
               </h3>
-              <small>(Total Check-ins)</small>
+              <small>(Scheduled duty hours)</small>
             </div>
             <div className="avatar-md bg-light bg-opacity-50 rounded flex-centered">
-              <IconifyIcon
-                icon="solar:shield-user-broken"
-                width={32}
-                height={32}
-                className="fs-32 text-primary "
-              />
+              <IconifyIcon icon="solar:shield-user-broken" width={32} height={32} className="fs-32 text-primary" />
             </div>
           </div>
           <div className="mx-n3">
             <ReactApexChart
-              key={`guard-checkins-${timeFilter}`}
+              key={`guard-duty-hours-${timeFilter}`}
               options={chartOptions}
               series={chartOptions.series}
               height={150}
@@ -209,75 +176,40 @@ const GuardVisits = () => {
             <Col lg={6}>
               <div className="border rounded p-2">
                 <p className="mb-1 text-muted">
-                  <IconifyIcon
-                    icon="ri:smartphone-line"
-                    className="text-dark"
-                  />{" "}
-                  Mobile
+                  <IconifyIcon icon="ri:time-line" className="text-dark" /> Average Weekly Hours
                 </p>
                 <p className="fs-18 text-dark fw-medium">
-                  {checkInData.mobileCount.toLocaleString()} <span className="text-muted fs-14">60%</span>
+                  {visibleData.averageHours.toFixed(1)} <span className="text-muted fs-14">hrs</span>
                 </p>
                 <div className="d-flex justify-content-between">
                   <div>
-                    <p className="text-dark mb-0">Android</p>
-                    <p className="mb-0">{Math.round(checkInData.mobileCount * 0.6)}</p>
+                    <p className="text-dark mb-0">Available</p>
+                    <p className="mb-0">{guardSummary?.availableGuards || 0}</p>
                   </div>
                   <div className="text-end">
-                    <p className="text-dark mb-0">IOS</p>
-                    <p className="mb-0">{Math.round(checkInData.mobileCount * 0.4)}</p>
+                    <p className="text-dark mb-0">On Duty</p>
+                    <p className="mb-0">{guardSummary?.onDutyGuards || 0}</p>
                   </div>
-                </div>
-                <div
-                  className="progress progress-lg rounded-0 gap-1 overflow-visible mt-3 bg-light-subtle"
-                  style={{ height: 10 }}
-                >
-                  <div
-                    className="progress-bar bg-success rounded-pill"
-                    role="progressbar"
-                    style={{ width: "60%" }}
-                  ></div>
-                  <div
-                    className="progress-bar bg-dark rounded-pill"
-                    role="progressbar"
-                    style={{ width: "40%" }}
-                  ></div>
                 </div>
               </div>
             </Col>
             <Col lg={6}>
               <div className="border rounded p-2 text-end">
                 <p className="mb-1 text-muted">
-                  <IconifyIcon icon="ri:computer-line" className="text-dark" />{" "}
-                  Desktop
+                  <IconifyIcon icon="ri:alarm-warning-line" className="text-dark" /> Overtime Hours
                 </p>
                 <p className="fs-18 text-dark fw-medium">
-                  {checkInData.desktopCount.toLocaleString()} <span className="text-muted fs-14">40%</span>
+                  {Math.round(visibleData.overtimeTotal).toLocaleString()} <span className="text-muted fs-14">hrs</span>
                 </p>
                 <div className="d-flex justify-content-between">
                   <div className="text-start">
-                    <p className="text-dark mb-0">Windows</p>
-                    <p className="mb-0">{Math.round(checkInData.desktopCount * 0.62)}</p>
+                    <p className="text-dark mb-0">Active</p>
+                    <p className="mb-0">{guardSummary?.activeGuards || 0}</p>
                   </div>
                   <div>
-                    <p className="text-dark mb-0">Mac</p>
-                    <p className="mb-0">{Math.round(checkInData.desktopCount * 0.38)}</p>
+                    <p className="text-dark mb-0">Training</p>
+                    <p className="mb-0">{guardSummary?.trainingRequired || 0}</p>
                   </div>
-                </div>
-                <div
-                  className="progress progress-lg rounded-0 gap-1 overflow-visible mt-3 bg-light-subtle"
-                  style={{ height: 10 }}
-                >
-                  <div
-                    className="progress-bar bg-dark rounded-pill"
-                    role="progressbar"
-                    style={{ width: "62%" }}
-                  ></div>
-                  <div
-                    className="progress-bar bg-warning rounded-pill"
-                    role="progressbar"
-                    style={{ width: "38%" }}
-                  ></div>
                 </div>
               </div>
             </Col>
@@ -286,13 +218,13 @@ const GuardVisits = () => {
         <CardFooter className="border-top">
           <Row className="g-2">
             <Col lg={7}>
-              <Button variant="primary" className="w-100">
-                View All
+              <Button as={Link} href="/guards/schedules" variant="primary" className="w-100">
+                View Schedules
               </Button>
             </Col>
             <Col lg={5}>
-              <Button variant="light" className="w-100">
-                Edit Data
+              <Button as={Link} href="/guards/assignments" variant="light" className="w-100">
+                Assignments
               </Button>
             </Col>
           </Row>

@@ -12,39 +12,38 @@ const ServiceAddCard = () => {
               <IconifyIcon icon="ri:customer-service-2-line" className="fs-24 text-primary" />
             </div>
             <div className="d-block">
-              <Link href="" className="text-dark fw-medium fs-16">
-                New Service
+              <Link href="/services" className="text-dark fw-medium fs-16">
+                Service Draft
               </Link>
-              <p className="mb-0">service@casanirvana.com</p>
-              <p className="mb-0 text-primary"># New</p>
+              <p className="mb-0">Scoped to the community you select in the form.</p>
+              <p className="mb-0 text-primary">Launch-safe creation flow</p>
             </div>
           </div>
           <p className="mt-3 d-flex align-items-center gap-2 mb-2">
             <IconifyIcon icon="solar:buildings-2-bold-duotone" className="fs-18 text-primary" />
-            Community-wide Service
+            Service catalog record
           </p>
           <p className="d-flex align-items-center gap-2 mt-2">
             <IconifyIcon icon="solar:clock-circle-bold-duotone" className="fs-18 text-primary" />
-            Available 24/7
+            Availability and pricing are saved with the record
           </p>
-          <h5 className="my-3">Service Categories :</h5>
-          <div className="d-flex gap-2 flex-wrap">
-            <span className="badge bg-primary-subtle text-primary">Maintenance</span>
-            <span className="badge bg-success-subtle text-success">Cleaning</span>
-            <span className="badge bg-info-subtle text-info">Security</span>
-            <span className="badge bg-warning-subtle text-warning">Utilities</span>
-          </div>
+          <h5 className="my-3">What This Form Saves:</h5>
+          <ul className="text-muted ps-3 mb-0">
+            <li>Service name, category, and description</li>
+            <li>Community scope and active status</li>
+            <li>Base price and feature flags</li>
+          </ul>
         </CardBody>
         <CardFooter className="bg-light-subtle">
           <Row className="g-2">
             <Col lg={6}>
-              <Button variant="outline-primary" className="w-100">
-                Preview
-              </Button>
+              <Link href="/services" className="btn btn-outline-primary w-100">
+                Back to Services
+              </Link>
             </Col>
             <Col lg={6}>
-              <Button variant="danger" className="w-100">
-                Cancel
+              <Button variant="soft-success" className="w-100" disabled>
+                Media Later
               </Button>
             </Col>
           </Row>

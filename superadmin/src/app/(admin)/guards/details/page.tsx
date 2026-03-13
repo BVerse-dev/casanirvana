@@ -1,19 +1,20 @@
 'use client'
+
+import { Suspense } from 'react'
+import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
+import { Button, Col, Row } from 'react-bootstrap'
+
 import PageTitle from '@/components/PageTitle'
+import IconifyIcon from '@/components/wrappers/IconifyIcon'
 import GuardDetails from './components/GuardDetails'
 import GuardDetailsBanner from './components/GuardDetailsBanner'
-import { Row, Col } from 'react-bootstrap'
-import Link from 'next/link'
-import IconifyIcon from '@/components/wrappers/IconifyIcon'
-import { useSearchParams } from 'next/navigation'
-import { useGetGuardDirectory } from '@/hooks/useGuardDirectory'
-import { Suspense } from 'react'
+import { useGuardDetailSnapshot } from '@/hooks/useGuardDetailSnapshot'
 
 const GuardDetailsContent = () => {
   const searchParams = useSearchParams()
   const guardId = searchParams.get('id')
-  
-  const { data: guard, isLoading, error } = useGetGuardDirectory(guardId || '')
+  const { data: snapshot, isLoading, error } = useGuardDetailSnapshot(guardId || '')
 
   if (!guardId) {
     return (
@@ -39,7 +40,7 @@ const GuardDetailsContent = () => {
     )
   }
 
-  if (error || !guard) {
+  if (error || !snapshot) {
     return (
       <div className="text-center py-5">
         <div className="text-danger">
@@ -55,59 +56,61 @@ const GuardDetailsContent = () => {
     )
   }
 
+  const { guard } = snapshot
+
   return (
     <>
       <PageTitle subName="Casa Nirvana" title={`${guard.full_name || 'Guard'} - Details`} />
-      
-      {/* Header Actions */}
+
       <Row className="mb-3">
         <Col xl={12}>
-          <div className="d-flex justify-content-between align-items-center">
-            <Link 
-              href="/guards/grid-view" 
-              className="btn text-white fw-semibold"
-              style={{
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                border: 'none',
-                borderRadius: '8px',
-                padding: '10px 20px',
-                boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
-                transition: 'all 0.3s ease'
-              }}
-            >
+          <div className="d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <Link href="/guards/grid-view" className="btn btn-outline-secondary">
               <IconifyIcon icon="ri:arrow-left-line" className="me-1" />
               Back to Guards
             </Link>
-            <div className="d-flex gap-2">
-              <Link href={`/guards/edit?id=${guard.id}`} className="btn btn-primary">
-                <IconifyIcon icon="solar:pen-2-broken" className="me-1" />
-                Edit Guard
+            <div className="d-flex flex-wrap gap-2">
+              <Link
+                href={`/guards/manage?tab=assignments&guardId=${guard.id}`}
+                className="btn btn-primary"
+              >
+                <IconifyIcon icon="ri:settings-3-line" className="me-1" />
+                Manage Assignments
               </Link>
-              <Link href={`tel:${guard.phone}`} className="btn btn-success">
-                <IconifyIcon icon="ri:phone-line" className="me-1" />
-                Call Guard
-              </Link>
+              {guard.phone ? (
+                <Button as={Link} href={`tel:${guard.phone}`} variant="success">
+                  <IconifyIcon icon="ri:phone-line" className="me-1" />
+                  Call Guard
+                </Button>
+              ) : (
+                <Button variant="success" disabled>
+                  <IconifyIcon icon="ri:phone-line" className="me-1" />
+                  No Phone Available
+                </Button>
+              )}
             </div>
           </div>
         </Col>
       </Row>
-      
-      <GuardDetailsBanner guard={guard} />
-      <GuardDetails guard={guard} />
+
+      <GuardDetailsBanner snapshot={snapshot} />
+      <GuardDetails snapshot={snapshot} />
     </>
   )
 }
 
 const GuardDetailsPage = () => {
   return (
-    <Suspense fallback={
-      <div className="text-center py-5">
-        <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Loading...</span>
+    <Suspense
+      fallback={
+        <div className="text-center py-5">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+          <div className="mt-2">Loading page...</div>
         </div>
-        <div className="mt-2">Loading page...</div>
-      </div>
-    }>
+      }
+    >
       <GuardDetailsContent />
     </Suspense>
   )

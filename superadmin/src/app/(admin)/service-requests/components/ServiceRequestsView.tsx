@@ -51,8 +51,7 @@ const ServiceRequestsView = () => {
     try {
       await updateServiceRequest.mutateAsync({
         id,
-        status,
-        completion_date: status === "completed" ? new Date().toISOString().slice(0, 10) : null,
+        data: { status },
       });
       setFeedback({
         variant: "success",

@@ -35,6 +35,7 @@ interface ResidentsListProps {
   currentPage: number
   onPageChange: (page: number) => void
   searchTerm: string
+  onRefresh: () => Promise<unknown>
 }
 
 const ResidentsList = ({ 
@@ -43,7 +44,8 @@ const ResidentsList = ({
   error, 
   currentPage, 
   onPageChange, 
-  searchTerm 
+  searchTerm,
+  onRefresh,
 }: ResidentsListProps) => {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [selectedResident, setSelectedResident] = useState<Resident | null>(null)
@@ -111,6 +113,15 @@ const ResidentsList = ({
     toast.success('Residents data exported successfully')
   }
 
+  const handlePrint = () => {
+    window.print()
+  }
+
+  const handleRefresh = async () => {
+    await onRefresh()
+    toast.success('Residents list refreshed')
+  }
+
   if (isLoading) {
     return (
       <Row>
@@ -157,7 +168,9 @@ const ResidentsList = ({
                   {searchTerm ? `Search Results for "${searchTerm}"` : 'All Residents List'}
                 </CardTitle>
                 <small className="text-muted">
-                  Showing {startIndex + 1}-{Math.min(endIndex, residents.length)} of {residents.length} residents
+                  {residents.length > 0
+                    ? `Showing ${startIndex + 1}-${Math.min(endIndex, residents.length)} of ${residents.length} residents`
+                    : 'Showing 0 residents'}
                 </small>
               </div>
               <Dropdown>
@@ -173,11 +186,11 @@ const ResidentsList = ({
                     <IconifyIcon icon="solar:download-broken" className="me-2" />
                     Export CSV
                   </DropdownItem>
-                  <DropdownItem>
+                  <DropdownItem onClick={handlePrint}>
                     <IconifyIcon icon="solar:printer-broken" className="me-2" />
                     Print List
                   </DropdownItem>
-                  <DropdownItem>
+                  <DropdownItem onClick={handleRefresh}>
                     <IconifyIcon icon="solar:refresh-broken" className="me-2" />
                     Refresh
                   </DropdownItem>

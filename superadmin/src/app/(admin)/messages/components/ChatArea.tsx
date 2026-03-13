@@ -32,238 +32,96 @@ import { useLayoutContext } from "@/context/useLayoutContext";
 import type { ChatMessageType, UserType } from "@/types/data";
 import type { ChatUser } from "@/hooks/useProfiles";
 import { getFileExtensionIcon } from "@/utils/get-icons";
-import { useCreateMessage, useListMessages } from "@/hooks/useMessages";
+import { useCreateMessage, useDeleteMessage, useListMessages } from "@/hooks/useMessages";
 import { avatars } from "@/assets/images/users";
-import { supabase } from '@/lib/supabase';
-
-import small1 from "@/assets/images/small/img-1.jpg";
-import small2 from "@/assets/images/small/img-2.jpg";
-import small3 from "@/assets/images/small/img-3.jpg";
 import TextFormInput from "@/components/from/TextFormInput";
 import Image from "next/image";
 
 const MessageDropdown = ({
-  message,
-  toUser,
+  copyValue,
+  canDelete,
+  onDelete,
 }: {
-  message: ChatMessageType;
-  toUser: UserType;
+  copyValue?: string;
+  canDelete?: boolean;
+  onDelete?: () => void;
 }) => {
+  const handleCopy = async () => {
+    if (!copyValue) return;
+
+    try {
+      await navigator.clipboard.writeText(copyValue);
+      toast.success("Message copied.");
+    } catch {
+      toast.error("Could not copy the message.");
+    }
+  };
+
+  if (!copyValue && !canDelete) {
+    return null;
+  }
+
   return (
-    <Dropdown
-      drop={message.from.id === toUser.id ? "end" : "start"}
-      className="chat-conversation-actions"
-    >
+    <Dropdown className="chat-conversation-actions">
       <DropdownToggle as={"a"} role="button" className="ps-1">
         <IconifyIcon icon="bx:dots-vertical-rounded" className="fs-18" />
       </DropdownToggle>
       <DropdownMenu>
-        <DropdownItem>
-          <IconifyIcon icon="bx:share" className="me-2" />
-          Reply
-        </DropdownItem>
-        <DropdownItem>
-          <IconifyIcon icon="bx:share-alt" className="me-2" />
-          Forward
-        </DropdownItem>
-        <DropdownItem>
-          <IconifyIcon icon="bx:copy" className="me-2" />
-          Copy
-        </DropdownItem>
-        <DropdownItem>
-          <IconifyIcon icon="bx:bookmark" className="me-2" />
-          Bookmark
-        </DropdownItem>
-        <DropdownItem>
-          <IconifyIcon icon="bx:star" className="me-2" />
-          Starred
-        </DropdownItem>
-        <DropdownItem>
-          <IconifyIcon icon="bx:info-square" className="me-2" />
-          Mark as Unread
-        </DropdownItem>
-        <DropdownItem>
-          <IconifyIcon icon="bx:trash" className="me-2" />
-          Delete
-        </DropdownItem>
+        {copyValue ? (
+          <DropdownItem onClick={handleCopy}>
+            <IconifyIcon icon="bx:copy" className="me-2" />
+            Copy
+          </DropdownItem>
+        ) : null}
+        {canDelete && onDelete ? (
+          <DropdownItem onClick={onDelete}>
+            <IconifyIcon icon="bx:trash" className="me-2" />
+            Delete
+          </DropdownItem>
+        ) : null}
       </DropdownMenu>
     </Dropdown>
   );
 };
 
-const VideoCall = ({ selectedUser }: { selectedUser: UserType }) => {
-  const { videoCall } = useChatContext();
-  return (
-    <>
-      <li className="list-inline-item fs-20 dropdown">
-        <div
-          role="button"
-          className="btn btn-light avatar-sm d-flex align-items-center justify-content-center text-dark fs-20"
-          onClick={videoCall.toggle}
-        >
-          <span>
-            {" "}
-            <IconifyIcon icon="solar:videocamera-record-bold-duotone" />
-          </span>
-        </div>
-      </li>
+const UnavailableCallAction = ({
+  icon,
+  title,
+}: {
+  icon: string;
+  title: string;
+}) => (
+  <li className="list-inline-item fs-20 dropdown">
+    <button
+      type="button"
+      className="btn btn-light avatar-sm d-flex align-items-center justify-content-center text-dark fs-20"
+      onClick={() =>
+        toast("Calls are not enabled in the admin messaging launch surface yet.", {
+          icon: "i",
+        })
+      }
+      title={title}
+    >
+      <span>
+        <IconifyIcon icon={icon} />
+      </span>
+    </button>
+  </li>
+);
 
-      <Modal
-        show={videoCall.open}
-        onHide={videoCall.toggle}
-        centered
-        contentClassName="video-call"
-        className="fade mx-auto d-flex"
-        id="videocall"
-        aria-hidden="true"
-      >
-        <ModalHeader className="border-0 mb-5 justify-content-end">
-          <div className="video-call-head">
-            <Image
-              src={selectedUser.avatar}
-              className="rounded"
-              width={100}
-              height={100}
-              alt="avatar-4"
-            />
-          </div>
-        </ModalHeader>
-        <ModalBody>
-          <div className="video-call-action text-center pt-4 pb-0">
-            <ul className="d-flex align-items-center justify-content-evenly bg-dark m-3 p-2 rounded-pill">
-              <li className="list-inline-item avatar-sm me-2">
-                <button
-                  type="button"
-                  className="avatar-title rounded-circle bg-soft-light text-white fs-16 border-0"
-                >
-                  <IconifyIcon icon="ri:mic-off-line" />
-                </button>
-              </li>
-              <li className="list-inline-item avatar-sm">
-                <button
-                  type="button"
-                  className="avatar-title rounded-circle bg-soft-light text-white fs-16 border-0"
-                >
-                  <IconifyIcon icon="ri:volume-up-line" />
-                </button>
-              </li>
-              <li className="list-inline-item avatar-sm me-2">
-                <button
-                  type="button"
-                  className="avatar-title rounded-circle bg-soft-light text-white fs-16 border-0"
-                >
-                  <IconifyIcon icon="ri:camera-switch-line" />
-                </button>
-              </li>
-              <li className="list-inline-item avatar-sm">
-                <button
-                  type="button"
-                  className="avatar-title rounded-circle bg-soft-light text-white fs-16 border-0"
-                >
-                  <IconifyIcon icon="ri:camera-off-line" />
-                </button>
-              </li>
-              <li className="list-inline-item fw-bold" data-bs-dismiss="modal">
-                <Button
-                  variant="danger"
-                  size="sm"
-                  onClick={videoCall.toggle}
-                  className="rounded-pill d-flex icons-center"
-                >
-                  <IconifyIcon
-                    width={13}
-                    height={13}
-                    icon="ri:phone-line"
-                    className="me-1"
-                  />
-                  10:02
-                </Button>
-              </li>
-            </ul>
-          </div>
-        </ModalBody>
-      </Modal>
-    </>
-  );
-};
+const VideoCall = () => (
+  <UnavailableCallAction
+    icon="solar:videocamera-record-bold-duotone"
+    title="Video calling is not enabled in admin messaging yet"
+  />
+);
 
-const VoiceCall = ({ selectedUser }: { selectedUser: UserType }) => {
-  const { voiceCall } = useChatContext();
-  return (
-    <>
-      <li className="list-inline-item fs-20 dropdown">
-        <div
-          role="button"
-          className="btn btn-light avatar-sm d-flex align-items-center justify-content-center text-dark fs-20"
-          onClick={voiceCall.toggle}
-        >
-          <span>
-            {" "}
-            <IconifyIcon icon="solar:outgoing-call-rounded-bold-duotone" />
-          </span>
-        </div>
-      </li>
-
-      <Modal
-        show={voiceCall.open}
-        onHide={voiceCall.toggle}
-        centered
-        contentClassName="voice-call  mx-auto d-flex"
-        className="fade"
-        id="voicecall"
-        aria-hidden="true"
-      >
-        <ModalHeader className="border-0 mt-5 justify-content-center">
-          <div className="voice-call-head">
-            <Image
-              src={selectedUser.avatar}
-              className="rounded-circle"
-              width={80}
-              height={80}
-              alt="avatar-4"
-            />
-          </div>
-        </ModalHeader>
-        <ModalBody className="pt-0 text-center">
-          <h5>{selectedUser.name}</h5>
-          <p className="mb-5">Calling...</p>
-          <div className="voice-call-action pt-4 pb-0">
-            <ul className="d-flex align-items-center justify-content-between bg-dark mx-5 mb-3 p-2 rounded-pill">
-              <li className="list-inline-item avatar-sm me-2">
-                <button
-                  type="button"
-                  className="avatar-title rounded-circle bg-soft-light text-white fs-16 border-0"
-                >
-                  <IconifyIcon icon="ri:mic-off-line" />
-                </button>
-              </li>
-              <li
-                className="list-inline-item avatar-sm me-2"
-                data-bs-dismiss="modal"
-              >
-                <button
-                  type="button"
-                  onClick={voiceCall.toggle}
-                  className="avatar-title rounded-circle bg-danger text-white fs-18 border-0"
-                >
-                  <IconifyIcon icon="solar:end-call-linear" />
-                </button>
-              </li>
-              <li className="list-inline-item avatar-sm">
-                <button
-                  type="button"
-                  className="avatar-title rounded-circle bg-soft-light text-white fs-16 border-0"
-                >
-                  <IconifyIcon icon="ri:volume-up-line" />
-                </button>
-              </li>
-            </ul>
-          </div>
-        </ModalBody>
-      </Modal>
-    </>
-  );
-};
+const VoiceCall = () => (
+  <UnavailableCallAction
+    icon="solar:outgoing-call-rounded-bold-duotone"
+    title="Voice calling is not enabled in admin messaging yet"
+  />
+);
 
 const ProfileDetail = ({ selectedUser }: { selectedUser: UserType }) => {
   const { chatProfile } = useChatContext();
@@ -277,7 +135,6 @@ const ProfileDetail = ({ selectedUser }: { selectedUser: UserType }) => {
           onClick={chatProfile.toggle}
         >
           <span>
-            {" "}
             <IconifyIcon icon="solar:user-bold-duotone" />
           </span>
         </div>
@@ -292,19 +149,14 @@ const ProfileDetail = ({ selectedUser }: { selectedUser: UserType }) => {
         tabIndex={-1}
       >
         <OffcanvasHeader closeButton>
-          <h5
-            className="offcanvas-title text-truncate w-50"
-            id="user-profileLabel"
-          >
-            Profile
-          </h5>
+          <h5 className="offcanvas-title text-truncate w-50">Profile</h5>
         </OffcanvasHeader>
         <SimplebarReactClient className="offcanvas-body p-0 h-100">
           <div className="p-3">
             <div className="text-center">
               <Image
                 src={selectedUser.avatar}
-                alt="shreyu"
+                alt={selectedUser.name}
                 width={80}
                 height={80}
                 className="img-thumbnail avatar-lg rounded-circle mb-1"
@@ -320,25 +172,23 @@ const ProfileDetail = ({ selectedUser }: { selectedUser: UserType }) => {
                 <IconifyIcon icon="bi:envelope" className="me-1" />
                 Send Email
               </Button>
-              <p className="text-muted mt-2 fs-14">
-                Last Interacted:
+              <p className="text-muted mt-2 fs-14 mb-0">
+                Status:{" "}
                 <strong
                   className={`text-${selectedUser.activityStatus === "offline" ? "danger" : "success"}`}
                 >
-                  {" "}
                   {selectedUser.activityStatus}
                 </strong>
               </p>
             </div>
-            <div className="mt-3">
-              <hr />
+            <div className="mt-4">
               <p className="mt-3 mb-1">
                 <strong className="icons-center">
                   <IconifyIcon icon="ri:phone-line" className="me-1" />
                   Phone Number:
                 </strong>
               </p>
-              <p>+1 {selectedUser.contact}</p>
+              <p>{selectedUser.contact || "Not provided"}</p>
               <p className="mt-3 mb-1">
                 <strong className="icons-center">
                   <IconifyIcon icon="ri:map-pin-line" className="me-1" />
@@ -352,73 +202,29 @@ const ProfileDetail = ({ selectedUser }: { selectedUser: UserType }) => {
                   Languages:
                 </strong>
               </p>
-              <p>
-                {selectedUser.languages.map((language, idx) => (
-                  <Fragment key={idx}>{language}, </Fragment>
-                ))}
-              </p>
-              <p className="mt-3 mb-2">
+              <p>{selectedUser.languages.join(", ") || "English"}</p>
+              <p className="mt-3 mb-1">
                 <strong className="icons-center">
-                  <IconifyIcon icon="ri:group-3-line" className="me-1" />
-                  Groups:
+                  <IconifyIcon icon="ri:message-2-line" className="me-1" />
+                  Latest Message:
                 </strong>
               </p>
-              <p className="mb-0">
-                <span className="badge badge-soft-success p-1 fs-14 me-1">
-                  Work
-                </span>
-                <span className="badge badge-soft-primary p-1 fs-14">
-                  Friends
-                </span>
+              <p>{selectedUser.message || "No messages yet"}</p>
+              <p className="mt-3 mb-1">
+                <strong className="icons-center">
+                  <IconifyIcon icon="ri:time-line" className="me-1" />
+                  Last Activity:
+                </strong>
               </p>
+              <p>{new Date(selectedUser.time || new Date(0)).toLocaleString()}</p>
+              <p className="mt-3 mb-1">
+                <strong className="icons-center">
+                  <IconifyIcon icon="ri:mail-unread-line" className="me-1" />
+                  Unread From Contact:
+                </strong>
+              </p>
+              <p>{(selectedUser as ChatUser).unreadCount || 0}</p>
             </div>
-            <h5 className="mt-3">
-              <span role="button" className="my-0">
-                <span className="float-end">See All</span>
-                Shared Photoes
-              </span>
-            </h5>
-            <Row className="gx-1 pt-2">
-              <Col xs={4}>
-                <div role="button">
-                  <Image
-                    src={small1}
-                    alt="img-1"
-                    width={100}
-                    height={100}
-                    className="img-fluid rounded"
-                  />
-                </div>
-              </Col>
-              <Col xs={4}>
-                <div role="button">
-                  <Image
-                    src={small2}
-                    alt="img-2"
-                    width={100}
-                    height={100}
-                    className="img-fluid rounded"
-                  />
-                </div>
-              </Col>
-              <Col xs={4}>
-                <div className="position-relative overflow-hidden rounded">
-                  <div role="button">
-                    <Image
-                      src={small3}
-                      alt="img-3"
-                      width={100}
-                      height={100}
-                      className="img-fluid rounded"
-                    />
-                    <div className="bg-overlay bg-dark" />
-                    <h3 className="position-absolute top-50 start-50 translate-middle my-0 text-white">
-                      +3
-                    </h3>
-                  </div>
-                </div>
-              </Col>
-            </Row>
           </div>
         </SimplebarReactClient>
       </Offcanvas>
@@ -435,18 +241,26 @@ const UserMessage = ({
   message,
   toUser,
   onImageClick,
+  onDelete,
 }: {
   message: ChatMessageType;
   toUser: UserType;
   onImageClick: (imageUrl: string, imageName: string) => void;
+  onDelete: (messageId: string) => void;
 }) => {
+  const copyValue =
+    typeof message.message.value === "string" && message.message.value.trim().length > 0
+      ? message.message.value
+      : undefined;
+  const sentByCurrentUser = message.from.id === toUser.id;
+
   return (
     <li
       className={clsx("clearfix gap-2 d-flex", {
-        "justify-content-end odd": message.from.id === toUser.id,
+        "justify-content-end odd": sentByCurrentUser,
       })}
     >
-      {message.from.id != toUser.id && (
+      {!sentByCurrentUser && (
         <div className="chat-avatar text-center">
           <Image
             src={message.from.avatar}
@@ -459,10 +273,10 @@ const UserMessage = ({
       )}
       <div
         className={clsx("chat-conversation-text", {
-          "ms-0": message.from.id === toUser.id,
+          "ms-0": sentByCurrentUser,
         })}
       >
-        {message.from.id === toUser.id ? (
+        {sentByCurrentUser ? (
           <p className="mb-2  text-end">
             {new Date(message.sentOn || new Date()).toLocaleTimeString('en-US', { 
               hour: '2-digit', 
@@ -470,13 +284,13 @@ const UserMessage = ({
               hour12: false 
             })}{" "}
             <span className={`text-dark fw-medium me-1 `}>
-              {message.from.id === toUser.id ? "you" : message.from.name}
+              {sentByCurrentUser ? "you" : message.from.name}
             </span>{" "}
           </p>
         ) : (
           <p className="mb-2">
             <span className={`text-dark fw-medium me-1 `}>
-              {message.from.id === toUser.id ? "you" : message.from.name}
+              {sentByCurrentUser ? "you" : message.from.name}
             </span>{" "}
             {new Date(message.sentOn || new Date()).toLocaleTimeString('en-US', { 
               hour: '2-digit', 
@@ -487,11 +301,15 @@ const UserMessage = ({
         )}
         <div
           className={clsx("d-flex", {
-            "justify-content-end": message.from.id === toUser.id,
+            "justify-content-end": sentByCurrentUser,
           })}
         >
-          {message.from.id === toUser.id && (
-            <MessageDropdown message={message} toUser={toUser} />
+          {sentByCurrentUser && (
+            <MessageDropdown
+              copyValue={copyValue}
+              canDelete
+              onDelete={() => onDelete(message.id)}
+            />
           )}
           <div className="chat-ctext-wrap d-flex ">
             {/* Text messages */}
@@ -614,12 +432,12 @@ const UserMessage = ({
                 </Fragment>
               ))}
           </div>
-          {message.from.id != toUser.id && (
-            <MessageDropdown message={message} toUser={toUser} />
+          {!sentByCurrentUser && (
+            <MessageDropdown copyValue={copyValue} />
           )}
         </div>
       </div>
-      {message.from.id === toUser.id && (
+      {sentByCurrentUser && (
         <div className="chat-avatar text-center ms-2">
           <Image
             src={message.from.avatar}
@@ -643,9 +461,6 @@ const ChatArea = ({ selectedUser, selectedUserId }: { selectedUser: ChatUser; se
     resolver: yupResolver(messageSchema),
   });
 
-  // File input ref for attachment functionality
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  
   // Image viewer state
   const [imageViewer, setImageViewer] = useState<{
     isOpen: boolean;
@@ -670,6 +485,7 @@ const ChatArea = ({ selectedUser, selectedUserId }: { selectedUser: ChatUser; se
     effectiveSelectedUserId
   );
   const createMessageMutation = useCreateMessage();
+  const deleteMessageMutation = useDeleteMessage();
 
   const currentUser: UserType = {
     id: currentUserId || "current-user",
@@ -709,121 +525,16 @@ const ChatArea = ({ selectedUser, selectedUserId }: { selectedUser: ChatUser; se
   })) || [];
   const toUser: UserType = currentUser;
 
-  /**
-   * Handle attachment button click
-   */
   const handleAttachmentClick = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
+    toast("File attachments are not enabled in admin messaging yet.", {
+      icon: "i",
+    });
   };
 
-  /**
-   * Handle file selection for attachment
-   */
-  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files || files.length === 0 || !effectiveSelectedUserId || !currentUserId) return;
-
-    const file = files[0];
-    const maxSize = 10 * 1024 * 1024; // 10MB limit
-
-    if (file.size > maxSize) {
-      toast.error("File size must be less than 10MB.");
-      return;
-    }
-
-    try {
-      // Upload file to Supabase Storage
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const storagePath = `${currentUserId}/chat/${fileName}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('chat-attachments')
-        .upload(storagePath, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
-
-      if (uploadError) {
-        // Fallback: send text message about file
-        await createMessageMutation.mutateAsync({
-          from_user: currentUserId,
-          to_user: effectiveSelectedUserId,
-          body: `📎 File share attempted: ${file.name} (upload failed)`,
-          content: null,
-          attachments: null,
-          message_type: 'text',
-          sent_at: new Date().toISOString(),
-          read: false,
-          is_read: false,
-        });
-        toast.error("File upload failed. A text notice was sent instead.");
-      } else {
-        // Get public URL for the uploaded file
-        const { data: { publicUrl } } = supabase.storage
-          .from('chat-attachments')
-          .getPublicUrl(storagePath);
-
-        // Send message with file attachment
-        await createMessageMutation.mutateAsync({
-          from_user: currentUserId,
-          to_user: effectiveSelectedUserId,
-          body: `📎 ${file.name}`,
-          content: null,
-          attachments: {
-            type: 'file',
-            url: publicUrl,
-            name: file.name,
-            size: file.size,
-            mimeType: file.type
-          },
-          message_type: 'file',
-          sent_at: new Date().toISOString(),
-          read: false,
-          is_read: false,
-        });
-      }
-      
-      // Reset file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to send file.");
-    }
-  };
-
-  /**
-   * Handle video call button click
-   */
-  const handleVideoCallClick = async () => {
-    if (!currentUserId || !effectiveSelectedUserId) return;
-
-    // Send a message indicating video call attempt
-    try {
-      await createMessageMutation.mutateAsync({
-        from_user: currentUserId,
-        to_user: effectiveSelectedUserId,
-        body: `📹 Video call initiated`,
-        content: `Video call started at ${new Date().toLocaleTimeString()}`,
-        attachments: {
-          type: 'video_call',
-          action: 'initiated',
-          timestamp: new Date().toISOString()
-        },
-        message_type: 'video_call',
-        sent_at: new Date().toISOString(),
-        read: false,
-        is_read: false,
-      });
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to register the call event.");
-    }
-
-    // Open the video call modal
-    videoCall.toggle();
+  const handleVideoCallClick = () => {
+    toast("Call controls are not enabled in the admin messaging launch surface yet.", {
+      icon: "i",
+    });
   };
 
   /**
@@ -863,18 +574,23 @@ const ChatArea = ({ selectedUser, selectedUserId }: { selectedUser: ChatUser; se
 
     try {
       await createMessageMutation.mutateAsync({
-        from_user: currentUserId,
         to_user: effectiveSelectedUserId,
         body: values.newMessage.trim(),
         message_type: 'text',
-        sent_at: new Date().toISOString(),
-        read: false,
-        is_read: false,
       });
       
       reset();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to send message.");
+    }
+  };
+
+  const handleDeleteMessage = async (messageId: string) => {
+    try {
+      await deleteMessageMutation.mutateAsync(messageId);
+      toast.success("Message deleted.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to delete message.");
     }
   };
 
@@ -892,7 +608,7 @@ const ChatArea = ({ selectedUser, selectedUserId }: { selectedUser: ChatUser; se
     return <div ref={elementRef} />;
   };
 
-  const { chatList, chatProfile, videoCall } = useChatContext();
+  const { chatList, chatProfile } = useChatContext();
 
   const { theme } = useLayoutContext();
 
@@ -929,58 +645,18 @@ const ChatArea = ({ selectedUser, selectedUserId }: { selectedUser: ChatUser; se
             <p
               className={`mb-0 text-${selectedUser.activityStatus === "offline" ? "danger" : "success"} fw-semibold fst-italic`}
             >
-              {selectedUser.activityStatus != "typing" && (
-                <IconifyIcon icon="bxs:circle" className="fs-13" />
-              )}
+              <IconifyIcon icon="bxs:circle" className="fs-13" />
               {selectedUser.activityStatus}
-              {selectedUser.activityStatus === "typing" && "..."}
             </p>
           </div>
         </div>
         <div className="flex-grow-1">
           <ul className="list-inline float-end d-flex gap-1 mb-0">
-            <VideoCall selectedUser={selectedUser} />
+            <VideoCall />
 
-            <VoiceCall selectedUser={selectedUser} />
+            <VoiceCall />
 
             <ProfileDetail selectedUser={selectedUser} />
-
-            <Dropdown className="list-inline-item fs-20 d-none d-md-flex">
-              <DropdownToggle
-                as={"a"}
-                role="button"
-                className="arrow-none text-dark"
-                data-bs-toggle="dropdown"
-                aria-expanded="false"
-              >
-                <IconifyIcon icon="bx:dots-vertical-rounded" />
-              </DropdownToggle>
-              <DropdownMenu className="dropdown-menu-end">
-                <DropdownItem>
-                  <IconifyIcon icon="ri:user-6-line" className="me-2" />
-                  View Profile
-                </DropdownItem>
-                <DropdownItem>
-                  <IconifyIcon icon="ri:music-2-line" className="me-2" />
-                  Media, Links and Docs
-                </DropdownItem>
-                <DropdownItem>
-                  <IconifyIcon icon="ri:search-2-line" className="me-2" />
-                  Search
-                </DropdownItem>
-                <DropdownItem>
-                  <IconifyIcon icon="ri:image-line" className="me-2" />
-                  Wallpaper
-                </DropdownItem>
-                <DropdownItem>
-                  <IconifyIcon
-                    icon="ri:arrow-right-circle-line"
-                    className="me-2"
-                  />
-                  More
-                </DropdownItem>
-              </DropdownMenu>
-            </Dropdown>
           </ul>
         </div>
       </CardHeader>
@@ -988,18 +664,29 @@ const ChatArea = ({ selectedUser, selectedUserId }: { selectedUser: ChatUser; se
         <SimplebarReactClient className="chat-conversation-list p-3 chatbox-height">
           {isLoading ? (
             <div className="text-center p-4">
-              <div className="spinner-border spinner-border-sm text-primary" role="status">
-                <span className="visually-hidden">Loading messages...</span>
+                <div className="spinner-border spinner-border-sm text-primary" role="status">
+                  <span className="visually-hidden">Loading messages...</span>
+                </div>
+                <p className="mt-2 text-muted">Loading messages...</p>
               </div>
-              <p className="mt-2 text-muted">Loading messages...</p>
-            </div>
-          ) : (
-            userMessages.map((message, idx) => (
-              <UserMessage message={message} toUser={toUser} onImageClick={openImageViewer} key={idx} />
-            ))
-          )}
-          <AlwaysScrollToBottom />
-        </SimplebarReactClient>
+            ) : userMessages.length === 0 ? (
+              <div className="text-center p-4">
+                <IconifyIcon icon="ri:message-3-line" className="fs-48 text-muted mb-3" />
+                <p className="text-muted mb-0">No messages yet. Start the conversation.</p>
+              </div>
+            ) : (
+              userMessages.map((message, idx) => (
+                <UserMessage
+                  message={message}
+                  toUser={toUser}
+                  onImageClick={openImageViewer}
+                  onDelete={handleDeleteMessage}
+                  key={idx}
+                />
+              ))
+            )}
+            <AlwaysScrollToBottom />
+          </SimplebarReactClient>
 
         <div className="bg-light bg-opacity-50 p-2">
           <form
@@ -1043,22 +730,12 @@ const ChatArea = ({ selectedUser, selectedUserId }: { selectedUser: ChatUser; se
               </Col>
               <Col sm={"auto"}>
                 <div className="d-flex gap-2">
-                  {/* Hidden file input for attachments */}
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileSelect}
-                    style={{ display: 'none' }}
-                    accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt"
-                  />
-                  
-                  {/* Attachment button */}
                   <Button 
                     variant="soft-success" 
                     size="sm"
                     onClick={handleAttachmentClick}
                     disabled={!currentUserId || !effectiveSelectedUserId}
-                    title="Attach file"
+                    title="Attachments are not enabled for launch yet"
                   >
                     <IconifyIcon
                       icon="ri:attachment-2"
@@ -1067,14 +744,12 @@ const ChatArea = ({ selectedUser, selectedUserId }: { selectedUser: ChatUser; se
                       className="fs-18"
                     />
                   </Button>
-                  
-                  {/* Video call button */}
                   <Button 
                     variant="soft-warning" 
                     size="sm"
                     onClick={handleVideoCallClick}
                     disabled={!currentUserId || !effectiveSelectedUserId}
-                    title="Start video call"
+                    title="Calling is not enabled for launch yet"
                   >
                     <IconifyIcon
                       icon="ri:video-on-line"

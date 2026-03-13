@@ -96,18 +96,7 @@ const MaintenanceRequestsPage = () => {
     try {
       await updateMaintenanceRequestById.mutateAsync({
         id: request.id,
-        updates: {
-          status: newStatus,
-          updated_at: new Date().toISOString(),
-          ...(newStatus === "completed" && {
-            completed_at: new Date().toISOString(),
-            resolved_at: new Date().toISOString(),
-          }),
-          ...(newStatus !== "completed" && {
-            completed_at: null,
-            resolved_at: null,
-          }),
-        },
+        updates: { status: newStatus },
       });
       setFeedback({
         variant: "success",

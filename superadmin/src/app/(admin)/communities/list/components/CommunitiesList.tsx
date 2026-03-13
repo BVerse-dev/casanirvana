@@ -26,13 +26,15 @@ import {
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
 import Link from "next/link";
 import { toast } from "react-hot-toast";
-import { useListCommunities, useDeleteCommunity } from "@/hooks/useCommunities";
-import { useListUnits } from "@/hooks/useUnits";
-import type { Database } from "@/lib/database.types";
+import {
+  useListCommunities,
+  useDeleteCommunity,
+  type CommunityRecord,
+} from "@/hooks/useCommunities";
 import { mapPropertyUrl, mapSocietyToPropertyImage } from "@/utils/propertyImageMapper";
 import Image from "next/image";
 
-type Community = Database["public"]["Tables"]["societies"]["Row"];
+type Community = CommunityRecord;
 
 const CommunitiesList = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -43,27 +45,9 @@ const CommunitiesList = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8; // Items per page
 
-  // Fetch communities data from Supabase
-  const { data: communitiesData = { data: [], count: 0 }, isLoading, error } = useListCommunities();
-  // Extract communities array from the new structure
+  const { data: communitiesData = { data: [], count: 0, page: 1, pageSize: 1000, totalPages: 1 }, isLoading, error } =
+    useListCommunities({ page: 1, pageSize: 1000 });
   const communities = communitiesData?.data || [];
-  
-  // Fetch units data to get unit counts per community
-  const { data: unitsData } = useListUnits({ page: 1, pageSize: 1000 }); // Get all units
-  const units = unitsData?.data || [];
-  
-  // Create a map of community ID to unit count
-  const communityUnitCounts = useMemo(() => {
-    const counts = new Map<string, number>();
-    units.forEach(unit => {
-      if (unit.community_id) {
-        const count = counts.get(unit.community_id) || 0;
-        counts.set(unit.community_id, count + 1);
-      }
-    });
-    return counts;
-  }, [units]);
-  
   const deleteCommunityMutation = useDeleteCommunity();
 
   // Loading state
@@ -228,7 +212,7 @@ const CommunitiesList = () => {
                       </div>
                     </th>
                     <th>Units</th>
-                    <th>Contact</th>
+                    <th>Occupancy</th>
                     <th>
                       <div 
                         className="d-flex align-items-center cursor-pointer"
@@ -256,7 +240,8 @@ const CommunitiesList = () => {
                     </tr>
                   ) : (
                     currentCommunities.map((community) => {
-                      const unitCount = communityUnitCounts.get(community.id) || 0;
+                      const unitCount = community.unit_count || 0;
+                      const occupancyRate = community.occupancy_rate || 0;
                       return (
                         <tr key={community.id}>
                           <td>
@@ -295,13 +280,10 @@ const CommunitiesList = () => {
                           </td>
                           <td>
                             <div className="text-center">
-                              <div className="fw-medium">{unitCount > 0 ? Math.round((unitCount / unitCount) * 100) : 0}%</div>
-                              <div className="small text-muted">Occupied</div>
-                            </div>
-                          </td>
-                          <td>
-                            <div className="text-center">
-                              <Badge bg="success" className="small">Active</Badge>
+                              <div className="fw-medium">{occupancyRate}%</div>
+                              <div className="small text-muted">
+                                {community.occupied_unit_count || 0} occupied
+                              </div>
                             </div>
                           </td>
                           <td>
@@ -309,6 +291,13 @@ const CommunitiesList = () => {
                               <span className="text-muted small">
                                 {community.created_at ? new Date(community.created_at).toLocaleDateString() : 'N/A'}
                               </span>
+                            </div>
+                          </td>
+                          <td>
+                            <div className="text-center">
+                              <Badge bg={community.status === "inactive" ? "secondary" : "success"} className="small">
+                                {(community.status || "unknown").replace(/_/g, " ")}
+                              </Badge>
                             </div>
                           </td>
                           <td>

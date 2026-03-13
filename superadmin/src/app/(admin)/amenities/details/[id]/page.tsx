@@ -15,7 +15,7 @@ const AmenityDetailsPage = () => {
 
   return (
     <>
-      <PageTitle subName="Casa Nirvana" title={amenity?.name || "Amenity Overview"} />
+      <PageTitle subName="Operations" title={amenity?.name || "Amenity Overview"} />
 
       <Row className="mb-3">
         <Col xl={12}>

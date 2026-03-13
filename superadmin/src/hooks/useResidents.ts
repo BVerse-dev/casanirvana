@@ -1,332 +1,221 @@
 "use client";
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
-import type { ResidentProfile } from '@/assets/data/residents';
 
-export type Resident = ResidentProfile;
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
+import type { Database } from "@/lib/database.types";
+
+import { useAdminApi } from "./useAdminApi";
+
+type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
+
+type ResidentCommunity = {
+  id: string;
+  name: string;
+  address?: string | null;
+  city?: string | null;
+  state?: string | null;
+};
+
+type ResidentUnit = {
+  id: string;
+  block: string;
+  number: string;
+  unit_number?: string;
+  community_id?: string | null;
+  tenant_id?: string | null;
+};
+
+export type Resident = Omit<ProfileRow, "role" | "status" | "is_active"> & {
+  communities?: ResidentCommunity | null;
+  societies?: Pick<ResidentCommunity, "id" | "name"> | null;
+  units?: ResidentUnit | null;
+  full_name: string;
+  unit_number?: string;
+  mobile?: string | null;
+  address?: string | null;
+  date_of_birth?: string | null;
+  emergency_contact_name?: string | null;
+  emergency_contact_phone?: string | null;
+  role: "resident" | "tenant";
+  status: "active" | "inactive" | "suspended" | "pending";
+  is_active: boolean;
+};
 
 export type CreateResidentData = {
-  // Basic Information
   first_name: string;
   last_name: string;
   email: string;
   phone?: string;
-  mobile?: string; // Alternative phone field
+  mobile?: string;
   date_of_birth?: string;
   address?: string;
   avatar_url?: string;
-
-  // Unit & Community
   unit_number?: string;
   block_number?: string;
   unit_id?: string;
   community_id?: string;
-  // Legacy compatibility with older forms
   society_id?: string;
-  
-  // Emergency Contact
   emergency_contact_name?: string;
   emergency_contact_phone?: string;
-  
-  // System Fields
-  role: 'resident' | 'tenant' | 'admin';
-  status?: 'active' | 'inactive' | 'suspended' | 'pending';
+  role: "resident" | "tenant";
+  status?: "active" | "inactive" | "suspended" | "pending";
   is_active?: boolean;
 };
 
 export type UpdateResidentData = Partial<CreateResidentData>;
 
-type ResidentQueryResult = Resident & {
-  communities?: {
-    id: string;
-    name: string;
-  } | null;
-  units?: {
-    id: string;
-    block: string;
-    number: string;
-    community_id: string;
-  } | null;
-  community?: {
-    id: string;
-    name: string;
-  } | null;
-  roles?: unknown;
+type ResidentListPayload = {
+  data: Resident[];
+  count: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
 };
 
-const RESIDENT_ROLES = ['user', 'resident', 'tenant'];
-
-const normalizeRole = (role?: string | null): 'resident' | 'tenant' | 'admin' | string => {
-  if (!role) return 'resident';
-
-  if (role.toLowerCase() === 'tenant') return 'tenant';
-  if (role.toLowerCase() === 'admin') return 'admin';
-  return 'resident';
+type ResidentRecordPayload = {
+  data: Resident;
 };
 
-const normalizeStatus = (status?: string | null, isActive?: boolean | null): 'active' | 'inactive' | 'suspended' | 'pending' => {
-  if (status === 'inactive' || status === 'suspended' || status === 'pending') {
-    return status;
-  }
-  if (isActive === false) {
-    return 'inactive';
-  }
-  return 'active';
+const buildResidentQuery = ({
+  page,
+  pageSize,
+  search,
+  status,
+  communityId,
+  unitId,
+}: {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  status?: string;
+  communityId?: string;
+  unitId?: string;
+}) => {
+  const params = new URLSearchParams();
+
+  if (page) params.set("page", String(page));
+  if (pageSize) params.set("limit", String(pageSize));
+  if (search?.trim()) params.set("search", search.trim());
+  if (status?.trim()) params.set("status", status.trim());
+  if (communityId?.trim()) params.set("community_id", communityId.trim());
+  if (unitId?.trim()) params.set("unit_id", unitId.trim());
+
+  const query = params.toString();
+  return query ? `?${query}` : "";
 };
 
-const buildResidentCreatePayload = (residentData: CreateResidentData) => {
-  const role = normalizeRole(residentData.role);
-  const status = normalizeStatus(residentData.status, residentData.is_active);
-  const communityId = residentData.community_id || residentData.society_id;
+const normalizeResidentWritePayload = (residentData: CreateResidentData | UpdateResidentData) => ({
+  ...residentData,
+  phone: residentData.phone || residentData.mobile || "",
+  community_id: residentData.community_id || residentData.society_id || "",
+  society_id: residentData.society_id || residentData.community_id || "",
+});
 
-  return {
-    ...residentData,
-    role,
-    status,
-    is_active: status === 'active',
-    community_id: communityId || null,
-    unit_id: residentData.unit_id || null,
-    phone: residentData.phone || residentData.mobile || null,
-  };
-};
+export const useListResidents = (
+  options: {
+    page?: number;
+    pageSize?: number;
+    search?: string;
+    status?: string;
+    communityId?: string;
+    unitId?: string;
+  } = {}
+) => {
+  const { page = 1, pageSize = 100, search, status, communityId, unitId } = options;
+  const { fetchAdmin, hasToken } = useAdminApi();
 
-const normalizeResidentRow = (resident: ResidentQueryResult) => {
-  const fullName = `${resident.first_name || ''} ${resident.last_name || ''}`.trim() || resident.full_name || 'N/A';
-  const community = resident.communities || resident.community;
-
-  return {
-    ...(resident as Resident),
-    communities: community ? {
-      id: community.id,
-      name: community.name,
-    } : undefined,
-    societies: community ? {
-      id: community.id,
-      name: community.name,
-    } : undefined,
-    full_name: fullName,
-    unit_number: resident.units ? `${resident.units.block}-${resident.units.number}` : 'N/A',
-    is_active: resident.is_active ?? false,
-    role: normalizeRole(resident.role),
-    status: normalizeStatus(resident.status, resident.is_active),
-    community_id: resident.community_id || resident.units?.community_id,
-  };
-};
-
-// List all residents
-export const useListResidents = () => {
   return useQuery({
-    queryKey: ['residents'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select(`
-          *,
-          units!profiles_unit_id_fkey (
-            id,
-            block,
-            number,
-            community_id
-          ),
-          communities!profiles_society_id_fkey (
-            id,
-            name
-          )
-        `)
-        .in('role', RESIDENT_ROLES)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error("Error fetching residents:", error);
-        throw new Error(`Failed to fetch residents: ${error.message}`);
-      }
-
-      const transformedData = (data || []).map((resident: ResidentQueryResult) => normalizeResidentRow(resident));
-
-      return transformedData as Resident[];
-    },
+    queryKey: ["residents", { page, pageSize, search, status, communityId, unitId }],
+    queryFn: () =>
+      fetchAdmin<ResidentListPayload>(
+        `/admin/residents${buildResidentQuery({ page, pageSize, search, status, communityId, unitId })}`
+      ),
+    enabled: hasToken,
   });
 };
 
-// Get single resident
 export const useGetResident = (id: string) => {
+  const { fetchAdmin, hasToken } = useAdminApi();
+
   return useQuery({
-    queryKey: ['residents', id],
+    queryKey: ["residents", id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select(`
-          *,
-          units!profiles_unit_id_fkey (
-            id,
-            block,
-            number,
-            community_id
-          ),
-          communities!profiles_society_id_fkey (
-            id,
-            name
-          )
-        `)
-        .in('role', RESIDENT_ROLES)
-        .eq('id', id)
-        .single();
-
-      if (error) {
-        if (error.code === 'PGRST116') {
-          return null;
-        }
-        console.error('Error fetching resident by id:', error);
-        throw new Error(`Failed to fetch resident: ${error.message}`);
-      }
-
-      if (!data) {
-        return null;
-      }
-
-      return normalizeResidentRow(data as ResidentQueryResult) as Resident;
+      const response = await fetchAdmin<ResidentRecordPayload>(`/admin/residents/${id}`);
+      return response.data;
     },
-    enabled: !!id,
+    enabled: hasToken && !!id,
   });
 };
 
-// Create new resident
 export const useCreateResident = () => {
   const queryClient = useQueryClient();
+  const { fetchAdmin } = useAdminApi();
 
   return useMutation({
     mutationFn: async (residentData: CreateResidentData) => {
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .insert([buildResidentCreatePayload(residentData)])
-          .select()
-          .single();
+      const response = await fetchAdmin<ResidentRecordPayload>("/admin/residents", {
+        method: "POST",
+        body: JSON.stringify(normalizeResidentWritePayload(residentData)),
+      });
 
-      if (error) throw error;
-      return normalizeResidentRow(data as ResidentQueryResult);
-    } catch (err) {
-      console.error("Database insert failed:", err);
-      const message = err instanceof Error ? err.message : 'Failed to create resident profile';
-      throw new Error(message);
-      }
+      return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['residents'] });
+      queryClient.invalidateQueries({ queryKey: ["residents"] });
     },
   });
 };
 
-// Update resident
 export const useUpdateResident = (id: string) => {
   const queryClient = useQueryClient();
+  const { fetchAdmin } = useAdminApi();
 
   return useMutation({
     mutationFn: async (residentData: UpdateResidentData) => {
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .update({
-            ...buildResidentCreatePayload(residentData as CreateResidentData),
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', id)
-          .select()
-          .single();
+      const response = await fetchAdmin<ResidentRecordPayload>(`/admin/residents/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(normalizeResidentWritePayload(residentData)),
+      });
 
-        if (error) throw error;
-        return normalizeResidentRow(data as ResidentQueryResult);
-      } catch (err) {
-        console.error("Database update failed:", err);
-        const message = err instanceof Error ? err.message : 'Failed to update resident profile';
-        throw new Error(message);
-      }
+      return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['residents'] });
-      queryClient.invalidateQueries({ queryKey: ['residents', id] });
+      queryClient.invalidateQueries({ queryKey: ["residents"] });
+      queryClient.invalidateQueries({ queryKey: ["residents", id] });
+      queryClient.invalidateQueries({ queryKey: ["resident-activity-snapshot", id] });
+      queryClient.invalidateQueries({ queryKey: ["resident-directory-entries", id] });
     },
   });
 };
 
-// Delete resident
 export const useDeleteResident = () => {
   const queryClient = useQueryClient();
+  const { fetchAdmin } = useAdminApi();
 
   return useMutation({
     mutationFn: async (id: string) => {
-      try {
-        const { error } = await supabase
-          .from('profiles')
-          .delete()
-          .eq('id', id);
-
-        if (error) throw error;
-        return id;
-      } catch (err) {
-        console.error("Database delete failed:", err);
-        const message = err instanceof Error ? err.message : 'Failed to delete resident profile';
-        throw new Error(message);
-      }
+      await fetchAdmin(`/admin/residents/${id}`, { method: "DELETE" });
+      return id;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['residents'] });
+    onSuccess: (id) => {
+      queryClient.invalidateQueries({ queryKey: ["residents"] });
+      queryClient.removeQueries({ queryKey: ["residents", id] });
+      queryClient.removeQueries({ queryKey: ["resident-activity-snapshot", id] });
+      queryClient.removeQueries({ queryKey: ["resident-directory-entries", id] });
     },
   });
 };
 
-// Get residents by community
 export const useResidentsByCommunity = (communityId: string) => {
-  return useQuery({
-    queryKey: ['residents', 'community', communityId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select(`
-          *,
-          units (
-            id,
-            block,
-            number,
-            community_id
-          )
-        `)
-        .in('role', RESIDENT_ROLES)
-        .eq('community_id', communityId)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error("Error fetching residents by community:", error);
-        throw new Error(`Failed to fetch community residents: ${error.message}`);
-      }
-
-      const transformedData = (data || []).map((resident: ResidentQueryResult) => normalizeResidentRow(resident));
-      return transformedData as Resident[];
-    },
-    enabled: !!communityId,
+  return useListResidents({
+    communityId,
+    pageSize: 100,
   });
 };
 
-// Get residents by unit
 export const useResidentsByUnit = (unitId: string) => {
-  return useQuery({
-    queryKey: ['residents', 'unit', unitId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .in('role', RESIDENT_ROLES)
-        .eq('unit_id', unitId)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error("Error fetching residents by unit:", error);
-        throw new Error(`Failed to fetch unit residents: ${error.message}`);
-      }
-
-      const transformedData = (data || []).map((resident: ResidentQueryResult) => normalizeResidentRow(resident));
-      return transformedData as Resident[];
-    },
-    enabled: !!unitId,
+  return useListResidents({
+    unitId,
+    pageSize: 100,
   });
 };

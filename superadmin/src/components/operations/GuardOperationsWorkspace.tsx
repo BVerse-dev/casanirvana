@@ -73,6 +73,57 @@ const renderAssignmentStatusBadge = (status: string | null | undefined) => {
   );
 };
 
+const formatGuardName = (guard: {
+  id?: string;
+  full_name?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+}) => {
+  const fullName = String(guard.full_name || "").trim();
+  if (fullName) return fullName;
+  const joinedName = [guard.first_name, guard.last_name].filter(Boolean).join(" ").trim();
+  if (joinedName) return joinedName;
+  return guard.id ? `Guard ${guard.id.slice(0, 8)}` : "Unknown Guard";
+};
+
+const buildGuardOptions = (
+  guards: Array<{
+    id: string;
+    full_name?: string | null;
+    first_name?: string | null;
+    last_name?: string | null;
+    assignment_status?: string | null;
+    resolved_community_name?: string | null;
+  }>,
+  prioritizeAwaitingAssignment = false
+) =>
+  guards
+    .slice()
+    .sort((left, right) => {
+      if (prioritizeAwaitingAssignment) {
+        const leftScore = left.assignment_status === "awaiting_assignment" ? 0 : 1;
+        const rightScore = right.assignment_status === "awaiting_assignment" ? 0 : 1;
+        if (leftScore !== rightScore) return leftScore - rightScore;
+      }
+      return formatGuardName(left).localeCompare(formatGuardName(right));
+    })
+    .map((guard) => {
+      const guardName = formatGuardName(guard);
+      if (guard.assignment_status === "awaiting_assignment") {
+        return {
+          value: guard.id,
+          label: `${guardName} — Awaiting assignment`,
+        };
+      }
+
+      return {
+        value: guard.id,
+        label: guard.resolved_community_name
+          ? `${guardName} — ${guard.resolved_community_name}`
+          : guardName,
+      };
+    });
+
 const GuardProfilesSection = () => {
   const profilesQuery = useGuardProfiles();
   const awaitingAssignmentCount =
@@ -154,10 +205,28 @@ const GuardSchedulesSection = () => {
   const createMutation = useCreateGuardSchedule();
   const updateMutation = useUpdateGuardSchedule();
   const deleteMutation = useDeleteGuardSchedule();
+  const profilesQuery = useGuardProfiles();
+  const communitiesQuery = useGuardCommunities();
+  const guardMap = new Map((profilesQuery.data || []).map((guard) => [guard.id, formatGuardName(guard)]));
+  const communityMap = new Map((communitiesQuery.data || []).map((community) => [community.id, community.name]));
+  const guardOptions = buildGuardOptions(profilesQuery.data || []);
+  const communityOptions = (communitiesQuery.data || []).map((community) => ({
+    value: community.id,
+    label: community.name,
+  }));
+  const today = new Date().toISOString().slice(0, 10);
 
   const columns: CrudColumn[] = [
-    { key: "guard_id", label: "Guard ID" },
-    { key: "community_id", label: "Community" },
+    {
+      key: "guard_id",
+      label: "Guard",
+      render: (row) => guardMap.get(String(row.guard_id || "")) || "—",
+    },
+    {
+      key: "community_id",
+      label: "Community",
+      render: (row) => communityMap.get(String(row.community_id || "")) || "—",
+    },
     { key: "assigned_date", label: "Assigned Date" },
     { key: "shift_type", label: "Shift Type" },
     { key: "start_time", label: "Start Time" },
@@ -166,10 +235,21 @@ const GuardSchedulesSection = () => {
   ];
 
   const fields: CrudField[] = [
-    { key: "guard_id", label: "Guard ID", type: "text", required: true },
-    { key: "community_id", label: "Community ID", type: "text" },
-    { key: "assigned_date", label: "Assigned Date", type: "date", required: true },
-    { key: "shift_type", label: "Shift Type", type: "text", required: true, initialValue: "day" },
+    { key: "guard_id", label: "Guard", type: "select", required: true, options: guardOptions },
+    { key: "community_id", label: "Community", type: "select", options: communityOptions },
+    { key: "assigned_date", label: "Assigned Date", type: "date", required: true, initialValue: today },
+    {
+      key: "shift_type",
+      label: "Shift Type",
+      type: "select",
+      required: true,
+      initialValue: "day",
+      options: [
+        { label: "Day", value: "day" },
+        { label: "Night", value: "night" },
+        { label: "Rotating", value: "rotating" },
+      ],
+    },
     { key: "start_time", label: "Start Time", type: "time", required: true },
     { key: "end_time", label: "End Time", type: "time", required: true },
     { key: "post_location", label: "Post Location", type: "text" },
@@ -194,14 +274,22 @@ const GuardSchedulesSection = () => {
       title="Schedules & Shifts"
       subTitle="Create and maintain guard shift schedules with tenant scope controls."
       rows={schedulesQuery.data || []}
-      isLoading={schedulesQuery.isLoading}
-      error={toErrorText(schedulesQuery.error)}
+      isLoading={schedulesQuery.isLoading || profilesQuery.isLoading || communitiesQuery.isLoading}
+      error={
+        toErrorText(schedulesQuery.error) ||
+        toErrorText(profilesQuery.error) ||
+        toErrorText(communitiesQuery.error)
+      }
       columns={columns}
       fields={fields}
       onCreate={(payload) => createMutation.mutateAsync(payload)}
       onUpdate={(id, payload) => updateMutation.mutateAsync({ id, payload })}
       onDelete={(id) => deleteMutation.mutateAsync(id)}
-      onRefresh={() => schedulesQuery.refetch()}
+      onRefresh={() => {
+        schedulesQuery.refetch();
+        profilesQuery.refetch();
+        communitiesQuery.refetch();
+      }}
       emptyText="No schedules found."
     />
   );
@@ -216,32 +304,28 @@ const GuardAssignmentsSection = ({ initialGuardId }: { initialGuardId?: string |
   const profilesQuery = useGuardProfiles();
   const communitiesQuery = useGuardCommunities();
   const communities = communitiesQuery.data || [];
-  const guardOptions = (profilesQuery.data || [])
-    .slice()
-    .sort((left, right) => {
-      const leftScore = left.assignment_status === "awaiting_assignment" ? 0 : 1;
-      const rightScore = right.assignment_status === "awaiting_assignment" ? 0 : 1;
-      if (leftScore !== rightScore) return leftScore - rightScore;
-      return String(left.full_name || "").localeCompare(String(right.full_name || ""));
-    })
-    .map((guard) => ({
-      value: guard.id,
-      label:
-        guard.assignment_status === "awaiting_assignment"
-          ? `${guard.full_name} — Awaiting assignment`
-          : `${guard.full_name}${guard.resolved_community_name ? ` — ${guard.resolved_community_name}` : ""}`,
-    }));
+  const guardOptions = buildGuardOptions(profilesQuery.data || [], true);
   const communityOptions = communities.map((community) => ({
     value: community.id,
     label: community.name,
   }));
+  const guardMap = new Map((profilesQuery.data || []).map((guard) => [guard.id, formatGuardName(guard)]));
+  const communityMap = new Map(communities.map((community) => [community.id, community.name]));
   const awaitingAssignmentCount =
     profilesQuery.data?.filter((row) => row.assignment_status === "awaiting_assignment").length || 0;
 
   const columns: CrudColumn[] = [
     { key: "assignment_name", label: "Assignment" },
-    { key: "guard_id", label: "Guard ID" },
-    { key: "community_id", label: "Community" },
+    {
+      key: "guard_id",
+      label: "Guard",
+      render: (row) => guardMap.get(String(row.guard_id || "")) || "—",
+    },
+    {
+      key: "community_id",
+      label: "Community",
+      render: (row) => communityMap.get(String(row.community_id || "")) || "—",
+    },
     { key: "shift_type", label: "Shift" },
     { key: "start_date", label: "Start Date" },
     { key: "status", label: "Status" },
@@ -356,12 +440,19 @@ const GuardEquipmentSection = () => {
   const createMutation = useCreateGuardEquipment();
   const updateMutation = useUpdateGuardEquipment();
   const deleteMutation = useDeleteGuardEquipment();
+  const profilesQuery = useGuardProfiles();
+  const guardMap = new Map((profilesQuery.data || []).map((guard) => [guard.id, formatGuardName(guard)]));
+  const guardOptions = buildGuardOptions(profilesQuery.data || []);
 
   const columns: CrudColumn[] = [
     { key: "name", label: "Equipment" },
     { key: "equipment_type", label: "Type" },
     { key: "serial_number", label: "Serial Number" },
-    { key: "assigned_to", label: "Assigned Guard ID" },
+    {
+      key: "assigned_to",
+      label: "Assigned Guard",
+      render: (row) => guardMap.get(String(row.assigned_to || "")) || "Unassigned",
+    },
     { key: "status", label: "Status" },
     { key: "location", label: "Location" },
   ];
@@ -370,9 +461,20 @@ const GuardEquipmentSection = () => {
     { key: "name", label: "Equipment Name", type: "text", required: true },
     { key: "equipment_type", label: "Equipment Type", type: "text" },
     { key: "serial_number", label: "Serial Number", type: "text" },
-    { key: "assigned_to", label: "Assigned Guard ID", type: "text" },
+    { key: "assigned_to", label: "Assigned Guard", type: "select", options: guardOptions },
     { key: "location", label: "Location", type: "text" },
-    { key: "status", label: "Status", type: "text", initialValue: "active" },
+    {
+      key: "status",
+      label: "Status",
+      type: "select",
+      initialValue: "active",
+      options: [
+        { label: "Active", value: "active" },
+        { label: "In Maintenance", value: "maintenance" },
+        { label: "Retired", value: "retired" },
+        { label: "Lost", value: "lost" },
+      ],
+    },
     { key: "cost", label: "Cost", type: "number" },
     { key: "assignment_date", label: "Assignment Date", type: "date" },
     { key: "notes", label: "Notes", type: "textarea" },
@@ -384,14 +486,17 @@ const GuardEquipmentSection = () => {
       title="Equipment Management"
       subTitle="Track and update guard equipment allocations and status."
       rows={equipmentQuery.data || []}
-      isLoading={equipmentQuery.isLoading}
-      error={toErrorText(equipmentQuery.error)}
+      isLoading={equipmentQuery.isLoading || profilesQuery.isLoading}
+      error={toErrorText(equipmentQuery.error) || toErrorText(profilesQuery.error)}
       columns={columns}
       fields={fields}
       onCreate={(payload) => createMutation.mutateAsync(payload)}
       onUpdate={(id, payload) => updateMutation.mutateAsync({ id, payload })}
       onDelete={(id) => deleteMutation.mutateAsync(id)}
-      onRefresh={() => equipmentQuery.refetch()}
+      onRefresh={() => {
+        equipmentQuery.refetch();
+        profilesQuery.refetch();
+      }}
       emptyText="No equipment records found."
     />
   );
@@ -401,9 +506,16 @@ const GuardPerformanceSection = () => {
   const performanceQuery = useGuardPerformance();
   const createMutation = useCreateGuardPerformance();
   const updateMutation = useUpdateGuardPerformance();
+  const profilesQuery = useGuardProfiles();
+  const guardMap = new Map((profilesQuery.data || []).map((guard) => [guard.id, formatGuardName(guard)]));
+  const guardOptions = buildGuardOptions(profilesQuery.data || []);
 
   const columns: CrudColumn[] = [
-    { key: "guard_id", label: "Guard ID" },
+    {
+      key: "guard_id",
+      label: "Guard",
+      render: (row) => guardMap.get(String(row.guard_id || "")) || "—",
+    },
     { key: "evaluation_date", label: "Evaluation Date" },
     { key: "overall_score", label: "Overall Score" },
     { key: "status", label: "Status" },
@@ -411,13 +523,24 @@ const GuardPerformanceSection = () => {
   ];
 
   const fields: CrudField[] = [
-    { key: "guard_id", label: "Guard ID", type: "text", required: true },
+    { key: "guard_id", label: "Guard", type: "select", required: true, options: guardOptions },
     { key: "evaluation_date", label: "Evaluation Date", type: "date", required: true },
     { key: "overall_score", label: "Overall Score", type: "number" },
     { key: "attendance_score", label: "Attendance Score", type: "number" },
     { key: "punctuality_score", label: "Punctuality Score", type: "number" },
     { key: "professionalism_score", label: "Professionalism Score", type: "number" },
-    { key: "status", label: "Status", type: "text", initialValue: "active" },
+    {
+      key: "status",
+      label: "Status",
+      type: "select",
+      initialValue: "active",
+      options: [
+        { label: "Active", value: "active" },
+        { label: "Needs Improvement", value: "needs_improvement" },
+        { label: "Probation", value: "probation" },
+        { label: "Suspended", value: "suspended" },
+      ],
+    },
     { key: "reviewed_by", label: "Reviewed By", type: "text" },
     { key: "feedback", label: "Feedback", type: "textarea" },
     { key: "improvement_plan", label: "Improvement Plan", type: "textarea" },
@@ -429,14 +552,17 @@ const GuardPerformanceSection = () => {
       title="Guard Performance"
       subTitle="Capture and review guard performance records."
       rows={performanceQuery.data || []}
-      isLoading={performanceQuery.isLoading}
-      error={toErrorText(performanceQuery.error)}
+      isLoading={performanceQuery.isLoading || profilesQuery.isLoading}
+      error={toErrorText(performanceQuery.error) || toErrorText(profilesQuery.error)}
       columns={columns}
       fields={fields}
       onCreate={(payload) => createMutation.mutateAsync(payload)}
       onUpdate={(id, payload) => updateMutation.mutateAsync({ id, payload })}
       canDelete={false}
-      onRefresh={() => performanceQuery.refetch()}
+      onRefresh={() => {
+        performanceQuery.refetch();
+        profilesQuery.refetch();
+      }}
       emptyText="No performance records found."
     />
   );
@@ -446,9 +572,16 @@ const GuardTrainingSection = () => {
   const trainingQuery = useGuardTraining();
   const createMutation = useCreateGuardTraining();
   const updateMutation = useUpdateGuardTraining();
+  const profilesQuery = useGuardProfiles();
+  const guardMap = new Map((profilesQuery.data || []).map((guard) => [guard.id, formatGuardName(guard)]));
+  const guardOptions = buildGuardOptions(profilesQuery.data || []);
 
   const columns: CrudColumn[] = [
-    { key: "guard_id", label: "Guard ID" },
+    {
+      key: "guard_id",
+      label: "Guard",
+      render: (row) => guardMap.get(String(row.guard_id || "")) || "—",
+    },
     { key: "training_name", label: "Training" },
     { key: "training_type", label: "Type" },
     { key: "start_date", label: "Start Date" },
@@ -457,10 +590,22 @@ const GuardTrainingSection = () => {
   ];
 
   const fields: CrudField[] = [
-    { key: "guard_id", label: "Guard ID", type: "text", required: true },
+    { key: "guard_id", label: "Guard", type: "select", required: true, options: guardOptions },
     { key: "training_name", label: "Training Name", type: "text", required: true },
     { key: "training_type", label: "Training Type", type: "text" },
-    { key: "status", label: "Status", type: "text", initialValue: "enrolled" },
+    {
+      key: "status",
+      label: "Status",
+      type: "select",
+      initialValue: "enrolled",
+      options: [
+        { label: "Enrolled", value: "enrolled" },
+        { label: "In Progress", value: "in_progress" },
+        { label: "Completed", value: "completed" },
+        { label: "Expired", value: "expired" },
+        { label: "Cancelled", value: "cancelled" },
+      ],
+    },
     { key: "start_date", label: "Start Date", type: "date" },
     { key: "completion_date", label: "Completion Date", type: "date" },
     { key: "expiry_date", label: "Expiry Date", type: "date" },
@@ -475,14 +620,17 @@ const GuardTrainingSection = () => {
       title="Training & Certification"
       subTitle="Track training enrollment, completion, and certification details."
       rows={trainingQuery.data || []}
-      isLoading={trainingQuery.isLoading}
-      error={toErrorText(trainingQuery.error)}
+      isLoading={trainingQuery.isLoading || profilesQuery.isLoading}
+      error={toErrorText(trainingQuery.error) || toErrorText(profilesQuery.error)}
       columns={columns}
       fields={fields}
       onCreate={(payload) => createMutation.mutateAsync(payload)}
       onUpdate={(id, payload) => updateMutation.mutateAsync({ id, payload })}
       canDelete={false}
-      onRefresh={() => trainingQuery.refetch()}
+      onRefresh={() => {
+        trainingQuery.refetch();
+        profilesQuery.refetch();
+      }}
       emptyText="No training records found."
     />
   );

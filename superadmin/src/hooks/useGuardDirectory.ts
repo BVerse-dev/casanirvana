@@ -3,9 +3,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useAdminApi } from "@/hooks/useAdminApi";
-import type { Guard as LegacyGuard } from "@/hooks/useGuards";
 
-type GuardCommunity = {
+export type GuardCommunity = {
   id: string;
   name: string;
   address?: string | null;
@@ -31,9 +30,33 @@ type GuardDirectoryApiRecord = {
   [key: string]: unknown;
 };
 
-export type GuardDirectoryItem = LegacyGuard & {
+export type GuardDirectoryItem = {
+  id: string;
+  full_name: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  display_name?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  mobile?: string | null;
+  avatar_url?: string | null;
+  is_active?: boolean | null;
+  shift_type?: string | null;
+  employment_date?: string | null;
+  created_at?: string | null;
+  status?: string | null;
+  community_id?: string | null;
+  resolved_community_id?: string | null;
+  resolved_community_name?: string | null;
+  active_assignment_id?: string | null;
+  active_assignment_name?: string | null;
+  active_assignment_gate?: string | null;
+  active_assignment_shift_type?: string | null;
+  assignment_status?: string | null;
+  assignment_status_label?: string | null;
   communities?: GuardCommunity | null;
   societies?: GuardCommunity | null;
+  [key: string]: unknown;
 };
 
 type GuardDirectoryFilters = {
@@ -71,7 +94,7 @@ const mapGuardDirectoryRecord = (guard: GuardDirectoryApiRecord): GuardDirectory
   const isActive = typeof guard.is_active === "boolean" ? guard.is_active : guard.status === "active";
 
   return {
-    ...(guard as LegacyGuard),
+    ...(guard as GuardDirectoryItem),
     full_name: buildFullName(guard),
     phone: guard.phone || guard.mobile || null,
     is_active: isActive,

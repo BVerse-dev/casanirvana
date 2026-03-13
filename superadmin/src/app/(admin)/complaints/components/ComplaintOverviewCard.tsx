@@ -47,7 +47,7 @@ const ComplaintOverviewCard = () => {
           <div className="row mt-4">
             <div className="col-lg-9">
               <p className="text-white-50 mb-3 fs-14">
-                Monitor and manage resident complaints efficiently with real-time insights
+                Monitor and manage resident complaints with the current scoped operational view
               </p>
               
               <div className="row">
@@ -101,7 +101,7 @@ const ComplaintOverviewCard = () => {
                   <IconifyIcon icon="ri:dashboard-3-line" className="text-white fs-32" />
                 </div>
                 <div className="position-absolute" style={{ top: '-8px', right: '-8px' }}>
-                  <span className="badge bg-success rounded-pill fs-11 px-2 py-1">Active</span>
+                  <span className="badge bg-success rounded-pill fs-11 px-2 py-1">Ops View</span>
                 </div>
               </div>
             </div>

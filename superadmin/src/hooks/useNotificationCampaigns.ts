@@ -1,10 +1,11 @@
 'use client'
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useSession } from 'next-auth/react'
-import { supabase } from '@/lib/supabase'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+
+import { useAdminApi } from '@/hooks/useAdminApi'
 
 export interface Campaign {
+  community_id?: string | null
   id: string
   name: string
   title: string
@@ -31,6 +32,7 @@ export interface Campaign {
 }
 
 export interface CreateCampaignData {
+  community_id?: string | null
   name: string
   title: string
   type: 'sms' | 'email' | 'push' | 'in-app'
@@ -45,6 +47,7 @@ export interface CreateCampaignData {
 }
 
 export interface UpdateCampaignData {
+  community_id?: string | null
   name?: string
   title?: string
   type?: 'sms' | 'email' | 'push' | 'in-app'
@@ -63,132 +66,134 @@ export interface UpdateCampaignData {
   spent?: number
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
-
-const useAdminFetch = () => {
-  const { data: session } = useSession()
-  const token = session?.accessToken as string | undefined
-
-  const fetchAdmin = async (path: string, options: RequestInit = {}) => {
-    if (!token) {
-      throw new Error('Missing admin session. Please sign in again.')
-    }
-
-    const response = await fetch(`${API_BASE_URL}${path}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-        ...options.headers,
-      },
-    })
-
-    const payload = await response.json().catch(() => ({}))
-    if (!response.ok) {
-      throw new Error(payload.error || payload.message || 'Request failed')
-    }
-    return payload
-  }
-
-  return { fetchAdmin }
-}
-
-// Transform database record to Campaign interface
-const transformCampaign = (record: any): Campaign => {
-  return {
-    id: record.id,
-    name: record.name || record.title,
-    title: record.title || record.name,
-    type: record.type,
-    status: record.status,
-    template: record.template || '',
-    templateId: record.template_id ?? null,
-    audience: record.audience || 'all-residents',
-    audienceCount: record.recipients_count || 0,
-    scheduledDate: record.scheduled_at,
-    createdAt: record.created_at,
-    sentCount: record.recipients_count || 0,
-    deliveredCount: record.delivered_count || 0,
-    openedCount: record.opened_count || 0,
-    clickedCount: record.clicked_count || 0,
-    budget: record.budget || 0,
-    spent: record.spent || 0,
-    recipients_count: record.recipients_count || 0,
-    failed_count: record.failed_count || 0,
-    scheduled_at: record.scheduled_at,
-    sent_at: record.sent_at,
-    created_at: record.created_at,
-    updated_at: record.updated_at
+type CampaignListPayload = {
+  data: {
+    items: Record<string, any>[]
+    total: number
+    limit: number
+    offset: number
   }
 }
 
-// List all campaigns with optional filtering
+type CampaignDetailPayload = {
+  data: Record<string, any>
+}
+
+type NotificationAnalyticsOverviewPayload = {
+  data: {
+    overview: {
+      totalCampaigns: number
+      totalSent: number
+      totalDelivered: number
+      totalOpened: number
+      totalClicked: number
+      deliveryRate: number
+      openRate: number
+      clickRate: number
+      bounceRate: number
+    }
+  }
+}
+
+const NOTIFICATION_REFRESH_INTERVAL_MS = 30_000
+
+const transformCampaign = (record: any): Campaign => ({
+  community_id: record.community_id ?? null,
+  id: record.id,
+  name: record.name || record.title,
+  title: record.title || record.name,
+  type: record.type,
+  status: record.status,
+  template: record.template || '',
+  templateId: record.template_id ?? null,
+  audience: record.audience || 'all-residents',
+  audienceCount: record.recipients_count || 0,
+  scheduledDate: record.scheduled_at,
+  createdAt: record.created_at,
+  sentCount: record.recipients_count || 0,
+  deliveredCount: record.delivered_count || 0,
+  openedCount: record.opened_count || 0,
+  clickedCount: record.clicked_count || 0,
+  budget: record.budget || 0,
+  spent: record.spent || 0,
+  recipients_count: record.recipients_count || 0,
+  failed_count: record.failed_count || 0,
+  scheduled_at: record.scheduled_at,
+  sent_at: record.sent_at,
+  created_at: record.created_at,
+  updated_at: record.updated_at,
+})
+
+const listQueryKey = (params?: {
+  status?: string
+  type?: string
+  limit?: number
+  offset?: number
+}) => ['campaigns', params || {}] as const
+
+const detailQueryKey = (id: string) => ['campaign', id] as const
+
+const invalidateNotificationQueries = (queryClient: ReturnType<typeof useQueryClient>) => {
+  queryClient.invalidateQueries({ queryKey: ['campaigns'] })
+  queryClient.invalidateQueries({ queryKey: ['campaign'] })
+  queryClient.invalidateQueries({ queryKey: ['admin-notification-dashboard'] })
+  queryClient.invalidateQueries({ queryKey: ['admin-notification-analytics'] })
+}
+
 export const useListCampaigns = (params?: {
   status?: string
   type?: string
   limit?: number
   offset?: number
 }) => {
+  const { fetchAdmin, hasToken } = useAdminApi()
+
   return useQuery({
-    queryKey: ['campaigns', params],
+    queryKey: listQueryKey(params),
+    enabled: hasToken,
     queryFn: async () => {
-      let query = (supabase as any)
-        .from('notification_campaigns')
-        .select('*')
-        .order('created_at', { ascending: false })
+      const searchParams = new URLSearchParams()
+      if (params?.status && params.status !== 'all') searchParams.set('status', params.status)
+      if (params?.type && params.type !== 'all') searchParams.set('type', params.type)
+      if (typeof params?.limit === 'number') searchParams.set('limit', String(params.limit))
+      if (typeof params?.offset === 'number') searchParams.set('offset', String(params.offset))
 
-      if (params?.status && params.status !== 'all') {
-        query = query.eq('status', params.status)
-      }
+      const payload = await fetchAdmin<CampaignListPayload>(
+        `/admin/notification-campaigns${searchParams.toString() ? `?${searchParams.toString()}` : ''}`
+      )
 
-      if (params?.type && params.type !== 'all') {
-        query = query.eq('type', params.type)
-      }
-
-      if (params?.limit) {
-        query = query.limit(params.limit)
-      }
-
-      if (params?.offset) {
-        query = query.range(params.offset, params.offset + (params.limit || 10) - 1)
-      }
-
-      const { data, error } = await query
-
-      if (error) throw error
-
-      return (data || []).map(transformCampaign)
+      return (payload.data.items || []).map(transformCampaign)
     },
+    staleTime: 30_000,
+    refetchInterval: NOTIFICATION_REFRESH_INTERVAL_MS,
+    refetchOnWindowFocus: true,
+    placeholderData: (previous) => previous,
   })
 }
 
-// Get single campaign by ID
 export const useGetCampaign = (id: string) => {
+  const { fetchAdmin, hasToken } = useAdminApi()
+
   return useQuery({
-    queryKey: ['campaign', id],
+    queryKey: detailQueryKey(id),
+    enabled: hasToken && Boolean(id),
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from('notification_campaigns')
-        .select('*')
-        .eq('id', id)
-        .single()
-
-      if (error) throw error
-
-      return transformCampaign(data)
+      const payload = await fetchAdmin<CampaignDetailPayload>(`/admin/notification-campaigns/${id}`)
+      return transformCampaign(payload.data)
     },
-    enabled: !!id,
+    staleTime: 30_000,
+    refetchInterval: NOTIFICATION_REFRESH_INTERVAL_MS,
+    refetchOnWindowFocus: true,
   })
 }
 
-// Create new campaign
 export const useCreateCampaign = () => {
   const queryClient = useQueryClient()
-  const { fetchAdmin } = useAdminFetch()
+  const { fetchAdmin } = useAdminApi()
 
   return useMutation({
     mutationFn: async (campaignData: CreateCampaignData) => {
-      const created = await fetchAdmin('/admin/notification-campaigns', {
+      const created = await fetchAdmin<Record<string, any>>('/admin/notification-campaigns', {
         method: 'POST',
         body: JSON.stringify(campaignData),
       })
@@ -196,19 +201,18 @@ export const useCreateCampaign = () => {
       return transformCampaign(created)
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['campaigns'] })
+      invalidateNotificationQueries(queryClient)
     },
   })
 }
 
-// Update campaign
 export const useUpdateCampaign = () => {
   const queryClient = useQueryClient()
-  const { fetchAdmin } = useAdminFetch()
+  const { fetchAdmin } = useAdminApi()
 
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: UpdateCampaignData }) => {
-      const updated = await fetchAdmin(`/admin/notification-campaigns/${id}`, {
+      const updated = await fetchAdmin<Record<string, any>>(`/admin/notification-campaigns/${id}`, {
         method: 'PUT',
         body: JSON.stringify({ ...updates }),
       })
@@ -216,16 +220,15 @@ export const useUpdateCampaign = () => {
       return transformCampaign(updated)
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['campaigns'] })
-      queryClient.invalidateQueries({ queryKey: ['campaign', data.id] })
+      invalidateNotificationQueries(queryClient)
+      queryClient.invalidateQueries({ queryKey: detailQueryKey(data.id) })
     },
   })
 }
 
-// Delete campaign
 export const useDeleteCampaign = () => {
   const queryClient = useQueryClient()
-  const { fetchAdmin } = useAdminFetch()
+  const { fetchAdmin } = useAdminApi()
 
   return useMutation({
     mutationFn: async (id: string) => {
@@ -233,51 +236,33 @@ export const useDeleteCampaign = () => {
       return id
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['campaigns'] })
+      invalidateNotificationQueries(queryClient)
     },
   })
 }
 
-// Get campaigns analytics/metrics
 export const useCampaignsAnalytics = (dateRange?: { from: string; to: string }) => {
+  const { fetchAdmin, hasToken } = useAdminApi()
+
   return useQuery({
-    queryKey: ['campaigns-analytics', dateRange],
+    queryKey: ['campaigns-analytics', dateRange || null],
+    enabled: hasToken,
     queryFn: async () => {
-      let query = (supabase as any)
-        .from('notification_campaigns')
-        .select('*')
-
-      if (dateRange) {
-        query = query
-          .gte('created_at', dateRange.from)
-          .lte('created_at', dateRange.to)
+      const params = new URLSearchParams()
+      if (dateRange?.from && dateRange?.to) {
+        params.set('dateRange', 'custom')
+        params.set('startDate', dateRange.from)
+        params.set('endDate', dateRange.to)
       }
 
-      const { data, error } = await query
+      const payload = await fetchAdmin<NotificationAnalyticsOverviewPayload>(
+        `/admin/notifications/analytics${params.toString() ? `?${params.toString()}` : ''}`
+      )
 
-      if (error) throw error
-
-      const campaigns = (data || []).map(transformCampaign)
-
-      // Calculate metrics
-      const totalCampaigns = campaigns.length
-      const totalSent = campaigns.reduce((sum: number, c: Campaign) => sum + c.sentCount, 0)
-      const totalDelivered = campaigns.reduce((sum: number, c: Campaign) => sum + c.deliveredCount, 0)
-      const totalOpened = campaigns.reduce((sum: number, c: Campaign) => sum + c.openedCount, 0)
-      const totalClicked = campaigns.reduce((sum: number, c: Campaign) => sum + c.clickedCount, 0)
-      const totalSpent = campaigns.reduce((sum: number, c: Campaign) => sum + (c.spent || 0), 0)
-
-      return {
-        totalCampaigns,
-        totalSent,
-        totalDelivered,
-        totalOpened,
-        totalClicked,
-        totalSpent,
-        deliveryRate: totalSent > 0 ? (totalDelivered / totalSent) * 100 : 0,
-        openRate: totalDelivered > 0 ? (totalOpened / totalDelivered) * 100 : 0,
-        clickRate: totalOpened > 0 ? (totalClicked / totalOpened) * 100 : 0,
-      }
+      return payload.data.overview
     },
+    staleTime: 30_000,
+    refetchInterval: NOTIFICATION_REFRESH_INTERVAL_MS,
+    refetchOnWindowFocus: true,
   })
 }

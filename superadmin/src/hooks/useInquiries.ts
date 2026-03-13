@@ -1,13 +1,19 @@
 "use client";
 
-import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { useAdminApi } from "@/hooks/useAdminApi";
 import type { Database } from "@/lib/database.types";
-import { supabase } from "@/lib/supabase";
 
 type InquiryRow = Database["public"]["Tables"]["inquiries"]["Row"];
-type InquiryUpdate = Database["public"]["Tables"]["inquiries"]["Update"];
+
+type InquiryUpdate = {
+  status?: "open" | "in_progress" | "resolved" | "closed";
+  assigned_to?: string | null;
+  admin_response?: string | null;
+  resolution_notes?: string | null;
+};
+
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 type CommunityRow = Database["public"]["Tables"]["communities"]["Row"];
 type AgencyRow = Database["public"]["Tables"]["agencies"]["Row"];
@@ -34,283 +40,125 @@ export type InquiriesFilters = {
   communityId?: string;
 };
 
-const normalizeInquiryTypeFilter = (value?: string) => {
-  if (!value) {
-    return null;
-  }
-
-  if (value === "suggestion" || value === "suggestions") {
-    return ["suggestion", "suggestions"];
-  }
-
-  return value;
+type InquiryListPayload = {
+  data: InquiryRecord[];
 };
 
-const enrichInquiries = async (inquiries: InquiryRow[]): Promise<InquiryRecord[]> => {
-  if (!inquiries.length) {
-    return [];
-  }
-
-  const actorIds = Array.from(
-    new Set(
-      inquiries
-        .flatMap((inquiry) => [inquiry.user_id, inquiry.assigned_to])
-        .filter((value): value is string => Boolean(value)),
-    ),
-  );
-
-  const communityIds = Array.from(
-    new Set(
-      inquiries
-        .map((inquiry) => inquiry.community_id)
-        .filter((value): value is string => Boolean(value)),
-    ),
-  );
-
-  const [profilesResult, communitiesResult] = await Promise.all([
-    actorIds.length
-      ? supabase
-          .from("profiles")
-          .select("id,user_id,full_name,email,phone,role,community_id")
-          .or(`id.in.(${actorIds.join(",")}),user_id.in.(${actorIds.join(",")})`)
-      : Promise.resolve({ data: [], error: null }),
-    communityIds.length
-      ? supabase.from("communities").select("id,name,agency_id").in("id", communityIds)
-      : Promise.resolve({ data: [], error: null }),
-  ]);
-
-  if (profilesResult.error) {
-    throw profilesResult.error;
-  }
-
-  if (communitiesResult.error) {
-    throw communitiesResult.error;
-  }
-
-  const profiles = (profilesResult.data ?? []) as InquiryProfileSummary[];
-  const communities = (communitiesResult.data ?? []) as InquiryCommunitySummary[];
-
-  const agencyIds = Array.from(
-    new Set(
-      communities
-        .map((community) => community.agency_id)
-        .filter((value): value is string => Boolean(value)),
-    ),
-  );
-
-  const agenciesResult = agencyIds.length
-    ? await supabase.from("agencies").select("id,name").in("id", agencyIds)
-    : { data: [], error: null };
-
-  if (agenciesResult.error) {
-    throw agenciesResult.error;
-  }
-
-  const agencies = (agenciesResult.data ?? []) as InquiryAgencySummary[];
-
-  const profileByIdentity = new Map<string, InquiryProfileSummary>();
-  for (const profile of profiles) {
-    profileByIdentity.set(profile.id, profile);
-    if (profile.user_id) {
-      profileByIdentity.set(profile.user_id, profile);
-    }
-  }
-
-  const communityById = new Map<string, InquiryCommunitySummary>();
-  for (const community of communities) {
-    communityById.set(community.id, community);
-  }
-
-  const agencyById = new Map<string, InquiryAgencySummary>();
-  for (const agency of agencies) {
-    agencyById.set(agency.id, agency);
-  }
-
-  return inquiries.map((inquiry) => {
-    const community = inquiry.community_id ? communityById.get(inquiry.community_id) ?? null : null;
-    const agency = community?.agency_id ? agencyById.get(community.agency_id) ?? null : null;
-
-    return {
-      ...inquiry,
-      user_profile: inquiry.user_id ? profileByIdentity.get(inquiry.user_id) ?? null : null,
-      assignee_profile: inquiry.assigned_to ? profileByIdentity.get(inquiry.assigned_to) ?? null : null,
-      community,
-      agency,
-    };
-  });
+type InquiryRecordPayload = {
+  data: InquiryRecord | null;
 };
+
+type InquiryAssignableAdminsPayload = {
+  data: InquiryProfileSummary[];
+};
+
+const buildListQuery = (filters?: InquiriesFilters) => {
+  const params = new URLSearchParams();
+
+  if (filters?.status) {
+    params.set("status", filters.status);
+  }
+
+  if (filters?.inquiryType) {
+    params.set("inquiry_type", filters.inquiryType);
+  }
+
+  if (filters?.priority) {
+    params.set("priority", filters.priority);
+  }
+
+  if (filters?.communityId) {
+    params.set("community_id", filters.communityId);
+  }
+
+  const query = params.toString();
+  return query ? `?${query}` : "";
+};
+
+const buildAssignableAdminsQuery = (communityId?: string | null) => {
+  if (!communityId) return "";
+
+  const params = new URLSearchParams();
+  params.set("community_id", communityId);
+  return `?${params.toString()}`;
+};
+
+const listQueryKey = (filters?: InquiriesFilters) =>
+  ["admin-inquiries", filters?.status || "", filters?.inquiryType || "", filters?.priority || "", filters?.communityId || ""] as const;
+const detailQueryKey = (inquiryId?: string) => ["admin-inquiries", "detail", inquiryId || ""] as const;
+const assignableAdminsQueryKey = (communityId?: string | null) =>
+  ["admin-inquiries", "assignable-admins", communityId || "all"] as const;
+
+export const useInquiriesRealTime = () => {};
 
 export const useListInquiries = (filters?: InquiriesFilters) => {
+  const { fetchAdmin, hasToken } = useAdminApi();
+
   useInquiriesRealTime();
 
   return useQuery({
-    queryKey: ["inquiries", filters],
+    queryKey: listQueryKey(filters),
+    enabled: hasToken,
     queryFn: async () => {
-      let query = supabase.from("inquiries").select("*").order("created_at", { ascending: false });
-
-      if (filters?.status) {
-        query = query.eq("status", filters.status);
-      }
-
-      const normalizedInquiryType = normalizeInquiryTypeFilter(filters?.inquiryType);
-      if (Array.isArray(normalizedInquiryType)) {
-        query = query.in("inquiry_type", normalizedInquiryType);
-      } else if (normalizedInquiryType) {
-        query = query.eq("inquiry_type", normalizedInquiryType);
-      }
-
-      if (filters?.priority) {
-        query = query.eq("priority", filters.priority);
-      }
-
-      if (filters?.communityId) {
-        query = query.eq("community_id", filters.communityId);
-      }
-
-      const { data, error } = await query;
-
-      if (error) {
-        throw error;
-      }
-
-      return enrichInquiries((data ?? []) as InquiryRow[]);
+      const payload = await fetchAdmin<InquiryListPayload>(
+        `/admin/inquiries${buildListQuery(filters)}`
+      );
+      return payload.data || [];
     },
   });
 };
 
 export const useGetInquiry = (inquiryId?: string) => {
+  const { fetchAdmin, hasToken } = useAdminApi();
+
   useInquiriesRealTime();
 
   return useQuery({
-    queryKey: ["inquiry", inquiryId],
-    enabled: Boolean(inquiryId),
+    queryKey: detailQueryKey(inquiryId),
+    enabled: hasToken && Boolean(inquiryId),
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("inquiries")
-        .select("*")
-        .eq("id", inquiryId)
-        .maybeSingle();
-
-      if (error) {
-        throw error;
-      }
-
-      if (!data) {
+      if (!inquiryId) {
         return null;
       }
 
-      const [inquiry] = await enrichInquiries([data as InquiryRow]);
-      return inquiry;
+      const payload = await fetchAdmin<InquiryRecordPayload>(`/admin/inquiries/${inquiryId}`);
+      return payload.data;
     },
   });
 };
 
-let inquiriesChannel: ReturnType<typeof supabase.channel> | null = null;
-let inquiriesSubscriberCount = 0;
-
-export const useInquiriesRealTime = () => {
-  const queryClient = useQueryClient();
-
-  useEffect(() => {
-    inquiriesSubscriberCount += 1;
-
-    if (!inquiriesChannel) {
-      inquiriesChannel = supabase
-        .channel("public:inquiries")
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "inquiries",
-          },
-          () => {
-            queryClient.invalidateQueries({ queryKey: ["inquiries"] });
-            queryClient.invalidateQueries({ queryKey: ["inquiry"] });
-          },
-        )
-        .subscribe();
-    }
-
-    return () => {
-      inquiriesSubscriberCount -= 1;
-      if (inquiriesSubscriberCount === 0 && inquiriesChannel) {
-        supabase.removeChannel(inquiriesChannel);
-        inquiriesChannel = null;
-      }
-    };
-  }, [queryClient]);
-};
-
 export const useListAssignableInquiryAdmins = (communityId?: string | null) => {
+  const { fetchAdmin, hasToken } = useAdminApi();
+
   return useQuery({
-    queryKey: ["inquiry-assignable-admins", communityId ?? "all"],
+    queryKey: assignableAdminsQueryKey(communityId),
+    enabled: hasToken,
     queryFn: async () => {
-      const scopedCommunityId = communityId ?? undefined;
-      let query = supabase
-        .from("profiles")
-        .select("id,user_id,full_name,email,phone,role,community_id")
-        .in("role", ["superadmin", "admin", "agency_manager", "facility_manager"])
-        .order("full_name", { ascending: true });
-
-      if (scopedCommunityId) {
-        query = query.or(`community_id.eq.${scopedCommunityId},role.eq.superadmin`);
-      }
-
-      const { data, error } = await query;
-
-      if (error) {
-        throw error;
-      }
-
-      return (data ?? []) as InquiryProfileSummary[];
+      const payload = await fetchAdmin<InquiryAssignableAdminsPayload>(
+        `/admin/inquiries/assignable-admins${buildAssignableAdminsQuery(communityId)}`
+      );
+      return payload.data || [];
     },
   });
 };
 
 export const useUpdateInquiry = () => {
   const queryClient = useQueryClient();
+  const { fetchAdmin } = useAdminApi();
 
   return useMutation({
     mutationFn: async ({ inquiryId, updates }: { inquiryId: string; updates: InquiryUpdate }) => {
-      const nowIso = new Date().toISOString();
-      const payload: InquiryUpdate = {
-        ...updates,
-        updated_at: nowIso,
-      };
+      const payload = await fetchAdmin<{ data: InquiryRecord }>(`/admin/inquiries/${inquiryId}`, {
+        method: "PATCH",
+        body: JSON.stringify(updates),
+      });
 
-      if (typeof updates.admin_response === "string" && updates.admin_response.trim().length > 0) {
-        payload.responded_at = updates.responded_at ?? nowIso;
-      }
-
-      if (updates.status === "resolved") {
-        payload.resolved_at = updates.resolved_at ?? nowIso;
-      } else if (updates.status === "closed") {
-        payload.resolved_at = updates.resolved_at ?? nowIso;
-      } else if (updates.status === "open" || updates.status === "in_progress") {
-        payload.resolved_at = null;
-        if (updates.status === "open") {
-          payload.resolution_notes = null;
-        }
-      }
-
-      const { data, error } = await supabase
-        .from("inquiries")
-        .update(payload)
-        .eq("id", inquiryId)
-        .select("*")
-        .single();
-
-      if (error) {
-        throw error;
-      }
-
-      const [enriched] = await enrichInquiries([data as InquiryRow]);
-      return enriched;
+      return payload.data;
     },
-    onSuccess: (_updated, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["inquiries"] });
-      queryClient.invalidateQueries({ queryKey: ["inquiry", variables.inquiryId] });
+    onSuccess: (updated, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-inquiries"] });
+      queryClient.invalidateQueries({ queryKey: detailQueryKey(variables.inquiryId) });
+      queryClient.invalidateQueries({ queryKey: assignableAdminsQueryKey(updated.community_id) });
     },
   });
 };

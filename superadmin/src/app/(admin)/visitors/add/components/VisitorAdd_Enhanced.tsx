@@ -24,7 +24,6 @@ import SelectFormInput from '@/components/from/SelectFormInput'
 import { useListUnits } from '@/hooks/useUnits'
 import { useCreateVisitorPass } from '@/hooks/useVisitorPasses'
 import IconifyIcon from '@/components/wrappers/IconifyIcon'
-import { supabase } from '@/lib/supabase'
 import type { Database } from '@/lib/database.types'
 import QRCode from 'qrcode'
 import Image from 'next/image'
@@ -296,7 +295,7 @@ const VisitorAddEnhanced = () => {
     resetToDefaults(visitorType)
   }
 
-  const buildInsertPayload = (data: VisitorFormValues, visitorType: VisitorType, adminUserId: string) => {
+  const buildInsertPayload = (data: VisitorFormValues, visitorType: VisitorType) => {
     const unit = units.find((item) => item.id === data.unit_id)
     const visitDate = data.visit_date
     const createdAt = new Date().toISOString()
@@ -351,7 +350,6 @@ const VisitorAddEnhanced = () => {
       visit_date: visitDate,
       from_date: fromDate,
       to_date: toDate,
-      created_by: adminUserId,
       created_at: createdAt,
       purpose,
       type: 'visitor_pass',
@@ -375,7 +373,6 @@ const VisitorAddEnhanced = () => {
       to_date: toDate,
       unit_id: data.unit_id,
       community_id: unit?.community_id || null,
-      created_by: adminUserId,
       status: 'pending',
       send_gate_pass_notification: Boolean(data.send_gate_pass),
       entry_code: entryCode,
@@ -407,15 +404,7 @@ const VisitorAddEnhanced = () => {
       if (!selectedVisitorType) throw new Error('Select a visitor type before submitting')
       if (!unitOptions.length) throw new Error('No units are available for your current access scope')
 
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser()
-
-      if (userError) throw userError
-      if (!user?.id) throw new Error('Missing authenticated admin session')
-
-      const { payload, summary } = buildInsertPayload(data, selectedVisitorType, user.id)
+      const { payload, summary } = buildInsertPayload(data, selectedVisitorType)
       const created = await createVisitorPass.mutateAsync(payload)
 
       setCreatedPass({

@@ -1,97 +1,21 @@
 "use client";
 import React from "react";
 import { Card, CardBody, Col, Row } from "react-bootstrap";
-import { useListPayments } from "@/hooks/usePayments";
+import { usePaymentAnalyticsSummary } from "@/hooks/usePaymentAnalyticsSummary";
 
 const PaymentMetrics = () => {
-  const { data: payments = [], isLoading } = useListPayments();
+  const {
+    averageCompletedPayment,
+    collectionRateByAmount,
+    currentMonthGrowthRate,
+    error,
+    failedTransactions,
+    isLoading,
+    statusCounts,
+    totalRevenue,
+  } = usePaymentAnalyticsSummary();
 
   const formatAmount = (amount: number) => `GH₵ ${Number(amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-
-  // Calculate real metrics from payment data
-  const calculateMetrics = () => {
-    if (!payments.length) return null;
-
-    const totalRevenue = payments
-      .filter(p => p.status === 'completed')
-      .reduce((sum, p) => sum + p.amount, 0);
-
-    const completedPayments = payments.filter(p => p.status === 'completed');
-    const avgPayment = completedPayments.length > 0 
-      ? totalRevenue / completedPayments.length 
-      : 0;
-
-    const collectionRate = payments.length > 0 
-      ? (completedPayments.length / payments.length) * 100 
-      : 0;
-
-    const failedPayments = payments.filter(p => p.status === 'failed').length;
-
-    // Calculate monthly changes (simplified - comparing last 30 days vs previous 30 days)
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const sixtyDaysAgo = new Date();
-    sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
-
-    const recentPayments = payments.filter(p => 
-      p.payment_date && new Date(p.payment_date) >= thirtyDaysAgo
-    );
-    const previousPayments = payments.filter(p => 
-      p.payment_date && 
-      new Date(p.payment_date) >= sixtyDaysAgo && 
-      new Date(p.payment_date) < thirtyDaysAgo
-    );
-
-    const recentRevenue = recentPayments
-      .filter(p => p.status === 'completed')
-      .reduce((sum, p) => sum + p.amount, 0);
-    const previousRevenue = previousPayments
-      .filter(p => p.status === 'completed')
-      .reduce((sum, p) => sum + p.amount, 0);
-
-    const revenueChange = previousRevenue > 0 
-      ? ((recentRevenue - previousRevenue) / previousRevenue) * 100 
-      : 0;
-
-    const recentAvg = recentPayments.length > 0 
-      ? recentRevenue / recentPayments.filter(p => p.status === 'completed').length 
-      : 0;
-    const previousAvg = previousPayments.length > 0 
-      ? previousRevenue / previousPayments.filter(p => p.status === 'completed').length 
-      : 0;
-
-    const avgPaymentChange = previousAvg > 0 
-      ? ((recentAvg - previousAvg) / previousAvg) * 100 
-      : 0;
-
-    const recentCollectionRate = recentPayments.length > 0 
-      ? (recentPayments.filter(p => p.status === 'completed').length / recentPayments.length) * 100 
-      : 0;
-    const previousCollectionRate = previousPayments.length > 0 
-      ? (previousPayments.filter(p => p.status === 'completed').length / previousPayments.length) * 100 
-      : 0;
-
-    const collectionRateChange = previousCollectionRate > 0 
-      ? recentCollectionRate - previousCollectionRate 
-      : 0;
-
-    const recentFailedCount = recentPayments.filter(p => p.status === 'failed').length;
-    const previousFailedCount = previousPayments.filter(p => p.status === 'failed').length;
-    const failedPaymentChange = recentFailedCount - previousFailedCount;
-
-    return {
-      totalRevenue,
-      avgPayment,
-      collectionRate,
-      failedPayments,
-      revenueChange,
-      avgPaymentChange,
-      collectionRateChange,
-      failedPaymentChange
-    };
-  };
-
-  const metrics = calculateMetrics();
 
   // Show loading state
   if (isLoading) {
@@ -129,8 +53,18 @@ const PaymentMetrics = () => {
     );
   }
 
+  if (error) {
+    return (
+      <Col xl={12}>
+        <Card className="card-height-100">
+          <CardBody className="text-center text-muted py-4">Payment metrics are unavailable right now.</CardBody>
+        </Card>
+      </Col>
+    );
+  }
+
   // Show empty state if no metrics
-  if (!metrics) {
+  if (statusCounts.completed + statusCounts.inFlight + statusCounts.failed + statusCounts.open === 0) {
     return (
       <>
         {[1, 2, 3, 4].map((index) => (
@@ -149,36 +83,39 @@ const PaymentMetrics = () => {
   const metricsData = [
     {
       title: "Total Revenue",
-      value: formatAmount(metrics.totalRevenue),
-      change: `${metrics.revenueChange >= 0 ? '+' : ''}${metrics.revenueChange.toFixed(1)}%`,
-      changeType: metrics.revenueChange >= 0 ? "increase" : "decrease",
+      value: formatAmount(totalRevenue),
+      change:
+        currentMonthGrowthRate === null
+          ? "No prior month"
+          : `${currentMonthGrowthRate >= 0 ? "+" : ""}${currentMonthGrowthRate.toFixed(1)}%`,
+      changeType: currentMonthGrowthRate === null || currentMonthGrowthRate >= 0 ? "increase" : "decrease",
       icon: "ri:money-dollar-circle-line",
       color: "success",
       bgColor: "success-subtle",
     },
     {
       title: "Avg Payment",
-      value: formatAmount(metrics.avgPayment),
-      change: `${metrics.avgPaymentChange >= 0 ? '+' : ''}${metrics.avgPaymentChange.toFixed(1)}%`,
-      changeType: metrics.avgPaymentChange >= 0 ? "increase" : "decrease", 
+      value: formatAmount(averageCompletedPayment),
+      change: `${statusCounts.completed.toLocaleString()} settled`,
+      changeType: "increase",
       icon: "ri:calculator-line",
       color: "info",
       bgColor: "info-subtle",
     },
     {
       title: "Collection Rate",
-      value: `${metrics.collectionRate.toFixed(1)}%`,
-      change: `${metrics.collectionRateChange >= 0 ? '+' : ''}${metrics.collectionRateChange.toFixed(1)}%`,
-      changeType: metrics.collectionRateChange >= 0 ? "increase" : "decrease",
+      value: `${collectionRateByAmount.toFixed(1)}%`,
+      change: `${statusCounts.inFlight + statusCounts.open} pending/open`,
+      changeType: "increase",
       icon: "ri:percent-line",
       color: "warning",
       bgColor: "warning-subtle",
     },
     {
       title: "Failed Payments",
-      value: metrics.failedPayments.toString(),
-      change: `${metrics.failedPaymentChange >= 0 ? '+' : ''}${metrics.failedPaymentChange}`,
-      changeType: metrics.failedPaymentChange <= 0 ? "increase" : "decrease", // Less failed is good
+      value: failedTransactions.toString(),
+      change: `${statusCounts.failed} total`,
+      changeType: failedTransactions === 0 ? "increase" : "decrease",
       icon: "ri:error-warning-line",
       color: "danger",
       bgColor: "danger-subtle",

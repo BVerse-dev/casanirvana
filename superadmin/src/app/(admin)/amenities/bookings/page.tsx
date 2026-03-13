@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: "Amenity Bookings" };
 const AmenityBookingsPage = () => {
   return (
     <>
-      <PageTitle title="Amenity Bookings" subName="Community Management" />
+      <PageTitle title="Amenity Bookings" subName="Operations" />
       <BookingsStat />
       <BookingsOverview />
       <BookingsList />

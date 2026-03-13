@@ -67,7 +67,6 @@ const EmergencyAlertsNavigationMenu = ({ alerts, filters, onFilterChange }: Emer
         description: formData.description.trim() || null,
         alert_type: formData.alert_type,
         priority: formData.priority,
-        status: "active",
       });
 
       toast.success("Emergency alert created successfully.");

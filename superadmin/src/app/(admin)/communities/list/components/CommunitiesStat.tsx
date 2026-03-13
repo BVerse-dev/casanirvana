@@ -1,76 +1,47 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useMemo } from "react";
 import { Card, CardBody, Col, Row } from "react-bootstrap";
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
 import { useListCommunities } from "@/hooks/useCommunities";
-import { useListUnits } from "@/hooks/useUnits";
 
 const CommunitiesStat = () => {
-  const { data: communitiesData, isLoading: communitiesLoading } = useListCommunities();
+  const { data: communitiesData, isLoading } = useListCommunities({ pageSize: 9999 });
   const communities = communitiesData?.data || [];
-  const { data: unitsResponse, isLoading: unitsLoading } = useListUnits();
-  const units = unitsResponse?.data || [];
+  const statCards = useMemo(() => {
+    const totalCommunities = communitiesData?.count || communities.length;
+    const activeCommunities = communities.filter((community) => community.status !== "inactive").length;
+    const totalUnits = communities.reduce((sum, community) => sum + (community.unit_count || 0), 0);
+    const averageUnitsPerCommunity =
+      totalCommunities > 0 ? Math.round(totalUnits / totalCommunities) : 0;
 
-  const [stats, setStats] = useState({
-    totalCommunities: 0,
-    activeCommunities: 0,
-    totalUnits: 0,
-    averageUnitsPerCommunity: 0,
-  });
-
-  useEffect(() => {
-    if (communities && units) {
-      const totalCommunities = communities.length;
-      const activeCommunities = communities.length; // All communities are considered active for now
-      const totalUnits = units.length;
-      const averageUnitsPerCommunity = totalCommunities > 0 ? Math.round(totalUnits / totalCommunities) : 0;
-
-      setStats({
-        totalCommunities,
-        activeCommunities,
-        totalUnits,
-        averageUnitsPerCommunity,
-      });
-    }
-  }, [communities, units]);
-
-  const isLoading = communitiesLoading || unitsLoading;
-
-  const statCards = [
-    {
-      title: "Total Communities",
-      value: stats.totalCommunities,
-      icon: "ri:building-3-line",
-      color: "primary",
-      trend: "+12%",
-      trendColor: "success",
-    },
-    {
-      title: "Active Communities",
-      value: stats.activeCommunities,
-      icon: "ri:building-4-line",
-      color: "success",
-      trend: "+8%",
-      trendColor: "success",
-    },
-    {
-      title: "Total Units",
-      value: stats.totalUnits,
-      icon: "ri:community-line",
-      color: "info",
-      trend: "+15%",
-      trendColor: "success",
-    },
-    {
-      title: "Avg Units/Community",
-      value: stats.averageUnitsPerCommunity,
-      icon: "ri:bar-chart-line",
-      color: "warning",
-      trend: "+3%",
-      trendColor: "success",
-    },
-  ];
+    return [
+      {
+        title: "Total Communities",
+        value: totalCommunities,
+        icon: "ri:building-3-line",
+        color: "primary",
+      },
+      {
+        title: "Active Communities",
+        value: activeCommunities,
+        icon: "ri:building-4-line",
+        color: "success",
+      },
+      {
+        title: "Total Units",
+        value: totalUnits,
+        icon: "ri:community-line",
+        color: "info",
+      },
+      {
+        title: "Avg Units/Community",
+        value: averageUnitsPerCommunity,
+        icon: "ri:bar-chart-line",
+        color: "warning",
+      },
+    ];
+  }, [communities, communitiesData?.count]);
 
   return (
     <Row className="mb-4">
@@ -97,9 +68,7 @@ const CommunitiesStat = () => {
                       stat.value.toLocaleString()
                     )}
                   </h5>
-                  <span className={`text-${stat.trendColor} small`}>
-                    <IconifyIcon icon="ri:arrow-up-line" /> {stat.trend}
-                  </span>
+                  <span className="text-muted small">Live summary</span>
                 </div>
               </div>
             </CardBody>

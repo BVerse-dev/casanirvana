@@ -13,7 +13,7 @@ const ListViewPage = () => {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
   const [currentPage, setCurrentPage] = useState(1)
   
-  const { data: guards = [], isLoading, error } = useListGuardsDirectory()
+  const { data: guards = [], isLoading, error, refetch } = useListGuardsDirectory()
   
   // Filter guards based on search and status
   const filteredGuards = guards.filter(guard => {
@@ -95,10 +95,10 @@ const ListViewPage = () => {
                 </Col>
                 <Col lg={6}>
                   <div className="text-md-end mt-3 mt-md-0">
-                    <button type="button" className="btn btn-outline-primary me-2">
+                    <Link href="/guards/manage?tab=profiles" className="btn btn-outline-primary me-2">
                       <IconifyIcon icon="ri:settings-2-line" className="me-1" />
-                      More Setting
-                    </button>
+                      Guard Workspace
+                    </Link>
                     <button 
                       type="button" 
                       className={`btn btn-outline-primary me-2 ${showFilters ? 'active' : ''}`}
@@ -152,6 +152,9 @@ const ListViewPage = () => {
         statusFilter={statusFilter}
         currentPage={currentPage}
         onPageChange={setCurrentPage}
+        onRefresh={() => {
+          void refetch()
+        }}
       />
     </>
   )

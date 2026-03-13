@@ -1,30 +1,48 @@
 'use client'
+
 import homeImg from '@/assets/images/home-2.png'
 import IconifyIcon from '@/components/wrappers/IconifyIcon'
-import { ApexOptions } from 'apexcharts'
+import type { GuardDirectoryItem } from '@/hooks/useGuardDirectory'
+import type { ApexOptions } from 'apexcharts'
 import Image from 'next/image'
-import Link from 'next/link'
 import ReactApexChart from 'react-apexcharts'
-import { Card, CardBody, CardFooter, CardHeader, CardTitle, Col, Dropdown, DropdownItem, DropdownMenu, DropdownToggle, Row } from 'react-bootstrap'
-import { useListGuardsDirectory } from '@/hooks/useGuardDirectory'
+import { Card, CardBody, Col, Row } from 'react-bootstrap'
 
-const GuardsChart = () => {
-  const { data: guards = [] } = useListGuardsDirectory()
-  
-  // Calculate statistics from actual data
-  const activeGuards = guards.filter(guard => guard.is_active).length
-  const inactiveGuards = guards.filter(guard => !guard.is_active).length
+const toGuardStatus = (guard: GuardDirectoryItem) => {
+  if (guard.assignment_status === 'awaiting_assignment') return 'awaiting_assignment'
+  if (guard.is_active === false || guard.assignment_status === 'inactive') return 'inactive'
+  return 'assigned'
+}
+
+const formatDateLabel = (value?: string | null) => {
+  if (!value) return 'No provisioning date'
+  const date = new Date(value)
+  return Number.isNaN(date.getTime())
+    ? 'No provisioning date'
+    : date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+type GuardGridCardProps = {
+  guards: GuardDirectoryItem[]
+}
+
+const GuardsChart = ({ guards }: GuardGridCardProps) => {
+  const assignedGuards = guards.filter((guard) => toGuardStatus(guard) === 'assigned').length
+  const awaitingAssignment = guards.filter((guard) => toGuardStatus(guard) === 'awaiting_assignment').length
+  const inactiveGuards = guards.filter((guard) => toGuardStatus(guard) === 'inactive').length
   const totalGuards = guards.length
-  
-  // For demo purposes, assume 10% of active guards are on leave
-  const onLeaveGuards = Math.floor(activeGuards * 0.1)
-  const actualActiveGuards = activeGuards - onLeaveGuards
-  const GridOptions: ApexOptions = {
+  const latestProvisionedAt = guards
+    .map((guard) => guard.created_at || guard.employment_date)
+    .filter(Boolean)
+    .sort()
+    .at(-1)
+
+  const chartOptions: ApexOptions = {
     chart: {
       height: 123,
       type: 'donut',
     },
-    series: [actualActiveGuards, inactiveGuards, onLeaveGuards],
+    series: [assignedGuards, awaitingAssignment, inactiveGuards],
     legend: {
       show: false,
     },
@@ -37,16 +55,12 @@ const GuardsChart = () => {
           size: '70%',
           labels: {
             show: false,
-            total: {
-              showAlways: true,
-              show: true,
-            },
           },
         },
       },
     },
-    labels: ['Active', 'Inactive', 'On Leave'],
-    colors: ['#027ef4', '#f0934e', '#47ad94'],
+    labels: ['Assigned', 'Awaiting Assignment', 'Inactive'],
+    colors: ['#027ef4', '#47ad94', '#f0934e'],
     dataLabels: {
       enabled: false,
     },
@@ -61,20 +75,28 @@ const GuardsChart = () => {
       },
     ],
   }
+
   return (
     <Col xl={6} lg={12}>
       <Card>
         <CardBody>
           <Row className="align-items-center">
             <Col lg={7}>
-              <h4 className="text-dark mb-1">Welcome Back, Admin</h4>
-              <p className="fs-14">This is your guards management dashboard</p>
+              <h4 className="text-dark mb-1">Guard Directory Overview</h4>
+              <p className="fs-14">
+                This summary reflects live guard provisioning and assignment data from the admin backend.
+              </p>
               <Row className="align-items-center text-center mb-2">
                 <Col lg={7} className="border-end border-light">
                   <Row className="align-items-center">
                     <Col lg={6}>
-                      <div id="grid-chart" className="apex-charts" />
-                      <ReactApexChart options={GridOptions} series={GridOptions.series} height={123} type="donut" className="apex-charts mb-4" />
+                      <ReactApexChart
+                        options={chartOptions}
+                        series={chartOptions.series}
+                        height={123}
+                        type="donut"
+                        className="apex-charts mb-4"
+                      />
                     </Col>
                     <Col lg={6}>
                       <h5>Guards</h5>
@@ -86,23 +108,22 @@ const GuardsChart = () => {
                   <div className="ps-2">
                     <p className="d-flex align-items-center mb-2 gap-2">
                       <IconifyIcon icon="ri:circle-fill" className="text-primary" />
-                      {actualActiveGuards} Active
+                      {assignedGuards} Assigned
                     </p>
                     <p className="d-flex align-items-center mb-2 gap-2">
-                      <IconifyIcon icon="ri:circle-fill" className="text-warning" />
-                      {inactiveGuards} Inactive
+                      <IconifyIcon icon="ri:circle-fill" className="text-success" />
+                      {awaitingAssignment} Awaiting Assignment
                     </p>
                     <p className="d-flex align-items-center gap-2 mb-0">
-                      <IconifyIcon icon="ri:circle-fill" className="text-success" />
-                      {onLeaveGuards} On Leave
+                      <IconifyIcon icon="ri:circle-fill" className="text-warning" />
+                      {inactiveGuards} Inactive
                     </p>
                   </div>
                 </Col>
               </Row>
               <p className="text-muted mb-0 d-flex align-items-center gap-1">
-                Last Updated <span>:</span> <span className="text-dark">
-                  {guards.length > 0 ? 'Just now' : 'No data'}
-                </span>
+                Latest provisioning activity <span>:</span>{' '}
+                <span className="text-dark">{formatDateLabel(latestProvisionedAt)}</span>
               </p>
             </Col>
             <Col lg={5} className="text-end">
@@ -115,90 +136,65 @@ const GuardsChart = () => {
   )
 }
 
-const GuardStatistics = () => {
-  const { data: guards = [] } = useListGuardsDirectory()
-  
-  // Calculate real statistics from guard data
+const GuardStatistics = ({ guards }: GuardGridCardProps) => {
   const totalGuards = guards.length
-  const activeGuards = guards.filter(guard => guard.is_active).length
-  const inactiveGuards = guards.filter(guard => !guard.is_active).length
-  
-  // Calculate shift statistics
-  const dayShiftGuards = guards.filter(guard => 
-    guard.shift_type?.toLowerCase().includes('day') || 
-    guard.shift_type?.toLowerCase().includes('morning')
-  ).length
-  
-  const nightShiftGuards = guards.filter(guard => 
-    guard.shift_type?.toLowerCase().includes('night') || 
-    guard.shift_type?.toLowerCase().includes('evening')
-  ).length
-  
-  // For demo purposes, assume 10% of active guards are on leave
-  const onLeaveGuards = Math.floor(activeGuards * 0.1)
-  
-  // Calculate percentage changes (simulated based on growth patterns)
-  const totalGrowth = totalGuards > 0 ? Math.min(Math.floor((totalGuards / 10) * 2), 15) : 0
-  const dayShiftGrowth = dayShiftGuards > 0 ? Math.min(Math.floor((dayShiftGuards / 5) * 2), 10) : 0
-  const nightShiftGrowth = nightShiftGuards > 0 ? Math.min(Math.floor((nightShiftGuards / 5) * 2), 8) : 0
-  const leaveChange = onLeaveGuards > 2 ? -2 : 1
+  const activeGuards = guards.filter((guard) => guard.is_active).length
+  const awaitingAssignment = guards.filter((guard) => guard.assignment_status === 'awaiting_assignment').length
+  const communitiesCovered = new Set(
+    guards
+      .map((guard) => guard.resolved_community_id || guard.community_id || guard.societies?.id)
+      .filter(Boolean)
+  ).size
 
   const cardData = [
     {
       title: 'Total Guards',
       value: totalGuards.toString(),
-      percentage: `${totalGrowth}%`,
-      trend: 'up',
+      helpText: 'Profiles in scope',
       icon: 'ri:shield-user-line',
       color: 'primary',
     },
     {
-      title: 'Day Shift',
-      value: dayShiftGuards.toString(),
-      percentage: `${dayShiftGrowth}%`,
-      trend: 'up',
-      icon: 'ri:sun-line',
+      title: 'Active Guards',
+      value: activeGuards.toString(),
+      helpText: 'Ready for duty',
+      icon: 'ri:shield-check-line',
+      color: 'success',
+    },
+    {
+      title: 'Awaiting Assignment',
+      value: awaitingAssignment.toString(),
+      helpText: 'Need first community assignment',
+      icon: 'ri:user-received-2-line',
       color: 'warning',
     },
     {
-      title: 'Night Shift',
-      value: nightShiftGuards.toString(),
-      percentage: `${nightShiftGrowth}%`,
-      trend: 'up',
-      icon: 'ri:moon-line',
+      title: 'Communities Covered',
+      value: communitiesCovered.toString(),
+      helpText: 'Distinct communities',
+      icon: 'ri:community-line',
       color: 'info',
-    },
-    {
-      title: 'On Leave',
-      value: onLeaveGuards.toString(),
-      percentage: `${Math.abs(leaveChange)}%`,
-      trend: leaveChange > 0 ? 'up' : 'down',
-      icon: 'ri:calendar-schedule-line',
-      color: 'success',
     },
   ]
 
   return (
     <Col xl={6} lg={12}>
       <Row>
-        {cardData.map((card, index) => (
-          <Col xl={6} lg={6} key={index}>
+        {cardData.map((card) => (
+          <Col xl={6} lg={6} key={card.title}>
             <Card>
               <CardBody>
                 <Row className="align-items-center">
                   <Col xl={7} lg={7}>
                     <p className="text-muted mb-2">{card.title}</p>
                     <h3 className="mb-0 text-dark">{card.value}</h3>
+                    <small className="text-muted">{card.helpText}</small>
                   </Col>
                   <Col xl={5} lg={5}>
                     <div className="text-end">
                       <div className={`avatar avatar-md bg-${card.color}-subtle rounded`}>
                         <IconifyIcon icon={card.icon} className={`fs-20 text-${card.color}`} />
                       </div>
-                      <p className={`mb-0 mt-2 text-${card.trend === 'up' ? 'success' : 'danger'}`}>
-                        <IconifyIcon icon={`ri:arrow-${card.trend === 'up' ? 'up' : 'down'}-line`} className="me-1" />
-                        {card.percentage}
-                      </p>
                     </div>
                   </Col>
                 </Row>
@@ -211,11 +207,11 @@ const GuardStatistics = () => {
   )
 }
 
-const GuardGridCard = () => {
+const GuardGridCard = ({ guards }: GuardGridCardProps) => {
   return (
     <Row>
-      <GuardsChart />
-      <GuardStatistics />
+      <GuardsChart guards={guards} />
+      <GuardStatistics guards={guards} />
     </Row>
   )
 }

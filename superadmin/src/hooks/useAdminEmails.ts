@@ -1,11 +1,9 @@
 'use client';
 
-import { useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 
 import { useAdminApi } from '@/hooks/useAdminApi';
-import { supabase } from '@/lib/supabase';
 
 export type EmailFolderKey = 'all' | 'inbox' | 'sent' | 'drafts' | 'archive' | 'deleted' | 'starred' | 'important';
 export type EmailPriority = 'low' | 'normal' | 'high' | 'urgent';
@@ -137,6 +135,8 @@ const emptySummary: AdminEmailSummary = {
   failed: 0,
 };
 
+const EMAIL_REFRESH_INTERVAL_MS = 30_000;
+
 const cleanFilters = (filters: AdminEmailListFilters = {}) => ({
   folder: filters.folder || 'inbox',
   search: filters.search?.trim() || '',
@@ -165,6 +165,8 @@ export function useAdminEmails(filters: AdminEmailListFilters = {}) {
       return fetchAdmin<EmailListResponse>(`/admin/emails?${params.toString()}`);
     },
     staleTime: 30_000,
+    refetchInterval: EMAIL_REFRESH_INTERVAL_MS,
+    refetchOnWindowFocus: true,
     placeholderData: (previous) => previous,
   });
 }
@@ -177,6 +179,8 @@ export function useAdminEmail(id?: string | null) {
     enabled: hasToken && Boolean(id),
     queryFn: async () => fetchAdmin<EmailDetailResponse>(`/admin/emails/${id}`),
     staleTime: 30_000,
+    refetchInterval: EMAIL_REFRESH_INTERVAL_MS,
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -231,25 +235,6 @@ export function useUpdateAdminEmail() {
       toast.error(error.message || 'Failed to update email');
     },
   });
-}
-
-export function useEmailManagementRealtime() {
-  const queryClient = useQueryClient();
-
-  useEffect(() => {
-    const channel = supabase
-      .channel('admin-email-management')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'emails' }, () => {
-        queryClient.invalidateQueries({ queryKey: ['admin-emails'] });
-        queryClient.invalidateQueries({ queryKey: ['admin-email'] });
-      });
-
-    channel.subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [queryClient]);
 }
 
 export function getEmailSummaryOrEmpty(summary?: AdminEmailSummary | null) {

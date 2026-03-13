@@ -1,301 +1,172 @@
 "use client";
 
-import React from "react";
-import dynamic from "next/dynamic";
-import {
-  Card,
-  CardBody,
-  CardHeader,
-  CardTitle,
-  Col,
-  Row,
-  Badge,
-  ProgressBar,
-} from "react-bootstrap";
+import { Card, CardBody, CardHeader, CardTitle, Col, ProgressBar, Row } from "react-bootstrap";
+
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
-import { SocietyDummyData } from "@/assets/data/communities-dummy";
 
-// Dynamically import ReactApexChart to prevent SSR issues
-const ReactApexChart = dynamic(() => import("react-apexcharts"), {
-  ssr: false,
-  loading: () => <div className="d-flex justify-content-center p-4"><div className="spinner-border text-primary" role="status"><span className="visually-hidden">Loading chart...</span></div></div>
-});
+type CommunityAnalyticsSummary = {
+  totalUnits: number;
+  occupiedUnits: number;
+  vacantUnits: number;
+  occupancyRate: number;
+  totalResidents: number;
+  residentsWithAssignedUnits: number;
+  adminCount: number;
+  committeeCount: number;
+};
 
-interface SocietyAnalyticsProps {
-  society: SocietyDummyData;
+interface CommunityAnalyticsProps {
+  summary: CommunityAnalyticsSummary;
 }
 
-const SocietyAnalytics: React.FC<SocietyAnalyticsProps> = ({ society }) => {
-  const occupancyRate = Math.round((society.occupiedUnits / society.totalUnits) * 100);
-  const vacantUnits = society.totalUnits - society.occupiedUnits;
-  
-  // Generate dummy analytics data
-  const monthlyOccupancy = [92, 89, 91, 95, 88, 93, 96, 94, 92, 89, 91, occupancyRate];
-  const monthlyRevenue = [2.8, 3.1, 2.9, 3.4, 2.7, 3.2, 3.6, 3.3, 3.0, 2.8, 3.1, 3.5];
-  const maintenanceRequests = [12, 8, 15, 6, 9, 11, 7, 13, 10, 8, 12, 9];
-  
-  // Occupancy Trend Chart
-  const occupancyChartOptions = {
-    chart: {
-      type: 'area' as const,
-      height: 300,
-      toolbar: { show: false },
-      sparkline: { enabled: false }
-    },
-    colors: ['#3b82f6'],
-    fill: {
-      type: 'gradient',
-      gradient: {
-        shadeIntensity: 1,
-        opacityFrom: 0.7,
-        opacityTo: 0.1,
-        stops: [0, 90, 100]
-      }
-    },
-    stroke: { curve: 'smooth' as const, width: 2 },
-    xaxis: {
-      categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-      labels: { style: { fontSize: '12px' } }
-    },
-    yaxis: {
-      min: 80,
-      max: 100,
-      labels: { formatter: (val: number) => `${val}%` }
-    },
-    tooltip: { 
-      y: { formatter: (val: number) => `${val}%` }
-    },
-    grid: { borderColor: '#e5e7eb' }
-  };
+const CommunityAnalytics = ({ summary }: CommunityAnalyticsProps) => {
+  const residentAssignmentRate =
+    summary.totalResidents > 0 ? Math.round((summary.residentsWithAssignedUnits / summary.totalResidents) * 100) : 0;
 
-  // Revenue Chart
-  const revenueChartOptions = {
-    chart: {
-      type: 'bar' as const,
-      height: 300,
-      toolbar: { show: false }
+  const cards = [
+    {
+      title: "Occupancy",
+      value: `${summary.occupancyRate}%`,
+      subtitle: `${summary.occupiedUnits} occupied`,
+      icon: "solar:home-2-bold-duotone",
+      color: "primary",
     },
-    colors: ['#10b981'],
-    plotOptions: {
-      bar: { borderRadius: 4, columnWidth: '60%' }
+    {
+      title: "Vacant Units",
+      value: summary.vacantUnits.toString(),
+      subtitle: `${summary.totalUnits} total units`,
+      icon: "solar:home-broken",
+      color: "warning",
     },
-    xaxis: {
-      categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-      labels: { style: { fontSize: '12px' } }
+    {
+      title: "Residents",
+      value: summary.totalResidents.toString(),
+      subtitle: `${residentAssignmentRate}% assigned to units`,
+      icon: "solar:users-group-rounded-bold-duotone",
+      color: "success",
     },
-    yaxis: {
-      labels: { formatter: (val: number) => `$${val}L` }
+    {
+      title: "Directory Roles",
+      value: `${summary.adminCount + summary.committeeCount}`,
+      subtitle: `${summary.adminCount} admins, ${summary.committeeCount} committee`,
+      icon: "solar:shield-user-bold-duotone",
+      color: "info",
     },
-    tooltip: { 
-      y: { formatter: (val: number) => `$${val} Lakhs` }
-    },
-    grid: { borderColor: '#e5e7eb' }
-  };
-
-  // Maintenance Requests Donut Chart
-  const maintenanceChartOptions = {
-    chart: {
-      type: 'donut' as const,
-      height: 250
-    },
-    colors: ['#ef4444', '#f59e0b', '#10b981', '#3b82f6'],
-    labels: ['Critical', 'High', 'Medium', 'Low'],
-    plotOptions: {
-      pie: {
-        donut: {
-          size: '60%',
-          labels: {
-            show: true,
-            total: {
-              show: true,
-              label: 'Total',
-              formatter: () => '47'
-            }
-          }
-        }
-      }
-    },
-    legend: { position: 'bottom' as const }
-  };
-
-  const maintenanceData = [8, 12, 18, 9];
+  ];
 
   return (
     <Row className="mb-4">
-      {/* Key Metrics Cards */}
       <Col lg={12} className="mb-4">
         <Row>
-          <Col lg={3} md={6} className="mb-3">
-            <Card className="border-0 shadow-sm bg-gradient-primary text-white h-100">
-              <CardBody>
-                <div className="d-flex align-items-center justify-content-between">
-                  <div>
-                    <div className="text-white-75 mb-1">Occupancy Rate</div>
-                    <h3 className="text-white mb-0">{occupancyRate}%</h3>
-                    <div className="text-white-75 small">
-                      <IconifyIcon icon="solar:arrow-up-bold" className="me-1" />
-                      +2.5% from last month
+          {cards.map((card) => (
+            <Col lg={3} md={6} className="mb-3" key={card.title}>
+              <Card className="border-0 shadow-sm h-100">
+                <CardBody>
+                  <div className="d-flex align-items-center justify-content-between">
+                    <div>
+                      <div className="text-muted mb-1">{card.title}</div>
+                      <h3 className="mb-1">{card.value}</h3>
+                      <div className="text-muted small">{card.subtitle}</div>
+                    </div>
+                    <div className={`avatar-lg rounded-circle bg-${card.color}-subtle d-flex align-items-center justify-content-center`}>
+                      <IconifyIcon icon={card.icon} className={`fs-24 text-${card.color}`} />
                     </div>
                   </div>
-                  <div className="avatar-lg rounded-circle bg-white bg-opacity-20 d-flex align-items-center justify-content-center">
-                    <IconifyIcon icon="solar:home-2-bold-duotone" className="fs-24 text-white" />
-                  </div>
-                </div>
-              </CardBody>
-            </Card>
-          </Col>
-
-          <Col lg={3} md={6} className="mb-3">
-            <Card className="border-0 shadow-sm bg-gradient-success text-white h-100">
-              <CardBody>
-                <div className="d-flex align-items-center justify-content-between">
-                  <div>
-                    <div className="text-white-75 mb-1">Monthly Revenue</div>
-                    <h3 className="text-white mb-0">${monthlyRevenue[11]}L</h3>
-                    <div className="text-white-75 small">
-                      <IconifyIcon icon="solar:arrow-up-bold" className="me-1" />
-                      +12.8% from last month
-                    </div>
-                  </div>
-                  <div className="avatar-lg rounded-circle bg-white bg-opacity-20 d-flex align-items-center justify-content-center">
-                    <IconifyIcon icon="solar:wallet-money-bold-duotone" className="fs-24 text-white" />
-                  </div>
-                </div>
-              </CardBody>
-            </Card>
-          </Col>
-
-          <Col lg={3} md={6} className="mb-3">
-            <Card className="border-0 shadow-sm bg-gradient-warning text-white h-100">
-              <CardBody>
-                <div className="d-flex align-items-center justify-content-between">
-                  <div>
-                    <div className="text-white-75 mb-1">Vacant Units</div>
-                    <h3 className="text-white mb-0">{vacantUnits}</h3>
-                    <div className="text-white-75 small">
-                      <IconifyIcon icon="solar:arrow-down-bold" className="me-1" />
-                      -5 from last month
-                    </div>
-                  </div>
-                  <div className="avatar-lg rounded-circle bg-white bg-opacity-20 d-flex align-items-center justify-content-center">
-                    <IconifyIcon icon="solar:key-bold-duotone" className="fs-24 text-white" />
-                  </div>
-                </div>
-              </CardBody>
-            </Card>
-          </Col>
-
-          <Col lg={3} md={6} className="mb-3">
-            <Card className="border-0 shadow-sm bg-gradient-info text-white h-100">
-              <CardBody>
-                <div className="d-flex align-items-center justify-content-between">
-                  <div>
-                    <div className="text-white-75 mb-1">Satisfaction Score</div>
-                    <h3 className="text-white mb-0">{society.rating}/5.0</h3>
-                    <div className="text-white-75 small">
-                      <IconifyIcon icon="solar:arrow-up-bold" className="me-1" />
-                      +0.3 from last month
-                    </div>
-                  </div>
-                  <div className="avatar-lg rounded-circle bg-white bg-opacity-20 d-flex align-items-center justify-content-center">
-                    <IconifyIcon icon="solar:star-bold-duotone" className="fs-24 text-white" />
-                  </div>
-                </div>
-              </CardBody>
-            </Card>
-          </Col>
+                </CardBody>
+              </Card>
+            </Col>
+          ))}
         </Row>
       </Col>
 
-      {/* Charts Section */}
       <Col lg={8}>
-        <Card className="border-0 shadow-sm mb-4">
+        <Card className="border-0 shadow-sm h-100">
           <CardHeader className="bg-transparent border-bottom-0 pb-0">
-            <div className="d-flex justify-content-between align-items-center">
-              <CardTitle className="mb-0">Occupancy Trend</CardTitle>
-              <Badge bg="primary" className="rounded-pill">12 Months</Badge>
-            </div>
+            <CardTitle className="mb-0">Community Snapshot</CardTitle>
           </CardHeader>
           <CardBody>
-            <ReactApexChart
-              options={occupancyChartOptions}
-              series={[{ name: 'Occupancy Rate', data: monthlyOccupancy }]}
-              type="area"
-              height={300}
-            />
-          </CardBody>
-        </Card>
+            <div className="mb-4">
+              <div className="d-flex justify-content-between mb-2">
+                <span className="text-muted">Occupied Units</span>
+                <span className="fw-semibold">
+                  {summary.occupiedUnits} / {summary.totalUnits}
+                </span>
+              </div>
+              <ProgressBar now={summary.occupancyRate} variant="primary" />
+            </div>
 
-        <Card className="border-0 shadow-sm">
-          <CardHeader className="bg-transparent border-bottom-0 pb-0">
-            <div className="d-flex justify-content-between align-items-center">
-              <CardTitle className="mb-0">Revenue Analytics</CardTitle>
-              <Badge bg="success" className="rounded-pill">Monthly</Badge>
+            <div className="mb-4">
+              <div className="d-flex justify-content-between mb-2">
+                <span className="text-muted">Residents Assigned to Units</span>
+                <span className="fw-semibold">
+                  {summary.residentsWithAssignedUnits} / {summary.totalResidents}
+                </span>
+              </div>
+              <ProgressBar now={residentAssignmentRate} variant="success" />
             </div>
-          </CardHeader>
-          <CardBody>
-            <ReactApexChart
-              options={revenueChartOptions}
-              series={[{ name: 'Revenue', data: monthlyRevenue }]}
-              type="bar"
-              height={300}
-            />
+
+            <div className="row g-3">
+              <div className="col-md-4">
+                <div className="border rounded p-3 h-100">
+                  <div className="text-muted small mb-1">Occupied Units</div>
+                  <h4 className="mb-0">{summary.occupiedUnits}</h4>
+                </div>
+              </div>
+              <div className="col-md-4">
+                <div className="border rounded p-3 h-100">
+                  <div className="text-muted small mb-1">Vacant Units</div>
+                  <h4 className="mb-0">{summary.vacantUnits}</h4>
+                </div>
+              </div>
+              <div className="col-md-4">
+                <div className="border rounded p-3 h-100">
+                  <div className="text-muted small mb-1">Directory Leadership</div>
+                  <h4 className="mb-0">{summary.adminCount + summary.committeeCount}</h4>
+                </div>
+              </div>
+            </div>
           </CardBody>
         </Card>
       </Col>
 
       <Col lg={4}>
-        {/* Maintenance Requests */}
-        <Card className="border-0 shadow-sm mb-4">
+        <Card className="border-0 shadow-sm h-100">
           <CardHeader className="bg-transparent border-bottom-0 pb-0">
-            <CardTitle className="mb-0">Maintenance Requests</CardTitle>
+            <CardTitle className="mb-0">Role Distribution</CardTitle>
           </CardHeader>
           <CardBody>
-            <ReactApexChart
-              options={maintenanceChartOptions}
-              series={maintenanceData}
-              type="donut"
-              height={250}
-            />
-          </CardBody>
-        </Card>
-
-        {/* Quick Stats */}
-        <Card className="border-0 shadow-sm">
-          <CardHeader className="bg-transparent border-bottom-0 pb-0">
-            <CardTitle className="mb-0">Quick Statistics</CardTitle>
-          </CardHeader>
-          <CardBody>
-            <div className="mb-4">
-              <div className="d-flex justify-content-between align-items-center mb-2">
-                <span className="text-muted">Amenity Usage</span>
-                <span className="fw-semibold">85%</span>
+            <div className="mb-3">
+              <div className="d-flex justify-content-between mb-2">
+                <span className="text-muted">Admins</span>
+                <span className="fw-semibold">{summary.adminCount}</span>
               </div>
-              <ProgressBar now={85} variant="primary" style={{ height: '6px' }} />
+              <ProgressBar now={summary.totalResidents > 0 ? (summary.adminCount / summary.totalResidents) * 100 : 0} variant="info" />
             </div>
-
-            <div className="mb-4">
-              <div className="d-flex justify-content-between align-items-center mb-2">
-                <span className="text-muted">Parking Utilization</span>
-                <span className="fw-semibold">72%</span>
+            <div className="mb-3">
+              <div className="d-flex justify-content-between mb-2">
+                <span className="text-muted">Committee</span>
+                <span className="fw-semibold">{summary.committeeCount}</span>
               </div>
-              <ProgressBar now={72} variant="success" style={{ height: '6px' }} />
+              <ProgressBar
+                now={summary.totalResidents > 0 ? (summary.committeeCount / summary.totalResidents) * 100 : 0}
+                variant="warning"
+              />
             </div>
-
-            <div className="mb-4">
-              <div className="d-flex justify-content-between align-items-center mb-2">
-                <span className="text-muted">Security Score</span>
-                <span className="fw-semibold">96%</span>
+            <div>
+              <div className="d-flex justify-content-between mb-2">
+                <span className="text-muted">General Members</span>
+                <span className="fw-semibold">
+                  {Math.max(summary.totalResidents - summary.adminCount - summary.committeeCount, 0)}
+                </span>
               </div>
-              <ProgressBar now={96} variant="info" style={{ height: '6px' }} />
-            </div>
-
-            <div className="mb-0">
-              <div className="d-flex justify-content-between align-items-center mb-2">
-                <span className="text-muted">Energy Efficiency</span>
-                <span className="fw-semibold">78%</span>
-              </div>
-              <ProgressBar now={78} variant="warning" style={{ height: '6px' }} />
+              <ProgressBar
+                now={
+                  summary.totalResidents > 0
+                    ? (Math.max(summary.totalResidents - summary.adminCount - summary.committeeCount, 0) / summary.totalResidents) * 100
+                    : 0
+                }
+                variant="secondary"
+              />
             </div>
           </CardBody>
         </Card>
@@ -304,4 +175,4 @@ const SocietyAnalytics: React.FC<SocietyAnalyticsProps> = ({ society }) => {
   );
 };
 
-export default SocietyAnalytics;
+export default CommunityAnalytics;

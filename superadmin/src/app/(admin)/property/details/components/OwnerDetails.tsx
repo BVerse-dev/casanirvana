@@ -76,6 +76,13 @@ const OwnerDetails = () => {
     );
   }
 
+  const ownerName =
+    unit.profiles?.full_name ||
+    [unit.profiles?.first_name, unit.profiles?.last_name].filter(Boolean).join(" ").trim() ||
+    "Owner not assigned";
+  const ownerEmail = unit.profiles?.email || null;
+  const ownerPhone = unit.profiles?.phone || null;
+
   return (
     <Col xl={3} lg={4}>
       <Card>
@@ -91,80 +98,27 @@ const OwnerDetails = () => {
             />
             <div className="mt-2">
               <Link href="" className="fw-medium text-dark fs-16">
-                {unit.profiles?.first_name} {unit.profiles?.last_name || 'Owner'}
+                {ownerName}
               </Link>
-              <p className="mb-0">(Owner)</p>
+              <p className="mb-0">{ownerEmail || ownerPhone ? "(Owner)" : "No contact assigned"}</p>
             </div>
-            <div className="mt-3">
-              <ul className="list-inline justify-content-center d-flex gap-1 mb-0 align-items-center">
-                <li className="list-inline-item">
-                  <Button
-                    variant="light"
-                    className="d-flex avatar-sm align-items-center justify-content-center text-primary fs-20"
-                  >
-                    <span>
-                      {" "}
-                      <IconifyIcon
-                        width={20}
-                        height={20}
-                        icon="ri:facebook-fill"
-                      />
-                    </span>
-                  </Button>
-                </li>
-                <li className="list-inline-item">
-                  <Button
-                    variant="light"
-                    className="avatar-sm d-flex align-items-center justify-content-center text-danger fs-20  "
-                  >
-                    <span>
-                      {" "}
-                      <IconifyIcon
-                        width={20}
-                        height={20}
-                        icon="ri:instagram-fill"
-                      />
-                    </span>
-                  </Button>
-                </li>
-                <li className="list-inline-item">
-                  <Button
-                    variant="light"
-                    className="avatar-sm d-flex align-items-center justify-content-center text-info   fs-20"
-                  >
-                    <span>
-                      {" "}
-                      <IconifyIcon
-                        width={20}
-                        height={20}
-                        icon="ri:twitter-fill"
-                      />
-                    </span>
-                  </Button>
-                </li>
-                <li className="list-inline-item">
-                  <Button
-                    variant="light"
-                    className="avatar-sm d-flex align-items-center justify-content-center text-success fs-20  "
-                  >
-                    <span>
-                      {" "}
-                      <IconifyIcon
-                        width={20}
-                        height={20}
-                        icon="ri:whatsapp-fill"
-                      />
-                    </span>
-                  </Button>
-                </li>
-              </ul>
+            <div className="mt-3 text-muted small">
+              {ownerEmail || "No email"}
+              {ownerEmail && ownerPhone ? " • " : ""}
+              {ownerPhone || ""}
             </div>
           </div>
         </CardBody>
         <CardFooter className="bg-light-subtle">
           <Row className="g-2">
             <Col lg={6}>
-              <Button variant="primary" className="w-100">
+              <Button
+                as={ownerPhone ? "a" : "button"}
+                href={ownerPhone ? `tel:${ownerPhone}` : undefined}
+                variant="primary"
+                className="w-100"
+                disabled={!ownerPhone}
+              >
                 <IconifyIcon
                   icon="solar:phone-calling-bold-duotone"
                   className="align-middle fs-18"
@@ -173,7 +127,13 @@ const OwnerDetails = () => {
               </Button>
             </Col>
             <Col lg={6}>
-              <Button variant="success" className="w-100">
+              <Button
+                as={ownerEmail ? "a" : "button"}
+                href={ownerEmail ? `mailto:${ownerEmail}` : undefined}
+                variant="success"
+                className="w-100"
+                disabled={!ownerEmail}
+              >
                 <IconifyIcon
                   icon="solar:chat-round-dots-bold-duotone"
                   className="align-middle fs-16"
@@ -188,13 +148,21 @@ const OwnerDetails = () => {
         <CardHeader className="bg-light-subtle">
           <CardTitle as={"h4"}>Schedule A Tour</CardTitle>
         </CardHeader>
-        <form onSubmit={handleSubmit(() => {})}>
+        <form
+          onSubmit={handleSubmit(() => {
+            return;
+          })}
+        >
           <CardBody>
+            <Alert variant="info" className="mb-3">
+              Tour scheduling is not handled from the superadmin dashboard yet. Use the assigned owner contact details above.
+            </Alert>
             <div className="mb-3">
               <TextFormInput
                 control={control}
                 name="date"
                 placeholder="dd-mm-yyyy"
+                disabled
               />
             </div>
             <div className="mb-3">
@@ -202,6 +170,7 @@ const OwnerDetails = () => {
                 control={control}
                 name="time"
                 placeholder="12:00 PM"
+                disabled
               />
             </div>
             <div className="mb-3">
@@ -209,6 +178,7 @@ const OwnerDetails = () => {
                 control={control}
                 name="name"
                 placeholder="Your Full Name"
+                disabled
               />
             </div>
             <div className="mb-3">
@@ -216,6 +186,7 @@ const OwnerDetails = () => {
                 control={control}
                 name="email"
                 placeholder="Email"
+                disabled
               />
             </div>
             <div className="mb-3">
@@ -223,6 +194,7 @@ const OwnerDetails = () => {
                 control={control}
                 name="number"
                 placeholder="Number"
+                disabled
               />
             </div>
             <div>
@@ -233,12 +205,13 @@ const OwnerDetails = () => {
                 id="schedule-textarea"
                 rows={5}
                 placeholder="Message"
+                disabled
               />
             </div>
           </CardBody>
           <CardFooter className="bg-light-subtle">
-            <Button variant="primary" type="submit" className="w-100">
-              Send Information
+            <Button variant="primary" type="submit" className="w-100" disabled>
+              Scheduling Unavailable
             </Button>
           </CardFooter>
         </form>

@@ -3,7 +3,7 @@ import FileUpload from "@/components/FileUpload";
 import { Col, Row } from "react-bootstrap";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "react-hot-toast";
 import * as yup from "yup";
 import { useCreateUnit } from "@/hooks/useUnits";
@@ -19,9 +19,12 @@ import {
 import TextAreaFormInput from "@/components/from/TextAreaFormInput";
 import TextFormInput from "@/components/from/TextFormInput";
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
+import { useEffect } from "react";
 
 const UnitAddForm = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const preselectedCommunityId = searchParams.get("communityId");
   const { data: communitiesData } = useListCommunities();
   const communities = communitiesData?.data || [];
   const createUnitMutation = useCreateUnit();
@@ -51,7 +54,7 @@ const UnitAddForm = () => {
     wifi: yup.boolean().default(false),
   });
 
-  const { handleSubmit, control, register, reset, watch } = useForm({
+  const { handleSubmit, control, register, reset, setValue, watch } = useForm({
     resolver: yupResolver(unitSchema),
     defaultValues: {
       type: "2bhk",
@@ -71,6 +74,12 @@ const UnitAddForm = () => {
       wifi: false,
     },
   });
+
+  useEffect(() => {
+    if (preselectedCommunityId) {
+      setValue("community_id", preselectedCommunityId);
+    }
+  }, [preselectedCommunityId, setValue]);
 
   const watchedValues = watch();
 
@@ -113,7 +122,9 @@ const UnitAddForm = () => {
       
       toast.success("Unit created successfully!");
       reset();
-      router.push("/property/list");
+      router.push(
+        unitData.community_id ? `/property/list?communityId=${unitData.community_id}` : "/property/list"
+      );
     } catch (error) {
       console.error("Error creating unit:", error);
       toast.error("Failed to create unit. Please try again.");
@@ -462,4 +473,4 @@ const UnitAddForm = () => {
   );
 };
 
-export default UnitAddForm; 
+export default UnitAddForm;

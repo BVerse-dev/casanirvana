@@ -30,7 +30,7 @@ import {
   useUpdateAgencyServiceOperation,
   useUpdateAgencyStaffOperation,
 } from "@/hooks/useAgencyOperations";
-import { useGetAgencyDirectory } from "@/hooks/useAgencyDirectory";
+import { useGetAgencyDirectory, useListAgenciesDirectory } from "@/hooks/useAgencyDirectory";
 
 const AGENCY_TABS = [
   { key: "profiles", label: "Agency Profile", href: "/agency/manage?tab=profiles", capability: "agency:profiles:view" },
@@ -41,6 +41,21 @@ const AGENCY_TABS = [
 ] as const;
 
 const toErrorText = (error: unknown) => (error instanceof Error ? error.message : null);
+
+const buildAgencyOptions = (
+  agencies: Array<{
+    id: string;
+    name?: string | null;
+    city?: string | null;
+    state?: string | null;
+  }>
+) =>
+  agencies.map((agency) => ({
+    value: agency.id,
+    label:
+      [agency.name, [agency.city, agency.state].filter(Boolean).join(", ")].filter(Boolean).join(" — ") ||
+      agency.id,
+  }));
 
 export type AgencySectionKey = (typeof AGENCY_TABS)[number]["key"];
 
@@ -53,9 +68,14 @@ const AgencyProfilesSection = ({ agencyId }: { agencyId?: string }) => {
   const filters = useMemo(() => (agencyId ? { agencyId } : undefined), [agencyId]);
   const profilesQuery = useAgencyProfilesOperations(filters);
   const agencyDirectoryQuery = useGetAgencyDirectory(agencyId || "");
+  const agenciesDirectoryQuery = useListAgenciesDirectory();
   const createMutation = useCreateAgencyProfileOperation();
   const updateMutation = useUpdateAgencyProfileOperation();
   const selectedAgency = agencyDirectoryQuery.data;
+  const profileAgencyIds = new Set((profilesQuery.data || []).map((profile) => profile.id));
+  const availableAgencyOptions = buildAgencyOptions(
+    (agenciesDirectoryQuery.data || []).filter((agency) => agency.id === agencyId || !profileAgencyIds.has(agency.id))
+  );
 
   const columns: CrudColumn[] = [
     { key: "id", label: "Agency ID" },
@@ -68,7 +88,14 @@ const AgencyProfilesSection = ({ agencyId }: { agencyId?: string }) => {
   ];
 
   const fields: CrudField[] = [
-    { key: "id", label: "Agency ID", type: "text", required: true, initialValue: agencyId || "" },
+    {
+      key: "id",
+      label: "Agency",
+      type: "select",
+      required: true,
+      initialValue: agencyId || "",
+      options: availableAgencyOptions,
+    },
     { key: "name", label: "Agency Name", type: "text", required: true, initialValue: selectedAgency?.name || "" },
     { key: "email", label: "Email", type: "text", initialValue: selectedAgency?.email || "" },
     { key: "phone", label: "Phone", type: "text", initialValue: selectedAgency?.phone || "" },
@@ -122,16 +149,24 @@ const AgencyProfilesSection = ({ agencyId }: { agencyId?: string }) => {
           : "Agency profile directory scoped to your assigned agencies."
       }
       rows={profilesQuery.data || []}
-      isLoading={profilesQuery.isLoading || agencyDirectoryQuery.isLoading}
-      error={toErrorText(profilesQuery.error)}
+      isLoading={profilesQuery.isLoading || agencyDirectoryQuery.isLoading || agenciesDirectoryQuery.isLoading}
+      error={
+        toErrorText(profilesQuery.error) ||
+        toErrorText(agencyDirectoryQuery.error) ||
+        toErrorText(agenciesDirectoryQuery.error)
+      }
       columns={columns}
       fields={fields}
-      canCreate={!agencyId || (profilesQuery.data || []).length === 0}
+      canCreate={availableAgencyOptions.length > 0 && (!agencyId || (profilesQuery.data || []).length === 0)}
       canUpdate={true}
       canDelete={false}
       onCreate={(payload) => createMutation.mutateAsync(payload)}
       onUpdate={(id, payload) => updateMutation.mutateAsync({ id, payload })}
-      onRefresh={() => profilesQuery.refetch()}
+      onRefresh={() => {
+        profilesQuery.refetch();
+        agencyDirectoryQuery.refetch();
+        agenciesDirectoryQuery.refetch();
+      }}
       emptyText={
         agencyId
           ? "No agency profile exists for this agency yet. Use Add to create the operational profile."
@@ -144,12 +179,19 @@ const AgencyProfilesSection = ({ agencyId }: { agencyId?: string }) => {
 const AgencyStaffSection = ({ agencyId }: { agencyId?: string }) => {
   const filters = useMemo(() => (agencyId ? { agencyId } : undefined), [agencyId]);
   const staffQuery = useAgencyStaffOperations(filters);
+  const agenciesQuery = useListAgenciesDirectory();
   const createMutation = useCreateAgencyStaffOperation();
   const updateMutation = useUpdateAgencyStaffOperation();
   const deleteMutation = useDeleteAgencyStaffOperation();
+  const agencyMap = new Map((agenciesQuery.data || []).map((agency) => [agency.id, agency.name]));
+  const agencyOptions = buildAgencyOptions(agenciesQuery.data || []);
 
   const columns: CrudColumn[] = [
-    { key: "agency_id", label: "Agency ID" },
+    {
+      key: "agency_id",
+      label: "Agency",
+      render: (row) => agencyMap.get(String(row.agency_id || "")) || "—",
+    },
     { key: "first_name", label: "First Name" },
     { key: "last_name", label: "Last Name" },
     { key: "email", label: "Email" },
@@ -158,7 +200,14 @@ const AgencyStaffSection = ({ agencyId }: { agencyId?: string }) => {
   ];
 
   const fields: CrudField[] = [
-    { key: "agency_id", label: "Agency ID", type: "text", required: !agencyId, initialValue: agencyId || "" },
+    {
+      key: "agency_id",
+      label: "Agency",
+      type: "select",
+      required: !agencyId,
+      initialValue: agencyId || "",
+      options: agencyOptions,
+    },
     { key: "first_name", label: "First Name", type: "text", required: true },
     { key: "last_name", label: "Last Name", type: "text", required: true },
     { key: "email", label: "Email", type: "text", required: true },
@@ -179,14 +228,17 @@ const AgencyStaffSection = ({ agencyId }: { agencyId?: string }) => {
       title="Staff Management"
       subTitle="Manage agency team records with scoped write controls."
       rows={staffQuery.data || []}
-      isLoading={staffQuery.isLoading}
-      error={toErrorText(staffQuery.error)}
+      isLoading={staffQuery.isLoading || agenciesQuery.isLoading}
+      error={toErrorText(staffQuery.error) || toErrorText(agenciesQuery.error)}
       columns={columns}
       fields={fields}
       onCreate={(payload) => createMutation.mutateAsync(payload)}
       onUpdate={(id, payload) => updateMutation.mutateAsync({ id, payload })}
       onDelete={(id) => deleteMutation.mutateAsync(id)}
-      onRefresh={() => staffQuery.refetch()}
+      onRefresh={() => {
+        staffQuery.refetch();
+        agenciesQuery.refetch();
+      }}
       emptyText="No agency staff records found."
     />
   );
@@ -195,12 +247,19 @@ const AgencyStaffSection = ({ agencyId }: { agencyId?: string }) => {
 const AgencyServicesSection = ({ agencyId }: { agencyId?: string }) => {
   const filters = useMemo(() => (agencyId ? { agencyId } : undefined), [agencyId]);
   const servicesQuery = useAgencyServicesOperations(filters);
+  const agenciesQuery = useListAgenciesDirectory();
   const createMutation = useCreateAgencyServiceOperation();
   const updateMutation = useUpdateAgencyServiceOperation();
   const deleteMutation = useDeleteAgencyServiceOperation();
+  const agencyMap = new Map((agenciesQuery.data || []).map((agency) => [agency.id, agency.name]));
+  const agencyOptions = buildAgencyOptions(agenciesQuery.data || []);
 
   const columns: CrudColumn[] = [
-    { key: "agency_id", label: "Agency ID" },
+    {
+      key: "agency_id",
+      label: "Agency",
+      render: (row) => agencyMap.get(String(row.agency_id || "")) || "—",
+    },
     { key: "service_name", label: "Service" },
     { key: "category", label: "Category" },
     { key: "rate_type", label: "Rate Type" },
@@ -209,7 +268,14 @@ const AgencyServicesSection = ({ agencyId }: { agencyId?: string }) => {
   ];
 
   const fields: CrudField[] = [
-    { key: "agency_id", label: "Agency ID", type: "text", required: !agencyId, initialValue: agencyId || "" },
+    {
+      key: "agency_id",
+      label: "Agency",
+      type: "select",
+      required: !agencyId,
+      initialValue: agencyId || "",
+      options: agencyOptions,
+    },
     { key: "service_name", label: "Service Name", type: "text", required: true },
     { key: "category", label: "Category", type: "text" },
     { key: "description", label: "Description", type: "textarea" },
@@ -228,14 +294,17 @@ const AgencyServicesSection = ({ agencyId }: { agencyId?: string }) => {
       title="Services Management"
       subTitle="Agency service catalog and pricing operations."
       rows={servicesQuery.data || []}
-      isLoading={servicesQuery.isLoading}
-      error={toErrorText(servicesQuery.error)}
+      isLoading={servicesQuery.isLoading || agenciesQuery.isLoading}
+      error={toErrorText(servicesQuery.error) || toErrorText(agenciesQuery.error)}
       columns={columns}
       fields={fields}
       onCreate={(payload) => createMutation.mutateAsync(payload)}
       onUpdate={(id, payload) => updateMutation.mutateAsync({ id, payload })}
       onDelete={(id) => deleteMutation.mutateAsync(id)}
-      onRefresh={() => servicesQuery.refetch()}
+      onRefresh={() => {
+        servicesQuery.refetch();
+        agenciesQuery.refetch();
+      }}
       emptyText="No agency services found."
     />
   );
@@ -244,11 +313,18 @@ const AgencyServicesSection = ({ agencyId }: { agencyId?: string }) => {
 const AgencyFinanceSection = ({ agencyId }: { agencyId?: string }) => {
   const filters = useMemo(() => (agencyId ? { agencyId } : undefined), [agencyId]);
   const financeQuery = useAgencyFinanceOperations(filters);
+  const agenciesQuery = useListAgenciesDirectory();
   const createMutation = useCreateAgencyFinanceOperation();
   const updateMutation = useUpdateAgencyFinanceOperation();
+  const agencyMap = new Map((agenciesQuery.data || []).map((agency) => [agency.id, agency.name]));
+  const agencyOptions = buildAgencyOptions(agenciesQuery.data || []);
 
   const columns: CrudColumn[] = [
-    { key: "agency_id", label: "Agency ID" },
+    {
+      key: "agency_id",
+      label: "Agency",
+      render: (row) => agencyMap.get(String(row.agency_id || "")) || "—",
+    },
     { key: "date", label: "Date" },
     { key: "type", label: "Type" },
     { key: "category", label: "Category" },
@@ -257,7 +333,14 @@ const AgencyFinanceSection = ({ agencyId }: { agencyId?: string }) => {
   ];
 
   const fields: CrudField[] = [
-    { key: "agency_id", label: "Agency ID", type: "text", required: !agencyId, initialValue: agencyId || "" },
+    {
+      key: "agency_id",
+      label: "Agency",
+      type: "select",
+      required: !agencyId,
+      initialValue: agencyId || "",
+      options: agencyOptions,
+    },
     { key: "date", label: "Date", type: "date", required: true },
     { key: "type", label: "Type", type: "text", required: true },
     { key: "category", label: "Category", type: "text", required: true },
@@ -274,14 +357,17 @@ const AgencyFinanceSection = ({ agencyId }: { agencyId?: string }) => {
       title="Finance & Billing"
       subTitle="Agency-scoped financial ledger entries for operational reporting."
       rows={financeQuery.data || []}
-      isLoading={financeQuery.isLoading}
-      error={toErrorText(financeQuery.error)}
+      isLoading={financeQuery.isLoading || agenciesQuery.isLoading}
+      error={toErrorText(financeQuery.error) || toErrorText(agenciesQuery.error)}
       columns={columns}
       fields={fields}
       onCreate={(payload) => createMutation.mutateAsync(payload)}
       onUpdate={(id, payload) => updateMutation.mutateAsync({ id, payload })}
       canDelete={false}
-      onRefresh={() => financeQuery.refetch()}
+      onRefresh={() => {
+        financeQuery.refetch();
+        agenciesQuery.refetch();
+      }}
       emptyText="No agency finance transactions found."
     />
   );
@@ -290,12 +376,19 @@ const AgencyFinanceSection = ({ agencyId }: { agencyId?: string }) => {
 const AgencyDocumentsSection = ({ agencyId }: { agencyId?: string }) => {
   const filters = useMemo(() => (agencyId ? { agencyId } : undefined), [agencyId]);
   const documentsQuery = useAgencyDocumentsOperations(filters);
+  const agenciesQuery = useListAgenciesDirectory();
   const createMutation = useCreateAgencyDocumentOperation();
   const updateMutation = useUpdateAgencyDocumentOperation();
   const deleteMutation = useDeleteAgencyDocumentOperation();
+  const agencyMap = new Map((agenciesQuery.data || []).map((agency) => [agency.id, agency.name]));
+  const agencyOptions = buildAgencyOptions(agenciesQuery.data || []);
 
   const columns: CrudColumn[] = [
-    { key: "agency_id", label: "Agency ID" },
+    {
+      key: "agency_id",
+      label: "Agency",
+      render: (row) => agencyMap.get(String(row.agency_id || "")) || "—",
+    },
     { key: "name", label: "Document Name" },
     { key: "category", label: "Category" },
     { key: "type", label: "Type" },
@@ -304,7 +397,14 @@ const AgencyDocumentsSection = ({ agencyId }: { agencyId?: string }) => {
   ];
 
   const fields: CrudField[] = [
-    { key: "agency_id", label: "Agency ID", type: "text", required: !agencyId, initialValue: agencyId || "" },
+    {
+      key: "agency_id",
+      label: "Agency",
+      type: "select",
+      required: !agencyId,
+      initialValue: agencyId || "",
+      options: agencyOptions,
+    },
     { key: "name", label: "Document Name", type: "text", required: true },
     { key: "category", label: "Category", type: "text", required: true },
     { key: "type", label: "Type", type: "text", required: true },
@@ -324,14 +424,17 @@ const AgencyDocumentsSection = ({ agencyId }: { agencyId?: string }) => {
       title="Documents & Records"
       subTitle="Agency document management with scoped access enforcement."
       rows={documentsQuery.data || []}
-      isLoading={documentsQuery.isLoading}
-      error={toErrorText(documentsQuery.error)}
+      isLoading={documentsQuery.isLoading || agenciesQuery.isLoading}
+      error={toErrorText(documentsQuery.error) || toErrorText(agenciesQuery.error)}
       columns={columns}
       fields={fields}
       onCreate={(payload) => createMutation.mutateAsync(payload)}
       onUpdate={(id, payload) => updateMutation.mutateAsync({ id, payload })}
       onDelete={(id) => deleteMutation.mutateAsync(id)}
-      onRefresh={() => documentsQuery.refetch()}
+      onRefresh={() => {
+        documentsQuery.refetch();
+        agenciesQuery.refetch();
+      }}
       emptyText="No agency documents found."
     />
   );

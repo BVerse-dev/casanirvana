@@ -18,6 +18,8 @@ const formatMoney = (amount?: number | null) =>
 
 const formatDateTime = (value?: string | null) => (value ? new Date(value).toLocaleString() : "N/A");
 const formatDate = (value?: string | null) => (value ? new Date(value).toLocaleDateString() : "N/A");
+const getPaymentLabel = (value?: string | null) =>
+  value ? formatServiceRequestStatusLabel(value) : "Not tracked";
 
 const getStatusVariant = (status?: string | null) => {
   switch (status) {
@@ -47,8 +49,7 @@ const ServiceRequestDetailsPage = () => {
     try {
       await updateServiceRequest.mutateAsync({
         id: serviceRequest.id,
-        status,
-        completion_date: status === "completed" ? new Date().toISOString().slice(0, 10) : null,
+        data: { status },
       });
       setFeedback({
         variant: "success",
@@ -170,7 +171,7 @@ const ServiceRequestDetailsPage = () => {
                   <div className="d-flex gap-2 flex-wrap mb-2">
                     <Badge bg={getStatusVariant(serviceRequest.status)}>{formatServiceRequestStatusLabel(serviceRequest.status)}</Badge>
                     <Badge bg="light" text="dark" className="border">
-                      Payment: {formatServiceRequestStatusLabel(serviceRequest.payment_status || "not_required")}
+                      Billing: {getPaymentLabel(serviceRequest.payment_status)}
                     </Badge>
                   </div>
                   <h3 className="mb-2">{serviceRequest.title || getServiceDisplayName(serviceRequest.services) || "Service Request"}</h3>
@@ -315,7 +316,11 @@ const ServiceRequestDetailsPage = () => {
               <div className="d-flex justify-content-between mb-2">
                 <span className="text-muted">Assigned To</span>
                 <span className="fw-semibold">
-                  {[serviceRequest.assigned_profile?.first_name, serviceRequest.assigned_profile?.last_name].filter(Boolean).join(" ") || serviceRequest.assigned_profile?.email || "Unassigned"}
+                  {[serviceRequest.assigned_profile?.first_name, serviceRequest.assigned_profile?.last_name].filter(Boolean).join(" ") ||
+                    serviceRequest.assigned_profile?.email ||
+                    serviceRequest.assigned_display_name ||
+                    serviceRequest.assigned_to ||
+                    "Unassigned"}
                 </span>
               </div>
               <div className="d-flex justify-content-between mb-2">

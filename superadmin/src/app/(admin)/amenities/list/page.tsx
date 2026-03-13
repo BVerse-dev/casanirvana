@@ -8,7 +8,7 @@ export const metadata: Metadata = { title: "Amenities Management" };
 const AmenitiesListPage = () => {
   return (
     <>
-      <PageTitle title="Amenities Management" subName="Community Management" />
+      <PageTitle title="Amenities Management" subName="Operations" />
       <AmenitiesStat />
       <AmenitiesList />
     </>

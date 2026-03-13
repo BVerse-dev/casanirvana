@@ -1,25 +1,23 @@
 'use client'
-import homeImg from '@/assets/images/home-2.png'
+
 import IconifyIcon from '@/components/wrappers/IconifyIcon'
 import { ApexOptions } from 'apexcharts'
-import Image from 'next/image'
-import Link from 'next/link'
 import ReactApexChart from 'react-apexcharts'
-import { Card, CardBody, CardFooter, CardHeader, CardTitle, Col, Dropdown, DropdownItem, DropdownMenu, DropdownToggle, Row } from 'react-bootstrap'
-import { useListResidents } from '@/hooks/useResidents'
+import { Card, CardBody, Col, Row } from 'react-bootstrap'
 
-const ResidentsChart = ({ residents }: { residents: any[] }) => {
-  // Calculate resident statistics
-  const activeResidents = residents.filter(r => r.is_active).length
-  const inactiveResidents = residents.filter(r => !r.is_active).length
-  const totalResidents = residents.length
+import type { Resident } from '@/hooks/useResidents'
 
-  const GridOptions: ApexOptions = {
+const ResidentsChart = ({ residents }: { residents: Resident[] }) => {
+  const activeResidents = residents.filter((resident) => resident.is_active).length
+  const inactiveResidents = residents.length - activeResidents
+  const pendingResidents = residents.filter((resident) => resident.status === 'pending').length
+
+  const chartOptions: ApexOptions = {
     chart: {
       height: 123,
       type: 'donut',
     },
-    series: [activeResidents, inactiveResidents, 0], // No pending for now
+    series: [activeResidents, inactiveResidents, pendingResidents],
     legend: {
       show: false,
     },
@@ -30,13 +28,6 @@ const ResidentsChart = ({ residents }: { residents: any[] }) => {
       pie: {
         donut: {
           size: '70%',
-          labels: {
-            show: false,
-            total: {
-              showAlways: true,
-              show: true,
-            },
-          },
         },
       },
     },
@@ -45,215 +36,119 @@ const ResidentsChart = ({ residents }: { residents: any[] }) => {
     dataLabels: {
       enabled: false,
     },
-    responsive: [
-      {
-        breakpoint: 480,
-        options: {
-          chart: {
-            width: 200,
-          },
-        },
-      },
-    ],
   }
+
   return (
     <Col xl={6} lg={12}>
       <Card>
         <CardBody>
           <Row className="align-items-center">
             <Col lg={7}>
-              <h4 className="text-dark mb-1">Welcome Back, Admin</h4>
-              <p className="fs-14">This is your residents management dashboard</p>
+              <h4 className="text-dark mb-1">Resident portfolio overview</h4>
+              <p className="fs-14 text-muted mb-3">Live status split for the residents currently in this directory.</p>
               <Row className="align-items-center text-center mb-2">
                 <Col lg={7} className="border-end border-light">
-                  <Row className="align-items-center">
-                    <Col lg={6}>
-                      <div id="grid-chart" className="apex-charts" />
-                      <ReactApexChart options={GridOptions} series={GridOptions.series} height={123} type="donut" className="apex-charts mb-4" />
-                    </Col>
-                    <Col lg={6}>
-                      <h5>Residents</h5>
-                      <h2 className="fw-semibold text-dark">{totalResidents}</h2>
-                    </Col>
-                  </Row>
+                  <ReactApexChart options={chartOptions} series={chartOptions.series} height={123} type="donut" className="apex-charts mb-4" />
                 </Col>
                 <Col lg={5}>
-                  <div className="ps-2">
-                    <p className="d-flex align-items-center mb-2 gap-2">
-                      <IconifyIcon icon="ri:circle-fill" className="text-primary" />
-                      {activeResidents} Active
-                    </p>
-                    <p className="d-flex align-items-center mb-2 gap-2">
-                      <IconifyIcon icon="ri:circle-fill" className="text-warning" />
-                      {inactiveResidents} Inactive
-                    </p>
-                    <p className="d-flex align-items-center gap-2 mb-0">
-                      <IconifyIcon icon="ri:circle-fill" className="text-success" />
-                      0 Pending
-                    </p>
-                  </div>
+                  <h5>Total Residents</h5>
+                  <h2 className="fw-semibold text-dark">{residents.length}</h2>
                 </Col>
               </Row>
-              <p className="text-muted mb-0 d-flex align-items-center gap-1">
-                Last Updated <span>:</span> <span className="text-dark">4 day ago</span>
+              <p className="mb-1 d-flex align-items-center gap-2">
+                <IconifyIcon icon="ri:circle-fill" className="text-primary" />
+                {activeResidents} Active
+              </p>
+              <p className="mb-1 d-flex align-items-center gap-2">
+                <IconifyIcon icon="ri:circle-fill" className="text-warning" />
+                {inactiveResidents} Inactive
+              </p>
+              <p className="mb-0 d-flex align-items-center gap-2">
+                <IconifyIcon icon="ri:circle-fill" className="text-success" />
+                {pendingResidents} Pending
               </p>
             </Col>
-            <Col lg={5} className="text-end">
-              <Image src={homeImg} alt="home" className="img-fluid" />
-            </Col>
-          </Row>
-        </CardBody>
-      </Card>
-    </Col>
-  )
-}
-
-const DevelopmentTask = ({ residents }: { residents: any[] }) => {
-  // Get unique units from residents data
-  const uniqueUnits = Array.from(new Set(residents.map(r => r.units?.id).filter(Boolean)))
-  const totalUnits = uniqueUnits.length
-  const occupiedUnits = residents.filter(r => r.units?.id).length
-  const vacantUnits = Math.max(0, totalUnits - occupiedUnits)
-  
-  return (
-    <Col xl={3} lg={6}>
-      <Card>
-        <CardHeader className="d-flex align-items-center border-bottom border-dashed">
-          <CardTitle as={'h4'} className="mb-0">
-            Unit Statistics
-          </CardTitle>
-          <div className="ms-auto">
-            <Dropdown>
-              <DropdownToggle as={'a'} className="drop-arrow-none card-drop p-0 " data-bs-toggle="dropdown" aria-expanded="false">
-                <IconifyIcon className="ms-1" width={16} height={16} icon="ri:arrow-down-s-line" />
-              </DropdownToggle>
-              <DropdownMenu className="dropdown-menu-end">
-                <DropdownItem>Download</DropdownItem>
-                <DropdownItem>Share</DropdownItem>
-              </DropdownMenu>
-            </Dropdown>
-          </div>
-        </CardHeader>
-        <CardBody>
-          <Row>
             <Col lg={5}>
-              <h5 className="text-dark fw-medium mb-1">{totalUnits}</h5>
-              <p className="text-muted mb-0">Total Units</p>
-            </Col>
-            <Col lg={4} xs={3} className="text-center">
-              <h5 className="text-dark fw-medium mb-1">{occupiedUnits}</h5>
-              <p className="text-muted mb-0">Occupied</p>
-            </Col>
-            <Col xl={3} xs={3} className="text-end">
-              <h5 className="text-dark fw-medium mb-1">{vacantUnits}</h5>
-              <p className="text-muted mb-0">Vacant</p>
+              <div className="rounded bg-light-subtle p-3">
+                <h6 className="text-uppercase text-muted mb-2">Launch Readiness Note</h6>
+                <p className="mb-0 text-muted">
+                  This summary is generated from the current resident records only. No fallback counts or fixed demo totals remain in this header.
+                </p>
+              </div>
             </Col>
           </Row>
-          <div className="progress progress-lg bg-light-subtle rounded-0 gap-1 overflow-visible mt-2" style={{ height: 10 }}>
-            <div 
-              className="progress-bar bg-primary rounded-pill" 
-              role="progressbar" 
-              style={{ width: `${totalUnits > 0 ? (occupiedUnits / totalUnits) * 100 : 0}%` }}
-            ></div>
-            <div 
-              className="progress-bar bg-warning rounded-pill" 
-              role="progressbar" 
-              style={{ width: `${totalUnits > 0 ? (vacantUnits / totalUnits) * 100 : 0}%` }}
-            ></div>
-          </div>
-          <p className="mb-0 mt-3">
-            <span className="text-success fw-medium mb-0">
-              <IconifyIcon icon="ri:arrow-up-line" />
-              {totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0}%
-            </span>{' '}
-            Occupancy Rate
-          </p>
         </CardBody>
-        <CardFooter className="d-flex justify-content-between  py-2">
-          <p className="text-muted mb-0 d-flex align-items-center gap-1">
-            Last Updated <span>:</span> <span className="text-dark">12 hour ago</span>
-          </p>
-          <Link href="" className="link-primary fw-medium">
-            View More
-          </Link>
-        </CardFooter>
       </Card>
     </Col>
   )
 }
 
-const SealProperties = () => {
-  const SealPropertiesOptions: ApexOptions = {
-    chart: {
-      type: 'line',
-      height: 115,
-      sparkline: {
-        enabled: true,
-      },
-    },
-    series: [
-      {
-        data: [25, 66, 41, 89, 63, 25, 44, 12, 36, 9, 54],
-      },
-    ],
-    stroke: {
-      width: 2,
-      curve: 'smooth',
-    },
-    markers: {
-      size: 0,
-    },
-    colors: ['#ffffff'],
-    tooltip: {
-      fixed: {
-        enabled: false,
-      },
-      x: {
-        show: false,
-      },
-      y: {
-        title: {
-          formatter: function (seriesName) {
-            return ''
-          },
-        },
-      },
-      marker: {
-        show: false,
-      },
-    },
-  }
+const UnitCoverageCard = ({ residents }: { residents: Resident[] }) => {
+  const unitIds = Array.from(new Set(residents.map((resident) => resident.units?.id).filter(Boolean)))
+  const assignedResidents = residents.filter((resident) => Boolean(resident.unit_id)).length
+  const tenantResidents = residents.filter((resident) => resident.role === 'tenant').length
+  const occupancyRate = unitIds.length > 0 ? Math.round((assignedResidents / unitIds.length) * 100) : 0
+
   return (
     <Col xl={3} lg={6}>
-      <Card className="bg-primary bg-gradient">
+      <Card className="h-100">
         <CardBody>
           <div className="d-flex align-items-center justify-content-between mb-3">
             <div>
-              <CardTitle as={'h4'} className="mb-2 text-white">
-                Total Active Residents{' '}
-              </CardTitle>
-              <p className="text-white fw-medium fs-24 mb-0">150</p>
+              <p className="text-muted mb-1">Units Referenced</p>
+              <h3 className="mb-0">{unitIds.length}</h3>
             </div>
-            <div>
-              <div className="avatar-md bg-light rounded flex-centered">
-                <IconifyIcon icon="ri:group-line" width={32} height={32} className="fs-32 text-primary" />
-              </div>
+            <div className="avatar-md bg-primary-subtle rounded flex-centered">
+              <IconifyIcon icon="solar:buildings-2-bold-duotone" className="fs-28 text-primary" />
             </div>
           </div>
-          <div id="seal_properties" data-colors="#ffffff" className="apex-charts" />
-          <ReactApexChart options={SealPropertiesOptions} series={SealPropertiesOptions.series} height={115} type="line" className="apex-charts" />
+          <p className="mb-2 text-muted">Residents with assigned units: {assignedResidents}</p>
+          <p className="mb-3 text-muted">Residents marked as tenants: {tenantResidents}</p>
+          <div className="progress progress-sm bg-light-subtle">
+            <div className="progress-bar bg-primary" role="progressbar" style={{ width: `${occupancyRate}%` }} />
+          </div>
+          <p className="mb-0 mt-2 text-muted">{occupancyRate}% resident-to-unit coverage</p>
         </CardBody>
       </Card>
     </Col>
   )
 }
 
-const ResidentGridCard = ({ residents }: { residents: any[] }) => {
+const CommunityCoverageCard = ({ residents }: { residents: Resident[] }) => {
+  const communityNames = Array.from(
+    new Set(residents.map((resident) => resident.communities?.name).filter((value): value is string => Boolean(value)))
+  )
+  const unassignedResidents = residents.filter((resident) => !resident.community_id).length
+
+  return (
+    <Col xl={3} lg={6}>
+      <Card className="bg-primary bg-gradient text-white h-100">
+        <CardBody>
+          <div className="d-flex align-items-center justify-content-between mb-3">
+            <div>
+              <p className="text-white-50 mb-1">Communities Represented</p>
+              <h3 className="text-white mb-0">{communityNames.length}</h3>
+            </div>
+            <div className="avatar-md bg-white rounded flex-centered">
+              <IconifyIcon icon="solar:map-point-wave-bold-duotone" className="fs-28 text-primary" />
+            </div>
+          </div>
+          <p className="mb-2 text-white-50">Residents without community assignment: {unassignedResidents}</p>
+          <p className="mb-0 text-white-50">
+            This card now reflects current community coverage instead of a fixed resident total.
+          </p>
+        </CardBody>
+      </Card>
+    </Col>
+  )
+}
+
+const ResidentGridCard = ({ residents }: { residents: Resident[] }) => {
   return (
     <Row>
       <ResidentsChart residents={residents} />
-      <DevelopmentTask residents={residents} />
-      <SealProperties />
+      <UnitCoverageCard residents={residents} />
+      <CommunityCoverageCard residents={residents} />
     </Row>
   )
 }

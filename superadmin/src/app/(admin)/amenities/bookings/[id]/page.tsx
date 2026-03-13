@@ -151,7 +151,7 @@ const AmenityBookingDetailsPage = () => {
   if (isLoading) {
     return (
       <>
-        <PageTitle title="Booking Details" subName="Amenity Management" />
+        <PageTitle title="Booking Details" subName="Operations" />
         <Card>
           <CardBody className="text-center py-5">Loading booking details...</CardBody>
         </Card>
@@ -162,7 +162,7 @@ const AmenityBookingDetailsPage = () => {
   if (error || !booking) {
     return (
       <>
-        <PageTitle title="Booking Details" subName="Amenity Management" />
+        <PageTitle title="Booking Details" subName="Operations" />
         <Alert variant="danger">
           {error ? "Failed to load booking details." : "Amenity booking not found."}
         </Alert>
@@ -182,7 +182,7 @@ const AmenityBookingDetailsPage = () => {
 
   return (
     <>
-      <PageTitle title="Amenity Booking Details" subName="Amenity Management" />
+      <PageTitle title="Amenity Booking Details" subName="Operations" />
 
       <Row className="mb-3">
         <Col xl={12}>

@@ -1,54 +1,51 @@
 "use client";
+
+import avatar2 from "@/assets/images/users/avatar-2.jpg";
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
 import Image from "next/image";
 import Link from "next/link";
 import { Card, CardBody, CardHeader, CardTitle } from "react-bootstrap";
-import { useListResidents } from "@/hooks/useResidents";
-import avatar2 from "@/assets/images/users/avatar-2.jpg";
+import { useResidentDashboardRoster } from "@/hooks/useResidentDashboard";
 
 const TopResidents = () => {
-  const { data: residents, isLoading } = useListResidents();
+  const { data: residentRoster, isLoading } = useResidentDashboardRoster();
 
   if (isLoading) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle as={"h4"}>Top Resident</CardTitle>
+          <CardTitle as={"h4"}>Featured Resident</CardTitle>
         </CardHeader>
         <CardBody>
           <div className="placeholder-glow">
-            <div className="placeholder rounded" style={{ height: '200px' }}></div>
-            <div className="mt-2">
-              <span className="placeholder col-8"></span>
-              <span className="placeholder col-6"></span>
-            </div>
+            <div className="placeholder rounded" style={{ height: "200px" }}></div>
           </div>
         </CardBody>
       </Card>
     );
   }
 
-  // Get the first active resident as the featured resident
-  const featuredResident = residents?.find(r => r.is_active) || residents?.[0];
+  const featuredResident = residentRoster?.featuredResident || null;
 
   if (!featuredResident) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle as={"h4"}>Top Resident</CardTitle>
+          <CardTitle as={"h4"}>Featured Resident</CardTitle>
         </CardHeader>
         <CardBody>
           <div className="text-center py-4">
-            <IconifyIcon 
-              icon="ri:user-line" 
-              className="fs-48 text-muted mb-2"
-            />
+            <IconifyIcon icon="ri:user-line" className="fs-48 text-muted mb-2" />
             <p className="text-muted">No resident data available</p>
           </div>
         </CardBody>
       </Card>
     );
   }
+
+  const residentName =
+    featuredResident.full_name || `${featuredResident.first_name} ${featuredResident.last_name}`.trim() || "Resident";
+  const hasUnit = featuredResident.unit_number && featuredResident.unit_number !== "N/A";
 
   return (
     <Card>
@@ -58,9 +55,9 @@ const TopResidents = () => {
       <CardBody>
         <div className="bg-primary position-relative rounded p-3 overflow-hidden z-1 text-center">
           <div className="d-flex align-items-center justify-content-center mb-3">
-            <Image 
-              src={featuredResident.avatar_url || avatar2} 
-              alt="resident-avatar" 
+            <Image
+              src={featuredResident.avatar_url || avatar2}
+              alt="resident-avatar"
               className="rounded-circle border border-light border-3"
               width={80}
               height={80}
@@ -70,22 +67,19 @@ const TopResidents = () => {
             <div className="d-flex align-items-center justify-content-between">
               <div className="flex-grow-1">
                 <Link href={`/residents/details?id=${featuredResident.id}`} className="text-white fw-medium fs-16">
-                  {featuredResident.full_name || `${featuredResident.first_name} ${featuredResident.last_name}`}
+                  {residentName}
                 </Link>
                 <p className="mb-0 text-white-50">
-                  {featuredResident.units?.society_id ? 
-                    `Unit ${featuredResident.unit_number || 'N/A'}` : 
-                    'Casa Nirvana Resident'
-                  }
+                  {hasUnit ? `Unit ${featuredResident.unit_number}` : "No linked unit"}
                 </p>
                 <div className="d-flex flex-wrap gap-2 align-items-center mt-2">
                   <span className="badge bg-success bg-opacity-75 text-white">
                     <IconifyIcon icon="ri:check-line" className="me-1" />
-                    {featuredResident.is_active ? 'Active' : 'Inactive'}
+                    {featuredResident.is_active ? "Active" : "Inactive"}
                   </span>
                   <span className="badge bg-info bg-opacity-75 text-white">
                     <IconifyIcon icon="ri:home-line" className="me-1" />
-                    Verified
+                    {hasUnit ? "Unit Linked" : "Needs Unit Assignment"}
                   </span>
                 </div>
               </div>
