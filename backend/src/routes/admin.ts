@@ -23,6 +23,7 @@ import * as messagesAdminController from '../controllers/adminMessages';
 import * as messagesReadModelsAdminController from '../controllers/adminMessagesReadModels';
 import * as adminNotificationsController from '../controllers/adminNotifications';
 import * as adminNoticesController from '../controllers/adminNotices';
+import * as adminMarketplaceController from '../controllers/adminMarketplace';
 import * as paymentController from '../controllers/payment';
 import * as adminPaymentGatewayController from '../controllers/adminPaymentGateway';
 import * as adminSecureSettingsController from '../controllers/adminSecureSettings';
@@ -1311,6 +1312,68 @@ router.get(
   requirePermission('read:all_payments'),
   validateRequest({ query: schemas.adminPersonalHubReportsQuery }),
   paymentController.getAdminPersonalHubReports
+);
+router.get(
+  '/personal-hub/marketplace/workspace',
+  requireAuth,
+  requirePermission('read:all_payments'),
+  adminMarketplaceController.getMarketplaceWorkspace
+);
+router.post(
+  '/personal-hub/marketplace/categories',
+  requireAuth,
+  requirePermission('create:payments'),
+  validateRequest({ body: schemas.adminMarketplaceCategoryCreate }),
+  adminMarketplaceController.createMarketplaceCategory
+);
+router.patch(
+  '/personal-hub/marketplace/categories/:id',
+  requireAuth,
+  requirePermission('update:payments'),
+  validateRequest({ params: schemas.idParam, body: schemas.adminMarketplaceCategoryUpdate }),
+  adminMarketplaceController.updateMarketplaceCategory
+);
+router.post(
+  '/personal-hub/marketplace/products',
+  requireAuth,
+  requirePermission('create:payments'),
+  validateRequest({ body: schemas.adminMarketplaceProductCreate }),
+  adminMarketplaceController.createMarketplaceProduct
+);
+router.patch(
+  '/personal-hub/marketplace/products/:id',
+  requireAuth,
+  requirePermission('update:payments'),
+  validateRequest({ params: schemas.idParam, body: schemas.adminMarketplaceProductUpdate }),
+  adminMarketplaceController.updateMarketplaceProduct
+);
+router.post(
+  '/personal-hub/marketplace/vendors',
+  requireAuth,
+  requirePermission('create:payments'),
+  validateRequest({ body: schemas.adminMarketplaceVendorCreate }),
+  adminMarketplaceController.createMarketplaceVendor
+);
+router.patch(
+  '/personal-hub/marketplace/vendors/:id',
+  requireAuth,
+  requirePermission('update:payments'),
+  validateRequest({ params: schemas.idParam, body: schemas.adminMarketplaceVendorUpdate }),
+  adminMarketplaceController.updateMarketplaceVendor
+);
+router.patch(
+  '/personal-hub/marketplace/orders/:id/status',
+  requireAuth,
+  requirePermission('update:payments'),
+  validateRequest({ params: schemas.idParam, body: schemas.adminMarketplaceOrderStatusUpdate }),
+  adminMarketplaceController.updateMarketplaceOrderStatus
+);
+router.patch(
+  '/personal-hub/marketplace/reviews/:id/visibility',
+  requireAuth,
+  requirePermission('update:payments'),
+  validateRequest({ params: schemas.idParam, body: schemas.adminMarketplaceReviewVisibilityUpdate }),
+  adminMarketplaceController.updateMarketplaceReviewVisibility
 );
 router.get(
   '/payments/transactions',

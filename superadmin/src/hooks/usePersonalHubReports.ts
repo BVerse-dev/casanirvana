@@ -1,10 +1,8 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 
 import { useAdminApi } from '@/hooks/useAdminApi';
-import { supabase } from '@/lib/supabase';
 
 export type PersonalHubReportsPeriod = '7' | '30' | '90' | '365';
 
@@ -165,8 +163,6 @@ const EMPTY_SUMMARY_GROWTH: PersonalHubReportSummary['growth'] = {
 
 export function usePersonalHubReports(filters: Partial<PersonalHubReportsFilters> = {}) {
   const { fetchAdmin, hasToken } = useAdminApi();
-  const queryClient = useQueryClient();
-  const channelNameRef = useRef(`admin-personal-hub-reports-${Math.random().toString(36).slice(2)}`);
 
   const period = filters.period || DEFAULT_PERIOD;
   const serviceTypes = filters.serviceTypes || [];
@@ -176,28 +172,6 @@ export function usePersonalHubReports(filters: Partial<PersonalHubReportsFilters
   const minAmount = filters.minAmount || '';
   const maxAmount = filters.maxAmount || '';
   const limit = filters.limit || DEFAULT_LIMIT;
-
-  useEffect(() => {
-    const invalidate = () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-personal-hub-reports'] });
-    };
-
-    const channel = supabase
-      .channel(channelNameRef.current)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'personal_hub_analytics' }, invalidate)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'airtime_purchases' }, invalidate)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'data_purchases' }, invalidate)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'money_transfers' }, invalidate)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'bill_payments' }, invalidate)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'insurance_payments' }, invalidate)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'shopping_payments' }, invalidate);
-
-    channel.subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [queryClient]);
 
   const query = useQuery({
     queryKey: [
@@ -225,6 +199,7 @@ export function usePersonalHubReports(filters: Partial<PersonalHubReportsFilters
       return fetchAdmin<PersonalHubReportsResponse>(`/admin/personal-hub/reports?${params.toString()}`);
     },
     staleTime: 30_000,
+    refetchInterval: 60_000,
     placeholderData: (previous) => previous,
   });
 
