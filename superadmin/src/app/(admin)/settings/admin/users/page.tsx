@@ -16,10 +16,8 @@ import IconifyIcon from '@/components/wrappers/IconifyIcon';
 
 // Hooks
 import { useListProfiles } from '@/hooks/useProfiles';
-import { useSession } from 'next-auth/react';
 import { useQueryClient } from '@tanstack/react-query';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+import { useAdminApi } from '@/hooks/useAdminApi';
 
 // Validation schema
 const adminUserSchema = yup.object({
@@ -46,8 +44,8 @@ interface AdminUserFormData {
 
 const AdminUsersSettingsPage = () => {
   const { data: profiles, isLoading: loadingProfiles } = useListProfiles();
-  const { data: session } = useSession();
   const queryClient = useQueryClient();
+  const { fetchAdmin } = useAdminApi();
 
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
@@ -55,28 +53,6 @@ const AdminUsersSettingsPage = () => {
   const [filterRole, setFilterRole] = useState<string>('all');
   const [showAlert, setShowAlert] = useState<{ type: 'success' | 'danger'; message: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const fetchAdmin = async (path: string, options: RequestInit = {}) => {
-    const token = session?.accessToken as string | undefined;
-    if (!token) {
-      throw new Error('Missing admin session. Please sign in again.');
-    }
-
-    const response = await fetch(`${API_BASE_URL}${path}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-        ...options.headers,
-      },
-    });
-
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      throw new Error(payload.error || payload.message || 'Request failed');
-    }
-    return payload;
-  };
 
   const refreshProfiles = () => {
     queryClient.invalidateQueries({ queryKey: ['profiles'] });

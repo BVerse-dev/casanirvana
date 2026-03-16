@@ -35,6 +35,7 @@ import * as adminAgenciesOperationsController from '../controllers/adminAgencies
 import * as adminEmailsController from '../controllers/adminEmails';
 import * as adminEmergencyAlertsController from '../controllers/adminEmergencyAlerts';
 import * as adminSettingsAssetsController from '../controllers/adminSettingsAssets';
+import * as adminSettingsWorkspacesController from '../controllers/adminSettingsWorkspaces';
 
 const router = express.Router();
 const settingsAssetUpload = multer({
@@ -1569,6 +1570,119 @@ router.post(
 // Settings routes (superadmin only)
 router.get('/settings', requireAuth, requirePermission('manage:settings'), adminController.getSettings);
 router.get(
+  '/settings/system-overview',
+  requireAuth,
+  requirePermission('manage:settings'),
+  adminSettingsWorkspacesController.getSettingsSystemOverview
+);
+router.patch(
+  '/settings/system-overview/alerts/:id/dismiss',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ params: schemas.idParam }),
+  adminSettingsWorkspacesController.dismissSettingsSystemAlert
+);
+router.get(
+  '/settings/user-groups',
+  requireAuth,
+  requirePermission('manage:settings'),
+  adminSettingsWorkspacesController.listSettingsUserGroups
+);
+router.get(
+  '/settings/user-groups/stats',
+  requireAuth,
+  requirePermission('manage:settings'),
+  adminSettingsWorkspacesController.getSettingsUserGroupStats
+);
+router.get(
+  '/settings/user-groups/:id/members',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ params: schemas.idParam }),
+  adminSettingsWorkspacesController.getSettingsUserGroupMembers
+);
+router.post(
+  '/settings/user-groups',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ body: schemas.adminUserGroupCreate }),
+  adminSettingsWorkspacesController.createSettingsUserGroup
+);
+router.put(
+  '/settings/user-groups/:id',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ params: schemas.idParam, body: schemas.adminUserGroupUpdate }),
+  adminSettingsWorkspacesController.updateSettingsUserGroup
+);
+router.delete(
+  '/settings/user-groups/:id',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ params: schemas.idParam }),
+  adminSettingsWorkspacesController.deleteSettingsUserGroup
+);
+router.get(
+  '/settings/activity-logs',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ query: schemas.adminActivityLogListQuery }),
+  adminSettingsWorkspacesController.listSettingsActivityLogs
+);
+router.get(
+  '/settings/activity-logs/stats',
+  requireAuth,
+  requirePermission('manage:settings'),
+  adminSettingsWorkspacesController.getSettingsActivityLogStats
+);
+router.get(
+  '/settings/activity-logs/export',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ query: schemas.adminActivityLogExportQuery }),
+  adminSettingsWorkspacesController.exportSettingsActivityLogs
+);
+router.get(
+  '/settings/preference-categories',
+  requireAuth,
+  requirePermission('manage:settings'),
+  adminSettingsWorkspacesController.listSettingsPreferenceCategories
+);
+router.get(
+  '/settings/preference-settings',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ query: schemas.adminPreferenceSettingsListQuery }),
+  adminSettingsWorkspacesController.listSettingsPreferenceSettings
+);
+router.get(
+  '/settings/preference-settings/stats',
+  requireAuth,
+  requirePermission('manage:settings'),
+  adminSettingsWorkspacesController.getSettingsPreferenceStats
+);
+router.post(
+  '/settings/preference-settings',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ body: schemas.adminPreferenceSettingCreate }),
+  adminSettingsWorkspacesController.createSettingsPreferenceSetting
+);
+router.put(
+  '/settings/preference-settings/:id',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ params: schemas.idParam, body: schemas.adminPreferenceSettingUpdate }),
+  adminSettingsWorkspacesController.updateSettingsPreferenceSetting
+);
+router.delete(
+  '/settings/preference-settings/:id',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ params: schemas.idParam }),
+  adminSettingsWorkspacesController.deleteSettingsPreferenceSetting
+);
+router.get(
   '/settings/smtp',
   requireAuth,
   requirePermission('manage:settings'),
@@ -1712,6 +1826,13 @@ router.put(
   requirePermission('manage:settings'),
   validateRequest({ body: schemas.adminPaymentGatewaySettingsUpdate }),
   adminSecureSettingsController.updatePaymentGatewaySettings
+);
+router.post(
+  '/settings/payment-gateways/test',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ body: schemas.adminPaymentGatewaySettingsTest }),
+  adminSecureSettingsController.testPaymentGatewaySettings
 );
 router.get(
   '/settings/payment-methods',

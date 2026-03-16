@@ -126,7 +126,7 @@ export default function UserPreferencesPage() {
   const [activeTab, setActiveTab] = useState('settings');
   const [operationError, setOperationError] = useState<string | null>(null);
 
-  // Supabase Hooks
+  // Settings hooks
   const { 
     data: categoriesData, 
     isLoading: categoriesLoading, 
@@ -152,7 +152,7 @@ export default function UserPreferencesPage() {
   const updatePreferenceMutation = useUpdatePreferenceSetting();
   const deletePreferenceMutation = useDeletePreferenceSetting();
 
-  // Convert Supabase data to UI format - no fallbacks
+  // Convert backend data to UI format - no fabricated fallbacks
   const categories: PreferenceCategory[] = categoriesData?.map(mapPreferenceCategoryToUI) || [];
   const preferences: PreferenceSetting[] = preferencesResponse?.data?.map(mapPreferenceSettingToUI) || [];
   
@@ -187,12 +187,12 @@ export default function UserPreferencesPage() {
   const selectedType = watch('type');
   const selectedOptions = watch('options') || [];
 
-  // Use stats directly from Supabase, no fallbacks
+  // Use live stats directly from the backend settings contract
   const preferenceStats = {
     total: statsData?.total || 0,
     userEditable: statsData?.userEditable || 0,
     systemSettings: statsData?.systemSettings || 0,
-    totalUsers: 200, // Placeholder, would come from a separate query in full implementation
+    totalUsers: statsData?.totalUsers || 0,
     byCategory: statsData?.byCategory || {},
     categoriesMap: statsData?.categoriesMap || {},
     byType: statsData?.byType || {}

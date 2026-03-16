@@ -91,12 +91,14 @@ export const useGetChatUser = (id: string) => {
 };
 
 export const useListProfiles = () => {
+  const { fetchAdmin, hasToken } = useAdminApi();
+
   return useQuery({
     queryKey: ["profiles"],
+    enabled: hasToken,
     queryFn: async () => {
-      const { data, error } = await supabase.from("profiles").select("*").order("first_name", { ascending: true });
-      if (error) throw error;
-      return data;
+      const payload = await fetchAdmin<{ data?: Profile[] }>("/admin/users?limit=1000");
+      return payload.data || [];
     },
   });
 };

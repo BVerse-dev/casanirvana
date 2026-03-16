@@ -40,6 +40,13 @@ export interface PaymentGatewaySettings {
   partial_payment_enabled?: boolean;
 }
 
+export type PaymentGatewayTestTarget =
+  | 'razorpay'
+  | 'stripe'
+  | 'paypal'
+  | 'paytm'
+  | 'bank_transfer';
+
 const DEFAULT_PAYMENT_GATEWAY_SETTINGS: PaymentGatewaySettings = {
   razorpay_enabled: false,
   razorpay_key_id: '',
@@ -121,6 +128,25 @@ const usePaymentGatewaySettings = () => {
     updateSettings: updateMutation.mutate,
     updateSettingsAsync: updateMutation.mutateAsync,
   };
+};
+
+export const useTestPaymentGatewaySettings = () => {
+  const { fetchAdmin } = useAdminApi();
+
+  return useMutation({
+    mutationFn: async ({
+      gateway,
+      settings,
+    }: {
+      gateway: PaymentGatewayTestTarget;
+      settings: Partial<PaymentGatewaySettings>;
+    }) => {
+      return fetchAdmin<{ success: boolean; message: string }>('/admin/settings/payment-gateways/test', {
+        method: 'POST',
+        body: JSON.stringify({ gateway, settings }),
+      });
+    },
+  });
 };
 
 export default usePaymentGatewaySettings;
