@@ -32,7 +32,7 @@ const GeneralSettingsPage = () => {
       href: '/settings/general/application',
       stats: {
         label: 'Workspace',
-        value: 'Live',
+        value: 'Config',
         variant: 'success',
       }
     },
@@ -96,8 +96,8 @@ const GeneralSettingsPage = () => {
       iconBg: 'secondary',
       href: '/settings/general/regional',
       stats: {
-        label: 'Default',
-        value: 'GHS',
+        label: 'Scope',
+        value: 'Locale',
         variant: 'info',
       }
     }

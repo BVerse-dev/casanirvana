@@ -14,7 +14,6 @@ import {
   useAgencyConfigurationUI, 
   useUpdateAgencyConfiguration,
   useCreateAgencyConfiguration,
-  useAgencyConfigurationsRealtime,
   type AgencyConfigurationUI 
 } from '@/hooks/useAgencyConfigurations';
 import { useAgencyProfiles } from '@/hooks/useAgencyProfiles';
@@ -266,9 +265,6 @@ const AgencyConfigurationPage = () => {
   const createConfigurationMutation = useCreateAgencyConfiguration();
   const selectedAgencyName = agencies?.find((agency: any) => agency.id === selectedAgencyId)?.name || '';
   
-  // Real-time subscription for live updates
-  useAgencyConfigurationsRealtime();
-
   const { handleSubmit, reset, setValue, watch, register } = useForm<AgencyConfigurationUI>({
     defaultValues: createDefaultConfiguration(),
   });
@@ -284,10 +280,10 @@ const AgencyConfigurationPage = () => {
   useEffect(() => {
     if (configuration) {
       reset(configuration);
-    } else if (!configLoading && selectedAgencyId) {
+    } else if (!configLoading && !configError && selectedAgencyId) {
       reset(createDefaultConfiguration(selectedAgencyId, selectedAgencyName));
     }
-  }, [configuration, configLoading, selectedAgencyId, selectedAgencyName, reset]);
+  }, [configuration, configLoading, configError, selectedAgencyId, selectedAgencyName, reset]);
 
   const currentConfiguration = watch();
   const formConfiguration =
@@ -341,6 +337,21 @@ const AgencyConfigurationPage = () => {
     return Math.round((completedSections / sections.length) * 100);
   };
 
+  if (configError && !configuration) {
+    return (
+      <>
+        <PageTitle
+          title="Agency Configuration"
+          subName="Configure agency settings and operational parameters"
+        />
+        <Alert variant="danger" className="mb-4">
+          <IconifyIcon icon="ri:error-warning-line" className="me-2" />
+          Failed to load agency configuration. Fix the backend connection and reload this page before making changes.
+        </Alert>
+      </>
+    );
+  }
+
   return (
     <>
       <PageTitle 
@@ -390,16 +401,10 @@ const AgencyConfigurationPage = () => {
                         Loading configuration...
                       </div>
                     )}
-                    {configError && (
-                      <Alert variant="warning" className="mb-0">
-                        <IconifyIcon icon="ri:warning-line" className="me-2" />
-                        Error loading configuration
-                      </Alert>
-                    )}
-                    {!configLoading && selectedAgencyId && !configuration && (
+                    {!configLoading && selectedAgencyId && !configuration && !configError && (
                       <Alert variant="info" className="mb-0">
                         <IconifyIcon icon="ri:information-line" className="me-2" />
-                        No configuration found. Default settings will be used.
+                        No saved configuration exists yet. You are preparing the first agency configuration using platform defaults.
                       </Alert>
                     )}
                   </Col>

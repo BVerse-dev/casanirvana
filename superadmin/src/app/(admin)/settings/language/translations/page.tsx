@@ -127,7 +127,7 @@ const TranslationsPage = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedLanguage, setSelectedLanguage] = useState('all');
   const importInputRef = useRef<HTMLInputElement | null>(null);
-  const { data: settingsData } = useSettingsCategory('localization', 'translations');
+  const { data: settingsData, isLoading, error } = useSettingsCategory('localization', 'translations');
   const updateSettings = useBulkUpdateSettings();
 
   const {
@@ -167,6 +167,7 @@ const TranslationsPage = () => {
   }, [reset, settingsData]);
 
   const watchedValues = watch();
+  const hasStoredSettings = Boolean(settingsData && Object.keys(settingsData).length > 0);
 
   // Available languages
   const availableLanguages = [
@@ -267,6 +268,10 @@ const TranslationsPage = () => {
       context: ''
     });
   };
+
+  const translationCategoryCount = new Set(
+    (watchedValues.translations || []).map((translation) => translation.category).filter(Boolean)
+  ).size;
 
   const editTranslation = (translation: Translation, index: number) => {
     setEditingTranslation({ ...translation, index });
@@ -398,12 +403,38 @@ const TranslationsPage = () => {
     setEditingTranslation(null);
   };
 
+  if (error && !settingsData) {
+    return (
+      <>
+        <PageTitle
+          title="Translation Management"
+          subName="Manage multi-language translations for the application"
+        />
+        <Card>
+          <Card.Body>
+            <Alert variant="danger" className="mb-0">
+              <IconifyIcon icon="material-symbols:error" className="me-2" />
+              Failed to load translation settings. Fix the backend connection and reload this page before making changes.
+            </Alert>
+          </Card.Body>
+        </Card>
+      </>
+    );
+  }
+
   return (
     <>
       <PageTitle 
         title="Translation Management" 
         subName="Manage multi-language translations for the application"
       />
+
+      {!isLoading && !hasStoredSettings && (
+        <Alert variant="info" className="d-flex align-items-center">
+          <IconifyIcon icon="material-symbols:info" className="me-2" />
+          No saved translation settings were found yet. You are editing the platform defaults for first-time setup.
+        </Alert>
+      )}
 
       {showAlert && (
         <Alert variant={showAlert.type === 'info' ? 'info' : showAlert.type} className="d-flex align-items-center">
@@ -415,6 +446,15 @@ const TranslationsPage = () => {
       <Row>
         <Col xs={12}>
           <ComponentContainerCard id="translation-config" title="Translation Configuration">
+            {isLoading ? (
+              <div className="text-center py-5">
+                <div className="spinner-border text-primary" role="status">
+                  <span className="visually-hidden">Loading...</span>
+                </div>
+                <p className="mt-3 text-muted mb-0">Loading translation settings...</p>
+              </div>
+            ) : (
+            <>
             <Tabs
               activeKey={activeTab}
               onSelect={(k) => setActiveTab(k || 'translations')}
@@ -705,7 +745,7 @@ const TranslationsPage = () => {
                           <div className="mb-3">
                             <div className="d-flex justify-content-between">
                               <span>Categories:</span>
-                              <Badge bg="info">{categories.length}</Badge>
+                              <Badge bg="info">{translationCategoryCount}</Badge>
                             </div>
                           </div>
                           <hr />
@@ -759,6 +799,8 @@ const TranslationsPage = () => {
                 )}
               </Button>
             </div>
+            </>
+            )}
           </ComponentContainerCard>
         </Col>
       </Row>

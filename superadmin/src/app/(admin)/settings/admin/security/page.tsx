@@ -139,7 +139,7 @@ const SecuritySettingsPage = () => {
   const [showAlert, setShowAlert] = useState<{ type: 'success' | 'danger' | 'info'; message: string } | null>(null);
   const [activeTab, setActiveTab] = useState('authentication');
   const [securityScore, setSecurityScore] = useState(65); // Initial security score
-  const { data: settingsData, isLoading: isLoadingSettings } = useSettingsCategory('security', 'admin_security');
+  const { data: settingsData, isLoading: isLoadingSettings, error: settingsError } = useSettingsCategory('security', 'admin_security');
   const updateSettingsMutation = useBulkUpdateSettings();
 
   // Initialize form with react-hook-form
@@ -161,6 +161,7 @@ const SecuritySettingsPage = () => {
 
     reset(normalizeSecuritySettings(settingsData));
   }, [settingsData, reset]);
+  const hasStoredSettings = Boolean(settingsData && Object.keys(settingsData).length > 0);
 
   // Watch for changes to calculate security score
   const watchedValues = watch();
@@ -235,6 +236,22 @@ const SecuritySettingsPage = () => {
     }
   };
 
+  if (settingsError && !settingsData) {
+    return (
+      <>
+        <PageTitle subName="Identity & Access" title="Security Policies" />
+        <Card>
+          <CardBody>
+            <Alert variant="danger" className="mb-0">
+              <IconifyIcon icon="ri:error-warning-line" className="me-2" />
+              Failed to load admin security settings. Fix the backend connection and reload this page before making changes.
+            </Alert>
+          </CardBody>
+        </Card>
+      </>
+    );
+  }
+
   return (
     <>
       <PageTitle subName="Identity & Access" title="Security Policies" />
@@ -247,6 +264,13 @@ const SecuritySettingsPage = () => {
               className="me-2" 
             />
             {showAlert.message}
+          </Alert>
+        )}
+
+        {!isLoadingSettings && !hasStoredSettings && (
+          <Alert variant="info" className="mb-3">
+            <IconifyIcon icon="ri:information-line" className="me-2" />
+            No saved admin security settings were found yet. You are editing the platform defaults for first-time setup.
           </Alert>
         )}
         

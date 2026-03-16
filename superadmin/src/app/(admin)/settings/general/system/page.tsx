@@ -62,7 +62,6 @@ const backupFrequencyOptions = [
 const SystemConfigPage = () => {
   const [showAlert, setShowAlert] = useState<{ type: 'success' | 'danger'; message: string } | null>(null);
 
-  // Hooks for real Supabase data
   const { data: systemConfig, isLoading: isLoadingConfig, error: configError } = useSystemConfig();
   const updateSystemConfig = useUpdateSystemConfig();
 
@@ -89,23 +88,11 @@ const SystemConfigPage = () => {
   const watchUploadSize = watch('max_file_upload_size_mb');
   const watchBackupFrequency = watch('data_backup_frequency');
 
-  // Load data from Supabase when available
   useEffect(() => {
     if (systemConfig) {
       reset(systemConfig);
     }
   }, [systemConfig, reset]);
-
-  // Show error if config loading failed
-  useEffect(() => {
-    if (configError) {
-      console.error('Error loading system config:', configError);
-      setShowAlert({ 
-        type: 'danger', 
-        message: 'Failed to load system configuration. Please refresh the page.' 
-      });
-    }
-  }, [configError]);
 
   const onSubmit = async (data: SystemConfigFormData) => {
     try {
@@ -119,6 +106,22 @@ const SystemConfigPage = () => {
       setShowAlert({ type: 'danger', message: 'Failed to update system configuration. Please try again.' });
     }
   };
+
+  if (configError && !systemConfig) {
+    return (
+      <>
+        <PageTitle title="System Configuration" subName="General Settings" />
+        <Card>
+          <CardBody>
+            <Alert variant="danger" className="mb-0">
+              <IconifyIcon icon="material-symbols:error" className="me-2" />
+              Failed to load system configuration. Fix the backend connection and reload this page before making changes.
+            </Alert>
+          </CardBody>
+        </Card>
+      </>
+    );
+  }
 
   return (
     <>

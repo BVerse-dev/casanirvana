@@ -139,12 +139,6 @@ export default function RegionalLocalizationPage() {
     }
   }, [updateError]);
 
-  useEffect(() => {
-    if (loadError) {
-      setShowAlert({ type: 'warning', message: 'Failed to load some settings. Using default values.' });
-    }
-  }, [loadError]);
-
   const watchedLanguages = watch('supportedLanguages');
   const watchedCurrency = watch('currency');
   const watchedTimezone = watch('timezone');
@@ -173,6 +167,22 @@ export default function RegionalLocalizationPage() {
       setShowAlert({ type: 'danger', message: 'Failed to update regional settings' });
     }
   };
+
+  if (loadError && !regionalSettings) {
+    return (
+      <>
+        <PageTitle title="Regional & Localization Settings" subName="General Settings" />
+        <Card>
+          <CardBody>
+            <Alert variant="danger" className="mb-0">
+              <IconifyIcon icon="material-symbols:error" className="me-2" />
+              Failed to load regional settings. Fix the backend connection and reload this page before making changes.
+            </Alert>
+          </CardBody>
+        </Card>
+      </>
+    );
+  }
 
   return (
     <>

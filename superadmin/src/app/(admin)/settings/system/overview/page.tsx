@@ -167,8 +167,8 @@ const SystemOverview = () => {
             Refresh
           </Button>
           <Button variant="outline-secondary" size="sm" onClick={() => router.push('/dashboards/analytics')}>
-            <IconifyIcon icon="ri:download-line" className="me-1" />
-            Export Report
+            <IconifyIcon icon="ri:bar-chart-box-line" className="me-1" />
+            Open Analytics
           </Button>
         </div>
       </div>
@@ -306,9 +306,8 @@ const SystemOverview = () => {
                   <IconifyIcon icon="ri:more-line" />
                 </DropdownToggle>
                 <DropdownMenu>
-                  <DropdownItem>Last 24 Hours</DropdownItem>
-                  <DropdownItem>Last 7 Days</DropdownItem>
-                  <DropdownItem>Last 30 Days</DropdownItem>
+                  <DropdownItem disabled>Trend window is backend-managed</DropdownItem>
+                  <DropdownItem disabled>Open Analytics for reporting views</DropdownItem>
                 </DropdownMenu>
               </Dropdown>
             </CardHeader>
@@ -425,10 +424,8 @@ const SystemOverview = () => {
                   />
                 </DropdownToggle>
                 <DropdownMenu className="dropdown-menu-end">
-                  <DropdownItem>Last 7 Days</DropdownItem>
-                  <DropdownItem>Last 30 Days</DropdownItem>
-                  <DropdownItem>Last 90 Days</DropdownItem>
-                  <DropdownItem>Last Year</DropdownItem>
+                  <DropdownItem disabled>History windows are backend-managed</DropdownItem>
+                  <DropdownItem disabled>Use Analytics for custom reporting</DropdownItem>
                 </DropdownMenu>
               </Dropdown>
             </CardHeader>

@@ -15,7 +15,6 @@ import {
   useCommunityConfigurations,
   useCommunityConfigurationByCommunity,
   useUpdateCommunityConfiguration,
-  useCommunityConfigurationsRealtime,
 } from '@/hooks/useCommunityConfigurations';
 import type { CommunityConfiguration } from '@/hooks/useCommunityConfigurations';
 
@@ -25,8 +24,6 @@ const CommunityConfigurationPage = () => {
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [selectedCommunity, setSelectedCommunity] = useState('');
-
-  useCommunityConfigurationsRealtime();
 
   const {
     data: communityConfigurations = [],

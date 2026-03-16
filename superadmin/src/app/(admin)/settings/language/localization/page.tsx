@@ -99,7 +99,7 @@ const LocalizationPage = () => {
   const [loading, setLoading] = useState(false);
   const [showAlert, setShowAlert] = useState<{ type: 'success' | 'danger'; message: string } | null>(null);
   const [activeTab, setActiveTab] = useState('regions');
-  const { data: settingsData } = useSettingsCategory('localization', 'regions');
+  const { data: settingsData, isLoading, error } = useSettingsCategory('localization', 'regions');
   const updateSettings = useBulkUpdateSettings();
 
   const {
@@ -136,6 +136,7 @@ const LocalizationPage = () => {
   });
 
   const watchedValues = watch();
+  const hasStoredSettings = Boolean(settingsData && Object.keys(settingsData).length > 0);
 
   // Available options
   const languages = [
@@ -251,12 +252,59 @@ const LocalizationPage = () => {
     setValue('fallbackRegion', watchedValues.regions[index]?.code || '');
   };
 
+  const previewRegion =
+    watchedValues.regions?.find((region) => region.code === watchedValues.fallbackRegion) ||
+    watchedValues.regions?.find((region) => region.isDefault) ||
+    watchedValues.regions?.[0];
+  const previewLocale = previewRegion?.numberFormat || 'en-GB';
+  const previewDate = new Intl.DateTimeFormat(previewLocale).format(new Date());
+  const previewTime = new Intl.DateTimeFormat(previewLocale, {
+    hour: 'numeric',
+    minute: 'numeric',
+    hour12: previewRegion?.timeFormat !== '24h',
+  }).format(new Date());
+  const previewNumber = new Intl.NumberFormat(previewLocale).format(1234.56);
+  const previewCurrency = previewRegion?.currencyCode
+    ? new Intl.NumberFormat(previewLocale, {
+        style: 'currency',
+        currency: previewRegion.currencyCode,
+      }).format(1234.56)
+    : '';
+  const previewWeekStartLabel =
+    daysOfWeek.find((day) => day.value === previewRegion?.firstDayOfWeek)?.label || 'Monday';
+
+  if (error && !settingsData) {
+    return (
+      <>
+        <PageTitle
+          title="Localization Settings"
+          subName="Configure regional and locale-specific settings"
+        />
+        <Card>
+          <Card.Body>
+            <Alert variant="danger" className="mb-0">
+              <IconifyIcon icon="material-symbols:error" className="me-2" />
+              Failed to load localization settings. Fix the backend connection and reload this page before making changes.
+            </Alert>
+          </Card.Body>
+        </Card>
+      </>
+    );
+  }
+
   return (
     <>
       <PageTitle 
         title="Localization Settings" 
         subName="Configure regional and locale-specific settings"
       />
+
+      {!isLoading && !hasStoredSettings && (
+        <Alert variant="info" className="mb-4">
+          <IconifyIcon icon="material-symbols:info" className="me-2" />
+          No saved localization settings were found yet. You are editing the platform defaults for first-time setup.
+        </Alert>
+      )}
 
       {showAlert && (
         <Alert variant={showAlert.type} className="d-flex align-items-center">
@@ -272,6 +320,15 @@ const LocalizationPage = () => {
               <Card.Title>Localization Configuration</Card.Title>
             </Card.Header>
             <Card.Body>
+              {isLoading ? (
+                <div className="text-center py-5">
+                  <div className="spinner-border text-primary" role="status">
+                    <span className="visually-hidden">Loading...</span>
+                  </div>
+                  <p className="mt-3 text-muted mb-0">Loading localization settings...</p>
+                </div>
+              ) : (
+              <>
               <Tabs
                 activeKey={activeTab}
                 onSelect={(k) => setActiveTab(k || 'regions')}
@@ -473,19 +530,19 @@ const LocalizationPage = () => {
                             <h6 className="mb-3">Current Regional Preview</h6>
                             <div className="small">
                               <div className="mb-2">
-                                <strong>Date:</strong> {new Date().toLocaleDateString()}
+                                <strong>Date:</strong> {previewDate}
                               </div>
                               <div className="mb-2">
-                                <strong>Time:</strong> {new Date().toLocaleTimeString()}
+                                <strong>Time:</strong> {previewTime}
                               </div>
                               <div className="mb-2">
-                                <strong>Number:</strong> 1,234.56
+                                <strong>Number:</strong> {previewNumber}
                               </div>
                               <div className="mb-2">
-                                <strong>Currency:</strong> $1,234.56
+                                <strong>Currency:</strong> {previewCurrency}
                               </div>
                               <div className="mb-2">
-                                <strong>Week starts:</strong> Sunday
+                                <strong>Week starts:</strong> {previewWeekStartLabel}
                               </div>
                             </div>
                           </div>
@@ -519,6 +576,8 @@ const LocalizationPage = () => {
                   )}
                 </Button>
               </div>
+              </>
+              )}
             </Card.Body>
           </Card>
         </Col>
