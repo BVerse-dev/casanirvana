@@ -153,7 +153,12 @@ const PushNotificationsPage = () => {
 
       <Alert variant="info">
         <IconifyIcon icon="solar:shield-check-line-duotone" className="fs-18 me-2" />
-        Validate Push Setup checks configuration completeness only. Live push delivery depends on your Firebase project and client app registration.
+        This page owns Firebase credentials and push-delivery defaults only. Channel templates and other notification policies stay on their dedicated email, SMS, in-app, and notices settings pages.
+      </Alert>
+
+      <Alert variant="info">
+        <IconifyIcon icon="solar:shield-check-line-duotone" className="fs-18 me-2" />
+        Validate Push Setup checks configuration completeness only. Live push delivery depends on your Firebase project, registered mobile clients, and valid device tokens.
       </Alert>
 
       <form onSubmit={handleSubmit(onSubmit)}>

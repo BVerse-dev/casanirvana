@@ -79,7 +79,7 @@ const InAppNotificationSettingsPage = () => {
     inappSettings,
     isLoadingData,
     loadError,
-    updateSettings,
+    updateSettingsAsync,
     isUpdating,
     updateError,
     updateSuccess,
@@ -167,7 +167,7 @@ const InAppNotificationSettingsPage = () => {
 
   useEffect(() => {
     if (updateError) {
-      setShowAlert({ type: 'danger', message: 'Failed to update in-app notification setup. Please try again.' });
+      setShowAlert({ type: 'danger', message: updateError.message || 'Failed to update in-app notification setup. Please try again.' });
       setTimeout(() => setShowAlert(null), 5000);
     }
   }, [updateError]);
@@ -175,10 +175,13 @@ const InAppNotificationSettingsPage = () => {
   const onSubmit = async (data: InAppNotificationSettings) => {
     try {
       setShowAlert(null);
-      updateSettings(data);
+      await updateSettingsAsync(data);
     } catch (error) {
       console.error('Error submitting in-app notification settings:', error);
-      setShowAlert({ type: 'danger', message: 'Failed to update in-app notification setup' });
+      setShowAlert({
+        type: 'danger',
+        message: error instanceof Error ? error.message : 'Failed to update in-app notification setup',
+      });
     }
   };
 
@@ -217,6 +220,11 @@ const InAppNotificationSettingsPage = () => {
           {showAlert.message}
         </Alert>
       )}
+
+      <Alert variant="info">
+        <IconifyIcon icon="ri:information-line" className="me-2" />
+        This page controls only in-app delivery behavior and user-facing presentation. Push, SMS, and email transport are configured on their dedicated notification setup pages.
+      </Alert>
 
       <form onSubmit={handleSubmit(onSubmit)}>
         <Tabs defaultActiveKey="general" className="mb-3">
