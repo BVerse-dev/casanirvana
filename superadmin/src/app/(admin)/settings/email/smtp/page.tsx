@@ -80,7 +80,10 @@ const SmtpSettingsPage = () => {
 
   useEffect(() => {
     if (updateError) {
-      setShowAlert({ type: 'danger', message: 'Failed to update SMTP settings. Please try again.' });
+      setShowAlert({
+        type: 'danger',
+        message: updateError.message || 'Failed to update SMTP settings. Please try again.',
+      });
     }
   }, [updateError]);
 
@@ -95,15 +98,12 @@ const SmtpSettingsPage = () => {
 
   useEffect(() => {
     if (testError) {
-      setShowAlert({ type: 'danger', message: 'SMTP connection test failed. Please check your settings.' });
+      setShowAlert({
+        type: 'danger',
+        message: testError.message || 'SMTP connection test failed. Please check your settings.',
+      });
     }
   }, [testError]);
-
-  useEffect(() => {
-    if (loadError) {
-      setShowAlert({ type: 'warning', message: 'Failed to load some settings. Using default values.' });
-    }
-  }, [loadError]);
 
   const onSubmit = async (data: SmtpSettingsFormData) => {
     try {
@@ -132,15 +132,27 @@ const SmtpSettingsPage = () => {
     }
   };
 
+  if (loadError) {
+    return (
+      <>
+        <PageTitle subName="Email Settings" title="SMTP Configuration" />
+        <Alert variant="danger">
+          <IconifyIcon icon="ri:error-warning-line" className="me-2" />
+          Failed to load SMTP settings: {loadError.message}
+        </Alert>
+      </>
+    );
+  }
+
   return (
     <>
       <PageTitle subName="Email Settings" title="SMTP Configuration" />
 
       {showAlert && (
         <Alert variant={showAlert.type} dismissible onClose={() => setShowAlert(null)}>
-          <IconifyIcon 
-            icon={showAlert.type === 'success' ? 'ri:check-line' : 'ri:error-warning-line'} 
-            className="me-2" 
+          <IconifyIcon
+            icon={showAlert.type === 'success' ? 'ri:check-line' : 'ri:error-warning-line'}
+            className="me-2"
           />
           {showAlert.message}
         </Alert>
@@ -154,6 +166,12 @@ const SmtpSettingsPage = () => {
           <p className="mt-2 text-muted">Loading SMTP settings...</p>
         </div>
       ) : (
+        <>
+        <Alert variant="info">
+          <IconifyIcon icon="ri:information-line" className="me-2" />
+          Test Connection validates the configured SMTP transport and credentials only. Automated email content and
+          notification rules are managed on the Email Templates and Email Notifications pages.
+        </Alert>
         <form onSubmit={handleSubmit(onSubmit)}>
         <Row>
           <Col xl={6}>
@@ -435,6 +453,7 @@ const SmtpSettingsPage = () => {
           </div>
         </div>
       </form>
+      </>
       )}
     </>
   );

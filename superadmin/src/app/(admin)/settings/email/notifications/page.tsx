@@ -158,7 +158,10 @@ const EmailNotificationsPage = () => {
       },
       onError: (error: any) => {
         console.error('Error updating notification settings:', error);
-        setShowAlert({ type: 'danger', message: 'Failed to update notification settings. Please try again.' });
+        setShowAlert({
+          type: 'danger',
+          message: error?.message || 'Failed to update notification settings. Please try again.',
+        });
         setTimeout(() => setShowAlert(null), 5000);
       }
     });
@@ -231,6 +234,12 @@ const EmailNotificationsPage = () => {
           {showAlert.message}
         </Alert>
       )}
+
+      <Alert variant="info">
+        <IconifyIcon icon="ri:information-line" className="me-2" />
+        These controls govern which automated emails are sent and when. They do not manage SMTP credentials or the
+        template body content for those messages.
+      </Alert>
 
       <form onSubmit={handleSubmit(onSubmit)}>
         <Tabs defaultActiveKey="user-notifications" className="mb-3">
