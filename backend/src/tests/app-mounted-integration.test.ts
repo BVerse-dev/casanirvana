@@ -830,6 +830,232 @@ describe('Mounted app integration', () => {
     );
   });
 
+  it('lists scoped maintenance requests through the mounted admin route for a tenant admin', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-1111-1111-111111111111';
+    const otherCommunityId = '22222222-2222-2222-2222-222222222222';
+
+    seedAuthenticatedAdmin({
+      permissions: ['read:all_maintenance_requests'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+    });
+
+    mockState.tables.units = [
+      { id: 'unit-1', block: 'A', number: '101', unit_number: 'A-101', community_id: communityId },
+      { id: 'unit-2', block: 'B', number: '202', unit_number: 'B-202', community_id: otherCommunityId },
+    ];
+    mockState.tables.profiles = [
+      ...mockState.tables.profiles,
+      {
+        id: 'resident-1',
+        first_name: 'Ama',
+        last_name: 'Mensah',
+        full_name: 'Ama Mensah',
+        email: 'ama@example.com',
+        avatar_url: null,
+        phone: '2330000001',
+        role: 'resident',
+      },
+      {
+        id: 'resident-2',
+        first_name: 'Kojo',
+        last_name: 'Owusu',
+        full_name: 'Kojo Owusu',
+        email: 'kojo@example.com',
+        avatar_url: null,
+        phone: '2330000002',
+        role: 'resident',
+      },
+    ];
+    mockState.tables.maintenance_requests = [
+      {
+        id: 14,
+        title: 'Leak Repair',
+        description: 'Kitchen sink leak',
+        request_type: 'plumbing',
+        priority: 'high',
+        status: 'pending',
+        requested_by: 'resident-1',
+        assigned_to: null,
+        resolved_by_profile_id: null,
+        unit_id: 'unit-1',
+        estimated_cost: 120,
+        actual_cost: null,
+        created_at: '2026-03-12T08:00:00.000Z',
+        updated_at: '2026-03-12T08:00:00.000Z',
+      },
+      {
+        id: 15,
+        title: 'Broken AC',
+        description: 'Living room AC',
+        request_type: 'hvac',
+        priority: 'medium',
+        status: 'pending',
+        requested_by: 'resident-2',
+        assigned_to: null,
+        resolved_by_profile_id: null,
+        unit_id: 'unit-2',
+        estimated_cost: 80,
+        actual_cost: null,
+        created_at: '2026-03-12T09:00:00.000Z',
+        updated_at: '2026-03-12T09:00:00.000Z',
+      },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/maintenance-requests?status=pending',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect((response.body as any).data).toHaveLength(1);
+    expect((response.body as any).data[0]).toEqual(
+      expect.objectContaining({
+        id: 14,
+        title: 'Leak Repair',
+        requester_profile: expect.objectContaining({ full_name: 'Ama Mensah' }),
+        unit: expect.objectContaining({ unit_number: 'A-101' }),
+      })
+    );
+  });
+
+  it('rejects mounted maintenance detail access outside the admin community scope', async () => {
+    const app = await loadApp();
+
+    seedAuthenticatedAdmin({
+      permissions: ['read:all_maintenance_requests'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: ['11111111-1111-1111-1111-111111111111'],
+    });
+
+    mockState.tables.units = [
+      {
+        id: 'unit-2',
+        block: 'B',
+        number: '202',
+        unit_number: 'B-202',
+        community_id: '22222222-2222-2222-2222-222222222222',
+      },
+    ];
+    mockState.tables.maintenance_requests = [
+      {
+        id: 15,
+        title: 'Broken AC',
+        description: 'Living room AC',
+        request_type: 'hvac',
+        priority: 'medium',
+        status: 'pending',
+        requested_by: 'resident-2',
+        unit_id: 'unit-2',
+        created_at: '2026-03-12T09:00:00.000Z',
+        updated_at: '2026-03-12T09:00:00.000Z',
+      },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/maintenance-requests/15',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(403);
+    expect((response.body as any).error.code).toBe('MAINTENANCE_SCOPE_VIOLATION');
+  });
+
+  it('updates maintenance requests through the mounted admin route and stamps backend-owned lifecycle fields', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-1111-1111-111111111111';
+
+    seedAuthenticatedAdmin({
+      permissions: ['update:maintenance_requests'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+    });
+
+    mockState.tables.units = [
+      { id: 'unit-1', block: 'A', number: '101', unit_number: 'A-101', community_id: communityId },
+    ];
+    mockState.tables.profiles = [
+      ...mockState.tables.profiles,
+      {
+        id: 'resident-1',
+        first_name: 'Ama',
+        last_name: 'Mensah',
+        full_name: 'Ama Mensah',
+        email: 'ama@example.com',
+        avatar_url: null,
+        phone: '2330000001',
+        role: 'resident',
+      },
+    ];
+    mockState.tables.maintenance_requests = [
+      {
+        id: 14,
+        title: 'Leak Repair',
+        description: 'Kitchen sink leak',
+        request_type: 'plumbing',
+        priority: 'high',
+        status: 'pending',
+        requested_by: 'resident-1',
+        assigned_to: null,
+        resolved_by_profile_id: null,
+        unit_id: 'unit-1',
+        estimated_cost: 120,
+        actual_cost: null,
+        created_at: '2026-03-12T08:00:00.000Z',
+        updated_at: '2026-03-12T08:00:00.000Z',
+        completed_at: null,
+        resolved_at: null,
+      },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'PATCH',
+      path: '/admin/maintenance-requests/14',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        status: 'completed',
+        actual_cost: 150,
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect((response.body as any).message).toBe('Maintenance request updated successfully');
+    expect((response.body as any).data).toEqual(
+      expect.objectContaining({
+        id: 14,
+        status: 'completed',
+        actual_cost: 150,
+        resolved_by_profile: expect.objectContaining({
+          id: 'profile-admin',
+          email: 'admin@example.com',
+        }),
+      })
+    );
+    expect(mockState.tables.maintenance_requests[0]).toEqual(
+      expect.objectContaining({
+        id: 14,
+        status: 'completed',
+        actual_cost: 150,
+        resolved_by_profile_id: 'profile-admin',
+      })
+    );
+    expect(mockState.tables.maintenance_requests[0].completed_at).toBeTruthy();
+    expect(mockState.tables.maintenance_requests[0].resolved_at).toBeTruthy();
+    expect(mockState.tables.maintenance_requests[0].updated_at).toBeTruthy();
+  });
+
   it('rejects onboarding writes when the public API key is wrong', async () => {
     const app = await loadApp();
 
