@@ -11,6 +11,14 @@ const mockState = {
   idCounter: 1,
   authUser: null as { id: string; email?: string | null } | null,
   authError: null as Record<string, unknown> | null,
+  adminScope: {
+    role: 'superadmin',
+    profileId: 'profile-admin',
+    email: 'admin@example.com',
+    isGlobal: true,
+    communityIds: [] as string[],
+    agencyIds: [] as string[],
+  },
 };
 
 const baseEnv = { ...process.env };
@@ -40,6 +48,14 @@ function resetMockState() {
   mockState.idCounter = 1;
   mockState.authUser = null;
   mockState.authError = null;
+  mockState.adminScope = {
+    role: 'superadmin',
+    profileId: 'profile-admin',
+    email: 'admin@example.com',
+    isGlobal: true,
+    communityIds: [],
+    agencyIds: [],
+  };
 }
 
 function createQueryBuilder(table: string) {
@@ -186,7 +202,13 @@ function createQueryBuilder(table: string) {
   return builder;
 }
 
-function seedAuthenticatedAdmin(options: { permissions?: string[]; role?: string } = {}) {
+function seedAuthenticatedAdmin(options: {
+  permissions?: string[];
+  role?: string;
+  isGlobal?: boolean;
+  communityIds?: string[];
+  agencyIds?: string[];
+} = {}) {
   const role = options.role || 'superadmin';
   const permissions = options.permissions || [];
 
@@ -217,6 +239,15 @@ function seedAuthenticatedAdmin(options: { permissions?: string[]; role?: string
       permissions: [],
     },
   ];
+
+  mockState.adminScope = {
+    role,
+    profileId: 'profile-admin',
+    email: 'admin@example.com',
+    isGlobal: options.isGlobal ?? role === 'superadmin',
+    communityIds: options.communityIds || [],
+    agencyIds: options.agencyIds || [],
+  };
 }
 
 async function loadApp(envOverrides: Record<string, string | undefined> = {}) {
@@ -290,6 +321,20 @@ async function loadApp(envOverrides: Record<string, string | undefined> = {}) {
       default: client,
     };
   });
+
+  vi.doMock('../services/adminScope', () => ({
+    resolveAdminScope: vi.fn(async () => mockState.adminScope),
+    canAccessCommunity: (
+      scope: { isGlobal: boolean; communityIds: string[] },
+      communityId: string
+    ) => scope.isGlobal || scope.communityIds.includes(communityId),
+    canAccessAgency: (
+      scope: { isGlobal: boolean; agencyIds: string[] },
+      agencyId: string
+    ) => scope.isGlobal || scope.agencyIds.includes(agencyId),
+    getScopedGuardIds: vi.fn(async () => []),
+    resolveGuardCommunityId: vi.fn(async () => null),
+  }));
 
   const { default: app } = await import('../app');
   return app;
@@ -647,6 +692,142 @@ describe('Mounted app integration', () => {
     expect((response.body as any).reviewed_by).toBe('auth-admin');
     expect(typeof (response.body as any).reviewed_at).toBe('string');
     expect((response.body as any).updated_at).toBeTruthy();
+  });
+
+  it('lists scoped visitor passes through the mounted admin route for a tenant admin', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-1111-1111-111111111111';
+    const otherCommunityId = '22222222-2222-2222-2222-222222222222';
+    const unitId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const otherUnitId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+
+    seedAuthenticatedAdmin({
+      permissions: ['read:all_profiles'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+      agencyIds: ['33333333-3333-4333-8333-333333333333'],
+    });
+
+    mockState.tables.units = [
+      { id: unitId, block: 'A', number: '101', unit_number: 'A101', community_id: communityId },
+      { id: otherUnitId, block: 'B', number: '202', unit_number: 'B202', community_id: otherCommunityId },
+    ];
+    mockState.tables.communities = [
+      { id: communityId, name: 'Casa One', agency_id: '33333333-3333-4333-8333-333333333333' },
+      { id: otherCommunityId, name: 'Casa Two', agency_id: '44444444-4444-4444-8444-444444444444' },
+    ];
+    mockState.tables.agencies = [
+      { id: '33333333-3333-4333-8333-333333333333', name: 'Primary Agency' },
+      { id: '44444444-4444-4444-8444-444444444444', name: 'Other Agency' },
+    ];
+    mockState.tables.visitor_passes = [
+      {
+        id: '55555555-5555-4555-8555-555555555555',
+        visitor_name: 'Scoped Guest',
+        from_date: '2026-03-20',
+        to_date: '2026-03-20',
+        community_id: communityId,
+        unit_id: unitId,
+        status: 'approved',
+        visitor_type: 'guest',
+        created_by: 'auth-admin',
+        created_at: '2026-03-19T09:00:00.000Z',
+      },
+      {
+        id: '66666666-6666-4666-8666-666666666666',
+        visitor_name: 'Out Of Scope Guest',
+        from_date: '2026-03-20',
+        to_date: '2026-03-20',
+        community_id: otherCommunityId,
+        unit_id: otherUnitId,
+        status: 'approved',
+        visitor_type: 'guest',
+        created_by: 'auth-admin',
+        created_at: '2026-03-18T09:00:00.000Z',
+      },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/visitor-passes?status=approved',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect((response.body as any).data).toHaveLength(1);
+    expect((response.body as any).data[0]).toEqual(
+      expect.objectContaining({
+        id: '55555555-5555-4555-8555-555555555555',
+        community_name: 'Casa One',
+        agency_name: 'Primary Agency',
+        unit_label: 'A-101',
+        created_by_display: 'Ada Admin',
+      })
+    );
+  });
+
+  it('creates scoped visitor passes through the mounted admin route and stamps backend-owned actor fields', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-1111-1111-111111111111';
+    const unitId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+
+    seedAuthenticatedAdmin({
+      permissions: ['create:profiles'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+      agencyIds: ['33333333-3333-4333-8333-333333333333'],
+    });
+
+    mockState.tables.units = [
+      { id: unitId, block: 'A', number: '101', unit_number: 'A101', community_id: communityId },
+    ];
+    mockState.tables.communities = [
+      { id: communityId, name: 'Casa One', agency_id: '33333333-3333-4333-8333-333333333333' },
+    ];
+    mockState.tables.agencies = [
+      { id: '33333333-3333-4333-8333-333333333333', name: 'Primary Agency' },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/visitor-passes',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        visitor_name: 'Launch Visitor',
+        visitor_type: 'guest',
+        from_date: '2026-03-20',
+        to_date: '2026-03-20',
+        unit_id: unitId,
+        purpose: 'Move-in support',
+      },
+    });
+
+    expect(response.status).toBe(201);
+    expect((response.body as any).message).toBe('Visitor pass created successfully');
+    expect((response.body as any).data).toEqual(
+      expect.objectContaining({
+        visitor_name: 'Launch Visitor',
+        community_id: communityId,
+        created_by: 'auth-admin',
+        community_name: 'Casa One',
+        created_by_display: 'Ada Admin',
+      })
+    );
+    expect(mockState.tables.visitor_passes).toHaveLength(1);
+    expect(mockState.tables.visitor_passes[0]).toEqual(
+      expect.objectContaining({
+        community_id: communityId,
+        created_by: 'auth-admin',
+        unit_id: unitId,
+        visitor_name: 'Launch Visitor',
+      })
+    );
   });
 
   it('rejects onboarding writes when the public API key is wrong', async () => {
