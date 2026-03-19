@@ -29,6 +29,7 @@ Date: 2026-02-06
 - [x] Public request endpoint: `POST /onboarding/requests` (API key protected).
 - [x] Admin review endpoints: `GET/PATCH /admin/onboarding-requests`.
 - [x] Superadmin UI page: `/settings/admin/onboarding` with filters, approve/reject, approve+invite, and review notes modal.
+- Note (2026-03-16): The public WordPress-site wiring work is intentionally deferred until the WordPress site is live. Keep the backend onboarding contract as-is and return to the form integration during the release-plumbing pass.
 - [ ] Wire WordPress “Get Started” form to `POST /onboarding/requests` with `x-onboarding-api-key`.
 
 ## Phase 4 - Configuration & Build Hygiene
@@ -46,7 +47,7 @@ Date: 2026-02-06
 - [x] Generate and distribute shared `database.types.ts` to all apps (canonical: `/supabase/database.types.ts`).
 - [x] Lock down system + notification analytics/queues RLS (admin read, service role all).
 - [x] Apply remaining marketplace/guard internal-table RLS cleanup (active migration `20260310184500_phase36_marketplace_guard_internal_rls_cleanup.sql`; replaces archived pre-baseline `20260206170000_phase5_rls_internal_tables.sql` reference).
-- [ ] Finish remaining seed/data alignment across apps (current known gap: legacy `visitor_passes` rows still requiring attribution or archival).
+- [x] Finish remaining seed/data alignment across apps (applied `20260319113000_phase41_archive_legacy_unattributed_visitor_passes.sql` to archive/remove the 15 known legacy `visitor_passes` seed/demo rows that still lacked valid creator attribution or scope, with reversible backup tables).
 
 ## Phase 6 - Quality & Observability
 - [x] Add request validation on active backend endpoints (remaining intentionally generic config payloads tracked separately).
@@ -63,17 +64,18 @@ Date: 2026-02-06
 - [x] Archive pre-baseline migrations to `supabase/migrations/_archive/2026-02-06-pre-baseline`.
 - [x] Update `supabase/migrations/README.md` to document the baseline.
 - [x] Run `supabase migration repair` equivalent (manual baseline insert) on remote.
-- [ ] Confirm `supabase db push` is clean after baseline on staging/prod.
+- [x] Repair post-baseline migration history alignment and confirm the active local migration set is fully represented in the live production history table (management API verification on 2026-03-16; direct CLI password auth remains an operator prerequisite, not a schema blocker).
 - [x] Apply financial RLS migration `20260206234500_phase7_rls_financial_tables.sql` and verify flows.
 - [x] Apply PII RLS migration `20260206235500_phase7_rls_pii_tables.sql` and verify flows.
 - [x] Apply payments policy cleanup migration `20260207001000_phase7_policy_cleanup_payments.sql` and verify flows.
 - [x] Apply notifications policy cleanup migration `20260207002000_phase7_policy_cleanup_notifications.sql` and verify flows.
 - [x] Apply profiles/users policy cleanup migration `20260207003000_phase7_policy_cleanup_profiles_users.sql` and verify flows.
 - [x] Apply messaging policy cleanup migration `20260207004000_phase7_policy_cleanup_messaging.sql` and verify flows.
-- [ ] Resolve or retire the stale legacy system-policy cleanup checklist reference (`20260207005000_phase7_policy_cleanup_system.sql`) and verify current system-policy coverage.
+- [x] Resolve the legacy system-policy cleanup checklist reference by verifying current live system-policy coverage and repairing the missing migration-history metadata row for `20260207005000_phase7_policy_cleanup_system.sql`.
 
 ## Phase 8 - Deployment Readiness
 - [x] Create per-app deployment checklist in `DEPLOYMENT_CHECKLIST.md`.
+- Note (2026-03-16): Release-plumbing items in this phase are intentionally deferred until the WordPress site is up. Current production sequence continues with RLS/migration closeout, data alignment, deeper test coverage, and final runtime signoff before returning here.
 - [ ] Configure per-app CI/CD pipelines and hosting targets (backend, superadmin, user, Guard).
 - [ ] Store all production secrets in CI/CD or secrets manager.
 - [ ] Document rollback procedure per app.
@@ -160,9 +162,9 @@ Date: 2026-02-06
 - [x] Enforced scoped API authorization for module settings routes:
 - `superadmin/src/app/api/module-settings/route.ts`
 - `superadmin/src/app/api/module-settings/communities/route.ts`
-- [x] Applied migration `phase11_tenant_scope_rls_hardening` (file: `supabase/migrations/20260220200500_phase11_tenant_scope_rls_hardening.sql`) to remove legacy permissive policies and recreate scoped policies for critical tables.
-- [x] Applied follow-up migration `phase11_profile_resolution_prefer_user_id` (file: `supabase/migrations/20260220213000_phase11_profile_resolution_prefer_user_id.sql`) to fix canonical profile resolution for accounts with both `profiles.id = auth.uid()` and `profiles.user_id = auth.uid()` rows.
-- [x] Applied follow-up migration `phase11_profiles_identity_guard` (file: `supabase/migrations/20260220215500_phase11_profiles_identity_guard.sql`) to block future dual profile/auth mappings and clean known mis-mapped `profiles.user_id`.
+- [x] Applied migration `phase11_tenant_scope_rls_hardening` (file: `supabase/migrations/20260220194744_phase11_tenant_scope_rls_hardening.sql`) to remove legacy permissive policies and recreate scoped policies for critical tables.
+- [x] Applied follow-up migration `phase11_profile_resolution_prefer_user_id` (file: `supabase/migrations/20260220200318_phase11_profile_resolution_prefer_user_id.sql`) to fix canonical profile resolution for accounts with both `profiles.id = auth.uid()` and `profiles.user_id = auth.uid()` rows.
+- [x] Applied follow-up migration `phase11_profiles_identity_guard` (file: `supabase/migrations/20260220201027_phase11_profiles_identity_guard.sql`) to block future dual profile/auth mappings and clean known mis-mapped `profiles.user_id`.
 - [x] Added DB verification script: `supabase/audit/phase11_tenant_scope_verification.sql`.
 - [ ] Manual QA pass pending (superadmin + scoped admin + resident/guard app flows). Execute `/Users/andromeda/casanirvana/MANUAL_RUNTIME_QA_PACK.md`.
 
@@ -182,13 +184,13 @@ Date: 2026-02-06
 - [x] Removed duplicate visitor realtime subscription from `visitorsScreen` (global subscription in `AuthContext` retained as canonical).
 - [x] Fixed delivery company confirm/submit mismatch and cleaned dead pre-approve visitor state.
 - [x] Added lifecycle contract doc: `user/VISITORS_LIFECYCLE_CONTRACT.md`.
-- [ ] Remaining legacy seed rows with `visitor_passes.created_by IS NULL` (15) and `unit_id/community_id` both null (3) require manual attribution or archival (intentionally unchanged by safe cleanup).
+- [x] Applied migration `20260319113000_phase41_archive_legacy_unattributed_visitor_passes.sql` to archive/remove the remaining 15 legacy visitor seed/demo rows that still had `created_by IS NULL`, including the 3 fully unscoped rows; reversible backups are stored in `datafix_phase41_legacy_visitor_passes_archive` and `datafix_phase41_legacy_visitor_entry_logs_archive`.
 
 ## Phase 13 - Notice Module Hardening
 - [x] Superadmin notice create flow now derives `community_id` from authenticated admin scope (removed hardcoded `default-community`).
 - [x] User notice detail now supports both navigation contracts (`{ notice }` and `{ noticeId }`) with safe DB fallback and no runtime crash path.
-- [x] Applied migration `supabase/migrations/20260221113000_phase13_notices_rls_scope_hardening.sql` (removed permissive notice read policies and enforced scoped notice access via `can_access_community`).
-- [x] Applied migration `supabase/migrations/20260221115000_phase13_comments_notice_contract_hardening.sql` to normalize `comments.notice_id` to UUID + FK, rebuild comments RLS join contract, and preserve legacy static/unlinked rows in backup table `datafix_phase13_legacy_notice_comments_backup` (15 rows).
+- [x] Applied migration `supabase/migrations/20260221004421_phase13_notices_rls_scope_hardening.sql` (removed permissive notice read policies and enforced scoped notice access via `can_access_community`).
+- [x] Applied migration `supabase/migrations/20260221005336_phase13_comments_notice_contract_hardening.sql` to normalize `comments.notice_id` to UUID + FK, rebuild comments RLS join contract, and preserve legacy static/unlinked rows in backup table `datafix_phase13_legacy_notice_comments_backup` (15 rows).
 - [x] Retired static-notice comment write path in superadmin notice details (static placeholders are now read-only for comments).
 - [x] Removed duplicate notice realtime subscription in user notice board screen (global `AuthContext` realtime invalidation remains canonical).
 - [x] Hardened user notice service error propagation (`getNoticesForCommunity`) so query failures surface through React Query error states.
@@ -215,14 +217,14 @@ Date: 2026-02-06
 - [x] Ran reversible pass-2 cleanup for personal-hub transaction user attribution (`phase14_personal_hub_user_id_backfill_pass2_auth_only`) using backup table `public.datafix_phase14_personal_hub_user_id_backfill_pass2_backup` and cleanup tag `phase14_payments_user_id_cleanup_pass2_20260221`.
 - [x] Archived unresolved legacy personal-hub rows with null `user_id` into reversible phase-14 archive tables and removed them from live transaction tables via migration `supabase/migrations/20260221215412_phase14_personal_hub_null_user_archival.sql` (`airtime` 12, `data` 12, `money_transfers` 6, `bill_payments` 6).
 - [x] Payments module closure gate met for production runtime flows; `personal_hub_transactions` now has zero null-actor rows in live data (`user_id IS NULL` = 0).
-- [x] Fixed user payment insert runtime blockers: moved non-schema card fields to `payments.metadata`, enforced `unit_id` + `payer_id` in card/paypal payment creation flows, and replaced legacy `payments` RLS with actor/unit scoped Phase 21 policies (`supabase/migrations/20260221213000_phase21_payments_rls_actor_scope_fix.sql`).
+- [x] Fixed user payment insert runtime blockers: moved non-schema card fields to `payments.metadata`, enforced `unit_id` + `payer_id` in card/paypal payment creation flows, and replaced legacy `payments` RLS with actor/unit scoped Phase 21 policies (`supabase/migrations/20260221210105_phase21_payments_rls_actor_scope_fix.sql`).
 - [x] Fixed payments FK runtime blocker (`payments_booking_id_fkey`) by removing invalid `booking_id` writes from user checkout screens (amenity/service request IDs are now stored as `metadata.source_booking_id` + `metadata.source_booking_type` instead of writing into `payments.booking_id` which references `service_bookings` only).
 - [x] Reworked user `successScreen` into a context-aware receipt view (service booking vs amenity booking vs generic payment), fixed nested navigation target (`bottomTab -> homeScreen`), and added Expo Go-safe receipt fallback when native PDF module is unavailable.
 - [x] Fixed remaining direct `homeScreen` navigation calls in non-tab stack screens (`messageScreen`, `guardCallingScreen`, `paymentReceiptScreen`, `mobileMoneyScreen`) by routing through nested navigator target (`bottomTab -> homeScreen`).
 - [x] Fixed amenity post-payment RLS violation path by updating only `payment_status` (not booking `status`) for user-driven amenity payment completion.
 
 ## Phase 15 - Book Amenities Hardening
-- [x] Applied migration `supabase/migrations/20260221124000_phase15_amenities_rls_contract_cleanup.sql`.
+- [x] Applied migration `supabase/migrations/20260221115418_phase15_amenities_rls_contract_cleanup.sql`.
 - [x] Added reversible backup table `public.amenity_bookings_cleanup_backup_20260221` before amenity booking cleanup.
 - [x] Backfilled and normalized `amenity_bookings` contract fields (`community_id`, `total_amount`, `booking_date`, `start_time`, `end_time`).
 - [x] Added trigger `trg_sync_amenity_booking_contract_fields` to keep booking contract fields synced on insert/update.
@@ -253,9 +255,9 @@ Date: 2026-02-06
 - [x] Replaced superadmin complaints comments sample/simulated flow with DB-backed read/write (`get_complaint_comments_with_profiles` + `complaint_comments` insert).
 - [x] Fixed backend complaint create default status contract (`open` -> `pending`) in `/Users/andromeda/casanirvana/backend/src/services/complaint.ts`.
 - [x] Expanded backend complaint update validation to include production action fields (`priority`, `resolution_notes`, `resolved_by_profile_id`, `updated_at`, editable `subject/details`).
-- [x] Added and applied migration `supabase/migrations/20260221152000_phase17_complaint_comments_rls_hardening.sql` to harden `complaint_comments` RLS to complaint-scoped tenant access and to upgrade comment-profile resolution fallback.
+- [x] Added and applied migration `supabase/migrations/20260221145445_phase17_complaint_comments_rls_hardening.sql` to harden `complaint_comments` RLS to complaint-scoped tenant access and to upgrade comment-profile resolution fallback.
 - [x] Removed user-app complaint null-unit fallback path in `/Users/andromeda/casanirvana/user/screens/addComplaintScreen.js`; complaint submission now requires assigned unit.
-- [x] Added and applied migration `supabase/migrations/20260221164500_phase17_complaints_community_visibility_scope.sql` to explicitly allow `complaint_type='community'` reads within accessible community scope (`can_access_community(units.community_id)`).
+- [x] Added and applied migration `supabase/migrations/20260221150555_phase17_complaints_community_visibility_scope.sql` to explicitly allow `complaint_type='community'` reads within accessible community scope (`can_access_community(units.community_id)`).
 - [x] Aligned user `useListCommunityComplaints` query to authenticated `profile.community_id` and replaced per-row profile fetches with joined/fallback profile resolution.
 - [x] Removed legacy route-param complaint fallback path from user complaint navigation/details (`complaintsPersonalTab`, `complaintsCommunityTab`, `complaintDetailScreen`); detail screen now uses canonical DB complaint payload.
 - [x] Hardened user complaint reporter profile resolution in `useGetComplaint` with direct joins plus fallback lookup on both `profiles.id` and `profiles.user_id`.
@@ -267,7 +269,7 @@ Date: 2026-02-06
 - [x] Removed user maintenance legacy route-param fallback from detail flow; maintenance detail now reads DB-backed payload only.
 - [x] Consolidated maintenance realtime to global `AuthContext` subscription (`requested_by=profile.id`) and removed duplicate screen-level subscription in `maintenanceRequestsScreen`.
 - [x] Added and applied migration `supabase/migrations/20260221161045_phase18_maintenance_profile_unit_alignment_cleanup.sql` (reversible backup + targeted pending-row unit alignment for `thebornless144@gmail.com`).
-- [x] Added and applied migration `supabase/migrations/20260221173000_phase18_maintenance_attachments_support.sql` to add `maintenance_requests.images text[]` with max-5 attachment guardrail.
+- [x] Added and applied migration `supabase/migrations/20260221164728_phase18_maintenance_attachments_support.sql` to add `maintenance_requests.images text[]` with max-5 attachment guardrail.
 - [x] Re-enabled maintenance image attachments in user create flow (`addMaintenanceRequestScreen`) and wired uploads to Storage bucket `attachments` via `useCreateMaintenanceRequestWithImages`.
 - [x] Wired superadmin maintenance details Attachments tab to render real `maintenance_requests.images` gallery with preview modal and external open action.
 - [x] Aligned user maintenance status presentation with full DB enum (`pending`, `in_progress`, `completed`, `cancelled`) and strengthened realtime invalidation for maintenance list/detail updates.
@@ -289,10 +291,10 @@ Date: 2026-02-06
 - [x] Added module-toggle coverage for bottom-tab `serviceScreen` in `/Users/andromeda/casanirvana/user/services/moduleSettingsService.js` (`services` slug).
 - [x] Removed superadmin service-request mock fallback/debug path by rewriting `/Users/andromeda/casanirvana/superadmin/src/hooks/useServiceRequests.ts` to DB-only joined queries with profile resolution.
 - [x] Wired superadmin service-request status actions (`pending -> in_progress -> completed`) in list/details screens.
-- [x] Applied migration `supabase/migrations/20260221191500_phase20_services_and_service_bookings_rls_hardening.sql` (tightened `services` and `service_bookings` RLS scope; removed permissive legacy policies).
+- [x] Applied migration `supabase/migrations/20260221182810_phase20_services_and_service_bookings_rls_hardening.sql` (tightened `services` and `service_bookings` RLS scope; removed permissive legacy policies).
 - [x] Resume checkpoint validated after crash (latest service edits preserved through `2026-02-21 18:29` in user + superadmin service files).
 - [x] Removed non-functional/placeholder controls from superadmin service-request details and view pages (disabled edit/export, placeholder history/actions, static sidebar statistics, unlinked `New Request` button replaced with `Manage Services`).
-- [x] Applied migration `supabase/migrations/20260221202000_phase20_service_requests_scope_guardrail.sql` to resolve `service_requests`↔`services` community mismatch safely (24 mismatched rows backed up and detached with title preservation) and enforce future scope match by trigger (`trg_service_requests_enforce_service_scope`).
+- [x] Applied migration `supabase/migrations/20260221201404_phase20_service_requests_scope_guardrail.sql` to resolve `service_requests`↔`services` community mismatch safely (24 mismatched rows backed up and detached with title preservation) and enforce future scope match by trigger (`trg_service_requests_enforce_service_scope`).
 - [x] Aligned service module presentation contract across apps (canonical status labels and GHS currency formatting in service requests list/detail surfaces).
 - [x] Added service module realtime invalidation in user app for `service_requests` and community `services` changes via `/Users/andromeda/casanirvana/user/hooks/useRealtimeSubscriptions.ts`.
 - [x] Hardened user service-create UX confirmation path so success modal only opens when `service_requests` insert returns a persisted request id (`useCreateServiceRequest` + `serviceModal`).
@@ -320,7 +322,7 @@ Date: 2026-02-06
 ## Phase 24 - Emergency Alerts Hardening
 - [x] Aligned emergency type contract across user and superadmin write/read paths (user quick-action aliases now normalize to canonical superadmin types before insert).
 - [x] Hardened superadmin emergency create mutation to auto-derive authenticated actor profile and scoped `community_id`/`user_id` payload fields required by RLS.
-- [x] Applied migration `supabase/migrations/20260222101000_phase24_emergency_contract_and_recipients_hardening.sql` (legacy alert-type normalization + `emergency_alert_recipients.alert_id` UUID/FK repair + recipient RLS policies).
+- [x] Applied migration `supabase/migrations/20260222002101_phase24_emergency_contract_and_recipients_hardening.sql` (legacy alert-type normalization + `emergency_alert_recipients.alert_id` UUID/FK repair + recipient RLS policies).
 - [x] Wired user emergency create flow to persist `emergency_alert_recipients` rows (deduplicated recipient fan-out with role attribution).
 - [x] Wired remaining superadmin emergency detail actions (`Assign to Team`, `Escalate`, `Update Status`, `Reopen`, `Generate Report`, and response action controls) to functional handlers.
 - [x] Replaced superadmin emergency overview placeholder metrics (`averageResponseTime`, `acknowledgedPercentage`) with DB-derived calculations.
@@ -337,14 +339,14 @@ Date: 2026-02-06
 - [x] Fixed Guard runtime red-screen (`Worklets mismatch 0.7.4 vs 0.5.1`) by pinning `react-native-worklets` to `0.5.1` in `/Users/andromeda/casanirvana/Guard/package.json` and reinstalling lockfile resolution.
 - [x] Created Guard audit tracking files: `/Users/andromeda/casanirvana/Guard/SCREEN_WIRING_CHECKLIST.md`, `/Users/andromeda/casanirvana/Guard/SCHEMA_ALIGNMENT_GAPS.md`.
 - [x] Started Guard module-by-module production wiring/remediation with Visitor Entry (gate-pass code + QR scan): real pass lookup service (`/Users/andromeda/casanirvana/Guard/services/visitorEntryService.js`), home/QR/confirm flow rewiring, canonical notification payload fixes, and nested home navigation fixes.
-- [x] Applied migration `supabase/migrations/20260222194000_phase25_guard_visitor_entry_rls_alignment.sql` to add guard-scoped visitor-pass and notification RLS helpers/policies.
-- [x] Applied follow-up migration `supabase/migrations/20260222195500_phase25_guard_visitor_insert_policy_fix.sql` to correct insert policy unit/community qualification.
-- [x] Applied migration `supabase/migrations/20260222201500_phase25_guard_profiles_read_scope.sql` to allow guard-scoped resident profile reads required by unit-host lookups.
-- [x] Applied migration `supabase/migrations/20260222225000_phase25_guard_profile_sync_on_users.sql` to auto-sync `users.role='guard'` into `guards` and backfill missing guard profiles (`12` rows recorded in `public.datafix_phase25_guard_profile_backfill_backup` with `cleanup_tag = phase25_guard_profile_backfill_20260222`).
+- [x] Applied migration `supabase/migrations/20260222182257_phase25_guard_visitor_entry_rls_alignment.sql` to add guard-scoped visitor-pass and notification RLS helpers/policies.
+- [x] Applied follow-up migration `supabase/migrations/20260222182327_phase25_guard_visitor_insert_policy_fix.sql` to correct insert policy unit/community qualification.
+- [x] Applied migration `supabase/migrations/20260222184534_phase25_guard_profiles_read_scope.sql` to allow guard-scoped resident profile reads required by unit-host lookups.
+- [x] Applied migration `supabase/migrations/20260222193112_phase25_guard_profile_sync_on_users.sql` to auto-sync `users.role='guard'` into `guards` and backfill missing guard profiles (`12` rows recorded in `public.datafix_phase25_guard_profile_backfill_backup` with `cleanup_tag = phase25_guard_profile_backfill_20260222`).
 - [x] Completed Guard Guest Entry flow remediation (`guestEntryScreen`, `cabEntryScreen`, `deliveryEntryScreen`, `serviceEntryScreen`, `flatNoScreen`, `flatNoTab`, `entryConfirmationScreen`, `ringingScreen`) with required-field validation, ISO time propagation, and deterministic unit/host pass-through.
 - [x] Added canonical walk-in pass artifact generation (`entry_code`, `qr_code_data`) for all guard-created visitor types via `/Users/andromeda/casanirvana/Guard/services/visitorPassArtifacts.js` and hooked into create flows (`useVisitorPasses`, `useCabEntries`, `useDeliveryEntries`, `useServiceEntries`).
 - [x] Updated Guard approval screen to display persisted entry code/QR payload from DB instead of local random code generation.
-- [x] Applied migration `supabase/migrations/20260222213000_phase25_walkin_entry_artifacts_backfill.sql` to backfill legacy walk-in pass artifacts (`entry_code` + `qr_code_data`) with reversible backup table `public.datafix_phase25_walkin_pass_artifacts_backup` (`cleanup_tag = phase25_walkin_entry_artifacts_backfill_20260222`).
+- [x] Applied migration `supabase/migrations/20260222190401_phase25_walkin_entry_artifacts_backfill.sql` to backfill legacy walk-in pass artifacts (`entry_code` + `qr_code_data`) with reversible backup table `public.datafix_phase25_walkin_pass_artifacts_backup` (`cleanup_tag = phase25_walkin_entry_artifacts_backfill_20260222`).
 - [x] Completed Guard auth/bootstrap hardening from splash to home: rebuilt `/Users/andromeda/casanirvana/Guard/contexts/GuardAuthContext.js` (guard-only + active + community-scoped session hydration), made `/Users/andromeda/casanirvana/Guard/screens/splashScreen.js` auth-aware, and fixed progress-safe submit behavior in `/Users/andromeda/casanirvana/Guard/screens/auth/emailLoginScreen.js` and `/Users/andromeda/casanirvana/Guard/screens/auth/registerScreen.js`.
 - [x] Replaced phone OTP placeholder flow with real Supabase verification/resend in `/Users/andromeda/casanirvana/Guard/screens/auth/verificationScreen.js` and routed success back through splash-auth decision.
 - [x] Wired home header identity and unread notification badge to DB-backed guard/user/community state (`/Users/andromeda/casanirvana/Guard/screens/homeScreen.js` + realtime count subscription) and removed hardcoded `Kwame Mensah / Gate A / Casa Nirvana` placeholder values.
@@ -374,15 +376,15 @@ Date: 2026-02-06
 - [x] Completed Guard emergency detail lifecycle actions:
   - Wired `/Users/andromeda/casanirvana/Guard/screens/emergencyDetailScreen.js` action buttons to real DB transitions (`active`, `investigating`, `resolved`) with confirmation/error handling and timeline/status refresh.
   - Extended `/Users/andromeda/casanirvana/Guard/hooks/useEmergencyAlerts.js` with mutation support and `resolved_at/resolved_by` contract propagation.
-  - Applied migration `supabase/migrations/20260222234000_phase25_guard_emergency_alert_update_policy.sql` to add guard-scoped `SELECT`/`UPDATE` policies on `public.emergency_alerts`.
+  - Applied migration `supabase/migrations/20260222214458_phase25_guard_emergency_alert_update_policy.sql` to add guard-scoped `SELECT`/`UPDATE` policies on `public.emergency_alerts`.
 - [x] Replaced Guard emergency action native alerts with branded in-app modal UX in `/Users/andromeda/casanirvana/Guard/screens/emergencyDetailScreen.js` (confirm + success/error states for `contact admin`, `acknowledge`, `investigating`, `resolved`).
 - [x] Wired Guard `contact admin` emergency escalation flow:
   - Added admin fan-out dispatch from `/Users/andromeda/casanirvana/Guard/screens/emergencyDetailScreen.js` via `/Users/andromeda/casanirvana/Guard/hooks/useEmergencyAlerts.js`.
   - Escalation now writes canonical admin notifications (`notifications`) and recipient audit rows (`emergency_alert_recipients`) for the current incident.
-  - Applied migration `supabase/migrations/20260223000500_phase25_guard_emergency_recipient_notify_policy.sql` to allow guard-scoped recipient audit inserts.
+  - Applied migration `supabase/migrations/20260222215502_phase25_guard_emergency_recipient_notify_policy.sql` to allow guard-scoped recipient audit inserts.
 - [x] Fixed Guard emergency admin-notify RLS blocker:
   - Hardened recipient resolution in `/Users/andromeda/casanirvana/Guard/hooks/useEmergencyAlerts.js` to include only profiles mapped to valid `users.id` rows before insert.
-  - Applied migration `supabase/migrations/20260223003000_phase25_guard_notify_user_profile_fallback.sql` to expand `guard_can_notify_user(uuid)` community resolution with profile fallback when `users.community_id` is null.
+  - Applied migration `supabase/migrations/20260222220109_phase25_guard_notify_user_profile_fallback.sql` to expand `guard_can_notify_user(uuid)` community resolution with profile fallback when `users.community_id` is null.
 - [ ] Continue Guard module-by-module production wiring/remediation (next: Residents/Directory module and end-to-end guard lifecycle QA).
 
 ## Phase 26 - Guard Profile + Settings Persistence Hardening
@@ -394,13 +396,13 @@ Date: 2026-02-06
 - [x] Wired `/Users/andromeda/casanirvana/Guard/screens/chatSettingsScreen.js` to DB-backed load/save and reset-to-defaults contract (removed mock storage/history side-effects).
 - [x] Wired `/Users/andromeda/casanirvana/Guard/screens/editProfileScreen.js` to real `users`/`guards` hydration and update writes, including avatar upload + `refreshGuardProfile` refresh.
 - [x] Enforced Guard call policy split by actor type: residents/hosts route in-app with profile-scoped call records (`/Users/andromeda/casanirvana/Guard/hooks/useCallManager.js` + `callScreen` callers), while visitor/guest/cab/delivery/service contacts use direct dial from `/Users/andromeda/casanirvana/Guard/screens/visitorDetailScreen.js`.
-- [x] Applied migration `supabase/migrations/20260223103000_phase26_guard_profile_update_policy.sql` to allow guard-owned `public.guards` updates (`USING/WITH CHECK user_id = auth.uid()`).
+- [x] Applied migration `supabase/migrations/20260222224130_phase26_guard_profile_update_policy.sql` to allow guard-owned `public.guards` updates (`USING/WITH CHECK user_id = auth.uid()`).
 - [ ] Manual runtime QA pending for Guard settings/profile flows (`settingScreen`, `languageScreen`, `notificationSettingsScreen`, `chatSettingsScreen`, `editProfileScreen`).
 
 ## Phase 27 - ExpressPay Gateway Foundation
 - [x] Added canonical payment-gateway architecture lock doc: `/Users/andromeda/casanirvana/EXPRESSPAY_INTEGRATION_BLUEPRINT.md` (hosted checkout first, verification contract, security guardrails).
 - [x] Updated onboarding/playbook references for gateway standard (`/Users/andromeda/casanirvana/NEW_ENGINEER_QUICKSTART.md`, `/Users/andromeda/casanirvana/PRODUCTION_READINESS_PLAYBOOK.md`).
-- [x] Applied migration `supabase/migrations/20260227153000_phase27_expresspay_secure_gateway_config.sql`:
+- [x] Applied migration `supabase/migrations/20260227153916_phase27_expresspay_secure_gateway_config.sql`:
   - Created `public.payment_gateway_configs` (community/global scope, test/live mode, secret refs, RLS + grants).
   - Seeded disabled global `expresspay` rows (`test`, `live`) with hosted-checkout defaults.
   - Removed permissive legacy `app_settings` authenticated-all/read-all policies and added explicit admin/service-role policies.
@@ -412,7 +414,7 @@ Date: 2026-02-06
   - Validation schemas added in `/Users/andromeda/casanirvana/backend/src/validation/schemas.ts`
   - Env template updated in `/Users/andromeda/casanirvana/backend/.env.example`
 - [x] Backend lint + build checks passed for this slice (`eslint` on touched files + `npm run build` in `/Users/andromeda/casanirvana/backend`).
-- [x] Applied migration `supabase/migrations/20260227162000_phase27_vault_secret_helper_rpcs.sql` to add backend-only Vault helper RPCs (`p27_upsert_vault_secret`, `p27_read_vault_secret`, `p27_read_vault_secret_by_id`).
+- [x] Applied migration `supabase/migrations/20260227161950_phase27_vault_secret_helper_rpcs.sql` to add backend-only Vault helper RPCs (`p27_upsert_vault_secret`, `p27_read_vault_secret`, `p27_read_vault_secret_by_id`).
 - [x] Added backend admin ExpressPay secure-config endpoints:
   - `GET /admin/payment-gateways/expresspay/config`
   - `PUT /admin/payment-gateways/expresspay/config`
@@ -437,7 +439,7 @@ Date: 2026-02-06
     - keep personal-hub transaction rows linked by `payment_ref_id` and update terminal states (`completed`/`failed`) without client-side success simulation.
   - Updated `/Users/andromeda/casanirvana/backend/src/services/expresspay.ts` to run direct mobile-money orchestration through `direct/submit.php` + `checkout.php`, while card remains on the hosted-checkout path pending PCI-scope review.
   - `/Users/andromeda/casanirvana/user/screens/paypalScreen.js` remains available in code but is now intended to stay disabled via payment-method policy until future rollout.
-- [x] Applied hotfix migration `supabase/migrations/20260227174500_phase27_admin_roles_rls_recursion_fix.sql` to remove recursive legacy RLS policies:
+- [x] Applied hotfix migration `supabase/migrations/20260227165429_phase27_admin_roles_rls_recursion_fix.sql` to remove recursive legacy RLS policies:
   - Dropped old `Allow service role or superadmin ...` policies on `public.admin_roles` and `public.app_settings`.
   - Added function-based `admin_roles` policies (`p27_admin_roles_select_admin`, `p27_admin_roles_manage_superadmin`, `p27_admin_roles_service_role_all`) to eliminate policy recursion and restore superadmin settings reads.
 - [x] Manual runtime QA completed for user payment checkout lifecycle with real ExpressPay test credentials:
@@ -448,7 +450,7 @@ Date: 2026-02-06
   - callback now resolves an existing payment first, rejects mismatched `token` / `order-id` pairs, stores a sanitized callback audit payload in `payments.metadata.expresspay`, and only then performs authoritative provider-side verification via `query.php`.
   - no provider signature/hash contract is documented in the current ExpressPay docs, so the hardening uses strict reference matching + server-side re-verification rather than trusting callback payload state directly.
 - [x] Phase 28 payment ledger foundation applied:
-  - Migration `supabase/migrations/20260301103000_phase28_payment_domain_rebuild.sql` created `payment_obligations`, extended `payments` with source-aware ledger fields, backfilled legacy pending rows, and normalized currency/provider fields.
+  - Migration `supabase/migrations/20260301104546_phase28_payment_domain_rebuild.sql` created `payment_obligations`, extended `payments` with source-aware ledger fields, backfilled legacy pending rows, and normalized currency/provider fields.
   - Added backend ledger feeds for user + admin (`/payments/obligations`, `/payments/history`, `/payments/statements`, `/payments/transactions/initiate`, `/admin/payments/transactions`, `/admin/payments/obligations`, `/admin/payments/statements`).
   - User payment feeds now read backend ledger APIs instead of raw Supabase table assumptions.
 - [x] Phase 28 payment UI alignment pass completed:
@@ -456,19 +458,19 @@ Date: 2026-02-06
   - Superadmin payment detail sidebar now reads real obligations for “Open Payment Obligations” instead of misclassifying transaction rows as pending dues.
   - Core superadmin payment cards/details now display `GH₵` formatting and recognize `initiated` / `processing` / `cancelled` / `expired` transaction states.
 - [x] Phase 30 payment charge management foundation implemented:
-  - Added migration `supabase/migrations/20260301153000_phase30_payment_charge_management.sql` to source-control the new billing-control schema already applied in Casa Nirvana (`payment_charge_templates`, `payment_charge_template_targets`, `payment_charge_runs`, and extended `payment_obligations` invoice fields).
+  - Added migration `supabase/migrations/20260301194127_phase30_payment_charge_management.sql` to source-control the new billing-control schema already applied in Casa Nirvana (`payment_charge_templates`, `payment_charge_template_targets`, `payment_charge_runs`, and extended `payment_obligations` invoice fields).
   - Backend now exposes admin charge-management APIs for catalog, template CRUD, preview, issue, run history, and manual scheduled-run execution (`/admin/payment-charges/*`).
   - Superadmin now has a new operational page at `/payments/charges` with the full fee/charge catalog, agency/community-scoped template management, preview-and-issue workflow, and run/invoice visibility.
   - New charge runs materialize directly into `payment_obligations`, so issued community charges flow into the user app `Pending` tab without extra client-side wiring.
   - Added API-key protected internal automation endpoint `POST /internal/payment-charges/run-due` so scheduled billing runs can be triggered by production cron infrastructure without an authenticated browser session.
   - Normalized the Payments information architecture in superadmin: sidebar children are now `Overview`, `Payments`, `Invoices`, and `Payouts`; the `/payments/charges` workspace is tabbed (`Templates`, `Issue Payments`, `Issued Charges`, `Runs`), `/payments/invoices` is live, and `/payments/payouts` is ready for live payout data.
 - [x] Phase 31 payout foundation implemented:
-  - Added migration `supabase/migrations/20260301190000_phase31_payouts_foundation.sql` and applied it to the live Casa Nirvana database: `payments` now stores payout-classification snapshot fields, and the new payout tables exist (`payout_rules`, `payout_destinations`, `payout_requests`, `payout_request_items`, `payout_request_events`, `payout_ledger_entries`).
+  - Added migration `supabase/migrations/20260301220953_phase31_payouts_foundation.sql` and applied it to the live Casa Nirvana database: `payments` now stores payout-classification snapshot fields, and the new payout tables exist (`payout_rules`, `payout_destinations`, `payout_requests`, `payout_request_items`, `payout_request_events`, `payout_ledger_entries`).
   - Backend now classifies completed settled payments into Community Hub vs Personal Hub, computes payout eligibility snapshots, and writes `credit_available` payout ledger entries during normal payment settlement side effects.
   - Backend now exposes admin payout APIs for summary, eligible revenue, destinations, rules, payout requests, and payout-request lifecycle actions under `/admin/payouts/*`.
   - Superadmin `/payments/payouts` is now wired to real backend data with tabbed sections for `Overview`, `Requests`, `Destinations`, and `Rules`.
 - [x] Phase 32 payout hardening + automation completed:
-  - Added migration `supabase/migrations/20260302101500_phase32_payout_rls_hardening.sql` and applied it live: payout tables now have function-based scoped read policies for authenticated agency managers/superadmin and service-role full access only; no direct authenticated writes bypass the backend.
+  - Added migration `supabase/migrations/20260302082140_phase32_payout_rls_hardening.sql` and applied it live: payout tables now have function-based scoped read policies for authenticated agency managers/superadmin and service-role full access only; no direct authenticated writes bypass the backend.
   - Payout module access is now explicitly restricted to `superadmin` and `agency_manager` in the backend service layer; community-scoped admins continue using community finance reporting, not payout pages.
   - Added internal payout automation endpoints for reconciliation and stale reservation cleanup: `POST /internal/payouts/recompute-balances` and `POST /internal/payouts/release-stale-reservations`.
 - [x] Payout signoff conditions validated with isolated live code-side fixture against a real agency/community scope:
@@ -1019,3 +1021,5 @@ Date: 2026-02-06
 - 2026-03-16: Completed the Wave 3 Settings -> Email Settings audit for the active `/settings/email/*` routes. No backend contract changes were required because `/Users/andromeda/casanirvana/superadmin/src/hooks/useSmtpSettings.ts`, `/Users/andromeda/casanirvana/superadmin/src/hooks/useEmailTemplateSettings.ts`, and `/Users/andromeda/casanirvana/superadmin/src/hooks/useEmailNotificationSettings.ts` were already using backend-backed settings flows. The production hardening in this pass was to remove hidden regression paths and tighten truthfulness: `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/settings/email/smtp/page.tsx` no longer leaves the page editable after a settings-load failure and now states clearly that SMTP testing validates transport only; `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/settings/email/templates/page.tsx` and `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/settings/email/notifications/page.tsx` now state their real ownership boundaries and surface backend error messages instead of generic failure copy; and the unused legacy browser-side Supabase hooks `/Users/andromeda/casanirvana/superadmin/src/hooks/useEmailSettings.ts` plus `/Users/andromeda/casanirvana/superadmin/src/hooks/useEmailTemplates.ts` were removed because the active settings routes no longer use them. No SQL migration was needed in this slice. Verification passed with `npm run build` in `/Users/andromeda/casanirvana/superadmin` and `git diff --check`. The next Settings frontier is the remaining settings groups in sidebar order, starting with the rest of Payment Settings and Notification Setup.
 - 2026-03-16: Completed the next Wave 3 Settings slice for `/settings/payment/methods`, `/settings/payment/fees`, and `/settings/notifications/*` without changing the existing IA or page shells. On the frontend, `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/settings/payment/methods/page.tsx` and `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/settings/payment/fees/page.tsx` no longer fall back to editable defaults when backend settings fail to load, now state the live checkout contract explicitly, and block the specific production-breaking case where both live checkout methods would be disabled at once. `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/settings/notifications/push/page.tsx`, `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/settings/notifications/sms/page.tsx`, `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/settings/notifications/email/page.tsx`, `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/settings/notifications/in-app/page.tsx`, and `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/settings/notifications/rules/page.tsx` now describe their true ownership boundaries, surface backend errors directly, and stop presenting fake runtime telemetry on the notification-rules workspace. On the backend, `/Users/andromeda/casanirvana/backend/src/tests/admin-secure-settings.test.ts` was extended to cover push validation secret-rotation requirements, SMS provider validation, and the default-merge behavior for payment method and payment fee settings. No SQL migration was needed in this slice because the existing settings schema already supported the corrected contracts. Verification passed with focused and full `npm run test` in `/Users/andromeda/casanirvana/backend`, `npm run build` in `/Users/andromeda/casanirvana/backend`, `npm run build` in `/Users/andromeda/casanirvana/superadmin`, and `git diff --check`. The next Settings frontier is the remaining groups in sidebar order: Identity & Access remainder, Language Settings, General Settings, Tenant Configuration, and System Settings.
 - 2026-03-16: Completed the remaining Wave 3 Settings groups in sidebar order without changing the existing layouts: `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/settings/admin/onboarding/page.tsx`, `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/settings/admin/roles/page.tsx`, `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/settings/admin/security/page.tsx`, `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/settings/language/default/page.tsx`, `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/settings/language/localization/page.tsx`, `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/settings/language/translations/page.tsx`, `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/settings/general/page.tsx`, `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/settings/general/application/page.tsx`, `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/settings/general/system/page.tsx`, `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/settings/general/business/page.tsx`, `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/settings/general/security/page.tsx`, `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/settings/general/regional/page.tsx`, `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/settings/agencies/configuration/page.tsx`, `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/settings/communities/configuration/page.tsx`, `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/settings/system/overview/page.tsx`, and `/Users/andromeda/casanirvana/superadmin/src/app/(admin)/settings/system/settings/page.tsx`. The launch hardening in this pass removed the remaining unsafe fallback-edit flows after failed settings loads, replaced the last settings-specific custom token fetchers with the shared `useAdminApi` contract, converted stale overview/status copy into truthful configuration summaries, and removed active-page browser realtime listeners from the tenant configuration pages. `Module Settings` was re-audited and deliberately kept on its existing scoped server-side Next route because it already enforces admin/community scope without browser-side database access. No SQL migration was needed in this slice because the existing schema and policies already supported the corrected settings behavior. Verification passed with `npm run build` in `/Users/andromeda/casanirvana/superadmin` and `git diff --check`; `npm run build:check` still fails on unrelated long-standing repo-wide TypeScript debt outside the audited settings slice.
+- 2026-03-16: Closed the migration/RLS history-alignment follow-up before the final runtime signoff. Added `/Users/andromeda/casanirvana/supabase/migrations/ROLLBACK_NOTES.md` so every active post-baseline migration now has an explicit rollback playbook, updated `/Users/andromeda/casanirvana/supabase/migrations/README.md` to point at those notes, verified the live Casa Nirvana system-domain policies directly against `pswnlowvmdgeifhxilao`, realigned 30 active local migration filenames to the already-recorded remote versions, and repaired the missing production history rows for the remaining active local versions (`20260206234500`, `20260206235500`, `20260207001000`, `20260207002000`, `20260207003000`, `20260207004000`, `20260207005000`, `20260207006000`, `20260306180000`, `20260307191500`, `20260307203000`) with `created_by = codex-history-repair` after verifying that the live schema already contained their effects. Active local migration versions are now fully represented in the live production history table, which closes the migration-history drift that would otherwise block a clean source-of-truth push.
+- 2026-03-19: Completed the remaining Phase 5 data-alignment cleanup for legacy visitors. Added `/Users/andromeda/casanirvana/supabase/migrations/20260319113000_phase41_archive_legacy_unattributed_visitor_passes.sql`, applied it live to Casa Nirvana Supabase project `pswnlowvmdgeifhxilao`, and recorded migration history version `20260319113000` / `phase41_archive_legacy_unattributed_visitor_passes` with `created_by = codex`. The migration archived and removed the 15 known legacy `visitor_passes` seed/demo rows that still lacked valid creator attribution, preserved reversible backups in `public.datafix_phase41_legacy_visitor_passes_archive` and `public.datafix_phase41_legacy_visitor_entry_logs_archive`, and backported the same seed cleanup into `/Users/andromeda/casanirvana/supabase/migrations/20260206_baseline_schema.sql`. Live verification afterward showed `unresolved_visitor_passes = 0`, `archived_visitor_passes = 15`, `archived_entry_logs = 0`, and `migration_history_rows = 1` for Phase 41.

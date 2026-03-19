@@ -23,6 +23,8 @@ You can also apply a migration manually in the Supabase Dashboard SQL editor.
 - Migrations from the superadmin app have been consolidated here.
 - Do not add new migrations under app-specific folders.
 - Keep filenames timestamped and ordered.
+- Per-migration rollback procedures are documented in `ROLLBACK_NOTES.md`.
+- Production migration-history verification can be done through the Supabase management API when direct CLI password auth is unavailable in-session.
 
 ## Personal Hub Migrations
 
