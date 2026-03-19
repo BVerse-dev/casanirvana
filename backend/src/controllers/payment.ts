@@ -138,6 +138,11 @@ export async function getPaymentById(req: Request, res: Response, next: NextFunc
  */
 export async function createPayment(req: Request, res: Response, next: NextFunction) {
   try {
+    await assertScopedPaymentMutationAllowed(req, {
+      unitId: typeof req.body?.unit_id === 'string' ? req.body.unit_id : null,
+      payerId: typeof req.body?.payer_id === 'string' ? req.body.payer_id : null,
+    });
+
     const payment = await PaymentService.createPayment(req.body);
     res.status(201).json(payment);
   } catch (error) {
@@ -151,7 +156,17 @@ export async function createPayment(req: Request, res: Response, next: NextFunct
 export async function updatePayment(req: Request, res: Response, next: NextFunction) {
   try {
     const { id } = req.params;
-    const payment = await PaymentService.updatePayment(id, req.body);
+    const existingPayment = await loadPaymentScopeRecord(id);
+
+    await assertScopedPaymentMutationAllowed(req, {
+      unitId: typeof req.body?.unit_id === 'string' ? req.body.unit_id : existingPayment.unit_id,
+      payerId: typeof req.body?.payer_id === 'string' ? req.body.payer_id : existingPayment.payer_id,
+    });
+
+    const payment = await PaymentService.updatePayment(id, {
+      ...req.body,
+      updated_at: new Date().toISOString(),
+    });
     res.json(payment);
   } catch (error) {
     next(error);
@@ -184,6 +199,13 @@ export async function updatePaymentStatus(req: Request, res: Response, next: Nex
 export async function deletePayment(req: Request, res: Response, next: NextFunction) {
   try {
     const { id } = req.params;
+    const existingPayment = await loadPaymentScopeRecord(id);
+
+    await assertScopedPaymentMutationAllowed(req, {
+      unitId: existingPayment.unit_id,
+      payerId: existingPayment.payer_id,
+    });
+
     await PaymentService.deletePayment(id);
     res.json({ id, success: true });
   } catch (error) {
@@ -240,6 +262,121 @@ const getActorUserId = (req: Request) => {
   }
 
   return null;
+};
+
+const resolvePaymentCommunityIds = async (input: {
+  unitId?: string | null;
+  payerId?: string | null;
+}) => {
+  const communityIds = new Set<string>();
+
+  if (input.unitId) {
+    const { data, error } = await adminSupabase
+      .from('units')
+      .select('community_id')
+      .eq('id', input.unitId)
+      .maybeSingle();
+
+    if (error) {
+      throw createHttpError(500, 'PAYMENT_SCOPE_UNIT_LOOKUP_FAILED', 'Failed to resolve payment unit scope', error);
+    }
+
+    if (!data?.community_id) {
+      throw createHttpError(400, 'PAYMENT_SCOPE_UNIT_INVALID', 'Selected payment unit could not be resolved');
+    }
+
+    communityIds.add(data.community_id);
+  }
+
+  if (input.payerId) {
+    const { data, error } = await adminSupabase
+      .from('profiles')
+      .select('community_id')
+      .eq('id', input.payerId)
+      .maybeSingle();
+
+    if (error) {
+      throw createHttpError(500, 'PAYMENT_SCOPE_PAYER_LOOKUP_FAILED', 'Failed to resolve payment payer scope', error);
+    }
+
+    if (!data?.community_id) {
+      throw createHttpError(400, 'PAYMENT_SCOPE_PAYER_INVALID', 'Selected payment payer could not be resolved');
+    }
+
+    communityIds.add(data.community_id);
+  }
+
+  return [...communityIds];
+};
+
+const assertScopedPaymentMutationAllowed = async (
+  req: Request,
+  input: {
+    unitId?: string | null;
+    payerId?: string | null;
+  }
+) => {
+  const scope = await resolveAdminScope(req);
+
+  if (scope.isGlobal) {
+    return;
+  }
+
+  if (scope.communityIds.length === 0) {
+    throw createHttpError(403, 'PAYMENT_SCOPE_VIOLATION', 'You do not have access to manage payments');
+  }
+
+  if (!input.unitId && !input.payerId) {
+    throw createHttpError(
+      400,
+      'PAYMENT_SCOPE_REFERENCE_REQUIRED',
+      'Scoped admins must select a payer or unit within their tenant scope'
+    );
+  }
+
+  const communityIds = await resolvePaymentCommunityIds(input);
+
+  if (communityIds.length === 0) {
+    throw createHttpError(
+      400,
+      'PAYMENT_SCOPE_REFERENCE_REQUIRED',
+      'Scoped admins must select a payer or unit within their tenant scope'
+    );
+  }
+
+  if (communityIds.some((communityId) => !scope.communityIds.includes(communityId))) {
+    throw createHttpError(
+      403,
+      'PAYMENT_SCOPE_VIOLATION',
+      'You do not have access to the selected payment scope'
+    );
+  }
+
+  if (communityIds.length > 1) {
+    throw createHttpError(
+      400,
+      'PAYMENT_SCOPE_MISMATCH',
+      'The selected payer and unit belong to different communities'
+    );
+  }
+};
+
+const loadPaymentScopeRecord = async (id: string) => {
+  const { data, error } = await adminSupabase
+    .from('payments')
+    .select('id, unit_id, payer_id')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (error) {
+    throw createHttpError(500, 'PAYMENT_LOOKUP_FAILED', 'Failed to load payment', error);
+  }
+
+  if (!data) {
+    throw createHttpError(404, 'PAYMENT_NOT_FOUND', 'Payment not found');
+  }
+
+  return data;
 };
 
 const PERSONAL_HUB_SERVICE_LABELS: Record<string, string> = {

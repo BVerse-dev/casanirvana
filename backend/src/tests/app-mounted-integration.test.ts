@@ -3154,6 +3154,168 @@ describe('Mounted app integration', () => {
     });
   });
 
+  it('creates mounted admin payments only within the scoped tenant communities', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-4111-8111-111111111111';
+    const unitId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const payerId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+
+    seedAuthenticatedAdmin({
+      permissions: ['create:payments'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+    });
+
+    mockState.tables.units = [
+      { id: unitId, community_id: communityId },
+    ];
+    mockState.tables.profiles = [
+      ...mockState.tables.profiles,
+      { id: payerId, community_id: communityId, first_name: 'Ama', last_name: 'Owusu' },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/payments',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        amount: 1250,
+        unit_id: unitId,
+        payer_id: payerId,
+        title: 'March dues',
+        status: 'pending',
+      },
+    });
+
+    expect(response.status).toBe(201);
+    expect(response.body).toEqual(
+      expect.objectContaining({
+        amount: 1250,
+        unit_id: unitId,
+        payer_id: payerId,
+        status: 'pending',
+      })
+    );
+  });
+
+  it('rejects mounted admin payment creation outside the scoped tenant communities', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-4111-8111-111111111111';
+    const otherCommunityId = '22222222-2222-4222-8222-222222222222';
+    const otherUnitId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+
+    seedAuthenticatedAdmin({
+      permissions: ['create:payments'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+    });
+
+    mockState.tables.units = [
+      { id: otherUnitId, community_id: otherCommunityId },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/payments',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        amount: 1250,
+        unit_id: otherUnitId,
+        title: 'Out of scope dues',
+      },
+    });
+
+    expect(response.status).toBe(403);
+    expect((response.body as any).error.code).toBe('PAYMENT_SCOPE_VIOLATION');
+    expect(mockState.tables.payments || []).toHaveLength(0);
+  });
+
+  it('updates mounted admin payments within scope and stamps updated_at', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-4111-8111-111111111111';
+    const unitId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const payerId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const paymentId = 'payment-scoped';
+
+    seedAuthenticatedAdmin({
+      permissions: ['update:payments'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+    });
+
+    mockState.tables.units = [
+      { id: unitId, community_id: communityId },
+    ];
+    mockState.tables.profiles = [
+      ...mockState.tables.profiles,
+      { id: payerId, community_id: communityId, first_name: 'Ama', last_name: 'Owusu' },
+    ];
+    mockState.tables.payments = [
+      { id: paymentId, amount: 1250, unit_id: unitId, payer_id: payerId, status: 'pending', updated_at: null },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'PUT',
+      path: `/admin/payments/${paymentId}`,
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        status: 'completed',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(
+      expect.objectContaining({
+        id: paymentId,
+        status: 'completed',
+      })
+    );
+    expect(((mockState.tables.payments || []).find((row) => row.id === paymentId) || {}).updated_at).toBeTruthy();
+  });
+
+  it('rejects mounted admin payment deletion outside the scoped tenant communities', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-4111-8111-111111111111';
+    const otherCommunityId = '22222222-2222-4222-8222-222222222222';
+    const otherUnitId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+    const paymentId = 'payment-outside';
+
+    seedAuthenticatedAdmin({
+      permissions: ['delete:payments'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+    });
+
+    mockState.tables.units = [
+      { id: otherUnitId, community_id: otherCommunityId },
+    ];
+    mockState.tables.payments = [
+      { id: paymentId, amount: 2250, unit_id: otherUnitId, payer_id: null, status: 'pending' },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'DELETE',
+      path: `/admin/payments/${paymentId}`,
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(403);
+    expect((response.body as any).error.code).toBe('PAYMENT_SCOPE_VIOLATION');
+    expect((mockState.tables.payments || []).some((row) => row.id === paymentId)).toBe(true);
+  });
+
   it('returns mounted payment gateway settings with persisted secrets masked', async () => {
     const app = await loadApp();
 
