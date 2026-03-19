@@ -1,4 +1,4 @@
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { NextFunction, Request, Response } from 'express';
 
 import {
@@ -238,6 +238,8 @@ describe('Admin complaint launch read models', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-03-13T12:00:00.000Z'));
     supabaseState.tables = {};
     scopeMocks.resolveAdminScope.mockResolvedValue({
       role: 'superadmin',
@@ -247,6 +249,10 @@ describe('Admin complaint launch read models', () => {
       communityIds: [],
       agencyIds: [],
     });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('returns scoped complaints with reporter and community enrichment', async () => {
