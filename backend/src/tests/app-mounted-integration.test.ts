@@ -1922,6 +1922,282 @@ describe('Mounted app integration', () => {
     );
   });
 
+  it('returns scoped services through the mounted admin route with request counts', async () => {
+    const app = await loadApp();
+
+    seedAuthenticatedAdmin({
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: ['community-1'],
+    });
+
+    mockState.tables.services = [
+      {
+        id: 26,
+        name: 'Plumbing',
+        community_id: 'community-1',
+        is_active: true,
+        created_at: '2026-03-12T08:00:00.000Z',
+      },
+      {
+        id: 27,
+        name: 'Cleaning',
+        community_id: 'community-2',
+        is_active: true,
+        created_at: '2026-03-11T08:00:00.000Z',
+      },
+    ];
+    mockState.tables.service_requests = [
+      {
+        id: 'request-1',
+        community_id: 'community-1',
+        service_id: 26,
+        request_details: 'Fix the kitchen sink',
+        created_by: 'user-1',
+        status: 'pending',
+        total_amount: 45,
+      },
+      {
+        id: 'request-2',
+        community_id: 'community-1',
+        service_id: 26,
+        request_details: 'Repair shower',
+        created_by: 'user-1',
+        status: 'completed',
+        total_amount: 60,
+      },
+      {
+        id: 'request-3',
+        community_id: 'community-2',
+        service_id: 27,
+        request_details: 'Housekeeping',
+        created_by: 'user-2',
+        status: 'completed',
+        total_amount: 20,
+      },
+    ];
+    mockState.tables.communities = [
+      { id: 'community-1', name: 'Casa Nirvana One', agency_id: 'agency-1' },
+      { id: 'community-2', name: 'Other Community', agency_id: 'agency-2' },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/services',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect((response.body as any).data).toHaveLength(1);
+    expect((response.body as any).data[0]).toEqual(
+      expect.objectContaining({
+        id: 26,
+        communityName: 'Casa Nirvana One',
+        request_counts: expect.objectContaining({
+          total: 2,
+          pending: 1,
+          completed: 1,
+          completedRevenue: 60,
+        }),
+      })
+    );
+  });
+
+  it('rejects service creation outside the mounted admin scope', async () => {
+    const app = await loadApp();
+
+    seedAuthenticatedAdmin({
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: ['community-1'],
+    });
+
+    const response = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/services',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        name: 'Laundry',
+        community_id: 'community-2',
+        category: 'cleaning',
+      },
+    });
+
+    expect(response.status).toBe(403);
+    expect((response.body as any).error.code).toBe('SERVICE_SCOPE_VIOLATION');
+  });
+
+  it('returns enriched service request detail through the mounted admin route', async () => {
+    const app = await loadApp();
+    const serviceRequestId = '11111111-1111-1111-1111-111111111111';
+
+    seedAuthenticatedAdmin({
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: ['community-1'],
+    });
+
+    mockState.tables.service_requests = [
+      {
+        id: serviceRequestId,
+        community_id: 'community-1',
+        service_id: 26,
+        unit_id: 'unit-1',
+        user_id: 'user-1',
+        created_by: 'user-1',
+        assigned_to: 'profile-tech',
+        request_details: 'Fix the kitchen sink',
+        status: 'pending',
+        title: 'Sink repair',
+        total_amount: 75,
+        created_at: '2026-03-12T08:00:00.000Z',
+      },
+    ];
+    mockState.tables.services = [
+      {
+        id: 26,
+        name: 'Plumbing',
+        community_id: 'community-1',
+        is_active: true,
+      },
+    ];
+    mockState.tables.units = [
+      {
+        id: 'unit-1',
+        block: 'A',
+        number: '101',
+        community_id: 'community-1',
+      },
+    ];
+    mockState.tables.profiles = [
+      ...mockState.tables.profiles,
+      {
+        id: 'profile-user',
+        user_id: 'user-1',
+        first_name: 'Ada',
+        last_name: 'Stone',
+        email: 'resident@example.com',
+      },
+      {
+        id: 'profile-tech',
+        user_id: 'tech-user',
+        first_name: 'Max',
+        last_name: 'Rivera',
+        email: 'tech@example.com',
+      },
+    ];
+    mockState.tables.communities = [
+      {
+        id: 'community-1',
+        name: 'Casa Nirvana One',
+        address: 'Accra',
+        agency_id: 'agency-1',
+      },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: `/admin/service-requests/${serviceRequestId}`,
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect((response.body as any).data).toEqual(
+      expect.objectContaining({
+        id: serviceRequestId,
+        services: expect.objectContaining({
+          id: 26,
+          name: 'Plumbing',
+        }),
+        units: expect.objectContaining({
+          id: 'unit-1',
+          community: expect.objectContaining({
+            name: 'Casa Nirvana One',
+          }),
+        }),
+        user_profile: expect.objectContaining({
+          email: 'resident@example.com',
+        }),
+        assigned_profile: expect.objectContaining({
+          email: 'tech@example.com',
+        }),
+      })
+    );
+  });
+
+  it('updates service request lifecycle fields through the mounted admin route when completing a request', async () => {
+    const app = await loadApp();
+    const serviceRequestId = '11111111-1111-1111-1111-111111111111';
+
+    seedAuthenticatedAdmin({
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: ['community-1'],
+    });
+
+    mockState.tables.service_requests = [
+      {
+        id: serviceRequestId,
+        community_id: 'community-1',
+        service_id: 26,
+        created_by: 'user-1',
+        request_details: 'Fix the kitchen sink',
+        status: 'in_progress',
+        created_at: '2026-03-12T08:00:00.000Z',
+        updated_at: '2026-03-12T09:00:00.000Z',
+      },
+    ];
+    mockState.tables.services = [
+      {
+        id: 26,
+        name: 'Plumbing',
+        community_id: 'community-1',
+        is_active: true,
+      },
+    ];
+    mockState.tables.communities = [
+      {
+        id: 'community-1',
+        name: 'Casa Nirvana One',
+        address: 'Accra',
+      },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'PATCH',
+      path: `/admin/service-requests/${serviceRequestId}`,
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        status: 'completed',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect((response.body as any).message).toBe('Service request updated successfully');
+    expect((response.body as any).data).toEqual(
+      expect.objectContaining({
+        id: serviceRequestId,
+        status: 'completed',
+      })
+    );
+    expect((response.body as any).data.completion_date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect((response.body as any).data.updated_at).toBeTruthy();
+    expect(mockState.tables.service_requests[0]).toEqual(
+      expect.objectContaining({
+        id: serviceRequestId,
+        status: 'completed',
+      })
+    );
+  });
+
   it('rejects onboarding writes when the public API key is wrong', async () => {
     const app = await loadApp();
 
