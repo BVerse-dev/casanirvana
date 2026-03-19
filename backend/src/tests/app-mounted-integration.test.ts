@@ -3041,6 +3041,342 @@ describe('Mounted app integration', () => {
     expect((response.body as any).error.code).toBe('VALIDATION_ERROR');
   });
 
+  it('returns scoped payment stats through the mounted admin route using community-linked units and payers', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-4111-8111-111111111111';
+    const otherCommunityId = '22222222-2222-4222-8222-222222222222';
+    const unitId = '55555555-5555-4555-8555-555555555555';
+    const otherUnitId = '66666666-6666-4666-8666-666666666666';
+    const payerId = '77777777-7777-4777-8777-777777777777';
+    const otherPayerId = '88888888-8888-4888-8888-888888888888';
+
+    seedAuthenticatedAdmin({
+      permissions: ['read:all_payments'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+    });
+
+    mockState.tables.units = [
+      { id: unitId, community_id: communityId },
+      { id: otherUnitId, community_id: otherCommunityId },
+    ];
+    mockState.tables.profiles = [
+      ...mockState.tables.profiles,
+      { id: payerId, community_id: communityId, first_name: 'Ama', last_name: 'Owusu' },
+      { id: otherPayerId, community_id: otherCommunityId, first_name: 'Kojo', last_name: 'Mensah' },
+    ];
+    mockState.tables.payments = [
+      { id: 'payment-1', unit_id: unitId, payer_id: null, status: 'completed', amount: 1200 },
+      { id: 'payment-2', unit_id: null, payer_id: payerId, status: 'pending', amount: 600 },
+      { id: 'payment-3', unit_id: otherUnitId, payer_id: otherPayerId, status: 'failed', amount: 3000 },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/payments/stats',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      byStatus: {
+        completed: { count: 1, total: 1200 },
+        pending: { count: 1, total: 600 },
+      },
+      total: {
+        amount: 1800,
+        count: 2,
+      },
+    });
+  });
+
+  it('returns mounted payment gateway settings with persisted secrets masked', async () => {
+    const app = await loadApp();
+
+    seedAuthenticatedAdmin({
+      permissions: ['manage:settings'],
+    });
+
+    mockState.tables.system_settings = [
+      {
+        category: 'payment_gateways',
+        subcategory: '',
+        key: 'stripe_enabled',
+        value: 'true',
+        data_type: 'boolean',
+        is_sensitive: false,
+      },
+      {
+        category: 'payment_gateways',
+        subcategory: '',
+        key: 'stripe_secret_key',
+        value: 'sk_live_secret',
+        data_type: 'string',
+        is_sensitive: true,
+      },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/settings/payment-gateways',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect((response.body as any).settings).toEqual(
+      expect.objectContaining({
+        stripe_enabled: true,
+      })
+    );
+    expect((response.body as any).settings.stripe_secret_key).not.toBe('sk_live_secret');
+    expect(typeof (response.body as any).settings.stripe_secret_key).toBe('string');
+  });
+
+  it('updates mounted payment gateway settings and mirrors legacy app settings', async () => {
+    const app = await loadApp();
+
+    seedAuthenticatedAdmin({
+      permissions: ['manage:settings'],
+    });
+
+    const response = await performMountedRequest(app, {
+      method: 'PUT',
+      path: '/admin/settings/payment-gateways',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        stripe_enabled: true,
+        stripe_publishable_key: 'pk_live_123',
+        stripe_secret_key: 'sk_live_123',
+        bank_transfer_enabled: true,
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect((response.body as any).settings).toEqual(
+      expect.objectContaining({
+        stripe_enabled: true,
+        stripe_publishable_key: 'pk_live_123',
+        bank_transfer_enabled: true,
+      })
+    );
+    expect((response.body as any).settings.stripe_secret_key).not.toBe('sk_live_123');
+    expect((mockState.tables.system_settings || []).find((row) => row.category === 'payment_gateways' && row.key === 'stripe_secret_key')).toEqual(
+      expect.objectContaining({
+        updated_by: 'auth-admin',
+        is_sensitive: true,
+        value: 'sk_live_123',
+      })
+    );
+    expect((mockState.tables.app_settings || []).find((row) => row.category === 'payment_gateways' && row.key === 'stripe_enabled')).toEqual(
+      expect.objectContaining({
+        value: 'true',
+      })
+    );
+  });
+
+  it('tests mounted payment gateway settings with unsaved payload values', async () => {
+    const app = await loadApp();
+
+    seedAuthenticatedAdmin({
+      permissions: ['manage:settings'],
+    });
+
+    const response = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/settings/payment-gateways/test',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        gateway: 'stripe',
+        settings: {
+          stripe_enabled: true,
+          stripe_publishable_key: 'pk_test_123',
+          stripe_secret_key: 'sk_test_123',
+        },
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(
+      expect.objectContaining({
+        success: true,
+      })
+    );
+  });
+
+  it('returns mounted payment method settings with persisted overrides merged onto defaults', async () => {
+    const app = await loadApp();
+
+    seedAuthenticatedAdmin({
+      permissions: ['manage:settings'],
+    });
+
+    mockState.tables.system_settings = [
+      {
+        category: 'payment_methods',
+        subcategory: '',
+        key: 'credit_card_enabled',
+        value: 'false',
+        data_type: 'boolean',
+        is_sensitive: false,
+      },
+      {
+        category: 'payment_methods',
+        subcategory: '',
+        key: 'payment_terms',
+        value: 'Due immediately.',
+        data_type: 'string',
+        is_sensitive: false,
+      },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/settings/payment-methods',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect((response.body as any).settings).toEqual(
+      expect.objectContaining({
+        credit_card_enabled: false,
+        payment_terms: 'Due immediately.',
+        min_payment_amount: 1,
+      })
+    );
+  });
+
+  it('updates mounted payment method settings and stamps persisted rows', async () => {
+    const app = await loadApp();
+
+    seedAuthenticatedAdmin({
+      permissions: ['manage:settings'],
+    });
+
+    const response = await performMountedRequest(app, {
+      method: 'PUT',
+      path: '/admin/settings/payment-methods',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        credit_card_enabled: false,
+        bank_transfer_enabled: true,
+        payment_terms: 'Pay within 7 days.',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect((response.body as any).settings).toEqual(
+      expect.objectContaining({
+        credit_card_enabled: false,
+        bank_transfer_enabled: true,
+        payment_terms: 'Pay within 7 days.',
+      })
+    );
+    expect((mockState.tables.system_settings || []).find((row) => row.category === 'payment_methods' && row.key === 'payment_terms')).toEqual(
+      expect.objectContaining({
+        updated_by: 'auth-admin',
+        value: 'Pay within 7 days.',
+      })
+    );
+  });
+
+  it('returns and updates mounted payment fee settings through the admin route', async () => {
+    const app = await loadApp();
+
+    seedAuthenticatedAdmin({
+      permissions: ['manage:settings'],
+    });
+
+    mockState.tables.system_settings = [
+      {
+        category: 'payment_fees',
+        subcategory: '',
+        key: 'expresspay_fee_percentage',
+        value: '1.5',
+        data_type: 'number',
+        is_sensitive: false,
+      },
+    ];
+
+    const getResponse = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/settings/payment-fees',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(getResponse.status).toBe(200);
+    expect((getResponse.body as any).settings).toEqual(
+      expect.objectContaining({
+        expresspay_fee_percentage: 1.5,
+        fee_bearer: 'customer',
+      })
+    );
+
+    const updateResponse = await performMountedRequest(app, {
+      method: 'PUT',
+      path: '/admin/settings/payment-fees',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        late_payment_fee_enabled: true,
+        late_payment_fee_percentage: 5,
+        fee_bearer: 'merchant',
+      },
+    });
+
+    expect(updateResponse.status).toBe(200);
+    expect((updateResponse.body as any).settings).toEqual(
+      expect.objectContaining({
+        late_payment_fee_enabled: true,
+        late_payment_fee_percentage: 5,
+        fee_bearer: 'merchant',
+      })
+    );
+    expect((mockState.tables.system_settings || []).find((row) => row.category === 'payment_fees' && row.key === 'late_payment_fee_percentage')).toEqual(
+      expect.objectContaining({
+        updated_by: 'auth-admin',
+        value: '5',
+      })
+    );
+  });
+
+  it('validates mounted payment fee updates before the controller runs', async () => {
+    const app = await loadApp();
+
+    seedAuthenticatedAdmin({
+      permissions: ['manage:settings'],
+    });
+
+    const response = await performMountedRequest(app, {
+      method: 'PUT',
+      path: '/admin/settings/payment-fees',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        late_payment_fee_percentage: 99,
+      },
+    });
+
+    expect(response.status).toBe(400);
+    expect((response.body as any).error.code).toBe('VALIDATION_ERROR');
+  });
+
   it('lists scoped maintenance requests through the mounted admin route for a tenant admin', async () => {
     const app = await loadApp();
     const communityId = '11111111-1111-1111-1111-111111111111';

@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { supabase } from '../lib/supabase';
 import { createHttpError } from '../lib/httpError';
+import { resolveAdminScope } from '../services/adminScope';
 
 const ALLOWED_ROLES = [
   'user',
@@ -660,30 +661,95 @@ export async function bulkUpdateComplaints(req: Request, res: Response, next: Ne
 // Payment management functions
 export async function getPaymentStats(req: Request, res: Response, next: NextFunction) {
   try {
-    // Get payments by status
-    const { data: payments, error: paymentsError } = await supabase
-      .from('payments')
-      .select('status, amount');
-    
-    if (paymentsError) {
+    const scope = await resolveAdminScope(req);
+
+    let payments: Array<{ id?: string | null; status?: string | null; amount?: number | string | null }> = [];
+
+    if (scope.isGlobal) {
+      const { data, error } = await supabase.from('payments').select('id, status, amount');
+
+      if (error) {
+        return next(
+          createHttpError(500, 'ADMIN_PAYMENT_STATS_FETCH_FAILED', 'Failed to fetch payment stats', error)
+        );
+      }
+
+      payments = data || [];
+    } else if (scope.communityIds.length === 0) {
+      payments = [];
+    } else {
+      const [unitsResult, scopedProfilesResult] = await Promise.all([
+        supabase.from('units').select('id').in('community_id', scope.communityIds),
+        supabase.from('profiles').select('id').in('community_id', scope.communityIds),
+      ]);
+
+      if (unitsResult.error || scopedProfilesResult.error) {
+        return next(
+          createHttpError(500, 'ADMIN_PAYMENT_SCOPE_FETCH_FAILED', 'Failed to resolve payment scope', {
+            unitsError: unitsResult.error,
+            profilesError: scopedProfilesResult.error,
+          })
+        );
+      }
+
+      const unitIds = (unitsResult.data || []).map((row) => row.id).filter(Boolean);
+      const payerIds = (scopedProfilesResult.data || []).map((row) => row.id).filter(Boolean);
+      const paymentRowsById = new Map<string, { id?: string | null; status?: string | null; amount?: number | string | null }>();
+
+      if (unitIds.length > 0) {
+        const { data, error } = await supabase.from('payments').select('id, status, amount').in('unit_id', unitIds);
+
+        if (error) {
+          return next(
+            createHttpError(500, 'ADMIN_PAYMENT_STATS_FETCH_FAILED', 'Failed to fetch payment stats', error)
+          );
+        }
+
+        for (const row of data || []) {
+          if (typeof row.id === 'string') {
+            paymentRowsById.set(row.id, row);
+          }
+        }
+      }
+
+      if (payerIds.length > 0) {
+        const { data, error } = await supabase.from('payments').select('id, status, amount').in('payer_id', payerIds);
+
+        if (error) {
+          return next(
+            createHttpError(500, 'ADMIN_PAYMENT_STATS_FETCH_FAILED', 'Failed to fetch payment stats', error)
+          );
+        }
+
+        for (const row of data || []) {
+          if (typeof row.id === 'string') {
+            paymentRowsById.set(row.id, row);
+          }
+        }
+      }
+
+      payments = [...paymentRowsById.values()];
+    }
+
+    if (!Array.isArray(payments)) {
       return next(
-        createHttpError(500, 'ADMIN_PAYMENT_STATS_FETCH_FAILED', 'Failed to fetch payment stats', paymentsError)
+        createHttpError(500, 'ADMIN_PAYMENT_STATS_FETCH_FAILED', 'Failed to fetch payment stats')
       );
     }
-    
-    // Process payment data
-    const byStatus = payments?.reduce((acc, item) => {
-      acc[item.status] = {
-        count: (acc[item.status]?.count || 0) + 1,
-        total: (acc[item.status]?.total || 0) + Number(item.amount)
+
+    const byStatus = payments.reduce((acc, item) => {
+      const statusKey =
+        typeof item.status === 'string' && item.status.trim().length > 0 ? item.status : 'unknown';
+      acc[statusKey] = {
+        count: (acc[statusKey]?.count || 0) + 1,
+        total: (acc[statusKey]?.total || 0) + Number(item.amount || 0),
       };
       return acc;
     }, {} as Record<string, { count: number, total: number }>);
-    
-    // Calculate totals
-    const totalAmount = payments?.reduce((sum, item) => sum + Number(item.amount), 0) || 0;
-    const totalCount = payments?.length || 0;
-    
+
+    const totalAmount = payments.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    const totalCount = payments.length;
+
     res.json({
       byStatus,
       total: {
