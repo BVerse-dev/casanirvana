@@ -1660,6 +1660,268 @@ describe('Mounted app integration', () => {
     ]);
   });
 
+  it('returns scoped inquiries through the mounted admin route with enrichment', async () => {
+    const app = await loadApp();
+
+    seedAuthenticatedAdmin({
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: ['community-1'],
+    });
+
+    mockState.tables.inquiries = [
+      {
+        id: 'inq-1',
+        user_id: 'resident-user-1',
+        user_name: 'Resident One',
+        user_email: 'resident@example.com',
+        user_phone: '0240000000',
+        community_id: 'community-1',
+        inquiry_type: 'general_inquiry',
+        subject: 'Gate light issue',
+        description: 'The gate light is not working.',
+        priority: 'high',
+        status: 'open',
+        assigned_to: 'admin-user-1',
+        created_at: '2026-03-12T08:00:00.000Z',
+      },
+      {
+        id: 'inq-2',
+        user_id: 'resident-user-2',
+        user_name: 'Resident Two',
+        community_id: 'community-2',
+        inquiry_type: 'feedback',
+        subject: 'Out of scope',
+        description: 'Should not be visible.',
+        priority: 'low',
+        status: 'open',
+        created_at: '2026-03-11T08:00:00.000Z',
+      },
+    ];
+    mockState.tables.profiles = [
+      ...mockState.tables.profiles,
+      {
+        id: 'resident-profile-1',
+        user_id: 'resident-user-1',
+        full_name: 'Resident One',
+        email: 'resident@example.com',
+        phone: '0240000000',
+        role: 'user',
+        community_id: 'community-1',
+      },
+      {
+        id: 'profile-admin-1',
+        user_id: 'admin-user-1',
+        full_name: 'Admin One',
+        email: 'admin1@example.com',
+        phone: '0200000000',
+        role: 'facility_manager',
+        community_id: 'community-1',
+      },
+    ];
+    mockState.tables.communities = [
+      { id: 'community-1', name: 'Casa One', agency_id: 'agency-1' },
+      { id: 'community-2', name: 'Casa Two', agency_id: 'agency-1' },
+    ];
+    mockState.tables.agencies = [{ id: 'agency-1', name: 'Agency One' }];
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/inquiries?status=open',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect((response.body as any).data).toEqual([
+      expect.objectContaining({
+        id: 'inq-1',
+        community: expect.objectContaining({ name: 'Casa One' }),
+        agency: expect.objectContaining({ name: 'Agency One' }),
+        user_profile: expect.objectContaining({ full_name: 'Resident One' }),
+        assignee_profile: expect.objectContaining({ full_name: 'Admin One' }),
+      }),
+    ]);
+  });
+
+  it('returns scoped assignable admins through the mounted inquiry route and keeps superadmins available', async () => {
+    const app = await loadApp();
+    const communityId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const otherCommunityId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const assignableAdminProfileId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+
+    seedAuthenticatedAdmin({
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+    });
+
+    mockState.tables.profiles = [
+      ...mockState.tables.profiles,
+      {
+        id: 'profile-superadmin',
+        user_id: 'superadmin-user',
+        full_name: 'Global Admin',
+        email: 'global@example.com',
+        phone: null,
+        role: 'superadmin',
+        community_id: null,
+      },
+      {
+        id: assignableAdminProfileId,
+        user_id: 'facility-user-1',
+        full_name: 'Community Admin',
+        email: 'facility1@example.com',
+        phone: null,
+        role: 'facility_manager',
+        community_id: communityId,
+      },
+      {
+        id: 'profile-facility-2',
+        user_id: 'facility-user-2',
+        full_name: 'Other Community Admin',
+        email: 'facility2@example.com',
+        phone: null,
+        role: 'facility_manager',
+        community_id: otherCommunityId,
+      },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: `/admin/inquiries/assignable-admins?community_id=${communityId}`,
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect((response.body as any).data).toEqual([
+      expect.objectContaining({ id: assignableAdminProfileId, user_id: 'facility-user-1' }),
+      expect.objectContaining({ id: 'profile-superadmin', user_id: 'superadmin-user' }),
+    ]);
+  });
+
+  it('rejects mounted inquiry detail access outside the scoped community set', async () => {
+    const app = await loadApp();
+
+    seedAuthenticatedAdmin({
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: ['community-1'],
+    });
+
+    mockState.tables.inquiries = [
+      {
+        id: 'inq-2',
+        user_id: 'resident-user-2',
+        community_id: 'community-2',
+        inquiry_type: 'feedback',
+        subject: 'Out of scope',
+        description: 'Should not be visible.',
+        priority: 'low',
+        status: 'open',
+        created_at: '2026-03-11T08:00:00.000Z',
+      },
+    ];
+    mockState.tables.profiles = [...mockState.tables.profiles];
+    mockState.tables.communities = [{ id: 'community-2', name: 'Casa Two', agency_id: 'agency-1' }];
+    mockState.tables.agencies = [{ id: 'agency-1', name: 'Agency One' }];
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/inquiries/inq-2',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(403);
+    expect((response.body as any).error.code).toBe('INQUIRY_SCOPE_VIOLATION');
+  });
+
+  it('updates inquiries through the mounted admin route and stamps lifecycle fields', async () => {
+    const app = await loadApp();
+    const communityId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const assignableAdminProfileId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+
+    seedAuthenticatedAdmin({
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+    });
+
+    mockState.tables.inquiries = [
+      {
+        id: 'inq-1',
+        user_id: 'resident-user-1',
+        community_id: communityId,
+        inquiry_type: 'general_inquiry',
+        subject: 'Gate light issue',
+        description: 'The gate light is not working.',
+        priority: 'high',
+        status: 'open',
+        assigned_to: null,
+        admin_response: null,
+        resolution_notes: null,
+        responded_at: null,
+        resolved_at: null,
+        created_at: '2026-03-12T08:00:00.000Z',
+        updated_at: '2026-03-12T08:00:00.000Z',
+      },
+    ];
+    mockState.tables.profiles = [
+      ...mockState.tables.profiles,
+      {
+        id: assignableAdminProfileId,
+        user_id: 'facility-user-1',
+        full_name: 'Community Admin',
+        email: 'facility1@example.com',
+        phone: null,
+        role: 'facility_manager',
+        community_id: communityId,
+      },
+    ];
+    mockState.tables.communities = [{ id: communityId, name: 'Casa One', agency_id: 'agency-1' }];
+    mockState.tables.agencies = [{ id: 'agency-1', name: 'Agency One' }];
+
+    const response = await performMountedRequest(app, {
+      method: 'PATCH',
+      path: '/admin/inquiries/inq-1',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        status: 'resolved',
+        assigned_to: assignableAdminProfileId,
+        admin_response: 'Team has fixed the issue.',
+        resolution_notes: 'Replaced bulb and tested wiring.',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect((response.body as any).message).toBe('Inquiry updated successfully');
+    expect((response.body as any).data).toEqual(
+      expect.objectContaining({
+        id: 'inq-1',
+        status: 'resolved',
+        assigned_to: 'facility-user-1',
+        admin_response: 'Team has fixed the issue.',
+        resolution_notes: 'Replaced bulb and tested wiring.',
+      })
+    );
+    expect((response.body as any).data.responded_at).toBeTruthy();
+    expect((response.body as any).data.resolved_at).toBeTruthy();
+    expect(mockState.tables.inquiries[0]).toEqual(
+      expect.objectContaining({
+        id: 'inq-1',
+        status: 'resolved',
+        assigned_to: 'facility-user-1',
+      })
+    );
+  });
+
   it('rejects onboarding writes when the public API key is wrong', async () => {
     const app = await loadApp();
 
