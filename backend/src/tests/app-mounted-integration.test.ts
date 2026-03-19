@@ -2198,6 +2198,253 @@ describe('Mounted app integration', () => {
     );
   });
 
+  it('returns scoped amenities through the mounted admin route with community enrichment', async () => {
+    const app = await loadApp();
+
+    seedAuthenticatedAdmin({
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: ['community-1'],
+    });
+
+    mockState.tables.amenities = [
+      {
+        id: 'amenity-1',
+        community_id: 'community-1',
+        name: 'Pool',
+        status: 'active',
+        is_active: true,
+        is_paid: true,
+        price_per_hour: 25,
+        created_at: '2026-03-12T08:00:00.000Z',
+      },
+      {
+        id: 'amenity-2',
+        community_id: 'community-2',
+        name: 'Gym',
+        status: 'active',
+        is_active: true,
+        created_at: '2026-03-11T08:00:00.000Z',
+      },
+    ];
+    mockState.tables.communities = [
+      { id: 'community-1', name: 'Casa Nirvana One', agency_id: 'agency-1' },
+      { id: 'community-2', name: 'Other Community', agency_id: 'agency-2' },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/amenities',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect((response.body as any).data).toEqual([
+      expect.objectContaining({
+        id: 'amenity-1',
+        community_id: 'community-1',
+        communityName: 'Casa Nirvana One',
+        communities: expect.objectContaining({
+          id: 'community-1',
+          name: 'Casa Nirvana One',
+        }),
+      }),
+    ]);
+  });
+
+  it('rejects amenity creation outside the mounted admin community scope', async () => {
+    const app = await loadApp();
+
+    seedAuthenticatedAdmin({
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: ['community-1'],
+    });
+
+    const response = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/amenities',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        name: 'Clubhouse',
+        community_id: 'community-2',
+      },
+    });
+
+    expect(response.status).toBe(403);
+    expect((response.body as any).error.code).toBe('AMENITY_SCOPE_VIOLATION');
+  });
+
+  it('returns scoped amenity bookings through the mounted admin route with amenity and resident enrichment', async () => {
+    const app = await loadApp();
+
+    seedAuthenticatedAdmin({
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: ['community-1'],
+    });
+
+    mockState.tables.amenities = [
+      {
+        id: 'amenity-1',
+        community_id: 'community-1',
+        name: 'Pool',
+        amenity_type: 'Recreation',
+        description: 'Main pool',
+      },
+      {
+        id: 'amenity-2',
+        community_id: 'community-2',
+        name: 'Gym',
+        amenity_type: 'Fitness',
+      },
+    ];
+    mockState.tables.amenity_bookings = [
+      {
+        id: 'booking-1',
+        amenity_id: 'amenity-1',
+        user_id: 'profile-resident-1',
+        booking_date: '2026-03-12',
+        start_time: '10:00:00',
+        end_time: '11:00:00',
+        status: 'pending',
+        payment_status: 'paid',
+        total_amount: 50,
+        amount: 50,
+        created_at: '2026-03-12T08:00:00.000Z',
+        updated_at: '2026-03-12T08:00:00.000Z',
+      },
+      {
+        id: 'booking-2',
+        amenity_id: 'amenity-2',
+        user_id: 'profile-resident-2',
+        booking_date: '2026-03-13',
+        start_time: '09:00:00',
+        end_time: '10:00:00',
+        status: 'pending',
+        payment_status: 'pending',
+        total_amount: 20,
+        amount: 20,
+        created_at: '2026-03-11T08:00:00.000Z',
+        updated_at: '2026-03-11T08:00:00.000Z',
+      },
+    ];
+    mockState.tables.profiles = [
+      ...mockState.tables.profiles,
+      {
+        id: 'profile-resident-1',
+        first_name: 'Ama',
+        last_name: 'Mensah',
+        full_name: 'Ama Mensah',
+        email: 'ama@example.com',
+        phone: '0240000000',
+      },
+      {
+        id: 'profile-resident-2',
+        first_name: 'Kofi',
+        last_name: 'Boateng',
+        full_name: 'Kofi Boateng',
+        email: 'kofi@example.com',
+      },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/amenity-bookings',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect((response.body as any).data).toEqual([
+      expect.objectContaining({
+        id: 'booking-1',
+        amenities: expect.objectContaining({
+          id: 'amenity-1',
+          name: 'Pool',
+        }),
+        user_profile: expect.objectContaining({
+          id: 'profile-resident-1',
+          email: 'ama@example.com',
+        }),
+      }),
+    ]);
+  });
+
+  it('applies valid scoped amenity booking lifecycle updates through the mounted admin route', async () => {
+    const app = await loadApp();
+
+    seedAuthenticatedAdmin({
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: ['community-1'],
+    });
+
+    mockState.tables.amenities = [
+      {
+        id: 'amenity-1',
+        community_id: 'community-1',
+        name: 'Pool',
+        amenity_type: 'Recreation',
+      },
+    ];
+    mockState.tables.amenity_bookings = [
+      {
+        id: 'booking-1',
+        amenity_id: 'amenity-1',
+        community_id: 'community-1',
+        user_id: 'profile-resident-1',
+        status: 'pending',
+        payment_status: 'pending',
+        created_at: '2026-03-12T08:00:00.000Z',
+        updated_at: '2026-03-12T08:00:00.000Z',
+      },
+    ];
+    mockState.tables.profiles = [
+      ...mockState.tables.profiles,
+      {
+        id: 'profile-resident-1',
+        first_name: 'Ama',
+        last_name: 'Mensah',
+        full_name: 'Ama Mensah',
+        email: 'ama@example.com',
+      },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'PATCH',
+      path: '/admin/amenity-bookings/booking-1',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        status: 'confirmed',
+        payment_status: 'paid',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect((response.body as any).data).toEqual(
+      expect.objectContaining({
+        id: 'booking-1',
+        status: 'confirmed',
+        payment_status: 'paid',
+      })
+    );
+    expect(mockState.tables.amenity_bookings[0]).toEqual(
+      expect.objectContaining({
+        id: 'booking-1',
+        status: 'confirmed',
+        payment_status: 'paid',
+      })
+    );
+  });
+
   it('rejects onboarding writes when the public API key is wrong', async () => {
     const app = await loadApp();
 
