@@ -160,6 +160,10 @@ function createQueryBuilder(table: string) {
       filters.push((row) => values.includes(row[column]));
       return builder;
     },
+    is(column: string, value: unknown) {
+      filters.push((row) => row[column] === value);
+      return builder;
+    },
     order(column: string, options?: { ascending?: boolean }) {
       sortColumn = column;
       sortAscending = options?.ascending ?? true;
@@ -1261,6 +1265,399 @@ describe('Mounted app integration', () => {
         comment: 'Assigned technician and informed resident.',
       })
     );
+  });
+
+  it('returns mounted message stats and scoped contacts while preserving existing direct conversations', async () => {
+    const app = await loadApp();
+    const recentLogin = new Date().toISOString();
+    const residentId = '11111111-1111-4111-8111-111111111111';
+    const platformId = '22222222-2222-4222-8222-222222222222';
+    const outsideResidentId = '33333333-3333-4333-8333-333333333333';
+
+    seedAuthenticatedAdmin({
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: ['community-1'],
+    });
+
+    mockState.tables.profiles = [
+      {
+        id: 'profile-admin',
+        user_id: 'auth-admin',
+        first_name: 'Ada',
+        last_name: 'Admin',
+        full_name: 'Ada Admin',
+        email: 'admin@example.com',
+        phone: '2330000000',
+        role: 'facility_manager',
+        community_id: 'community-1',
+        unit_id: null,
+        block_number: null,
+        is_active: true,
+        last_login: recentLogin,
+      },
+      {
+        id: residentId,
+        first_name: 'Ama',
+        last_name: 'Mensah',
+        full_name: 'Ama Mensah',
+        email: 'ama@example.com',
+        phone: '2330000001',
+        role: 'resident',
+        community_id: 'community-1',
+        unit_id: 'unit-1',
+        block_number: 'A',
+        is_active: true,
+        last_login: recentLogin,
+      },
+      {
+        id: platformId,
+        first_name: 'Platform',
+        last_name: 'Lead',
+        full_name: 'Platform Lead',
+        email: 'lead@example.com',
+        phone: '2330000002',
+        role: 'superadmin',
+        community_id: null,
+        unit_id: null,
+        block_number: null,
+        is_active: false,
+        last_login: '2026-03-19T08:00:00.000Z',
+      },
+      {
+        id: outsideResidentId,
+        first_name: 'Outside',
+        last_name: 'User',
+        full_name: 'Outside User',
+        email: 'outside@example.com',
+        phone: '2330000003',
+        role: 'resident',
+        community_id: 'community-2',
+        unit_id: null,
+        block_number: null,
+        is_active: true,
+        last_login: recentLogin,
+      },
+    ];
+    mockState.tables.units = [
+      { id: 'unit-1', block: 'A', number: '12', unit_number: '12', community_id: 'community-1' },
+    ];
+    mockState.tables.communities = [{ id: 'community-1', name: 'Alpha Court' }];
+    mockState.tables.messages = [
+      {
+        id: 'message-1',
+        from_user: 'profile-admin',
+        to_user: residentId,
+        body: 'Hello Ama',
+        message_type: 'text',
+        sent_at: '2026-03-11T10:00:00.000Z',
+        deleted_at: null,
+        is_read: true,
+        read: true,
+      },
+      {
+        id: 'message-2',
+        from_user: residentId,
+        to_user: 'profile-admin',
+        body: 'Need help',
+        message_type: 'text',
+        sent_at: '2026-03-11T11:00:00.000Z',
+        deleted_at: null,
+        is_read: false,
+        read: false,
+      },
+      {
+        id: 'message-3',
+        from_user: platformId,
+        to_user: 'profile-admin',
+        body: 'Platform check-in',
+        message_type: 'text',
+        sent_at: '2026-03-11T12:00:00.000Z',
+        deleted_at: null,
+        is_read: true,
+        read: true,
+      },
+    ];
+
+    const statsResponse = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/messages/stats',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(statsResponse.status).toBe(200);
+    expect((statsResponse.body as any).data).toEqual({
+      totalMessages: 3,
+      activeChats: 2,
+      unreadMessages: 1,
+      onlineUsers: 1,
+    });
+
+    const contactsResponse = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/messages/contacts',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(contactsResponse.status).toBe(200);
+    expect((contactsResponse.body as any).data).toEqual([
+      expect.objectContaining({
+        id: platformId,
+        name: 'Platform Lead',
+        message: 'Platform check-in',
+        unreadCount: 0,
+      }),
+      expect.objectContaining({
+        id: residentId,
+        name: 'Ama Mensah',
+        location: 'A-12 | Alpha Court',
+        unreadCount: 1,
+      }),
+    ]);
+  });
+
+  it('rejects mounted conversation access for a contact outside scope with no existing thread', async () => {
+    const app = await loadApp();
+    const outsideResidentId = '33333333-3333-4333-8333-333333333333';
+
+    seedAuthenticatedAdmin({
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: ['community-1'],
+    });
+
+    mockState.tables.profiles = [
+      {
+        id: 'profile-admin',
+        user_id: 'auth-admin',
+        first_name: 'Ada',
+        last_name: 'Admin',
+        email: 'admin@example.com',
+        role: 'facility_manager',
+        community_id: 'community-1',
+        is_active: true,
+        last_login: '2026-03-19T09:30:00.000Z',
+      },
+      {
+        id: outsideResidentId,
+        first_name: 'Outside',
+        last_name: 'User',
+        email: 'outside@example.com',
+        role: 'resident',
+        community_id: 'community-2',
+        is_active: true,
+        last_login: '2026-03-19T09:30:00.000Z',
+      },
+    ];
+    mockState.tables.messages = [];
+    mockState.tables.units = [];
+    mockState.tables.communities = [];
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: `/admin/messages/conversations/${outsideResidentId}`,
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(404);
+    expect((response.body as any).error.code).toBe('MESSAGE_CONTACT_NOT_FOUND');
+  });
+
+  it('creates direct messages through the mounted admin route and enforces recipient scope', async () => {
+    const app = await loadApp();
+    const residentId = '11111111-1111-4111-8111-111111111111';
+    const outsideResidentId = '33333333-3333-4333-8333-333333333333';
+
+    seedAuthenticatedAdmin({
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: ['community-1'],
+    });
+
+    mockState.tables.profiles = [
+      {
+        id: 'profile-admin',
+        user_id: 'auth-admin',
+        first_name: 'Ada',
+        last_name: 'Admin',
+        email: 'admin@example.com',
+        role: 'facility_manager',
+        community_id: 'community-1',
+      },
+      {
+        id: residentId,
+        first_name: 'Ama',
+        last_name: 'Mensah',
+        email: 'ama@example.com',
+        role: 'resident',
+        community_id: 'community-1',
+      },
+      {
+        id: outsideResidentId,
+        first_name: 'Outside',
+        last_name: 'User',
+        email: 'outside@example.com',
+        role: 'resident',
+        community_id: 'community-2',
+      },
+    ];
+    mockState.tables.messages = [];
+
+    const createResponse = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/messages',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        to_user: residentId,
+        body: 'Launch coordination update',
+      },
+    });
+
+    expect(createResponse.status).toBe(201);
+    expect(createResponse.body).toEqual(
+      expect.objectContaining({
+        from_user: 'profile-admin',
+        to_user: residentId,
+        body: 'Launch coordination update',
+        message_status: 'sent',
+        read: false,
+        is_read: false,
+      })
+    );
+
+    const deniedResponse = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/messages',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        to_user: outsideResidentId,
+        body: 'Should be blocked',
+      },
+    });
+
+    expect(deniedResponse.status).toBe(403);
+    expect((deniedResponse.body as any).error.code).toBe('MESSAGE_RECIPIENT_SCOPE_VIOLATION');
+  });
+
+  it('creates message groups and group messages through the mounted admin routes', async () => {
+    const app = await loadApp();
+    const residentId = '11111111-1111-4111-8111-111111111111';
+
+    seedAuthenticatedAdmin({
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: ['community-1'],
+    });
+
+    mockState.tables.profiles = [
+      {
+        id: 'profile-admin',
+        user_id: 'auth-admin',
+        first_name: 'Ada',
+        last_name: 'Admin',
+        email: 'admin@example.com',
+        role: 'facility_manager',
+        community_id: 'community-1',
+        is_active: true,
+        last_login: '2026-03-19T09:30:00.000Z',
+      },
+      {
+        id: residentId,
+        first_name: 'Ama',
+        last_name: 'Mensah',
+        email: 'ama@example.com',
+        phone: '2330000001',
+        role: 'resident',
+        community_id: 'community-1',
+        is_active: true,
+        last_login: '2026-03-19T09:30:00.000Z',
+      },
+    ];
+    mockState.tables.communities = [{ id: 'community-1', name: 'Alpha Court' }];
+    mockState.tables.units = [];
+    mockState.tables.messages = [];
+    mockState.tables.groups = [];
+    mockState.tables.group_members = [];
+    mockState.tables.group_messages = [];
+
+    const createGroupResponse = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/messages/groups',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        name: 'Security Ops',
+        description: 'Launch coordination',
+        member_ids: [residentId],
+      },
+    });
+
+    expect(createGroupResponse.status).toBe(201);
+    const createdGroupId = (createGroupResponse.body as any).data.id as string;
+    expect((createGroupResponse.body as any).data).toEqual(
+      expect.objectContaining({
+        id: createdGroupId,
+        name: 'Security Ops',
+        group_members: expect.arrayContaining([
+          expect.objectContaining({ user_id: 'profile-admin' }),
+          expect.objectContaining({ user_id: residentId }),
+        ]),
+      })
+    );
+
+    const createGroupMessageResponse = await performMountedRequest(app, {
+      method: 'POST',
+      path: `/admin/messages/groups/${createdGroupId}/messages`,
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        body: 'Morning coordination check',
+        message_type: 'text',
+      },
+    });
+
+    expect(createGroupMessageResponse.status).toBe(201);
+    expect((createGroupMessageResponse.body as any).data).toEqual(
+      expect.objectContaining({
+        group_id: createdGroupId,
+        body: 'Morning coordination check',
+        profiles: expect.objectContaining({
+          id: 'profile-admin',
+          email: 'admin@example.com',
+        }),
+      })
+    );
+
+    const groupsResponse = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/messages/groups',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(groupsResponse.status).toBe(200);
+    expect((groupsResponse.body as any).data).toEqual([
+      expect.objectContaining({
+        id: createdGroupId,
+        member_count: 2,
+        last_message: 'Morning coordination check',
+        last_message_sender: 'You',
+        unread_count: 0,
+      }),
+    ]);
   });
 
   it('rejects onboarding writes when the public API key is wrong', async () => {
