@@ -165,6 +165,12 @@ function createQueryBuilder(table: string) {
       filters.push((row) => values.includes(row[column]));
       return builder;
     },
+    not(column: string, operator: string, value: unknown) {
+      if (operator === 'is') {
+        filters.push((row) => row[column] !== value);
+      }
+      return builder;
+    },
     is(column: string, value: unknown) {
       filters.push((row) => row[column] === value);
       return builder;
@@ -2975,6 +2981,398 @@ describe('Mounted app integration', () => {
     const response = await performMountedRequest(app, {
       method: 'GET',
       path: '/admin/emergency-alerts?status=closed&limit=0',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(400);
+    expect((response.body as any).error.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('returns scoped email records through the mounted admin route with summary and enrichment', async () => {
+    const app = await loadApp();
+
+    seedAuthenticatedAdmin({
+      permissions: ['read:all_notifications'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: ['community-1'],
+    });
+
+    mockState.tables.emails = [
+      {
+        id: 'email-1',
+        subject: 'Community update',
+        body: 'Body one',
+        folder: 'inbox',
+        status: 'delivered',
+        priority: 'normal',
+        sent_at: '2026-03-19T09:00:00.000Z',
+        created_at: '2026-03-19T08:55:00.000Z',
+        read_at: null,
+        is_read: false,
+        is_starred: true,
+        is_important: false,
+        is_draft: false,
+        is_deleted: false,
+        has_attachment: false,
+        attachments: null,
+        email_type: 'incoming',
+        sender_id: 'resident-user-1',
+        recipient_id: 'auth-admin',
+        community_id: 'community-1',
+      },
+      {
+        id: 'email-2',
+        subject: 'Other community',
+        body: 'Body two',
+        folder: 'inbox',
+        status: 'queued',
+        priority: 'high',
+        sent_at: '2026-03-19T10:00:00.000Z',
+        created_at: '2026-03-19T09:55:00.000Z',
+        read_at: null,
+        is_read: false,
+        is_starred: false,
+        is_important: true,
+        is_draft: false,
+        is_deleted: false,
+        has_attachment: false,
+        attachments: null,
+        email_type: 'incoming',
+        sender_id: 'resident-user-2',
+        recipient_id: 'auth-admin',
+        community_id: 'community-2',
+      },
+    ];
+    mockState.tables.users = [
+      { id: 'auth-admin', email: 'admin@example.com' },
+      { id: 'resident-user-1', email: 'ama@example.com' },
+      { id: 'resident-user-2', email: 'outside@example.com' },
+    ];
+    mockState.tables.profiles = [
+      ...mockState.tables.profiles,
+      {
+        id: 'profile-resident-1',
+        user_id: 'resident-user-1',
+        first_name: 'Ama',
+        last_name: 'Mensah',
+        email: 'ama@example.com',
+        community_id: 'community-1',
+        profile_pic_url: null,
+        role: 'resident',
+      },
+      {
+        id: 'profile-resident-2',
+        user_id: 'resident-user-2',
+        first_name: 'Outside',
+        last_name: 'Resident',
+        email: 'outside@example.com',
+        community_id: 'community-2',
+        profile_pic_url: null,
+        role: 'resident',
+      },
+    ];
+    mockState.tables.communities = [
+      { id: 'community-1', name: 'Palm Estate' },
+      { id: 'community-2', name: 'Outside Estate' },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/emails?folder=inbox&limit=25',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect((response.body as any).data).toEqual([
+      expect.objectContaining({
+        id: 'email-1',
+        resolved_community_id: 'community-1',
+        resolved_community_name: 'Palm Estate',
+        sender: expect.objectContaining({
+          full_name: 'Ama Mensah',
+          email: 'ama@example.com',
+        }),
+        recipient: expect.objectContaining({
+          full_name: 'Ada Admin',
+          email: 'admin@example.com',
+        }),
+      }),
+    ]);
+    expect((response.body as any).summary).toEqual(
+      expect.objectContaining({
+        total: 1,
+        inbox: 1,
+        queued: 0,
+        delivered: 1,
+        unread: 1,
+        starred: 1,
+      })
+    );
+  });
+
+  it('rejects mounted email detail access outside the admin scope', async () => {
+    const app = await loadApp();
+
+    seedAuthenticatedAdmin({
+      permissions: ['read:all_notifications'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: ['community-1'],
+    });
+
+    mockState.tables.emails = [
+      {
+        id: 'email-outside',
+        subject: 'Outside scope',
+        body: 'Body two',
+        folder: 'inbox',
+        status: 'delivered',
+        priority: 'normal',
+        sent_at: '2026-03-19T10:00:00.000Z',
+        created_at: '2026-03-19T09:55:00.000Z',
+        read_at: null,
+        is_read: false,
+        is_starred: false,
+        is_important: false,
+        is_draft: false,
+        is_deleted: false,
+        has_attachment: false,
+        attachments: null,
+        email_type: 'incoming',
+        sender_id: 'resident-user-2',
+        recipient_id: 'auth-admin',
+        community_id: 'community-2',
+      },
+    ];
+    mockState.tables.users = [
+      { id: 'auth-admin', email: 'admin@example.com' },
+      { id: 'resident-user-2', email: 'outside@example.com' },
+    ];
+    mockState.tables.profiles = [
+      ...mockState.tables.profiles,
+      {
+        id: 'profile-resident-2',
+        user_id: 'resident-user-2',
+        first_name: 'Outside',
+        last_name: 'Resident',
+        email: 'outside@example.com',
+        community_id: 'community-2',
+        profile_pic_url: null,
+        role: 'resident',
+      },
+    ];
+    mockState.tables.communities = [
+      { id: 'community-1', name: 'Palm Estate' },
+      { id: 'community-2', name: 'Outside Estate' },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/emails/email-outside',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(403);
+    expect((response.body as any).error.code).toBe('EMAIL_SCOPE_VIOLATION');
+  });
+
+  it('creates scoped email records through the mounted admin route and queues drafts through update', async () => {
+    const app = await loadApp();
+
+    seedAuthenticatedAdmin({
+      permissions: ['write:all_notifications'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: ['community-1'],
+    });
+
+    mockState.tables.emails = [
+      {
+        id: 'draft-1',
+        subject: 'Draft subject',
+        body: 'Draft body',
+        folder: 'drafts',
+        status: 'draft',
+        priority: 'normal',
+        sent_at: null,
+        created_at: '2026-03-19T08:00:00.000Z',
+        read_at: null,
+        is_read: false,
+        is_starred: false,
+        is_important: false,
+        is_draft: true,
+        is_deleted: false,
+        has_attachment: false,
+        attachments: null,
+        email_type: 'outgoing',
+        sender_id: 'auth-admin',
+        recipient_id: 'resident-user-1',
+        community_id: 'community-1',
+      },
+    ];
+    mockState.tables.users = [
+      { id: 'auth-admin', email: 'admin@example.com' },
+      { id: 'resident-user-1', email: 'ama@example.com' },
+    ];
+    mockState.tables.profiles = [
+      ...mockState.tables.profiles,
+      {
+        id: 'profile-resident-1',
+        user_id: 'resident-user-1',
+        first_name: 'Ama',
+        last_name: 'Mensah',
+        email: 'ama@example.com',
+        community_id: 'community-1',
+        profile_pic_url: null,
+        role: 'resident',
+      },
+    ];
+    mockState.tables.communities = [{ id: 'community-1', name: 'Palm Estate' }];
+
+    const createResponse = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/emails',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        recipient_id: 'resident-user-1',
+        subject: 'Reminder',
+        body: 'Please review your latest statement.',
+        priority: 'urgent',
+        action: 'queue',
+      },
+    });
+
+    expect(createResponse.status).toBe(201);
+    expect((createResponse.body as any).data).toEqual(
+      expect.objectContaining({
+        subject: 'Reminder',
+        folder: 'sent',
+        status: 'queued',
+        community_id: 'community-1',
+        sender_id: 'auth-admin',
+        recipient_id: 'resident-user-1',
+        is_important: true,
+      })
+    );
+
+    const updateResponse = await performMountedRequest(app, {
+      method: 'PATCH',
+      path: '/admin/emails/draft-1',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        status: 'queued',
+      },
+    });
+
+    expect(updateResponse.status).toBe(200);
+    expect((updateResponse.body as any).data).toEqual(
+      expect.objectContaining({
+        id: 'draft-1',
+        status: 'queued',
+        folder: 'sent',
+        is_draft: false,
+        is_read: true,
+      })
+    );
+    expect((mockState.tables.emails || []).find((row) => row.id === 'draft-1')).toEqual(
+      expect.objectContaining({
+        status: 'queued',
+        folder: 'sent',
+        is_draft: false,
+        is_read: true,
+      })
+    );
+  });
+
+  it('returns scoped email contacts through the mounted admin route', async () => {
+    const app = await loadApp();
+
+    seedAuthenticatedAdmin({
+      permissions: ['read:all_notifications'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: ['community-1'],
+    });
+
+    mockState.tables.profiles[0] = {
+      ...mockState.tables.profiles[0],
+      community_id: 'community-1',
+    };
+    mockState.tables.profiles = [
+      ...mockState.tables.profiles,
+      {
+        id: 'profile-resident-1',
+        user_id: 'resident-user-1',
+        first_name: 'Ama',
+        last_name: 'Mensah',
+        email: 'ama@example.com',
+        community_id: 'community-1',
+        profile_pic_url: null,
+        role: 'resident',
+      },
+      {
+        id: 'profile-outside',
+        user_id: 'resident-user-2',
+        first_name: 'Outside',
+        last_name: 'Resident',
+        email: 'outside@example.com',
+        community_id: 'community-2',
+        profile_pic_url: null,
+        role: 'resident',
+      },
+    ];
+    mockState.tables.communities = [
+      { id: 'community-1', name: 'Palm Estate' },
+      { id: 'community-2', name: 'Outside Estate' },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/emails/contacts',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect((response.body as any).data).toEqual([
+      expect.objectContaining({
+        profile_id: 'profile-admin',
+        user_id: 'auth-admin',
+        community_name: 'Palm Estate',
+      }),
+      expect.objectContaining({
+        profile_id: 'profile-resident-1',
+        user_id: 'resident-user-1',
+        community_name: 'Palm Estate',
+      }),
+    ]);
+  });
+
+  it('validates mounted email list queries before the controller runs', async () => {
+    const app = await loadApp();
+
+    seedAuthenticatedAdmin({
+      permissions: ['read:all_notifications'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: ['community-1'],
+    });
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/emails?folder=made-up-folder&limit=0',
       headers: {
         Authorization: 'Bearer valid-token',
       },
