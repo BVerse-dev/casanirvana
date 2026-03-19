@@ -1056,6 +1056,213 @@ describe('Mounted app integration', () => {
     expect(mockState.tables.maintenance_requests[0].updated_at).toBeTruthy();
   });
 
+  it('lists scoped complaints through the mounted admin route for a tenant admin', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-1111-1111-111111111111';
+    const otherCommunityId = '22222222-2222-2222-2222-222222222222';
+
+    seedAuthenticatedAdmin({
+      permissions: ['read:all_complaints'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+    });
+
+    mockState.tables.units = [
+      { id: 'unit-1', block: 'A', number: '101', unit_number: 'A101', community_id: communityId },
+      { id: 'unit-2', block: 'B', number: '202', unit_number: 'B202', community_id: otherCommunityId },
+    ];
+    mockState.tables.communities = [
+      { id: communityId, name: 'Casa One', agency_id: 'agency-1' },
+      { id: otherCommunityId, name: 'Casa Two', agency_id: 'agency-1' },
+    ];
+    mockState.tables.profiles = [
+      ...mockState.tables.profiles,
+      {
+        id: 'resident-profile-1',
+        user_id: 'resident-user-1',
+        first_name: 'Naa',
+        last_name: 'Mensah',
+        full_name: 'Naa Mensah',
+        email: 'naa@example.com',
+        avatar_url: null,
+        role: 'resident',
+        community_id: communityId,
+      },
+    ];
+    mockState.tables.complaints = [
+      {
+        id: 'complaint-1',
+        subject: 'Noise complaint',
+        details: 'Generator noise overnight',
+        title: null,
+        description: null,
+        status: 'pending',
+        priority: 'high',
+        category: 'noise',
+        complaint_type: 'community',
+        unit_id: 'unit-1',
+        raised_by: 'resident-profile-1',
+        created_by: 'auth-admin',
+        created_by_profile_id: 'profile-admin',
+        resolved_by_profile_id: null,
+        created_at: '2026-03-12T08:00:00.000Z',
+        updated_at: '2026-03-12T08:00:00.000Z',
+      },
+      {
+        id: 'complaint-2',
+        subject: 'Out of scope',
+        details: 'Should not be visible',
+        status: 'pending',
+        priority: 'low',
+        category: 'security',
+        complaint_type: 'community',
+        unit_id: 'unit-2',
+        raised_by: 'resident-profile-2',
+        created_at: '2026-03-11T08:00:00.000Z',
+      },
+    ];
+    mockState.tables.users_with_preference_stats = [];
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/complaints?status=pending',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect((response.body as any).data).toHaveLength(1);
+    expect((response.body as any).data[0]).toEqual(
+      expect.objectContaining({
+        id: 'complaint-1',
+        reporter_name: 'Naa Mensah',
+        unit_label: 'A-101',
+        community: expect.objectContaining({ id: communityId, name: 'Casa One' }),
+      })
+    );
+  });
+
+  it('rejects mounted complaint detail access outside the admin community scope', async () => {
+    const app = await loadApp();
+
+    seedAuthenticatedAdmin({
+      permissions: ['read:all_complaints'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: ['11111111-1111-1111-1111-111111111111'],
+    });
+
+    mockState.tables.units = [
+      {
+        id: 'unit-2',
+        block: 'B',
+        number: '202',
+        unit_number: 'B202',
+        community_id: '22222222-2222-2222-2222-222222222222',
+      },
+    ];
+    mockState.tables.communities = [
+      { id: '22222222-2222-2222-2222-222222222222', name: 'Casa Two', agency_id: 'agency-1' },
+    ];
+    mockState.tables.complaints = [
+      {
+        id: 'complaint-2',
+        subject: 'Gate issue',
+        details: 'Back gate stuck',
+        status: 'pending',
+        priority: 'medium',
+        unit_id: 'unit-2',
+        created_at: '2026-03-11T08:00:00.000Z',
+      },
+    ];
+    mockState.tables.users_with_preference_stats = [];
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/complaints/complaint-2',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(403);
+    expect((response.body as any).error.code).toBe('COMPLAINT_SCOPE_VIOLATION');
+  });
+
+  it('creates complaint comments through the mounted admin route and stamps backend-owned actor data', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-1111-1111-111111111111';
+
+    seedAuthenticatedAdmin({
+      permissions: ['update:complaints'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+    });
+
+    mockState.tables.units = [
+      { id: 'unit-1', block: 'A', number: '101', unit_number: 'A101', community_id: communityId },
+    ];
+    mockState.tables.communities = [
+      { id: communityId, name: 'Casa One', agency_id: 'agency-1' },
+    ];
+    mockState.tables.complaints = [
+      {
+        id: 'complaint-1',
+        subject: 'Water leak',
+        details: 'Bathroom ceiling leaking',
+        status: 'pending',
+        priority: 'medium',
+        unit_id: 'unit-1',
+        created_at: '2026-03-10T08:00:00.000Z',
+      },
+    ];
+    mockState.tables.complaint_comments = [];
+    mockState.tables.users_with_preference_stats = [
+      {
+        id: 'auth-admin',
+        user_name: 'Ada Admin',
+        email: 'admin@example.com',
+        user_role: 'facility_manager',
+      },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/complaints/complaint-1/comments',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        comment: 'Assigned technician and informed resident.',
+      },
+    });
+
+    expect(response.status).toBe(201);
+    expect((response.body as any).message).toBe('Complaint comment added successfully');
+    expect((response.body as any).data).toEqual(
+      expect.objectContaining({
+        complaint_id: 'complaint-1',
+        created_by: 'auth-admin',
+        created_by_profile: expect.objectContaining({
+          id: 'profile-admin',
+          email: 'admin@example.com',
+          role: 'facility_manager',
+        }),
+      })
+    );
+    expect(mockState.tables.complaint_comments).toHaveLength(1);
+    expect(mockState.tables.complaint_comments[0]).toEqual(
+      expect.objectContaining({
+        complaint_id: 'complaint-1',
+        created_by: 'auth-admin',
+        comment: 'Assigned technician and informed resident.',
+      })
+    );
+  });
+
   it('rejects onboarding writes when the public API key is wrong', async () => {
     const app = await loadApp();
 
