@@ -3382,6 +3382,274 @@ describe('Mounted app integration', () => {
     expect((response.body as any).error.code).toBe('VALIDATION_ERROR');
   });
 
+  it('returns scoped notices through the mounted admin route with community enrichment', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-1111-1111-111111111111';
+    const otherCommunityId = '22222222-2222-2222-2222-222222222222';
+
+    seedAuthenticatedAdmin({
+      permissions: ['read:all_notifications'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+    });
+
+    mockState.tables.communities = [
+      { id: communityId, name: 'Casa One' },
+      { id: otherCommunityId, name: 'Casa Two' },
+    ];
+    mockState.tables.notices = [
+      {
+        id: 'notice-scoped',
+        community_id: communityId,
+        title: 'Main Gate Repair',
+        body: 'Repair works will start at 7 AM.',
+        status: 'published',
+        priority: 'high',
+        created_at: '2026-03-19T08:00:00.000Z',
+        posted_at: '2026-03-19T08:00:00.000Z',
+        updated_at: '2026-03-19T08:00:00.000Z',
+        tags: ['maintenance'],
+      },
+      {
+        id: 'notice-outside',
+        community_id: otherCommunityId,
+        title: 'Outside Scope',
+        body: 'Should not be visible',
+        status: 'published',
+        priority: 'medium',
+        created_at: '2026-03-19T07:00:00.000Z',
+        posted_at: '2026-03-19T07:00:00.000Z',
+        updated_at: '2026-03-19T07:00:00.000Z',
+        tags: ['outside'],
+      },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/notices?search=gate&limit=10',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect((response.body as any).count).toBe(1);
+    expect((response.body as any).data).toEqual([
+      expect.objectContaining({
+        id: 'notice-scoped',
+        community_id: communityId,
+        communities: expect.objectContaining({ id: communityId, name: 'Casa One' }),
+      }),
+    ]);
+  });
+
+  it('rejects mounted notice detail access outside the admin scope', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-1111-1111-111111111111';
+    const otherCommunityId = '22222222-2222-2222-2222-222222222222';
+
+    seedAuthenticatedAdmin({
+      permissions: ['read:all_notifications'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+    });
+
+    mockState.tables.notices = [
+      {
+        id: 'notice-outside',
+        community_id: otherCommunityId,
+        title: 'Community B',
+        body: 'Out of scope bulletin',
+        status: 'published',
+        created_at: '2026-03-19T07:00:00.000Z',
+        posted_at: '2026-03-19T07:00:00.000Z',
+        updated_at: '2026-03-19T07:00:00.000Z',
+      },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/notices/notice-outside',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(403);
+    expect((response.body as any).error.code).toBe('ADMIN_NOTICE_SCOPE_VIOLATION');
+  });
+
+  it('creates and updates notices through the mounted admin route with backend-owned publication metadata', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-1111-1111-111111111111';
+
+    seedAuthenticatedAdmin({
+      permissions: ['write:all_notifications'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+    });
+
+    mockState.tables.communities = [{ id: communityId, name: 'Casa One' }];
+    mockState.tables.notices = [];
+
+    const createResponse = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/notices',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        community_id: communityId,
+        title: 'Pool Closure',
+        body: 'The pool will be closed on Saturday.',
+        status: 'published',
+        priority: 'urgent',
+        tags: ['amenities', 'weekend'],
+        is_featured: true,
+      },
+    });
+
+    expect(createResponse.status).toBe(201);
+    expect((createResponse.body as any).data).toEqual(
+      expect.objectContaining({
+        title: 'Pool Closure',
+        author_name: 'Ada Admin',
+        community_id: communityId,
+        is_featured: true,
+      })
+    );
+
+    const createdId = ((createResponse.body as any).data.id as string);
+
+    const updateResponse = await performMountedRequest(app, {
+      method: 'PATCH',
+      path: `/admin/notices/${createdId}`,
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        title: 'Pool Closure Update',
+        status: 'archived',
+      },
+    });
+
+    expect(updateResponse.status).toBe(200);
+    expect((updateResponse.body as any).data).toEqual(
+      expect.objectContaining({
+        id: createdId,
+        title: 'Pool Closure Update',
+        status: 'archived',
+      })
+    );
+  });
+
+  it('creates threaded notice comments through the mounted admin route', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-1111-1111-111111111111';
+    const noticeId = '33333333-3333-4333-8333-333333333333';
+    const parentCommentId = '44444444-4444-4444-8444-444444444444';
+
+    seedAuthenticatedAdmin({
+      permissions: ['read:all_notifications', 'write:all_notifications'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+    });
+
+    mockState.tables.notices = [
+      {
+        id: noticeId,
+        community_id: communityId,
+        title: 'Main Gate Repair',
+        body: 'Repair works will start at 7 AM.',
+        status: 'published',
+        created_at: '2026-03-19T08:00:00.000Z',
+        posted_at: '2026-03-19T08:00:00.000Z',
+        updated_at: '2026-03-19T08:00:00.000Z',
+      },
+    ];
+    mockState.tables.comments = [
+      {
+        id: parentCommentId,
+        notice_id: noticeId,
+        author_name: 'Resident One',
+        content: 'Will the side gate remain open?',
+        likes_count: 2,
+        created_at: '2026-03-19T09:00:00.000Z',
+        updated_at: '2026-03-19T09:00:00.000Z',
+        parent_id: null,
+      },
+    ];
+
+    const createResponse = await performMountedRequest(app, {
+      method: 'POST',
+      path: `/admin/notices/${noticeId}/comments`,
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        content: 'Yes, the side gate will remain open.',
+        parent_id: parentCommentId,
+      },
+    });
+
+    expect(createResponse.status).toBe(201);
+    expect((createResponse.body as any).data).toEqual(
+      expect.objectContaining({
+        notice_id: noticeId,
+        parent_id: parentCommentId,
+        author_name: 'Ada Admin',
+        author_user_id: 'auth-admin',
+      })
+    );
+
+    const listResponse = await performMountedRequest(app, {
+      method: 'GET',
+      path: `/admin/notices/${noticeId}/comments`,
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(listResponse.status).toBe(200);
+    expect((listResponse.body as any).data).toEqual([
+      expect.objectContaining({
+        id: parentCommentId,
+        replies: [
+          expect.objectContaining({
+            parent_id: parentCommentId,
+            content: 'Yes, the side gate will remain open.',
+          }),
+        ],
+      }),
+    ]);
+  });
+
+  it('validates mounted notice list queries before the controller runs', async () => {
+    const app = await loadApp();
+
+    seedAuthenticatedAdmin({
+      permissions: ['read:all_notifications'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: ['11111111-1111-1111-1111-111111111111'],
+    });
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/notices?status=processing',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(400);
+    expect((response.body as any).error.code).toBe('VALIDATION_ERROR');
+  });
+
   it('rejects onboarding writes when the public API key is wrong', async () => {
     const app = await loadApp();
 
