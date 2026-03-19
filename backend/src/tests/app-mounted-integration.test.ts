@@ -264,6 +264,7 @@ function createQueryBuilder(table: string) {
       return Promise.resolve({
         data: result.data,
         error: result.error,
+        count: result.count,
       }).then(resolve, reject);
     },
   };
@@ -1764,6 +1765,367 @@ describe('Mounted app integration', () => {
         end_time: '14:00',
         days_of_week: [7],
         start_date: '2026-03-20',
+      },
+    });
+
+    expect(response.status).toBe(400);
+    expect((response.body as any).error.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('lists scoped agencies through the mounted admin directory route', async () => {
+    const app = await loadApp();
+    const agencyId = '11111111-1111-4111-8111-111111111111';
+    const otherAgencyId = '22222222-2222-4222-8222-222222222222';
+
+    seedAuthenticatedAdmin({
+      permissions: ['read:all_profiles'],
+      role: 'agency_manager',
+      isGlobal: false,
+      agencyIds: [agencyId],
+    });
+
+    mockState.tables.agencies = [
+      {
+        id: agencyId,
+        name: 'Casa Agency',
+        email: 'hello@casaagency.test',
+        phone: '233300000001',
+        address: 'Airport',
+        created_at: '2026-03-19T08:00:00.000Z',
+      },
+      {
+        id: otherAgencyId,
+        name: 'Outside Agency',
+        email: 'outside@agency.test',
+        phone: '233300000002',
+        address: 'Tema',
+        created_at: '2026-03-18T08:00:00.000Z',
+      },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/agencies/directory',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect((response.body as any).data).toEqual([
+      expect.objectContaining({
+        id: agencyId,
+        name: 'Casa Agency',
+        email: 'hello@casaagency.test',
+      }),
+    ]);
+  });
+
+  it('returns scoped agency directory summary through the mounted admin route with truthful stats and activity', async () => {
+    const app = await loadApp();
+    const agencyId = '11111111-1111-4111-8111-111111111111';
+
+    seedAuthenticatedAdmin({
+      permissions: ['read:all_profiles'],
+      role: 'agency_manager',
+      isGlobal: false,
+      agencyIds: [agencyId],
+    });
+
+    mockState.tables.agencies = [
+      {
+        id: agencyId,
+        name: 'Casa Agency',
+        email: 'hello@casaagency.test',
+        phone: '233300000001',
+        address: 'Airport',
+        created_at: '2026-03-19T08:00:00.000Z',
+      },
+    ];
+    mockState.tables.agency_profiles = [
+      {
+        id: agencyId,
+        name: 'Casa Agency',
+        city: 'Accra',
+        state: 'Greater Accra',
+        owner_name: 'Ada Agency',
+        created_at: '2026-03-19T08:00:00.000Z',
+      },
+    ];
+    mockState.tables.communities = [
+      {
+        id: '33333333-3333-4333-8333-333333333333',
+        agency_id: agencyId,
+        name: 'Palm Residences',
+        address: 'Airport',
+        city: 'Accra',
+        state: 'Greater Accra',
+        country: 'Ghana',
+        status: 'active',
+        created_at: '2026-03-18T08:00:00.000Z',
+        updated_at: '2026-03-19T08:00:00.000Z',
+      },
+      {
+        id: '44444444-4444-4444-8444-444444444444',
+        agency_id: agencyId,
+        name: 'Harbor View',
+        address: 'Tema',
+        city: 'Tema',
+        state: 'Greater Accra',
+        country: 'Ghana',
+        status: 'inactive',
+        created_at: '2026-03-17T08:00:00.000Z',
+        updated_at: '2026-03-18T08:00:00.000Z',
+      },
+    ];
+    mockState.tables.units = [
+      {
+        id: '55555555-5555-4555-8555-555555555555',
+        community_id: '33333333-3333-4333-8333-333333333333',
+      },
+      {
+        id: '66666666-6666-4666-8666-666666666666',
+        community_id: '44444444-4444-4444-8444-444444444444',
+      },
+    ];
+    mockState.tables.agency_staff = [
+      {
+        id: '77777777-7777-4777-8777-777777777777',
+        agency_id: agencyId,
+        first_name: 'Ama',
+        last_name: 'Manager',
+        email: 'ama.manager@test',
+        role: 'manager',
+        status: 'active',
+        is_active: true,
+        created_at: '2026-03-18T09:00:00.000Z',
+        updated_at: '2026-03-19T09:00:00.000Z',
+      },
+    ];
+    mockState.tables.agency_services = [
+      {
+        id: '88888888-8888-4888-8888-888888888888',
+        agency_id: agencyId,
+        service_name: 'Facility Management',
+        category: 'operations',
+        status: 'active',
+        base_price: 4000,
+        rate_type: 'monthly',
+        created_at: '2026-03-18T10:00:00.000Z',
+        updated_at: '2026-03-19T10:00:00.000Z',
+      },
+    ];
+    mockState.tables.agency_documents = [
+      {
+        id: '99999999-9999-4999-8999-999999999999',
+        agency_id: agencyId,
+        name: 'Operating License',
+        category: 'compliance',
+        type: 'pdf',
+        status: 'active',
+        uploaded_by_name: 'Ada Admin',
+        created_at: '2026-03-18T11:00:00.000Z',
+        updated_at: '2026-03-19T11:00:00.000Z',
+      },
+    ];
+    mockState.tables.agency_transactions = [
+      {
+        id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        agency_id: agencyId,
+        date: '2026-03-19T12:00:00.000Z',
+        type: 'income',
+        category: 'management_fee',
+        amount: 5200,
+        status: 'completed',
+        payment_method: 'bank_transfer',
+        reference: 'INV-001',
+        description: 'March management fee',
+        created_at: '2026-03-19T12:00:00.000Z',
+      },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: `/admin/agencies/directory/${agencyId}/summary`,
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect((response.body as any).data.stats).toEqual(
+      expect.objectContaining({
+        communities_count: 2,
+        active_communities_count: 1,
+        inactive_communities_count: 1,
+        units_count: 2,
+        staff_count: 1,
+        services_count: 1,
+        documents_count: 1,
+        finance_entries_count: 1,
+        finance_total_amount: 5200,
+      })
+    );
+    expect((response.body as any).data.activities).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'community',
+          title: 'Palm Residences',
+        }),
+        expect.objectContaining({
+          type: 'staff',
+          title: 'Ama Manager',
+        }),
+        expect.objectContaining({
+          type: 'finance',
+          title: 'management_fee',
+        }),
+      ])
+    );
+  });
+
+  it('rejects mounted agency summary access outside the admin agency scope', async () => {
+    const app = await loadApp();
+    const agencyId = '11111111-1111-4111-8111-111111111111';
+    const otherAgencyId = '22222222-2222-4222-8222-222222222222';
+
+    seedAuthenticatedAdmin({
+      permissions: ['read:all_profiles'],
+      role: 'agency_manager',
+      isGlobal: false,
+      agencyIds: [agencyId],
+    });
+
+    mockState.tables.agencies = [
+      {
+        id: otherAgencyId,
+        name: 'Outside Agency',
+        email: 'outside@agency.test',
+      },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: `/admin/agencies/directory/${otherAgencyId}/summary`,
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(403);
+    expect((response.body as any).error.code).toBe('AGENCY_SCOPE_VIOLATION');
+  });
+
+  it('creates agency staff through the mounted admin route with scoped agency fallback and actor stamping', async () => {
+    const app = await loadApp();
+    const agencyId = '11111111-1111-4111-8111-111111111111';
+
+    seedAuthenticatedAdmin({
+      permissions: ['create:profiles'],
+      role: 'agency_manager',
+      isGlobal: false,
+      agencyIds: [agencyId],
+    });
+
+    const response = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/agencies/staff',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        first_name: 'Kojo',
+        last_name: 'Broker',
+        email: 'kojo.broker@example.com',
+        role: 'agent',
+        department: 'sales',
+        status: 'active',
+      },
+    });
+
+    expect(response.status).toBe(201);
+    expect((response.body as any).data).toEqual(
+      expect.objectContaining({
+        agency_id: agencyId,
+        first_name: 'Kojo',
+        last_name: 'Broker',
+        created_by: 'auth-admin',
+        updated_by: 'auth-admin',
+      })
+    );
+  });
+
+  it('updates agency staff through the mounted admin route and stamps backend-owned update fields', async () => {
+    const app = await loadApp();
+    const agencyId = '11111111-1111-4111-8111-111111111111';
+    const staffId = '33333333-3333-4333-8333-333333333333';
+
+    seedAuthenticatedAdmin({
+      permissions: ['update:all_profiles'],
+      role: 'agency_manager',
+      isGlobal: false,
+      agencyIds: [agencyId],
+    });
+
+    mockState.tables.agency_staff = [
+      {
+        id: staffId,
+        agency_id: agencyId,
+        first_name: 'Kojo',
+        last_name: 'Broker',
+        email: 'kojo.broker@example.com',
+        role: 'agent',
+        status: 'active',
+        created_by: 'seed-user',
+        updated_by: null,
+        updated_at: null,
+      },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'PATCH',
+      path: `/admin/agencies/staff/${staffId}`,
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        role: 'senior_agent',
+        status: 'inactive',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect((response.body as any).data).toEqual(
+      expect.objectContaining({
+        id: staffId,
+        role: 'senior_agent',
+        status: 'inactive',
+        updated_by: 'auth-admin',
+      })
+    );
+    expect(((mockState.tables.agency_staff || []).find((row) => row.id === staffId) || {}).updated_at).toBeTruthy();
+  });
+
+  it('validates mounted agency staff payloads before the controller runs', async () => {
+    const app = await loadApp();
+
+    seedAuthenticatedAdmin({
+      permissions: ['create:profiles'],
+      role: 'agency_manager',
+      isGlobal: false,
+      agencyIds: ['11111111-1111-4111-8111-111111111111'],
+    });
+
+    const response = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/agencies/staff',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        first_name: 'Kojo',
+        last_name: 'Broker',
+        email: 'not-an-email',
       },
     });
 
