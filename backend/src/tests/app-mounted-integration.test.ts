@@ -336,6 +336,9 @@ async function loadApp(envOverrides: Record<string, string | undefined> = {}) {
       scope: { isGlobal: boolean; agencyIds: string[] },
       agencyId: string
     ) => scope.isGlobal || scope.agencyIds.includes(agencyId),
+    isUuid: (value: unknown) =>
+      typeof value === 'string' &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value),
     getScopedGuardIds: vi.fn(async () => []),
     resolveGuardCommunityId: vi.fn(async () => null),
   }));
@@ -345,7 +348,7 @@ async function loadApp(envOverrides: Record<string, string | undefined> = {}) {
 }
 
 type RequestOptions = {
-  method: 'GET' | 'POST' | 'PATCH';
+  method: 'GET' | 'POST' | 'PATCH' | 'PUT';
   path: string;
   headers?: Record<string, string>;
   body?: unknown;
@@ -2443,6 +2446,254 @@ describe('Mounted app integration', () => {
         payment_status: 'paid',
       })
     );
+  });
+
+  it('returns scoped notification dashboard data through the mounted admin route', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-1111-1111-111111111111';
+    const otherCommunityId = '22222222-2222-2222-2222-222222222222';
+    const currentTimestamp = new Date().toISOString();
+
+    seedAuthenticatedAdmin({
+      permissions: ['read:all_notifications'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+    });
+
+    mockState.tables.notification_campaigns = [
+      {
+        id: 'campaign-scoped',
+        title: 'Scoped Broadcast',
+        name: 'Scoped Broadcast',
+        type: 'email',
+        status: 'delivered',
+        community_id: communityId,
+        recipients_count: 42,
+        delivered_count: 40,
+        opened_count: 20,
+        clicked_count: 5,
+        failed_count: 2,
+        sent_at: currentTimestamp,
+        created_at: currentTimestamp,
+        updated_at: currentTimestamp,
+      },
+      {
+        id: 'campaign-out-of-scope',
+        title: 'Out Of Scope Broadcast',
+        name: 'Out Of Scope Broadcast',
+        type: 'sms',
+        status: 'delivered',
+        community_id: otherCommunityId,
+        recipients_count: 99,
+        delivered_count: 90,
+        opened_count: 10,
+        clicked_count: 1,
+        failed_count: 9,
+        sent_at: currentTimestamp,
+        created_at: currentTimestamp,
+        updated_at: currentTimestamp,
+      },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/notifications/dashboard?limit=5',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect((response.body as any).data.recent_campaigns).toEqual([
+      expect.objectContaining({ id: 'campaign-scoped', community_id: communityId }),
+    ]);
+    expect((response.body as any).data.today_summary).toEqual(
+      expect.objectContaining({
+        total_sent: 42,
+        total_delivered: 40,
+        total_opened: 20,
+        total_clicked: 5,
+      })
+    );
+    expect((response.body as any).data.channel_performance.email).toEqual(
+      expect.objectContaining({
+        totalSent: 42,
+        totalDelivered: 40,
+        totalOpened: 20,
+        totalClicked: 5,
+      })
+    );
+    expect((response.body as any).data.channel_performance.sms).toEqual(
+      expect.objectContaining({
+        totalSent: 0,
+        totalDelivered: 0,
+      })
+    );
+  });
+
+  it('rejects mounted notification campaign detail access outside the admin community scope', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-1111-1111-111111111111';
+    const otherCommunityId = '22222222-2222-2222-2222-222222222222';
+
+    seedAuthenticatedAdmin({
+      permissions: ['read:all_notifications'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+    });
+
+    mockState.tables.notification_campaigns = [
+      {
+        id: 'campaign-out-of-scope',
+        title: 'Out Of Scope Broadcast',
+        name: 'Out Of Scope Broadcast',
+        type: 'sms',
+        status: 'delivered',
+        community_id: otherCommunityId,
+        recipients_count: 99,
+        delivered_count: 90,
+        opened_count: 10,
+        clicked_count: 1,
+        failed_count: 9,
+        created_at: '2026-03-19T09:00:00.000Z',
+        updated_at: '2026-03-19T09:00:00.000Z',
+      },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/notification-campaigns/campaign-out-of-scope',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(403);
+    expect((response.body as any).error.code).toBe('NOTIFICATION_CAMPAIGN_SCOPE_VIOLATION');
+  });
+
+  it('creates notification campaigns through the mounted admin route and auto-assigns the scoped community', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-1111-1111-111111111111';
+
+    seedAuthenticatedAdmin({
+      permissions: ['write:all_notifications'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+    });
+
+    mockState.tables.notification_campaigns = [];
+    mockState.tables.notification_templates = [];
+
+    const response = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/notification-campaigns',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        title: 'Scoped Launch Reminder',
+        type: 'email',
+        recipients_count: 12,
+        audience: 'all-residents',
+        status: 'draft',
+      },
+    });
+
+    expect(response.status).toBe(201);
+    expect((response.body as any).title).toBe('Scoped Launch Reminder');
+    expect((response.body as any).name).toBe('Scoped Launch Reminder');
+    expect((response.body as any).community_id).toBe(communityId);
+    expect(mockState.tables.notification_campaigns[0]).toEqual(
+      expect.objectContaining({
+        title: 'Scoped Launch Reminder',
+        name: 'Scoped Launch Reminder',
+        community_id: communityId,
+      })
+    );
+  });
+
+  it('updates notification campaigns through the mounted admin route and keeps title and name aligned', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-1111-1111-111111111111';
+
+    seedAuthenticatedAdmin({
+      permissions: ['write:all_notifications'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+    });
+
+    mockState.tables.notification_campaigns = [
+      {
+        id: 'campaign-scoped',
+        title: 'Old Title',
+        name: 'Old Title',
+        type: 'push',
+        status: 'draft',
+        community_id: communityId,
+        recipients_count: 10,
+        delivered_count: 0,
+        opened_count: 0,
+        clicked_count: 0,
+        failed_count: 0,
+        created_at: '2026-03-19T08:00:00.000Z',
+        updated_at: '2026-03-19T08:00:00.000Z',
+      },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'PUT',
+      path: '/admin/notification-campaigns/campaign-scoped',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        title: 'Updated Title',
+        status: 'completed',
+        opened_count: 7,
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect((response.body as any).title).toBe('Updated Title');
+    expect((response.body as any).name).toBe('Updated Title');
+    expect((response.body as any).status).toBe('completed');
+    expect((response.body as any).opened_count).toBe(7);
+    expect(mockState.tables.notification_campaigns[0]).toEqual(
+      expect.objectContaining({
+        id: 'campaign-scoped',
+        title: 'Updated Title',
+        name: 'Updated Title',
+        status: 'completed',
+        opened_count: 7,
+      })
+    );
+  });
+
+  it('validates mounted notification analytics queries before the controller runs', async () => {
+    const app = await loadApp();
+
+    seedAuthenticatedAdmin({
+      permissions: ['read:all_notifications'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: ['11111111-1111-1111-1111-111111111111'],
+    });
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/notifications/analytics?dateRange=custom&channel=sms',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(400);
+    expect((response.body as any).error.code).toBe('VALIDATION_ERROR');
   });
 
   it('rejects onboarding writes when the public API key is wrong', async () => {
