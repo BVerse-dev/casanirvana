@@ -852,6 +852,483 @@ describe('Mounted app integration', () => {
     );
   });
 
+  it('lists scoped residents through the mounted admin route with derived tenancy and residence context', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-1111-1111-111111111111';
+    const otherCommunityId = '22222222-2222-2222-2222-222222222222';
+    const residentId = '33333333-3333-4333-8333-333333333333';
+    const otherResidentId = '44444444-4444-4444-8444-444444444444';
+    const unitId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const otherUnitId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+
+    seedAuthenticatedAdmin({
+      permissions: ['read:all_profiles'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+    });
+
+    mockState.tables.profiles = [
+      ...mockState.tables.profiles,
+      {
+        id: residentId,
+        user_id: 'resident-auth-1',
+        first_name: 'Ama',
+        last_name: 'Mensah',
+        full_name: null,
+        email: 'ama@example.com',
+        phone: '2330000001',
+        avatar_url: null,
+        block_number: null,
+        community_id: communityId,
+        unit_id: unitId,
+        role: 'resident',
+        status: 'active',
+        is_active: true,
+        emergency_contact: null,
+        preferences: { address: 'Accra' },
+        created_at: '2026-03-01T10:00:00.000Z',
+        updated_at: '2026-03-02T10:00:00.000Z',
+      },
+      {
+        id: otherResidentId,
+        user_id: 'resident-auth-2',
+        first_name: 'Kojo',
+        last_name: 'Owusu',
+        full_name: null,
+        email: 'kojo@example.com',
+        phone: '2330000002',
+        avatar_url: null,
+        block_number: null,
+        community_id: otherCommunityId,
+        unit_id: otherUnitId,
+        role: 'resident',
+        status: 'active',
+        is_active: true,
+        emergency_contact: null,
+        preferences: null,
+        created_at: '2026-03-03T10:00:00.000Z',
+        updated_at: '2026-03-04T10:00:00.000Z',
+      },
+    ];
+    mockState.tables.units = [
+      {
+        id: unitId,
+        block: 'A',
+        number: '101',
+        unit_number: 'A-101',
+        community_id: communityId,
+        tenant_id: residentId,
+        owner_id: null,
+      },
+      {
+        id: otherUnitId,
+        block: 'B',
+        number: '202',
+        unit_number: 'B-202',
+        community_id: otherCommunityId,
+        tenant_id: null,
+        owner_id: null,
+      },
+    ];
+    mockState.tables.communities = [
+      { id: communityId, name: 'Palm Residences', address: 'Airport', city: 'Accra', state: 'Greater Accra' },
+      { id: otherCommunityId, name: 'Harbor View', address: 'Tema', city: 'Tema', state: 'Greater Accra' },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/residents?page=1&limit=20',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect((response.body as any).count).toBe(1);
+    expect((response.body as any).data).toEqual([
+      expect.objectContaining({
+        id: residentId,
+        full_name: 'Ama Mensah',
+        role: 'tenant',
+        unit_number: 'A-101',
+        community_id: communityId,
+        communities: expect.objectContaining({ name: 'Palm Residences' }),
+      }),
+    ]);
+  });
+
+  it('returns resident activity summary and recent records through the mounted admin route', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-1111-1111-111111111111';
+    const residentId = '33333333-3333-4333-8333-333333333333';
+    const unitId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+
+    seedAuthenticatedAdmin({
+      permissions: ['read:all_profiles'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+    });
+
+    mockState.tables.profiles = [
+      ...mockState.tables.profiles,
+      {
+        id: residentId,
+        user_id: 'resident-auth-1',
+        first_name: 'Ama',
+        last_name: 'Mensah',
+        full_name: 'Ama Mensah',
+        email: 'ama@example.com',
+        phone: '2330000001',
+        avatar_url: null,
+        block_number: null,
+        community_id: communityId,
+        unit_id: unitId,
+        role: 'resident',
+        status: 'active',
+        is_active: true,
+        emergency_contact: null,
+        preferences: null,
+        created_at: '2026-03-01T10:00:00.000Z',
+        updated_at: '2026-03-02T10:00:00.000Z',
+      },
+    ];
+    mockState.tables.units = [
+      {
+        id: unitId,
+        block: 'A',
+        number: '101',
+        unit_number: 'A-101',
+        community_id: communityId,
+        tenant_id: residentId,
+        owner_id: null,
+      },
+    ];
+    mockState.tables.communities = [
+      { id: communityId, name: 'Palm Residences', address: 'Airport', city: 'Accra', state: 'Greater Accra' },
+    ];
+    mockState.tables.payments = [
+      {
+        id: 'payment-1',
+        amount: 1200,
+        status: 'completed',
+        title: 'March Dues',
+        description: null,
+        due_date: '2026-03-05T00:00:00.000Z',
+        paid_at: '2026-03-04T00:00:00.000Z',
+        completed_at: null,
+        payment_date: null,
+        created_at: '2026-03-01T00:00:00.000Z',
+        notes: 'Paid on time',
+        unit_id: unitId,
+      },
+      {
+        id: 'payment-2',
+        amount: 900,
+        status: 'pending',
+        title: 'April Dues',
+        description: null,
+        due_date: '2026-04-05T00:00:00.000Z',
+        paid_at: null,
+        completed_at: null,
+        payment_date: null,
+        created_at: '2026-04-01T00:00:00.000Z',
+        notes: null,
+        unit_id: unitId,
+      },
+    ];
+    mockState.tables.maintenance_requests = [
+      {
+        id: 14,
+        title: 'Leak Repair',
+        request_type: 'plumbing',
+        status: 'open',
+        created_at: '2026-03-06T10:00:00.000Z',
+        updated_at: '2026-03-06T12:00:00.000Z',
+        resolved_at: null,
+        completed_at: null,
+        description: 'Kitchen sink',
+        requested_by: residentId,
+      },
+    ];
+    mockState.tables.service_requests = [
+      {
+        id: 'service-1',
+        title: 'Cleaning',
+        status: 'pending',
+        created_at: '2026-03-08T10:00:00.000Z',
+        updated_at: '2026-03-08T11:00:00.000Z',
+        request_details: 'Deep clean',
+        description: null,
+        total_amount: 150,
+        user_id: 'resident-auth-1',
+        created_by: 'someone-else',
+      },
+      {
+        id: 'service-2',
+        title: 'Laundry',
+        status: 'completed',
+        created_at: '2026-03-07T10:00:00.000Z',
+        updated_at: '2026-03-07T11:00:00.000Z',
+        request_details: 'Weekly laundry',
+        description: null,
+        total_amount: 80,
+        user_id: null,
+        created_by: residentId,
+      },
+    ];
+    mockState.tables.activity_logs = [
+      {
+        id: 'activity-1',
+        action: 'Profile updated',
+        details: 'Phone number changed',
+        status: 'completed',
+        created_at: '2026-03-09T09:30:00.000Z',
+        timestamp: null,
+        user_id: 'resident-auth-1',
+      },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: `/admin/residents/${residentId}/activity`,
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect((response.body as any).data.summary).toEqual({
+      totalRequests: 3,
+      paymentsMade: 1,
+      activeServices: 1,
+      completedPayments: 1,
+      pendingPayments: 1,
+    });
+    expect((response.body as any).data.recent).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: 'payment', title: 'April Dues' }),
+        expect.objectContaining({ type: 'maintenance', title: 'Leak Repair' }),
+        expect.objectContaining({ type: 'service', title: 'Cleaning' }),
+        expect.objectContaining({ type: 'activity', title: 'Profile updated' }),
+      ])
+    );
+  });
+
+  it('returns empty resident directory sections truthfully through the mounted admin route', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-1111-1111-111111111111';
+    const residentId = '33333333-3333-4333-8333-333333333333';
+    const unitId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+
+    seedAuthenticatedAdmin({
+      permissions: ['read:all_profiles'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+    });
+
+    mockState.tables.profiles = [
+      ...mockState.tables.profiles,
+      {
+        id: residentId,
+        user_id: 'resident-auth-1',
+        first_name: 'Ama',
+        last_name: 'Mensah',
+        full_name: 'Ama Mensah',
+        email: 'ama@example.com',
+        phone: '2330000001',
+        avatar_url: null,
+        block_number: null,
+        community_id: communityId,
+        unit_id: unitId,
+        role: 'resident',
+        status: 'active',
+        is_active: true,
+        emergency_contact: null,
+        preferences: null,
+        created_at: '2026-03-01T10:00:00.000Z',
+        updated_at: '2026-03-02T10:00:00.000Z',
+      },
+    ];
+    mockState.tables.units = [
+      {
+        id: unitId,
+        block: 'A',
+        number: '101',
+        unit_number: 'A-101',
+        community_id: communityId,
+        tenant_id: residentId,
+        owner_id: null,
+      },
+    ];
+    mockState.tables.communities = [
+      { id: communityId, name: 'Palm Residences', address: 'Airport', city: 'Accra', state: 'Greater Accra' },
+    ];
+    mockState.tables.family_members = [];
+    mockState.tables.daily_help = [];
+    mockState.tables.vehicles = [];
+    mockState.tables.frequent_entries = [];
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: `/admin/residents/${residentId}/directory`,
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect((response.body as any).data).toEqual({
+      familyMembers: [],
+      dailyHelp: [],
+      vehicles: [],
+      frequentEntries: [],
+    });
+  });
+
+  it('rejects resident creation outside the admin community scope through the mounted admin route', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-1111-1111-111111111111';
+    const otherCommunityId = '22222222-2222-2222-2222-222222222222';
+
+    seedAuthenticatedAdmin({
+      permissions: ['create:profiles'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+    });
+
+    const response = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/residents',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        first_name: 'Ama',
+        last_name: 'Mensah',
+        email: 'ama@example.com',
+        role: 'resident',
+        community_id: otherCommunityId,
+      },
+    });
+
+    expect(response.status).toBe(403);
+    expect((response.body as any).error.code).toBe('RESIDENT_SCOPE_VIOLATION');
+  });
+
+  it('updates residents through the mounted admin route and preserves backend-owned lifecycle fields', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-1111-1111-111111111111';
+    const residentId = '33333333-3333-4333-8333-333333333333';
+    const unitId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+
+    seedAuthenticatedAdmin({
+      permissions: ['update:all_profiles'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+    });
+
+    mockState.tables.profiles = [
+      ...mockState.tables.profiles,
+      {
+        id: residentId,
+        user_id: 'resident-auth-1',
+        first_name: 'Ama',
+        last_name: 'Mensah',
+        full_name: 'Ama Mensah',
+        email: 'ama@example.com',
+        phone: '2330000001',
+        avatar_url: null,
+        block_number: null,
+        community_id: communityId,
+        unit_id: unitId,
+        role: 'resident',
+        status: 'active',
+        is_active: true,
+        emergency_contact: null,
+        preferences: null,
+        created_at: '2026-03-01T10:00:00.000Z',
+        updated_at: '2026-03-02T10:00:00.000Z',
+      },
+    ];
+    mockState.tables.units = [
+      {
+        id: unitId,
+        block: 'A',
+        number: '101',
+        unit_number: 'A-101',
+        community_id: communityId,
+        tenant_id: residentId,
+        owner_id: null,
+      },
+    ];
+    mockState.tables.communities = [
+      { id: communityId, name: 'Palm Residences', address: 'Airport', city: 'Accra', state: 'Greater Accra' },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'PUT',
+      path: `/admin/residents/${residentId}`,
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        phone: '2330000099',
+        status: 'inactive',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect((response.body as any).data).toEqual(
+      expect.objectContaining({
+        id: residentId,
+        phone: '2330000099',
+        status: 'inactive',
+      })
+    );
+    expect((mockState.tables.profiles || []).find((row) => row.id === residentId)).toEqual(
+      expect.objectContaining({
+        id: residentId,
+        phone: '2330000099',
+        status: 'inactive',
+        is_active: false,
+      })
+    );
+    expect(((mockState.tables.profiles || []).find((row) => row.id === residentId) || {}).updated_at).toBeTruthy();
+  });
+
+  it('validates mounted resident create payloads before the controller runs', async () => {
+    const app = await loadApp();
+
+    seedAuthenticatedAdmin({
+      permissions: ['create:profiles'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: ['11111111-1111-1111-1111-111111111111'],
+    });
+
+    const response = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/residents',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        first_name: 'Ama',
+        last_name: 'Mensah',
+        email: 'ama@example.com',
+        role: 'admin',
+      },
+    });
+
+    expect(response.status).toBe(400);
+    expect((response.body as any).error.code).toBe('VALIDATION_ERROR');
+  });
+
   it('lists scoped maintenance requests through the mounted admin route for a tenant admin', async () => {
     const app = await loadApp();
     const communityId = '11111111-1111-1111-1111-111111111111';
