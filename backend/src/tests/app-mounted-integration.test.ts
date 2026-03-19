@@ -2133,6 +2133,313 @@ describe('Mounted app integration', () => {
     expect((response.body as any).error.code).toBe('VALIDATION_ERROR');
   });
 
+  it('lists scoped agency services through the mounted admin route', async () => {
+    const app = await loadApp();
+    const agencyId = '11111111-1111-4111-8111-111111111111';
+    const otherAgencyId = '22222222-2222-4222-8222-222222222222';
+
+    seedAuthenticatedAdmin({
+      permissions: ['read:all_profiles'],
+      role: 'agency_manager',
+      isGlobal: false,
+      agencyIds: [agencyId],
+    });
+
+    mockState.tables.agency_services = [
+      {
+        id: '33333333-3333-4333-8333-333333333333',
+        agency_id: agencyId,
+        service_name: 'Facility Management',
+        category: 'operations',
+        status: 'active',
+        base_price: 4000,
+        created_at: '2026-03-19T08:00:00.000Z',
+      },
+      {
+        id: '44444444-4444-4444-8444-444444444444',
+        agency_id: otherAgencyId,
+        service_name: 'Outside Service',
+        category: 'sales',
+        status: 'active',
+        base_price: 2500,
+        created_at: '2026-03-18T08:00:00.000Z',
+      },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/agencies/services',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect((response.body as any).data).toEqual([
+      expect.objectContaining({
+        agency_id: agencyId,
+        service_name: 'Facility Management',
+      }),
+    ]);
+  });
+
+  it('creates agency services through the mounted admin route with scoped agency fallback', async () => {
+    const app = await loadApp();
+    const agencyId = '11111111-1111-4111-8111-111111111111';
+
+    seedAuthenticatedAdmin({
+      permissions: ['create:profiles'],
+      role: 'agency_manager',
+      isGlobal: false,
+      agencyIds: [agencyId],
+    });
+
+    const response = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/agencies/services',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        service_name: 'Leasing Support',
+        category: 'leasing',
+        status: 'active',
+        base_price: 3200,
+        rate_type: 'monthly',
+      },
+    });
+
+    expect(response.status).toBe(201);
+    expect((response.body as any).data).toEqual(
+      expect.objectContaining({
+        agency_id: agencyId,
+        service_name: 'Leasing Support',
+        category: 'leasing',
+      })
+    );
+  });
+
+  it('lists scoped agency finance entries through the mounted admin route', async () => {
+    const app = await loadApp();
+    const agencyId = '11111111-1111-4111-8111-111111111111';
+    const otherAgencyId = '22222222-2222-4222-8222-222222222222';
+
+    seedAuthenticatedAdmin({
+      permissions: ['read:all_payments'],
+      role: 'agency_manager',
+      isGlobal: false,
+      agencyIds: [agencyId],
+    });
+
+    mockState.tables.agency_transactions = [
+      {
+        id: '33333333-3333-4333-8333-333333333333',
+        agency_id: agencyId,
+        date: '2026-03-19T10:00:00.000Z',
+        type: 'income',
+        category: 'management_fee',
+        amount: 5200,
+        status: 'completed',
+        created_at: '2026-03-19T10:00:00.000Z',
+      },
+      {
+        id: '44444444-4444-4444-8444-444444444444',
+        agency_id: otherAgencyId,
+        date: '2026-03-18T10:00:00.000Z',
+        type: 'expense',
+        category: 'marketing',
+        amount: 900,
+        status: 'pending',
+        created_at: '2026-03-18T10:00:00.000Z',
+      },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/agencies/finance',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect((response.body as any).data).toEqual([
+      expect.objectContaining({
+        agency_id: agencyId,
+        category: 'management_fee',
+        amount: 5200,
+      }),
+    ]);
+  });
+
+  it('updates agency finance entries through the mounted admin route', async () => {
+    const app = await loadApp();
+    const agencyId = '11111111-1111-4111-8111-111111111111';
+    const financeId = '33333333-3333-4333-8333-333333333333';
+
+    seedAuthenticatedAdmin({
+      permissions: ['update:payments'],
+      role: 'agency_manager',
+      isGlobal: false,
+      agencyIds: [agencyId],
+    });
+
+    mockState.tables.agency_transactions = [
+      {
+        id: financeId,
+        agency_id: agencyId,
+        date: '2026-03-19T10:00:00.000Z',
+        type: 'income',
+        category: 'management_fee',
+        amount: 5200,
+        status: 'pending',
+        reference: 'INV-001',
+      },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'PATCH',
+      path: `/admin/agencies/finance/${financeId}`,
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        amount: 5400,
+        status: 'completed',
+        reference: 'INV-001-PAID',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect((response.body as any).data).toEqual(
+      expect.objectContaining({
+        id: financeId,
+        amount: 5400,
+        status: 'completed',
+        reference: 'INV-001-PAID',
+      })
+    );
+    expect((mockState.tables.agency_transactions || []).find((row) => row.id === financeId)).toEqual(
+      expect.objectContaining({
+        id: financeId,
+        amount: 5400,
+        status: 'completed',
+        reference: 'INV-001-PAID',
+      })
+    );
+  });
+
+  it('creates agency documents through the mounted admin route with scoped agency fallback and upload stamping', async () => {
+    const app = await loadApp();
+    const agencyId = '11111111-1111-4111-8111-111111111111';
+
+    seedAuthenticatedAdmin({
+      permissions: ['create:profiles'],
+      role: 'agency_manager',
+      isGlobal: false,
+      agencyIds: [agencyId],
+    });
+
+    const response = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/agencies/documents',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        name: 'Compliance Certificate',
+        category: 'compliance',
+        type: 'pdf',
+        status: 'active',
+      },
+    });
+
+    expect(response.status).toBe(201);
+    expect((response.body as any).data).toEqual(
+      expect.objectContaining({
+        agency_id: agencyId,
+        name: 'Compliance Certificate',
+        uploaded_by: 'auth-admin',
+      })
+    );
+    expect(((response.body as any).data.updated_at as string)).toBeTruthy();
+  });
+
+  it('updates agency documents through the mounted admin route and stamps updated_at', async () => {
+    const app = await loadApp();
+    const agencyId = '11111111-1111-4111-8111-111111111111';
+    const documentId = '33333333-3333-4333-8333-333333333333';
+
+    seedAuthenticatedAdmin({
+      permissions: ['update:all_profiles'],
+      role: 'agency_manager',
+      isGlobal: false,
+      agencyIds: [agencyId],
+    });
+
+    mockState.tables.agency_documents = [
+      {
+        id: documentId,
+        agency_id: agencyId,
+        name: 'Compliance Certificate',
+        category: 'compliance',
+        type: 'pdf',
+        status: 'draft',
+        updated_at: null,
+      },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'PATCH',
+      path: `/admin/agencies/documents/${documentId}`,
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        status: 'active',
+        name: 'Compliance Certificate v2',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect((response.body as any).data).toEqual(
+      expect.objectContaining({
+        id: documentId,
+        status: 'active',
+        name: 'Compliance Certificate v2',
+      })
+    );
+    expect(((mockState.tables.agency_documents || []).find((row) => row.id === documentId) || {}).updated_at).toBeTruthy();
+  });
+
+  it('validates mounted agency finance payloads before the controller runs', async () => {
+    const app = await loadApp();
+
+    seedAuthenticatedAdmin({
+      permissions: ['create:payments'],
+      role: 'agency_manager',
+      isGlobal: false,
+      agencyIds: ['11111111-1111-4111-8111-111111111111'],
+    });
+
+    const response = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/agencies/finance',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        date: '2026-03-19',
+        type: 'income',
+        amount: 'bad-amount',
+        status: 'completed',
+      },
+    });
+
+    expect(response.status).toBe(400);
+    expect((response.body as any).error.code).toBe('VALIDATION_ERROR');
+  });
+
   it('lists scoped maintenance requests through the mounted admin route for a tenant admin', async () => {
     const app = await loadApp();
     const communityId = '11111111-1111-1111-1111-111111111111';
