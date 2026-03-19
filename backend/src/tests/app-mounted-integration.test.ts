@@ -58,6 +58,56 @@ function resetMockState() {
   };
 }
 
+function resolveMockGuardCommunityId(guardId: string) {
+  const guardRow = (mockState.tables.guards || []).find((row) => row.id === guardId);
+  if (guardRow?.community_id) {
+    return guardRow.community_id as string;
+  }
+
+  const activeAssignment = (mockState.tables.guard_assignments || []).find(
+    (row) => row.guard_id === guardId && row.community_id && String(row.status || '').toLowerCase() === 'active'
+  );
+  if (activeAssignment?.community_id) {
+    return activeAssignment.community_id as string;
+  }
+
+  const latestSchedule = (mockState.tables.guard_schedules || []).find(
+    (row) => row.guard_id === guardId && row.community_id
+  );
+  if (latestSchedule?.community_id) {
+    return latestSchedule.community_id as string;
+  }
+
+  return null;
+}
+
+function getMockScopedGuardIds(scope: { isGlobal: boolean; communityIds: string[] }) {
+  const guardIds = new Set<string>();
+
+  for (const guard of mockState.tables.guards || []) {
+    if (typeof guard.id !== 'string') continue;
+    if (scope.isGlobal || (guard.community_id && scope.communityIds.includes(guard.community_id))) {
+      guardIds.add(guard.id);
+    }
+  }
+
+  for (const assignment of mockState.tables.guard_assignments || []) {
+    if (typeof assignment.guard_id !== 'string') continue;
+    if (scope.isGlobal || (assignment.community_id && scope.communityIds.includes(assignment.community_id))) {
+      guardIds.add(assignment.guard_id);
+    }
+  }
+
+  for (const schedule of mockState.tables.guard_schedules || []) {
+    if (typeof schedule.guard_id !== 'string') continue;
+    if (scope.isGlobal || (schedule.community_id && scope.communityIds.includes(schedule.community_id))) {
+      guardIds.add(schedule.guard_id);
+    }
+  }
+
+  return [...guardIds];
+}
+
 function createQueryBuilder(table: string) {
   const filters: Array<(row: MockRow) => boolean> = [];
   let operation: 'read' | 'insert' | 'update' = 'read';
@@ -354,8 +404,10 @@ async function loadApp(envOverrides: Record<string, string | undefined> = {}) {
     isUuid: (value: unknown) =>
       typeof value === 'string' &&
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value),
-    getScopedGuardIds: vi.fn(async () => []),
-    resolveGuardCommunityId: vi.fn(async () => null),
+    getScopedGuardIds: vi.fn(async (scope: { isGlobal: boolean; communityIds: string[] }) =>
+      getMockScopedGuardIds(scope)
+    ),
+    resolveGuardCommunityId: vi.fn(async (guardId: string) => resolveMockGuardCommunityId(guardId)),
   }));
 
   const { default: app } = await import('../app');
@@ -1322,6 +1374,396 @@ describe('Mounted app integration', () => {
         last_name: 'Mensah',
         email: 'ama@example.com',
         role: 'admin',
+      },
+    });
+
+    expect(response.status).toBe(400);
+    expect((response.body as any).error.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('lists scoped guard profiles through the mounted admin route with assignment enrichment', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-4111-8111-111111111111';
+    const otherCommunityId = '22222222-2222-4222-8222-222222222222';
+    const guardId = '33333333-3333-4333-8333-333333333333';
+    const otherGuardId = '44444444-4444-4444-8444-444444444444';
+
+    seedAuthenticatedAdmin({
+      permissions: ['read:all_profiles'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+    });
+
+    mockState.tables.guards = [
+      {
+        id: guardId,
+        user_id: '55555555-5555-4555-8555-555555555555',
+        first_name: 'Kojo',
+        last_name: 'Guard',
+        full_name: 'Kojo Guard',
+        email: 'kojo.guard@example.com',
+        phone: '233200000001',
+        status: 'active',
+        is_active: true,
+        community_id: communityId,
+        communities: { id: communityId, name: 'Palm Residences', address: 'Airport' },
+        created_at: '2026-03-18T08:00:00.000Z',
+      },
+      {
+        id: otherGuardId,
+        user_id: '66666666-6666-4666-8666-666666666666',
+        first_name: 'Yaw',
+        last_name: 'Outside',
+        full_name: 'Yaw Outside',
+        email: 'yaw.guard@example.com',
+        phone: '233200000002',
+        status: 'active',
+        is_active: true,
+        community_id: otherCommunityId,
+        communities: { id: otherCommunityId, name: 'Harbor View', address: 'Tema' },
+        created_at: '2026-03-17T08:00:00.000Z',
+      },
+    ];
+    mockState.tables.guard_assignments = [
+      {
+        id: '77777777-7777-4777-8777-777777777777',
+        guard_id: guardId,
+        community_id: communityId,
+        assignment_name: 'Main Gate Day Shift',
+        assigned_gate: 'Gate A',
+        shift_type: 'day',
+        status: 'active',
+        start_date: '2026-03-18',
+        created_at: '2026-03-18T08:00:00.000Z',
+        updated_at: '2026-03-18T08:00:00.000Z',
+      },
+      {
+        id: '88888888-8888-4888-8888-888888888888',
+        guard_id: otherGuardId,
+        community_id: otherCommunityId,
+        assignment_name: 'Outside Scope',
+        assigned_gate: 'Gate B',
+        shift_type: 'night',
+        status: 'active',
+        start_date: '2026-03-17',
+        created_at: '2026-03-17T08:00:00.000Z',
+        updated_at: '2026-03-17T08:00:00.000Z',
+      },
+    ];
+    mockState.tables.communities = [
+      { id: communityId, name: 'Palm Residences' },
+      { id: otherCommunityId, name: 'Harbor View' },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: `/admin/guards/profiles?community_id=${communityId}`,
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect((response.body as any).data).toEqual([
+      expect.objectContaining({
+        id: guardId,
+        full_name: 'Kojo Guard',
+        resolved_community_id: communityId,
+        resolved_community_name: 'Palm Residences',
+        active_assignment_name: 'Main Gate Day Shift',
+        active_assignment_gate: 'Gate A',
+        assignment_status: 'assigned',
+      }),
+    ]);
+  });
+
+  it('rejects guard profile creation outside the admin community scope through the mounted admin route', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-4111-8111-111111111111';
+    const otherCommunityId = '22222222-2222-4222-8222-222222222222';
+
+    seedAuthenticatedAdmin({
+      permissions: ['create:profiles'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+    });
+
+    const response = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/guards/profiles',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        first_name: 'Kojo',
+        last_name: 'Guard',
+        email: 'kojo.guard@example.com',
+        community_id: otherCommunityId,
+        shift_type: 'morning',
+      },
+    });
+
+    expect(response.status).toBe(403);
+    expect((response.body as any).error.code).toBe('GUARD_SCOPE_VIOLATION');
+  });
+
+  it('lists scoped guard schedules through the mounted admin route', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-4111-8111-111111111111';
+    const otherCommunityId = '22222222-2222-4222-8222-222222222222';
+    const guardId = '33333333-3333-4333-8333-333333333333';
+
+    seedAuthenticatedAdmin({
+      permissions: ['read:all_profiles'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+    });
+
+    mockState.tables.guard_schedules = [
+      {
+        id: '77777777-7777-4777-8777-777777777777',
+        guard_id: guardId,
+        community_id: communityId,
+        shift_type: 'morning',
+        start_time: '06:00',
+        end_time: '14:00',
+        assigned_date: '2026-03-20',
+        status: 'scheduled',
+      },
+      {
+        id: '88888888-8888-4888-8888-888888888888',
+        guard_id: '44444444-4444-4444-8444-444444444444',
+        community_id: otherCommunityId,
+        shift_type: 'night',
+        start_time: '22:00',
+        end_time: '06:00',
+        assigned_date: '2026-03-21',
+        status: 'scheduled',
+      },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/guards/schedules',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect((response.body as any).data).toEqual([
+      expect.objectContaining({
+        guard_id: guardId,
+        community_id: communityId,
+        shift_type: 'morning',
+      }),
+    ]);
+  });
+
+  it('creates guard assignments through the mounted admin route and syncs guard and user scope', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-4111-8111-111111111111';
+    const guardId = '33333333-3333-4333-8333-333333333333';
+    const userId = '55555555-5555-4555-8555-555555555555';
+
+    seedAuthenticatedAdmin({
+      permissions: ['create:profiles'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+    });
+
+    mockState.tables.guards = [
+      {
+        id: guardId,
+        user_id: userId,
+        full_name: 'Kojo Guard',
+        first_name: 'Kojo',
+        last_name: 'Guard',
+        email: 'kojo.guard@example.com',
+        status: 'active',
+        is_active: true,
+        community_id: null,
+      },
+    ];
+    mockState.tables.users = [
+      {
+        id: userId,
+        email: 'kojo.guard@example.com',
+        community_id: null,
+        updated_at: null,
+      },
+    ];
+    mockState.tables.guard_assignments = [];
+
+    const response = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/guards/assignments',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        community_id: communityId,
+        guard_id: guardId,
+        shift_type: 'day',
+        start_time: '06:00',
+        end_time: '14:00',
+        days_of_week: [1, 2, 3, 4, 5],
+        start_date: '2026-03-20',
+        assignment_name: 'Main Gate Day Shift',
+        assigned_gate: 'Gate A',
+        assigned_location: 'Main Gate',
+        status: 'active',
+        current_status: 'off_duty',
+        is_permanent: true,
+        is_temporary: false,
+      },
+    });
+
+    expect(response.status).toBe(201);
+    expect((response.body as any).data).toEqual(
+      expect.objectContaining({
+        guard_id: guardId,
+        community_id: communityId,
+        assignment_name: 'Main Gate Day Shift',
+      })
+    );
+    expect((mockState.tables.guards || []).find((row) => row.id === guardId)).toEqual(
+      expect.objectContaining({
+        id: guardId,
+        community_id: communityId,
+        community_assignment: 'Main Gate Day Shift',
+      })
+    );
+    expect((mockState.tables.users || []).find((row) => row.id === userId)).toEqual(
+      expect.objectContaining({
+        id: userId,
+        community_id: communityId,
+      })
+    );
+    expect(((mockState.tables.guards || []).find((row) => row.id === guardId) || {}).updated_at).toBeTruthy();
+    expect(((mockState.tables.users || []).find((row) => row.id === userId) || {}).updated_at).toBeTruthy();
+  });
+
+  it('updates guard assignments through the mounted admin route and stamps lifecycle fields', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-4111-8111-111111111111';
+    const guardId = '33333333-3333-4333-8333-333333333333';
+    const userId = '55555555-5555-4555-8555-555555555555';
+    const assignmentId = '77777777-7777-4777-8777-777777777777';
+
+    seedAuthenticatedAdmin({
+      permissions: ['update:all_profiles'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+    });
+
+    mockState.tables.guards = [
+      {
+        id: guardId,
+        user_id: userId,
+        full_name: 'Kojo Guard',
+        first_name: 'Kojo',
+        last_name: 'Guard',
+        email: 'kojo.guard@example.com',
+        status: 'active',
+        is_active: true,
+        community_id: communityId,
+        community_assignment: 'Main Gate Day Shift',
+      },
+    ];
+    mockState.tables.users = [
+      {
+        id: userId,
+        email: 'kojo.guard@example.com',
+        community_id: communityId,
+        updated_at: null,
+      },
+    ];
+    mockState.tables.guard_assignments = [
+      {
+        id: assignmentId,
+        guard_id: guardId,
+        community_id: communityId,
+        assignment_name: 'Main Gate Day Shift',
+        assigned_gate: 'Gate A',
+        assigned_location: 'Main Gate',
+        shift_type: 'day',
+        start_time: '06:00',
+        end_time: '14:00',
+        days_of_week: [1, 2, 3, 4, 5],
+        start_date: '2026-03-20',
+        status: 'active',
+        current_status: 'off_duty',
+        created_at: '2026-03-20T06:00:00.000Z',
+        updated_at: null,
+      },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'PATCH',
+      path: `/admin/guards/assignments/${assignmentId}`,
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        assigned_gate: 'Gate B',
+        assignment_name: 'Main Gate Rotation',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect((response.body as any).data).toEqual(
+      expect.objectContaining({
+        id: assignmentId,
+        assigned_gate: 'Gate B',
+        assignment_name: 'Main Gate Rotation',
+      })
+    );
+    expect((mockState.tables.guard_assignments || []).find((row) => row.id === assignmentId)).toEqual(
+      expect.objectContaining({
+        id: assignmentId,
+        assigned_gate: 'Gate B',
+        assignment_name: 'Main Gate Rotation',
+      })
+    );
+    expect(((mockState.tables.guard_assignments || []).find((row) => row.id === assignmentId) || {}).updated_at).toBeTruthy();
+    expect((mockState.tables.guards || []).find((row) => row.id === guardId)).toEqual(
+      expect.objectContaining({
+        id: guardId,
+        community_assignment: 'Main Gate Rotation',
+      })
+    );
+  });
+
+  it('validates mounted guard assignment payloads before the controller runs', async () => {
+    const app = await loadApp();
+
+    seedAuthenticatedAdmin({
+      permissions: ['create:profiles'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: ['11111111-1111-4111-8111-111111111111'],
+    });
+
+    const response = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/guards/assignments',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        community_id: '11111111-1111-4111-8111-111111111111',
+        guard_id: '33333333-3333-4333-8333-333333333333',
+        shift_type: 'day',
+        start_time: '06:00',
+        end_time: '14:00',
+        days_of_week: [7],
+        start_date: '2026-03-20',
       },
     });
 
