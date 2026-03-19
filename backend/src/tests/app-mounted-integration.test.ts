@@ -65,6 +65,7 @@ function createQueryBuilder(table: string) {
   let updatePayload: MockRow | null = null;
   let sortColumn: string | null = null;
   let sortAscending = true;
+  let limitValue: number | null = null;
   let rangeStart: number | null = null;
   let rangeEnd: number | null = null;
   let includeExactCount = false;
@@ -98,6 +99,10 @@ function createQueryBuilder(table: string) {
 
     if (rangeStart !== null) {
       filtered = filtered.slice(rangeStart, rangeEnd === null ? undefined : rangeEnd + 1);
+    }
+
+    if (limitValue !== null) {
+      filtered = filtered.slice(0, limitValue);
     }
 
     return filtered;
@@ -167,6 +172,10 @@ function createQueryBuilder(table: string) {
     order(column: string, options?: { ascending?: boolean }) {
       sortColumn = column;
       sortAscending = options?.ascending ?? true;
+      return builder;
+    },
+    limit(value: number) {
+      limitValue = value;
       return builder;
     },
     range(start: number, end: number) {
@@ -2687,6 +2696,285 @@ describe('Mounted app integration', () => {
     const response = await performMountedRequest(app, {
       method: 'GET',
       path: '/admin/notifications/analytics?dateRange=custom&channel=sms',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(400);
+    expect((response.body as any).error.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('returns scoped emergency alerts through the mounted admin route with enrichment', async () => {
+    const app = await loadApp();
+
+    seedAuthenticatedAdmin({
+      permissions: ['read:all_notifications'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: ['community-1'],
+    });
+
+    mockState.tables.emergency_alerts = [
+      {
+        id: 'alert-1',
+        title: 'Smoke in Block A',
+        description: 'Smoke detected in the hallway.',
+        alert_type: 'fire',
+        priority: 'high',
+        status: 'active',
+        community_id: 'community-1',
+        unit_id: 'unit-1',
+        user_id: 'profile-reporter',
+        resolved_by: null,
+        resolved_at: null,
+        created_at: '2026-03-19T08:00:00.000Z',
+        updated_at: '2026-03-19T08:05:00.000Z',
+      },
+      {
+        id: 'alert-2',
+        title: 'Outside Scope',
+        description: 'Should not be visible',
+        alert_type: 'security',
+        priority: 'medium',
+        status: 'pending',
+        community_id: 'community-2',
+        unit_id: 'unit-2',
+        user_id: 'profile-outside',
+        resolved_by: null,
+        resolved_at: null,
+        created_at: '2026-03-19T09:00:00.000Z',
+        updated_at: '2026-03-19T09:00:00.000Z',
+      },
+    ];
+    mockState.tables.profiles = [
+      ...mockState.tables.profiles,
+      {
+        id: 'profile-reporter',
+        first_name: 'Ama',
+        last_name: 'Mensah',
+        email: 'ama@example.com',
+        phone: '0240000000',
+        avatar_url: null,
+        user_id: 'resident-user-1',
+        community_id: 'community-1',
+      },
+      {
+        id: 'profile-outside',
+        first_name: 'Outside',
+        last_name: 'Resident',
+        email: 'outside@example.com',
+        phone: '0240000001',
+        avatar_url: null,
+        user_id: 'resident-user-2',
+        community_id: 'community-2',
+      },
+    ];
+    mockState.tables.communities = [
+      { id: 'community-1', name: 'Palm Estate' },
+      { id: 'community-2', name: 'Outside Estate' },
+    ];
+    mockState.tables.units = [
+      { id: 'unit-1', community_id: 'community-1', block: 'A', number: '12', unit_number: 'A-12' },
+      { id: 'unit-2', community_id: 'community-2', block: 'B', number: '4', unit_number: 'B-4' },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/emergency-alerts?status=active',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect((response.body as any).data).toEqual([
+      expect.objectContaining({
+        id: 'alert-1',
+        communities: expect.objectContaining({ id: 'community-1', name: 'Palm Estate' }),
+        units: expect.objectContaining({ id: 'unit-1', block: 'A', number: '12' }),
+        user_profile: expect.objectContaining({ id: 'profile-reporter', first_name: 'Ama', last_name: 'Mensah' }),
+      }),
+    ]);
+  });
+
+  it('rejects mounted emergency alert detail access outside the scoped community set', async () => {
+    const app = await loadApp();
+
+    seedAuthenticatedAdmin({
+      permissions: ['read:all_notifications'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: ['community-1'],
+    });
+
+    mockState.tables.emergency_alerts = [
+      {
+        id: 'alert-outside',
+        title: 'Outside Scope',
+        description: 'Should not be visible',
+        alert_type: 'security',
+        priority: 'medium',
+        status: 'pending',
+        community_id: 'community-2',
+        unit_id: 'unit-2',
+        user_id: 'profile-outside',
+        resolved_by: null,
+        resolved_at: null,
+        created_at: '2026-03-19T09:00:00.000Z',
+        updated_at: '2026-03-19T09:00:00.000Z',
+      },
+    ];
+    mockState.tables.profiles = [
+      ...mockState.tables.profiles,
+      {
+        id: 'profile-outside',
+        first_name: 'Outside',
+        last_name: 'Resident',
+        email: 'outside@example.com',
+        phone: '0240000001',
+        avatar_url: null,
+        user_id: 'resident-user-2',
+        community_id: 'community-2',
+      },
+    ];
+    mockState.tables.communities = [{ id: 'community-2', name: 'Outside Estate' }];
+    mockState.tables.units = [{ id: 'unit-2', community_id: 'community-2', block: 'B', number: '4', unit_number: 'B-4' }];
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/emergency-alerts/alert-outside',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(403);
+    expect((response.body as any).error.code).toBe('EMERGENCY_ALERT_SCOPE_VIOLATION');
+  });
+
+  it('creates emergency alerts through the mounted admin route and stamps the actor profile', async () => {
+    const app = await loadApp();
+
+    seedAuthenticatedAdmin({
+      permissions: ['write:all_notifications'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: ['community-1'],
+    });
+
+    mockState.tables.emergency_alerts = [];
+    mockState.tables.communities = [{ id: 'community-1', name: 'Palm Estate' }];
+    mockState.tables.units = [];
+
+    const response = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/emergency-alerts',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        title: 'Medical response needed',
+        description: 'Resident requested urgent assistance.',
+        alert_type: 'medical',
+        priority: 'critical',
+        community_id: 'community-1',
+      },
+    });
+
+    expect(response.status).toBe(201);
+    expect((response.body as any).data).toEqual(
+      expect.objectContaining({
+        title: 'Medical response needed',
+        community_id: 'community-1',
+        user_id: 'profile-admin',
+        priority: 'critical',
+        status: 'active',
+        resolved_at: null,
+        resolved_by: null,
+      })
+    );
+    expect(mockState.tables.emergency_alerts[0]).toEqual(
+      expect.objectContaining({
+        title: 'Medical response needed',
+        community_id: 'community-1',
+        user_id: 'profile-admin',
+      })
+    );
+  });
+
+  it('updates emergency alerts through the mounted admin route and stamps resolution server-side', async () => {
+    const app = await loadApp();
+
+    seedAuthenticatedAdmin({
+      permissions: ['write:all_notifications'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: ['community-1'],
+    });
+
+    mockState.tables.emergency_alerts = [
+      {
+        id: 'alert-1',
+        title: 'Smoke in Block A',
+        description: 'Smoke detected in the hallway.',
+        alert_type: 'fire',
+        priority: 'high',
+        status: 'active',
+        community_id: 'community-1',
+        unit_id: null,
+        user_id: 'profile-admin',
+        resolved_by: null,
+        resolved_at: null,
+        created_at: '2026-03-19T08:00:00.000Z',
+        updated_at: '2026-03-19T08:05:00.000Z',
+      },
+    ];
+    mockState.tables.communities = [{ id: 'community-1', name: 'Palm Estate' }];
+    mockState.tables.units = [];
+
+    const response = await performMountedRequest(app, {
+      method: 'PATCH',
+      path: '/admin/emergency-alerts/alert-1',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        status: 'resolved',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect((response.body as any).data).toEqual(
+      expect.objectContaining({
+        id: 'alert-1',
+        status: 'resolved',
+        resolved_by: 'profile-admin',
+      })
+    );
+    expect((response.body as any).data.resolved_at).toEqual(expect.any(String));
+    expect(mockState.tables.emergency_alerts[0]).toEqual(
+      expect.objectContaining({
+        id: 'alert-1',
+        status: 'resolved',
+        resolved_by: 'profile-admin',
+      })
+    );
+  });
+
+  it('validates mounted emergency alert list queries before the controller runs', async () => {
+    const app = await loadApp();
+
+    seedAuthenticatedAdmin({
+      permissions: ['read:all_notifications'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: ['community-1'],
+    });
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/emergency-alerts?status=closed&limit=0',
       headers: {
         Authorization: 'Bearer valid-token',
       },
