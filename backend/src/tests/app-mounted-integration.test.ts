@@ -3976,6 +3976,437 @@ describe('Mounted app integration', () => {
     expect((mockState.tables.settings || []).some((row) => row.user_id === 'auth-admin' && row.key === 'locale')).toBe(false);
   });
 
+  it('creates mounted admin profiles only within the scoped tenant communities', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-4111-8111-111111111111';
+
+    seedAuthenticatedAdmin({
+      permissions: ['create:profiles'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+    });
+
+    const response = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/profiles',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        email: 'scoped.profile@example.com',
+        first_name: 'Scoped',
+        last_name: 'Profile',
+        role: 'user',
+        community_id: communityId,
+      },
+    });
+
+    expect(response.status).toBe(201);
+    expect(response.body).toEqual(
+      expect.objectContaining({
+        email: 'scoped.profile@example.com',
+        community_id: communityId,
+      })
+    );
+  });
+
+  it('rejects mounted admin profile creation outside the scoped tenant communities', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-4111-8111-111111111111';
+    const otherCommunityId = '22222222-2222-4222-8222-222222222222';
+
+    seedAuthenticatedAdmin({
+      permissions: ['create:profiles'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+    });
+
+    const response = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/profiles',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        email: 'outside.profile@example.com',
+        first_name: 'Outside',
+        last_name: 'Profile',
+        role: 'user',
+        community_id: otherCommunityId,
+      },
+    });
+
+    expect(response.status).toBe(403);
+    expect((response.body as any).error.code).toBe('PROFILE_SCOPE_VIOLATION');
+  });
+
+  it('updates mounted admin profiles within scope and stamps updated_at', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-4111-8111-111111111111';
+    const profileId = '55555555-5555-4555-8555-555555555555';
+
+    seedAuthenticatedAdmin({
+      permissions: ['update:all_profiles'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+    });
+
+    mockState.tables.profiles = [
+      ...mockState.tables.profiles,
+      {
+        id: profileId,
+        email: 'resident@example.com',
+        first_name: 'Resident',
+        last_name: 'One',
+        role: 'user',
+        community_id: communityId,
+        updated_at: null,
+      },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'PUT',
+      path: `/admin/profiles/${profileId}`,
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        phone: '233500000123',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(
+      expect.objectContaining({
+        id: profileId,
+        phone: '233500000123',
+      })
+    );
+    expect(((mockState.tables.profiles || []).find((row) => row.id === profileId) || {}).updated_at).toBeTruthy();
+  });
+
+  it('rejects mounted admin profile deletion outside the scoped tenant communities', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-4111-8111-111111111111';
+    const otherCommunityId = '22222222-2222-4222-8222-222222222222';
+    const profileId = '66666666-6666-4666-8666-666666666666';
+
+    seedAuthenticatedAdmin({
+      permissions: ['delete:profiles'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+    });
+
+    mockState.tables.profiles = [
+      ...mockState.tables.profiles,
+      {
+        id: profileId,
+        email: 'outside@example.com',
+        first_name: 'Outside',
+        last_name: 'Resident',
+        role: 'user',
+        community_id: otherCommunityId,
+      },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'DELETE',
+      path: `/admin/profiles/${profileId}`,
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(403);
+    expect((response.body as any).error.code).toBe('PROFILE_SCOPE_VIOLATION');
+    expect((mockState.tables.profiles || []).some((row) => row.id === profileId)).toBe(true);
+  });
+
+  it('returns scoped maintenance stats through the mounted admin route', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-4111-8111-111111111111';
+    const otherCommunityId = '22222222-2222-4222-8222-222222222222';
+    const unitId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const otherUnitId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+
+    seedAuthenticatedAdmin({
+      permissions: ['read:all_maintenance_requests'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+    });
+
+    mockState.tables.units = [
+      { id: unitId, community_id: communityId },
+      { id: otherUnitId, community_id: otherCommunityId },
+    ];
+    mockState.tables.maintenance_requests = [
+      { id: 1, unit_id: unitId, status: 'pending', created_at: '2026-03-10T00:00:00.000Z', updated_at: '2026-03-10T01:00:00.000Z' },
+      { id: 2, unit_id: unitId, status: 'completed', created_at: '2026-03-11T00:00:00.000Z', updated_at: '2026-03-11T06:00:00.000Z' },
+      { id: 3, unit_id: otherUnitId, status: 'completed', created_at: '2026-03-12T00:00:00.000Z', updated_at: '2026-03-12T12:00:00.000Z' },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/maintenance/stats',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      statusCounts: {
+        pending: 1,
+        completed: 1,
+      },
+      avgResolutionTime: 6,
+      total: 2,
+    });
+  });
+
+  it('rejects mounted maintenance bulk updates when any request is outside scope', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-4111-8111-111111111111';
+    const otherCommunityId = '22222222-2222-4222-8222-222222222222';
+    const unitId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const otherUnitId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+
+    seedAuthenticatedAdmin({
+      permissions: ['update:maintenance_requests'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+    });
+
+    mockState.tables.units = [
+      { id: unitId, community_id: communityId },
+      { id: otherUnitId, community_id: otherCommunityId },
+    ];
+    mockState.tables.maintenance_requests = [
+      { id: 14, unit_id: unitId, status: 'pending', updated_at: null },
+      { id: 15, unit_id: otherUnitId, status: 'pending', updated_at: null },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'PUT',
+      path: '/admin/maintenance/bulk-update',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        requestIds: ['14', '15'],
+        updates: { status: 'completed' },
+      },
+    });
+
+    expect(response.status).toBe(403);
+    expect((response.body as any).error.code).toBe('ADMIN_MAINTENANCE_SCOPE_VIOLATION');
+    expect(((mockState.tables.maintenance_requests || []).find((row) => row.id === 14) || {}).status).toBe('pending');
+  });
+
+  it('rejects mounted complaint bulk updates when any complaint is outside scope', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-4111-8111-111111111111';
+    const otherCommunityId = '22222222-2222-4222-8222-222222222222';
+    const unitId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const otherUnitId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+
+    seedAuthenticatedAdmin({
+      permissions: ['update:complaints'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+    });
+
+    mockState.tables.units = [
+      { id: unitId, community_id: communityId },
+      { id: otherUnitId, community_id: otherCommunityId },
+    ];
+    mockState.tables.complaints = [
+      { id: 'complaint-1', unit_id: unitId, community_id: communityId, status: 'open', updated_at: null },
+      { id: 'complaint-2', unit_id: otherUnitId, community_id: otherCommunityId, status: 'open', updated_at: null },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'PUT',
+      path: '/admin/complaints/bulk-update',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        complaintIds: ['complaint-1', 'complaint-2'],
+        updates: { status: 'resolved' },
+      },
+    });
+
+    expect(response.status).toBe(403);
+    expect((response.body as any).error.code).toBe('ADMIN_COMPLAINT_SCOPE_VIOLATION');
+    expect(((mockState.tables.complaints || []).find((row) => row.id === 'complaint-1') || {}).status).toBe('open');
+  });
+
+  it('generates mounted admin payments for scoped communities using tenant or owner payer linkage', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-4111-8111-111111111111';
+    const unitId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const tenantId = '77777777-7777-4777-8777-777777777777';
+
+    seedAuthenticatedAdmin({
+      permissions: ['create:payments'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+    });
+
+    mockState.tables.units = [
+      {
+        id: unitId,
+        community_id: communityId,
+        unit_number: 'A-101',
+        tenant_id: tenantId,
+        owner_id: null,
+      },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/payments/generate',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        communityId,
+        unitIds: [unitId],
+        amount: 550,
+        dueDate: '2026-04-01',
+        description: 'April dues',
+      },
+    });
+
+    expect(response.status).toBe(201);
+    expect(response.body).toEqual(
+      expect.objectContaining({
+        created: 1,
+      })
+    );
+    expect((mockState.tables.payments || [])[0]).toEqual(
+      expect.objectContaining({
+        unit_id: unitId,
+        payer_id: tenantId,
+        amount: 550,
+        status: 'pending',
+        title: 'April dues',
+      })
+    );
+  });
+
+  it('rejects mounted payment generation outside the scoped tenant communities', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-4111-8111-111111111111';
+    const otherCommunityId = '22222222-2222-4222-8222-222222222222';
+
+    seedAuthenticatedAdmin({
+      permissions: ['create:payments'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+    });
+
+    const response = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/payments/generate',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        communityId: otherCommunityId,
+        amount: 550,
+        dueDate: '2026-04-01',
+      },
+    });
+
+    expect(response.status).toBe(403);
+    expect((response.body as any).error.code).toBe('ADMIN_PAYMENT_SCOPE_VIOLATION');
+  });
+
+  it('rejects mounted payment bulk updates when any payment is outside scope', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-4111-8111-111111111111';
+    const otherCommunityId = '22222222-2222-4222-8222-222222222222';
+    const unitId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const otherUnitId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+
+    seedAuthenticatedAdmin({
+      permissions: ['update:payments'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+    });
+
+    mockState.tables.units = [
+      { id: unitId, community_id: communityId },
+      { id: otherUnitId, community_id: otherCommunityId },
+    ];
+    mockState.tables.payments = [
+      { id: 'payment-1', unit_id: unitId, payer_id: null, amount: 500, status: 'pending', updated_at: null },
+      { id: 'payment-2', unit_id: otherUnitId, payer_id: null, amount: 900, status: 'pending', updated_at: null },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'PUT',
+      path: '/admin/payments/bulk-update',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        paymentIds: ['payment-1', 'payment-2'],
+        updates: { status: 'completed' },
+      },
+    });
+
+    expect(response.status).toBe(403);
+    expect((response.body as any).error.code).toBe('ADMIN_PAYMENT_SCOPE_VIOLATION');
+    expect(((mockState.tables.payments || []).find((row) => row.id === 'payment-1') || {}).status).toBe('pending');
+  });
+
+  it('rejects mounted notice bulk creation outside the scoped tenant communities', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-4111-8111-111111111111';
+    const otherCommunityId = '22222222-2222-4222-8222-222222222222';
+
+    seedAuthenticatedAdmin({
+      permissions: ['create:notices'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+    });
+
+    const response = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/notices/bulk-create',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        notices: [
+          {
+            community_id: otherCommunityId,
+            title: 'Out of scope notice',
+            body: 'This should not be created',
+          },
+        ],
+      },
+    });
+
+    expect(response.status).toBe(403);
+    expect((response.body as any).error.code).toBe('ADMIN_NOTICE_SCOPE_VIOLATION');
+    expect(mockState.tables.notices || []).toHaveLength(0);
+  });
+
   it('lists scoped maintenance requests through the mounted admin route for a tenant admin', async () => {
     const app = await loadApp();
     const communityId = '11111111-1111-1111-1111-111111111111';

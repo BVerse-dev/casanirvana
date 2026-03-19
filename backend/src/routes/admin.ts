@@ -702,6 +702,13 @@ router.post(
   paymentController.createPayment
 );
 router.put(
+  '/payments/bulk-update',
+  requireAuth,
+  requirePermission('update:payments'),
+  validateRequest({ body: schemas.adminBulkUpdatePayments }),
+  adminController.bulkUpdatePayments
+);
+router.put(
   '/payments/:id',
   requireAuth,
   requirePermission('update:payments'),
@@ -1549,13 +1556,6 @@ router.post(
   requirePermission('create:payments'),
   validateRequest({ body: schemas.adminGeneratePayments }),
   adminController.generatePayments
-);
-router.put(
-  '/payments/bulk-update',
-  requireAuth,
-  requirePermission('update:payments'),
-  validateRequest({ body: schemas.adminBulkUpdatePayments }),
-  adminController.bulkUpdatePayments
 );
 
 // Notice management routes

@@ -35,6 +35,152 @@ const prettifyRoleName = (roleName: string) =>
     .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
     .join(' ') || 'Custom role';
 
+type ResolvedAdminScope = Awaited<ReturnType<typeof resolveAdminScope>>;
+
+const normalizeString = (value: unknown) =>
+  typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+
+const dedupeStrings = (values: Array<string | null | undefined>) =>
+  [...new Set(values.filter((value): value is string => typeof value === 'string' && value.trim().length > 0))];
+
+const dedupeNumbers = (values: number[]) => [...new Set(values.filter((value) => Number.isInteger(value) && value > 0))];
+
+const parseMaintenanceRequestIds = (values: unknown[]) => {
+  const parsed = values.map((value) => Number(value));
+  if (parsed.some((value) => !Number.isInteger(value) || value <= 0)) {
+    throw createHttpError(
+      400,
+      'ADMIN_MAINTENANCE_BULK_UPDATE_INVALID',
+      'Maintenance request ids must be positive integers'
+    );
+  }
+  return dedupeNumbers(parsed);
+};
+
+const assertScopedCommunityAccess = (
+  scope: ResolvedAdminScope,
+  communityId: string | null,
+  code: string,
+  message: string
+) => {
+  if (scope.isGlobal) {
+    return;
+  }
+
+  if (!communityId || !scope.communityIds.includes(communityId)) {
+    throw createHttpError(403, code, message);
+  }
+};
+
+async function loadUnitsByIds(unitIds: string[]) {
+  const ids = dedupeStrings(unitIds);
+  if (ids.length === 0) {
+    return new Map<string, {
+      id: string;
+      community_id?: string | null;
+      unit_number?: string | null;
+      number?: string | null;
+      tenant_id?: string | null;
+      owner_id?: string | null;
+    }>();
+  }
+
+  const { data, error } = await supabase
+    .from('units')
+    .select('id, community_id, unit_number, number, tenant_id, owner_id')
+    .in('id', ids);
+
+  if (error) {
+    throw createHttpError(500, 'ADMIN_SCOPE_UNITS_FETCH_FAILED', 'Failed to load scoped units', error);
+  }
+
+  return new Map((data || []).map((row) => [row.id, row]));
+}
+
+async function loadProfilesByIds(profileIds: string[]) {
+  const ids = dedupeStrings(profileIds);
+  if (ids.length === 0) {
+    return new Map<string, { id: string; community_id?: string | null }>();
+  }
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, community_id')
+    .in('id', ids);
+
+  if (error) {
+    throw createHttpError(500, 'ADMIN_SCOPE_PROFILES_FETCH_FAILED', 'Failed to load scoped profiles', error);
+  }
+
+  return new Map((data || []).map((row) => [row.id, row]));
+}
+
+async function resolvePaymentCommunityIds(input: { unitId?: string | null; payerId?: string | null }) {
+  const communityIds = new Set<string>();
+
+  if (input.unitId) {
+    const unitsById = await loadUnitsByIds([input.unitId]);
+    const communityId = normalizeString(unitsById.get(input.unitId)?.community_id);
+    if (!communityId) {
+      throw createHttpError(400, 'ADMIN_PAYMENT_SCOPE_UNIT_INVALID', 'Selected payment unit could not be resolved');
+    }
+    communityIds.add(communityId);
+  }
+
+  if (input.payerId) {
+    const profilesById = await loadProfilesByIds([input.payerId]);
+    const communityId = normalizeString(profilesById.get(input.payerId)?.community_id);
+    if (!communityId) {
+      throw createHttpError(400, 'ADMIN_PAYMENT_SCOPE_PAYER_INVALID', 'Selected payment payer could not be resolved');
+    }
+    communityIds.add(communityId);
+  }
+
+  return [...communityIds];
+}
+
+async function assertScopedPaymentAccess(
+  scope: ResolvedAdminScope,
+  input: { unitId?: string | null; payerId?: string | null }
+) {
+  if (scope.isGlobal) {
+    return;
+  }
+
+  if (!input.unitId && !input.payerId) {
+    throw createHttpError(
+      400,
+      'ADMIN_PAYMENT_SCOPE_REFERENCE_REQUIRED',
+      'Scoped admins must target a payment tied to an in-scope unit or payer'
+    );
+  }
+
+  const communityIds = await resolvePaymentCommunityIds(input);
+
+  if (communityIds.length === 0) {
+    throw createHttpError(
+      400,
+      'ADMIN_PAYMENT_SCOPE_REFERENCE_REQUIRED',
+      'Scoped admins must target a payment tied to an in-scope unit or payer'
+    );
+  }
+
+  if (communityIds.length > 1) {
+    throw createHttpError(
+      400,
+      'ADMIN_PAYMENT_SCOPE_MISMATCH',
+      'The selected payment unit and payer belong to different communities'
+    );
+  }
+
+  assertScopedCommunityAccess(
+    scope,
+    communityIds[0],
+    'ADMIN_PAYMENT_SCOPE_VIOLATION',
+    'You do not have access to the selected payment scope'
+  );
+}
+
 // Analytics functions
 export async function getAnalytics(req: Request, res: Response, next: NextFunction) {
   try {
@@ -508,46 +654,77 @@ export async function deleteSociety(req: Request, res: Response, next: NextFunct
 // Maintenance management functions
 export async function getMaintenanceStats(req: Request, res: Response, next: NextFunction) {
   try {
-    // Get counts by status
-    const { data: statusCounts, error: statusError } = await supabase
-      .from('maintenance_requests')
-      .select('status')
-      .then(result => {
-        if (result.error) throw result.error;
-        return {
-          data: result.data.reduce((acc, item) => {
-            acc[item.status] = (acc[item.status] || 0) + 1;
-            return acc;
-          }, {} as Record<string, number>),
-          error: null
-        };
-      });
-    
-    // Get average resolution time
-    const { data: resolutionData, error: resolutionError } = await supabase
-      .from('maintenance_requests')
-      .select('created_at, updated_at, status')
-      .eq('status', 'completed');
-    
-    if (statusError || resolutionError) {
-      return next(
-        createHttpError(500, 'ADMIN_MAINTENANCE_STATS_FETCH_FAILED', 'Failed to fetch maintenance stats', {
-          statusError,
-          resolutionError,
-        })
-      );
+    const scope = await resolveAdminScope(req);
+
+    let rows: Array<{
+      id: number;
+      status?: string | null;
+      created_at?: string | null;
+      updated_at?: string | null;
+      unit_id?: string | null;
+    }> = [];
+
+    if (scope.isGlobal) {
+      const { data, error } = await supabase
+        .from('maintenance_requests')
+        .select('id, status, created_at, updated_at, unit_id');
+
+      if (error) {
+        return next(
+          createHttpError(500, 'ADMIN_MAINTENANCE_STATS_FETCH_FAILED', 'Failed to fetch maintenance stats', error)
+        );
+      }
+
+      rows = data || [];
+    } else if (scope.communityIds.length > 0) {
+      const { data: scopedUnits, error: scopedUnitsError } = await supabase
+        .from('units')
+        .select('id')
+        .in('community_id', scope.communityIds);
+
+      if (scopedUnitsError) {
+        return next(
+          createHttpError(500, 'ADMIN_MAINTENANCE_SCOPE_FETCH_FAILED', 'Failed to resolve maintenance scope', scopedUnitsError)
+        );
+      }
+
+      const scopedUnitIds = dedupeStrings((scopedUnits || []).map((row) => row.id));
+
+      if (scopedUnitIds.length > 0) {
+        const { data, error } = await supabase
+          .from('maintenance_requests')
+          .select('id, status, created_at, updated_at, unit_id')
+          .in('unit_id', scopedUnitIds);
+
+        if (error) {
+          return next(
+            createHttpError(500, 'ADMIN_MAINTENANCE_STATS_FETCH_FAILED', 'Failed to fetch maintenance stats', error)
+          );
+        }
+
+        rows = data || [];
+      }
     }
-    
-    // Calculate average resolution time in hours
-    const avgResolutionTime = resolutionData?.length 
-      ? resolutionData.reduce((sum, item) => {
-        const created = new Date(item.created_at);
-        const updated = new Date(item.updated_at);
-        const hours = (updated.getTime() - created.getTime()) / (1000 * 60 * 60);
-        return sum + hours;
-      }, 0) / resolutionData.length
+
+    const statusCounts = rows.reduce((acc, item) => {
+      const key = typeof item.status === 'string' && item.status.trim().length > 0 ? item.status : 'unknown';
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const resolutionRows = rows.filter(
+      (item) => item.status === 'completed' && item.created_at && item.updated_at
+    );
+
+    const avgResolutionTime = resolutionRows.length
+      ? resolutionRows.reduce((sum, item) => {
+          const created = new Date(item.created_at as string);
+          const updated = new Date(item.updated_at as string);
+          const hours = (updated.getTime() - created.getTime()) / (1000 * 60 * 60);
+          return sum + hours;
+        }, 0) / resolutionRows.length
       : 0;
-    
+
     res.json({
       statusCounts,
       avgResolutionTime: Math.round(avgResolutionTime * 10) / 10, // Round to 1 decimal place
@@ -567,6 +744,47 @@ export async function bulkUpdateMaintenanceRequests(req: Request, res: Response,
         createHttpError(400, 'ADMIN_MAINTENANCE_BULK_UPDATE_INVALID', 'Missing requestIds or updates')
       );
     }
+
+    const parsedRequestIds = parseMaintenanceRequestIds(requestIds);
+    const scope = await resolveAdminScope(req);
+
+    let scopedRequestIds = parsedRequestIds;
+
+    if (!scope.isGlobal) {
+      const { data: maintenanceRows, error: maintenanceError } = await supabase
+        .from('maintenance_requests')
+        .select('id, unit_id')
+        .in('id', parsedRequestIds);
+
+      if (maintenanceError) {
+        return next(
+          createHttpError(
+            500,
+            'ADMIN_MAINTENANCE_SCOPE_FETCH_FAILED',
+            'Failed to resolve maintenance request scope',
+            maintenanceError
+          )
+        );
+      }
+
+      const unitsById = await loadUnitsByIds((maintenanceRows || []).map((row) => row.unit_id));
+
+      for (const row of maintenanceRows || []) {
+        const communityId = normalizeString(unitsById.get(row.unit_id)?.community_id);
+        assertScopedCommunityAccess(
+          scope,
+          communityId,
+          'ADMIN_MAINTENANCE_SCOPE_VIOLATION',
+          'You do not have access to one or more selected maintenance requests'
+        );
+      }
+
+      scopedRequestIds = (maintenanceRows || []).map((row) => row.id);
+    }
+
+    if (scopedRequestIds.length === 0) {
+      return res.json({ updated: 0, data: [] });
+    }
     
     const { data, error } = await supabase
       .from('maintenance_requests')
@@ -574,7 +792,7 @@ export async function bulkUpdateMaintenanceRequests(req: Request, res: Response,
         ...updates,
         updated_at: new Date().toISOString()
       })
-      .in('id', requestIds)
+      .in('id', scopedRequestIds)
       .select();
     
     if (error) {
@@ -656,6 +874,46 @@ export async function bulkUpdateComplaints(req: Request, res: Response, next: Ne
         createHttpError(400, 'ADMIN_COMPLAINTS_BULK_UPDATE_INVALID', 'Missing complaintIds or updates')
       );
     }
+
+    const scope = await resolveAdminScope(req);
+    let scopedComplaintIds = dedupeStrings(complaintIds);
+
+    if (!scope.isGlobal) {
+      const { data: complaintRows, error: complaintError } = await supabase
+        .from('complaints')
+        .select('id, community_id, unit_id')
+        .in('id', scopedComplaintIds);
+
+      if (complaintError) {
+        return next(
+          createHttpError(
+            500,
+            'ADMIN_COMPLAINTS_SCOPE_FETCH_FAILED',
+            'Failed to resolve complaint scope',
+            complaintError
+          )
+        );
+      }
+
+      const unitsById = await loadUnitsByIds((complaintRows || []).map((row) => row.unit_id));
+
+      for (const row of complaintRows || []) {
+        const communityId =
+          normalizeString(row.community_id) || normalizeString(unitsById.get(row.unit_id)?.community_id);
+        assertScopedCommunityAccess(
+          scope,
+          communityId,
+          'ADMIN_COMPLAINT_SCOPE_VIOLATION',
+          'You do not have access to one or more selected complaints'
+        );
+      }
+
+      scopedComplaintIds = dedupeStrings((complaintRows || []).map((row) => row.id));
+    }
+
+    if (scopedComplaintIds.length === 0) {
+      return res.json({ updated: 0, data: [] });
+    }
     
     const { data, error } = await supabase
       .from('complaints')
@@ -663,7 +921,7 @@ export async function bulkUpdateComplaints(req: Request, res: Response, next: Ne
         ...updates,
         updated_at: new Date().toISOString()
       })
-      .in('id', complaintIds)
+      .in('id', scopedComplaintIds)
       .select();
     
     if (error) {
@@ -784,24 +1042,32 @@ export async function getPaymentStats(req: Request, res: Response, next: NextFun
 
 export async function generatePayments(req: Request, res: Response, next: NextFunction) {
   try {
-    const { societyId, unitIds, amount, dueDate, description } = req.body;
+    const { societyId, communityId, unitIds, amount, dueDate, description } = req.body;
+    const targetCommunityId = normalizeString(communityId) || normalizeString(societyId);
     
-    if (!societyId || !amount || !dueDate) {
+    if (!targetCommunityId || !amount || !dueDate) {
       return next(
         createHttpError(
           400,
           'ADMIN_PAYMENTS_GENERATE_INVALID',
-          'Missing required fields: societyId, amount, dueDate'
+          'Missing required fields: communityId, amount, dueDate'
         )
       );
     }
+
+    const scope = await resolveAdminScope(req);
+    assertScopedCommunityAccess(
+      scope,
+      targetCommunityId,
+      'ADMIN_PAYMENT_SCOPE_VIOLATION',
+      'You do not have access to generate payments for the selected community'
+    );
     
     // Get units to generate payments for
-    let unitsQuery = supabase.from('units').select('id, unit_number, user_id');
-    
-    if (societyId) {
-      unitsQuery = unitsQuery.eq('society_id', societyId);
-    }
+    let unitsQuery = supabase
+      .from('units')
+      .select('id, community_id, unit_number, number, tenant_id, owner_id')
+      .eq('community_id', targetCommunityId);
     
     if (unitIds && unitIds.length) {
       unitsQuery = unitsQuery.in('id', unitIds);
@@ -820,14 +1086,23 @@ export async function generatePayments(req: Request, res: Response, next: NextFu
     }
     
     // Generate payment records
-    const payments = units.map(unit => ({
-      unit_id: unit.id,
-      user_id: unit.user_id,
-      amount,
-      due_date: dueDate,
-      description: description || `Monthly maintenance for unit ${unit.unit_number}`,
-      status: 'pending'
-    }));
+    const payments = units.map(unit => {
+      const unitLabel = unit.unit_number || unit.number || unit.id;
+      const payerId = normalizeString(unit.tenant_id) || normalizeString(unit.owner_id);
+      const resolvedDescription = description || `Monthly maintenance for unit ${unitLabel}`;
+
+      return {
+        unit_id: unit.id,
+        payer_id: payerId,
+        amount,
+        due_date: dueDate,
+        title: resolvedDescription,
+        description: resolvedDescription,
+        status: 'pending',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+    });
     
     const { data: createdPayments, error: paymentsError } = await supabase
       .from('payments')
@@ -856,6 +1131,35 @@ export async function bulkUpdatePayments(req: Request, res: Response, next: Next
     if (!paymentIds || !paymentIds.length || !updates) {
       return next(createHttpError(400, 'ADMIN_PAYMENTS_BULK_UPDATE_INVALID', 'Missing paymentIds or updates'));
     }
+
+    const scope = await resolveAdminScope(req);
+    let scopedPaymentIds = dedupeStrings(paymentIds);
+
+    if (!scope.isGlobal) {
+      const { data: paymentRows, error: paymentRowsError } = await supabase
+        .from('payments')
+        .select('id, unit_id, payer_id')
+        .in('id', scopedPaymentIds);
+
+      if (paymentRowsError) {
+        return next(
+          createHttpError(500, 'ADMIN_PAYMENTS_SCOPE_FETCH_FAILED', 'Failed to resolve payment scope', paymentRowsError)
+        );
+      }
+
+      for (const row of paymentRows || []) {
+        await assertScopedPaymentAccess(scope, {
+          unitId: normalizeString((updates || {}).unit_id) || normalizeString(row.unit_id),
+          payerId: normalizeString((updates || {}).payer_id) || normalizeString(row.payer_id),
+        });
+      }
+
+      scopedPaymentIds = dedupeStrings((paymentRows || []).map((row) => row.id));
+    }
+
+    if (scopedPaymentIds.length === 0) {
+      return res.json({ updated: 0, data: [] });
+    }
     
     const { data, error } = await supabase
       .from('payments')
@@ -863,7 +1167,7 @@ export async function bulkUpdatePayments(req: Request, res: Response, next: Next
         ...updates,
         updated_at: new Date().toISOString()
       })
-      .in('id', paymentIds)
+      .in('id', scopedPaymentIds)
       .select();
     
     if (error) {
@@ -883,6 +1187,19 @@ export async function bulkCreateNotices(req: Request, res: Response, next: NextF
     
     if (!notices || !notices.length) {
       return next(createHttpError(400, 'ADMIN_NOTICES_BULK_CREATE_INVALID', 'Missing notices array'));
+    }
+
+    const scope = await resolveAdminScope(req);
+
+    if (!scope.isGlobal) {
+      for (const notice of notices) {
+        assertScopedCommunityAccess(
+          scope,
+          normalizeString(notice.community_id),
+          'ADMIN_NOTICE_SCOPE_VIOLATION',
+          'Cannot create notices outside your tenant scope'
+        );
+      }
     }
     
     // Add timestamps to each notice

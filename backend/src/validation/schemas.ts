@@ -955,13 +955,19 @@ export const schemas = {
     paymentIds: z.array(nonEmptyString).nonempty(),
     updates: paymentUpdateSchema,
   }),
-  adminGeneratePayments: z.object({
-    societyId: nonEmptyString,
-    unitIds: z.array(nonEmptyString).optional(),
-    amount: z.coerce.number(),
-    dueDate: nonEmptyString,
-    description: z.string().optional(),
-  }),
+  adminGeneratePayments: z
+    .object({
+      societyId: optionalString,
+      communityId: optionalString,
+      unitIds: z.array(nonEmptyString).optional(),
+      amount: z.coerce.number(),
+      dueDate: nonEmptyString,
+      description: z.string().optional(),
+    })
+    .refine((value) => Boolean(value.societyId || value.communityId), {
+      message: 'communityId or societyId is required',
+      path: ['communityId'],
+    }),
   adminBulkCreateNotices: z.object({
     notices: z.array(adminBulkNoticeItemSchema).nonempty(),
   }),
