@@ -269,6 +269,10 @@ function createQueryBuilder(table: string) {
       filters.push((row) => values.includes(row[column]));
       return builder;
     },
+    neq(column: string, value: unknown) {
+      filters.push((row) => row[column] !== value);
+      return builder;
+    },
     or(expression: string) {
       const predicates = expression
         .split(',')
@@ -310,6 +314,22 @@ function createQueryBuilder(table: string) {
     },
     is(column: string, value: unknown) {
       filters.push((row) => row[column] === value);
+      return builder;
+    },
+    gte(column: string, value: unknown) {
+      filters.push((row) => row[column] >= value);
+      return builder;
+    },
+    lte(column: string, value: unknown) {
+      filters.push((row) => row[column] <= value);
+      return builder;
+    },
+    gt(column: string, value: unknown) {
+      filters.push((row) => row[column] > value);
+      return builder;
+    },
+    lt(column: string, value: unknown) {
+      filters.push((row) => row[column] < value);
       return builder;
     },
     order(column: string, options?: { ascending?: boolean }) {
@@ -7203,6 +7223,429 @@ describe('Mounted app integration', () => {
 
     expect(response.status).toBe(400);
     expect((response.body as any).error.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('lists mounted admin payment transactions only within the scoped tenant communities', async () => {
+    const app = await loadApp();
+    const agencyId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const communityId = '11111111-1111-4111-8111-111111111111';
+    const otherCommunityId = '22222222-2222-4222-8222-222222222222';
+    const unitId = 'unit-scoped-1';
+    const otherUnitId = 'unit-outside-1';
+
+    seedAuthenticatedAdmin({
+      permissions: ['read:all_payments'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+      agencyIds: [agencyId],
+    });
+
+    mockState.tables.communities = [
+      { id: communityId, agency_id: agencyId, name: 'Casa Nirvana' },
+      { id: otherCommunityId, agency_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', name: 'Outside Estate' },
+    ];
+    mockState.tables.units = [
+      { id: unitId, community_id: communityId, number: 'A-101', unit_number: 'A-101' },
+      { id: otherUnitId, community_id: otherCommunityId, number: 'B-202', unit_number: 'B-202' },
+    ];
+    mockState.tables.payments = [
+      { id: 'payment-tx-1', unit_id: unitId, amount: 500, status: 'completed', title: 'Scoped Payment', created_at: '2026-03-01T10:00:00.000Z' },
+      { id: 'payment-tx-2', unit_id: otherUnitId, amount: 900, status: 'completed', title: 'Outside Payment', created_at: '2026-03-02T10:00:00.000Z' },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/payments/transactions',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect(((response.body as any).data.items || []).map((item: any) => item.id)).toEqual(['payment-tx-1']);
+  });
+
+  it('rejects mounted payment transaction detail access outside the scoped tenant communities', async () => {
+    const app = await loadApp();
+    const agencyId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const communityId = '11111111-1111-4111-8111-111111111111';
+    const otherCommunityId = '22222222-2222-4222-8222-222222222222';
+    const otherUnitId = 'unit-outside-2';
+
+    seedAuthenticatedAdmin({
+      permissions: ['read:all_payments'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+      agencyIds: [agencyId],
+    });
+
+    mockState.tables.communities = [
+      { id: communityId, agency_id: agencyId, name: 'Casa Nirvana' },
+      { id: otherCommunityId, agency_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', name: 'Outside Estate' },
+    ];
+    mockState.tables.units = [
+      { id: otherUnitId, community_id: otherCommunityId, number: 'B-202', unit_number: 'B-202' },
+    ];
+    mockState.tables.payments = [
+      { id: 'payment-outside-detail', unit_id: otherUnitId, amount: 900, status: 'completed', title: 'Outside Payment', created_at: '2026-03-02T10:00:00.000Z' },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/payments/transactions/payment-outside-detail',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(403);
+    expect((response.body as any).error.code).toBe('ADMIN_PAYMENT_SCOPE_VIOLATION');
+  });
+
+  it('lists mounted admin payment obligations and statements only within the scoped tenant communities', async () => {
+    const app = await loadApp();
+    const agencyId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const communityId = '11111111-1111-4111-8111-111111111111';
+    const otherCommunityId = '22222222-2222-4222-8222-222222222222';
+    const unitId = 'unit-scoped-3';
+    const otherUnitId = 'unit-outside-3';
+
+    seedAuthenticatedAdmin({
+      permissions: ['read:all_payments'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+      agencyIds: [agencyId],
+    });
+
+    mockState.tables.communities = [
+      { id: communityId, agency_id: agencyId, name: 'Casa Nirvana' },
+      { id: otherCommunityId, agency_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', name: 'Outside Estate' },
+    ];
+    mockState.tables.units = [
+      { id: unitId, community_id: communityId, number: 'A-101', unit_number: 'A-101' },
+      { id: otherUnitId, community_id: otherCommunityId, number: 'B-202', unit_number: 'B-202' },
+    ];
+    mockState.tables.payment_obligations = [
+      { id: 'obligation-1', unit_id: unitId, community_id: communityId, source_type: 'payment_obligation', source_id: null, title: 'Scoped Levy', description: null, category: 'HOA', amount: 300, currency_code: 'GHS', due_date: '2026-03-31', status: 'unpaid', statement_month: '2026-03-01' },
+      { id: 'obligation-2', unit_id: otherUnitId, community_id: otherCommunityId, source_type: 'payment_obligation', source_id: null, title: 'Outside Levy', description: null, category: 'HOA', amount: 450, currency_code: 'GHS', due_date: '2026-03-31', status: 'unpaid', statement_month: '2026-03-01' },
+    ];
+    mockState.tables.payment_statements = [
+      { id: 'statement-1', unit_id: unitId, month_year: '2026-03', total_amount: 300, items_count: 1, status: 'ready', statement_url: null, generated_date: '2026-03-31', created_at: '2026-03-31T00:00:00.000Z', updated_at: '2026-03-31T00:00:00.000Z' },
+      { id: 'statement-2', unit_id: otherUnitId, month_year: '2026-03', total_amount: 450, items_count: 1, status: 'ready', statement_url: null, generated_date: '2026-03-31', created_at: '2026-03-31T00:00:00.000Z', updated_at: '2026-03-31T00:00:00.000Z' },
+    ];
+
+    const obligationsResponse = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/payments/obligations',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    const statementsResponse = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/payments/statements',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(obligationsResponse.status).toBe(200);
+    expect(((obligationsResponse.body as any).data.items || []).map((item: any) => item.id)).toEqual(['obligation-1']);
+    expect(statementsResponse.status).toBe(200);
+    expect(((statementsResponse.body as any).data.items || []).map((item: any) => item.id)).toEqual(['statement-1']);
+  });
+
+  it('lists mounted payment charge templates only within the admin scope', async () => {
+    const app = await loadApp();
+    const agencyId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const otherAgencyId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const communityId = '11111111-1111-4111-8111-111111111111';
+    const otherCommunityId = '22222222-2222-4222-8222-222222222222';
+
+    seedAuthenticatedAdmin({
+      permissions: ['read:all_payments'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+      agencyIds: [agencyId],
+    });
+
+    mockState.tables.agencies = [
+      { id: agencyId, name: 'Casa Agency' },
+      { id: otherAgencyId, name: 'Outside Agency' },
+    ];
+    mockState.tables.communities = [
+      { id: communityId, agency_id: agencyId, name: 'Casa Nirvana' },
+      { id: otherCommunityId, agency_id: otherAgencyId, name: 'Outside Estate' },
+    ];
+    mockState.tables.payment_charge_templates = [
+      {
+        id: 'template-in-scope',
+        scope_level: 'community',
+        agency_id: agencyId,
+        community_id: communityId,
+        name: 'Scoped Security Levy',
+        charge_code: 'SEC001',
+        catalog_key: 'security_levy',
+        category: 'Security',
+        charge_type: 'fixed',
+        amount: 120,
+        currency_code: 'GHS',
+        billing_frequency: 'monthly',
+        billing_anchor_day: 1,
+        billing_anchor_month: null,
+        start_date: null,
+        due_offset_days: 5,
+        grace_period_days: 0,
+        late_fee_type: 'none',
+        late_fee_value: 0,
+        auto_issue: false,
+        requires_approval: false,
+        is_active: true,
+        description: null,
+        metadata: {},
+        created_by: 'auth-admin',
+        updated_by: 'auth-admin',
+        created_at: '2026-03-01T00:00:00.000Z',
+        updated_at: '2026-03-01T00:00:00.000Z',
+      },
+      {
+        id: 'template-outside-scope',
+        scope_level: 'community',
+        agency_id: otherAgencyId,
+        community_id: otherCommunityId,
+        name: 'Outside Levy',
+        charge_code: 'OUT001',
+        catalog_key: 'maintenance_fee',
+        category: 'Maintenance',
+        charge_type: 'fixed',
+        amount: 180,
+        currency_code: 'GHS',
+        billing_frequency: 'monthly',
+        billing_anchor_day: 1,
+        billing_anchor_month: null,
+        start_date: null,
+        due_offset_days: 5,
+        grace_period_days: 0,
+        late_fee_type: 'none',
+        late_fee_value: 0,
+        auto_issue: false,
+        requires_approval: false,
+        is_active: true,
+        description: null,
+        metadata: {},
+        created_by: 'auth-admin',
+        updated_by: 'auth-admin',
+        created_at: '2026-03-01T00:00:00.000Z',
+        updated_at: '2026-03-01T00:00:00.000Z',
+      },
+    ];
+    mockState.tables.payment_charge_template_targets = [];
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/payment-charges/templates',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect(((response.body as any).data.items || []).map((item: any) => item.id)).toEqual(['template-in-scope']);
+  });
+
+  it('rejects mounted payment charge template creation and preview outside the admin scope', async () => {
+    const app = await loadApp();
+    const agencyId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const otherAgencyId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const communityId = '11111111-1111-4111-8111-111111111111';
+    const otherCommunityId = '22222222-2222-4222-8222-222222222222';
+
+    seedAuthenticatedAdmin({
+      permissions: ['create:payments', 'read:all_payments'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+      agencyIds: [agencyId],
+    });
+
+    mockState.tables.payment_charge_templates = [
+      {
+        id: 'template-preview-outside',
+        scope_level: 'community',
+        agency_id: otherAgencyId,
+        community_id: otherCommunityId,
+        name: 'Outside Levy',
+        charge_code: 'OUT001',
+        catalog_key: 'maintenance_fee',
+        category: 'Maintenance',
+        charge_type: 'fixed',
+        amount: 180,
+        currency_code: 'GHS',
+        billing_frequency: 'monthly',
+        billing_anchor_day: 1,
+        billing_anchor_month: null,
+        start_date: null,
+        due_offset_days: 5,
+        grace_period_days: 0,
+        late_fee_type: 'none',
+        late_fee_value: 0,
+        auto_issue: false,
+        requires_approval: false,
+        is_active: true,
+        description: null,
+        metadata: {},
+        created_by: 'auth-admin',
+        updated_by: 'auth-admin',
+        created_at: '2026-03-01T00:00:00.000Z',
+        updated_at: '2026-03-01T00:00:00.000Z',
+      },
+    ];
+
+    const createResponse = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/payment-charges/templates',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        scope_level: 'community',
+        agency_id: otherAgencyId,
+        community_id: otherCommunityId,
+        name: 'Blocked Levy',
+        charge_code: 'BLK001',
+        catalog_key: 'maintenance_fee',
+        category: 'Maintenance',
+        charge_type: 'fixed',
+        amount: 200,
+        currency_code: 'GHS',
+        billing_frequency: 'monthly',
+      },
+    });
+
+    const previewResponse = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/payment-charges/templates/template-preview-outside/preview',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {},
+    });
+
+    expect(createResponse.status).toBe(403);
+    expect((createResponse.body as any).error.code).toBe('ADMIN_PAYMENT_CHARGE_SCOPE_VIOLATION');
+    expect(previewResponse.status).toBe(403);
+    expect((previewResponse.body as any).error.code).toBe('ADMIN_PAYMENT_CHARGE_SCOPE_VIOLATION');
+  });
+
+  it('requires scoped selectors when mounted admins run due payment charges', async () => {
+    const app = await loadApp();
+    const agencyId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const communityId = '11111111-1111-4111-8111-111111111111';
+
+    seedAuthenticatedAdmin({
+      permissions: ['create:payments'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId, '22222222-2222-4222-8222-222222222222'],
+      agencyIds: [agencyId],
+    });
+
+    const response = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/payment-charges/run-due',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {},
+    });
+
+    expect(response.status).toBe(400);
+    expect((response.body as any).error.code).toBe('ADMIN_PAYMENT_CHARGE_SCOPE_REFERENCE_REQUIRED');
+  });
+
+  it('rejects mounted payout summary access for community-scoped admins', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-4111-8111-111111111111';
+
+    seedAuthenticatedAdmin({
+      permissions: ['read:all_payments'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+    });
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/payouts/summary',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(403);
+    expect((response.body as any).error.code).toBe('ADMIN_PAYOUT_SCOPE_VIOLATION');
+  });
+
+  it('creates mounted payout destinations for agency managers within scope', async () => {
+    const app = await loadApp();
+    const agencyId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const communityId = '11111111-1111-4111-8111-111111111111';
+
+    seedAuthenticatedAdmin({
+      permissions: ['create:payments', 'read:all_payments'],
+      role: 'agency_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+      agencyIds: [agencyId],
+    });
+
+    (mockState.tables.profiles[0] as any).community_id = communityId;
+    mockState.tables.communities = [{ id: communityId, agency_id: agencyId, name: 'Casa Nirvana' }];
+    mockState.tables.payout_destinations = [];
+
+    const createResponse = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/payouts/destinations',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        destination_type: 'bank_account',
+        label: 'Primary Agency Account',
+        account_name: 'Casa Agency Ops',
+        account_number: '1234567890',
+        bank_name: 'GCB Bank',
+        bank_code: '040100',
+        is_default: true,
+      },
+    });
+
+    const listResponse = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/payouts/destinations',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(createResponse.status).toBe(201);
+    expect((createResponse.body as any).data).toEqual(
+      expect.objectContaining({
+        agency_id: agencyId,
+        label: 'Primary Agency Account',
+        destination_type: 'bank_account',
+        is_default: true,
+      })
+    );
+    expect(listResponse.status).toBe(200);
+    expect(((listResponse.body as any).data.items || []).map((item: any) => item.label)).toEqual([
+      'Primary Agency Account',
+    ]);
   });
 
   it('rejects onboarding writes when the public API key is wrong', async () => {

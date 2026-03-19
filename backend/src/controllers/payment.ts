@@ -13,7 +13,7 @@ import {
   listPaymentStatementsForUnit,
 } from '../services/paymentLedger';
 import { adminSupabase } from '../lib/supabase';
-import { resolveAdminScope } from '../services/adminScope';
+import { canAccessAgency, canAccessCommunity, resolveAdminScope } from '../services/adminScope';
 import {
   createPaymentChargeTemplate,
   getPaymentChargeCatalog,
@@ -943,6 +943,343 @@ const getAdminPayoutScope = (req: Request) => ({
         : null,
 });
 
+type ResolvedAdminScope = Awaited<ReturnType<typeof resolveAdminScope>>;
+
+const normalizeString = (value: unknown) =>
+  typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+
+const getScopedDefault = (values: string[]) => (values.length === 1 ? values[0] : null);
+
+const getRecordCommunityId = (record: unknown) => {
+  if (!isRecord(record)) return null;
+
+  const directCommunityId = normalizeString(record.community_id);
+  if (directCommunityId) {
+    return directCommunityId;
+  }
+
+  if (isRecord(record.community)) {
+    return normalizeString(record.community.id);
+  }
+
+  return null;
+};
+
+const getRecordAgencyId = (record: unknown) => {
+  if (!isRecord(record)) return null;
+
+  const directAgencyId = normalizeString(record.agency_id);
+  if (directAgencyId) {
+    return directAgencyId;
+  }
+
+  if (isRecord(record.agency)) {
+    return normalizeString(record.agency.id);
+  }
+
+  return null;
+};
+
+const recordMatchesAdminScope = (scope: ResolvedAdminScope, record: unknown) => {
+  if (scope.isGlobal) {
+    return true;
+  }
+
+  const communityId = getRecordCommunityId(record);
+  if (communityId) {
+    return canAccessCommunity(scope, communityId);
+  }
+
+  const agencyId = getRecordAgencyId(record);
+  if (agencyId) {
+    return canAccessAgency(scope, agencyId);
+  }
+
+  return false;
+};
+
+const filterRecordsByAdminScope = <T>(scope: ResolvedAdminScope, records: T[]) =>
+  scope.isGlobal ? records : records.filter((record) => recordMatchesAdminScope(scope, record));
+
+const assertScopedCommunityAccess = (
+  scope: ResolvedAdminScope,
+  communityId: string | null,
+  code: string,
+  message: string
+) => {
+  if (scope.isGlobal) {
+    return;
+  }
+
+  if (!communityId || !canAccessCommunity(scope, communityId)) {
+    throw createHttpError(403, code, message);
+  }
+};
+
+const assertScopedAgencyAccess = (
+  scope: ResolvedAdminScope,
+  agencyId: string | null,
+  code: string,
+  message: string
+) => {
+  if (scope.isGlobal) {
+    return;
+  }
+
+  if (!agencyId || !canAccessAgency(scope, agencyId)) {
+    throw createHttpError(403, code, message);
+  }
+};
+
+const assertRecordAccess = (
+  scope: ResolvedAdminScope,
+  record: unknown,
+  code: string,
+  message: string
+) => {
+  if (scope.isGlobal) {
+    return;
+  }
+
+  if (!recordMatchesAdminScope(scope, record)) {
+    throw createHttpError(403, code, message);
+  }
+};
+
+const applyScopedPaymentChargeDefaults = (scope: ResolvedAdminScope, payload: Record<string, unknown>) => {
+  if (scope.isGlobal) {
+    return;
+  }
+
+  const scopeLevel = normalizeString(payload.scope_level);
+
+  if (scopeLevel === 'community' && !normalizeString(payload.community_id)) {
+    const defaultCommunityId = getScopedDefault(scope.communityIds);
+    if (defaultCommunityId) {
+      payload.community_id = defaultCommunityId;
+    }
+  }
+
+  if (scopeLevel === 'agency' && !normalizeString(payload.agency_id)) {
+    const defaultAgencyId = getScopedDefault(scope.agencyIds);
+    if (defaultAgencyId) {
+      payload.agency_id = defaultAgencyId;
+    }
+  }
+};
+
+const assertScopedPaymentChargeTemplateInput = (
+  scope: ResolvedAdminScope,
+  payload: Record<string, unknown>
+) => {
+  if (scope.isGlobal) {
+    return;
+  }
+
+  applyScopedPaymentChargeDefaults(scope, payload);
+
+  const scopeLevel = normalizeString(payload.scope_level);
+  const agencyId = normalizeString(payload.agency_id);
+  const communityId = normalizeString(payload.community_id);
+
+  if (scopeLevel === 'community') {
+    if (!communityId) {
+      throw createHttpError(
+        400,
+        'ADMIN_PAYMENT_CHARGE_COMMUNITY_REQUIRED',
+        'community_id is required for community-scoped charge templates'
+      );
+    }
+
+    assertScopedCommunityAccess(
+      scope,
+      communityId,
+      'ADMIN_PAYMENT_CHARGE_SCOPE_VIOLATION',
+      'Payment charge template is outside your tenant scope'
+    );
+
+    if (agencyId) {
+      assertScopedAgencyAccess(
+        scope,
+        agencyId,
+        'ADMIN_PAYMENT_CHARGE_SCOPE_VIOLATION',
+        'Payment charge template agency is outside your tenant scope'
+      );
+    }
+
+    return;
+  }
+
+  if (scopeLevel === 'agency') {
+    if (!agencyId) {
+      throw createHttpError(
+        400,
+        'ADMIN_PAYMENT_CHARGE_AGENCY_REQUIRED',
+        'agency_id is required for agency-scoped charge templates'
+      );
+    }
+
+    assertScopedAgencyAccess(
+      scope,
+      agencyId,
+      'ADMIN_PAYMENT_CHARGE_SCOPE_VIOLATION',
+      'Payment charge template agency is outside your tenant scope'
+    );
+
+    if (communityId) {
+      assertScopedCommunityAccess(
+        scope,
+        communityId,
+        'ADMIN_PAYMENT_CHARGE_SCOPE_VIOLATION',
+        'Payment charge template community is outside your tenant scope'
+      );
+    }
+  }
+};
+
+const loadPaymentChargeTemplateScopeRecord = async (id: string) => {
+  const { data, error } = await adminSupabase
+    .from('payment_charge_templates')
+    .select('id, scope_level, agency_id, community_id')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (error) {
+    throw createHttpError(
+      500,
+      'ADMIN_PAYMENT_CHARGE_TEMPLATE_LOOKUP_FAILED',
+      'Failed to load payment charge template scope',
+      error
+    );
+  }
+
+  if (!data) {
+    throw createHttpError(404, 'ADMIN_PAYMENT_CHARGE_TEMPLATE_NOT_FOUND', 'Payment charge template not found.');
+  }
+
+  return data as {
+    id: string;
+    scope_level: 'agency' | 'community';
+    agency_id: string | null;
+    community_id: string | null;
+  };
+};
+
+const PAYMENT_CONTROLLER_ERROR_MAP: Array<{
+  message: string;
+  status: number;
+  code: string;
+}> = [
+  {
+    message: 'Only superadmin and agency managers can access payouts.',
+    status: 403,
+    code: 'ADMIN_PAYOUT_SCOPE_VIOLATION',
+  },
+  {
+    message: 'Your account is missing an agency assignment.',
+    status: 400,
+    code: 'ADMIN_PAYOUT_AGENCY_ASSIGNMENT_MISSING',
+  },
+  {
+    message: 'You can only access payouts for your assigned agency.',
+    status: 403,
+    code: 'ADMIN_PAYOUT_SCOPE_VIOLATION',
+  },
+  {
+    message: 'The selected community does not belong to your assigned agency.',
+    status: 403,
+    code: 'ADMIN_PAYOUT_SCOPE_VIOLATION',
+  },
+  {
+    message: 'A valid agency scope is required to create a payout destination.',
+    status: 400,
+    code: 'ADMIN_PAYOUT_AGENCY_SCOPE_REQUIRED',
+  },
+  {
+    message: 'A valid agency scope is required to save payout rules.',
+    status: 400,
+    code: 'ADMIN_PAYOUT_AGENCY_SCOPE_REQUIRED',
+  },
+  {
+    message: 'A valid agency scope is required to create a payout request.',
+    status: 400,
+    code: 'ADMIN_PAYOUT_AGENCY_SCOPE_REQUIRED',
+  },
+  {
+    message: 'Payout destination not found.',
+    status: 404,
+    code: 'ADMIN_PAYOUT_DESTINATION_NOT_FOUND',
+  },
+  {
+    message: 'The selected payout destination is not available in this scope.',
+    status: 403,
+    code: 'ADMIN_PAYOUT_DESTINATION_SCOPE_VIOLATION',
+  },
+  {
+    message: 'The selected payout destination is not active.',
+    status: 400,
+    code: 'ADMIN_PAYOUT_DESTINATION_INACTIVE',
+  },
+  {
+    message: 'Requested amount must be greater than zero.',
+    status: 400,
+    code: 'ADMIN_PAYOUT_REQUEST_AMOUNT_INVALID',
+  },
+  {
+    message: 'Requested amount exceeds the available payout balance.',
+    status: 400,
+    code: 'ADMIN_PAYOUT_REQUEST_BALANCE_EXCEEDED',
+  },
+  {
+    message: 'Could not fully allocate the requested amount.',
+    status: 409,
+    code: 'ADMIN_PAYOUT_REQUEST_ALLOCATION_CONFLICT',
+  },
+  {
+    message: 'Payout request not found.',
+    status: 404,
+    code: 'ADMIN_PAYOUT_REQUEST_NOT_FOUND',
+  },
+  {
+    message: 'Payment charge template not found',
+    status: 404,
+    code: 'ADMIN_PAYMENT_CHARGE_TEMPLATE_NOT_FOUND',
+  },
+  {
+    message: 'Payment charge template not found.',
+    status: 404,
+    code: 'ADMIN_PAYMENT_CHARGE_TEMPLATE_NOT_FOUND',
+  },
+  {
+    message: 'A community must be selected before previewing or issuing this charge.',
+    status: 400,
+    code: 'ADMIN_PAYMENT_CHARGE_COMMUNITY_REQUIRED',
+  },
+  {
+    message: 'Selected community could not be found.',
+    status: 404,
+    code: 'ADMIN_PAYMENT_CHARGE_COMMUNITY_NOT_FOUND',
+  },
+  {
+    message: 'Selected community is outside the template agency scope.',
+    status: 403,
+    code: 'ADMIN_PAYMENT_CHARGE_SCOPE_VIOLATION',
+  },
+  {
+    message: 'Selected community does not match the template community scope.',
+    status: 403,
+    code: 'ADMIN_PAYMENT_CHARGE_SCOPE_VIOLATION',
+  },
+  {
+    message: 'A charge run has already been issued for this template, community, and billing period.',
+    status: 409,
+    code: 'ADMIN_PAYMENT_CHARGE_RUN_ALREADY_EXISTS',
+  },
+];
+
 const forwardPaymentControllerError = (
   next: NextFunction,
   error: unknown,
@@ -954,6 +1291,10 @@ const forwardPaymentControllerError = (
   }
 
   const message = error instanceof Error && error.message ? error.message : fallbackMessage;
+  const mapped = PAYMENT_CONTROLLER_ERROR_MAP.find((item) => item.message === message);
+  if (mapped) {
+    return next(createHttpError(mapped.status, mapped.code, message, error));
+  }
   return next(createHttpError(500, code, message, error));
 };
 
@@ -1952,18 +2293,20 @@ export async function getAdminPersonalHubReports(req: Request, res: Response, ne
 
 export async function listAdminTransactions(req: Request, res: Response, next: NextFunction) {
   try {
+    const scope = await resolveAdminScope(req);
     const items = await listAdminPaymentTransactions({
       status: typeof req.query.status === 'string' ? req.query.status : undefined,
       sourceType: typeof req.query.source_type === 'string' ? req.query.source_type : undefined,
       unitId: typeof req.query.unit_id === 'string' ? req.query.unit_id : undefined,
     });
+    const scopedItems = filterRecordsByAdminScope(scope, items);
 
     res.json({
       success: true,
       data: {
         currency_code: DEFAULT_PAYMENT_DISPLAY.currencyCode,
         currency_symbol: DEFAULT_PAYMENT_DISPLAY.currencySymbol,
-        items,
+        items: scopedItems,
       },
     });
   } catch (error) {
@@ -1973,11 +2316,19 @@ export async function listAdminTransactions(req: Request, res: Response, next: N
 
 export async function getAdminTransaction(req: Request, res: Response, next: NextFunction) {
   try {
+    const scope = await resolveAdminScope(req);
     const transaction = await getAdminPaymentTransaction(req.params.id);
 
     if (!transaction) {
       return next(createHttpError(404, 'ADMIN_PAYMENT_TRANSACTION_NOT_FOUND', 'Payment transaction not found.'));
     }
+
+    assertRecordAccess(
+      scope,
+      transaction,
+      'ADMIN_PAYMENT_SCOPE_VIOLATION',
+      'Payment transaction is outside your tenant scope'
+    );
 
     res.json({
       success: true,
@@ -1990,17 +2341,19 @@ export async function getAdminTransaction(req: Request, res: Response, next: Nex
 
 export async function listAdminObligations(req: Request, res: Response, next: NextFunction) {
   try {
+    const scope = await resolveAdminScope(req);
     const items = await listAdminPaymentObligations({
       status: typeof req.query.status === 'string' ? req.query.status : undefined,
       unitId: typeof req.query.unit_id === 'string' ? req.query.unit_id : undefined,
     });
+    const scopedItems = filterRecordsByAdminScope(scope, items);
 
     res.json({
       success: true,
       data: {
         currency_code: DEFAULT_PAYMENT_DISPLAY.currencyCode,
         currency_symbol: DEFAULT_PAYMENT_DISPLAY.currencySymbol,
-        items,
+        items: scopedItems,
       },
     });
   } catch (error) {
@@ -2010,16 +2363,18 @@ export async function listAdminObligations(req: Request, res: Response, next: Ne
 
 export async function listAdminStatements(req: Request, res: Response, next: NextFunction) {
   try {
+    const scope = await resolveAdminScope(req);
     const items = await listAdminPaymentStatements({
       unitId: typeof req.query.unit_id === 'string' ? req.query.unit_id : undefined,
     });
+    const scopedItems = filterRecordsByAdminScope(scope, items);
 
     res.json({
       success: true,
       data: {
         currency_code: DEFAULT_PAYMENT_DISPLAY.currencyCode,
         currency_symbol: DEFAULT_PAYMENT_DISPLAY.currencySymbol,
-        items,
+        items: scopedItems,
       },
     });
   } catch (error) {
@@ -2043,6 +2398,7 @@ export async function listAdminPaymentChargeCatalog(req: Request, res: Response,
 
 export async function listAdminPaymentChargeTemplates(req: Request, res: Response, next: NextFunction) {
   try {
+    const scope = await resolveAdminScope(req);
     const items = await listPaymentChargeTemplates({
       scope_level: typeof req.query.scope_level === 'string' ? req.query.scope_level as 'agency' | 'community' : undefined,
       agency_id: typeof req.query.agency_id === 'string' ? req.query.agency_id : undefined,
@@ -2051,11 +2407,12 @@ export async function listAdminPaymentChargeTemplates(req: Request, res: Respons
         req.query.include_inactive === true ||
         req.query.include_inactive === 'true',
     });
+    const scopedItems = filterRecordsByAdminScope(scope, items);
 
     res.json({
       success: true,
       data: {
-        items,
+        items: scopedItems,
       },
     });
   } catch (error) {
@@ -2065,7 +2422,18 @@ export async function listAdminPaymentChargeTemplates(req: Request, res: Respons
 
 export async function createAdminPaymentChargeTemplate(req: Request, res: Response, next: NextFunction) {
   try {
+    const scope = await resolveAdminScope(req);
+    if (isRecord(req.body)) {
+      assertScopedPaymentChargeTemplateInput(scope, req.body);
+    }
+
     const item = await createPaymentChargeTemplate(req.body, getActorUserId(req));
+    assertRecordAccess(
+      scope,
+      item,
+      'ADMIN_PAYMENT_CHARGE_SCOPE_VIOLATION',
+      'Payment charge template is outside your tenant scope'
+    );
     res.status(201).json({
       success: true,
       data: item,
@@ -2077,7 +2445,29 @@ export async function createAdminPaymentChargeTemplate(req: Request, res: Respon
 
 export async function updateAdminPaymentChargeTemplate(req: Request, res: Response, next: NextFunction) {
   try {
+    const scope = await resolveAdminScope(req);
+    const existingTemplate = await loadPaymentChargeTemplateScopeRecord(req.params.id);
+    assertRecordAccess(
+      scope,
+      existingTemplate,
+      'ADMIN_PAYMENT_CHARGE_SCOPE_VIOLATION',
+      'Payment charge template is outside your tenant scope'
+    );
+
+    if (isRecord(req.body)) {
+      assertScopedPaymentChargeTemplateInput(scope, {
+        ...existingTemplate,
+        ...req.body,
+      });
+    }
+
     const item = await updatePaymentChargeTemplate(req.params.id, req.body, getActorUserId(req));
+    assertRecordAccess(
+      scope,
+      item,
+      'ADMIN_PAYMENT_CHARGE_SCOPE_VIOLATION',
+      'Payment charge template is outside your tenant scope'
+    );
     res.json({
       success: true,
       data: item,
@@ -2089,7 +2479,41 @@ export async function updateAdminPaymentChargeTemplate(req: Request, res: Respon
 
 export async function previewAdminPaymentChargeTemplate(req: Request, res: Response, next: NextFunction) {
   try {
+    const scope = await resolveAdminScope(req);
+    const existingTemplate = await loadPaymentChargeTemplateScopeRecord(req.params.id);
+    assertRecordAccess(
+      scope,
+      existingTemplate,
+      'ADMIN_PAYMENT_CHARGE_SCOPE_VIOLATION',
+      'Payment charge template is outside your tenant scope'
+    );
+
+    if (isRecord(req.body)) {
+      if (!normalizeString(req.body.community_id) && existingTemplate.scope_level === 'agency') {
+        const defaultCommunityId = getScopedDefault(scope.communityIds);
+        if (defaultCommunityId) {
+          req.body.community_id = defaultCommunityId;
+        }
+      }
+
+      const requestedCommunityId = normalizeString(req.body.community_id) || normalizeString(existingTemplate.community_id);
+      if (requestedCommunityId) {
+        assertScopedCommunityAccess(
+          scope,
+          requestedCommunityId,
+          'ADMIN_PAYMENT_CHARGE_SCOPE_VIOLATION',
+          'Payment charge preview is outside your tenant scope'
+        );
+      }
+    }
+
     const preview = await previewPaymentChargeTemplate(req.params.id, req.body || {});
+    assertRecordAccess(
+      scope,
+      preview,
+      'ADMIN_PAYMENT_CHARGE_SCOPE_VIOLATION',
+      'Payment charge preview is outside your tenant scope'
+    );
     res.json({
       success: true,
       data: preview,
@@ -2101,7 +2525,41 @@ export async function previewAdminPaymentChargeTemplate(req: Request, res: Respo
 
 export async function issueAdminPaymentChargeTemplate(req: Request, res: Response, next: NextFunction) {
   try {
+    const scope = await resolveAdminScope(req);
+    const existingTemplate = await loadPaymentChargeTemplateScopeRecord(req.params.id);
+    assertRecordAccess(
+      scope,
+      existingTemplate,
+      'ADMIN_PAYMENT_CHARGE_SCOPE_VIOLATION',
+      'Payment charge template is outside your tenant scope'
+    );
+
+    if (isRecord(req.body)) {
+      if (!normalizeString(req.body.community_id) && existingTemplate.scope_level === 'agency') {
+        const defaultCommunityId = getScopedDefault(scope.communityIds);
+        if (defaultCommunityId) {
+          req.body.community_id = defaultCommunityId;
+        }
+      }
+
+      const requestedCommunityId = normalizeString(req.body.community_id) || normalizeString(existingTemplate.community_id);
+      if (requestedCommunityId) {
+        assertScopedCommunityAccess(
+          scope,
+          requestedCommunityId,
+          'ADMIN_PAYMENT_CHARGE_SCOPE_VIOLATION',
+          'Payment charge issue request is outside your tenant scope'
+        );
+      }
+    }
+
     const issued = await issuePaymentChargeTemplate(req.params.id, req.body || {}, getActorUserId(req));
+    assertRecordAccess(
+      scope,
+      issued?.run || issued,
+      'ADMIN_PAYMENT_CHARGE_SCOPE_VIOLATION',
+      'Payment charge issue result is outside your tenant scope'
+    );
     res.json({
       success: true,
       data: issued,
@@ -2113,16 +2571,18 @@ export async function issueAdminPaymentChargeTemplate(req: Request, res: Respons
 
 export async function listAdminPaymentChargeRuns(req: Request, res: Response, next: NextFunction) {
   try {
+    const scope = await resolveAdminScope(req);
     const items = await listPaymentChargeRuns({
       community_id: typeof req.query.community_id === 'string' ? req.query.community_id : undefined,
       template_id: typeof req.query.template_id === 'string' ? req.query.template_id : undefined,
       status: typeof req.query.status === 'string' ? req.query.status as 'draft' | 'previewed' | 'issued' | 'cancelled' : undefined,
     });
+    const scopedItems = filterRecordsByAdminScope(scope, items);
 
     res.json({
       success: true,
       data: {
-        items,
+        items: scopedItems,
       },
     });
   } catch (error) {
@@ -2132,11 +2592,19 @@ export async function listAdminPaymentChargeRuns(req: Request, res: Response, ne
 
 export async function getAdminPaymentChargeRunDetails(req: Request, res: Response, next: NextFunction) {
   try {
+    const scope = await resolveAdminScope(req);
     const run = await getPaymentChargeRun(req.params.id);
 
     if (!run) {
       return next(createHttpError(404, 'ADMIN_PAYMENT_CHARGE_RUN_NOT_FOUND', 'Payment charge run not found.'));
     }
+
+    assertRecordAccess(
+      scope,
+      run,
+      'ADMIN_PAYMENT_CHARGE_SCOPE_VIOLATION',
+      'Payment charge run is outside your tenant scope'
+    );
 
     res.json({
       success: true,
@@ -2149,6 +2617,52 @@ export async function getAdminPaymentChargeRunDetails(req: Request, res: Respons
 
 export async function runDueAdminPaymentCharges(req: Request, res: Response, next: NextFunction) {
   try {
+    const scope = await resolveAdminScope(req);
+
+    if (isRecord(req.body)) {
+      if (!scope.isGlobal && !normalizeString(req.body.community_id) && scope.communityIds.length === 1) {
+        req.body.community_id = scope.communityIds[0];
+      }
+
+      if (
+        !scope.isGlobal &&
+        !normalizeString(req.body.agency_id) &&
+        scope.communityIds.length === 0 &&
+        scope.agencyIds.length === 1
+      ) {
+        req.body.agency_id = scope.agencyIds[0];
+      }
+
+      const requestedCommunityId = normalizeString(req.body.community_id);
+      const requestedAgencyId = normalizeString(req.body.agency_id);
+
+      if (!scope.isGlobal && !requestedCommunityId && !requestedAgencyId) {
+        throw createHttpError(
+          400,
+          'ADMIN_PAYMENT_CHARGE_SCOPE_REFERENCE_REQUIRED',
+          'Scoped admins must target an in-scope community or agency when running due charges'
+        );
+      }
+
+      if (requestedCommunityId) {
+        assertScopedCommunityAccess(
+          scope,
+          requestedCommunityId,
+          'ADMIN_PAYMENT_CHARGE_SCOPE_VIOLATION',
+          'Payment charge run is outside your tenant scope'
+        );
+      }
+
+      if (requestedAgencyId) {
+        assertScopedAgencyAccess(
+          scope,
+          requestedAgencyId,
+          'ADMIN_PAYMENT_CHARGE_SCOPE_VIOLATION',
+          'Payment charge run is outside your tenant agency scope'
+        );
+      }
+    }
+
     const result = await runDuePaymentCharges({
       communityId: typeof req.body?.community_id === 'string' ? req.body.community_id : undefined,
       agencyId: typeof req.body?.agency_id === 'string' ? req.body.agency_id : undefined,
