@@ -110,9 +110,10 @@ function getMockScopedGuardIds(scope: { isGlobal: boolean; communityIds: string[
 
 function createQueryBuilder(table: string) {
   const filters: Array<(row: MockRow) => boolean> = [];
-  let operation: 'read' | 'insert' | 'update' = 'read';
+  let operation: 'read' | 'insert' | 'update' | 'upsert' | 'delete' = 'read';
   let insertPayload: MockRow[] = [];
   let updatePayload: MockRow | null = null;
+  let upsertConflictColumns: string[] = [];
   let sortColumn: string | null = null;
   let sortAscending = true;
   let limitValue: number | null = null;
@@ -193,6 +194,59 @@ function createQueryBuilder(table: string) {
       };
     }
 
+    if (operation === 'upsert') {
+      const existingRows = getRows();
+      const nextRows = [...existingRows];
+      const affectedRows: MockRow[] = [];
+
+      for (const payload of insertPayload) {
+        const conflictColumns = upsertConflictColumns.length > 0
+          ? upsertConflictColumns
+          : payload.id
+            ? ['id']
+            : [];
+        const existingIndex = nextRows.findIndex((row) =>
+          conflictColumns.length > 0 && conflictColumns.every((column) => row[column] === payload[column])
+        );
+
+        if (existingIndex >= 0) {
+          const mergedRow = {
+            ...nextRows[existingIndex],
+            ...payload,
+          };
+          nextRows[existingIndex] = mergedRow;
+          affectedRows.push(mergedRow);
+          continue;
+        }
+
+        const insertedRow = {
+          ...payload,
+          id: payload.id || `${table}-${mockState.idCounter++}`,
+        };
+        nextRows.push(insertedRow);
+        affectedRows.push(insertedRow);
+      }
+
+      setRows(nextRows);
+      return {
+        data: affectedRows,
+        error: null,
+        count: affectedRows.length,
+      };
+    }
+
+    if (operation === 'delete') {
+      const existingRows = getRows();
+      const deletedRows = existingRows.filter((row) => filters.every((filter) => filter(row)));
+      const nextRows = existingRows.filter((row) => !filters.every((filter) => filter(row)));
+      setRows(nextRows);
+      return {
+        data: deletedRows,
+        error: null,
+        count: deletedRows.length,
+      };
+    }
+
     const allFilteredRows = getRows().filter((row) => filters.every((filter) => filter(row)));
 
     return {
@@ -247,6 +301,19 @@ function createQueryBuilder(table: string) {
     update(payload: MockRow) {
       operation = 'update';
       updatePayload = payload;
+      return builder;
+    },
+    upsert(payload: MockRow | MockRow[], options?: { onConflict?: string }) {
+      operation = 'upsert';
+      insertPayload = Array.isArray(payload) ? payload : [payload];
+      upsertConflictColumns = (options?.onConflict || '')
+        .split(',')
+        .map((value) => value.trim())
+        .filter(Boolean);
+      return builder;
+    },
+    delete() {
+      operation = 'delete';
       return builder;
     },
     single() {
@@ -2433,6 +2500,540 @@ describe('Mounted app integration', () => {
         type: 'income',
         amount: 'bad-amount',
         status: 'completed',
+      },
+    });
+
+    expect(response.status).toBe(400);
+    expect((response.body as any).error.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('lists scoped communities through the mounted admin route with computed unit and amenity stats', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-4111-8111-111111111111';
+    const otherCommunityId = '22222222-2222-4222-8222-222222222222';
+
+    seedAuthenticatedAdmin({
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+      agencyIds: ['33333333-3333-4333-8333-333333333333'],
+    });
+
+    mockState.tables.communities = [
+      {
+        id: communityId,
+        name: 'Alpha Court',
+        status: 'active',
+        agencies: {
+          id: '33333333-3333-4333-8333-333333333333',
+          name: 'Agency One',
+          email: 'agency@example.com',
+          phone: '2330000001',
+        },
+      },
+      {
+        id: otherCommunityId,
+        name: 'Beta Court',
+        status: 'active',
+        agencies: {
+          id: '44444444-4444-4444-8444-444444444444',
+          name: 'Agency Two',
+          email: 'agency2@example.com',
+          phone: '2330000002',
+        },
+      },
+    ];
+    mockState.tables.units = [
+      { id: '55555555-5555-4555-8555-555555555555', community_id: communityId, status: 'occupied', area: 800 },
+      { id: '66666666-6666-4666-8666-666666666666', community_id: communityId, status: 'vacant', area: 650 },
+      { id: '77777777-7777-4777-8777-777777777777', community_id: otherCommunityId, status: 'occupied', area: 700 },
+    ];
+    mockState.tables.amenities = [
+      { id: 'amenity-1', community_id: communityId, name: 'Pool', is_active: true, status: 'active' },
+      { id: 'amenity-2', community_id: communityId, name: 'Gym', is_active: false, status: 'inactive' },
+      { id: 'amenity-3', community_id: otherCommunityId, name: 'Lounge', is_active: true, status: 'active' },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/communities?page=1&limit=20',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect((response.body as any).data).toEqual([
+      expect.objectContaining({
+        id: communityId,
+        unit_count: 2,
+        occupied_unit_count: 1,
+        vacancy_count: 1,
+        occupancy_rate: 50,
+        total_area_sqft: 1450,
+        amenity_names: ['Pool'],
+      }),
+    ]);
+  });
+
+  it('rejects mounted community management access outside the admin community scope', async () => {
+    const app = await loadApp();
+    const allowedCommunityId = '11111111-1111-4111-8111-111111111111';
+    const otherCommunityId = '22222222-2222-4222-8222-222222222222';
+
+    seedAuthenticatedAdmin({
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [allowedCommunityId],
+    });
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: `/admin/communities/${otherCommunityId}/management`,
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(403);
+    expect((response.body as any).error.code).toBe('COMMUNITY_SCOPE_VIOLATION');
+  });
+
+  it('creates communities through the mounted admin route with scoped agency fallback', async () => {
+    const app = await loadApp();
+    const agencyId = '33333333-3333-4333-8333-333333333333';
+
+    seedAuthenticatedAdmin({
+      role: 'agency_manager',
+      isGlobal: false,
+      agencyIds: [agencyId],
+    });
+
+    const response = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/communities',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        name: 'Palm Grove',
+        address: 'Airport Hills',
+        city: 'Accra',
+        status: 'active',
+        agency_id: agencyId,
+      },
+    });
+
+    expect(response.status).toBe(201);
+    expect(response.body).toEqual(
+      expect.objectContaining({
+        agency_id: agencyId,
+        name: 'Palm Grove',
+        city: 'Accra',
+      })
+    );
+  });
+
+  it('updates communities through the mounted admin route and stamps updated_at', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-4111-8111-111111111111';
+    const agencyId = '33333333-3333-4333-8333-333333333333';
+
+    seedAuthenticatedAdmin({
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+      agencyIds: [agencyId],
+    });
+
+    mockState.tables.communities = [
+      {
+        id: communityId,
+        agency_id: agencyId,
+        name: 'Palm Grove',
+        status: 'active',
+        updated_at: null,
+      },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'PUT',
+      path: `/admin/communities/${communityId}`,
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        name: 'Palm Grove Heights',
+        status: 'inactive',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(
+      expect.objectContaining({
+        id: communityId,
+        name: 'Palm Grove Heights',
+        status: 'inactive',
+      })
+    );
+    expect(((mockState.tables.communities || []).find((row) => row.id === communityId) || {}).updated_at).toBeTruthy();
+  });
+
+  it('upserts community directory memberships through the mounted admin route and syncs legacy admin records', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-4111-8111-111111111111';
+    const profileId = '55555555-5555-4555-8555-555555555555';
+
+    seedAuthenticatedAdmin({
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+    });
+
+    mockState.tables.profiles = [
+      ...mockState.tables.profiles,
+      {
+        id: profileId,
+        user_id: 'auth-resident-1',
+        community_id: communityId,
+        first_name: 'Ama',
+        last_name: 'Owusu',
+        role: 'resident',
+      },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'PUT',
+      path: `/admin/communities/${communityId}/directory-members`,
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        profileId,
+        role: 'admin',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect((response.body as any).data).toEqual({
+      community_id: communityId,
+      profile_id: profileId,
+      membership_role: 'admin',
+    });
+    expect(mockState.tables.community_memberships || []).toEqual([
+      expect.objectContaining({
+        community_id: communityId,
+        profile_id: profileId,
+        membership_role: 'admin',
+        is_active: true,
+      }),
+    ]);
+    expect(mockState.tables.community_admins || []).toEqual([
+      expect.objectContaining({
+        community_id: communityId,
+        user_id: profileId,
+      }),
+    ]);
+  });
+
+  it('lists scoped units through the mounted admin route with owner profile enrichment', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-4111-8111-111111111111';
+
+    seedAuthenticatedAdmin({
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+    });
+
+    mockState.tables.units = [
+      {
+        id: '55555555-5555-4555-8555-555555555555',
+        community_id: communityId,
+        number: '101',
+        unit_number: 'A-101',
+        block: 'A',
+        floor: 1,
+        status: 'occupied',
+        type: '2bhk',
+        area: 850,
+        owner_id: 'auth-owner-1',
+        created_at: '2026-03-10T00:00:00.000Z',
+        updated_at: '2026-03-10T00:00:00.000Z',
+      },
+    ];
+    mockState.tables.communities = [
+      { id: communityId, name: 'Alpha Court', address: 'North Ridge', city: 'Accra', state: 'Greater Accra' },
+    ];
+    mockState.tables.profiles = [
+      ...mockState.tables.profiles,
+      {
+        id: '66666666-6666-4666-8666-666666666666',
+        user_id: 'auth-owner-1',
+        first_name: 'Nana',
+        last_name: 'Kofi',
+        full_name: 'Nana Kofi',
+        email: 'nana@example.com',
+        phone: '2333000001',
+      },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/units?page=1&limit=20',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect((response.body as any).data[0]).toEqual(
+      expect.objectContaining({
+        id: '55555555-5555-4555-8555-555555555555',
+        communities: expect.objectContaining({ name: 'Alpha Court' }),
+        profiles: expect.objectContaining({ full_name: 'Nana Kofi', email: 'nana@example.com' }),
+      })
+    );
+  });
+
+  it('creates units through the mounted admin route with scoped community fallback', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-4111-8111-111111111111';
+
+    seedAuthenticatedAdmin({
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+    });
+
+    const response = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/units',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        community_id: communityId,
+        block: 'B',
+        number: '202',
+        floor: 2,
+        ownership_type: 'owned',
+        status: 'vacant',
+      },
+    });
+
+    expect(response.status).toBe(201);
+    expect(response.body).toEqual(
+      expect.objectContaining({
+        community_id: communityId,
+        block: 'B',
+        number: '202',
+        ownership_type: 'owned',
+      })
+    );
+  });
+
+  it('updates units through the mounted admin route and stamps updated_at', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-4111-8111-111111111111';
+    const unitId = '55555555-5555-4555-8555-555555555555';
+
+    seedAuthenticatedAdmin({
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+    });
+
+    mockState.tables.units = [
+      {
+        id: unitId,
+        community_id: communityId,
+        block: 'A',
+        number: '101',
+        floor: 1,
+        ownership_type: 'owned',
+        status: 'occupied',
+        updated_at: null,
+      },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'PUT',
+      path: `/admin/units/${unitId}`,
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        status: 'vacant',
+        floor: 3,
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(
+      expect.objectContaining({
+        id: unitId,
+        status: 'vacant',
+        floor: 3,
+      })
+    );
+    expect(((mockState.tables.units || []).find((row) => row.id === unitId) || {}).updated_at).toBeTruthy();
+  });
+
+  it('lists scoped join requests through the mounted admin route with related lookup details', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-4111-8111-111111111111';
+    const unitId = '55555555-5555-4555-8555-555555555555';
+    const joinRequestId = '77777777-7777-4777-8777-777777777777';
+
+    seedAuthenticatedAdmin({
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+    });
+
+    mockState.tables.join_requests = [
+      {
+        id: joinRequestId,
+        user_id: '88888888-8888-4888-8888-888888888888',
+        reviewed_by: '99999999-9999-4999-8999-999999999999',
+        community_id: communityId,
+        unit_id: unitId,
+        community_name: null,
+        manual_unit_info: null,
+        comments: 'Please approve',
+        status: 'pending',
+        created_at: '2026-03-11T12:00:00.000Z',
+      },
+    ];
+    mockState.tables.units = [
+      { id: unitId, community_id: communityId, number: '101', block: 'A' },
+    ];
+    mockState.tables.communities = [
+      { id: communityId, name: 'Alpha Court' },
+    ];
+    mockState.tables.profiles = [
+      ...mockState.tables.profiles,
+      {
+        id: '88888888-8888-4888-8888-888888888888',
+        first_name: 'Ama',
+        last_name: 'Owusu',
+        full_name: 'Ama Owusu',
+        email: 'ama@example.com',
+        phone: '2331000001',
+      },
+      {
+        id: '99999999-9999-4999-8999-999999999999',
+        first_name: 'Admin',
+        last_name: 'User',
+        full_name: 'Admin User',
+        email: 'admin@example.com',
+        phone: '2339000001',
+      },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/join-requests?page=1&limit=20',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect((response.body as any).data[0]).toEqual(
+      expect.objectContaining({
+        id: joinRequestId,
+        full_name: 'Ama Owusu',
+        email: 'ama@example.com',
+        reviewer_name: 'Admin User',
+        community_name: 'Alpha Court',
+        unit_number: '101',
+        unit_block: 'A',
+      })
+    );
+  });
+
+  it('updates join requests through the mounted admin route and stamps reviewer metadata', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-4111-8111-111111111111';
+    const unitId = '55555555-5555-4555-8555-555555555555';
+    const joinRequestId = '77777777-7777-4777-8777-777777777777';
+
+    seedAuthenticatedAdmin({
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+    });
+
+    mockState.tables.units = [
+      { id: unitId, community_id: communityId, number: '101', block: 'A' },
+    ];
+    mockState.tables.join_requests = [
+      {
+        id: joinRequestId,
+        user_id: '88888888-8888-4888-8888-888888888888',
+        community_id: communityId,
+        unit_id: unitId,
+        status: 'pending',
+        reviewed_by: null,
+        reviewed_at: null,
+        updated_at: null,
+        created_at: '2026-03-11T12:00:00.000Z',
+      },
+    ];
+    mockState.tables.communities = [
+      { id: communityId, name: 'Alpha Court' },
+    ];
+    mockState.tables.profiles = [
+      ...mockState.tables.profiles,
+      {
+        id: '88888888-8888-4888-8888-888888888888',
+        first_name: 'Ama',
+        last_name: 'Owusu',
+        full_name: 'Ama Owusu',
+        email: 'ama@example.com',
+      },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'PATCH',
+      path: `/admin/join-requests/${joinRequestId}`,
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        status: 'approved',
+        review_notes: 'Approved after verification',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect((response.body as any).data).toEqual(
+      expect.objectContaining({
+        id: joinRequestId,
+        status: 'approved',
+        review_notes: 'Approved after verification',
+        reviewed_by: 'profile-admin',
+      })
+    );
+    expect(((mockState.tables.join_requests || []).find((row) => row.id === joinRequestId) || {}).reviewed_at).toBeTruthy();
+  });
+
+  it('validates mounted join-request list queries before the controller runs', async () => {
+    const app = await loadApp();
+
+    seedAuthenticatedAdmin({
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: ['11111111-1111-4111-8111-111111111111'],
+    });
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/join-requests?status=not-a-status',
+      headers: {
+        Authorization: 'Bearer valid-token',
       },
     });
 
