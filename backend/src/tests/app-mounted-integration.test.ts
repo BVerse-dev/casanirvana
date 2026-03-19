@@ -269,6 +269,39 @@ function createQueryBuilder(table: string) {
       filters.push((row) => values.includes(row[column]));
       return builder;
     },
+    or(expression: string) {
+      const predicates = expression
+        .split(',')
+        .map((segment) => segment.trim())
+        .filter(Boolean)
+        .map((segment) => {
+          const match = segment.match(/^([^.,]+)\.(eq|ilike)\.(.+)$/i);
+          if (!match) {
+            return null;
+          }
+
+          const [, column, operator, rawValue] = match;
+          const normalizedValue = rawValue.trim();
+
+          if (operator.toLowerCase() === 'eq') {
+            return (row: MockRow) => String(row[column] ?? '') === normalizedValue;
+          }
+
+          if (operator.toLowerCase() === 'ilike') {
+            const needle = normalizedValue.replace(/^%|%$/g, '').toLowerCase();
+            return (row: MockRow) => String(row[column] ?? '').toLowerCase().includes(needle);
+          }
+
+          return null;
+        })
+        .filter((predicate): predicate is (row: MockRow) => boolean => Boolean(predicate));
+
+      if (predicates.length > 0) {
+        filters.push((row) => predicates.some((predicate) => predicate(row)));
+      }
+
+      return builder;
+    },
     not(column: string, operator: string, value: unknown) {
       if (operator === 'is') {
         filters.push((row) => row[column] !== value);
@@ -291,7 +324,7 @@ function createQueryBuilder(table: string) {
     range(start: number, end: number) {
       rangeStart = start;
       rangeEnd = end;
-      return Promise.resolve(execute());
+      return builder;
     },
     insert(payload: MockRow | MockRow[]) {
       operation = 'insert';
@@ -372,8 +405,12 @@ function seedAuthenticatedAdmin(options: {
 
   mockState.tables.user_roles = [
     {
+      id: `role-${role}`,
       name: role,
-      permissions: [],
+      description: role === 'superadmin' ? 'System super administrator' : undefined,
+      permissions,
+      is_system_role: role === 'superadmin',
+      is_default: role === 'superadmin',
     },
   ];
 
@@ -431,6 +468,30 @@ async function loadApp(envOverrides: Record<string, string | undefined> = {}) {
 
         return { data: { user: null }, error: { message: 'Invalid token' } };
       }),
+      admin: {
+        createUser: vi.fn(async ({ email, user_metadata }: { email: string; user_metadata?: Record<string, unknown> }) => {
+          const user = {
+            id: `auth-user-${mockState.idCounter++}`,
+            email,
+            user_metadata: user_metadata || {},
+          };
+          return { data: { user }, error: null };
+        }),
+        inviteUserByEmail: vi.fn(async (email: string, options?: { data?: Record<string, unknown> }) => {
+          const user = {
+            id: `auth-invite-${mockState.idCounter++}`,
+            email,
+            user_metadata: options?.data || {},
+          };
+          return { data: { user }, error: null };
+        }),
+        deleteUser: vi.fn(async (id: string) => {
+          mockState.tables.profiles = (mockState.tables.profiles || []).filter(
+            (row) => row.id !== id && row.user_id !== id
+          );
+          return { data: { user: null }, error: null };
+        }),
+      },
     };
 
     const storageBucket = {
@@ -3375,6 +3436,382 @@ describe('Mounted app integration', () => {
 
     expect(response.status).toBe(400);
     expect((response.body as any).error.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('returns mounted admin capabilities with permissions, scope, and menu capabilities', async () => {
+    const app = await loadApp();
+
+    seedAuthenticatedAdmin({
+      permissions: ['read:all_profiles', 'read:all_payments'],
+      role: 'agency_manager',
+      isGlobal: false,
+      communityIds: ['11111111-1111-4111-8111-111111111111'],
+      agencyIds: ['22222222-2222-4222-8222-222222222222'],
+    });
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/me/capabilities',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect((response.body as any).data).toEqual(
+      expect.objectContaining({
+        role: 'agency_manager',
+        permissions: ['read:all_profiles', 'read:all_payments'],
+        scope: {
+          agency_ids: ['22222222-2222-4222-8222-222222222222'],
+          community_ids: ['11111111-1111-4111-8111-111111111111'],
+        },
+      })
+    );
+    expect((response.body as any).data.menu_capabilities).toEqual(
+      expect.arrayContaining(['agency:workspace:view', 'agency:finance:view', 'guards:workspace:view'])
+    );
+  });
+
+  it('lists mounted admin users with search filtering and truthful pagination totals', async () => {
+    const app = await loadApp();
+
+    seedAuthenticatedAdmin({
+      permissions: ['read:all_profiles'],
+    });
+
+    mockState.tables.profiles = [
+      ...mockState.tables.profiles,
+      {
+        id: 'user-1',
+        user_id: 'auth-user-1',
+        first_name: 'Ama',
+        last_name: 'Owusu',
+        email: 'ama@example.com',
+        role: 'user',
+        created_at: '2026-03-10T00:00:00.000Z',
+      },
+      {
+        id: 'user-2',
+        user_id: 'auth-user-2',
+        first_name: 'Kojo',
+        last_name: 'Mensah',
+        email: 'kojo@example.com',
+        role: 'guard',
+        created_at: '2026-03-11T00:00:00.000Z',
+      },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/users?page=1&limit=10&search=ama',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect((response.body as any).data).toHaveLength(1);
+    expect((response.body as any).data[0]).toEqual(
+      expect.objectContaining({
+        email: 'ama@example.com',
+        role: 'user',
+      })
+    );
+    expect((response.body as any).pagination).toEqual({
+      page: 1,
+      limit: 10,
+      total: 1,
+      pages: 1,
+    });
+  });
+
+  it('creates mounted admin users and writes profile user_id linkage', async () => {
+    const app = await loadApp();
+
+    seedAuthenticatedAdmin({
+      permissions: ['create:profiles'],
+    });
+
+    const response = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/users',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        email: 'new.user@example.com',
+        password: 'StrongPassword123!',
+        first_name: 'New',
+        last_name: 'User',
+        role: 'facility_manager',
+        phone: '233500000001',
+      },
+    });
+
+    expect(response.status).toBe(201);
+    expect(response.body).toEqual(
+      expect.objectContaining({
+        email: 'new.user@example.com',
+        role: 'facility_manager',
+        user_id: expect.stringContaining('auth-user-'),
+      })
+    );
+  });
+
+  it('updates mounted admin users and stamps updated_at', async () => {
+    const app = await loadApp();
+    const userId = 'user-1';
+
+    seedAuthenticatedAdmin({
+      permissions: ['update:all_profiles'],
+    });
+
+    mockState.tables.profiles = [
+      ...mockState.tables.profiles,
+      {
+        id: userId,
+        user_id: 'auth-user-1',
+        first_name: 'Ama',
+        last_name: 'Owusu',
+        email: 'ama@example.com',
+        role: 'user',
+        phone: null,
+        updated_at: null,
+      },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'PUT',
+      path: `/admin/users/${userId}`,
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        role: 'guard',
+        phone: '233500000999',
+        is_active: false,
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(
+      expect.objectContaining({
+        id: userId,
+        role: 'guard',
+        phone: '233500000999',
+        is_active: false,
+      })
+    );
+    expect(((mockState.tables.profiles || []).find((row) => row.id === userId) || {}).updated_at).toBeTruthy();
+  });
+
+  it('validates mounted admin user creation payloads before the controller runs', async () => {
+    const app = await loadApp();
+
+    seedAuthenticatedAdmin({
+      permissions: ['create:profiles'],
+    });
+
+    const response = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/users',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        email: 'not-an-email',
+        password: '',
+      },
+    });
+
+    expect(response.status).toBe(400);
+    expect((response.body as any).error.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('returns mounted admin roles from the real role tables with descriptions', async () => {
+    const app = await loadApp();
+
+    seedAuthenticatedAdmin({
+      permissions: ['manage:roles'],
+    });
+
+    mockState.tables.user_roles = [
+      ...mockState.tables.user_roles,
+      {
+        id: 'role-facility',
+        name: 'facility_manager',
+        description: 'Manages a facility community.',
+      },
+    ];
+    mockState.tables.role_permissions_detailed = [
+      ...mockState.tables.role_permissions_detailed,
+      {
+        role_name: 'facility_manager',
+        permission_key: 'read:all_profiles',
+      },
+      {
+        role_name: 'facility_manager',
+        permission_key: 'update:all_profiles',
+      },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/roles',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          role: 'facility_manager',
+          description: 'Manages a facility community.',
+          permissions: ['read:all_profiles', 'update:all_profiles'],
+        }),
+      ])
+    );
+  });
+
+  it('updates mounted admin role permissions using the real role-permission schema', async () => {
+    const app = await loadApp();
+
+    seedAuthenticatedAdmin({
+      permissions: ['manage:roles'],
+    });
+
+    mockState.tables.permissions = [
+      { id: 'perm-1', key: 'read:all_profiles' },
+      { id: 'perm-2', key: 'update:all_profiles' },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'PUT',
+      path: '/admin/roles/community_manager/permissions',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        description: 'Manages a specific community.',
+        permissions: ['read:all_profiles', 'update:all_profiles'],
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      role: 'community_manager',
+      description: 'Manages a specific community.',
+      permissions: ['read:all_profiles', 'update:all_profiles'],
+      updated: 2,
+    });
+    expect((mockState.tables.user_roles || []).find((row) => row.name === 'community_manager')).toEqual(
+      expect.objectContaining({
+        description: 'Manages a specific community.',
+        permissions: ['read:all_profiles', 'update:all_profiles'],
+      })
+    );
+    expect(mockState.tables.role_permissions || []).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ role_id: expect.any(String), permission_id: 'perm-1', granted_by: 'auth-admin' }),
+        expect.objectContaining({ role_id: expect.any(String), permission_id: 'perm-2', granted_by: 'auth-admin' }),
+      ])
+    );
+  });
+
+  it('rejects mounted deletion of system roles', async () => {
+    const app = await loadApp();
+
+    seedAuthenticatedAdmin({
+      permissions: ['manage:roles'],
+    });
+
+    const response = await performMountedRequest(app, {
+      method: 'DELETE',
+      path: '/admin/roles/superadmin',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(403);
+    expect((response.body as any).error.code).toBe('ADMIN_ROLE_DELETE_FORBIDDEN');
+  });
+
+  it('returns mounted legacy settings scoped to the authenticated admin only', async () => {
+    const app = await loadApp();
+
+    seedAuthenticatedAdmin({
+      permissions: ['manage:settings'],
+    });
+
+    mockState.tables.settings = [
+      {
+        id: 'setting-1',
+        user_id: 'auth-admin',
+        key: 'dashboard_layout',
+        value: JSON.stringify({ density: 'compact' }),
+      },
+      {
+        id: 'setting-2',
+        user_id: 'someone-else',
+        key: 'dashboard_layout',
+        value: JSON.stringify({ density: 'cozy' }),
+      },
+    ];
+
+    const response = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/settings',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      dashboard_layout: { density: 'compact' },
+    });
+  });
+
+  it('updates and deletes mounted legacy settings within the authenticated admin scope', async () => {
+    const app = await loadApp();
+
+    seedAuthenticatedAdmin({
+      permissions: ['manage:settings'],
+    });
+
+    const updateResponse = await performMountedRequest(app, {
+      method: 'PUT',
+      path: '/admin/settings',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        dashboard_layout: { density: 'compact' },
+        locale: 'en-GH',
+      },
+    });
+
+    expect(updateResponse.status).toBe(200);
+    expect((mockState.tables.settings || []).find((row) => row.user_id === 'auth-admin' && row.key === 'dashboard_layout')).toEqual(
+      expect.objectContaining({
+        value: JSON.stringify({ density: 'compact' }),
+      })
+    );
+
+    const deleteResponse = await performMountedRequest(app, {
+      method: 'DELETE',
+      path: '/admin/settings/locale',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(deleteResponse.status).toBe(204);
+    expect((mockState.tables.settings || []).some((row) => row.user_id === 'auth-admin' && row.key === 'locale')).toBe(false);
   });
 
   it('lists scoped maintenance requests through the mounted admin route for a tenant admin', async () => {

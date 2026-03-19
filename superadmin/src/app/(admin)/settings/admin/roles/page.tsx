@@ -221,9 +221,9 @@ const RolesPermissionsSettingsPage = () => {
   useEffect(() => {
     if (!Array.isArray(rolesData)) return;
     const roleDefaults = new Map(defaultRoles.map(role => [role.name, role]));
-    const normalized = rolesData.map((role: { role: string; permissions: string[] }) => ({
+    const normalized = rolesData.map((role: { role: string; description?: string; permissions: string[] }) => ({
       name: role.role,
-      description: roleDefaults.get(role.role)?.description || 'Custom role',
+      description: role.description || roleDefaults.get(role.role)?.description || 'Custom role',
       permissions: role.permissions || [],
     }));
     setRoles(normalized);
@@ -321,7 +321,10 @@ const RolesPermissionsSettingsPage = () => {
         }
         await fetchAdmin(`/admin/roles/${encodeURIComponent(roleData.name)}/permissions`, {
           method: 'PUT',
-          body: JSON.stringify({ permissions: roleData.permissions }),
+          body: JSON.stringify({
+            description: roleData.description,
+            permissions: roleData.permissions,
+          }),
         });
         const updatedRoles = roles.map(role =>
           role.name === editingRole.name ? roleData : role
@@ -331,7 +334,10 @@ const RolesPermissionsSettingsPage = () => {
       } else {
         await fetchAdmin(`/admin/roles/${encodeURIComponent(roleData.name)}/permissions`, {
           method: 'PUT',
-          body: JSON.stringify({ permissions: roleData.permissions }),
+          body: JSON.stringify({
+            description: roleData.description,
+            permissions: roleData.permissions,
+          }),
         });
         const updatedRoles = [...roles, roleData];
         setRoles(updatedRoles);

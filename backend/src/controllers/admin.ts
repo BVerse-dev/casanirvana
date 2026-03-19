@@ -20,6 +20,21 @@ const isAllowedRole = (role: unknown): role is AllowedRole =>
 const isSupabaseNotFoundError = (error: { code?: string | null } | null | undefined) =>
   error?.code === 'PGRST116';
 
+const parseStoredSettingValue = (value: string) => {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+};
+
+const prettifyRoleName = (roleName: string) =>
+  roleName
+    .split('_')
+    .filter(Boolean)
+    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+    .join(' ') || 'Custom role';
+
 // Analytics functions
 export async function getAnalytics(req: Request, res: Response, next: NextFunction) {
   try {
@@ -116,7 +131,7 @@ export async function getAllUsers(req: Request, res: Response, next: NextFunctio
     
     let query = supabase
       .from('profiles')
-      .select('*');
+      .select('*', { count: 'exact' });
     
     // Apply filters
     if (role) {
@@ -184,11 +199,14 @@ export async function createUser(req: Request, res: Response, next: NextFunction
       .from('profiles')
       .insert({
         id: authData.user.id,
+        user_id: authData.user.id,
         first_name,
         last_name,
+        full_name: [first_name, last_name].filter(Boolean).join(' ').trim() || null,
         email,
         role: role || 'user',
-        phone
+        phone,
+        is_active: true,
       })
       .select()
       .single();
@@ -245,8 +263,10 @@ export async function inviteUser(req: Request, res: Response, next: NextFunction
       .from('profiles')
       .insert({
         id: inviteData.user.id,
+        user_id: inviteData.user.id,
         first_name,
         last_name,
+        full_name: [first_name, last_name].filter(Boolean).join(' ').trim() || null,
         email,
         role: role || 'user',
         phone,
@@ -893,9 +913,16 @@ export async function bulkCreateNotices(req: Request, res: Response, next: NextF
 // Settings management functions
 export async function getSettings(req: Request, res: Response, next: NextFunction) {
   try {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return next(createHttpError(401, 'AUTH_USER_MISSING', 'Authenticated user context is required'));
+    }
+
     const { data, error } = await supabase
       .from('settings')
-      .select('*');
+      .select('key, value')
+      .eq('user_id', userId);
     
     if (error) {
       return next(createHttpError(500, 'ADMIN_SETTINGS_FETCH_FAILED', 'Failed to fetch settings', error));
@@ -903,7 +930,7 @@ export async function getSettings(req: Request, res: Response, next: NextFunctio
     
     // Convert to key-value format
     const settings = data?.reduce((acc, item) => {
-      acc[item.key] = item.value;
+      acc[item.key] = parseStoredSettingValue(item.value);
       return acc;
     }, {} as Record<string, any>) || {};
     
@@ -915,7 +942,12 @@ export async function getSettings(req: Request, res: Response, next: NextFunctio
 
 export async function updateSettings(req: Request, res: Response, next: NextFunction) {
   try {
+    const userId = req.user?.id;
     const settings = req.body;
+
+    if (!userId) {
+      return next(createHttpError(401, 'AUTH_USER_MISSING', 'Authenticated user context is required'));
+    }
     
     if (!settings || Object.keys(settings).length === 0) {
       return next(createHttpError(400, 'ADMIN_SETTINGS_UPDATE_INVALID', 'No settings provided'));
@@ -923,6 +955,7 @@ export async function updateSettings(req: Request, res: Response, next: NextFunc
     
     // Convert object to array of key-value pairs
     const settingsArray = Object.entries(settings).map(([key, value]) => ({
+      user_id: userId,
       key,
       value: JSON.stringify(value),
       updated_at: new Date().toISOString()
@@ -931,7 +964,7 @@ export async function updateSettings(req: Request, res: Response, next: NextFunc
     // Upsert settings
     const { data, error } = await supabase
       .from('settings')
-      .upsert(settingsArray, { onConflict: 'key' })
+      .upsert(settingsArray, { onConflict: 'user_id,key' })
       .select();
     
     if (error) {
@@ -950,14 +983,20 @@ export async function updateSettings(req: Request, res: Response, next: NextFunc
 export async function deleteSetting(req: Request, res: Response, next: NextFunction) {
   try {
     const { key } = req.params;
+    const userId = req.user?.id;
 
     if (!key) {
       return next(createHttpError(400, 'ADMIN_SETTING_KEY_REQUIRED', 'Setting key is required'));
     }
 
+    if (!userId) {
+      return next(createHttpError(401, 'AUTH_USER_MISSING', 'Authenticated user context is required'));
+    }
+
     const { error } = await supabase
       .from('settings')
       .delete()
+      .eq('user_id', userId)
       .eq('key', key);
 
     if (error) {
@@ -973,24 +1012,38 @@ export async function deleteSetting(req: Request, res: Response, next: NextFunct
 // Role management functions
 export async function getRoles(req: Request, res: Response, next: NextFunction) {
   try {
-    const { data, error } = await supabase
-      .from('role_permissions')
-      .select('*');
-    
-    if (error) {
-      return next(createHttpError(500, 'ADMIN_ROLES_FETCH_FAILED', 'Failed to fetch roles', error));
+    const [rolesResult, permissionsResult] = await Promise.all([
+      supabase.from('user_roles').select('id, name, description').order('name', { ascending: true }),
+      supabase
+        .from('role_permissions_detailed')
+        .select('role_name, permission_key')
+        .order('role_name', { ascending: true }),
+    ]);
+
+    if (rolesResult.error || permissionsResult.error) {
+      return next(
+        createHttpError(500, 'ADMIN_ROLES_FETCH_FAILED', 'Failed to fetch roles', {
+          rolesError: rolesResult.error,
+          permissionsError: permissionsResult.error,
+        })
+      );
     }
-    
-    // Group by role
-    const roles = data?.reduce((acc, item) => {
-      if (!acc[item.role]) {
-        acc[item.role] = { role: item.role, permissions: [] };
-      }
-      acc[item.role].permissions.push(item.permission);
-      return acc;
-    }, {} as Record<string, { role: string, permissions: string[] }>) || {};
-    
-    res.json(Object.values(roles));
+
+    const permissionsByRole = new Map<string, string[]>();
+    for (const item of permissionsResult.data || []) {
+      if (!item.role_name || !item.permission_key) continue;
+      const current = permissionsByRole.get(item.role_name) || [];
+      current.push(item.permission_key);
+      permissionsByRole.set(item.role_name, current);
+    }
+
+    res.json(
+      (rolesResult.data || []).map((role) => ({
+        role: role.name,
+        description: role.description,
+        permissions: permissionsByRole.get(role.name) || [],
+      }))
+    );
   } catch (err) {
     next(err);
   }
@@ -999,19 +1052,123 @@ export async function getRoles(req: Request, res: Response, next: NextFunction) 
 export async function updateRolePermissions(req: Request, res: Response, next: NextFunction) {
   try {
     const { role } = req.params;
-    const { permissions } = req.body;
+    const { permissions, description } = req.body;
+    const actorId = req.user?.id ?? null;
     
     if (!permissions || !Array.isArray(permissions)) {
       return next(createHttpError(400, 'ADMIN_ROLE_PERMISSIONS_INVALID', 'Permissions must be an array'));
     }
-    
-    // Start a transaction
-    // 1. Delete all existing permissions for this role
+
+    const normalizedPermissions = [...new Set(permissions.map((permission) => String(permission).trim()).filter(Boolean))];
+
+    if (normalizedPermissions.length === 0) {
+      return next(createHttpError(400, 'ADMIN_ROLE_PERMISSIONS_INVALID', 'Permissions must be an array'));
+    }
+
+    const [roleResult, permissionResult] = await Promise.all([
+      supabase
+        .from('user_roles')
+        .select('id, name, description, is_system_role, is_default')
+        .eq('name', role)
+        .maybeSingle(),
+      supabase.from('permissions').select('id, key').in('key', normalizedPermissions),
+    ]);
+
+    if (roleResult.error) {
+      return next(
+        createHttpError(
+          500,
+          'ADMIN_ROLE_LOOKUP_FAILED',
+          'Failed to update role permissions',
+          roleResult.error
+        )
+      );
+    }
+
+    if (permissionResult.error) {
+      return next(
+        createHttpError(
+          500,
+          'ADMIN_ROLE_PERMISSIONS_LOOKUP_FAILED',
+          'Failed to update role permissions',
+          permissionResult.error
+        )
+      );
+    }
+
+    const permissionRows = permissionResult.data || [];
+    const permissionIdsByKey = new Map(permissionRows.map((item) => [item.key, item.id]));
+    const missingPermissions = normalizedPermissions.filter((permission) => !permissionIdsByKey.has(permission));
+
+    if (missingPermissions.length > 0) {
+      return next(
+        createHttpError(
+          400,
+          'ADMIN_ROLE_PERMISSIONS_INVALID_KEYS',
+          `Unknown permissions: ${missingPermissions.join(', ')}`
+        )
+      );
+    }
+
+    const roleDescription =
+      typeof description === 'string' && description.trim().length > 0
+        ? description.trim()
+        : roleResult.data?.description || prettifyRoleName(role);
+
+    const now = new Date().toISOString();
+    let roleId = roleResult.data?.id || null;
+
+    if (!roleId) {
+      const { data: createdRole, error: createRoleError } = await supabase
+        .from('user_roles')
+        .insert({
+          name: role,
+          description: roleDescription,
+          permissions: normalizedPermissions,
+          updated_at: now,
+        })
+        .select('id, name, description')
+        .single();
+
+      if (createRoleError || !createdRole) {
+        return next(
+          createHttpError(
+            500,
+            'ADMIN_ROLE_CREATE_FAILED',
+            'Failed to create role',
+            createRoleError
+          )
+        );
+      }
+
+      roleId = createdRole.id;
+    } else {
+      const { error: updateRoleError } = await supabase
+        .from('user_roles')
+        .update({
+          description: roleDescription,
+          permissions: normalizedPermissions,
+          updated_at: now,
+        })
+        .eq('id', roleId);
+
+      if (updateRoleError) {
+        return next(
+          createHttpError(
+            500,
+            'ADMIN_ROLE_UPDATE_FAILED',
+            'Failed to update role',
+            updateRoleError
+          )
+        );
+      }
+    }
+
     const { error: deleteError } = await supabase
       .from('role_permissions')
       .delete()
-      .eq('role', role);
-    
+      .eq('role_id', roleId);
+
     if (deleteError) {
       return next(
         createHttpError(
@@ -1022,20 +1179,19 @@ export async function updateRolePermissions(req: Request, res: Response, next: N
         )
       );
     }
-    
-    // 2. Insert new permissions
-    const permissionsToInsert = permissions.map(permission => ({
-      role,
-      permission,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+
+    const permissionInserts = normalizedPermissions.map((permissionKey) => ({
+      role_id: roleId,
+      permission_id: permissionIdsByKey.get(permissionKey)!,
+      granted_at: now,
+      granted_by: actorId,
     }));
-    
+
     const { data, error: insertError } = await supabase
       .from('role_permissions')
-      .insert(permissionsToInsert)
+      .insert(permissionInserts)
       .select();
-    
+
     if (insertError) {
       return next(
         createHttpError(
@@ -1046,10 +1202,11 @@ export async function updateRolePermissions(req: Request, res: Response, next: N
         )
       );
     }
-    
+
     res.json({
       role,
-      permissions: data?.map(item => item.permission) || [],
+      description: roleDescription,
+      permissions: normalizedPermissions,
       updated: data?.length || 0
     });
   } catch (err) {
@@ -1065,10 +1222,37 @@ export async function deleteRole(req: Request, res: Response, next: NextFunction
       return next(createHttpError(400, 'ADMIN_ROLE_REQUIRED', 'Role is required'));
     }
 
-    const { error } = await supabase
+    const { data: existingRole, error: lookupError } = await supabase
+      .from('user_roles')
+      .select('id, is_system_role, is_default')
+      .eq('name', role)
+      .maybeSingle();
+
+    if (lookupError) {
+      return next(createHttpError(500, 'ADMIN_ROLE_LOOKUP_FAILED', 'Failed to delete role', lookupError));
+    }
+
+    if (!existingRole) {
+      return next(createHttpError(404, 'ADMIN_ROLE_NOT_FOUND', 'Role not found'));
+    }
+
+    if (existingRole.is_system_role || existingRole.is_default) {
+      return next(createHttpError(403, 'ADMIN_ROLE_DELETE_FORBIDDEN', 'System roles cannot be deleted'));
+    }
+
+    const { error: permissionsError } = await supabase
       .from('role_permissions')
       .delete()
-      .eq('role', role);
+      .eq('role_id', existingRole.id);
+
+    if (permissionsError) {
+      return next(createHttpError(500, 'ADMIN_ROLE_DELETE_FAILED', 'Failed to delete role', permissionsError));
+    }
+
+    const { error } = await supabase
+      .from('user_roles')
+      .delete()
+      .eq('id', existingRole.id);
 
     if (error) {
       return next(createHttpError(500, 'ADMIN_ROLE_DELETE_FAILED', 'Failed to delete role', error));

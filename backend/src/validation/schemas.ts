@@ -2013,6 +2013,7 @@ export const schemas = {
   roleParams: z.object({ role: nonEmptyString }),
   rolePermissions: z.object({
     permissions: z.array(nonEmptyString).nonempty(),
+    description: optionalString,
   }),
 
   visitorPassCreate: z.object({
