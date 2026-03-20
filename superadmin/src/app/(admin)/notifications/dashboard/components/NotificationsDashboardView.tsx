@@ -160,7 +160,6 @@ const NotificationsDashboardView = () => {
         type: "in-app",
         category: "general",
         status: "draft",
-        usage_count: 0,
         variables: [],
       });
       
@@ -301,7 +300,10 @@ const NotificationsDashboardView = () => {
     }
   };
 
-  const formatTimeAgo = (dateString: string) => {
+  const formatTimeAgo = (dateString?: string | null) => {
+    if (!dateString) {
+      return "Not recorded";
+    }
     const now = new Date();
     const sentDate = new Date(dateString);
     const diffInHours = Math.floor((now.getTime() - sentDate.getTime()) / (1000 * 60 * 60));
@@ -466,7 +468,7 @@ const NotificationsDashboardView = () => {
                           <td className="text-muted">
                             {campaign.sent_at ? formatTimeAgo(campaign.sent_at) : 
                              campaign.scheduled_at ? `Scheduled for ${new Date(campaign.scheduled_at).toLocaleString()}` :
-                             formatTimeAgo(campaign.created_at)}
+                             formatTimeAgo(campaign.created_at || null)}
                           </td>
                           <td>
                             <span className="fw-medium">

@@ -57,7 +57,9 @@ const ServicePopularityChart: React.FC<ServicePopularityChartProps> = ({ service
               color: '#333',
               label: 'Total',
               formatter(w) {
-                return w.globals.seriesTotals.reduce((left, right) => left + right, 0).toString();
+                return w.globals.seriesTotals
+                  .reduce((left: number, right: number) => left + right, 0)
+                  .toString();
               },
             },
           },

@@ -560,15 +560,15 @@ const SmsNotificationsView = () => {
                             : sms.message}
                         </div>
                       </td>
-                      <td>{recipientGroups.find(g => g.group_key === sms.recipient_group)?.group_name || sms.recipient_group}</td>
-                      <td>{formatDate(sms.sent_at || sms.created_at)}</td>
+                      <td>{recipientGroups.find(g => g.group_key === sms.recipient_group)?.group_name || sms.recipient_group || "Unknown Group"}</td>
+                      <td>{formatDate(sms.sent_at || sms.created_at || "")}</td>
                       <td>
                         <Badge bg={sms.status === "delivered" ? "success" : sms.status === "failed" ? "danger" : sms.status === "scheduled" ? "warning" : "secondary"}>
                           {sms.status}
                         </Badge>
                       </td>
                       <td>{sms.delivery_count}</td>
-                      <td>{formatCurrency(sms.total_cost)}</td>
+                      <td>{formatCurrency(sms.total_cost || 0)}</td>
                       <td>
                         <div className="d-flex gap-1">
                           <Button variant="outline-primary" size="sm" onClick={() => handleResendSms(sms)}>

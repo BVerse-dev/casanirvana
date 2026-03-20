@@ -127,19 +127,16 @@ const VisitorActionButtons = ({ visitor, mode = 'table', source }: VisitorAction
         </Button>
       )}
 
-      <Button
-        as={Link}
+      <Link
         href={`/visitors/details?id=${visitor.id}${source ? `&source=${source}` : ''}`}
-        variant="outline-secondary"
-        size={buttonSize}
-        className={buttonClassName}
+        className={`btn btn-outline-secondary${buttonSize === 'sm' ? ' btn-sm' : ''}${buttonClassName ? ` ${buttonClassName}` : ''}`}
         title="View details"
         onClick={stopEvent}
         style={cardButtonStyle}
       >
         <IconifyIcon icon="solar:eye-broken" />
         {renderLabel('Details')}
-      </Button>
+      </Link>
 
       <Button
         variant="outline-danger"

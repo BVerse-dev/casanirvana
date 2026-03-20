@@ -137,7 +137,7 @@ const emptySummary: AdminEmailSummary = {
 
 const EMAIL_REFRESH_INTERVAL_MS = 30_000;
 
-const cleanFilters = (filters: AdminEmailListFilters = {}) => ({
+const cleanFilters = (filters: AdminEmailListFilters = {}): Required<AdminEmailListFilters> => ({
   folder: filters.folder || 'inbox',
   search: filters.search?.trim() || '',
   priority: filters.priority || '',

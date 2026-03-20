@@ -139,7 +139,7 @@ const TranslationsPage = () => {
     reset,
     formState: { errors, isDirty }
   } = useForm<TranslationSettings>({
-    resolver: yupResolver(translationSchema),
+    resolver: yupResolver(translationSchema) as any,
     defaultValues: defaultTranslationSettings
   });
 

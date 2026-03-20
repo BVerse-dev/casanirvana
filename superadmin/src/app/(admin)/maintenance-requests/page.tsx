@@ -27,10 +27,10 @@ import { useState } from "react";
 
 type MaintenanceWithProfiles =
   Database["public"]["Tables"]["maintenance_requests"]["Row"] & {
-    requester_profile?: Database["public"]["Tables"]["profiles"]["Row"];
-    assigned_profile?: Database["public"]["Tables"]["profiles"]["Row"];
-    resolved_by_profile?: Database["public"]["Tables"]["profiles"]["Row"];
-    unit?: Database["public"]["Tables"]["units"]["Row"];
+    requester_profile?: Database["public"]["Tables"]["profiles"]["Row"] | null;
+    assigned_profile?: Database["public"]["Tables"]["profiles"]["Row"] | null;
+    resolved_by_profile?: Database["public"]["Tables"]["profiles"]["Row"] | null;
+    unit?: Database["public"]["Tables"]["units"]["Row"] | null;
   };
 
 const formatMoney = (value?: number | null) => {
@@ -251,17 +251,15 @@ const MaintenanceRequestsPage = () => {
                           <td>{formatMoney(request.estimated_cost)}</td>
                           <td>
                             <div className="d-flex gap-2">
-                              <Button
-                                as={Link}
+                              <Link
                                 href={`/maintenance-requests/${request.id}`}
-                                variant="light"
-                                size="sm"
+                                className="btn btn-light btn-sm"
                               >
                                 <IconifyIcon
                                   icon="solar:eye-broken"
                                   className="align-middle fs-18"
                                 />
-                              </Button>
+                              </Link>
                               <Button
                                 variant={
                                   request.status === "completed"

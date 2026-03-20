@@ -208,7 +208,7 @@ const AddBillerModal: React.FC<AddBillerModalProps> = ({
         ...billerData,
         service_type: 'bill_payment',
         commission_rate: parseFloat(billerData.commission_rate as unknown as string),
-        payment_methods: billerData.payment_methods.split(',').map(method => method.trim()),
+        payment_methods: billerData.payment_methods.split(',').map((method: string) => method.trim()),
         fee_structure: parsedFeeStructure,
         required_fields: parsedRequiredFields,
         contact_info: parsedContactInfo

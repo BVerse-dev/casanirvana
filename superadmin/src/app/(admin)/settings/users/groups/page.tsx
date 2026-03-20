@@ -73,6 +73,16 @@ const assignmentRuleOptions = [
 ];
 
 export default function UserGroupsPage() {
+  // UI state
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showMembersModal, setShowMembersModal] = useState(false);
+  const [selectedGroup, setSelectedGroup] = useState<UserGroup | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [activeTab, setActiveTab] = useState('grid');
+
   // Hooks for data fetching
   const { data: groups = [], isLoading: groupsLoading, error: groupsError } = useListUserGroups();
   const { data: groupStats, isLoading: statsLoading, error: statsError } = useUserGroupsStats();
@@ -85,16 +95,6 @@ export default function UserGroupsPage() {
     error: groupMembersError,
   } = useGroupMembers(showMembersModal ? selectedGroup?.id : undefined);
 
-  // UI state
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showMembersModal, setShowMembersModal] = useState(false);
-  const [selectedGroup, setSelectedGroup] = useState<UserGroup | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [typeFilter, setTypeFilter] = useState<string>('all');
-  const [activeTab, setActiveTab] = useState('grid');
-
   const {
     control,
     handleSubmit,
@@ -103,7 +103,7 @@ export default function UserGroupsPage() {
     watch,
     setValue
   } = useForm<GroupFormData>({
-    resolver: yupResolver(groupValidationSchema),
+    resolver: yupResolver(groupValidationSchema) as any,
     defaultValues: {
       name: '',
       description: '',
@@ -253,7 +253,6 @@ export default function UserGroupsPage() {
                 label="Group Name"
                 placeholder="Enter group name"
                 control={control}
-                errors={errors}
               />
             </Col>
             <Col md={4}>
@@ -262,7 +261,6 @@ export default function UserGroupsPage() {
                 label="Group Color"
                 control={control}
                 options={groupColors}
-                errors={errors}
               />
             </Col>
           </Row>
@@ -273,7 +271,6 @@ export default function UserGroupsPage() {
             placeholder="Enter group description"
             rows={3}
             control={control}
-            errors={errors}
           />
 
           <Row>
@@ -283,7 +280,6 @@ export default function UserGroupsPage() {
                 label="Group Type"
                 control={control}
                 options={groupTypes}
-                errors={errors}
               />
             </Col>
             <Col md={6}>
@@ -293,7 +289,6 @@ export default function UserGroupsPage() {
                 type="number"
                 placeholder="Leave empty for unlimited"
                 control={control}
-                errors={errors}
               />
             </Col>
           </Row>

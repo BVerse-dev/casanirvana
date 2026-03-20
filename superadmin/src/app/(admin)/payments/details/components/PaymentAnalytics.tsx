@@ -1,45 +1,13 @@
 "use client";
 
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
+import type { AdminPaymentRecord } from "@/hooks/usePayments";
 import { usePaymentAnalyticsSummary } from "@/hooks/usePaymentAnalyticsSummary";
-import { Database } from "@/lib/database.types";
 import { Card, CardBody, CardHeader, Col, Row } from "react-bootstrap";
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 
-type Payment = Partial<Database["public"]["Tables"]["payments"]["Row"]> & {
-  id: string;
-  amount: number;
-  unit?: {
-    id: string;
-    unit_number: string | null;
-    block: string | null;
-    floor_area: number | null;
-    bedrooms: number | null;
-    bathrooms: number | null;
-    society_id: string | null;
-    owner_id: string | null;
-    tenant_id: string | null;
-  } | null;
-  payer_profile?: {
-    id: string;
-    first_name: string | null;
-    last_name: string | null;
-    full_name: string | null;
-    email: string | null;
-    avatar_url: string | null;
-    phone: string | null;
-    role: string | null;
-  } | null;
-  society?: {
-    id: string;
-    name: string;
-    address: string | null;
-  } | null;
-  created_at?: string;
-};
-
 interface PaymentAnalyticsProps {
-  payment: Payment;
+  payment: AdminPaymentRecord;
 }
 
 const PaymentAnalytics = ({ payment }: PaymentAnalyticsProps) => {

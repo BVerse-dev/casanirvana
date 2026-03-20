@@ -477,7 +477,7 @@ export const useGuardAssignmentsRealtime = () => {
         () => {
           // Invalidate queries to refetch fresh data
           queryClient.invalidateQueries({ queryKey: QUERY_KEYS.assignments });
-          queryClient.invalidateQueries({ queryKey: QUERY_KEYS.societyOverview });
+          queryClient.invalidateQueries({ queryKey: QUERY_KEYS.communityOverview });
         }
       )
       .subscribe();

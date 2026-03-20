@@ -122,9 +122,9 @@ const RecentResidents = () => {
         ) : null}
       </CardBody>
       <CardFooter className="border-top">
-        <Button as={Link} href="/residents/list-view" variant="primary" className="w-100">
+        <Link href="/residents/list-view" className="btn btn-primary w-100">
           View All Residents
-        </Button>
+        </Link>
       </CardFooter>
     </Card>
   );

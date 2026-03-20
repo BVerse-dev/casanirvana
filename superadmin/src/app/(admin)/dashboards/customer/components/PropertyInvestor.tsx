@@ -193,9 +193,9 @@ const TopGuardProfile = () => {
           )}
         </CardBody>
         <CardFooter className="border-top border-dashed gap-1 hstack">
-          <Button as={Link} href={`/guards/details?id=${topGuard.guardId}`} variant="primary" className="w-100">
+          <Link href={`/guards/details?id=${topGuard.guardId}`} className="btn btn-primary w-100">
             View Profile
-          </Button>
+          </Link>
           {guardContactHref ? (
             <Button as={"a"} href={guardContactHref} variant="light" className="w-100">
               Contact Guard

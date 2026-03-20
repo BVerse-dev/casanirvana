@@ -36,7 +36,7 @@ const ProductPerformanceChart = ({ products }: ProductPerformanceChartProps) => 
       if (salesDelta !== 0) {
         return salesDelta;
       }
-      return (right.views_count || 0) - (left.views_count || 0);
+      return (right.review_count || 0) - (left.review_count || 0);
     })
     .slice(0, 5), [products]);
 
@@ -96,7 +96,7 @@ const ProductPerformanceChart = ({ products }: ProductPerformanceChartProps) => 
                   <th>Product</th>
                   <th>Category</th>
                   <th>Units Sold</th>
-                  <th>Views</th>
+                  <th>Reviews</th>
                 </tr>
               </thead>
               <tbody>
@@ -105,7 +105,7 @@ const ProductPerformanceChart = ({ products }: ProductPerformanceChartProps) => 
                     <td>{product.name}</td>
                     <td>{product.category_name || 'Unassigned'}</td>
                     <td>{product.sales_count || 0}</td>
-                    <td>{product.views_count || 0}</td>
+                    <td>{product.review_count || 0}</td>
                   </tr>
                 ))}
                 {topProducts.length === 0 ? (

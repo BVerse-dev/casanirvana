@@ -221,6 +221,7 @@ type FlexibleAmenityFormData = AmenityFormData &
     booking_slots_per_day: number;
     cancellation_policy: string;
     community_id: string;
+    contact_person: string;
     contact_number: string;
     contact_phone: string;
     is_active: boolean;
@@ -549,6 +550,8 @@ export interface AmenityBooking {
   amount?: number;
   created_at: string;
   updated_at: string;
+  notes?: string | null;
+  special_requests?: string | null;
   amenities?: {
     id: string;
     name: string;
@@ -609,6 +612,8 @@ const transformBookingFromDB = (booking: any): AmenityBooking => ({
   amount: Number(booking.amount) || 0,
   created_at: booking.created_at,
   updated_at: booking.updated_at,
+  notes: booking.notes || null,
+  special_requests: booking.special_requests || null,
   amenities: booking.amenities,
   user_profile: booking.user_profile || booking.profiles || null,
 });

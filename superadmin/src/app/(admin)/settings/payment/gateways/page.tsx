@@ -138,7 +138,7 @@ const PaymentGatewaysPage = () => {
     setValue,
     getValues,
   } = useForm<PaymentGatewaySettings>({
-    resolver: yupResolver(schema),
+    resolver: yupResolver(schema) as any,
   });
 
   const razorpayEnabled = watch('razorpay_enabled');

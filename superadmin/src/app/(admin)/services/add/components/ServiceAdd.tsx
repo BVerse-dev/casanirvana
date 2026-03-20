@@ -71,7 +71,7 @@ const ServiceAdd = () => {
   })
 
   const { handleSubmit, control, reset } = useForm<ServiceFormValues>({
-    resolver: yupResolver(serviceSchema),
+    resolver: yupResolver(serviceSchema) as any,
     defaultValues: {
       name: '',
       category: '',

@@ -66,6 +66,19 @@ type CommunityAddFormProps = {
   communityId?: string;
 };
 
+type LegacyCommunityFormSeed = {
+  management_name?: string | null;
+  management_email?: string | null;
+  management_phone?: string | null;
+  management_role?: string | null;
+  bank_details?: {
+    bank_name?: string | null;
+    account_number?: string | null;
+    ifsc_code?: string | null;
+    account_holder_name?: string | null;
+  } | null;
+};
+
 const CommunityAddForm = ({ editMode = false, communityId }: CommunityAddFormProps) => {
   const router = useRouter();
   const createCommunityMutation = useCreateCommunity();
@@ -170,6 +183,7 @@ const CommunityAddForm = ({ editMode = false, communityId }: CommunityAddFormPro
     if (!editMode || !existingCommunity) return;
 
     try {
+      const legacySeed = existingCommunity as typeof existingCommunity & LegacyCommunityFormSeed;
       reset({
         name: existingCommunity.name || "",
         address: existingCommunity.address || "",
@@ -189,14 +203,14 @@ const CommunityAddForm = ({ editMode = false, communityId }: CommunityAddFormPro
         maintenance_charge: Number(existingCommunity.maintenance_charge) || 0,
         security_deposit: Number(existingCommunity.security_deposit) || 0,
         parking_slots: Number(existingCommunity.parking_slots) || 0,
-        management_name: existingCommunity.management_name || "",
-        management_email: existingCommunity.management_email || "",
-        management_phone: existingCommunity.management_phone || "",
-        management_role: existingCommunity.management_role || "",
-        bank_name: existingCommunity.bank_details?.bank_name || "",
-        account_number: existingCommunity.bank_details?.account_number || "",
-        ifsc_code: existingCommunity.bank_details?.ifsc_code || "",
-        account_holder_name: existingCommunity.bank_details?.account_holder_name || "",
+        management_name: legacySeed.management_name || "",
+        management_email: legacySeed.management_email || "",
+        management_phone: legacySeed.management_phone || "",
+        management_role: legacySeed.management_role || "",
+        bank_name: legacySeed.bank_details?.bank_name || "",
+        account_number: legacySeed.bank_details?.account_number || "",
+        ifsc_code: legacySeed.bank_details?.ifsc_code || "",
+        account_holder_name: legacySeed.bank_details?.account_holder_name || "",
       });
     } catch (err) {
       console.error('Failed to prefill community form:', err);

@@ -1,6 +1,6 @@
 'use client'
 import IconifyIcon from '@/components/wrappers/IconifyIcon'
-import { useListPayments } from '@/hooks/usePayments'
+import { type AdminPaymentRecord, useListPayments } from '@/hooks/usePayments'
 import { ApexOptions } from 'apexcharts'
 import ReactApexChart from 'react-apexcharts'
 import { Card, CardBody, CardHeader, CardTitle, Col } from 'react-bootstrap'
@@ -9,11 +9,11 @@ const PaymentMethodChart = () => {
   const { data: payments = [] } = useListPayments()
   
   // Calculate payment method distribution
-  const bankTransferCount = payments.filter(p => p.payment_method === 'bank_transfer').length
-  const creditCardCount = payments.filter(p => p.payment_method === 'credit_card').length
-  const debitCardCount = payments.filter(p => p.payment_method === 'debit_card').length
-  const cashCount = payments.filter(p => p.payment_method === 'cash').length
-  const digitalWalletCount = payments.filter(p => p.payment_method === 'digital_wallet').length
+  const bankTransferCount = payments.filter((payment: AdminPaymentRecord) => payment.payment_method === 'bank_transfer').length
+  const creditCardCount = payments.filter((payment: AdminPaymentRecord) => payment.payment_method === 'credit_card').length
+  const debitCardCount = payments.filter((payment: AdminPaymentRecord) => payment.payment_method === 'debit_card').length
+  const cashCount = payments.filter((payment: AdminPaymentRecord) => payment.payment_method === 'cash').length
+  const digitalWalletCount = payments.filter((payment: AdminPaymentRecord) => payment.payment_method === 'digital_wallet').length
 
   const chartData = [bankTransferCount, creditCardCount, debitCardCount, cashCount, digitalWalletCount]
   const chartLabels = ['Bank Transfer', 'Credit Card', 'Debit Card', 'Cash', 'Digital Wallet']

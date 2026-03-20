@@ -177,7 +177,7 @@ const MaintenanceRequestDetailsPage = () => {
     iconClass: string;
   }>;
 
-  const handleStatusUpdate = async (newStatus: string) => {
+  const handleStatusUpdate = async (newStatus: "pending" | "in_progress" | "completed" | "cancelled") => {
     if (!request || request.status === newStatus) return;
 
     setFeedback(null);
@@ -555,7 +555,7 @@ const MaintenanceRequestDetailsPage = () => {
                     return avatarImage ? (
                       <Image
                         src={avatarImage}
-                        alt={request.requester_profile.full_name || "User"}
+                        alt={request.requester_profile?.full_name || "User"}
                         width={50}
                         height={50}
                         className="avatar-md rounded-circle"

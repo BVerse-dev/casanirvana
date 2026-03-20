@@ -87,7 +87,7 @@ const EmailNotificationSettingsPage = () => {
   } = useEmailNotificationSettingsAdvanced();
 
   const { control, handleSubmit, reset, formState: { isDirty } } = useForm<EmailNotificationSettingsAdvanced>({
-    resolver: yupResolver(emailNotificationSchema),
+    resolver: yupResolver(emailNotificationSchema) as any,
     defaultValues: {
       // Email Delivery Settings
       email_enabled: true,

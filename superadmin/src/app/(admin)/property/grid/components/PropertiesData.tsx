@@ -8,7 +8,7 @@ import Link from "next/link";
 import { Card, CardBody, CardFooter, Col, Row } from "react-bootstrap";
 
 type Unit = Database["public"]["Tables"]["units"]["Row"] & {
-  societies?: Database["public"]["Tables"]["communities"]["Row"];
+  communities?: Database["public"]["Tables"]["communities"]["Row"];
 };
 
 const UnitsCard = ({ unit }: { unit: Unit }) => {

@@ -288,8 +288,8 @@ export const usePaymentAnalyticsSummary = (): PaymentAnalyticsSummary => {
   const paymentsQuery = useListPayments();
   const obligationsQuery = useListPaymentObligations();
 
-  const payments = paymentsQuery.data || [];
-  const obligations = obligationsQuery.data || [];
+  const payments = (paymentsQuery.data || []) as PaymentRecord[];
+  const obligations = (obligationsQuery.data || []) as ObligationRecord[];
 
   return useMemo(() => {
     const queryError =
@@ -304,8 +304,8 @@ export const usePaymentAnalyticsSummary = (): PaymentAnalyticsSummary => {
     const now = new Date();
     const previousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 
-    const statusCounts = payments.reduce<StatusCounts>(
-      (acc, payment) => {
+    const statusCounts = payments.reduce(
+      (acc: StatusCounts, payment: PaymentRecord) => {
         const normalizedStatus = normalizePaymentStatus(payment.status);
         acc[normalizedStatus] += 1;
         return acc;
@@ -318,7 +318,7 @@ export const usePaymentAnalyticsSummary = (): PaymentAnalyticsSummary => {
       }
     );
 
-    const totalRevenue = payments.reduce((sum, payment) => {
+    const totalRevenue = payments.reduce((sum: number, payment: PaymentRecord) => {
       return normalizePaymentStatus(payment.status) === "completed"
         ? sum + asNumber(payment.amount)
         : sum;
@@ -331,13 +331,16 @@ export const usePaymentAnalyticsSummary = (): PaymentAnalyticsSummary => {
     const averageCompletedPayment =
       completedTransactions > 0 ? totalRevenue / completedTransactions : 0;
 
-    const totalAmount = payments.reduce((sum, payment) => sum + asNumber(payment.amount), 0);
+    const totalAmount = payments.reduce(
+      (sum: number, payment: PaymentRecord) => sum + asNumber(payment.amount),
+      0
+    );
     const collectionRateByCount =
       totalTransactions > 0 ? (completedTransactions / totalTransactions) * 100 : 0;
     const collectionRateByAmount =
       totalAmount > 0 ? (totalRevenue / totalAmount) * 100 : 0;
 
-    const currentMonthCollected = payments.reduce((sum, payment) => {
+    const currentMonthCollected = payments.reduce((sum: number, payment: PaymentRecord) => {
       const paymentDate = getRecordDate(payment);
       if (!paymentDate || !sameMonth(paymentDate, now)) return sum;
       return normalizePaymentStatus(payment.status) === "completed"
@@ -345,20 +348,23 @@ export const usePaymentAnalyticsSummary = (): PaymentAnalyticsSummary => {
         : sum;
     }, 0);
 
-    const currentMonthOutstanding = obligations.reduce((sum, obligation) => {
+    const currentMonthOutstanding = obligations.reduce(
+      (sum: number, obligation: ObligationRecord) => {
       const dueDate = getRecordDate(obligation);
       if (!dueDate || !sameMonth(dueDate, now)) return sum;
       return normalizeObligationStatus(obligation.status)
         ? sum + asNumber(obligation.amount)
         : sum;
-    }, 0);
+      },
+      0
+    );
 
     const currentMonthDueTotal =
       currentMonthOutstanding > 0 ? currentMonthCollected + currentMonthOutstanding : currentMonthCollected;
     const currentMonthProgress =
       currentMonthDueTotal > 0 ? (currentMonthCollected / currentMonthDueTotal) * 100 : 0;
 
-    const previousMonthCollected = payments.reduce((sum, payment) => {
+    const previousMonthCollected = payments.reduce((sum: number, payment: PaymentRecord) => {
       const paymentDate = getRecordDate(payment);
       if (!paymentDate || !sameMonth(paymentDate, previousMonth)) return sum;
       return normalizePaymentStatus(payment.status) === "completed"

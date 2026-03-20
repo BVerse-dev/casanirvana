@@ -43,7 +43,7 @@ const ServicesListView = () => {
 
   return (
     <>
-      <ServicesStats services={services} />
+      <ServicesStats services={services} serviceRequests={[]} />
       
       <Row>
         <Col xl={12}>
@@ -81,7 +81,7 @@ const ServicesListView = () => {
               </div>
             </CardHeader>
             <CardBody className="p-0">
-              <ServicesTable services={services} />
+              <ServicesTable services={services} requestCounts={{}} />
             </CardBody>
             <CardFooter className="border-top">
               <nav aria-label="Page navigation example">

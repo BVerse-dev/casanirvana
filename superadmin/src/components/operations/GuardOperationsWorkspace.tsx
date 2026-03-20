@@ -149,22 +149,19 @@ const GuardProfilesSection = () => {
       label: "Next Step",
       render: (row) =>
         row.assignment_status === "awaiting_assignment" ? (
-          <Button
-            as={Link}
+          <Link
             href={`/guards/manage?tab=assignments&guardId=${encodeURIComponent(row.id)}`}
-            size="sm"
+            className="btn btn-primary btn-sm"
           >
             Assign Community
-          </Button>
+          </Link>
         ) : row.active_assignment_id ? (
-          <Button
-            as={Link}
+          <Link
             href={`/guards/manage?tab=assignments&guardId=${encodeURIComponent(row.id)}`}
-            variant="outline-primary"
-            size="sm"
+            className="btn btn-outline-primary btn-sm"
           >
             Manage Assignment
-          </Button>
+          </Link>
         ) : (
           "—"
         ),

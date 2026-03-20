@@ -1,11 +1,10 @@
 "use client";
 
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
-import { useListPayments, useDeletePayment } from "@/hooks/usePayments";
+import { type AdminPaymentRecord, useDeletePayment, useListPayments } from "@/hooks/usePayments";
 import Image from "next/image";
 import Link from "next/link";
 import { Card, CardBody, CardHeader, CardTitle, Button, Dropdown } from "react-bootstrap";
-import { Database } from "@/lib/database.types";
 import { useState } from "react";
 
 interface PaymentHistoryProps {
@@ -16,7 +15,7 @@ const PaymentHistory = ({ paymentId }: PaymentHistoryProps) => {
   // Fetch all payments
   const { data: allPayments = [], isLoading } = useListPayments();
   const deletePayment = useDeletePayment();
-  const formatAmount = (payment: any) =>
+  const formatAmount = (payment: AdminPaymentRecord) =>
     payment.amount_formatted || `${payment.currency_symbol || 'GH₵'} ${Number(payment.amount || 0).toFixed(2)}`;
   
   // State for table functionality
@@ -278,8 +277,8 @@ const PaymentHistory = ({ paymentId }: PaymentHistoryProps) => {
 
   // Filter payments (exclude current payment)
   const filteredPayments = allPayments
-    .filter(payment => payment.id !== paymentId) // Exclude current payment
-    .filter(payment => {
+    .filter((payment: AdminPaymentRecord) => payment.id !== paymentId) // Exclude current payment
+    .filter((payment: AdminPaymentRecord) => {
       // Apply search filter
       const matchesSearch = searchTerm === '' || 
         payment.payment_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||

@@ -6,6 +6,7 @@ import IconifyIcon from "@/components/wrappers/IconifyIcon";
 
 const ComplaintProgressCard = () => {
   const { data: complaints = [] } = useListComplaints();
+  const toSafeDate = (value?: string | null) => (value ? new Date(value) : null);
 
   // Calculate resolution progress
   const totalComplaints = complaints.length;
@@ -17,7 +18,10 @@ const ComplaintProgressCard = () => {
   thisWeekStart.setDate(thisWeekStart.getDate() - thisWeekStart.getDay());
   
   const thisWeekComplaints = complaints.filter(complaint => {
-    const complaintDate = new Date(complaint.created_at);
+    const complaintDate = toSafeDate(complaint.created_at);
+    if (!complaintDate) {
+      return false;
+    }
     return complaintDate >= thisWeekStart;
   });
 
@@ -28,8 +32,11 @@ const ComplaintProgressCard = () => {
   const resolvedComplaintsWithTime = complaints.filter(c => c.status === "resolved" && c.resolved_at && c.created_at);
   const averageResolutionTime = resolvedComplaintsWithTime.length > 0 
     ? resolvedComplaintsWithTime.reduce((total, complaint) => {
-        const createdAt = new Date(complaint.created_at);
-        const resolvedAt = new Date(complaint.resolved_at);
+        const createdAt = toSafeDate(complaint.created_at);
+        const resolvedAt = toSafeDate(complaint.resolved_at);
+        if (!createdAt || !resolvedAt) {
+          return total;
+        }
         const timeDiff = resolvedAt.getTime() - createdAt.getTime();
         const daysDiff = timeDiff / (1000 * 3600 * 24);
         return total + daysDiff;

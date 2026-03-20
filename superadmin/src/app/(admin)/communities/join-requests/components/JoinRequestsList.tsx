@@ -3,33 +3,8 @@
 import { useState } from 'react'
 import { Card, Col, Row, Badge, Button, Alert, Spinner, Modal } from 'react-bootstrap'
 import IconifyIcon from '@/components/wrappers/IconifyIcon'
-import { useUpdateJoinRequest } from '@/hooks/useJoinRequests'
+import { type JoinRequest, useUpdateJoinRequest } from '@/hooks/useJoinRequests'
 import { toast } from 'react-hot-toast'
-
-interface JoinRequest {
-  id: string
-  user_id: string
-  community_id?: string
-  unit_id?: string
-  comments?: string
-  status: 'pending' | 'approved' | 'rejected' | 'pending_manual_review'
-  created_at: string
-  updated_at?: string
-  reviewed_by?: string
-  reviewed_at?: string
-  review_notes?: string
-  community_name?: string
-  manual_unit_info?: string
-  is_manual_entry: boolean
-  // Joined data from profiles
-  full_name?: string
-  email?: string
-  phone?: string
-  // Joined data from communities/units
-  community_name?: string
-  unit_number?: string
-  unit_block?: string
-}
 
 interface JoinRequestsListProps {
   joinRequests: JoinRequest[]
@@ -61,7 +36,7 @@ const JoinRequestsList = ({
   const updateJoinRequest = useUpdateJoinRequest()
 
   const getCommunityDisplayName = (request: JoinRequest) => {
-    return request.community_name || request.society_name || 'Unknown Community'
+    return request.community_name || 'Unknown Community'
   }
 
   // Pagination
@@ -266,7 +241,7 @@ const JoinRequestsList = ({
                               variant="success" 
                               size="sm"
                               onClick={() => handleAction(request, 'approve')}
-                              disabled={updateJoinRequest.isLoading}
+                              disabled={updateJoinRequest.isPending}
                               className="flex-fill"
                             >
                               <IconifyIcon icon="ri:check-line" className="me-1" />
@@ -276,7 +251,7 @@ const JoinRequestsList = ({
                               variant="danger" 
                               size="sm"
                               onClick={() => handleAction(request, 'reject')}
-                              disabled={updateJoinRequest.isLoading}
+                              disabled={updateJoinRequest.isPending}
                               className="flex-fill"
                             >
                               <IconifyIcon icon="ri:close-line" className="me-1" />
@@ -485,7 +460,7 @@ const JoinRequestsList = ({
               <Button 
                 variant="danger"
                 onClick={() => handleActionFromViewModal('reject')}
-                disabled={updateJoinRequest.isLoading}
+                disabled={updateJoinRequest.isPending}
               >
                 <IconifyIcon icon="ri:close-line" className="me-1" />
                 Reject Request
@@ -493,7 +468,7 @@ const JoinRequestsList = ({
               <Button 
                 variant="success"
                 onClick={() => handleActionFromViewModal('approve')}
-                disabled={updateJoinRequest.isLoading}
+                disabled={updateJoinRequest.isPending}
               >
                 <IconifyIcon icon="ri:check-line" className="me-1" />
                 Approve Request
@@ -556,9 +531,9 @@ const JoinRequestsList = ({
           <Button 
             variant={actionType === 'approve' ? 'success' : 'danger'}
             onClick={handleConfirmAction}
-            disabled={updateJoinRequest.isLoading || (actionType === 'reject' && !adminNotes.trim())}
+            disabled={updateJoinRequest.isPending || (actionType === 'reject' && !adminNotes.trim())}
           >
-            {updateJoinRequest.isLoading && (
+            {updateJoinRequest.isPending && (
               <Spinner animation="border" size="sm" className="me-2" />
             )}
             {actionType === 'approve' ? 'Approve Request' : 'Reject Request'}

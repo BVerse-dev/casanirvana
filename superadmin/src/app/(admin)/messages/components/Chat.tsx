@@ -50,7 +50,7 @@ const Chat = ({ onUserSelect, users, selectedUser }: ChatUsersProps) => {
                   </div>
                 </div>
                 <div className="d-flex justify-content-between align-items-center">
-                  {user.activityStatus === "typing" &&
+                  {user.message?.toLowerCase() === "typing..." &&
                   selectedUser.id === user.id ? (
                     <span className="w-75 text-primary">typing...</span>
                   ) : (

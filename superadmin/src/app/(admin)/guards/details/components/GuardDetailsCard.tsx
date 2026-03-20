@@ -68,21 +68,20 @@ const GuardDetailsCard = ({ snapshot }: GuardDetailsCardProps) => {
           </div>
           <div className="ms-lg-auto d-flex flex-wrap gap-2">
             {guard.email ? (
-              <Button as={Link} href={`mailto:${guard.email}`} variant="primary">
+              <a href={`mailto:${guard.email}`} className="btn btn-primary">
                 Email Guard
-              </Button>
+              </a>
             ) : (
               <Button variant="primary" disabled>
                 No Email Available
               </Button>
             )}
-            <Button
-              as={Link}
+            <Link
               href={`/guards/manage?tab=assignments&guardId=${guard.id}`}
-              variant="outline-secondary"
+              className="btn btn-outline-secondary"
             >
               Manage Assignments
-            </Button>
+            </Link>
           </div>
         </div>
 

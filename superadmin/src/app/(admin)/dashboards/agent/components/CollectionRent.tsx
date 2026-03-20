@@ -223,12 +223,12 @@ const ResidentPayments = () => {
               )}
             </div>
             <div className="d-flex flex-column gap-2">
-              <Button as={Link} href="/payments" variant="primary">
+              <Link href="/payments" className="btn btn-primary">
                 Open Payments
-              </Button>
-              <Button as={Link} href="/payments/invoices" variant="light">
+              </Link>
+              <Link href="/payments/invoices" className="btn btn-light">
                 View Invoices
-              </Button>
+              </Link>
             </div>
           </div>
         </CardBody>

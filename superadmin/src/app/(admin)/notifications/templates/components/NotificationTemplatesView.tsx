@@ -222,7 +222,6 @@ const NotificationTemplatesView = () => {
         template_content: formData.content,
         variables: formData.variables,
         status: 'draft',
-        usage_count: 0,
       })
 
       toast.success('Template created successfully.')
@@ -249,7 +248,6 @@ const NotificationTemplatesView = () => {
         template_content: template.content,
         variables: template.variables,
         status: 'draft',
-        usage_count: 0,
       })
 
       toast.success('Template duplicated successfully.')

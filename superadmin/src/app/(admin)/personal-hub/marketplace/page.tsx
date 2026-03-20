@@ -60,7 +60,7 @@ const MarketplacePage = () => {
     updateReviewVisibility,
   } = useMarketplaceWorkspace();
 
-  const runAction = async (action: () => Promise<void>, successMessage: string) => {
+  const runAction = async (action: () => Promise<unknown>, successMessage: string) => {
     try {
       await action();
       setFlash({ variant: 'success', message: successMessage });

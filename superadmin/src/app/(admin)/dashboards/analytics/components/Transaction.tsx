@@ -156,9 +156,9 @@ const Transaction = () => {
                           </span>
                         </td>
                         <td>
-                          <Button as={Link} href={`/payments/details?id=${payment.id}`} variant="light" size="sm">
+                          <Link href={`/payments/details?id=${payment.id}`} className="btn btn-light btn-sm">
                             <IconifyIcon icon="solar:eye-broken" className="align-middle fs-18" />
-                          </Button>
+                          </Link>
                         </td>
                       </tr>
                     );

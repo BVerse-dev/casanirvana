@@ -387,7 +387,8 @@ export default function OnboardingSettingsPage() {
                                   type="file"
                                   accept="image/*"
                                   onChange={async (event) => {
-                                    const file = event.target.files?.[0];
+                                    const fileInput = event.target as HTMLInputElement;
+                                    const file = fileInput.files?.[0];
                                     if (!file) return;
                                     try {
                                       if (!file.type.startsWith('image/')) {

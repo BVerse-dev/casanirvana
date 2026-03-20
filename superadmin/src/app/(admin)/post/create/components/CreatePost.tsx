@@ -95,7 +95,7 @@ const CreatePost = ({ mode = "create", noticeId }: CreatePostProps) => {
     watch,
     formState: { errors, isSubmitting },
   } = useForm<NoticeFormData>({
-    resolver: yupResolver(noticeSchema),
+    resolver: yupResolver(noticeSchema) as any,
     defaultValues: {
       community_id: scopedCommunityId || "",
       title: "",

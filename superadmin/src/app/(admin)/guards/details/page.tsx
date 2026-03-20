@@ -78,10 +78,10 @@ const GuardDetailsContent = () => {
                 Manage Assignments
               </Link>
               {guard.phone ? (
-                <Button as={Link} href={`tel:${guard.phone}`} variant="success">
+                <a href={`tel:${guard.phone}`} className="btn btn-success">
                   <IconifyIcon icon="ri:phone-line" className="me-1" />
                   Call Guard
-                </Button>
+                </a>
               ) : (
                 <Button variant="success" disabled>
                   <IconifyIcon icon="ri:phone-line" className="me-1" />

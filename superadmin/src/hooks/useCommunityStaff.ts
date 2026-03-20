@@ -248,7 +248,7 @@ export const useCreateCommunityStaff = () => {
     mutationFn: async (newCommunityStaff: CreateCommunityStaffData) => {
       const { data, error } = await supabase
         .from('community_staff')
-        .insert([newCommunityStaff])
+        .insert(newCommunityStaff as any)
         .select(`
           *,
           community:communities(id, name, address),

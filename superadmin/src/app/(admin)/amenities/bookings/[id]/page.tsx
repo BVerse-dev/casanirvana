@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 
 import PageTitle from "@/components/PageTitle";
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
+import type { CreateAmenityBookingData } from "@/hooks/useAmenities";
 import { useGetAmenityBooking, useUpdateAmenityBooking } from "@/hooks/useAmenities";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -76,7 +77,10 @@ const AmenityBookingDetailsPage = () => {
   } | null>(null);
 
   const handleStatusUpdate = async (
-    updates: { status: "confirmed" | "cancelled" | "completed"; payment_status?: string },
+    updates: {
+      status: "confirmed" | "cancelled" | "completed";
+      payment_status?: CreateAmenityBookingData["payment_status"];
+    },
     successMessage: string,
   ) => {
     if (!booking) {

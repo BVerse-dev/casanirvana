@@ -8,17 +8,18 @@ import avatarImage from "@/assets/images/users/avatar-1.jpg";
 
 const ComplaintOverviewCard = () => {
   const { data: complaints = [] } = useListComplaints();
+  const toSafeDate = (value?: string | null) => (value ? new Date(value) : null);
 
   const todayComplaints = complaints.filter(complaint => {
     const today = new Date();
-    const complaintDate = new Date(complaint.created_at);
-    return complaintDate.toDateString() === today.toDateString();
+    const complaintDate = toSafeDate(complaint.created_at);
+    return complaintDate?.toDateString() === today.toDateString();
   }).length;
 
   const urgentComplaints = complaints.filter(c => c.priority === "high" && c.status !== "resolved").length;
   const resolvedToday = complaints.filter(complaint => {
     const today = new Date();
-    const resolvedAt = complaint.resolved_at ? new Date(complaint.resolved_at) : null;
+    const resolvedAt = toSafeDate(complaint.resolved_at);
     return Boolean(resolvedAt) && resolvedAt?.toDateString() === today.toDateString();
   }).length;
 

@@ -1,39 +1,15 @@
 "use client";
 
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
-import { Database } from "@/lib/database.types";
+import type { AdminPaymentRecord } from "@/hooks/usePayments";
 import { Card, CardBody } from "react-bootstrap";
 
-type Payment = Partial<Database["public"]["Tables"]["payments"]["Row"]> & {
-  id: string;
-  amount: number;
-  amount_formatted?: string | null;
-  currency_symbol?: string | null;
-  user_profile?: {
-    full_name: string;
-    avatar_url: string;
-    email: string;
-    phone: string;
-  };
-  payer_profile?: {
-    full_name: string;
-    avatar_url: string;
-    email: string;
-    phone: string;
-  };
-  society?: {
-    id: string;
-    name: string;
-    address: string;
-  };
-};
-
 interface PaymentTimelineProps {
-  payment: Payment;
+  payment: AdminPaymentRecord;
 }
 
 // Generate timeline events from real payment data
-const generateTimelineEvents = (payment: Payment) => {
+const generateTimelineEvents = (payment: AdminPaymentRecord) => {
   const events = [];
   const amountText = payment.amount_formatted || `${payment.currency_symbol || "GH₵"} ${Number(payment.amount || 0).toFixed(2)}`;
   const normalizedStatus = String(payment.status || "").toLowerCase();

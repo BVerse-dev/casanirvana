@@ -99,7 +99,7 @@ export const useListPreferenceSettings = (params: ListPreferenceSettingsParams =
     queryKey: ['preference-settings', params],
     enabled: hasToken,
     queryFn: async () => {
-      const query = buildQuery(params);
+      const query = buildQuery(params as Record<string, unknown>);
       const response = await fetchAdmin<{
         data?: PreferenceSetting[];
         count?: number;

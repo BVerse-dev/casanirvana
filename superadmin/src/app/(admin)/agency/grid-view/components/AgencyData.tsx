@@ -18,7 +18,7 @@ const SOCIAL_LINKS = [
 ] as const
 
 const AgencyCard = ({ agency, onDelete }: { agency: AgencyDirectoryItem; onDelete: (id: string) => void }) => {
-  const avatarImage = getAgencyAvatar(agency.logo_url)
+  const avatarImage = getAgencyAvatar(agency.logo_url ?? null)
   const bannerImage = getAgencyPropertyImage(agency)
   const socialMedia = agency.social_media || {}
   const availableSocialLinks = SOCIAL_LINKS.filter(

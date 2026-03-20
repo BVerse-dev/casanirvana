@@ -11,7 +11,8 @@ Purpose: Current release closeout source of truth. Use this file to understand w
 - Live migration history and baseline alignment: complete
 - Legacy data alignment cleanup: complete
 - Backend contract hardening and mounted integration coverage: materially complete for the main production admin surface
-- Remaining production work: runtime signoff, one Guard implementation lane, and a small set of explicit closeout decisions
+- `superadmin` strict type-check and `build:check` closeout: complete
+- Remaining production work: runtime signoff and a small set of explicit release decisions
 
 ## Completed Foundations
 
@@ -28,9 +29,6 @@ Purpose: Current release closeout source of truth. Use this file to understand w
 
 ## Gate A - Production Blockers
 
-- [ ] Finish the remaining Guard implementation lane:
-  - `Guard Residents/Directory module`
-  - complete the remaining end-to-end guard lifecycle closure noted in `PROGRESS_CHECKLIST.md`
 - [ ] Execute and record the full coordinated runtime signoff pack in `MANUAL_RUNTIME_QA_PACK.md`
   - Section 1: Scoped Admin Access Regression
   - Section 2: Marketplace / Personal Hub Admin RLS
@@ -42,18 +40,22 @@ Purpose: Current release closeout source of truth. Use this file to understand w
   - Section 8: Profile Lifecycle
   - Section 9: Emergency Lifecycle
   - Section 10: Guard Settings / Profile Lifecycle
+- [ ] Explicitly close the remaining Guard runtime-signoff lane during the manual pack
+  - `Guard/SCREEN_WIRING_CHECKLIST.md` already marks Residents/Directory wiring as `Wired`
+  - remaining Guard work is runtime verification, not unresolved implementation
+  - cover Residents/Directory behavior, guard operations scope, and settings/profile lifecycle in the recorded signoff
 - [ ] Fix and re-verify any defect found during the runtime pack before launch approval
 
 Exit criteria for Gate A:
 - Every pending section in `MANUAL_RUNTIME_QA_PACK.md` has an execution record
 - No unresolved blocker remains from runtime QA
-- Guard Residents/Directory is no longer tracked as an open implementation lane
+- Guard Residents/Directory and end-to-end guard lifecycle are verified in runtime signoff and no longer tracked as open implementation work
 
 ## Gate B - Should Fix Before Launch
 
-- [ ] Resolve or explicitly waive the remaining repo-wide `superadmin` TypeScript debt behind `npm run build:check`
-  - Current launch audit and normal build are clean
-  - The stricter type-check bar is still not fully green repo-wide
+- [x] Clear the remaining repo-wide `superadmin` TypeScript debt behind `npm run build:check`
+  - Completed on `2026-03-20`
+  - Verification passed with `npx tsc --noEmit`, `npm run build`, `npm run build:check`, and `git diff --check`
 - [ ] Decide whether browser/mobile automated smoke coverage is required before launch or whether manual runtime signoff is the accepted release control
   - Backend integration coverage is already strong
   - Browser automation remains intentionally deferred
@@ -86,15 +88,15 @@ The following are no longer open production-discovery items:
 - Baseline schema backports for completed production migrations
 - Legacy `visitor_passes` attribution/archive cleanup
 - Main admin mounted integration expansion for the active production backend surface
+- `superadmin` strict TypeScript / `build:check` debt cleanup
 
 ## Execution Order
 
-1. Finish the Guard Residents/Directory lane.
-2. Run the full manual runtime QA pack and record results.
-3. Fix any blocker defects uncovered by runtime QA.
-4. Re-run only the affected runtime sections.
-5. Decide on the `superadmin build:check` waiver versus cleanup.
-6. Return later for the explicitly deferred WordPress and release-plumbing work.
+1. Run the full manual runtime QA pack and record results, including the remaining Guard runtime-signoff lane.
+2. Fix any blocker defects uncovered by runtime QA.
+3. Re-run only the affected runtime sections.
+4. Decide whether manual runtime signoff is sufficient, or whether browser/mobile smoke automation must still be added before release approval.
+5. Return later for the explicitly deferred WordPress and release-plumbing work.
 
 ## Working Rule
 

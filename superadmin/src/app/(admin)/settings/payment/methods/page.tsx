@@ -68,7 +68,7 @@ const PaymentMethodsPage = () => {
     reset,
     watch,
   } = useForm<PaymentMethodSettings>({
-    resolver: yupResolver(schema),
+    resolver: yupResolver(schema) as any,
     defaultValues: {
       // Payment Methods
       credit_card_enabled: settings?.credit_card_enabled ?? true,

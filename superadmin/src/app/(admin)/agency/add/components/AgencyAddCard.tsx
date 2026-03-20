@@ -33,16 +33,10 @@ const AgencyAddCard = ({ formId = 'agency-directory-form' }: AgencyAddCardProps)
         </CardBody>
         <CardFooter>
           <div className="d-flex gap-2">
-            <Button
-              as={Link}
-              href="/agency/list-view"
-              variant="outline-secondary"
-              size="sm"
-              className="flex-fill"
-            >
+            <Link href="/agency/list-view" className="btn btn-outline-secondary btn-sm flex-fill">
               <IconifyIcon icon="ri:arrow-left-line" className="me-1" />
               Back
-            </Button>
+            </Link>
             <Button type="submit" form={formId} variant="primary" size="sm" className="flex-fill">
               <IconifyIcon icon="ri:building-line" className="me-1" />
               Create Agency

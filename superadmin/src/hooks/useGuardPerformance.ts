@@ -226,8 +226,10 @@ export const usePerformanceReviews = () => {
 
       // Fetch related data
       const reviews = data || [];
-      const guardIds = [...new Set(reviews.map(r => r.guard_id))];
-      const reviewerIds = [...new Set(reviews.map(r => r.reviewer_id).filter(Boolean))];
+      const guardIds = [...new Set(reviews.map((review) => review.guard_id).filter((id): id is string => Boolean(id)))];
+      const reviewerIds = [
+        ...new Set(reviews.map((review) => review.reviewer_id).filter((id): id is string => Boolean(id))),
+      ];
 
       // Fetch guard and reviewer data
       const { data: guardsData } = await supabase

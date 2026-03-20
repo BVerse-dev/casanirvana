@@ -111,11 +111,14 @@ const ComplaintDetailsPage = () => {
     }
   };
 
-  const getComplaintType = (complaintType: string) => {
+  const getComplaintType = (complaintType?: string | null) => {
     return complaintType === 'personal' ? 'Personal' : 'Community';
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString?: string | null) => {
+    if (!dateString) {
+      return "N/A";
+    }
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
       month: "long",

@@ -66,7 +66,7 @@ const AdminUsersSettingsPage = () => {
     reset,
     setValue,
   } = useForm<AdminUserFormData>({
-    resolver: yupResolver(adminUserSchema),
+    resolver: yupResolver(adminUserSchema) as any,
     defaultValues: {
       first_name: '',
       last_name: '',

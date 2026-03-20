@@ -31,10 +31,10 @@ const GuardAddCard = ({ formId = 'guard-provisioning-form' }: GuardAddCardProps)
         </CardBody>
         <CardFooter>
           <div className="d-flex gap-2">
-            <Button as={Link} href="/guards/manage?tab=profiles" variant="outline-secondary" size="sm" className="flex-fill">
+            <Link href="/guards/manage?tab=profiles" className="btn btn-outline-secondary btn-sm flex-fill">
               <IconifyIcon icon="ri:arrow-left-line" className="me-1" />
               Back
-            </Button>
+            </Link>
             <Button type="submit" form={formId} variant="primary" size="sm" className="flex-fill">
               <IconifyIcon icon="ri:user-add-line" className="me-1" />
               Send Invite

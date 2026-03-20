@@ -543,8 +543,8 @@ const EmailNotificationsView = () => {
                     className="w-100 text-start"
                     onClick={() => {
                       setSelectedTemplate(template.id.toString());
-                      setEmailSubject(template.template_name);
-                      setEmailContent(template.template_content);
+                      setEmailSubject(template.template_name || "");
+                      setEmailContent(template.template_content || "");
                     }}
                   >
                     <div className="d-flex justify-content-between align-items-center">

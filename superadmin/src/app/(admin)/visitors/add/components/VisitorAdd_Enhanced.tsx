@@ -233,7 +233,7 @@ const VisitorAddEnhanced = () => {
   )
 
   const { handleSubmit, control, reset, watch } = useForm<VisitorFormValues>({
-    resolver,
+    resolver: resolver as any,
     defaultValues: {
       visit_date: TODAY_DATE(),
       send_gate_pass: true,
@@ -442,11 +442,11 @@ const VisitorAddEnhanced = () => {
         light: '#FFFFFF',
       },
     })
-      .then((dataUrl) => {
+      .then((dataUrl: string) => {
         if (!active) return
         setQrCodeDataUrl(dataUrl)
       })
-      .catch((error) => {
+      .catch((error: Error) => {
         if (!active) return
         setQrCodeDataUrl(null)
         toast.error(error?.message || 'Unable to render QR code')
@@ -784,20 +784,23 @@ const VisitorAddEnhanced = () => {
                         <Controller
                           name="send_gate_pass"
                           control={control}
-                          render={({ field }) => (
+                          render={({ field }) => {
+                            const { value, ...checkboxField } = field
+                            return (
                             <div className="form-check">
                               <input
-                                {...field}
+                                {...checkboxField}
                                 type="checkbox"
                                 className="form-check-input"
                                 id={`${selectedVisitorType}_send_gate_pass`}
-                                checked={Boolean(field.value)}
+                                checked={Boolean(value)}
                               />
                               <label className="form-check-label" htmlFor={`${selectedVisitorType}_send_gate_pass`}>
                                 Send gate pass notification
                               </label>
                             </div>
-                          )}
+                            )
+                          }}
                         />
                       </div>
                     </Col>

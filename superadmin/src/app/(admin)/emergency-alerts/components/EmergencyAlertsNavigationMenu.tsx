@@ -162,7 +162,12 @@ const EmergencyAlertsNavigationMenu = ({ alerts, filters, onFilterChange }: Emer
               <Form.Label>Alert Type</Form.Label>
               <Form.Select
                 value={formData.alert_type}
-                onChange={(event) => setFormData((current) => ({ ...current, alert_type: event.target.value }))}
+                onChange={(event) =>
+                  setFormData((current) => ({
+                    ...current,
+                    alert_type: event.target.value as typeof current.alert_type,
+                  }))
+                }
               >
                 {EMERGENCY_ALERT_CREATE_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>

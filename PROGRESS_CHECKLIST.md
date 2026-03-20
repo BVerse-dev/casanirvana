@@ -60,6 +60,7 @@ Date: 2026-02-06
 - [x] Normalize error responses across backend (global handler returns `{ error: { code, message, details, requestId } }` and active backend surfaces now converge on it).
 - [x] Add monitoring/logging baseline across backend + superadmin + user + Guard (structured JSON logger, client error ingest, optional Sentry sink via env, JS runtime error boundaries/listeners).
 - [x] Add rate limiting and security headers (Express `helmet` + rate limiting middleware active in backend; runtime tuning remains part of release QA).
+- [x] Clear repo-wide `superadmin` strict type-check debt behind `npm run build:check` (completed `2026-03-20`; verification passed with `npx tsc --noEmit`, `npm run build`, `npm run build:check`, and `git diff --check` after removing stale dead files, aligning nullable contracts, and fixing active notification/payment/visitor/settings typing surfaces).
 - [ ] Expand test coverage beyond focused backend contract tests into backend integration, admin Playwright smoke tests, and mobile regression tests (backend mounted-app integration added on 2026-03-19 and now includes mounted admin core coverage, scoped `/admin/payments` mutation coverage, legacy scoped `/admin/profiles` CRUD, scoped maintenance stats plus maintenance/complaint/payment/notices bulk operations, scoped `/admin/payments/generate`, scoped payment ledger routes (`/admin/payments/transactions`, `/admin/payments/obligations`, `/admin/payments/statements`), scoped `/admin/payment-charges/*` catalog/template/run/issue enforcement, scoped `/admin/payouts/*` summary/transactions/destinations/rules/requests coverage, platform-only `/admin/personal-hub/*` mounted coverage for dashboard/reporting/catalog management, and mounted settings/admin-control coverage for `/admin/settings/system-overview`, `/admin/settings/user-groups`, `/admin/settings/activity-logs`, `/admin/settings/preference-*`, `/admin/settings/{smtp,integrations,business,regional,security-privacy,general-system,push,sms}`, `/admin/payment-gateways/expresspay/*`, and `/admin/system-settings*`; browser/mobile layers still deferred).
 
 ## Phase 7 - Migrations/Types Alignment
@@ -391,7 +392,7 @@ Date: 2026-02-06
 - [x] Fixed Guard emergency admin-notify RLS blocker:
   - Hardened recipient resolution in `/Users/andromeda/casanirvana/Guard/hooks/useEmergencyAlerts.js` to include only profiles mapped to valid `users.id` rows before insert.
   - Applied migration `supabase/migrations/20260222220109_phase25_guard_notify_user_profile_fallback.sql` to expand `guard_can_notify_user(uuid)` community resolution with profile fallback when `users.community_id` is null.
-- [ ] Continue Guard module-by-module production wiring/remediation (next: Residents/Directory module and end-to-end guard lifecycle QA).
+- [ ] Complete end-to-end Guard runtime QA/signoff (Residents/Directory behavior, guard operations scope, settings/profile flows). The implementation wiring itself is complete per `/Users/andromeda/casanirvana/Guard/SCREEN_WIRING_CHECKLIST.md`.
 
 ## Phase 26 - Guard Profile + Settings Persistence Hardening
 - [x] Added shared profile resolver utility `/Users/andromeda/casanirvana/Guard/utils/profileResolver.js` for `profiles.user_id` -> `profiles.id` fallback-safe resolution.

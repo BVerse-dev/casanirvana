@@ -108,7 +108,7 @@ const ResidentAddEnhanced = ({
   })
 
   React.useEffect(() => {
-    const initialValues = isEditMode ? buildInitialFormValues(resident) : {
+    const initialValues: CreateResidentData = isEditMode ? buildInitialFormValues(resident) : {
       ...buildInitialFormValues(null),
       role: 'resident',
       status: 'active',

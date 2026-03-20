@@ -5,7 +5,11 @@ import { Alert, Badge, Button, Card, CardBody, CardHeader, Col, Dropdown, Dropdo
 import { toast } from "react-hot-toast";
 
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
-import type { EmergencyAlertRecord } from "@/hooks/useEmergencyAlerts";
+import type {
+  EmergencyAlertRecord,
+  EmergencyAlertStatus,
+  UpdateEmergencyAlertInput,
+} from "@/hooks/useEmergencyAlerts";
 import { formatEmergencyAlertStatusLabel, normalizeEmergencyAlertStatus, useDeleteEmergencyAlert, useUpdateEmergencyAlert } from "@/hooks/useEmergencyAlerts";
 import { getEmergencyAlertTypeMeta, normalizeEmergencyAlertType } from "@/lib/emergencyAlertTypes";
 
@@ -106,7 +110,9 @@ const EmergencyAlertsArea = ({ selectedAlert }: EmergencyAlertsAreaProps) => {
   }, [selectedAlert]);
 
   const updateAlert = async (
-    updates: { status?: string | null; priority?: string | null },
+    updates: Pick<UpdateEmergencyAlertInput, "status" | "priority"> & {
+      status?: EmergencyAlertStatus;
+    },
     successMessage: string,
   ) => {
     if (!selectedAlert) {

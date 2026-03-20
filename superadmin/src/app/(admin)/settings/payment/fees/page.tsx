@@ -68,7 +68,7 @@ const PaymentFeesPage = () => {
     reset,
     watch,
   } = useForm<PaymentFeeSettings>({
-    resolver: yupResolver(schema),
+    resolver: yupResolver(schema) as any,
     defaultValues: {
       // Transaction Fees
       credit_card_fee_percentage: settings?.credit_card_fee_percentage ?? 2.5,

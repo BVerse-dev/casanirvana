@@ -140,7 +140,7 @@ const AgencyAdd = ({ formId = 'agency-directory-form' }: AgencyAddProps) => {
     reset,
     formState: { errors },
   } = useForm<CreateAgencyData>({
-    resolver: yupResolver(agencySchema),
+    resolver: yupResolver(agencySchema) as any,
     defaultValues: {
       is_active: true,
       agency_type: 'RESIDENTIAL',

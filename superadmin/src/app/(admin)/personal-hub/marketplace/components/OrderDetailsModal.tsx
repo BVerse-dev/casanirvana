@@ -17,6 +17,10 @@ const OrderDetailsModal = ({ show, onHide, order }: OrderDetailsModalProps) => {
     return null;
   }
 
+  const recordedTotal = Number(order.total_amount || 0);
+  const recordedFinalAmount = Number(order.final_amount || recordedTotal);
+  const recordedAdjustment = recordedFinalAmount - recordedTotal;
+
   const badgeVariant = order.status === 'delivered'
     ? 'success'
     : order.status === 'cancelled' || order.status === 'refunded'
@@ -55,16 +59,14 @@ const OrderDetailsModal = ({ show, onHide, order }: OrderDetailsModalProps) => {
             <div className="border rounded p-3 h-100">
               <h6 className="mb-3">Value Breakdown</h6>
               <dl className="mb-0 row">
-                <dt className="col-sm-6">Subtotal</dt>
-                <dd className="col-sm-6">{formatCurrency(order.total_amount || 0)}</dd>
-                <dt className="col-sm-6">Shipping</dt>
-                <dd className="col-sm-6">{formatCurrency(order.shipping_amount || 0)}</dd>
-                <dt className="col-sm-6">Tax</dt>
-                <dd className="col-sm-6">{formatCurrency(order.tax_amount || 0)}</dd>
-                <dt className="col-sm-6">Discount</dt>
-                <dd className="col-sm-6">{formatCurrency(order.discount_amount || 0)}</dd>
+                <dt className="col-sm-6">Recorded Total</dt>
+                <dd className="col-sm-6">{formatCurrency(recordedTotal)}</dd>
+                <dt className="col-sm-6">Line Items</dt>
+                <dd className="col-sm-6">{order.item_count}</dd>
+                <dt className="col-sm-6">Adjustment</dt>
+                <dd className="col-sm-6">{formatCurrency(recordedAdjustment)}</dd>
                 <dt className="col-sm-6">Final Amount</dt>
-                <dd className="col-sm-6 fw-semibold">{formatCurrency(order.final_amount || order.total_amount || 0)}</dd>
+                <dd className="col-sm-6 fw-semibold">{formatCurrency(recordedFinalAmount)}</dd>
               </dl>
             </div>
           </Col>

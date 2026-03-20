@@ -86,7 +86,7 @@ const InAppNotificationSettingsPage = () => {
   } = useInAppNotificationSettings();
 
   const { control, handleSubmit, reset, watch, formState: { isDirty } } = useForm<InAppNotificationSettings>({
-    resolver: yupResolver(inAppNotificationSchema),
+    resolver: yupResolver(inAppNotificationSchema) as any,
     defaultValues: {
       // General Settings
       notifications_enabled: true,

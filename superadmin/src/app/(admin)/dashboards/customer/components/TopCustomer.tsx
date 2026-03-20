@@ -143,9 +143,9 @@ const TopGuards = () => {
           )}
         </CardBody>
         <CardFooter className="border-top">
-          <Button as={Link} href="/guards/list-view" variant="primary" className="w-100">
+          <Link href="/guards/list-view" className="btn btn-primary w-100">
             View All Guards
-          </Button>
+          </Link>
         </CardFooter>
       </Card>
     </Col>

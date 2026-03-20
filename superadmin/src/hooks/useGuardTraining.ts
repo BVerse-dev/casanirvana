@@ -119,6 +119,20 @@ const formatGuardName = (guard?: Partial<GuardLookup> | null) => {
   return parts.length > 0 ? parts.join(' ') : 'Unknown';
 };
 
+const TRAINING_PROGRAM_CATEGORIES: TrainingProgram['category'][] = [
+  'security',
+  'safety',
+  'technology',
+  'communication',
+  'emergency',
+];
+
+const TRAINING_PROGRAM_STATUSES: TrainingProgram['status'][] = ['active', 'inactive', 'draft'];
+const GUARD_TRAINING_STATUSES: GuardTraining['status'][] = ['enrolled', 'in_progress', 'completed', 'failed', 'expired', 'cancelled'];
+const GUARD_CERTIFICATION_STATUSES: GuardCertification['status'][] = ['valid', 'expired', 'expiring_soon', 'renewed'];
+
+const isInArray = <T extends string>(values: readonly T[], value: string): value is T => values.includes(value as T);
+
 // Transform functions
 const transformDbTrainingProgramToUI = (dbProgram: any): TrainingProgram => ({
   id: dbProgram.id,
@@ -190,11 +204,11 @@ export const useTrainingPrograms = (filters?: {
           .select('*')
           .order('created_at', { ascending: false });
 
-        if (filters?.category && filters.category !== 'all') {
+        if (filters?.category && filters.category !== 'all' && isInArray(TRAINING_PROGRAM_CATEGORIES, filters.category)) {
           query = query.eq('category', filters.category);
         }
 
-        if (filters?.status && filters.status !== 'all') {
+        if (filters?.status && filters.status !== 'all' && isInArray(TRAINING_PROGRAM_STATUSES, filters.status)) {
           query = query.eq('status', filters.status);
         }
 
@@ -339,7 +353,7 @@ export const useGuardTrainings = (filters?: {
           .select('*')
           .order('created_at', { ascending: false });
 
-        if (filters?.status && filters.status !== 'all') {
+        if (filters?.status && filters.status !== 'all' && isInArray(GUARD_TRAINING_STATUSES, filters.status)) {
           query = query.eq('status', filters.status);
         }
 
@@ -538,7 +552,7 @@ export const useGuardCertifications = (filters?: {
           .select('*')
           .order('created_at', { ascending: false });
 
-        if (filters?.status && filters.status !== 'all') {
+        if (filters?.status && filters.status !== 'all' && isInArray(GUARD_CERTIFICATION_STATUSES, filters.status)) {
           query = query.eq('status', filters.status);
         }
 
@@ -687,8 +701,11 @@ export const useTrainingStats = () => {
         
         const completionRate = totalTrainings > 0 ? (completedTrainings / totalTrainings) * 100 : 0;
         
-        const scores = trainings.filter(t => t.score !== null).map(t => t.score);
-        const averageScore = scores.length > 0 ? scores.reduce((sum, score) => sum + score, 0) / scores.length : 0;
+        const scores = trainings
+          .map((training) => training.score)
+          .filter((score): score is number => typeof score === 'number');
+        const averageScore =
+          scores.length > 0 ? scores.reduce((sum, score) => sum + score, 0) / scores.length : 0;
 
         const stats: TrainingStats = {
           totalPrograms,

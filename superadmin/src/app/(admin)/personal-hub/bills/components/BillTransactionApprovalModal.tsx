@@ -202,7 +202,7 @@ const BillTransactionApprovalModal: React.FC<BillTransactionApprovalModalProps> 
                 />
                 <div>
                   <div className="fw-semibold">{transaction.biller.name}</div>
-                  <Badge bg={getCategoryBadgeVariant(transaction.biller.category)} size="sm">
+                  <Badge bg={getCategoryBadgeVariant(transaction.biller.category)}>
                     {transaction.biller.category}
                   </Badge>
                 </div>

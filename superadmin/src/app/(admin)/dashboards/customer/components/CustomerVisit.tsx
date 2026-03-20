@@ -218,14 +218,14 @@ const GuardVisits = () => {
         <CardFooter className="border-top">
           <Row className="g-2">
             <Col lg={7}>
-              <Button as={Link} href="/guards/schedules" variant="primary" className="w-100">
+              <Link href="/guards/schedules" className="btn btn-primary w-100">
                 View Schedules
-              </Button>
+              </Link>
             </Col>
             <Col lg={5}>
-              <Button as={Link} href="/guards/assignments" variant="light" className="w-100">
+              <Link href="/guards/assignments" className="btn btn-light w-100">
                 Assignments
-              </Button>
+              </Link>
             </Col>
           </Row>
         </CardFooter>

@@ -271,17 +271,17 @@ const GuardData = ({
               <GuardCard 
                 id={guard.id}
                 full_name={guard.full_name}
-                email={guard.email}
-                phone={guard.phone}
-                avatar_url={guard.avatar_url}
+                email={guard.email ?? null}
+                phone={guard.phone ?? null}
+                avatar_url={guard.avatar_url ?? null}
                 societies={guard.societies ? {
-                  id: guard.societies.id,
-                  name: guard.societies.name,
-                  address: guard.societies.address || undefined
+                  id: guard.societies.id ?? "",
+                  name: guard.societies.name ?? "",
+                  address: guard.societies.address ?? undefined
                 } : null}
-                is_active={guard.is_active}
-                shift_type={guard.shift_type}
-                employment_date={guard.employment_date}
+                is_active={guard.is_active ?? null}
+                shift_type={guard.shift_type ?? null}
+                employment_date={guard.employment_date ?? null}
                 onDelete={handleDeleteClick}
               />
             </Col>
