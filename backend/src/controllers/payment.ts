@@ -1244,6 +1244,11 @@ const PAYMENT_CONTROLLER_ERROR_MAP: Array<{
     code: 'ADMIN_PAYOUT_REQUEST_NOT_FOUND',
   },
   {
+    message: 'Payout rule not found.',
+    status: 404,
+    code: 'ADMIN_PAYOUT_RULE_NOT_FOUND',
+  },
+  {
     message: 'Payment charge template not found',
     status: 404,
     code: 'ADMIN_PAYMENT_CHARGE_TEMPLATE_NOT_FOUND',
@@ -1629,6 +1634,11 @@ export async function updateAdminPersonalHubCatalogProvider(req: Request, res: R
       data: provider,
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Cached Personal Hub provider not found.') {
+      return next(
+        createHttpError(404, 'ADMIN_PERSONAL_HUB_PROVIDER_NOT_FOUND', 'Cached Personal Hub provider not found.', error)
+      );
+    }
     if (error instanceof Error && 'statusCode' in error) {
       return next(error);
     }
@@ -2601,7 +2611,7 @@ export async function getAdminPaymentChargeRunDetails(req: Request, res: Respons
 
     assertRecordAccess(
       scope,
-      run,
+      isRecord(run) && isRecord(run.run) ? run.run : run,
       'ADMIN_PAYMENT_CHARGE_SCOPE_VIOLATION',
       'Payment charge run is outside your tenant scope'
     );

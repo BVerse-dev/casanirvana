@@ -7648,6 +7648,739 @@ describe('Mounted app integration', () => {
     ]);
   });
 
+  it('lists mounted payment charge catalog data and issues in-scope agency templates into charge runs', async () => {
+    const app = await loadApp();
+    const agencyId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const communityId = '11111111-1111-4111-8111-111111111111';
+
+    seedAuthenticatedAdmin({
+      permissions: ['create:payments', 'read:all_payments'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+      agencyIds: [agencyId],
+    });
+
+    mockState.tables.agencies = [{ id: agencyId, name: 'Casa Agency' }];
+    mockState.tables.communities = [{ id: communityId, agency_id: agencyId, name: 'Casa Nirvana' }];
+    mockState.tables.units = [
+      { id: 'charge-unit-1', community_id: communityId, number: 'A-101', unit_number: 'A-101', block: 'A' },
+      { id: 'charge-unit-2', community_id: communityId, number: 'A-102', unit_number: 'A-102', block: 'A' },
+    ];
+    mockState.tables.payment_charge_templates = [
+      {
+        id: 'template-agency-issue',
+        scope_level: 'agency',
+        agency_id: agencyId,
+        community_id: null,
+        name: 'Agency Security Levy',
+        charge_code: 'SEC002',
+        catalog_key: 'security_levy',
+        category: 'Security',
+        charge_type: 'fixed',
+        amount: 75,
+        currency_code: 'GHS',
+        billing_frequency: 'monthly',
+        billing_anchor_day: 1,
+        billing_anchor_month: null,
+        start_date: null,
+        due_offset_days: 5,
+        grace_period_days: 0,
+        late_fee_type: 'none',
+        late_fee_value: 0,
+        auto_issue: false,
+        requires_approval: false,
+        is_active: true,
+        description: 'Agency-wide monthly security levy',
+        metadata: {},
+        created_by: 'auth-admin',
+        updated_by: 'auth-admin',
+        created_at: '2026-03-01T00:00:00.000Z',
+        updated_at: '2026-03-01T00:00:00.000Z',
+      },
+    ];
+    mockState.tables.payment_charge_template_targets = [
+      {
+        id: 'template-target-1',
+        template_id: 'template-agency-issue',
+        target_type: 'all_units',
+        target_value: null,
+      },
+    ];
+    mockState.tables.payment_charge_runs = [];
+    mockState.tables.payment_obligations = [];
+
+    const catalogResponse = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/payment-charges/catalog',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    const issueResponse = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/payment-charges/templates/template-agency-issue/issue',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {},
+    });
+
+    const issuedRunId = (issueResponse.body as any).data.run.id;
+
+    const runsResponse = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/payment-charges/runs',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    const detailResponse = await performMountedRequest(app, {
+      method: 'GET',
+      path: `/admin/payment-charges/runs/${issuedRunId}`,
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(catalogResponse.status).toBe(200);
+    expect(((catalogResponse.body as any).data.items || []).length).toBeGreaterThan(0);
+    expect(issueResponse.status).toBe(200);
+    expect((issueResponse.body as any).data).toEqual(
+      expect.objectContaining({
+        obligations_created: 2,
+      })
+    );
+    expect((issueResponse.body as any).data.run).toEqual(
+      expect.objectContaining({
+        community_id: communityId,
+        template_id: 'template-agency-issue',
+      })
+    );
+    expect(runsResponse.status).toBe(200);
+    expect(((runsResponse.body as any).data.items || []).map((item: any) => item.id)).toEqual([issuedRunId]);
+    expect(detailResponse.status).toBe(200);
+    expect((detailResponse.body as any).data.run.id).toBe(issuedRunId);
+    expect(((detailResponse.body as any).data.obligations || []).length).toBe(2);
+  });
+
+  it('lists mounted payout transactions in scope and updates payout destinations', async () => {
+    const app = await loadApp();
+    const agencyId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const otherAgencyId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const communityId = '11111111-1111-4111-8111-111111111111';
+    const otherCommunityId = '22222222-2222-4222-8222-222222222222';
+
+    seedAuthenticatedAdmin({
+      permissions: ['read:all_payments', 'update:payments'],
+      role: 'agency_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+      agencyIds: [agencyId],
+    });
+
+    (mockState.tables.profiles[0] as any).community_id = communityId;
+    mockState.tables.agencies = [
+      { id: agencyId, name: 'Casa Agency' },
+      { id: otherAgencyId, name: 'Outside Agency' },
+    ];
+    mockState.tables.communities = [
+      { id: communityId, agency_id: agencyId, name: 'Casa Nirvana' },
+      { id: otherCommunityId, agency_id: otherAgencyId, name: 'Outside Estate' },
+    ];
+    mockState.tables.units = [
+      { id: 'payout-unit-1', community_id: communityId, number: 'A-101', unit_number: 'A-101', block: 'A' },
+      { id: 'payout-unit-2', community_id: otherCommunityId, number: 'B-201', unit_number: 'B-201', block: 'B' },
+    ];
+    mockState.tables.payments = [
+      {
+        id: 'payout-payment-1',
+        title: 'Scoped Payment',
+        amount: 150,
+        unit_id: 'payout-unit-1',
+        status: 'completed',
+        revenue_hub: 'community',
+        distribution_class: 'distributable',
+        payment_gateway: 'expresspay',
+        payment_type: 'manual',
+        transaction_id: 'txn-1',
+        reference_number: 'REF-1',
+        gross_amount: 150,
+        platform_fee_amount: 10,
+        community_share_amount: 20,
+        agency_share_amount: 120,
+        payout_eligible_amount: 120,
+        payout_reserved_amount: 20,
+        payout_paid_out_amount: 10,
+        payout_status: 'reserved',
+        payout_eligible_at: '2026-03-19T10:00:00.000Z',
+        created_at: '2026-03-19T09:00:00.000Z',
+        updated_at: '2026-03-19T10:00:00.000Z',
+      },
+      {
+        id: 'payout-payment-2',
+        title: 'Outside Payment',
+        amount: 220,
+        unit_id: 'payout-unit-2',
+        status: 'completed',
+        revenue_hub: 'community',
+        distribution_class: 'distributable',
+        payment_gateway: 'expresspay',
+        payment_type: 'manual',
+        transaction_id: 'txn-2',
+        reference_number: 'REF-2',
+        gross_amount: 220,
+        platform_fee_amount: 20,
+        community_share_amount: 30,
+        agency_share_amount: 170,
+        payout_eligible_amount: 170,
+        payout_reserved_amount: 0,
+        payout_paid_out_amount: 0,
+        payout_status: 'available',
+        payout_eligible_at: '2026-03-19T10:00:00.000Z',
+        created_at: '2026-03-19T09:00:00.000Z',
+        updated_at: '2026-03-19T10:00:00.000Z',
+      },
+    ];
+    mockState.tables.payout_destinations = [
+      {
+        id: 'destination-1',
+        agency_id: agencyId,
+        community_id: null,
+        destination_type: 'bank_account',
+        label: 'Primary Agency Account',
+        account_name: 'Casa Agency Ops',
+        account_number_masked: '******7890',
+        bank_name: 'GCB Bank',
+        bank_code: '040100',
+        mobile_network: null,
+        mobile_number_masked: null,
+        currency_code: 'GHS',
+        is_default: true,
+        is_verified: true,
+        status: 'active',
+        metadata: {},
+      },
+    ];
+
+    const transactionsResponse = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/payouts/transactions',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    const updateDestinationResponse = await performMountedRequest(app, {
+      method: 'PATCH',
+      path: '/admin/payouts/destinations/destination-1',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        label: 'Updated Agency Account',
+        is_default: true,
+      },
+    });
+
+    expect(transactionsResponse.status).toBe(200);
+    expect(((transactionsResponse.body as any).data.items || []).map((item: any) => item.id)).toEqual([
+      'payout-payment-1',
+    ]);
+    expect(updateDestinationResponse.status).toBe(200);
+    expect((updateDestinationResponse.body as any).data).toEqual(
+      expect.objectContaining({
+        id: 'destination-1',
+        label: 'Updated Agency Account',
+        agency_id: agencyId,
+      })
+    );
+  });
+
+  it('creates mounted payout rules in scope and rejects out-of-scope payout rule updates', async () => {
+    const app = await loadApp();
+    const agencyId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const otherAgencyId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const communityId = '11111111-1111-4111-8111-111111111111';
+
+    seedAuthenticatedAdmin({
+      permissions: ['read:all_payments', 'update:payments'],
+      role: 'agency_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+      agencyIds: [agencyId],
+    });
+
+    (mockState.tables.profiles[0] as any).community_id = communityId;
+    mockState.tables.communities = [{ id: communityId, agency_id: agencyId, name: 'Casa Nirvana' }];
+    mockState.tables.payout_rules = [
+      {
+        id: 'payout-rule-outside',
+        agency_id: otherAgencyId,
+        community_id: null,
+        effective_from: '2026-03-01T00:00:00.000Z',
+        community_share_mode: 'percentage',
+        community_share_value: 25,
+        agency_share_mode: 'remainder',
+        agency_share_value: 0,
+        platform_fee_mode: 'percentage',
+        platform_fee_value: 10,
+        is_active: true,
+      },
+    ];
+
+    const createResponse = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/payouts/rules',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        agency_id: agencyId,
+        community_id: communityId,
+        effective_from: '2026-03-20T00:00:00.000Z',
+        community_share_mode: 'percentage',
+        community_share_value: 30,
+        agency_share_mode: 'remainder',
+        agency_share_value: 0,
+        platform_fee_mode: 'percentage',
+        platform_fee_value: 12,
+        is_active: true,
+      },
+    });
+
+    const listResponse = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/payouts/rules',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    const deniedUpdateResponse = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/payouts/rules',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        id: 'payout-rule-outside',
+        agency_id: agencyId,
+        community_id: communityId,
+        community_share_mode: 'percentage',
+        community_share_value: 35,
+        agency_share_mode: 'remainder',
+        agency_share_value: 0,
+        platform_fee_mode: 'percentage',
+        platform_fee_value: 9,
+        is_active: true,
+      },
+    });
+
+    expect(createResponse.status).toBe(201);
+    expect((createResponse.body as any).data).toEqual(
+      expect.objectContaining({
+        agency_id: agencyId,
+        community_id: communityId,
+        community_share_value: 30,
+      })
+    );
+    expect(listResponse.status).toBe(200);
+    expect(((listResponse.body as any).data.items || []).map((item: any) => item.agency_id)).toEqual([agencyId]);
+    expect(deniedUpdateResponse.status).toBe(404);
+    expect((deniedUpdateResponse.body as any).error.code).toBe('ADMIN_PAYOUT_RULE_NOT_FOUND');
+  });
+
+  it('creates and approves mounted payout requests within scope', async () => {
+    const app = await loadApp();
+    const agencyId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const communityId = '11111111-1111-4111-8111-111111111111';
+
+    seedAuthenticatedAdmin({
+      permissions: ['read:all_payments', 'create:payments', 'update:payments'],
+      role: 'agency_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+      agencyIds: [agencyId],
+    });
+
+    (mockState.tables.profiles[0] as any).community_id = communityId;
+    mockState.tables.agencies = [{ id: agencyId, name: 'Casa Agency' }];
+    mockState.tables.communities = [{ id: communityId, agency_id: agencyId, name: 'Casa Nirvana' }];
+    mockState.tables.units = [
+      { id: 'request-unit-1', community_id: communityId, number: 'A-101', unit_number: 'A-101', block: 'A' },
+    ];
+    mockState.tables.payments = [
+      {
+        id: 'request-payment-1',
+        title: 'Eligible Payment',
+        amount: 150,
+        unit_id: 'request-unit-1',
+        status: 'completed',
+        revenue_hub: 'community',
+        distribution_class: 'distributable',
+        payment_gateway: 'expresspay',
+        payment_type: 'manual',
+        transaction_id: 'txn-request-1',
+        reference_number: 'REQ-REF-1',
+        gross_amount: 150,
+        platform_fee_amount: 10,
+        community_share_amount: 20,
+        agency_share_amount: 120,
+        payout_eligible_amount: 120,
+        payout_reserved_amount: 0,
+        payout_paid_out_amount: 0,
+        payout_status: 'available',
+        payout_eligible_at: '2026-03-19T10:00:00.000Z',
+        created_at: '2026-03-19T09:00:00.000Z',
+        updated_at: '2026-03-19T10:00:00.000Z',
+      },
+    ];
+    mockState.tables.payout_destinations = [
+      {
+        id: 'request-destination-1',
+        agency_id: agencyId,
+        community_id: null,
+        destination_type: 'bank_account',
+        label: 'Primary Agency Account',
+        account_name: 'Casa Agency Ops',
+        account_number_masked: '******7890',
+        bank_name: 'GCB Bank',
+        bank_code: '040100',
+        mobile_network: null,
+        mobile_number_masked: null,
+        currency_code: 'GHS',
+        is_default: true,
+        is_verified: true,
+        status: 'active',
+        metadata: {},
+      },
+    ];
+    mockState.tables.payout_request_items = [];
+    mockState.tables.payout_request_events = [];
+    mockState.tables.payout_ledger_entries = [];
+
+    const createResponse = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/payouts/requests',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        community_id: communityId,
+        destination_id: 'request-destination-1',
+        requested_amount: 80,
+        notes: 'Release funds',
+      },
+    });
+
+    const requestId = (createResponse.body as any).data.request.id;
+
+    const listResponse = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/payouts/requests',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    const approveResponse = await performMountedRequest(app, {
+      method: 'POST',
+      path: `/admin/payouts/requests/${requestId}/approve`,
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        notes: 'Approved for release',
+      },
+    });
+
+    expect(createResponse.status).toBe(201);
+    expect((createResponse.body as any).data.request).toEqual(
+      expect.objectContaining({
+        agency_id: agencyId,
+        community_id: communityId,
+        status: 'pending_review',
+      })
+    );
+    expect(((createResponse.body as any).data.allocations || []).length).toBe(1);
+    expect(listResponse.status).toBe(200);
+    expect(((listResponse.body as any).data.items || []).map((item: any) => item.id)).toEqual([requestId]);
+    expect(approveResponse.status).toBe(200);
+    expect((approveResponse.body as any).data.status).toBe('approved');
+  });
+
+  it('rejects mounted Personal Hub admin routes for scoped admins', async () => {
+    const app = await loadApp();
+    const communityId = '11111111-1111-4111-8111-111111111111';
+
+    seedAuthenticatedAdmin({
+      permissions: ['read:all_payments', 'update:payments'],
+      role: 'facility_manager',
+      isGlobal: false,
+      communityIds: [communityId],
+      agencyIds: ['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
+    });
+
+    const dashboardResponse = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/personal-hub/dashboard',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    const reportsResponse = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/personal-hub/reports',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    const providersResponse = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/personal-hub/catalog/providers',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    const syncResponse = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/personal-hub/catalog/sync',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(dashboardResponse.status).toBe(403);
+    expect((dashboardResponse.body as any).error.code).toBe('PERSONAL_HUB_REPORTS_FORBIDDEN');
+    expect(reportsResponse.status).toBe(403);
+    expect((reportsResponse.body as any).error.code).toBe('PERSONAL_HUB_REPORTS_FORBIDDEN');
+    expect(providersResponse.status).toBe(403);
+    expect((providersResponse.body as any).error.code).toBe('PERSONAL_HUB_CATALOG_MANAGEMENT_FORBIDDEN');
+    expect(syncResponse.status).toBe(403);
+    expect((syncResponse.body as any).error.code).toBe('PERSONAL_HUB_CATALOG_SYNC_FORBIDDEN');
+  });
+
+  it('returns mounted Personal Hub dashboard and catalog data for platform admins and 404s missing provider updates', async () => {
+    const app = await loadApp();
+    const now = new Date();
+    const currentDate = now.toISOString().slice(0, 10);
+    const previousDate = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const currentTimestamp = now.toISOString();
+    const previousTimestamp = new Date(now.getTime() - 6 * 60 * 60 * 1000).toISOString();
+    const agencyId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const communityId = '11111111-1111-4111-8111-111111111111';
+    const providerId = '33333333-3333-4333-8333-333333333333';
+    const missingProviderId = '44444444-4444-4444-8444-444444444444';
+
+    seedAuthenticatedAdmin({
+      permissions: ['read:all_payments', 'update:payments'],
+      role: 'superadmin',
+      isGlobal: true,
+    });
+
+    mockState.tables.agencies = [{ id: agencyId, name: 'Casa Agency' }];
+    mockState.tables.communities = [{ id: communityId, agency_id: agencyId, name: 'Casa Nirvana' }];
+    mockState.tables.units = [{ id: 'hub-unit-1', community_id: communityId, number: 'A-101', unit_number: 'A-101', block: 'A' }];
+    mockState.tables.profiles = [
+      ...mockState.tables.profiles,
+      {
+        id: 'profile-hub-1',
+        user_id: 'hub-user-1',
+        full_name: 'Ama Resident',
+        email: 'ama@example.com',
+        phone: '+233201234567',
+        community_id: communityId,
+        unit_id: 'hub-unit-1',
+        avatar_url: null,
+      },
+    ];
+    mockState.tables.personal_hub_transactions = [
+      {
+        id: 'hub-tx-1',
+        transaction_id: 'hub-tx-1',
+        payment_id: 'hub-payment-1',
+        profile_id: 'profile-hub-1',
+        user_id: 'hub-user-1',
+        transaction_type: 'bill_payment',
+        provider: 'Electricity Ghana',
+        recipient_name: 'Ama Resident',
+        recipient_identifier: 'ACC-1001',
+        amount: 45,
+        total_amount: 45,
+        status: 'completed',
+        created_at: currentTimestamp,
+        updated_at: currentTimestamp,
+      },
+      {
+        id: 'hub-tx-2',
+        transaction_id: 'hub-tx-2',
+        payment_id: 'hub-payment-2',
+        profile_id: 'profile-hub-1',
+        user_id: 'hub-user-1',
+        transaction_type: 'data_purchase',
+        provider: 'MTN',
+        recipient_name: 'Ama Resident',
+        recipient_identifier: '0240000000',
+        amount: 15,
+        total_amount: 15,
+        status: 'completed',
+        created_at: previousTimestamp,
+        updated_at: previousTimestamp,
+      },
+    ];
+    mockState.tables.personal_hub_analytics = [
+      {
+        id: 'hub-analytics-1',
+        date: currentDate,
+        service_type: 'bill_payment',
+        total_transactions: 1,
+        successful_transactions: 1,
+        failed_transactions: 0,
+        total_volume: 45,
+        total_commission: 5,
+        average_response_time: 1.2,
+      },
+      {
+        id: 'hub-analytics-2',
+        date: previousDate,
+        service_type: 'data_purchase',
+        total_transactions: 1,
+        successful_transactions: 1,
+        failed_transactions: 0,
+        total_volume: 15,
+        total_commission: 2,
+        average_response_time: 0.9,
+      },
+    ];
+    mockState.tables.service_providers = [
+      {
+        id: providerId,
+        catalog_source: 'expresspay',
+        provider_name: 'Electricity Ghana',
+        service_type: 'bill_payment',
+        bill_category: 'utilities',
+        external_service_code: 'ELEC01',
+        logo_url: null,
+        supports_query: true,
+        supports_pay: true,
+        supports_status: true,
+        provider_metadata: {},
+        is_active: true,
+        is_enabled_for_app: true,
+        last_synced_at: currentTimestamp,
+      },
+    ];
+    mockState.tables.service_packages = [
+      {
+        id: 'package-1',
+        provider_id: providerId,
+        catalog_source: 'expresspay',
+        service_type: 'bill_payment',
+        package_name: 'Electricity Top Up',
+        package_code: 'ELEC-PKG-1',
+        denomination: '45',
+        data_amount: null,
+        validity_days: null,
+        description: 'Electricity credit bundle',
+        display_order: 1,
+        is_active: true,
+        is_enabled_for_app: true,
+        last_synced_at: currentTimestamp,
+        provider_metadata: {},
+        service_providers: {
+          provider_name: 'Electricity Ghana',
+          external_service_code: 'ELEC01',
+          is_enabled_for_app: true,
+        },
+      },
+    ];
+
+    const dashboardResponse = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/personal-hub/dashboard?period=30&recent_limit=5',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    const reportsResponse = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/personal-hub/reports?period=30&limit=50',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    const providersResponse = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/personal-hub/catalog/providers',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    const packagesResponse = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/personal-hub/catalog/packages',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    const updateProviderResponse = await performMountedRequest(app, {
+      method: 'PATCH',
+      path: `/admin/personal-hub/catalog/providers/${providerId}`,
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        provider_name: 'ECG Utilities',
+        is_enabled_for_app: false,
+      },
+    });
+
+    const missingProviderResponse = await performMountedRequest(app, {
+      method: 'PATCH',
+      path: `/admin/personal-hub/catalog/providers/${missingProviderId}`,
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        provider_name: 'Missing Provider',
+      },
+    });
+
+    expect(dashboardResponse.status).toBe(200);
+    expect((dashboardResponse.body as any).data.metrics.totalTransactions).toBe(2);
+    expect(((dashboardResponse.body as any).data.metrics.recentTransactions || []).length).toBe(2);
+    expect(reportsResponse.status).toBe(200);
+    expect((reportsResponse.body as any).data.transactions_total).toBe(2);
+    expect(providersResponse.status).toBe(200);
+    expect(((providersResponse.body as any).data.items || []).map((item: any) => item.provider_name)).toEqual([
+      'Electricity Ghana',
+    ]);
+    expect(packagesResponse.status).toBe(200);
+    expect(((packagesResponse.body as any).data.items || []).map((item: any) => item.package_name)).toEqual([
+      'Electricity Top Up',
+    ]);
+    expect(updateProviderResponse.status).toBe(200);
+    expect((updateProviderResponse.body as any).data).toEqual(
+      expect.objectContaining({
+        id: providerId,
+        provider_name: 'ECG Utilities',
+        is_enabled_for_app: false,
+      })
+    );
+    expect(missingProviderResponse.status).toBe(404);
+    expect((missingProviderResponse.body as any).error.code).toBe('ADMIN_PERSONAL_HUB_PROVIDER_NOT_FOUND');
+  });
+
   it('rejects onboarding writes when the public API key is wrong', async () => {
     const app = await loadApp();
 

@@ -1101,10 +1101,24 @@ export const upsertAdminPayoutRule = async (
   },
   context: PayoutScopeInput
 ) => {
+  const existingRule = input.id
+    ? (await listAdminPayoutRules(context)).find((row) => row.id === input.id) || null
+    : null;
+
+  if (input.id && !existingRule) {
+    throw new Error('Payout rule not found.');
+  }
+
   const scope = await resolvePayoutScope({
     ...context,
-    agencyId: input.agency_id || context.agencyId,
-    communityId: input.community_id || context.communityId,
+    agencyId:
+      input.agency_id !== undefined
+        ? input.agency_id
+        : existingRule?.agency_id || context.agencyId,
+    communityId:
+      input.community_id !== undefined
+        ? input.community_id
+        : existingRule?.community_id || context.communityId,
   });
 
   if (!scope.agencyId) {
