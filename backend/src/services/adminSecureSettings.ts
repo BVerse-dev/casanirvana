@@ -865,7 +865,8 @@ export async function getAdminSmtpSettings() {
 export async function saveAdminSmtpSettings(input: Record<string, unknown>, updatedBy?: string | null) {
   const current = await loadSettings('smtp', SMTP_DEFAULTS);
   const merged = mergeSubmittedSettings(input, current, SMTP_DEFAULTS, SMTP_SENSITIVE_KEYS);
-  return upsertSettingsCategory('smtp', merged, SMTP_DESCRIPTIONS, SMTP_SENSITIVE_KEYS, updatedBy);
+  const saved = await upsertSettingsCategory('smtp', merged, SMTP_DESCRIPTIONS, SMTP_SENSITIVE_KEYS, updatedBy);
+  return maskSensitiveValues(saved, SMTP_SENSITIVE_KEYS);
 }
 
 export async function testAdminSmtpSettings(input: Record<string, unknown>) {
@@ -940,7 +941,14 @@ export async function getAdminIntegrationSettings() {
 export async function saveAdminIntegrationSettings(input: Record<string, unknown>, updatedBy?: string | null) {
   const current = await loadSettings('integrations', INTEGRATION_DEFAULTS);
   const merged = mergeSubmittedSettings(input, current, INTEGRATION_DEFAULTS, INTEGRATION_SENSITIVE_KEYS);
-  return upsertSettingsCategory('integrations', merged, INTEGRATION_DESCRIPTIONS, INTEGRATION_SENSITIVE_KEYS, updatedBy);
+  const saved = await upsertSettingsCategory(
+    'integrations',
+    merged,
+    INTEGRATION_DESCRIPTIONS,
+    INTEGRATION_SENSITIVE_KEYS,
+    updatedBy
+  );
+  return maskSensitiveValues(saved, INTEGRATION_SENSITIVE_KEYS);
 }
 
 export async function testAdminIntegrationSetting(
@@ -1011,13 +1019,14 @@ export async function getAdminPushSettings() {
 export async function saveAdminPushSettings(input: Record<string, unknown>, updatedBy?: string | null) {
   const current = await loadSettings('push_notifications', PUSH_DEFAULTS);
   const merged = mergeSubmittedSettings(input, current, PUSH_DEFAULTS, PUSH_SENSITIVE_KEYS);
-  return upsertSettingsCategory(
+  const saved = await upsertSettingsCategory(
     'push_notifications',
     merged,
     PUSH_DESCRIPTIONS,
     PUSH_SENSITIVE_KEYS,
     updatedBy
   );
+  return maskSensitiveValues(saved, PUSH_SENSITIVE_KEYS);
 }
 
 export async function testAdminPushSettings(input: Record<string, unknown>) {
@@ -1082,13 +1091,14 @@ export async function getAdminSmsSettings() {
 export async function saveAdminSmsSettings(input: Record<string, unknown>, updatedBy?: string | null) {
   const current = await loadSettings('sms_notifications', SMS_DEFAULTS);
   const merged = mergeSubmittedSettings(input, current, SMS_DEFAULTS, SMS_SENSITIVE_KEYS);
-  return upsertSettingsCategory(
+  const saved = await upsertSettingsCategory(
     'sms_notifications',
     merged,
     SMS_DESCRIPTIONS,
     SMS_SENSITIVE_KEYS,
     updatedBy
   );
+  return maskSensitiveValues(saved, SMS_SENSITIVE_KEYS);
 }
 
 export async function testAdminSmsSettings(input: Record<string, unknown>) {

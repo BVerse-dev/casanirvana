@@ -536,8 +536,7 @@ export async function exportSettingsActivityLogs(req: Request, res: Response, ne
       offset: undefined,
     };
 
-    req.query = query;
-    return listSettingsActivityLogs(req, res, next);
+    return listSettingsActivityLogs({ ...req, query } as Request, res, next);
   } catch (error) {
     next(error);
   }

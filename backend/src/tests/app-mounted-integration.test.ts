@@ -475,6 +475,23 @@ async function loadApp(envOverrides: Record<string, string | undefined> = {}) {
     captureException: vi.fn(),
   }));
 
+  vi.doMock('nodemailer', () => ({
+    default: {
+      createTransport: vi.fn(() => ({
+        verify: vi.fn(async () => true),
+      })),
+    },
+  }));
+
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify({ 'result-text': 'ok' }),
+    }))
+  );
+
   vi.doMock('../lib/supabase', () => {
     const auth = {
       getUser: vi.fn(async (token: string) => {
@@ -748,6 +765,7 @@ describe('Mounted app integration', () => {
 
   afterEach(() => {
     process.env = { ...baseEnv };
+    vi.unstubAllGlobals();
     vi.resetModules();
     vi.clearAllMocks();
   });
@@ -3994,6 +4012,1027 @@ describe('Mounted app integration', () => {
 
     expect(deleteResponse.status).toBe(204);
     expect((mockState.tables.settings || []).some((row) => row.user_id === 'auth-admin' && row.key === 'locale')).toBe(false);
+  });
+
+  it('returns mounted settings system overview data and dismisses active alerts', async () => {
+    const app = await loadApp();
+    const alertId = '11111111-1111-4111-8111-111111111111';
+
+    seedAuthenticatedAdmin({
+      permissions: ['manage:settings'],
+    });
+
+    mockState.tables.system_overview = [
+      {
+        cpu_usage: 27,
+        memory_usage: 41,
+        total_users: 128,
+        total_units: 84,
+      },
+    ];
+    mockState.tables.system_activities = [
+      {
+        id: 'activity-1',
+        created_at: '2026-03-20T09:00:00.000Z',
+        action: 'Deployed backend release',
+        user_info: 'Ops Admin',
+        activity_type: 'system',
+      },
+    ];
+    mockState.tables.system_alerts = [
+      {
+        id: alertId,
+        is_active: true,
+        created_at: '2026-03-20T09:30:00.000Z',
+        alert_type: 'warning',
+        message: 'Storage usage is above 80%',
+      },
+    ];
+    mockState.tables.system_performance = [
+      {
+        id: 'performance-1',
+        created_at: '2026-03-01T00:00:00.000Z',
+        month: 'Mar',
+        users: 100,
+      },
+    ];
+    mockState.tables.system_components = [
+      {
+        id: 'component-1',
+        component_label: 'API',
+        component_status: 'operational',
+      },
+    ];
+
+    const overviewResponse = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/settings/system-overview',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(overviewResponse.status).toBe(200);
+    expect((overviewResponse.body as any).data).toMatchObject({
+      metrics: {
+        cpu_usage: 27,
+        total_users: 128,
+      },
+    });
+    expect((overviewResponse.body as any).data.alerts).toEqual([
+      expect.objectContaining({
+        id: alertId,
+        is_active: true,
+      }),
+    ]);
+
+    const dismissResponse = await performMountedRequest(app, {
+      method: 'PATCH',
+      path: `/admin/settings/system-overview/alerts/${alertId}/dismiss`,
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {},
+    });
+
+    expect(dismissResponse.status).toBe(200);
+    expect((dismissResponse.body as any).data).toEqual(
+      expect.objectContaining({
+        id: alertId,
+        is_active: false,
+      })
+    );
+    expect((mockState.tables.system_alerts || []).find((row) => row.id === alertId)).toEqual(
+      expect.objectContaining({
+        is_active: false,
+      })
+    );
+  });
+
+  it('lists mounted settings user groups, members, and stats with live enrichment', async () => {
+    const app = await loadApp();
+    const groupId = '22222222-2222-4222-8222-222222222222';
+    const leaderId = '33333333-3333-4333-8333-333333333333';
+    const memberId = '44444444-4444-4444-8444-444444444444';
+
+    seedAuthenticatedAdmin({
+      permissions: ['manage:settings'],
+    });
+
+    mockState.tables.profiles = [
+      ...mockState.tables.profiles,
+      {
+        id: leaderId,
+        first_name: 'Grace',
+        last_name: 'Leader',
+        full_name: 'Grace Leader',
+        email: 'leader@example.com',
+        role: 'community_manager',
+      },
+      {
+        id: memberId,
+        first_name: 'Kojo',
+        last_name: 'Member',
+        full_name: 'Kojo Member',
+        email: 'member@example.com',
+        role: 'resident',
+      },
+    ];
+    mockState.tables.user_groups = [
+      {
+        id: groupId,
+        name: 'Residents Council',
+        description: 'Resident representatives',
+        type: 'committee',
+        is_active: true,
+        leader_id: leaderId,
+        member_count: null,
+      },
+    ];
+    mockState.tables.group_members = [
+      {
+        id: 'group-member-1',
+        group_id: groupId,
+        user_id: memberId,
+        joined_at: '2026-03-18T10:00:00.000Z',
+        is_active: true,
+      },
+    ];
+
+    const listResponse = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/settings/user-groups',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(listResponse.status).toBe(200);
+    expect((listResponse.body as any).data).toEqual([
+      expect.objectContaining({
+        id: groupId,
+        leader_name: 'Grace Leader',
+        member_count: 1,
+      }),
+    ]);
+
+    const membersResponse = await performMountedRequest(app, {
+      method: 'GET',
+      path: `/admin/settings/user-groups/${groupId}/members`,
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(membersResponse.status).toBe(200);
+    expect((membersResponse.body as any).data).toEqual([
+      expect.objectContaining({
+        userId: memberId,
+        userName: 'Kojo Member',
+        userEmail: 'member@example.com',
+      }),
+    ]);
+
+    const statsResponse = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/settings/user-groups/stats',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(statsResponse.status).toBe(200);
+    expect((statsResponse.body as any).data).toEqual({
+      total: 1,
+      active: 1,
+      totalMembers: 0,
+      avgMembersPerGroup: 0,
+      byType: {
+        committee: 1,
+      },
+    });
+  });
+
+  it('creates, updates, and deletes mounted settings user groups through the admin route', async () => {
+    const app = await loadApp();
+    const leaderId = '55555555-5555-4555-8555-555555555555';
+    const existingGroupId = '66666666-6666-4666-8666-666666666666';
+
+    seedAuthenticatedAdmin({
+      permissions: ['manage:settings'],
+    });
+
+    mockState.tables.profiles = [
+      ...mockState.tables.profiles,
+      {
+        id: leaderId,
+        first_name: 'Naa',
+        last_name: 'Leader',
+        full_name: 'Naa Leader',
+        email: 'naa@example.com',
+        role: 'community_manager',
+      },
+    ];
+    mockState.tables.user_groups = [
+      {
+        id: existingGroupId,
+        name: 'Initial Group',
+        description: 'Before update',
+        type: 'custom',
+        leader_id: null,
+        is_active: true,
+      },
+    ];
+
+    const createResponse = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/settings/user-groups',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        name: 'Launch Committee',
+        description: 'Launch prep group',
+        type: 'committee',
+        leader_id: leaderId,
+        is_active: true,
+      },
+    });
+
+    expect(createResponse.status).toBe(201);
+    expect((createResponse.body as any).data).toEqual(
+      expect.objectContaining({
+        name: 'Launch Committee',
+        leader_name: 'Naa Leader',
+      })
+    );
+
+    const updateResponse = await performMountedRequest(app, {
+      method: 'PUT',
+      path: `/admin/settings/user-groups/${existingGroupId}`,
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        name: 'Updated Group',
+        leader_id: leaderId,
+      },
+    });
+
+    expect(updateResponse.status).toBe(200);
+    expect((updateResponse.body as any).data).toEqual(
+      expect.objectContaining({
+        id: existingGroupId,
+        name: 'Updated Group',
+        leader_name: 'Naa Leader',
+      })
+    );
+
+    const deleteResponse = await performMountedRequest(app, {
+      method: 'DELETE',
+      path: `/admin/settings/user-groups/${existingGroupId}`,
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(deleteResponse.status).toBe(204);
+    expect((mockState.tables.user_groups || []).some((row) => row.id === existingGroupId)).toBe(false);
+  });
+
+  it('lists, summarizes, and exports mounted settings activity logs', async () => {
+    const app = await loadApp();
+    const todayTimestamp = new Date().toISOString();
+
+    seedAuthenticatedAdmin({
+      permissions: ['manage:settings'],
+    });
+
+    mockState.tables.activity_logs = [
+      {
+        id: 'activity-log-1',
+        user_id: 'profile-admin',
+        user_name: 'Ada Admin',
+        action: 'Updated SMTP settings',
+        action_type: 'settings',
+        details: 'SMTP host updated',
+        timestamp: todayTimestamp,
+        status: 'success',
+        severity: 'info',
+      },
+      {
+        id: 'activity-log-2',
+        user_id: 'profile-admin',
+        user_name: 'Ada Admin',
+        action: 'Exported audit logs',
+        action_type: 'audit',
+        details: 'Generated CSV',
+        timestamp: '2026-03-10T08:00:00.000Z',
+        status: 'failed',
+        severity: 'critical',
+      },
+    ];
+
+    const listResponse = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/settings/activity-logs?searchTerm=SMTP&limit=10&offset=0',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(listResponse.status).toBe(200);
+    expect((listResponse.body as any).data).toEqual([
+      expect.objectContaining({
+        id: 'activity-log-1',
+        action: 'Updated SMTP settings',
+      }),
+    ]);
+
+    const statsResponse = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/settings/activity-logs/stats',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(statsResponse.status).toBe(200);
+    expect((statsResponse.body as any).data).toEqual(
+      expect.objectContaining({
+        total: 2,
+        today: 1,
+        failed: 1,
+        critical: 1,
+        byActionType: {
+          settings: 1,
+          audit: 1,
+        },
+      })
+    );
+
+    const exportResponse = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/settings/activity-logs/export?actionType=settings',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(exportResponse.status).toBe(200);
+    expect((exportResponse.body as any).data).toEqual([
+      expect.objectContaining({
+        id: 'activity-log-1',
+      }),
+    ]);
+  });
+
+  it('returns mounted preference categories and settings stats and supports preference setting mutations', async () => {
+    const app = await loadApp();
+    const categoryId = '77777777-7777-4777-8777-777777777777';
+    const existingSettingId = '88888888-8888-4888-8888-888888888888';
+
+    seedAuthenticatedAdmin({
+      permissions: ['manage:settings'],
+    });
+
+    mockState.tables.preference_categories = [
+      {
+        id: categoryId,
+        name: 'Notifications',
+        order: 1,
+      },
+    ];
+    mockState.tables.preference_settings_with_stats = [
+      {
+        id: existingSettingId,
+        category_id: categoryId,
+        key: 'email_updates',
+        name: 'Email Updates',
+        description: 'Receive email updates',
+        type: 'boolean',
+        default_value: true,
+        options: null,
+        validation: null,
+        is_user_editable: true,
+        is_system_setting: false,
+        created_at: '2026-03-10T08:00:00.000Z',
+        updated_at: '2026-03-10T08:00:00.000Z',
+        affected_users: 2,
+      },
+    ];
+    mockState.tables.preference_settings = [
+      {
+        id: existingSettingId,
+        category_id: categoryId,
+        key: 'email_updates',
+        name: 'Email Updates',
+        description: 'Receive email updates',
+        type: 'boolean',
+        default_value: true,
+        options: null,
+        validation: null,
+        is_user_editable: true,
+        is_system_setting: false,
+        created_at: '2026-03-10T08:00:00.000Z',
+        updated_at: '2026-03-10T08:00:00.000Z',
+      },
+    ];
+    mockState.tables.profiles = [
+      ...mockState.tables.profiles,
+      {
+        id: '99999999-9999-4999-8999-999999999999',
+      },
+    ];
+
+    const categoriesResponse = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/settings/preference-categories',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(categoriesResponse.status).toBe(200);
+    expect((categoriesResponse.body as any).data).toEqual([
+      expect.objectContaining({
+        id: categoryId,
+        name: 'Notifications',
+      }),
+    ]);
+
+    const listResponse = await performMountedRequest(app, {
+      method: 'GET',
+      path: `/admin/settings/preference-settings?categoryId=${categoryId}&sortBy=affected_users&sortOrder=desc&page=1&pageSize=10`,
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(listResponse.status).toBe(200);
+    expect((listResponse.body as any).count).toBe(1);
+    expect((listResponse.body as any).data).toEqual([
+      expect.objectContaining({
+        id: existingSettingId,
+        affected_users: 2,
+      }),
+    ]);
+
+    const statsResponse = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/settings/preference-settings/stats',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(statsResponse.status).toBe(200);
+    expect((statsResponse.body as any).data).toEqual(
+      expect.objectContaining({
+        total: 1,
+        userEditable: 1,
+        systemSettings: 0,
+      })
+    );
+
+    const createResponse = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/settings/preference-settings',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        category_id: categoryId,
+        key: 'quiet_hours',
+        name: 'Quiet Hours',
+        type: 'time',
+        is_user_editable: true,
+      },
+    });
+
+    expect(createResponse.status).toBe(201);
+    expect((createResponse.body as any).data).toEqual(
+      expect.objectContaining({
+        key: 'quiet_hours',
+      })
+    );
+
+    const updateResponse = await performMountedRequest(app, {
+      method: 'PUT',
+      path: `/admin/settings/preference-settings/${existingSettingId}`,
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        name: 'Email Product Updates',
+      },
+    });
+
+    expect(updateResponse.status).toBe(200);
+    expect((updateResponse.body as any).data).toEqual(
+      expect.objectContaining({
+        id: existingSettingId,
+        name: 'Email Product Updates',
+      })
+    );
+
+    const deleteResponse = await performMountedRequest(app, {
+      method: 'DELETE',
+      path: `/admin/settings/preference-settings/${existingSettingId}`,
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(deleteResponse.status).toBe(204);
+    expect((mockState.tables.preference_settings || []).some((row) => row.id === existingSettingId)).toBe(false);
+  });
+
+  it('returns, updates, and tests mounted SMTP settings through the secure settings routes', async () => {
+    const app = await loadApp();
+
+    seedAuthenticatedAdmin({
+      permissions: ['manage:settings'],
+    });
+
+    mockState.tables.system_settings = [
+      {
+        category: 'smtp',
+        subcategory: '',
+        key: 'smtp_username',
+        value: 'mailer',
+        data_type: 'string',
+        is_sensitive: true,
+      },
+      {
+        category: 'smtp',
+        subcategory: '',
+        key: 'smtp_password',
+        value: 'super-secret',
+        data_type: 'string',
+        is_sensitive: true,
+      },
+    ];
+
+    const getResponse = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/settings/smtp',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(getResponse.status).toBe(200);
+    expect((getResponse.body as any).settings.smtp_password).not.toBe('super-secret');
+
+    const updateResponse = await performMountedRequest(app, {
+      method: 'PUT',
+      path: '/admin/settings/smtp',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        smtp_host: 'smtp.mailtrap.io',
+        smtp_port: 2525,
+        smtp_username: 'mailer',
+        smtp_password: 'updated-secret',
+        smtp_from_email: 'noreply@casanirvana.com',
+      },
+    });
+
+    expect(updateResponse.status).toBe(200);
+    expect((updateResponse.body as any).settings).toEqual(
+      expect.objectContaining({
+        smtp_host: 'smtp.mailtrap.io',
+        smtp_port: 2525,
+        smtp_from_email: 'noreply@casanirvana.com',
+      })
+    );
+
+    const testResponse = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/settings/smtp/test',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        smtp_host: 'smtp.mailtrap.io',
+        smtp_port: 2525,
+        smtp_username: 'mailer',
+        smtp_password: 'updated-secret',
+        smtp_from_email: 'noreply@casanirvana.com',
+      },
+    });
+
+    expect(testResponse.status).toBe(200);
+    expect(testResponse.body).toEqual({
+      success: true,
+      message: 'SMTP authentication succeeded.',
+    });
+  });
+
+  it('returns, updates, and tests mounted integration, push, and SMS secure settings', async () => {
+    const app = await loadApp();
+
+    seedAuthenticatedAdmin({
+      permissions: ['manage:settings'],
+    });
+
+    const integrationUpdateResponse = await performMountedRequest(app, {
+      method: 'PUT',
+      path: '/admin/settings/integrations',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        openai_api_key: 'sk-test',
+        ai_chat_enabled: true,
+      },
+    });
+
+    expect(integrationUpdateResponse.status).toBe(200);
+    expect((integrationUpdateResponse.body as any).settings).toEqual(
+      expect.objectContaining({
+        ai_chat_enabled: true,
+      })
+    );
+    expect((integrationUpdateResponse.body as any).settings.openai_api_key).not.toBe('sk-test');
+
+    const integrationTestResponse = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/settings/integrations/test',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        service: 'openai_api_key',
+        settings: {
+          openai_api_key: 'sk-test',
+        },
+      },
+    });
+
+    expect(integrationTestResponse.status).toBe(200);
+    expect(integrationTestResponse.body).toEqual(
+      expect.objectContaining({
+        success: true,
+      })
+    );
+
+    const pushUpdateResponse = await performMountedRequest(app, {
+      method: 'PUT',
+      path: '/admin/settings/push',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        firebase_enabled: true,
+        firebase_server_key: 'firebase-server',
+        firebase_sender_id: '123456',
+        firebase_api_key: 'firebase-api',
+        firebase_project_id: 'casa-nirvana',
+      },
+    });
+
+    expect(pushUpdateResponse.status).toBe(200);
+    expect((pushUpdateResponse.body as any).settings).toEqual(
+      expect.objectContaining({
+        firebase_enabled: true,
+        firebase_project_id: 'casa-nirvana',
+      })
+    );
+
+    const pushTestResponse = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/settings/push/test',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        firebase_enabled: true,
+        firebase_server_key: 'firebase-server',
+        firebase_sender_id: '123456',
+        firebase_api_key: 'firebase-api',
+        firebase_project_id: 'casa-nirvana',
+      },
+    });
+
+    expect(pushTestResponse.status).toBe(200);
+    expect(pushTestResponse.body).toEqual(
+      expect.objectContaining({
+        success: true,
+      })
+    );
+
+    const smsUpdateResponse = await performMountedRequest(app, {
+      method: 'PUT',
+      path: '/admin/settings/sms',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        sms_provider: 'twilio',
+        twilio_account_sid: 'AC123',
+        twilio_auth_token: 'twilio-secret',
+        twilio_phone_number: '+233500000000',
+      },
+    });
+
+    expect(smsUpdateResponse.status).toBe(200);
+    expect((smsUpdateResponse.body as any).settings).toEqual(
+      expect.objectContaining({
+        sms_provider: 'twilio',
+      })
+    );
+
+    const smsTestResponse = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/settings/sms/test',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        sms_provider: 'twilio',
+        twilio_account_sid: 'AC123',
+        twilio_auth_token: 'twilio-secret',
+        twilio_phone_number: '+233500000000',
+      },
+    });
+
+    expect(smsTestResponse.status).toBe(200);
+    expect(smsTestResponse.body).toEqual(
+      expect.objectContaining({
+        success: true,
+      })
+    );
+  });
+
+  it('returns and updates mounted business, regional, security, and general system settings', async () => {
+    const app = await loadApp();
+
+    seedAuthenticatedAdmin({
+      permissions: ['manage:settings'],
+    });
+
+    const businessUpdateResponse = await performMountedRequest(app, {
+      method: 'PUT',
+      path: '/admin/settings/business',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        default_currency: 'USD',
+        maintenance_fee: 300,
+      },
+    });
+
+    expect(businessUpdateResponse.status).toBe(200);
+    expect((businessUpdateResponse.body as any).settings).toEqual(
+      expect.objectContaining({
+        default_currency: 'USD',
+        maintenance_fee: 300,
+      })
+    );
+
+    const regionalUpdateResponse = await performMountedRequest(app, {
+      method: 'PUT',
+      path: '/admin/settings/regional',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        timezone: 'Africa/Accra',
+        primaryLanguage: 'en',
+      },
+    });
+
+    expect(regionalUpdateResponse.status).toBe(200);
+    expect((regionalUpdateResponse.body as any).settings).toEqual(
+      expect.objectContaining({
+        timezone: 'Africa/Accra',
+      })
+    );
+
+    const securityUpdateResponse = await performMountedRequest(app, {
+      method: 'PUT',
+      path: '/admin/settings/security-privacy',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        password_min_length: 12,
+        two_factor_auth_enabled: true,
+      },
+    });
+
+    expect(securityUpdateResponse.status).toBe(200);
+    expect((securityUpdateResponse.body as any).settings).toEqual(
+      expect.objectContaining({
+        password_min_length: 12,
+      })
+    );
+
+    const generalUpdateResponse = await performMountedRequest(app, {
+      method: 'PUT',
+      path: '/admin/settings/general-system',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        admin_dashboard_refresh_minutes: 10,
+        enable_analytics: true,
+      },
+    });
+
+    expect(generalUpdateResponse.status).toBe(200);
+    expect((generalUpdateResponse.body as any).settings).toEqual(
+      expect.objectContaining({
+        admin_dashboard_refresh_minutes: 10,
+        enable_analytics: true,
+      })
+    );
+
+    const getResponse = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/settings/general-system',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(getResponse.status).toBe(200);
+    expect((getResponse.body as any).settings).toEqual(
+      expect.objectContaining({
+        admin_dashboard_refresh_minutes: 10,
+      })
+    );
+  });
+
+  it('returns, updates, and tests mounted ExpressPay gateway configuration', async () => {
+    const app = await loadApp({
+      EXPRESSPAY_MERCHANT_ID: 'merchant-123',
+      EXPRESSPAY_API_KEY: 'api-key-123',
+    });
+
+    seedAuthenticatedAdmin({
+      permissions: ['manage:settings'],
+    });
+
+    const updateResponse = await performMountedRequest(app, {
+      method: 'PUT',
+      path: '/admin/payment-gateways/expresspay/config',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        mode: 'test',
+        scope: 'global',
+        is_enabled: true,
+        currency: 'GHS',
+        callback_path: '/payments/expresspay/callback',
+        merchant_id: 'merchant-123',
+        api_key: 'api-key-123',
+      },
+    });
+
+    expect(updateResponse.status).toBe(200);
+    expect((updateResponse.body as any).data).toEqual(
+      expect.objectContaining({
+        mode: 'test',
+        scope: 'global',
+        is_enabled: true,
+      })
+    );
+
+    const getResponse = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/payment-gateways/expresspay/config?mode=test&scope=global',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(getResponse.status).toBe(200);
+    expect((getResponse.body as any).data).toEqual(
+      expect.objectContaining({
+        merchant_id_configured: true,
+        api_key_configured: true,
+      })
+    );
+
+    const testResponse = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/payment-gateways/expresspay/test',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        mode: 'test',
+        scope: 'global',
+      },
+    });
+
+    expect(testResponse.status).toBe(200);
+    expect((testResponse.body as any).data).toEqual(
+      expect.objectContaining({
+        passed: true,
+      })
+    );
+  });
+
+  it('returns, upserts, checks, and deletes mounted system settings by category and subcategory', async () => {
+    const app = await loadApp();
+
+    seedAuthenticatedAdmin({
+      permissions: ['manage:settings'],
+    });
+
+    const firstUpsertResponse = await performMountedRequest(app, {
+      method: 'PUT',
+      path: '/admin/system-settings',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        category: 'application',
+        subcategory: 'splash',
+        settings: {
+          splash_title: 'Casa Nirvana Splash',
+        },
+      },
+    });
+
+    expect(firstUpsertResponse.status).toBe(200);
+    expect((firstUpsertResponse.body as any).updated).toBe(1);
+
+    const secondUpsertResponse = await performMountedRequest(app, {
+      method: 'PUT',
+      path: '/admin/system-settings',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        category: 'application',
+        subcategory: 'onboarding',
+        settings: {
+          splash_title: 'Casa Nirvana Onboarding',
+        },
+      },
+    });
+
+    expect(secondUpsertResponse.status).toBe(200);
+
+    const getResponse = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/system-settings?category=application&subcategory=splash',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(getResponse.status).toBe(200);
+    expect((getResponse.body as any).settings).toEqual({
+      splash_title: 'Casa Nirvana Splash',
+    });
+
+    const existsResponse = await performMountedRequest(app, {
+      method: 'GET',
+      path: '/admin/system-settings/exists?category=application&subcategory=onboarding',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(existsResponse.status).toBe(200);
+    expect(existsResponse.body).toEqual({
+      exists: true,
+    });
+
+    const deleteResponse = await performMountedRequest(app, {
+      method: 'DELETE',
+      path: '/admin/system-settings/splash_title?category=application&subcategory=splash',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+    });
+
+    expect(deleteResponse.status).toBe(204);
+    expect(
+      (mockState.tables.system_settings || []).some(
+        (row) =>
+          row.category === 'application' &&
+          row.subcategory === 'splash' &&
+          row.key === 'splash_title'
+      )
+    ).toBe(false);
+    expect(
+      (mockState.tables.system_settings || []).some(
+        (row) =>
+          row.category === 'application' &&
+          row.subcategory === 'onboarding' &&
+          row.key === 'splash_title'
+      )
+    ).toBe(true);
   });
 
   it('creates mounted admin profiles only within the scoped tenant communities', async () => {
