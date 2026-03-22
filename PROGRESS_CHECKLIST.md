@@ -7,6 +7,7 @@ Date: 2026-02-06
 - [x] Current release-closeout source of truth is `PRODUCTION_RELEASE_GATES.md`.
 - [x] Superadmin route audit source remains `superadmin/ADMIN_LAUNCH_AUDIT_CHECKLIST.md`.
 - [x] Runtime signoff source remains `MANUAL_RUNTIME_QA_PACK.md`.
+- [x] Detailed user/Guard runtime execution aid is `USER_GUARD_LAUNCH_SIGNOFF_CHECKLIST.md`.
 - [x] Controlled stale-worktree reintegration source is `WORKTREE_REINTEGRATION_CHECKLIST.md`.
 
 ## Decisions (Locked)

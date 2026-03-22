@@ -8,6 +8,7 @@ Status: Ready for coordinated execution
 - Convert the remaining production-readiness runtime QA backlog into one executable release pack.
 - Validate cross-app behavior after tenant-scope, RLS, observability, payment, and backend-contract hardening.
 - Keep sign-off evidence in one place before release closure.
+- Use `USER_GUARD_LAUNCH_SIGNOFF_CHECKLIST.md` as the detailed execution aid for user-app and Guard-app runtime sections.
 
 ## Preconditions
 - Latest migrations are applied to Casa Nirvana.
