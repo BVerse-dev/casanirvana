@@ -336,6 +336,21 @@ export const useCommunityMembersSubscription = () => {
           queryClient.invalidateQueries({ queryKey: ['communityCommittee'] });
         },
       )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'units',
+          filter: `community_id=eq.${communityId}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['communityDirectoryMembers', communityId] });
+          queryClient.invalidateQueries({ queryKey: ['communityMembers'] });
+          queryClient.invalidateQueries({ queryKey: ['communityAdmins'] });
+          queryClient.invalidateQueries({ queryKey: ['communityCommittee'] });
+        },
+      )
       .subscribe();
 
     return () => {

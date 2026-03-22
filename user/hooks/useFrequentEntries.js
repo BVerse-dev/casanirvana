@@ -1,5 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../utils/supabase';
+import {
+  buildFrequentEntryQrCode,
+  createDirectoryEntryIdentity,
+  resolveDirectoryEntryIdentity,
+} from '../utils/directoryEntryQr';
 
 // Hook to list frequent entries for a user
 export const useListFrequentEntries = (userId) => {
@@ -28,23 +33,15 @@ export const useCreateFrequentEntry = () => {
   
   return useMutation({
     mutationFn: async (entryData) => {
-      // Generate unique frequent entry ID for QR code
-      const frequentEntryId = `FE-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      
-      // Generate entry code from frequent entry ID (last 8 characters)
-      const entryCode = frequentEntryId.slice(-8).toUpperCase();
-
-      // Generate unique QR code data with frequent entry information
-      const qrCodeData = JSON.stringify({
-        id: frequentEntryId,
-        name: entryData.name,
-        relation: entryData.relation,
-        phone: entryData.phone,
-        user_id: entryData.user_id,
-        type: 'frequent_entry',
-        entry_code: entryCode,
-        created_at: new Date().toISOString(),
-        expires_at: null // Frequent entries don't expire
+      const createdAt = new Date().toISOString();
+      const { entityId, entryCode } = createDirectoryEntryIdentity('FE');
+      const qrCodeData = buildFrequentEntryQrCode({
+        entityId,
+        entryCode,
+        data: {
+          ...entryData,
+          created_at: createdAt,
+        },
       });
       
       const { data, error } = await supabase
@@ -53,9 +50,9 @@ export const useCreateFrequentEntry = () => {
           ...entryData,
           qr_code: qrCodeData,
           entry_code: entryCode,
-          expires_at: null, // Frequent entries don't expire
+          expires_at: null,
           is_active: true,
-          created_at: new Date().toISOString()
+          created_at: createdAt,
         }])
         .select()
         .single();
@@ -75,9 +72,39 @@ export const useUpdateFrequentEntry = () => {
   
   return useMutation({
     mutationFn: async ({ id, updates }) => {
+      const { data: existingData, error: existingError } = await supabase
+        .from('frequent_entries')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (existingError) throw existingError;
+
+      const mergedData = {
+        ...existingData,
+        ...updates,
+      };
+      const { entityId, entryCode } = resolveDirectoryEntryIdentity({
+        prefix: 'FE',
+        existingEntryCode: existingData.entry_code,
+        existingQrCode: existingData.qr_code,
+      });
+      const qrCode = buildFrequentEntryQrCode({
+        entityId,
+        entryCode,
+        data: {
+          ...mergedData,
+          created_at: existingData.created_at,
+        },
+      });
+
       const { data, error } = await supabase
         .from('frequent_entries')
-        .update(updates)
+        .update({
+          ...updates,
+          entry_code: entryCode,
+          qr_code: qrCode,
+        })
         .eq('id', id)
         .select()
         .single();

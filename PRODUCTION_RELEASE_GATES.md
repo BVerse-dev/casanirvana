@@ -21,14 +21,21 @@ Purpose: Current release closeout source of truth. Use this file to understand w
 - `superadmin/PRODUCTION_TENANT_RLS_REMEDIATION_CHECKLIST.md`
   - Tenant scope, critical-table RLS cleanup, rollback notes, and migration-history repair are complete
 - `supabase/migrations`
-  - Active production migrations are applied and recorded through Phase 41
+  - Active production migrations are applied and recorded through Phase 43
 - `backend/src/tests/app-mounted-integration.test.ts`
   - Mounted coverage now exercises the real Express app stack across onboarding, admin core, communities, people, operations, communication, Personal Hub, finance, and settings/control-plane routes
 - `PROGRESS_CHECKLIST.md`
   - Historical execution log is up to date through the current backend mounted-settings pass
+- `WORKTREE_TAKEOVER_AUDIT.md` and `WORKTREE_REINTEGRATION_CHECKLIST.md`
+  - Stale user/guard worktrees were audited and their useful behavior was reintegrated onto current `main` without merging stale branches directly
 
 ## Gate A - Production Blockers
 
+- [x] Complete the controlled stale-worktree reintegration tracked in `WORKTREE_REINTEGRATION_CHECKLIST.md`
+  - Completed on `2026-03-22`
+  - Slice 1: user/guard/superadmin chat attachment privacy alignment and user call signaling
+  - Slice 2: user directory avatar and QR hardening
+  - Slice 3: guard resident-directory integrity, community-scoped recent-search hygiene, and Phase 43 directory-integrity parity migration
 - [ ] Execute and record the full coordinated runtime signoff pack in `MANUAL_RUNTIME_QA_PACK.md`
   - Section 1: Scoped Admin Access Regression
   - Section 2: Marketplace / Personal Hub Admin RLS
@@ -47,6 +54,7 @@ Purpose: Current release closeout source of truth. Use this file to understand w
 - [ ] Fix and re-verify any defect found during the runtime pack before launch approval
 
 Exit criteria for Gate A:
+- `WORKTREE_REINTEGRATION_CHECKLIST.md` is complete with no unresolved reintegration slice left
 - Every pending section in `MANUAL_RUNTIME_QA_PACK.md` has an execution record
 - No unresolved blocker remains from runtime QA
 - Guard Residents/Directory and end-to-end guard lifecycle are verified in runtime signoff and no longer tracked as open implementation work

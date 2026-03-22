@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   Dimensions,
   Modal,
-  Image,
   StyleSheet,
   TextInput,
   ScrollView,
@@ -15,31 +14,25 @@ import {
   Platform,
 } from "react-native";
 import { Colors, Fonts, Default } from "../constants/styles";
-import { useTranslation } from "react-i18next";
 import Ionicons from "react-native-vector-icons/Ionicons";
-import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 
 import CameraModule from "./cameraModule";
 import { Camera } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import SnackbarToast from "./snackbarToast";
 import AddImageBottomSheet from "./addImageBottomSheet";
+import AppAvatar from "./AppAvatar";
 import { useAuth } from "../contexts/AuthContext";
 import { useUpdateVehicle } from "../hooks/useVehicles";
+import { uploadDirectoryAvatarIfNeeded } from "../utils/directoryAvatarStorage";
 
 const { width, height } = Dimensions.get("window");
 
 const EditVehicleModal = (props) => {
-  const { t, i18n } = useTranslation();
   const { user, profile } = useAuth();
   const updateVehicle = useUpdateVehicle();
 
-  const isRtl = i18n.dir() == "rtl";
   const activeUserId = user?.id || profile?.user_id || null;
-
-  function tr(key) {
-    return t(`myVehiclesModal:${key}`);
-  }
 
   const [openAddImageBottomSheet, setOpenAddImageBottomSheet] = useState(false);
 
@@ -87,7 +80,6 @@ const EditVehicleModal = (props) => {
   const [vehicleNumber, setVehicleNumber] = useState('');
   const [model, setModel] = useState('');
   const [color, setColor] = useState('');
-  const [plateNumber, setPlateNumber] = useState('');
   const [send, setSend] = useState(true);
 
   // Initialize form with existing data when modal opens
@@ -96,13 +88,12 @@ const EditVehicleModal = (props) => {
       setVehicleNumber(props.entryData.name || ''); // vehicle_number is mapped to name
       setModel(props.entryData.model || '');
       setColor(props.entryData.color || '');
-      setPlateNumber(props.entryData.plate_number || '');
       setPickedImage(props.entryData.image || null);
     }
   }, [props.entryData]);
 
   const handleSubmit = async () => {
-    if (!vehicleNumber || !model || !color || !plateNumber) {
+    if (!vehicleNumber || !model || !color) {
       Alert.alert('Error', 'Please fill in all required fields');
       return;
     }
@@ -113,12 +104,17 @@ const EditVehicleModal = (props) => {
         return;
       }
 
+      const avatarUrl = await uploadDirectoryAvatarIfNeeded({
+        imageUri: pickedImage,
+        ownerId: activeUserId,
+        scope: 'vehicles',
+        existingAvatarUrl: props.entryData?.image || null,
+      });
       const vehicleData = {
-        vehicle_number: vehicleNumber,
-        model: model,
-        color: color,
-        plate_number: plateNumber,
-        avatar_url: pickedImage,
+        vehicle_number: vehicleNumber.trim(),
+        model: model.trim(),
+        color: color.trim(),
+        avatar_url: avatarUrl,
         user_id: activeUserId,
       };
 
@@ -164,14 +160,15 @@ const EditVehicleModal = (props) => {
                       style={styles.imageContainer}
                       onPress={() => setOpenAddImageBottomSheet(true)}
                     >
-                      {pickedImage ? (
-                        <Image source={{ uri: pickedImage }} style={styles.selectedImage} />
-                      ) : (
-                        <View style={styles.placeholderImage}>
-                          <MaterialCommunityIcons name="car" size={30} color={Colors.grey} />
-                          <Text style={styles.placeholderText}>Add Vehicle Photo</Text>
-                        </View>
-                      )}
+                      <AppAvatar
+                        avatarUrl={pickedImage}
+                        name={vehicleNumber || model || "Vehicle"}
+                        seed={`vehicle:${props.entryData?.key || activeUserId || 'resident'}`}
+                        size={120}
+                        borderRadius={20}
+                        style={styles.selectedImage}
+                        imageStyle={styles.selectedImage}
+                      />
                     </TouchableOpacity>
                   </View>
 
@@ -207,18 +204,6 @@ const EditVehicleModal = (props) => {
                       value={color}
                       onChangeText={setColor}
                       placeholder="Enter vehicle color"
-                      placeholderTextColor={Colors.grey}
-                    />
-                  </View>
-
-                  {/* Plate Number Input */}
-                  <View style={styles.inputContainer}>
-                    <Text style={styles.inputLabel}>Plate Number</Text>
-                    <TextInput
-                      style={styles.textInput}
-                      value={plateNumber}
-                      onChangeText={setPlateNumber}
-                      placeholder="Enter plate number"
                       placeholderTextColor={Colors.grey}
                     />
                   </View>

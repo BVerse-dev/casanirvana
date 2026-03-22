@@ -111,6 +111,7 @@ Procedure:
 - `20260307203000_phase34_email_scope_backfill.sql` [history repaired on prod 2026-03-16]
 - `20260310101500_phase35_personal_hub_expresspay_catalog_alignment.sql`
 - `20260319113000_phase41_archive_legacy_unattributed_visitor_passes.sql` (restore from `datafix_phase41_legacy_visitor_passes_archive` and `datafix_phase41_legacy_visitor_entry_logs_archive`)
+- `20260322153000_phase43_community_directory_membership_integrity_parity.sql` (restore from `datafix_phase43_community_membership_repair_backup` / `datafix_phase43_community_membership_insert_backup` before considering removal of the preserved `p35_*` sync/validation layer)
 
 ### Playbook C
 - `20260220201027_phase11_profiles_identity_guard.sql`
@@ -124,6 +125,7 @@ Procedure:
 - `20260307191500_phase34_notification_template_linkage.sql` [history repaired on prod 2026-03-16]
 - `20260311130500_phase35_profiles_roles_and_users_updated_at.sql`
 - `20260313190000_phase40_system_settings_scoping_and_app_assets.sql`
+- `20260322120000_phase42_chat_attachment_privacy_alignment.sql`
 
 ### Playbook D
 - `20260221005336_phase13_comments_notice_contract_hardening.sql`

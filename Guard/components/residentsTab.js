@@ -18,23 +18,23 @@ import {
 import ModuleUnavailableState from "./ModuleUnavailableState";
 import { useGuardModuleAccess, MODULE_SLUGS } from "../hooks/useGuardModuleAccess";
 
-const roleLabel = (role) => {
-  if (role === "admin") return "Admin";
-  if (role === "committee") return "Committee";
-  return "Member";
-};
-
 const toRouteImageSource = (image) =>
   typeof image === "string" && image
     ? { uri: image }
     : require("../assets/images/guard.png");
 
 const ResidentsTab = ({ navigation }) => {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const isRtl = i18n.dir() === "rtl";
+  const tr = (key) => t(`residentsTab:${key}`);
   const { modulesLoaded, enabled: residentDirectoryEnabled } = useGuardModuleAccess(
     MODULE_SLUGS.RESIDENT_DIRECTORY
   );
+  const roleLabel = (role) => {
+    if (role === "admin") return tr("roleAdmin");
+    if (role === "committee") return tr("roleCommittee");
+    return tr("roleMember");
+  };
 
   const {
     data: residents = [],
@@ -51,7 +51,7 @@ const ResidentsTab = ({ navigation }) => {
       if (!byBlock.has(block)) {
         byBlock.set(block, {
           key: block,
-          title: block === "N/A" ? "Unassigned" : `Block ${block}`,
+          title: block === "N/A" ? tr("unassigned") : `${tr("block")} ${block}`,
           member: [],
         });
       }
@@ -73,7 +73,7 @@ const ResidentsTab = ({ navigation }) => {
     return Array.from(byBlock.values()).sort((a, b) =>
       a.title.localeCompare(b.title),
     );
-  }, [residents]);
+  }, [residents, t]);
 
   if (!modulesLoaded) {
     return (
@@ -93,9 +93,9 @@ const ResidentsTab = ({ navigation }) => {
   if (modulesLoaded && !residentDirectoryEnabled) {
     return (
       <ModuleUnavailableState
-        title="Resident Directory Unavailable"
-        message="Resident directory access is disabled for this community."
-        actionLabel="Go Back"
+        title={tr("directoryUnavailableTitle")}
+        message={tr("directoryUnavailableMessage")}
+        actionLabel={tr("goBack")}
         onAction={() => {
           if (navigation?.canGoBack?.()) {
             navigation.goBack();
@@ -250,7 +250,7 @@ const ResidentsTab = ({ navigation }) => {
       >
         <ActivityIndicator size="large" color={Colors.primary} />
         <Text style={{ ...Fonts.Medium14grey, marginTop: Default.fixPadding }}>
-          Loading residents...
+          {tr("loadingResidents")}
         </Text>
       </View>
     );
@@ -268,7 +268,7 @@ const ResidentsTab = ({ navigation }) => {
         }}
       >
         <Text style={{ ...Fonts.Medium16black, textAlign: "center" }}>
-          Unable to load residents
+          {tr("loadError")}
         </Text>
       </View>
     );
@@ -286,7 +286,7 @@ const ResidentsTab = ({ navigation }) => {
         }}
       >
         <Text style={{ ...Fonts.Medium16black, textAlign: "center" }}>
-          No residents found for this community
+          {tr("emptyState")}
         </Text>
       </View>
     );

@@ -4,6 +4,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useAdminApi } from "@/hooks/useAdminApi";
 import type { Database } from "@/lib/database.types";
+import { supabase } from "@/lib/supabase";
+import { hydrateChatAttachments } from "@/utils/chatAttachments";
 
 type MessageRow = Database["public"]["Tables"]["messages"]["Row"];
 
@@ -58,7 +60,7 @@ export const useListMessages = (_fromUser?: string, toUser?: string) => {
       }
 
       const payload = await fetchAdmin<MessageConversationPayload>(`/admin/messages/conversations/${toUser}`);
-      return payload.data || [];
+      return hydrateChatAttachments(supabase.storage, payload.data || []);
     },
   });
 };

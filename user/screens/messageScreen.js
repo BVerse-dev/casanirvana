@@ -33,8 +33,21 @@ import { useAuth } from "../contexts/AuthContext";
 import { useUserStatus } from "../hooks/useUserStatus";
 import { useCallsSubscription } from "../hooks/useCalls";
 import { supabase } from "../utils/supabase";
+import { buildStoredChatAttachment } from "../utils/chatAttachments";
 
 const { width } = Dimensions.get("window");
+
+const resolveAttachmentType = (mimeType = "") => {
+  if (mimeType.startsWith("image/")) {
+    return "image";
+  }
+
+  if (mimeType.startsWith("audio/")) {
+    return "audio";
+  }
+
+  return "document";
+};
 
 const MessageScreen = ({ navigation, route }) => {
   const { image, name, key, phone, id, memberId, memberPhone, email } = route.params;
@@ -185,7 +198,7 @@ const MessageScreen = ({ navigation, route }) => {
       const uniqueFileName = `${ownerFolderId}/chat/${timestamp}-${fileName}`;
       
       // Upload to Supabase Storage using ArrayBuffer
-      const { data, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from('chat-attachments')
         .upload(uniqueFileName, arrayBuffer, {
           contentType: mimeType,
@@ -195,16 +208,18 @@ const MessageScreen = ({ navigation, route }) => {
         throw error;
       }
       
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('chat-attachments')
-        .getPublicUrl(uniqueFileName);
-      
       return {
-        url: publicUrl,
-        fileName: fileName,
-        fileSize: arrayBuffer.byteLength,
-        mimeType: mimeType
+        ...buildStoredChatAttachment(
+          {
+            path: uniqueFileName,
+            url: fileUri,
+            fileName,
+            fileSize: arrayBuffer.byteLength,
+            mimeType,
+          },
+          resolveAttachmentType(mimeType)
+        ),
+        url: fileUri,
       };
       
     } catch (error) {

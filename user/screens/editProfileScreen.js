@@ -4,7 +4,6 @@ import {
   TouchableOpacity,
   BackHandler,
   StyleSheet,
-  Image,
   ScrollView,
   TextInput,
   Switch,
@@ -27,6 +26,7 @@ import AwesomeButton from "react-native-really-awesome-button";
 import AddImageBottomSheet from "../components/addImageBottomSheet";
 import DashedLine from "react-native-dashed-line";
 import FromToCalendarPicker from "../components/fromToCalendarPicker";
+import AppAvatar from "../components/AppAvatar";
 import { useAuth } from "../contexts/AuthContext";
 import { useUpdateProfile } from "../hooks/useSupabaseData";
 import { supabase } from "../utils/supabase";
@@ -395,6 +395,15 @@ const EditProfileScreen = ({ navigation }) => {
     }
   };
 
+  const profileAvatarName =
+    `${firstName || ''} ${lastName || ''}`.trim() ||
+    profile?.full_name ||
+    email ||
+    'User';
+  const profileAvatarSeed =
+    profile?.user_id || profile?.id || email || profileAvatarName;
+  const profileAvatarPreview = removeImage ? null : pickedImage || profileImageUrl;
+
   return (
     <View style={{ flex: 1, backgroundColor: Colors.white }}>
       <MyStatusBar />
@@ -435,43 +444,19 @@ const EditProfileScreen = ({ navigation }) => {
             marginTop: Default.fixPadding * 2.8,
           }}
         >
-          {!pickedImage ? (
-            <View>
-              {removeImage ? (
-                <View
-                  style={{
-                    borderWidth: 2,
-                    borderColor: Colors.white,
-                    backgroundColor: Colors.grey,
-                    ...styles.imageView,
-                  }}
-                >
-                  <Ionicons name="person" size={45} color={Colors.white} />
-                </View>
-              ) : profileImageUrl ? (
-                <View
-                  style={{ ...styles.imageView, backgroundColor: Colors.white }}
-                >
-                  <Image style={styles.image} source={{ uri: profileImageUrl }} />
-                </View>
-              ) : (
-                <View
-                  style={{ ...styles.imageView, backgroundColor: Colors.white }}
-                >
-                  <Image
-                    source={require("../assets/images/pic1.png")}
-                    style={styles.image}
-                  />
-                </View>
-              )}
-            </View>
-          ) : (
-            <View
-              style={{ ...styles.imageView, backgroundColor: Colors.white }}
-            >
-              <Image style={styles.image} source={{ uri: pickedImage }} />
-            </View>
-          )}
+          <View
+            style={{ ...styles.imageView, backgroundColor: Colors.white }}
+          >
+            <AppAvatar
+              avatarUrl={profileAvatarPreview}
+              name={profileAvatarName}
+              seed={`profile:${profileAvatarSeed}`}
+              size={106}
+              borderRadius={53}
+              style={styles.image}
+              imageStyle={styles.image}
+            />
+          </View>
 
           <TouchableOpacity
             onPress={() => setOpenAddImageBottomSheet(true)}

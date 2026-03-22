@@ -4,6 +4,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useAdminApi } from "@/hooks/useAdminApi";
 import type { Database } from "@/lib/database.types";
+import { supabase } from "@/lib/supabase";
+import { hydrateChatAttachments } from "@/utils/chatAttachments";
 
 type Group = Database["public"]["Tables"]["groups"]["Row"];
 type GroupMessageRow = Database["public"]["Tables"]["group_messages"]["Row"];
@@ -108,7 +110,7 @@ export const useListGroupMessages = (groupId: string) => {
     enabled: hasToken && Boolean(groupId),
     queryFn: async () => {
       const payload = await fetchAdmin<{ data: GroupMessageRecord[] }>(`/admin/messages/groups/${groupId}/messages`);
-      return payload.data || [];
+      return hydrateChatAttachments(supabase.storage, payload.data || []);
     },
   });
 };

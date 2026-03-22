@@ -7,6 +7,7 @@ Date: 2026-02-06
 - [x] Current release-closeout source of truth is `PRODUCTION_RELEASE_GATES.md`.
 - [x] Superadmin route audit source remains `superadmin/ADMIN_LAUNCH_AUDIT_CHECKLIST.md`.
 - [x] Runtime signoff source remains `MANUAL_RUNTIME_QA_PACK.md`.
+- [x] Controlled stale-worktree reintegration source is `WORKTREE_REINTEGRATION_CHECKLIST.md`.
 
 ## Decisions (Locked)
 - [x] Express backend is the privileged API for admin operations and sensitive writes.
@@ -238,6 +239,20 @@ Date: 2026-02-06
 - [x] Replaced permissive legacy RLS on `amenities` and `amenity_bookings` with tenant-scoped policy set (`p15_*`).
 - [x] Wired superadmin amenity bookings actions (approve/reject) to real DB mutation flow in list and details views.
 - [x] Fixed user app amenities query invalidation mismatch (`amenityBookings` key) and corrected hardware-back listener cleanup in amenity screens.
+
+## Phase 16 - Controlled Worktree Reintegration
+- [x] Audited stale `user` + `Guard` worktrees and recorded keep/drop/rewrite guidance in `WORKTREE_TAKEOVER_AUDIT.md`.
+- [x] Created the controlled execution tracker `WORKTREE_REINTEGRATION_CHECKLIST.md` so reintegration work is tracked slice-by-slice on top of current `main`.
+- [x] Completed Slice 1 from stale user commit `55f9e92` on current `main`: user and Guard direct-message flows now store owner-scoped chat attachment paths instead of public URLs, user/Guard/superadmin readers now hydrate signed attachment URLs, user call signaling now uses the DB-driven call manager path, and message queries exclude soft-deleted rows.
+- [x] Applied and recorded live migration `supabase/migrations/20260322120000_phase42_chat_attachment_privacy_alignment.sql` on Casa Nirvana Supabase to make `chat-attachments` private and replace the broad authenticated read policy with scoped attachment access helpers; live verification confirmed `storage.buckets.public = false`, helper functions present, `p42_chat_attachments_select_scoped` present, and `p19_chat_attachments_select_authenticated` removed.
+- [x] Completed Slice 2 from stale user commit `883e1c9` on current `main`: active user profile/directory surfaces now use a shared avatar renderer plus storage upload helper, directory create/edit flows store truthful remote `avatar_url` values instead of raw local file URIs, family/daily-help/frequent-entry/vehicle QR payloads are regenerated through a shared helper on create and update, and the stale `plate_number` assumption was removed from active vehicle flows to match the live schema.
+- [x] Verified Slice 2 locally with targeted `npx eslint` on all touched user files plus `git diff --check`.
+- [ ] Residual user app lint debt remains outside Slice 2 and is unchanged: `user/app/_layout.tsx` (`expo-router` resolution), `user/components/addCabModal.js` (duplicate key), and `user/components/serviceModal_broken.js` (broken JSX) still fail the full `npm run lint`.
+- [x] Completed Slice 3 from stale guard commit `bf81330` on current `main`: Guard resident-directory/search now use translation-backed resident labels and truthful empty/error/module-disabled states, recent resident search history is scoped by both auth user and guard community, and Guard/user community directory subscriptions now invalidate on `units` changes so resident/unit changes refresh cleanly.
+- [x] Applied and recorded live migration `supabase/migrations/20260322153000_phase43_community_directory_membership_integrity_parity.sql` on Casa Nirvana Supabase to bring the already-live community-membership integrity layer back under source control while preserving the working `p35_*` function/trigger names; live verification confirmed the Phase 43 history row, preserved sync/validation functions and triggers, Phase 43 backup tables, and zero drift/missing/inactive same-community membership counts.
+- [x] Verified Slice 3 locally with `npx eslint hooks/useCommunityMembers.ts` in `user` plus `git diff --check`.
+- [ ] Guard lint entrypoint remains a tooling boundary outside Slice 3 verification: direct `npx eslint` / `npx eslint@9` in `Guard` attempted ad-hoc ESLint installs and failed because the workspace does not expose a flat-config-compatible local lint config entrypoint.
+- [x] Deliberate boundary recorded: Phase 43 was not backported into `supabase/migrations/20260206_baseline_schema.sql` because the current baseline snapshot does not inline the Phase 10 `community_memberships` table/domain that Phase 43 depends on; the migration is represented in the active post-baseline set instead.
 - [x] Aligned user booking create payload with DB contract (`user_id` as profile id, plus `community_id`, `total_amount`, `is_paid`).
 - [x] Removed remaining Book Amenities UI “Societies” wording in superadmin surfaces (`Community` naming retained).
 - [x] Fixed free-amenity booking UX in user app: free bookings now bypass payment-method selection and complete via booking confirmation path.
