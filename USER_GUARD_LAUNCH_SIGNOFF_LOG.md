@@ -15,17 +15,19 @@ Status: Ready for runtime execution
 - `PRODUCTION_RELEASE_GATES.md`
 
 ## Test Session Header
-- Environment:
-- Backend commit:
-- Superadmin commit:
-- User app commit/build:
-- Guard app commit/build:
-- Supabase project ref:
-- Tester:
-- Date:
-- Devices used:
-- Accounts used:
+- Environment: Current `main` runtime signoff preparation
+- Backend commit: `f87c026`
+- Superadmin commit: `f87c026`
+- User app commit/build: `f87c026` (`user/package.json` runtime entry: `expo start --clear`)
+- Guard app commit/build: `f87c026` (`Guard/package.json` runtime entry: `expo start`)
+- Supabase project ref: `pswnlowvmdgeifhxilao`
+- Tester: Pending runtime executor
+- Date: 2026-03-26
+- Devices used: Pending runtime devices
+- Accounts used: Pending runtime account assignment (`superadmin`, `facility_manager`, `resident`, `guard`)
 - Notes:
+  - This header was prefilled from the current repo state before manual runtime execution began.
+  - No runtime section below has been executed yet in this log.
 
 ## Result Legend
 - `pass`
