@@ -13,10 +13,12 @@ Status: Ready for execution on current `main`
 - Use this file together with:
   - `MANUAL_RUNTIME_QA_PACK.md`
   - `PRODUCTION_RELEASE_GATES.md`
+  - `USER_GUARD_LAUNCH_SIGNOFF_LOG.md`
   - `user/SCREEN_WIRING_CHECKLIST.md`
   - `Guard/SCREEN_WIRING_CHECKLIST.md`
 - This file is the detailed execution aid for the user and Guard portions of runtime signoff.
 - `MANUAL_RUNTIME_QA_PACK.md` remains the top-level runtime backlog tracker.
+- `USER_GUARD_LAUNCH_SIGNOFF_LOG.md` is the execution record for actual run results.
 
 ## Scope
 - User app runtime signoff
@@ -54,6 +56,7 @@ Out of scope for this document:
   - tester
   - result: `pass`, `failed`, or `blocked`
   - blocker note when not passed
+- Record the executed outcome in `USER_GUARD_LAUNCH_SIGNOFF_LOG.md`.
 - For every failed or blocked step, capture:
   - app
   - screen or route

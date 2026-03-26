@@ -38,6 +38,7 @@ Purpose: Current release closeout source of truth. Use this file to understand w
   - Slice 3: guard resident-directory integrity, community-scoped recent-search hygiene, and Phase 43 directory-integrity parity migration
 - [ ] Execute and record the full coordinated runtime signoff pack in `MANUAL_RUNTIME_QA_PACK.md`
   - Use `USER_GUARD_LAUNCH_SIGNOFF_CHECKLIST.md` as the detailed current-main execution document for user and Guard app runtime signoff
+  - Record actual user/Guard runtime outcomes in `USER_GUARD_LAUNCH_SIGNOFF_LOG.md`
   - Section 1: Scoped Admin Access Regression
   - Section 2: Marketplace / Personal Hub Admin RLS
   - Section 3: Visitors / Entry / Exit Lifecycle
@@ -113,4 +114,5 @@ The following are no longer open production-discovery items:
 - `PROGRESS_CHECKLIST.md` remains the detailed historical log.
 - `MANUAL_RUNTIME_QA_PACK.md` is the runtime signoff execution document.
 - `USER_GUARD_LAUNCH_SIGNOFF_CHECKLIST.md` is the detailed user/Guard runtime execution aid for current `main`.
+- `USER_GUARD_LAUNCH_SIGNOFF_LOG.md` is the runtime evidence log for executed user/Guard checks.
 - Do not start new exploratory audit waves unless a runtime blocker reveals a real new gap.
