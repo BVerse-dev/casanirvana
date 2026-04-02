@@ -11,11 +11,13 @@ import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityI
 import { useHasJoinedCommunity, useProfileSubscription } from "../hooks/useCommunityData";
 import { useUnreadNotificationsCount, useNotificationSubscription } from "../hooks/useNotifications";
 import { useListNotices } from "../hooks/useListNotices";
+import { useAuth } from "../contexts/AuthContext";
 import { loadModuleSettings, isScreenEnabled } from "../services/moduleSettingsService";
 import { getActiveServiceProviders } from "../services/serviceProviderCatalogService";
 
 const HomeScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
+  const { user, loading: authLoading } = useAuth();
 
   const isRtl = i18n.dir() === "rtl";
 
@@ -53,7 +55,7 @@ const HomeScreen = ({ navigation }) => {
     const initModules = async () => {
       setModulesLoaded(false);
       try {
-        await loadModuleSettings(profile?.community_id);
+        await loadModuleSettings(profile?.community_id, true);
       } finally {
         if (isMounted) {
           setModulesLoaded(true);
@@ -71,6 +73,21 @@ const HomeScreen = ({ navigation }) => {
     let isMounted = true;
 
     const loadPersonalHubAvailability = async () => {
+      if (authLoading) {
+        return;
+      }
+
+      if (!user?.id) {
+        if (!isMounted) return;
+
+        setPersonalHubAvailability({
+          tvBillsAvailable: false,
+          utilityBillsAvailable: false,
+          insuranceAvailable: false,
+        });
+        return;
+      }
+
       const [utilitiesResponse, tvResponse, insuranceResponse] = await Promise.all([
         getActiveServiceProviders({
           serviceType: "bill_payment",
@@ -104,7 +121,7 @@ const HomeScreen = ({ navigation }) => {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [authLoading, user?.id]);
 
   // Swipe handler function
   const handleSwipeTab = (direction) => {
