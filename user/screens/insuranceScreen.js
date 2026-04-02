@@ -3,11 +3,9 @@ import {
   Text,
   View,
   TouchableOpacity,
-  StatusBar,
   Image,
   ScrollView,
   SafeAreaView,
-  StyleSheet,
   ActivityIndicator,
 } from "react-native";
 import { Colors, Fonts, Default } from "../constants/styles";
@@ -37,7 +35,10 @@ const InsuranceScreen = ({ navigation }) => {
 
     const loadProviders = async () => {
       setLoadingProviders(true);
-      const { data, warning, usedFallback } = await getActiveServiceProviders({ serviceType: "insurance" });
+      const { data, warning, usedFallback } = await getActiveServiceProviders({
+        serviceType: "insurance",
+        allowFallback: false,
+      });
       if (!isMounted) return;
       setInsuranceProviders(data || []);
       setCatalogNotice(warning || null);
@@ -160,13 +161,14 @@ const InsuranceScreen = ({ navigation }) => {
           {!loadingProviders && !insuranceProviders.length ? (
             <View
               style={{
-                backgroundColor: Colors.lightLinkWater,
+                backgroundColor: "#FFF3E0",
                 borderRadius: 10,
                 padding: Default.fixPadding * 1.5,
+                marginBottom: Default.fixPadding,
               }}
             >
               <Text style={{ ...Fonts.Medium14black }}>
-                {tr("No active insurance providers are available right now.")}
+                {tr("Insurance services are not currently available because the live ExpressPay catalog does not expose any supported insurance providers for this merchant profile.")}
               </Text>
             </View>
           ) : null}

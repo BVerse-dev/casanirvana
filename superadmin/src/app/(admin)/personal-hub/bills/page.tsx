@@ -22,6 +22,25 @@ const BillPaymentPage = () => {
   const { providers: catalogProviders, syncCatalog, isSyncing } = useAdminPersonalHubCatalog({
     serviceType: 'bill_payment',
   });
+  const liveBillers = catalogProviders.filter(
+    (provider) => provider.is_active && provider.is_enabled_for_app && provider.supports_query && provider.supports_pay
+  );
+  const tvBillers = liveBillers.filter((provider) => provider.bill_category === 'tv');
+  const utilityBillers = liveBillers.filter((provider) => provider.bill_category === 'utilities');
+  const availabilityAlert =
+    liveBillers.length === 0
+      ? {
+          variant: 'warning' as const,
+          message:
+            'The active ExpressPay catalog does not currently expose any live bill-payment providers for this merchant profile. Keep this workspace for historical payment visibility only until billers appear in the synced catalog.',
+        }
+      : utilityBillers.length === 0 && tvBillers.length > 0
+        ? {
+            variant: 'info' as const,
+            message:
+              'The current live bill-payment catalog is TV-only. Utility bill payments are not launch-ready for this merchant profile until ExpressPay exposes supported utility billers in the synced catalog.',
+          }
+        : null;
 
   const formatNumber = (num: number) => num.toLocaleString();
   const formatCurrency = (num: number) => `GH₵${num.toLocaleString()}`;
@@ -83,6 +102,7 @@ const BillPaymentPage = () => {
         isSyncing={isSyncing}
         onSync={handleSyncCatalog}
         feedback={syncFeedback}
+        availabilityAlert={availabilityAlert}
         description="Billers in this workspace are sourced from the cached ExpressPay Bill Payments catalog. Manual biller creation is disabled so utility and TV payment flows stay aligned with provider-supported identifiers and account-query rules."
         secondaryNote="Use catalog sync when ExpressPay updates supported utility, TV, or other bill-payment services for your merchant profile."
       />

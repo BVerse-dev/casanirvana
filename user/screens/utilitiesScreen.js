@@ -3,11 +3,9 @@ import {
   Text,
   View,
   TouchableOpacity,
-  StatusBar,
   Image,
   ScrollView,
   SafeAreaView,
-  StyleSheet,
   ActivityIndicator,
 } from "react-native";
 import { Colors, Fonts, Default } from "../constants/styles";
@@ -40,6 +38,7 @@ const UtilitiesScreen = ({ navigation }) => {
       const { data, warning, usedFallback } = await getActiveServiceProviders({
         serviceType: "bill_payment",
         billCategory: "utilities",
+        allowFallback: false,
       });
       if (!isMounted) return;
       setUtilities(data || []);
@@ -164,13 +163,13 @@ const UtilitiesScreen = ({ navigation }) => {
           {!loadingUtilities && !utilities.length ? (
             <View
               style={{
-                backgroundColor: Colors.lightLinkWater,
+                backgroundColor: "#FFF3E0",
                 borderRadius: 10,
                 padding: Default.fixPadding * 1.5,
               }}
             >
               <Text style={{ ...Fonts.Medium14black }}>
-                {tr("No active utility providers are available right now.")}
+                {tr("Utility bill payments are not currently available because the live ExpressPay catalog does not expose supported utility providers for this merchant profile.")}
               </Text>
             </View>
           ) : null}

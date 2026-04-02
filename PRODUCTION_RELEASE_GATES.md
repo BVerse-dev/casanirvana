@@ -1,6 +1,6 @@
 # Casa Nirvana Production Release Gates
 
-Date: 2026-03-20
+Date: 2026-04-02
 Owner: Platform Engineering
 Purpose: Current release closeout source of truth. Use this file to understand what is already complete, what still blocks launch, what should still be tightened before cutover, and what has been intentionally deferred.
 
@@ -27,6 +27,7 @@ Purpose: Current release closeout source of truth. Use this file to understand w
   - Mounted coverage now exercises the real Express app stack across onboarding, admin core, communities, people, operations, communication, Personal Hub, finance, and settings/control-plane routes
 - ExpressPay / Personal Hub fulfillment
   - Checkout and BillPay credentials now share one secure ExpressPay control plane, provider fulfillment now runs server-side after authoritative payment settlement, and user/admin surfaces now report truthful catalog-readiness and fulfillment states instead of treating payment success as automatic service delivery
+  - Live catalog verification on 2026-04-02 confirmed current merchant-profile support for airtime, data, TV bill payments, and money-transfer rails; utility bill payments and insurance must remain unavailable until ExpressPay exposes those provider categories in the synced catalog
 - `PROGRESS_CHECKLIST.md`
   - Historical execution log is up to date through the current backend mounted-settings pass
 - `WORKTREE_TAKEOVER_AUDIT.md` and `WORKTREE_REINTEGRATION_CHECKLIST.md`
@@ -81,6 +82,8 @@ Exit criteria for Gate A:
   - superadmin can save and test BillPay credentials for the active ExpressPay mode
   - Personal Hub catalog availability messaging is truthful when BillPay readiness is missing
   - supported user flows distinguish payment settlement from provider fulfillment (`completed`, `fulfillment_pending`, `fulfillment_failed`)
+  - unsupported categories remain explicitly unavailable when the live synced catalog does not expose them
+  - runtime verification should currently prioritize airtime, data, TV bills, and money transfer unless the live synced catalog changes again before signoff
 
 These items are not new wiring audits. They are release-discipline decisions and runtime verification tasks.
 

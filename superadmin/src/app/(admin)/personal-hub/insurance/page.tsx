@@ -22,6 +22,16 @@ const InsuranceServicesPage = () => {
   const { providers: catalogProviders, syncCatalog, isSyncing } = useAdminPersonalHubCatalog({
     serviceType: 'insurance',
   });
+  const liveInsuranceProviders = catalogProviders.filter(
+    (provider) => provider.is_active && provider.is_enabled_for_app && provider.supports_query && provider.supports_pay
+  );
+  const availabilityAlert = liveInsuranceProviders.length
+    ? null
+    : {
+        variant: 'warning' as const,
+        message:
+          'The active ExpressPay catalog does not currently expose any live insurance providers for this merchant profile. Keep this workspace for historical premium-payment visibility only, and do not market insurance in the user app until insurers appear in the synced catalog.',
+      };
 
   const formatNumber = (num: number) => num.toLocaleString();
   const formatCurrency = (num: number) => `GH₵${num.toLocaleString()}`;
@@ -83,6 +93,7 @@ const InsuranceServicesPage = () => {
         isSyncing={isSyncing}
         onSync={handleSyncCatalog}
         feedback={syncFeedback}
+        availabilityAlert={availabilityAlert}
         description="Insurance providers in this workspace are sourced from the cached ExpressPay Bill Payments catalog. Manual provider creation is disabled so policy validation and payment flows stay aligned with the insurers ExpressPay actually supports."
         secondaryNote="Use catalog sync after ExpressPay updates the insurers or policy-payment services exposed to your merchant profile."
       />

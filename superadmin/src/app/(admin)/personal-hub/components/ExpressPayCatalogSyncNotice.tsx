@@ -13,6 +13,11 @@ type SyncFeedback = {
   message: string;
 } | null;
 
+type AvailabilityAlert = {
+  variant: 'info' | 'warning' | 'danger' | 'success';
+  message: string;
+} | null;
+
 type ExpressPayCatalogSyncNoticeProps = {
   description: string;
   secondaryNote?: string;
@@ -20,6 +25,7 @@ type ExpressPayCatalogSyncNoticeProps = {
   isSyncing: boolean;
   onSync: () => Promise<void> | void;
   feedback?: SyncFeedback;
+  availabilityAlert?: AvailabilityAlert;
 };
 
 const formatLastSyncedAt = (value: string | null) => {
@@ -45,6 +51,7 @@ const ExpressPayCatalogSyncNotice = ({
   isSyncing,
   onSync,
   feedback = null,
+  availabilityAlert = null,
 }: ExpressPayCatalogSyncNoticeProps) => {
   const enabledCount = providers.filter((provider) => provider.is_active && provider.is_enabled_for_app).length;
   const { paymentGatewaySettings } = usePaymentGatewaySettings();
@@ -121,6 +128,7 @@ const ExpressPayCatalogSyncNotice = ({
       ) : null}
 
       {feedback ? <Alert variant={feedback.variant}>{feedback.message}</Alert> : null}
+      {availabilityAlert ? <Alert variant={availabilityAlert.variant}>{availabilityAlert.message}</Alert> : null}
     </>
   );
 };

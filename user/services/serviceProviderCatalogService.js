@@ -193,7 +193,11 @@ const filterForBillCategory = (providers, billCategory) => {
   return providers.filter((provider) => provider.billCategory === billCategory);
 };
 
-export const getActiveServiceProviders = async ({ serviceType, billCategory = null }) => {
+export const getActiveServiceProviders = async ({
+  serviceType,
+  billCategory = null,
+  allowFallback = ALLOW_PROVIDER_FALLBACK,
+}) => {
   const fallbackMessage =
     "Live ExpressPay catalog data is unavailable. The app is using fallback provider data.";
   const unavailableMessage =
@@ -206,7 +210,7 @@ export const getActiveServiceProviders = async ({ serviceType, billCategory = nu
     });
 
     if (error) {
-      if (ALLOW_PROVIDER_FALLBACK) {
+      if (allowFallback) {
         const fallback = getFallbackProviders(serviceType, billCategory);
         return {
           data: fallback,
@@ -230,7 +234,7 @@ export const getActiveServiceProviders = async ({ serviceType, billCategory = nu
       : mapped;
 
     if (!filtered.length) {
-      if (ALLOW_PROVIDER_FALLBACK) {
+      if (allowFallback) {
         const fallback = getFallbackProviders(serviceType, billCategory);
         return {
           data: fallback,

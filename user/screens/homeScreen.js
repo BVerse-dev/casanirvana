@@ -12,6 +12,7 @@ import { useHasJoinedCommunity, useProfileSubscription } from "../hooks/useCommu
 import { useUnreadNotificationsCount, useNotificationSubscription } from "../hooks/useNotifications";
 import { useListNotices } from "../hooks/useListNotices";
 import { loadModuleSettings, isScreenEnabled } from "../services/moduleSettingsService";
+import { getActiveServiceProviders } from "../services/serviceProviderCatalogService";
 
 const HomeScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
@@ -39,6 +40,11 @@ const HomeScreen = ({ navigation }) => {
   // State for hub tabs
   const [activeTab, setActiveTab] = useState('community'); // 'community' or 'personal'
   const [modulesLoaded, setModulesLoaded] = useState(false);
+  const [personalHubAvailability, setPersonalHubAvailability] = useState({
+    tvBillsAvailable: true,
+    utilityBillsAvailable: false,
+    insuranceAvailable: false,
+  });
 
   // Load module settings on mount
   useEffect(() => {
@@ -60,6 +66,45 @@ const HomeScreen = ({ navigation }) => {
       isMounted = false;
     };
   }, [profile?.community_id]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadPersonalHubAvailability = async () => {
+      const [utilitiesResponse, tvResponse, insuranceResponse] = await Promise.all([
+        getActiveServiceProviders({
+          serviceType: "bill_payment",
+          billCategory: "utilities",
+          allowFallback: false,
+        }),
+        getActiveServiceProviders({
+          serviceType: "bill_payment",
+          billCategory: "tv",
+          allowFallback: false,
+        }),
+        getActiveServiceProviders({
+          serviceType: "insurance",
+          allowFallback: false,
+        }),
+      ]);
+
+      if (!isMounted) {
+        return;
+      }
+
+      setPersonalHubAvailability({
+        tvBillsAvailable: Boolean(tvResponse.data?.length),
+        utilityBillsAvailable: Boolean(utilitiesResponse.data?.length),
+        insuranceAvailable: Boolean(insuranceResponse.data?.length),
+      });
+    };
+
+    void loadPersonalHubAvailability();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Swipe handler function
   const handleSwipeTab = (direction) => {
@@ -153,6 +198,9 @@ const HomeScreen = ({ navigation }) => {
     isEnabled: isScreenEnabled(item.navigateTo),
   }));
 
+  const billPaymentsEnabled =
+    personalHubAvailability.tvBillsAvailable || personalHubAvailability.utilityBillsAvailable;
+
   const personalList = [
     {
       key: "1",
@@ -179,15 +227,21 @@ const HomeScreen = ({ navigation }) => {
       key: "4",
       image: require("../assets/images/pay4.png"),
       title: "Pay Bills",
-      other: "Utilities & subscriptions",
+      other: billPaymentsEnabled
+        ? personalHubAvailability.utilityBillsAvailable
+          ? "Utilities & subscriptions"
+          : "TV subscriptions available now"
+        : "Currently unavailable",
       navigateTo: "payBillsScreen",
+      unavailableReason: "No live bill-payment providers are currently available for this merchant profile.",
     },
     {
       key: "5",
       image: require("../assets/images/pay5.png"),
       title: "Insurance",
-      other: "Protect what matters",
+      other: personalHubAvailability.insuranceAvailable ? "Protect what matters" : "Currently unavailable",
       navigateTo: "insuranceScreen",
+      unavailableReason: "Insurance is not currently available because the live ExpressPay catalog has no supported providers for this merchant profile.",
     },
     {
       key: "6",
@@ -198,7 +252,10 @@ const HomeScreen = ({ navigation }) => {
     },
   ].map((item) => ({
     ...item,
-    isEnabled: isScreenEnabled(item.navigateTo),
+    isEnabled:
+      isScreenEnabled(item.navigateTo) &&
+      (item.navigateTo !== "payBillsScreen" || billPaymentsEnabled) &&
+      (item.navigateTo !== "insuranceScreen" || personalHubAvailability.insuranceAvailable),
   }));
 
   const renderItem = ({ item, index }) => {
@@ -206,7 +263,10 @@ const HomeScreen = ({ navigation }) => {
 
     const onPressCard = () => {
       if (isDisabled) {
-        Alert.alert("Coming Soon", "This module is currently unavailable for your community.");
+        Alert.alert(
+          "Unavailable",
+          item.unavailableReason || "This module is currently unavailable for your community."
+        );
         return;
       }
       navigation.push(item.navigateTo);
