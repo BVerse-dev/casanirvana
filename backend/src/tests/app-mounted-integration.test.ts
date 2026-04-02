@@ -488,7 +488,7 @@ async function loadApp(envOverrides: Record<string, string | undefined> = {}) {
     vi.fn(async () => ({
       ok: true,
       status: 200,
-      text: async () => JSON.stringify({ 'result-text': 'ok' }),
+      text: async () => JSON.stringify({ status: 0, result: 0, 'result-text': 'ok' }),
     }))
   );
 
@@ -4872,6 +4872,8 @@ describe('Mounted app integration', () => {
     const app = await loadApp({
       EXPRESSPAY_MERCHANT_ID: 'merchant-123',
       EXPRESSPAY_API_KEY: 'api-key-123',
+      EXPRESSPAY_BILLPAY_USERNAME: 'billpay-user',
+      EXPRESSPAY_BILLPAY_AUTH_TOKEN: 'billpay-token',
     });
 
     seedAuthenticatedAdmin({
@@ -4890,8 +4892,11 @@ describe('Mounted app integration', () => {
         is_enabled: true,
         currency: 'GHS',
         callback_path: '/payments/expresspay/callback',
+        billpay_url: 'https://sandbox.expresspaygh.com/billpay/api.php',
         merchant_id: 'merchant-123',
         api_key: 'api-key-123',
+        billpay_username: 'billpay-user',
+        billpay_auth_token: 'billpay-token',
       },
     });
 
@@ -4901,6 +4906,7 @@ describe('Mounted app integration', () => {
         mode: 'test',
         scope: 'global',
         is_enabled: true,
+        billpay_url: 'https://sandbox.expresspaygh.com/billpay/api.php',
       })
     );
 
@@ -4917,6 +4923,8 @@ describe('Mounted app integration', () => {
       expect.objectContaining({
         merchant_id_configured: true,
         api_key_configured: true,
+        billpay_username_configured: true,
+        billpay_auth_token_configured: true,
       })
     );
 
@@ -4934,6 +4942,26 @@ describe('Mounted app integration', () => {
 
     expect(testResponse.status).toBe(200);
     expect((testResponse.body as any).data).toEqual(
+      expect.objectContaining({
+        passed: true,
+      })
+    );
+
+    const billPayTestResponse = await performMountedRequest(app, {
+      method: 'POST',
+      path: '/admin/payment-gateways/expresspay/test',
+      headers: {
+        Authorization: 'Bearer valid-token',
+      },
+      body: {
+        mode: 'test',
+        scope: 'global',
+        target: 'billpay',
+      },
+    });
+
+    expect(billPayTestResponse.status).toBe(200);
+    expect((billPayTestResponse.body as any).data).toEqual(
       expect.objectContaining({
         passed: true,
       })

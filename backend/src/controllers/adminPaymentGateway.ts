@@ -45,8 +45,11 @@ export const updateExpressPayGatewayConfig = async (req: Request, res: Response,
       submit_url: (body.submit_url as string | null | undefined) ?? null,
       query_url: (body.query_url as string | null | undefined) ?? null,
       checkout_url: (body.checkout_url as string | null | undefined) ?? null,
+      billpay_url: (body.billpay_url as string | null | undefined) ?? null,
       merchant_id: (body.merchant_id as string | null | undefined) ?? null,
       api_key: (body.api_key as string | null | undefined) ?? null,
+      billpay_username: (body.billpay_username as string | null | undefined) ?? null,
+      billpay_auth_token: (body.billpay_auth_token as string | null | undefined) ?? null,
       actor_profile_id: (req.userProfile?.id as string | undefined) || null,
     });
 
@@ -70,6 +73,7 @@ export const testExpressPayGatewayConfig = async (req: Request, res: Response, n
       mode: String(body.mode || 'test'),
       scope: String(body.scope || 'global'),
       communityId: (body.community_id as string | null | undefined) || null,
+      target: String(body.target || 'checkout') as 'checkout' | 'billpay',
     });
 
     return res.status(200).json({ success: true, data: result });

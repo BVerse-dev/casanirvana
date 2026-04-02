@@ -10,6 +10,49 @@ const normalizeStatus = (value) => {
   return normalized;
 };
 
+const derivePersonalHubFulfillmentState = ({ payment, transaction }) => {
+  const paymentStatus = normalizeStatus(payment?.status);
+  const transactionStatus = normalizeStatus(transaction?.status);
+
+  if (paymentStatus === "failed" || paymentStatus === "cancelled" || paymentStatus === "expired") {
+    return {
+      paymentStatus,
+      transactionStatus,
+      fulfillmentState: "payment_failed",
+    };
+  }
+
+  if (paymentStatus !== "completed") {
+    return {
+      paymentStatus,
+      transactionStatus,
+      fulfillmentState: "payment_pending",
+    };
+  }
+
+  if (transactionStatus === "completed") {
+    return {
+      paymentStatus,
+      transactionStatus,
+      fulfillmentState: "completed",
+    };
+  }
+
+  if (transactionStatus === "failed") {
+    return {
+      paymentStatus,
+      transactionStatus,
+      fulfillmentState: "fulfillment_failed",
+    };
+  }
+
+  return {
+    paymentStatus,
+    transactionStatus,
+    fulfillmentState: "fulfillment_pending",
+  };
+};
+
 const extractErrorMessage = (payload, fallback) => {
   if (!payload) return fallback;
   if (typeof payload.error === "string") return payload.error;
@@ -184,5 +227,74 @@ export const reconcileExpressPayPayment = async ({
     status,
     payment,
     providerResult: verifyResult?.data?.provider_result || null,
+  };
+};
+
+export const reconcilePersonalHubCheckout = async ({
+  paymentId,
+  token,
+  orderId,
+  sourceId,
+  paymentPollAttempts = 2,
+  fulfillmentPollAttempts = 4,
+  pollDelayMs = 1500,
+}) => {
+  const paymentResult = await reconcileExpressPayPayment({
+    paymentId,
+    token,
+    orderId,
+    pollAttempts: paymentPollAttempts,
+    pollDelayMs,
+  });
+
+  let transaction = null;
+  let transactionError = null;
+
+  const loadTransaction = async () => {
+    if (!sourceId) {
+      return null;
+    }
+
+    const result = await getPersonalHubTransactionStatus(sourceId);
+    if (!result.success) {
+      transactionError = result.error || "Failed to load Personal Hub transaction status.";
+      return null;
+    }
+
+    transactionError = null;
+    return result.data?.transaction || null;
+  };
+
+  transaction = await loadTransaction();
+
+  let derived = derivePersonalHubFulfillmentState({
+    payment: paymentResult.payment,
+    transaction,
+  });
+
+  let attempts = 0;
+  while (
+    sourceId &&
+    derived.fulfillmentState === "fulfillment_pending" &&
+    attempts < fulfillmentPollAttempts
+  ) {
+    await sleep(pollDelayMs);
+    attempts += 1;
+    transaction = await loadTransaction();
+    derived = derivePersonalHubFulfillmentState({
+      payment: paymentResult.payment,
+      transaction,
+    });
+  }
+
+  return {
+    success: paymentResult.success,
+    error: paymentResult.error || transactionError,
+    payment: paymentResult.payment,
+    providerResult: paymentResult.providerResult,
+    transaction,
+    paymentStatus: derived.paymentStatus,
+    transactionStatus: derived.transactionStatus,
+    fulfillmentState: derived.fulfillmentState,
   };
 };

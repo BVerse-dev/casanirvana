@@ -2,6 +2,32 @@ import { adminSupabase } from '../lib/supabase';
 
 type JsonRecord = Record<string, unknown>;
 type BillPayMode = 'test' | 'live';
+type BillPayScope = 'global' | 'community';
+
+type QueryError = { message?: string } | null;
+
+type LooseQuery = {
+  select: (...args: unknown[]) => LooseQuery;
+  eq: (...args: unknown[]) => LooseQuery;
+  is: (...args: unknown[]) => LooseQuery;
+  maybeSingle: () => Promise<{ data: unknown; error: QueryError }>;
+};
+
+type LooseSupabaseClient = {
+  from: (table: string) => LooseQuery;
+  rpc: (fn: string, params?: Record<string, unknown>) => Promise<{ data: unknown; error: QueryError }>;
+};
+
+type GatewayConfigRow = {
+  id: string;
+  provider: string;
+  mode: BillPayMode;
+  scope: BillPayScope;
+  community_id: string | null;
+  is_enabled: boolean;
+  public_config: JsonRecord | null;
+  secret_refs: JsonRecord | null;
+};
 
 export type PersonalHubServiceCategory =
   | 'airtime'
@@ -78,6 +104,9 @@ const EXPRESSPAY_BILLPAY_ENDPOINTS = {
   test: 'https://sandbox.expresspaygh.com/billpay/api.php',
   live: 'https://expresspaygh.com/billpay/api.php',
 } as const;
+const EXPRESSPAY_PROVIDER = 'expresspay';
+
+const db = adminSupabase as unknown as LooseSupabaseClient;
 
 const SUPPORTED_SERVICE_TYPES = new Set<PersonalHubServiceCategory>([
   'airtime',
@@ -153,21 +182,156 @@ const normalizeMode = (value?: string | null): BillPayMode => {
   return normalized === 'live' ? 'live' : 'test';
 };
 
-const resolveBillPayConfig = () => {
-  const mode = normalizeMode(process.env.EXPRESSPAY_BILLPAY_MODE || process.env.EXPRESSPAY_MODE || 'test');
-  const baseUrl = process.env.EXPRESSPAY_BILLPAY_URL || EXPRESSPAY_BILLPAY_ENDPOINTS[mode];
-  const username = process.env.EXPRESSPAY_BILLPAY_USERNAME?.trim() || '';
-  const authToken = process.env.EXPRESSPAY_BILLPAY_AUTH_TOKEN?.trim() || '';
+const normalizeScope = (value?: string | null): BillPayScope =>
+  String(value || '').trim().toLowerCase() === 'community' ? 'community' : 'global';
 
-  if (!username || !authToken) {
-    throw new Error('ExpressPay Bill Payments credentials are not configured.');
+const readString = (record: JsonRecord, key: string): string | null => {
+  const value = record[key];
+  if (typeof value !== 'string') {
+    return null;
   }
 
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+};
+
+const readVaultSecret = async (name: string | null): Promise<string | null> => {
+  if (!name) return null;
+
+  const { data, error } = await db.rpc('p27_read_vault_secret', {
+    secret_name: name,
+  });
+
+  if (error) {
+    return null;
+  }
+
+  if (typeof data === 'string' && data.trim().length > 0) {
+    return data.trim();
+  }
+
+  return null;
+};
+
+const getConfigRow = async ({
+  mode,
+  scope,
+  communityId,
+}: {
+  mode: BillPayMode;
+  scope: BillPayScope;
+  communityId?: string | null;
+}): Promise<GatewayConfigRow | null> => {
+  let query = db
+    .from('payment_gateway_configs')
+    .select('*')
+    .eq('provider', EXPRESSPAY_PROVIDER)
+    .eq('mode', mode)
+    .eq('scope', scope);
+
+  if (scope === 'community') {
+    query = query.eq('community_id', communityId || null);
+  } else {
+    query = query.is('community_id', null);
+  }
+
+  const { data, error } = await query.maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to read ExpressPay BillPay config: ${error.message}`);
+  }
+
+  return (data as GatewayConfigRow | null) || null;
+};
+
+const getEnabledConfigRow = async ({
+  communityId,
+}: {
+  communityId?: string | null;
+}): Promise<GatewayConfigRow | null> => {
+  const { data, error } = await db
+    .from('payment_gateway_configs')
+    .select('*')
+    .eq('provider', EXPRESSPAY_PROVIDER)
+    .eq('is_enabled', true);
+
+  if (error) {
+    throw new Error(`Failed to resolve active ExpressPay BillPay config: ${error.message}`);
+  }
+
+  const rows = Array.isArray(data) ? (data as GatewayConfigRow[]) : [];
+  const communityConfig =
+    communityId
+      ? rows.find((row) => row.scope === 'community' && row.community_id === communityId)
+      : null;
+  const globalConfig = rows.find((row) => row.scope === 'global' && row.community_id === null);
+
+  return communityConfig || globalConfig || null;
+};
+
+type ResolvedBillPayConfig = {
+  mode: BillPayMode;
+  scope: BillPayScope;
+  communityId: string | null;
+  apiUrl: string;
+  username: string;
+  authToken: string;
+  isConfigured: boolean;
+};
+
+const resolveBillPayConfig = async ({
+  mode,
+  scope,
+  communityId,
+}: {
+  mode?: string | null;
+  scope?: string | null;
+  communityId?: string | null;
+} = {}): Promise<ResolvedBillPayConfig> => {
+  const hasExplicitMode = typeof mode === 'string' && mode.trim().length > 0;
+  const hasExplicitScope = typeof scope === 'string' && scope.trim().length > 0;
+  const preferredCommunityId = communityId || null;
+  const activeRow =
+    hasExplicitMode || hasExplicitScope ? null : await getEnabledConfigRow({ communityId: preferredCommunityId });
+  const resolvedMode = normalizeMode(
+    mode || activeRow?.mode || process.env.EXPRESSPAY_BILLPAY_MODE || process.env.EXPRESSPAY_MODE || 'test'
+  );
+  const resolvedScope = normalizeScope(scope || activeRow?.scope || 'global');
+  const resolvedCommunityId =
+    resolvedScope === 'community' ? communityId || activeRow?.community_id || null : null;
+  const row =
+    activeRow && activeRow.mode === resolvedMode && activeRow.scope === resolvedScope
+      ? activeRow
+      : await getConfigRow({
+          mode: resolvedMode,
+          scope: resolvedScope,
+          communityId: resolvedCommunityId,
+        });
+
+  const publicConfig = asObject(row?.public_config);
+  const secretRefs = asObject(row?.secret_refs);
+
+  const username =
+    (await readVaultSecret(readString(secretRefs, 'billpay_username_secret_name'))) ||
+    process.env.EXPRESSPAY_BILLPAY_USERNAME?.trim() ||
+    '';
+  const authToken =
+    (await readVaultSecret(readString(secretRefs, 'billpay_auth_token_secret_name'))) ||
+    process.env.EXPRESSPAY_BILLPAY_AUTH_TOKEN?.trim() ||
+    '';
+  const apiUrl =
+    readString(publicConfig, 'billpay_url') ||
+    process.env.EXPRESSPAY_BILLPAY_URL ||
+    EXPRESSPAY_BILLPAY_ENDPOINTS[resolvedMode];
+
   return {
-    mode,
-    apiUrl: baseUrl,
+    mode: resolvedMode,
+    scope: resolvedScope,
+    communityId: resolvedCommunityId,
+    apiUrl,
     username,
     authToken,
+    isConfigured: Boolean(username && authToken),
   };
 };
 
@@ -350,27 +514,109 @@ const upsertPackagesForProvider = async ({
   }
 };
 
-const callExpressPayBillPay = async (payload: JsonRecord) => {
-  const config = resolveBillPayConfig();
+const canonicalBillPayKey = (key: string) => {
+  switch (key) {
+    case 'account_number':
+    case 'accountNumber':
+    case 'meter_number':
+    case 'smartcard_number':
+      return 'account-number';
+    case 'reference':
+    case 'reference_number':
+    case 'referenceNumber':
+      return 'reference-number';
+    case 'payer_name':
+    case 'payerName':
+      return 'payer-name';
+    case 'payer_phonenumber':
+    case 'payer_phone_number':
+    case 'payerPhoneNumber':
+      return 'payer-phonenumber';
+    case 'transaction_id':
+    case 'transactionId':
+      return 'transaction-id';
+    case 'service_code':
+      return 'service';
+    default:
+      return key;
+  }
+};
+
+const appendBillPayValue = (params: URLSearchParams, key: string, value: unknown) => {
+  if (value === undefined || value === null) return;
+
+  const normalizedKey = canonicalBillPayKey(key);
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    params.set(normalizedKey, String(value));
+  }
+};
+
+const encodeBillPayPayload = (
+  config: Pick<ResolvedBillPayConfig, 'username' | 'authToken'>,
+  payload: JsonRecord
+) => {
+  const params = new URLSearchParams();
+  params.set('username', config.username);
+  params.set('auth-token', config.authToken);
+
+  for (const [key, value] of Object.entries(payload)) {
+    appendBillPayValue(params, key, value);
+  }
+
+  return params;
+};
+
+const getBillPayStatusCode = (payload: JsonRecord) => {
+  const raw = payload.status;
+  const parsed = typeof raw === 'number' ? raw : Number(raw);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const normalizeBillPayExecutionStatus = (payload: JsonRecord): 'completed' | 'pending' | 'failed' => {
+  const statusCode = getBillPayStatusCode(payload);
+  if (statusCode === 0) return 'completed';
+  if (statusCode === 7 || statusCode === 9 || statusCode === 11) return 'pending';
+
+  const statusText = (getStatusText(payload) || '').toLowerCase();
+  if (
+    statusText.includes('pending') ||
+    statusText.includes('processing') ||
+    statusText.includes('queued') ||
+    statusText.includes('duplicate')
+  ) {
+    return 'pending';
+  }
+
+  return 'failed';
+};
+
+const callExpressPayBillPay = async (
+  payload: JsonRecord,
+  configInput?: { mode?: string | null; scope?: string | null; communityId?: string | null }
+) => {
+  const config = await resolveBillPayConfig(configInput);
+
+  if (!config.isConfigured) {
+    throw new Error('ExpressPay Bill Payments credentials are not configured.');
+  }
+
+  const formPayload = encodeBillPayPayload(config, payload);
 
   const response = await fetch(config.apiUrl, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/x-www-form-urlencoded',
       Accept: 'application/json',
     },
-    body: JSON.stringify({
-      username: config.username,
-      'auth-token': config.authToken,
-      ...payload,
-    }),
+    body: formPayload.toString(),
   });
 
   const text = await response.text();
   let body: JsonRecord;
 
   try {
-    body = asObject(JSON.parse(text));
+    const parsed = JSON.parse(text);
+    body = Array.isArray(parsed) ? ({ data: parsed } as JsonRecord) : asObject(parsed);
   } catch {
     throw new Error(`ExpressPay Bill Payments returned a non-JSON response (${response.status}).`);
   }
@@ -379,7 +625,53 @@ const callExpressPayBillPay = async (payload: JsonRecord) => {
     throw new Error(getStatusText(body) || `ExpressPay Bill Payments request failed (${response.status}).`);
   }
 
+  const statusCode = getBillPayStatusCode(body);
+  if (statusCode === 1) {
+    throw new Error('ExpressPay Bill Payments rejected the configured credentials.');
+  }
+  if (statusCode === 3) {
+    throw new Error('ExpressPay Bill Payments rejected the backend IP. Whitelist the backend egress IP first.');
+  }
+
   return body;
+};
+
+export const testExpressPayBillPayConfig = async ({
+  mode,
+  scope,
+  communityId,
+}: {
+  mode?: string | null;
+  scope?: string | null;
+  communityId?: string | null;
+}) => {
+  try {
+    const config = await resolveBillPayConfig({ mode, scope, communityId });
+
+    if (!config.isConfigured) {
+      return {
+        passed: false,
+        message: 'BillPay connection test failed: username or auth token is not configured.',
+      };
+    }
+
+    const raw = await callExpressPayBillPay({ type: 'SERVICES' }, { mode, scope, communityId });
+    const statusCode = getBillPayStatusCode(raw);
+    const passed = statusCode === 0 || extractCollection(raw).length > 0;
+
+    return {
+      passed,
+      message: passed
+        ? 'BillPay connection test passed: credentials accepted and service catalog is reachable.'
+        : getStatusText(raw) || 'BillPay connection test failed.',
+      details: raw,
+    };
+  } catch (error) {
+    return {
+      passed: false,
+      message: error instanceof Error ? error.message : 'BillPay connection test failed.',
+    };
+  }
 };
 
 export const resolveExpressPayCatalogProvider = async ({
@@ -673,17 +965,83 @@ export const queryExpressPayCatalogProvider = async (
   };
 };
 
-export const getExpressPayBillPayStatus = async ({
+export type ExpressPayBillPayExecutionResult = {
+  provider: ExpressPayCatalogProvider;
+  status: 'completed' | 'pending' | 'failed';
+  status_code: number | null;
+  status_text: string | null;
+  reference_number: string | null;
+  transaction_id: string | null;
+  receipt_number: string | null;
+  raw: JsonRecord;
+};
+
+export const payExpressPayBillPay = async ({
   providerId,
   externalServiceCode,
   billCategory,
   serviceType,
+  mode,
+  scope,
+  communityId,
   payload,
 }: {
   providerId?: string | null;
   externalServiceCode?: string | null;
   serviceType?: PersonalHubServiceCategory | null;
   billCategory?: PersonalHubBillCategory | null;
+  mode?: string | null;
+  scope?: string | null;
+  communityId?: string | null;
+  payload: JsonRecord;
+}): Promise<ExpressPayBillPayExecutionResult> => {
+  const provider = await resolveExpressPayCatalogProvider({
+    providerId,
+    externalServiceCode,
+    serviceType,
+    billCategory,
+  });
+
+  if (!provider.supports_pay) {
+    throw new Error(`${provider.provider_name} is not enabled for checkout.`);
+  }
+
+  const raw = await callExpressPayBillPay({
+    type: 'PAY',
+    service: provider.external_service_code,
+    ...payload,
+  }, { mode, scope, communityId });
+  const statusCode = getBillPayStatusCode(raw);
+
+  return {
+    provider,
+    status: normalizeBillPayExecutionStatus(raw),
+    status_code: statusCode,
+    status_text: getStatusText(raw),
+    reference_number: pickString(raw, ['reference-number', 'reference_number', 'reference']),
+    transaction_id: pickString(raw, ['transaction-id', 'transaction_id']),
+    receipt_number: pickString(raw, ['receipt-number', 'receipt_number']),
+    raw,
+  };
+};
+
+export const getExpressPayBillPayStatus = async ({
+  providerId,
+  externalServiceCode,
+  billCategory,
+  serviceType,
+  mode,
+  scope,
+  communityId,
+  payload,
+}: {
+  providerId?: string | null;
+  externalServiceCode?: string | null;
+  serviceType?: PersonalHubServiceCategory | null;
+  billCategory?: PersonalHubBillCategory | null;
+  mode?: string | null;
+  scope?: string | null;
+  communityId?: string | null;
   payload: JsonRecord;
 }) => {
   const provider = await resolveExpressPayCatalogProvider({
@@ -700,12 +1058,17 @@ export const getExpressPayBillPayStatus = async ({
   const raw = await callExpressPayBillPay({
     type: 'STATUS',
     service: provider.external_service_code,
-    service_code: provider.external_service_code,
     ...payload,
-  });
+  }, { mode, scope, communityId });
+  const statusCode = getBillPayStatusCode(raw);
 
   return {
     provider,
+    status: normalizeBillPayExecutionStatus(raw),
+    status_code: statusCode,
+    reference_number: pickString(raw, ['reference-number', 'reference_number', 'reference']),
+    transaction_id: pickString(raw, ['transaction-id', 'transaction_id']),
+    receipt_number: pickString(raw, ['receipt-number', 'receipt_number']),
     raw,
     status_text: getStatusText(raw),
   };

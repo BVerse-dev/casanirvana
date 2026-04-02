@@ -5,6 +5,8 @@ import { Alert, Button, Card, Spinner } from 'react-bootstrap';
 
 import IconifyIcon from '@/components/wrappers/IconifyIcon';
 import type { AdminPersonalHubCatalogProvider } from '@/hooks/useAdminPersonalHubCatalog';
+import usePaymentGatewaySettings from '@/hooks/usePaymentGatewaySettings';
+import { useExpressPayGatewayConfig } from '@/hooks/useExpressPayGatewayConfig';
 
 type SyncFeedback = {
   variant: 'success' | 'danger';
@@ -45,6 +47,12 @@ const ExpressPayCatalogSyncNotice = ({
   feedback = null,
 }: ExpressPayCatalogSyncNoticeProps) => {
   const enabledCount = providers.filter((provider) => provider.is_active && provider.is_enabled_for_app).length;
+  const { paymentGatewaySettings } = usePaymentGatewaySettings();
+  const expressPayMode = paymentGatewaySettings?.expresspay_mode === 'live' ? 'live' : 'test';
+  const { data: expressPayConfig } = useExpressPayGatewayConfig(expressPayMode, 'global');
+  const billPayReady = Boolean(
+    expressPayConfig?.billpay_username_configured && expressPayConfig?.billpay_auth_token_configured
+  );
   const lastSyncedAt = providers.reduce<string | null>((latest, provider) => {
     if (!provider.last_synced_at) {
       return latest;
@@ -78,6 +86,12 @@ const ExpressPayCatalogSyncNotice = ({
               <span>
                 Last sync: <strong className="text-dark">{formatLastSyncedAt(lastSyncedAt)}</strong>
               </span>
+              <span>
+                BillPay readiness:{' '}
+                <strong className={billPayReady ? 'text-success' : 'text-warning'}>
+                  {billPayReady ? 'Configured' : 'Missing credentials'}
+                </strong>
+              </span>
             </div>
           </div>
 
@@ -96,6 +110,15 @@ const ExpressPayCatalogSyncNotice = ({
           </Button>
         </Card.Body>
       </Card>
+
+      {!billPayReady ? (
+        <Alert variant="warning">
+          ExpressPay catalog sync is available, but provider-side BillPay fulfillment is not ready for the active{' '}
+          <strong>{expressPayMode}</strong> mode. Airtime, data, bill, insurance, and transfer purchases can take
+          payment without completing downstream delivery until BillPay credentials are configured and tested in
+          Payment Gateway settings.
+        </Alert>
+      ) : null}
 
       {feedback ? <Alert variant={feedback.variant}>{feedback.message}</Alert> : null}
     </>

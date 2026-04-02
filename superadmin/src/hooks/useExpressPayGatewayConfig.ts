@@ -14,8 +14,11 @@ export type ExpressPayGatewayConfig = {
   submit_url: string | null;
   query_url: string | null;
   checkout_url: string | null;
+  billpay_url: string | null;
   merchant_id_configured: boolean;
   api_key_configured: boolean;
+  billpay_username_configured: boolean;
+  billpay_auth_token_configured: boolean;
   last_tested_at: string | null;
   last_test_status: string | null;
   last_test_message: string | null;
@@ -32,8 +35,11 @@ export type ExpressPayGatewayUpsertInput = {
   submit_url?: string | null;
   query_url?: string | null;
   checkout_url?: string | null;
+  billpay_url?: string | null;
   merchant_id?: string | null;
   api_key?: string | null;
+  billpay_username?: string | null;
+  billpay_auth_token?: string | null;
 };
 
 const expressPayQueryKey = (mode: 'test' | 'live', scope: 'global' | 'community', communityId?: string | null) => [
@@ -138,14 +144,16 @@ export const useTestExpressPayGatewayConnection = () => {
       mode,
       scope,
       community_id,
+      target = 'checkout',
     }: {
       mode: 'test' | 'live';
       scope: 'global' | 'community';
       community_id?: string | null;
+      target?: 'checkout' | 'billpay';
     }) => {
       const response = await fetchAdmin('/api/admin/payment-gateways/expresspay/test', {
         method: 'POST',
-        body: JSON.stringify({ mode, scope, community_id: community_id || null }),
+        body: JSON.stringify({ mode, scope, community_id: community_id || null, target }),
       });
       return response.data as { passed: boolean; message: string; details?: Record<string, unknown> };
     },

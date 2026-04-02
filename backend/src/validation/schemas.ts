@@ -1495,8 +1495,11 @@ export const schemas = {
       submit_url: z.string().optional().nullable(),
       query_url: z.string().optional().nullable(),
       checkout_url: z.string().optional().nullable(),
+      billpay_url: z.string().optional().nullable(),
       merchant_id: z.string().optional().nullable(),
       api_key: z.string().optional().nullable(),
+      billpay_username: z.string().optional().nullable(),
+      billpay_auth_token: z.string().optional().nullable(),
     })
     .superRefine((value, ctx) => {
       if (value.scope === 'community' && !value.community_id) {
@@ -1512,6 +1515,7 @@ export const schemas = {
       mode: z.enum(['test', 'live']).default('test'),
       scope: z.enum(['global', 'community']).default('global'),
       community_id: z.string().uuid().optional().nullable(),
+      target: z.enum(['checkout', 'billpay']).optional().default('checkout'),
     })
     .superRefine((value, ctx) => {
       if (value.scope === 'community' && !value.community_id) {

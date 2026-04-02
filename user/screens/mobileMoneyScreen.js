@@ -29,6 +29,7 @@ import {
   initiatePersonalHubCheckout,
   getExpressPayPaymentStatus,
   reconcileExpressPayPayment,
+  reconcilePersonalHubCheckout,
 } from "../services/expressPayService";
 import { normalizeOptionalUuid } from "../utils/id";
 import { formatMoney } from "../utils/money";
@@ -288,6 +289,10 @@ const MobileMoneyScreen = ({ navigation, route }) => {
     paymentId,
     transactionId,
     paidAmount,
+    fulfillmentState,
+    paymentStatus,
+    transactionStatus,
+    statusMessage,
   }) => ({
     id: recordId || paymentId || null,
     paymentId,
@@ -300,6 +305,10 @@ const MobileMoneyScreen = ({ navigation, route }) => {
     paymentMethod: "Mobile Money",
     paymentDate: new Date().toISOString(),
     transactionId,
+    fulfillmentState: fulfillmentState || "completed",
+    paymentStatus: paymentStatus || "completed",
+    transactionStatus: transactionStatus || "completed",
+    statusMessage: statusMessage || null,
   });
 
   const persistSavedDestination = async ({ authUserId, profileId }) => {
@@ -532,19 +541,31 @@ const MobileMoneyScreen = ({ navigation, route }) => {
       setPaymentReference(gatewayTransactionId);
       setShowConfirmationModal(true);
 
-      const reconciliation = await reconcileExpressPayPayment({
-        paymentId: gatewayPaymentId,
-        token: gatewayPayment.token,
-        orderId: gatewayTransactionId,
-        pollAttempts: 20,
-        pollDelayMs: 3000,
-      });
+      const reconciliation = isPersonalHubTransaction
+        ? await reconcilePersonalHubCheckout({
+            paymentId: gatewayPaymentId,
+            token: gatewayPayment.token,
+            orderId: gatewayTransactionId,
+            sourceId: gatewayPayment.source_id || shoppingRecordId || null,
+            paymentPollAttempts: 20,
+            fulfillmentPollAttempts: 4,
+            pollDelayMs: 3000,
+          })
+        : await reconcileExpressPayPayment({
+            paymentId: gatewayPaymentId,
+            token: gatewayPayment.token,
+            orderId: gatewayTransactionId,
+            pollAttempts: 20,
+            pollDelayMs: 3000,
+          });
 
       let gatewayStatus = normalizeGatewayStatus(
-        reconciliation.status || reconciliation.payment?.status || "pending"
+        (isPersonalHubTransaction ? reconciliation.paymentStatus : reconciliation.status) ||
+          reconciliation.payment?.status ||
+          "pending"
       );
 
-      if (gatewayStatus === "pending" && gatewayPaymentId) {
+      if (!isPersonalHubTransaction && gatewayStatus === "pending" && gatewayPaymentId) {
         const latestStatusResult = await getExpressPayPaymentStatus(gatewayPaymentId);
         if (latestStatusResult?.success) {
           gatewayStatus = normalizeGatewayStatus(latestStatusResult.data?.status || gatewayStatus);
@@ -566,6 +587,14 @@ const MobileMoneyScreen = ({ navigation, route }) => {
         }
 
         if (isPersonalHubTransaction) {
+          const fulfillmentState = reconciliation.fulfillmentState || "completed";
+          const notificationStatus =
+            fulfillmentState === "completed"
+              ? "completed"
+              : fulfillmentState === "fulfillment_failed"
+                ? "failed"
+                : "pending";
+
           await createPaymentNotification({
             transaction_type: transactionType,
             transaction_id: gatewayTransactionId,
@@ -573,7 +602,7 @@ const MobileMoneyScreen = ({ navigation, route }) => {
             amount_formatted: amountFormatted,
             data_amount: dataAmount,
             validity,
-            status: "completed",
+            status: notificationStatus,
           });
 
           navigation.push("successScreen", {
@@ -584,6 +613,10 @@ const MobileMoneyScreen = ({ navigation, route }) => {
               paymentId: gatewayPaymentId,
               transactionId: gatewayTransactionId,
               paidAmount: numericAmount,
+              fulfillmentState,
+              paymentStatus: reconciliation.paymentStatus,
+              transactionStatus: reconciliation.transactionStatus,
+              statusMessage: reconciliation.error,
             }),
           });
           return;
@@ -616,6 +649,28 @@ const MobileMoneyScreen = ({ navigation, route }) => {
             paymentDate: new Date().toISOString(),
             transactionId: gatewayTransactionId,
           },
+        });
+        return;
+      }
+
+      if (isPersonalHubTransaction && gatewayStatus !== "failed") {
+        if (isMountedRef.current) {
+          setShowConfirmationModal(false);
+        }
+
+        navigation.push("successScreen", {
+          paymentMethod: "Mobile Money",
+          transactionId: gatewayTransactionId,
+          paymentData: buildPersonalHubSuccessPayload({
+            recordId: gatewayPayment.source_id || shoppingRecordId || null,
+            paymentId: gatewayPaymentId,
+            transactionId: gatewayTransactionId,
+            paidAmount: numericAmount,
+            fulfillmentState: reconciliation.fulfillmentState || "payment_pending",
+            paymentStatus: reconciliation.paymentStatus,
+            transactionStatus: reconciliation.transactionStatus,
+            statusMessage: reconciliation.error,
+          }),
         });
         return;
       }

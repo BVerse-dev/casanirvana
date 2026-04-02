@@ -27,6 +27,7 @@ import {
   initiateExpressPayPayment,
   initiatePersonalHubCheckout,
   reconcileExpressPayPayment,
+  reconcilePersonalHubCheckout,
 } from "../services/expressPayService";
 import { normalizeOptionalUuid } from "../utils/id";
 
@@ -933,16 +934,28 @@ const CreditCardScreen = ({ navigation, route }) => {
 
       await WebBrowser.openAuthSessionAsync(checkoutUrl, appReturnUrl);
 
-      const reconciliation = await reconcileExpressPayPayment({
-        paymentId: initiationResult.data.payment_id,
-        token: initiationResult.data.token,
-        orderId: initiationResult.data.transaction_id,
-        pollAttempts: 6,
-        pollDelayMs: 2000,
-      });
+      const reconciliation = isPersonalHubTransaction
+        ? await reconcilePersonalHubCheckout({
+            paymentId: initiationResult.data.payment_id,
+            token: initiationResult.data.token,
+            orderId: initiationResult.data.transaction_id,
+            sourceId: initiationResult.data?.source_id || null,
+            paymentPollAttempts: 6,
+            fulfillmentPollAttempts: 4,
+            pollDelayMs: 2000,
+          })
+        : await reconcileExpressPayPayment({
+            paymentId: initiationResult.data.payment_id,
+            token: initiationResult.data.token,
+            orderId: initiationResult.data.transaction_id,
+            pollAttempts: 6,
+            pollDelayMs: 2000,
+          });
 
       const gatewayStatus = normalizeGatewayStatus(
-        reconciliation.status || reconciliation.payment?.status || 'pending'
+        (isPersonalHubTransaction ? reconciliation.paymentStatus : reconciliation.status) ||
+          reconciliation.payment?.status ||
+          'pending'
       );
       const transactionId = initiationResult.data.transaction_id || `TXN_${Date.now()}`;
       const maskedCard = 'ExpressPay Card Checkout';
@@ -988,6 +1001,10 @@ const CreditCardScreen = ({ navigation, route }) => {
                 paymentMethod: maskedCard,
                 paymentDate: new Date().toISOString(),
                 transactionId,
+                fulfillmentState: reconciliation.fulfillmentState || "completed",
+                paymentStatus: reconciliation.paymentStatus || "completed",
+                transactionStatus: reconciliation.transactionStatus || "completed",
+                statusMessage: reconciliation.error || null,
               }
             : {
                 ...paymentData,
@@ -998,6 +1015,31 @@ const CreditCardScreen = ({ navigation, route }) => {
                 paymentDate: new Date().toISOString(),
                 transactionId,
               }
+        });
+        return;
+      }
+
+      if (isPersonalHubTransaction && gatewayStatus !== 'failed') {
+        navigation.push("successScreen", {
+          paymentMethod: maskedCard,
+          transactionId,
+          paymentData: {
+            id: initiationResult.data?.source_id || null,
+            paymentId: initiationResult.data?.payment_id || null,
+            type: transactionType,
+            sourceType: transactionType,
+            sourceId: initiationResult.data?.source_id || null,
+            title: providerName || displayTitle,
+            description: description || providerName || "Personal Hub Payment",
+            amount: amountToCharge,
+            paymentMethod: maskedCard,
+            paymentDate: new Date().toISOString(),
+            transactionId,
+            fulfillmentState: reconciliation.fulfillmentState || "payment_pending",
+            paymentStatus: reconciliation.paymentStatus || gatewayStatus,
+            transactionStatus: reconciliation.transactionStatus || "pending",
+            statusMessage: reconciliation.error || null,
+          },
         });
         return;
       }

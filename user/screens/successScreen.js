@@ -50,6 +50,7 @@ const SuccessScreen = ({ navigation, route }) => {
   const paymentData = params.paymentData || null;
   const resolvedSourceType = paymentData?.sourceType || bookingData?.type || paymentData?.type || null;
   const bookingType = bookingData?.type || resolvedSourceType || null;
+  const fulfillmentState = paymentData?.fulfillmentState || params.fulfillmentState || "completed";
 
   const { t, i18n } = useTranslation();
   const isRtl = i18n.dir() === "rtl";
@@ -93,6 +94,54 @@ const SuccessScreen = ({ navigation, route }) => {
   const resolvedPaidOn = moment(
     paymentData?.paymentDate || bookingData?.paymentDate || new Date().toISOString()
   ).format("DD MMMM, YYYY");
+
+  const outcomePresentation = useMemo(() => {
+    switch (fulfillmentState) {
+      case "fulfillment_pending":
+        return {
+          title: "Payment Received",
+          badgeText: "DELIVERY PENDING",
+          badgeColor: "#F57C00",
+          intro:
+            "Your payment was completed successfully, but the provider is still confirming service delivery.",
+          receiptFooter: "Payment received. Provider fulfillment is still pending.",
+        };
+      case "fulfillment_failed":
+        return {
+          title: "Payment Received",
+          badgeText: "DELIVERY FAILED",
+          badgeColor: "#D32F2F",
+          intro:
+            "Your payment was completed successfully, but provider fulfillment did not complete. Support may need to retry or reverse this transaction.",
+          receiptFooter: "Payment received. Provider fulfillment failed and needs follow-up.",
+        };
+      case "payment_pending":
+        return {
+          title: "Payment Pending",
+          badgeText: "PAYMENT PENDING",
+          badgeColor: "#F57C00",
+          intro:
+            "Your checkout is still being confirmed. Service delivery will begin only after payment is verified.",
+          receiptFooter: "Payment is still pending confirmation.",
+        };
+      case "payment_failed":
+        return {
+          title: "Payment Failed",
+          badgeText: "PAYMENT FAILED",
+          badgeColor: "#D32F2F",
+          intro: "The payment could not be completed, so service delivery was not attempted.",
+          receiptFooter: "Payment failed. No service delivery was attempted.",
+        };
+      default:
+        return {
+          title: tr("paymentSuccess"),
+          badgeText: "DELIVERY COMPLETE",
+          badgeColor: "#4CAF50",
+          intro: "Your payment and service delivery were completed successfully.",
+          receiptFooter: "Thank you for your payment.",
+        };
+    }
+  }, [fulfillmentState, tr]);
 
   const resolvedTransactionLabel = useMemo(() => {
     switch (resolvedSourceType) {
@@ -237,6 +286,20 @@ const SuccessScreen = ({ navigation, route }) => {
         title: "Paid On",
         other: resolvedPaidOn,
       },
+      ...(paymentData?.fulfillmentState
+        ? [
+            {
+              key: "8",
+              title: "Payment Status",
+              other: normalizeText(paymentData?.paymentStatus || "completed"),
+            },
+            {
+              key: "9",
+              title: "Service Delivery",
+              other: normalizeText(paymentData?.transactionStatus || "pending"),
+            },
+          ]
+        : []),
     ];
   }, [
     bookingData,
@@ -258,10 +321,10 @@ const SuccessScreen = ({ navigation, route }) => {
       "====================",
       ...lines,
       "",
-      "Thank you for your payment.",
+      outcomePresentation.receiptFooter,
       "Casa Nirvana Management",
     ].join("\n");
-  }, [receiptData]);
+  }, [outcomePresentation.receiptFooter, receiptData]);
 
   const generateHTMLReceipt = () => {
     const rows = receiptData
@@ -285,9 +348,9 @@ const SuccessScreen = ({ navigation, route }) => {
       <style>
         body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5; }
         .receipt-container { max-width: 620px; margin: 0 auto; background: #fff; padding: 24px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
-        .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #4CAF50; padding-bottom: 14px; }
-        .header h1 { color: #4CAF50; margin: 0 0 8px; font-size: 22px; }
-        .success-badge { background: #4CAF50; color: #fff; display: inline-block; padding: 6px 12px; border-radius: 999px; font-size: 12px; }
+        .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid ${outcomePresentation.badgeColor}; padding-bottom: 14px; }
+        .header h1 { color: ${outcomePresentation.badgeColor}; margin: 0 0 8px; font-size: 22px; }
+        .success-badge { background: ${outcomePresentation.badgeColor}; color: #fff; display: inline-block; padding: 6px 12px; border-radius: 999px; font-size: 12px; }
         .detail-row { display: flex; justify-content: space-between; gap: 16px; padding: 10px 0; border-bottom: 1px solid #eee; }
         .detail-label { color: #222; font-weight: 600; }
         .detail-value { color: #555; text-align: right; }
@@ -298,11 +361,11 @@ const SuccessScreen = ({ navigation, route }) => {
       <div class="receipt-container">
         <div class="header">
           <h1>CASA NIRVANA</h1>
-          <div class="success-badge">PAYMENT SUCCESSFUL</div>
+          <div class="success-badge">${escapeHtml(outcomePresentation.badgeText)}</div>
         </div>
         ${rows}
         <div class="footer">
-          <p>Thank you for your payment.</p>
+          <p>${escapeHtml(outcomePresentation.receiptFooter)}</p>
           <p><strong>Casa Nirvana Management</strong></p>
         </div>
       </div>
@@ -396,7 +459,32 @@ const SuccessScreen = ({ navigation, route }) => {
                 marginTop: Default.fixPadding * 1.5,
               }}
             >
-              {tr("paymentSuccess")}
+              {outcomePresentation.title}
+            </Text>
+
+            <View
+              style={{
+                marginTop: Default.fixPadding,
+                paddingHorizontal: Default.fixPadding * 1.4,
+                paddingVertical: Default.fixPadding * 0.7,
+                borderRadius: 999,
+                backgroundColor: outcomePresentation.badgeColor,
+              }}
+            >
+              <Text style={{ ...Fonts.SemiBold14white }}>
+                {outcomePresentation.badgeText}
+              </Text>
+            </View>
+
+            <Text
+              style={{
+                ...Fonts.Medium14grey,
+                marginTop: Default.fixPadding,
+                marginHorizontal: Default.fixPadding * 3,
+                textAlign: "center",
+              }}
+            >
+              {paymentData?.statusMessage || outcomePresentation.intro}
             </Text>
           </View>
 

@@ -22,7 +22,8 @@ const InsuranceScreen = ({ navigation }) => {
   const isRtl = i18n.dir() === "rtl";
   const [insuranceProviders, setInsuranceProviders] = useState([]);
   const [loadingProviders, setLoadingProviders] = useState(true);
-  const [loadError, setLoadError] = useState(null);
+  const [catalogNotice, setCatalogNotice] = useState(null);
+  const [usingFallbackProviders, setUsingFallbackProviders] = useState(false);
 
   // Safe translation function that ALWAYS returns a string
   function tr(key, fallback = "Missing Translation") {
@@ -36,10 +37,11 @@ const InsuranceScreen = ({ navigation }) => {
 
     const loadProviders = async () => {
       setLoadingProviders(true);
-      const { data, error } = await getActiveServiceProviders({ serviceType: "insurance" });
+      const { data, warning, usedFallback } = await getActiveServiceProviders({ serviceType: "insurance" });
       if (!isMounted) return;
       setInsuranceProviders(data || []);
-      setLoadError(error?.message || null);
+      setCatalogNotice(warning || null);
+      setUsingFallbackProviders(Boolean(usedFallback));
       setLoadingProviders(false);
     };
 
@@ -169,7 +171,7 @@ const InsuranceScreen = ({ navigation }) => {
             </View>
           ) : null}
 
-          {loadError ? (
+          {catalogNotice ? (
             <View
               style={{
                 backgroundColor: "#FFF3E0",
@@ -179,7 +181,9 @@ const InsuranceScreen = ({ navigation }) => {
               }}
             >
               <Text style={{ ...Fonts.Medium14black }}>
-                {tr("Provider catalog is currently using fallback data.")}
+                {usingFallbackProviders
+                  ? tr("Provider catalog is currently using fallback data.")
+                  : catalogNotice}
               </Text>
             </View>
           ) : null}

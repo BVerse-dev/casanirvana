@@ -1,5 +1,6 @@
 import { adminSupabase } from '../lib/supabase';
 import { DEFAULT_PAYMENT_DISPLAY, applyPaymentOutcomeSideEffects } from './paymentLedger';
+import { reconcilePersonalHubPaymentFulfillment } from './personalHubFulfillment';
 
 const EXPRESSPAY_PROVIDER = 'expresspay';
 const TEST_MODE = 'test';
@@ -61,6 +62,8 @@ type PaymentRow = {
   reference_number: string | null;
   payment_gateway: string | null;
   payer_id: string | null;
+  source_type: string | null;
+  source_id: string | null;
   metadata: JsonRecord | null;
 };
 
@@ -1640,6 +1643,10 @@ export const verifyExpressPayPayment = async ({
   await applyPaymentOutcomeSideEffects({
     paymentId: updatedPayment.id,
     status: mappedStatus,
+  });
+  await reconcilePersonalHubPaymentFulfillment({
+    paymentId: updatedPayment.id,
+    paymentStatus: mappedStatus,
   });
 
   return {

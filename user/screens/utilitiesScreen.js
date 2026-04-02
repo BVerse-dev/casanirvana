@@ -22,7 +22,8 @@ const UtilitiesScreen = ({ navigation }) => {
   const isRtl = i18n.dir() === "rtl";
   const [utilities, setUtilities] = useState([]);
   const [loadingUtilities, setLoadingUtilities] = useState(true);
-  const [loadError, setLoadError] = useState(null);
+  const [catalogNotice, setCatalogNotice] = useState(null);
+  const [usingFallbackProviders, setUsingFallbackProviders] = useState(false);
 
   // Safe translation function that ALWAYS returns a string
   function tr(key, fallback = "Missing Translation") {
@@ -36,13 +37,14 @@ const UtilitiesScreen = ({ navigation }) => {
 
     const loadProviders = async () => {
       setLoadingUtilities(true);
-      const { data, error } = await getActiveServiceProviders({
+      const { data, warning, usedFallback } = await getActiveServiceProviders({
         serviceType: "bill_payment",
         billCategory: "utilities",
       });
       if (!isMounted) return;
       setUtilities(data || []);
-      setLoadError(error?.message || null);
+      setCatalogNotice(warning || null);
+      setUsingFallbackProviders(Boolean(usedFallback));
       setLoadingUtilities(false);
     };
 
@@ -173,7 +175,7 @@ const UtilitiesScreen = ({ navigation }) => {
             </View>
           ) : null}
 
-          {loadError ? (
+          {catalogNotice ? (
             <View
               style={{
                 backgroundColor: "#FFF3E0",
@@ -183,7 +185,9 @@ const UtilitiesScreen = ({ navigation }) => {
               }}
             >
               <Text style={{ ...Fonts.Medium14black }}>
-                {tr("Provider catalog is currently using fallback data.")}
+                {usingFallbackProviders
+                  ? tr("Provider catalog is currently using fallback data.")
+                  : catalogNotice}
               </Text>
             </View>
           ) : null}

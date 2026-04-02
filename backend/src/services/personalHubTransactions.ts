@@ -6,6 +6,7 @@ import {
   PersonalHubServiceCategory,
   resolveExpressPayCatalogProvider,
 } from './expresspayBillPay';
+import { reconcilePersonalHubPaymentFulfillment } from './personalHubFulfillment';
 
 type JsonRecord = Record<string, unknown>;
 
@@ -61,6 +62,13 @@ const pickNumber = (source: JsonRecord, keys: string[]) => {
     }
   }
   return null;
+};
+
+const normalizeTransactionStatus = (value: unknown) => {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (!normalized) return 'pending';
+  if (normalized === 'initiated' || normalized === 'processing') return 'pending';
+  return normalized;
 };
 
 const SOURCE_TYPE_BY_TRANSACTION: Record<PersonalHubServiceCategory, string> = {
@@ -405,6 +413,8 @@ export const initiatePersonalHubTransaction = async (input: PersonalHubInitiateI
       .update({
         payment_ref_id: gatewayPayment.paymentId,
         provider_payload: {
+          ...(input.metadata || {}),
+          selected_option: asObject(input.selectedOption),
           payment_id: gatewayPayment.paymentId,
           transaction_id: gatewayPayment.transactionId,
           provider_reference: gatewayPayment.providerReference,
@@ -453,20 +463,39 @@ export const getPersonalHubTransactionStatus = async ({
     query = query.eq('user_id', actorUserId);
   }
 
-  const { data, error } = await query.maybeSingle();
+  const { data: initialTransaction, error } = await query.maybeSingle();
 
   if (error) {
     throw new Error(`Failed to load Personal Hub transaction: ${error.message}`);
   }
 
-  if (!data) {
+  if (!initialTransaction) {
     return null;
   }
 
-  const payment = data.payment_id ? await getExpressPayPaymentRecord(data.payment_id) : null;
+  let transaction = initialTransaction;
+  let payment = transaction.payment_id ? await getExpressPayPaymentRecord(transaction.payment_id) : null;
+
+  if (payment?.id && normalizeTransactionStatus(payment.status) === 'completed') {
+    await reconcilePersonalHubPaymentFulfillment({
+      paymentId: payment.id,
+      paymentStatus: payment.status,
+    });
+
+    const { data: refreshedData, error: refreshError } = await query.maybeSingle();
+    if (refreshError) {
+      throw new Error(`Failed to refresh Personal Hub transaction: ${refreshError.message}`);
+    }
+
+    if (refreshedData) {
+      transaction = refreshedData;
+    }
+
+    payment = transaction.payment_id ? await getExpressPayPaymentRecord(transaction.payment_id) : payment;
+  }
 
   return {
-    transaction: data,
+    transaction,
     payment,
   };
 };

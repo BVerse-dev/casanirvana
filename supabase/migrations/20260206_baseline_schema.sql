@@ -7961,6 +7961,263 @@ d6f62487-9b45-4967-8a82-6b48c34e9ac7	Elite Properties	123 MG Road	Bangalore	Karn
 -- Data for Name: agency_services; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
+-- Phase 35 backport: Personal Hub ExpressPay catalog alignment
+ALTER TABLE public.service_providers
+    ADD COLUMN IF NOT EXISTS catalog_source text DEFAULT 'manual'::text NOT NULL,
+    ADD COLUMN IF NOT EXISTS external_service_code text,
+    ADD COLUMN IF NOT EXISTS bill_category text DEFAULT 'general'::text NOT NULL,
+    ADD COLUMN IF NOT EXISTS supports_query boolean DEFAULT false NOT NULL,
+    ADD COLUMN IF NOT EXISTS supports_pay boolean DEFAULT false NOT NULL,
+    ADD COLUMN IF NOT EXISTS supports_status boolean DEFAULT false NOT NULL,
+    ADD COLUMN IF NOT EXISTS provider_metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+    ADD COLUMN IF NOT EXISTS last_synced_at timestamp with time zone,
+    ADD COLUMN IF NOT EXISTS is_enabled_for_app boolean DEFAULT true NOT NULL;
+
+UPDATE public.service_providers
+SET
+    catalog_source = COALESCE(NULLIF(trim(catalog_source), ''), 'manual'),
+    bill_category = COALESCE(NULLIF(trim(bill_category), ''), 'general'),
+    provider_metadata = COALESCE(provider_metadata, '{}'::jsonb),
+    is_enabled_for_app = COALESCE(is_enabled_for_app, true),
+    supports_query = COALESCE(supports_query, false),
+    supports_pay = COALESCE(supports_pay, false),
+    supports_status = COALESCE(supports_status, false)
+WHERE
+    catalog_source IS NULL
+    OR bill_category IS NULL
+    OR provider_metadata IS NULL
+    OR is_enabled_for_app IS NULL
+    OR supports_query IS NULL
+    OR supports_pay IS NULL
+    OR supports_status IS NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS service_providers_catalog_external_code_uidx
+    ON public.service_providers USING btree (catalog_source, service_type, bill_category, external_service_code)
+    WHERE (external_service_code IS NOT NULL);
+
+CREATE INDEX IF NOT EXISTS service_providers_service_type_bill_category_enabled_idx
+    ON public.service_providers USING btree (service_type, bill_category, is_active, is_enabled_for_app);
+
+ALTER TABLE public.service_packages
+    ADD COLUMN IF NOT EXISTS catalog_source text DEFAULT 'manual'::text NOT NULL,
+    ADD COLUMN IF NOT EXISTS provider_metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+    ADD COLUMN IF NOT EXISTS last_synced_at timestamp with time zone,
+    ADD COLUMN IF NOT EXISTS is_enabled_for_app boolean DEFAULT true NOT NULL;
+
+UPDATE public.service_packages
+SET
+    catalog_source = COALESCE(NULLIF(trim(catalog_source), ''), 'manual'),
+    provider_metadata = COALESCE(provider_metadata, '{}'::jsonb),
+    is_enabled_for_app = COALESCE(is_enabled_for_app, true)
+WHERE
+    catalog_source IS NULL
+    OR provider_metadata IS NULL
+    OR is_enabled_for_app IS NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS service_packages_provider_package_code_uidx
+    ON public.service_packages USING btree (provider_id, package_code)
+    WHERE (package_code IS NOT NULL);
+
+CREATE INDEX IF NOT EXISTS service_packages_provider_active_enabled_idx
+    ON public.service_packages USING btree (provider_id, is_active, is_enabled_for_app);
+
+ALTER TABLE public.airtime_purchases
+    ADD COLUMN IF NOT EXISTS provider_display_name text,
+    ADD COLUMN IF NOT EXISTS external_service_code text,
+    ADD COLUMN IF NOT EXISTS query_context jsonb DEFAULT '{}'::jsonb NOT NULL,
+    ADD COLUMN IF NOT EXISTS provider_payload jsonb DEFAULT '{}'::jsonb NOT NULL,
+    ADD COLUMN IF NOT EXISTS fulfillment_status character varying(50) DEFAULT 'pending'::character varying NOT NULL,
+    ADD COLUMN IF NOT EXISTS fulfillment_reference text,
+    ADD COLUMN IF NOT EXISTS provider_status_checked_at timestamp with time zone;
+
+ALTER TABLE public.data_purchases
+    ADD COLUMN IF NOT EXISTS provider_display_name text,
+    ADD COLUMN IF NOT EXISTS external_service_code text,
+    ADD COLUMN IF NOT EXISTS query_context jsonb DEFAULT '{}'::jsonb NOT NULL,
+    ADD COLUMN IF NOT EXISTS provider_payload jsonb DEFAULT '{}'::jsonb NOT NULL,
+    ADD COLUMN IF NOT EXISTS fulfillment_status character varying(50) DEFAULT 'pending'::character varying NOT NULL,
+    ADD COLUMN IF NOT EXISTS fulfillment_reference text,
+    ADD COLUMN IF NOT EXISTS provider_status_checked_at timestamp with time zone;
+
+ALTER TABLE public.money_transfers
+    ADD COLUMN IF NOT EXISTS provider_code text,
+    ADD COLUMN IF NOT EXISTS provider_display_name text,
+    ADD COLUMN IF NOT EXISTS external_service_code text,
+    ADD COLUMN IF NOT EXISTS query_context jsonb DEFAULT '{}'::jsonb NOT NULL,
+    ADD COLUMN IF NOT EXISTS provider_payload jsonb DEFAULT '{}'::jsonb NOT NULL,
+    ADD COLUMN IF NOT EXISTS fulfillment_status character varying(50) DEFAULT 'pending'::character varying NOT NULL,
+    ADD COLUMN IF NOT EXISTS fulfillment_reference text,
+    ADD COLUMN IF NOT EXISTS provider_status_checked_at timestamp with time zone;
+
+ALTER TABLE public.bill_payments
+    ADD COLUMN IF NOT EXISTS provider_display_name text,
+    ADD COLUMN IF NOT EXISTS external_service_code text,
+    ADD COLUMN IF NOT EXISTS query_context jsonb DEFAULT '{}'::jsonb NOT NULL,
+    ADD COLUMN IF NOT EXISTS provider_payload jsonb DEFAULT '{}'::jsonb NOT NULL,
+    ADD COLUMN IF NOT EXISTS fulfillment_status character varying(50) DEFAULT 'pending'::character varying NOT NULL,
+    ADD COLUMN IF NOT EXISTS fulfillment_reference text,
+    ADD COLUMN IF NOT EXISTS provider_status_checked_at timestamp with time zone;
+
+ALTER TABLE public.insurance_payments
+    ADD COLUMN IF NOT EXISTS provider_display_name text,
+    ADD COLUMN IF NOT EXISTS external_service_code text,
+    ADD COLUMN IF NOT EXISTS query_context jsonb DEFAULT '{}'::jsonb NOT NULL,
+    ADD COLUMN IF NOT EXISTS provider_payload jsonb DEFAULT '{}'::jsonb NOT NULL,
+    ADD COLUMN IF NOT EXISTS fulfillment_status character varying(50) DEFAULT 'pending'::character varying NOT NULL,
+    ADD COLUMN IF NOT EXISTS fulfillment_reference text,
+    ADD COLUMN IF NOT EXISTS provider_status_checked_at timestamp with time zone;
+
+DROP FUNCTION IF EXISTS public.list_active_service_providers(text);
+
+CREATE OR REPLACE FUNCTION public.list_active_service_providers(p_service_type text) RETURNS TABLE(id uuid, provider_name text, service_type text, logo_url text, external_service_code text, bill_category text, supports_query boolean, supports_pay boolean, supports_status boolean, provider_metadata jsonb)
+    LANGUAGE sql SECURITY DEFINER
+    SET search_path TO 'public'
+    SET row_security TO 'off'
+    AS $$
+  select
+    sp.id,
+    sp.provider_name::text,
+    sp.service_type::text,
+    sp.logo_url,
+    sp.external_service_code,
+    sp.bill_category,
+    sp.supports_query,
+    sp.supports_pay,
+    sp.supports_status,
+    sp.provider_metadata
+  from public.service_providers sp
+  where sp.is_active = true
+    and sp.is_enabled_for_app = true
+    and sp.service_type = p_service_type
+  order by sp.provider_name asc;
+$$;
+
+REVOKE ALL ON FUNCTION public.list_active_service_providers(text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.list_active_service_providers(text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.list_active_service_providers(text) TO service_role;
+
+CREATE OR REPLACE VIEW public.personal_hub_transactions AS
+ SELECT 'airtime'::text AS transaction_type,
+    a.id AS transaction_id,
+    a.user_id,
+    a.profile_id,
+    COALESCE(a.provider_display_name, a.provider)::character varying AS provider,
+    a.phone_number AS recipient_identifier,
+    a.description AS recipient_name,
+    a.amount,
+    a.amount AS total_amount,
+    a.status,
+    a.payment_ref_id AS payment_id,
+    a.created_at,
+    a.updated_at,
+    a.external_service_code,
+    a.fulfillment_status,
+    a.fulfillment_reference,
+    a.query_context
+   FROM public.airtime_purchases a
+UNION ALL
+ SELECT 'data'::text AS transaction_type,
+    d.id AS transaction_id,
+    d.user_id,
+    d.profile_id,
+    COALESCE(d.provider_display_name, d.provider)::character varying AS provider,
+    d.phone_number AS recipient_identifier,
+    d.description AS recipient_name,
+    d.amount,
+    d.amount AS total_amount,
+    d.status,
+    d.payment_ref_id AS payment_id,
+    d.created_at,
+    d.updated_at,
+    d.external_service_code,
+    d.fulfillment_status,
+    d.fulfillment_reference,
+    d.query_context
+   FROM public.data_purchases d
+UNION ALL
+ SELECT 'money_transfer'::text AS transaction_type,
+    m.id AS transaction_id,
+    m.user_id,
+    m.profile_id,
+    COALESCE(m.provider_display_name, m.provider_code, 'Transfer'::text)::character varying AS provider,
+    m.recipient_phone AS recipient_identifier,
+    m.recipient_name,
+    m.amount,
+    m.total_amount,
+    m.status,
+    m.payment_ref_id AS payment_id,
+    m.created_at,
+    m.updated_at,
+    m.external_service_code,
+    m.fulfillment_status,
+    m.fulfillment_reference,
+    m.query_context
+   FROM public.money_transfers m
+UNION ALL
+ SELECT 'bill_payment'::text AS transaction_type,
+    b.id AS transaction_id,
+    b.user_id,
+    b.profile_id,
+    COALESCE(b.provider_display_name, b.provider)::character varying AS provider,
+    b.account_number AS recipient_identifier,
+    b.customer_name AS recipient_name,
+    b.amount,
+    b.total_amount,
+    b.status,
+    b.payment_ref_id AS payment_id,
+    b.created_at,
+    b.updated_at,
+    b.external_service_code,
+    b.fulfillment_status,
+    b.fulfillment_reference,
+    b.query_context
+   FROM public.bill_payments b
+UNION ALL
+ SELECT 'insurance'::text AS transaction_type,
+    i.id AS transaction_id,
+    i.user_id,
+    i.profile_id,
+    COALESCE(i.provider_display_name, i.provider)::character varying AS provider,
+    i.policy_number AS recipient_identifier,
+    i.insured_name AS recipient_name,
+    i.amount,
+    i.total_amount,
+    i.status,
+    i.payment_ref_id AS payment_id,
+    i.created_at,
+    i.updated_at,
+    i.external_service_code,
+    i.fulfillment_status,
+    i.fulfillment_reference,
+    i.query_context
+   FROM public.insurance_payments i
+UNION ALL
+ SELECT 'shopping'::text AS transaction_type,
+    s.id AS transaction_id,
+    s.user_id,
+    s.profile_id,
+    s.merchant AS provider,
+    s.order_number AS recipient_identifier,
+    s.merchant AS recipient_name,
+    s.amount,
+    s.total_amount,
+    s.status,
+    s.payment_ref_id AS payment_id,
+    s.created_at,
+    s.updated_at,
+    NULL::text AS external_service_code,
+    NULL::character varying(50) AS fulfillment_status,
+    NULL::text AS fulfillment_reference,
+    '{}'::jsonb AS query_context
+   FROM public.shopping_payments s;
+
+ALTER VIEW public.personal_hub_transactions SET (security_invoker = true);
+REVOKE ALL ON TABLE public.personal_hub_transactions FROM anon;
+REVOKE ALL ON TABLE public.personal_hub_transactions FROM authenticated;
+REVOKE ALL ON TABLE public.personal_hub_transactions FROM service_role;
+GRANT SELECT ON TABLE public.personal_hub_transactions TO authenticated;
+GRANT SELECT ON TABLE public.personal_hub_transactions TO service_role;
+
 COPY public.agency_services (id, agency_id, service_name, description, rate, rate_type, status, created_at, updated_at, category, base_price, commission_rate, duration, availability, requirements, target_market, features, tags, bookings, revenue, rating, completion_rate) FROM stdin;
 6231051c-4759-4c60-9467-b64215e2bf55	cba1d1ff-0ff1-415b-a6c2-c47a5467996a	Premium Property Listing	Professional photography, virtual tours, and premium placement on top property portals	\N	hourly	Active	2025-07-09 14:39:35.385331+00	2025-07-09 14:39:35.385331+00	Listing Services	299	2.5	30 days	Available	Property documents, keys for photography	Luxury Properties	{"Professional Photography","Virtual Tours","3D Floor Plans","Drone Footage"}	{premium,photography,virtual-tour}	45	13455	4.8	98
 20812f20-6d34-4f79-aa4e-401a523acb88	cba1d1ff-0ff1-415b-a6c2-c47a5467996a	Property Valuation Service	Comprehensive property valuation by certified professionals	\N	hourly	Active	2025-07-09 14:39:35.385331+00	2025-07-09 14:39:35.385331+00	Valuation Services	150	1.0	5 business days	Available	Property access, ownership documents	All Property Types	{"Market Analysis","Comparable Properties","Professional Report","Legal Review"}	{valuation,report,analysis}	32	4800	4.6	95

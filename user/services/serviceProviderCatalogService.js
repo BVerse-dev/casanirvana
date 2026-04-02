@@ -10,6 +10,8 @@ const PROVIDER_THEMES = [
 
 const TV_KEYWORDS = ["dstv", "gotv", "startimes", "showmax", "boxoffice", "entertainment", "tv"];
 const UTILITY_KEYWORDS = ["ecg", "electric", "water", "waste", "power", "utility", "phcn", "zoomlion"];
+const ALLOW_PROVIDER_FALLBACK =
+  __DEV__ || process.env.EXPO_PUBLIC_ALLOW_PERSONAL_HUB_PROVIDER_FALLBACK === "true";
 
 const FALLBACK_PROVIDERS = {
   airtime: [
@@ -192,6 +194,11 @@ const filterForBillCategory = (providers, billCategory) => {
 };
 
 export const getActiveServiceProviders = async ({ serviceType, billCategory = null }) => {
+  const fallbackMessage =
+    "Live ExpressPay catalog data is unavailable. The app is using fallback provider data.";
+  const unavailableMessage =
+    "Live ExpressPay catalog data is unavailable and fallback providers are disabled in this build.";
+
   try {
     const { data, error } = await getPersonalHubCatalogProviders({
       serviceType,
@@ -199,8 +206,22 @@ export const getActiveServiceProviders = async ({ serviceType, billCategory = nu
     });
 
     if (error) {
-      const fallback = getFallbackProviders(serviceType, billCategory);
-      return { data: fallback, error };
+      if (ALLOW_PROVIDER_FALLBACK) {
+        const fallback = getFallbackProviders(serviceType, billCategory);
+        return {
+          data: fallback,
+          error,
+          warning: fallbackMessage,
+          usedFallback: true,
+        };
+      }
+
+      return {
+        data: [],
+        error: new Error(error?.message || unavailableMessage),
+        warning: unavailableMessage,
+        usedFallback: false,
+      };
     }
 
     const mapped = (data?.items || []).map(mapProviderRow);
@@ -209,13 +230,41 @@ export const getActiveServiceProviders = async ({ serviceType, billCategory = nu
       : mapped;
 
     if (!filtered.length) {
-      const fallback = getFallbackProviders(serviceType, billCategory);
-      return { data: fallback, error: null };
+      if (ALLOW_PROVIDER_FALLBACK) {
+        const fallback = getFallbackProviders(serviceType, billCategory);
+        return {
+          data: fallback,
+          error: null,
+          warning: fallbackMessage,
+          usedFallback: true,
+        };
+      }
+
+      return {
+        data: [],
+        error: new Error("No live providers are currently configured for this service."),
+        warning: "No live providers are currently configured for this service.",
+        usedFallback: false,
+      };
     }
 
-    return { data: filtered, error: null };
+    return { data: filtered, error: null, warning: null, usedFallback: false };
   } catch (error) {
-    const fallback = getFallbackProviders(serviceType, billCategory);
-    return { data: fallback, error };
+    if (ALLOW_PROVIDER_FALLBACK) {
+      const fallback = getFallbackProviders(serviceType, billCategory);
+      return {
+        data: fallback,
+        error,
+        warning: fallbackMessage,
+        usedFallback: true,
+      };
+    }
+
+    return {
+      data: [],
+      error: error instanceof Error ? error : new Error(unavailableMessage),
+      warning: unavailableMessage,
+      usedFallback: false,
+    };
   }
 };

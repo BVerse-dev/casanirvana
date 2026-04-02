@@ -12,6 +12,7 @@ Purpose: Current release closeout source of truth. Use this file to understand w
 - Legacy data alignment cleanup: complete
 - Backend contract hardening and mounted integration coverage: materially complete for the main production admin surface
 - `superadmin` strict type-check and `build:check` closeout: complete
+- ExpressPay BillPay secure-config and Personal Hub fulfillment path: complete at implementation level
 - Remaining production work: runtime signoff and a small set of explicit release decisions
 
 ## Completed Foundations
@@ -24,6 +25,8 @@ Purpose: Current release closeout source of truth. Use this file to understand w
   - Active production migrations are applied and recorded through Phase 43
 - `backend/src/tests/app-mounted-integration.test.ts`
   - Mounted coverage now exercises the real Express app stack across onboarding, admin core, communities, people, operations, communication, Personal Hub, finance, and settings/control-plane routes
+- ExpressPay / Personal Hub fulfillment
+  - Checkout and BillPay credentials now share one secure ExpressPay control plane, provider fulfillment now runs server-side after authoritative payment settlement, and user/admin surfaces now report truthful catalog-readiness and fulfillment states instead of treating payment success as automatic service delivery
 - `PROGRESS_CHECKLIST.md`
   - Historical execution log is up to date through the current backend mounted-settings pass
 - `WORKTREE_TAKEOVER_AUDIT.md` and `WORKTREE_REINTEGRATION_CHECKLIST.md`
@@ -54,6 +57,7 @@ Purpose: Current release closeout source of truth. Use this file to understand w
   - remaining Guard work is runtime verification, not unresolved implementation
   - cover Residents/Directory behavior, guard operations scope, and settings/profile lifecycle in the recorded signoff
 - [ ] Fix and re-verify any defect found during the runtime pack before launch approval
+  - This explicitly includes end-to-end ExpressPay BillPay verification for Personal Hub services that rely on provider-side delivery after payment settlement
 
 Exit criteria for Gate A:
 - `WORKTREE_REINTEGRATION_CHECKLIST.md` is complete with no unresolved reintegration slice left
@@ -73,6 +77,10 @@ Exit criteria for Gate A:
   - `/payments/charges`
   - `/payments/invoices`
   - `/payments/payouts`
+- [ ] During runtime signoff, explicitly verify ExpressPay BillPay completion on current `main`
+  - superadmin can save and test BillPay credentials for the active ExpressPay mode
+  - Personal Hub catalog availability messaging is truthful when BillPay readiness is missing
+  - supported user flows distinguish payment settlement from provider fulfillment (`completed`, `fulfillment_pending`, `fulfillment_failed`)
 
 These items are not new wiring audits. They are release-discipline decisions and runtime verification tasks.
 

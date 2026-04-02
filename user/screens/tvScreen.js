@@ -22,7 +22,8 @@ const TVScreen = ({ navigation }) => {
   const isRtl = i18n.dir() === "rtl";
   const [tvProviders, setTvProviders] = useState([]);
   const [loadingProviders, setLoadingProviders] = useState(true);
-  const [loadError, setLoadError] = useState(null);
+  const [catalogNotice, setCatalogNotice] = useState(null);
+  const [usingFallbackProviders, setUsingFallbackProviders] = useState(false);
 
   // Safe translation function that ALWAYS returns a string
   function tr(key, fallback = "Missing Translation") {
@@ -36,13 +37,14 @@ const TVScreen = ({ navigation }) => {
 
     const loadProviders = async () => {
       setLoadingProviders(true);
-      const { data, error } = await getActiveServiceProviders({
+      const { data, warning, usedFallback } = await getActiveServiceProviders({
         serviceType: "bill_payment",
         billCategory: "tv",
       });
       if (!isMounted) return;
       setTvProviders(data || []);
-      setLoadError(error?.message || null);
+      setCatalogNotice(warning || null);
+      setUsingFallbackProviders(Boolean(usedFallback));
       setLoadingProviders(false);
     };
 
@@ -173,7 +175,7 @@ const TVScreen = ({ navigation }) => {
             </View>
           ) : null}
 
-          {loadError ? (
+          {catalogNotice ? (
             <View
               style={{
                 backgroundColor: "#FFF3E0",
@@ -183,7 +185,9 @@ const TVScreen = ({ navigation }) => {
               }}
             >
               <Text style={{ ...Fonts.Medium14black }}>
-                {tr("Provider catalog is currently using fallback data.")}
+                {usingFallbackProviders
+                  ? tr("Provider catalog is currently using fallback data.")
+                  : catalogNotice}
               </Text>
             </View>
           ) : null}
