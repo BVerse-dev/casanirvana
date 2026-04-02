@@ -126,6 +126,7 @@ Procedure:
 - `20260311130500_phase35_profiles_roles_and_users_updated_at.sql`
 - `20260313190000_phase40_system_settings_scoping_and_app_assets.sql`
 - `20260322120000_phase42_chat_attachment_privacy_alignment.sql`
+- `20260402150000_phase44_expresspay_catalog_upsert_constraints.sql` (restore the prior partial unique indexes on `public.service_providers` / `public.service_packages` only if the application no longer uses Supabase `upsert(... onConflict=...)` against those catalog tables)
 
 ### Playbook D
 - `20260221005336_phase13_comments_notice_contract_hardening.sql`

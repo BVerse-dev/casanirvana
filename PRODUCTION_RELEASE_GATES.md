@@ -22,7 +22,7 @@ Purpose: Current release closeout source of truth. Use this file to understand w
 - `superadmin/PRODUCTION_TENANT_RLS_REMEDIATION_CHECKLIST.md`
   - Tenant scope, critical-table RLS cleanup, rollback notes, and migration-history repair are complete
 - `supabase/migrations`
-  - Active production migrations are applied and recorded through Phase 43
+  - Active production migrations are applied and recorded through Phase 44
 - `backend/src/tests/app-mounted-integration.test.ts`
   - Mounted coverage now exercises the real Express app stack across onboarding, admin core, communities, people, operations, communication, Personal Hub, finance, and settings/control-plane routes
 - ExpressPay / Personal Hub fulfillment

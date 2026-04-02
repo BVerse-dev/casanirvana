@@ -7992,8 +7992,7 @@ WHERE
     OR supports_status IS NULL;
 
 CREATE UNIQUE INDEX IF NOT EXISTS service_providers_catalog_external_code_uidx
-    ON public.service_providers USING btree (catalog_source, service_type, bill_category, external_service_code)
-    WHERE (external_service_code IS NOT NULL);
+    ON public.service_providers USING btree (catalog_source, service_type, bill_category, external_service_code);
 
 CREATE INDEX IF NOT EXISTS service_providers_service_type_bill_category_enabled_idx
     ON public.service_providers USING btree (service_type, bill_category, is_active, is_enabled_for_app);
@@ -8015,8 +8014,7 @@ WHERE
     OR is_enabled_for_app IS NULL;
 
 CREATE UNIQUE INDEX IF NOT EXISTS service_packages_provider_package_code_uidx
-    ON public.service_packages USING btree (provider_id, package_code)
-    WHERE (package_code IS NOT NULL);
+    ON public.service_packages USING btree (provider_id, package_code);
 
 CREATE INDEX IF NOT EXISTS service_packages_provider_active_enabled_idx
     ON public.service_packages USING btree (provider_id, is_active, is_enabled_for_app);
