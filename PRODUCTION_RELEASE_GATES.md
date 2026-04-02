@@ -28,6 +28,7 @@ Purpose: Current release closeout source of truth. Use this file to understand w
 - ExpressPay / Personal Hub fulfillment
   - Checkout and BillPay credentials now share one secure ExpressPay control plane, provider fulfillment now runs server-side after authoritative payment settlement, and user/admin surfaces now report truthful catalog-readiness and fulfillment states instead of treating payment success as automatic service delivery
   - Live catalog verification on 2026-04-02 confirmed current merchant-profile support for airtime, data, TV bill payments, and money-transfer rails; utility bill payments and insurance must remain unavailable until ExpressPay exposes those provider categories in the synced catalog
+  - Follow-up importer hardening on 2026-04-02 corrected ExpressPay catalog classification so MTN airtime and the provider-returned send-money rails are now cached as supported services, while admin enable/disable choices are preserved across future sync runs
 - `PROGRESS_CHECKLIST.md`
   - Historical execution log is up to date through the current backend mounted-settings pass
 - `WORKTREE_TAKEOVER_AUDIT.md` and `WORKTREE_REINTEGRATION_CHECKLIST.md`

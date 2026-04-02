@@ -76,6 +76,9 @@ function resetState() {
 function createQueryBuilder(table: string) {
   const filters: Array<(row: MockRow) => boolean> = [];
   let limitValue: number | null = null;
+  let operation: 'read' | 'upsert' = 'read';
+  let upsertPayload: MockRow[] = [];
+  let upsertConflictColumns: string[] = [];
 
   const getRows = () => [...(state.tables[table] || [])];
 
@@ -85,6 +88,42 @@ function createQueryBuilder(table: string) {
       rows = rows.slice(0, limitValue);
     }
     return rows;
+  };
+
+  const execute = () => {
+    if (operation === 'upsert') {
+      const existingRows = getRows();
+      const nextRows = [...existingRows];
+      const affectedRows: MockRow[] = [];
+
+      for (const payload of upsertPayload) {
+        const existingIndex = nextRows.findIndex((row) =>
+          upsertConflictColumns.every((column) => row[column] === payload[column])
+        );
+
+        if (existingIndex >= 0) {
+          const merged = {
+            ...nextRows[existingIndex],
+            ...payload,
+          };
+          nextRows[existingIndex] = merged;
+          affectedRows.push(merged);
+          continue;
+        }
+
+        const inserted = {
+          ...payload,
+          id: payload.id || `${table}-${nextRows.length + affectedRows.length + 1}`,
+        };
+        nextRows.push(inserted);
+        affectedRows.push(inserted);
+      }
+
+      state.tables[table] = nextRows;
+      return { data: affectedRows, error: null };
+    }
+
+    return { data: applyFilters(), error: null };
   };
 
   const builder: any = {
@@ -103,12 +142,21 @@ function createQueryBuilder(table: string) {
       limitValue = value;
       return builder;
     },
+    upsert(payload: MockRow[] | MockRow, options?: { onConflict?: string }) {
+      operation = 'upsert';
+      upsertPayload = Array.isArray(payload) ? payload : [payload];
+      upsertConflictColumns = String(options?.onConflict || '')
+        .split(',')
+        .map((value) => value.trim())
+        .filter(Boolean);
+      return builder;
+    },
     maybeSingle() {
       const rows = applyFilters();
       return Promise.resolve({ data: rows[0] || null, error: null });
     },
     then(resolve: (value: unknown) => unknown, reject?: (reason: unknown) => unknown) {
-      return Promise.resolve({ data: applyFilters(), error: null }).then(resolve, reject);
+      return Promise.resolve(execute()).then(resolve, reject);
     },
   };
 
@@ -289,5 +337,98 @@ describe('expresspayBillPay', () => {
 
     expect(result.passed).toBe(true);
     expect(result.message).toContain('passed');
+  });
+
+  it('syncs MTN airtime and send-money rails by provider name/category instead of dropping them', async () => {
+    state.fetchImpl.mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () =>
+        JSON.stringify({
+          status: 0,
+          data: [
+            { name: 'MTN Prepaid', service: 'MTN_GH', category: 'GIVING' },
+            { name: 'MTN Mobile Money', service: 'MTN_MM', category: 'SEND-MONEY' },
+            { name: 'AirtelTigo Money', service: 'AIRTELTIGO_MM', category: 'SEND-MONEY' },
+            { name: 'Vodafone Cash', service: 'VODA_MM', category: 'SEND-MONEY' },
+          ],
+        }),
+    });
+
+    const { syncExpressPayCatalogToCache } = await loadModule();
+
+    const result = await syncExpressPayCatalogToCache();
+
+    expect(result.imported_count).toBe(4);
+    expect(result.providers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          provider_name: 'MTN Prepaid',
+          service_type: 'airtime',
+          external_service_code: 'MTN_GH',
+        }),
+        expect.objectContaining({
+          provider_name: 'MTN Mobile Money',
+          service_type: 'money_transfer',
+          external_service_code: 'MTN_MM',
+        }),
+        expect.objectContaining({
+          provider_name: 'AirtelTigo Money',
+          service_type: 'money_transfer',
+          external_service_code: 'AIRTELTIGO_MM',
+        }),
+        expect.objectContaining({
+          provider_name: 'Vodafone Cash',
+          service_type: 'money_transfer',
+          external_service_code: 'VODA_MM',
+        }),
+      ])
+    );
+  });
+
+  it('preserves existing app enablement choices when ExpressPay catalog sync runs again', async () => {
+    state.tables.service_providers = [
+      {
+        id: 'provider-mtn',
+        provider_name: 'MTN Prepaid',
+        service_type: 'airtime',
+        bill_category: 'general',
+        external_service_code: 'MTN_GH',
+        logo_url: null,
+        supports_query: true,
+        supports_pay: true,
+        supports_status: true,
+        provider_metadata: {},
+        is_active: true,
+        is_enabled_for_app: false,
+        last_synced_at: null,
+        catalog_source: 'expresspay',
+      },
+    ];
+
+    state.fetchImpl.mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () =>
+        JSON.stringify({
+          status: 0,
+          data: [{ name: 'MTN Prepaid', service: 'MTN_GH', category: 'GIVING' }],
+        }),
+    });
+
+    const { syncExpressPayCatalogToCache } = await loadModule();
+
+    const result = await syncExpressPayCatalogToCache();
+
+    expect(result.providers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          provider_name: 'MTN Prepaid',
+          external_service_code: 'MTN_GH',
+          is_enabled_for_app: false,
+        }),
+      ])
+    );
+    expect(state.tables.service_providers[0].is_enabled_for_app).toBe(false);
   });
 });

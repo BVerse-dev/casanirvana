@@ -355,13 +355,43 @@ const extractCollection = (payload: JsonRecord): JsonRecord[] => {
   return [];
 };
 
-const inferServiceCategory = (
-  providerName: string,
-  rawCategory?: string | null
-): { serviceType: PersonalHubServiceCategory | null; billCategory: PersonalHubBillCategory } => {
+const inferServiceCategory = ({
+  providerName,
+  externalServiceCode,
+  rawCategory,
+}: {
+  providerName: string;
+  externalServiceCode: string;
+  rawCategory?: string | null;
+}): { serviceType: PersonalHubServiceCategory | null; billCategory: PersonalHubBillCategory } => {
   const name = providerName.toLowerCase();
+  const serviceCode = externalServiceCode.toLowerCase();
   const category = String(rawCategory || '').toLowerCase();
-  const normalized = `${name} ${category}`;
+  const normalized = `${name} ${serviceCode} ${category}`;
+
+  if (category.includes('airtime')) {
+    return { serviceType: 'airtime', billCategory: 'general' };
+  }
+
+  if (category.includes('internet')) {
+    return { serviceType: 'data', billCategory: 'general' };
+  }
+
+  if (category.includes('tv')) {
+    return { serviceType: 'bill_payment', billCategory: 'tv' };
+  }
+
+  if (category.includes('utility')) {
+    return { serviceType: 'bill_payment', billCategory: 'utilities' };
+  }
+
+  if (category.includes('send-money') || category.includes('money-transfer')) {
+    return { serviceType: 'money_transfer', billCategory: 'general' };
+  }
+
+  if (category.includes('insurance')) {
+    return { serviceType: 'insurance', billCategory: 'general' };
+  }
 
   if (AIRTIME_KEYWORDS.some((keyword) => normalized.includes(keyword))) {
     return { serviceType: 'airtime', billCategory: 'general' };
@@ -397,8 +427,11 @@ const normalizeCatalogProvider = (input: JsonRecord): Omit<ExpressPayCatalogProv
     pickString(input, ['service', 'service_code', 'serviceCode', 'code', 'id', 'service_id']) || '';
   const rawCategory = pickString(input, ['category', 'service_category', 'group', 'type']);
 
-  const fallbackName = externalServiceCode || providerName;
-  const { serviceType, billCategory } = inferServiceCategory(fallbackName, rawCategory);
+  const { serviceType, billCategory } = inferServiceCategory({
+    providerName: providerName || externalServiceCode,
+    externalServiceCode,
+    rawCategory,
+  });
 
   if (!serviceType || !SUPPORTED_SERVICE_TYPES.has(serviceType) || !externalServiceCode) {
     return null;
@@ -741,10 +774,35 @@ export const syncExpressPayCatalogToCache = async () => {
     throw new Error(status_text || 'ExpressPay did not return any supported Personal Hub services.');
   }
 
+  const { data: existingProviders, error: existingProvidersError } = await adminSupabase
+    .from('service_providers')
+    .select('service_type, bill_category, external_service_code, is_enabled_for_app')
+    .eq('catalog_source', 'expresspay');
+
+  if (existingProvidersError) {
+    throw new Error(`Failed to load existing ExpressPay Personal Hub providers: ${existingProvidersError.message}`);
+  }
+
+  const existingEnablement = new Map(
+    ((existingProviders || []) as Array<{
+      service_type: PersonalHubServiceCategory;
+      bill_category: PersonalHubBillCategory;
+      external_service_code: string;
+      is_enabled_for_app: boolean;
+    }>).map((provider) => [
+      `${provider.service_type}::${provider.bill_category}::${provider.external_service_code}`,
+      Boolean(provider.is_enabled_for_app),
+    ])
+  );
+
   const now = new Date().toISOString();
   const records = normalized.map((provider) => ({
     ...provider,
     catalog_source: 'expresspay',
+    is_enabled_for_app:
+      existingEnablement.get(
+        `${provider.service_type}::${provider.bill_category}::${provider.external_service_code}`
+      ) ?? true,
     last_synced_at: now,
     updated_at: now,
   }));
