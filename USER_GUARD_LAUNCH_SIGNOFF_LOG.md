@@ -54,6 +54,7 @@ Status: Ready for runtime execution
 | Defect ID | Priority | Section | App | Screen / Route | Actor | Expected | Actual | Evidence | Owner | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | DEF-001 |  |  |  |  |  |  |  |  |  | open |
+| DEF-002 | P0 | UG-06 / ExpressPay runtime verification | User | `paymentMethodScreen` -> `mobileMoneyScreen` | Resident | Personal Hub checkout should honor the live payment method policy and use the hosted backend when a production-like device build inherits a stale private/local API URL | Personal Hub forced Mobile Money only and the device runtime could keep a stale private/local API base, producing `Network request failed` for `/payments/policy` and checkout initiation even while the live backend was healthy | Runtime test on 2026-04-02; live backend `/health` verified reachable; user flow logs showed payment-policy fetch and mobile-money initiation network failures | Platform Engineering | fixed_pending_retest |
 
 ## Re-Verification Log
 | Defect ID | Date | Tester | Fix Commit | Result | Notes |

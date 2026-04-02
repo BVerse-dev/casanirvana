@@ -60,6 +60,7 @@ Purpose: Current release closeout source of truth. Use this file to understand w
   - cover Residents/Directory behavior, guard operations scope, and settings/profile lifecycle in the recorded signoff
 - [ ] Fix and re-verify any defect found during the runtime pack before launch approval
   - This explicitly includes end-to-end ExpressPay BillPay verification for Personal Hub services that rely on provider-side delivery after payment settlement
+  - Active runtime defect from 2026-04-02 has been fixed in code and now needs runtime re-verification: user Personal Hub checkout must show both card and mobile-money methods when enabled by live policy, and production-like device builds must resolve to the hosted backend instead of inheriting stale private/local API URLs
 
 Exit criteria for Gate A:
 - `WORKTREE_REINTEGRATION_CHECKLIST.md` is complete with no unresolved reintegration slice left

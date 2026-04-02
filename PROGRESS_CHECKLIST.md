@@ -232,6 +232,7 @@ Date: 2026-02-06
 - [x] Reworked user `successScreen` into a context-aware receipt view (service booking vs amenity booking vs generic payment), fixed nested navigation target (`bottomTab -> homeScreen`), and added Expo Go-safe receipt fallback when native PDF module is unavailable.
 - [x] Fixed remaining direct `homeScreen` navigation calls in non-tab stack screens (`messageScreen`, `guardCallingScreen`, `paymentReceiptScreen`, `mobileMoneyScreen`) by routing through nested navigator target (`bottomTab -> homeScreen`).
 - [x] Fixed amenity post-payment RLS violation path by updating only `payment_status` (not booking `status`) for user-driven amenity payment completion.
+- [x] Fixed Personal Hub checkout launch defects discovered during live runtime verification on 2026-04-02: `paymentMethodScreen` no longer forces catalog-backed Personal Hub flows to Mobile Money only when card is enabled by live policy, and the shared user mobile API base resolver now falls back to the hosted backend in production-like device runtimes when Expo config carries a stale private/local API URL (with explicit opt-in preserved for intentional local-device testing).
 
 ## Phase 15 - Book Amenities Hardening
 - [x] Applied migration `supabase/migrations/20260221115418_phase15_amenities_rls_contract_cleanup.sql`.
