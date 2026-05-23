@@ -45,7 +45,7 @@ Date: 2026-02-06
 - [x] Choose single source of truth for Supabase migrations (`/supabase/migrations`).
 - [x] Generate and distribute shared `database.types.ts` to all apps (canonical: `/supabase/database.types.ts`).
 - [x] Lock down system + notification analytics/queues RLS (admin read, service role all).
-- [ ] Apply Phase 5B internal tables/marketplace/guard RLS (migration `20260206170000_phase5_rls_internal_tables.sql`).
+- [x] Apply Phase 5B internal tables/marketplace/guard RLS (archived migration `20260206170000_phase5_rls_internal_tables.sql` superseded by live Phase 36 + Phase 45 cleanup; Casa Nirvana verified 2026-05-22).
 - [ ] Align seeds and RLS policies across apps.
 
 ## Phase 6 - Quality & Observability
@@ -70,7 +70,7 @@ Date: 2026-02-06
 - [x] Apply notifications policy cleanup migration `20260207002000_phase7_policy_cleanup_notifications.sql` and verify flows.
 - [x] Apply profiles/users policy cleanup migration `20260207003000_phase7_policy_cleanup_profiles_users.sql` and verify flows.
 - [x] Apply messaging policy cleanup migration `20260207004000_phase7_policy_cleanup_messaging.sql` and verify flows.
-- [ ] Apply system policy cleanup migration `20260207005000_phase7_policy_cleanup_system.sql` and verify flows.
+- [x] Apply system policy cleanup migration `20260207005000_phase7_policy_cleanup_system.sql` and verify flows.
 
 ## Phase 8 - Deployment Readiness
 - [x] Create per-app deployment checklist in `DEPLOYMENT_CHECKLIST.md`.
@@ -182,7 +182,7 @@ Date: 2026-02-06
 - [x] Removed duplicate visitor realtime subscription from `visitorsScreen` (global subscription in `AuthContext` retained as canonical).
 - [x] Fixed delivery company confirm/submit mismatch and cleaned dead pre-approve visitor state.
 - [x] Added lifecycle contract doc: `user/VISITORS_LIFECYCLE_CONTRACT.md`.
-- [ ] Remaining legacy seed rows with `visitor_passes.created_by IS NULL` (15) and `unit_id/community_id` both null (3) require manual attribution or archival (intentionally unchanged by safe cleanup).
+- [x] Remaining legacy seed rows with `visitor_passes.created_by IS NULL` (15) and `unit_id/community_id` both null (3) archived/cleaned in live Casa Nirvana by Phase 41; verified 2026-05-22 (`created_by IS NULL = 0`, `unit_id/community_id both null = 0`).
 
 ## Phase 13 - Notice Module Hardening
 - [x] Superadmin notice create flow now derives `community_id` from authenticated admin scope (removed hardcoded `default-community`).
@@ -906,6 +906,14 @@ Date: 2026-02-06
 - [x] `GET/POST/PATCH/DELETE /admin/agencies/services`
 - [x] `GET/POST/PATCH /admin/agencies/finance`
 - [x] `GET/POST/PATCH/DELETE /admin/agencies/documents`
+
+## Phase 45 - Release Freeze Data Cleanup
+- [x] Confirmed release database target is Supabase org `BVerse` (`smxojcsoczdxmkdneayu`) and project `Casa Nirvana` (`pswnlowvmdgeifhxilao`); unrelated MCP-configured project `qfdoogvyuqbfrncxsdkq` was not touched.
+- [x] Applied migration `supabase/migrations/20260522120000_phase45_release_freeze_data_cleanup.sql` to Casa Nirvana and recorded migration metadata (`version=20260522120000`, `name=phase45_release_freeze_data_cleanup`, `created_by=codex`).
+- [x] Backfilled missing `entry_code` / `qr_code_data` for 19 attributed, tenant-anchored historical `visitor_passes` rows with reversible backup table `public.datafix_phase45_visitor_artifact_backfill_backup` (`cleanup_tag = phase45_visitor_artifacts_backfill_20260522`).
+- [x] Verified visitor release-freeze data quality: `visitor_passes.created_by IS NULL = 0`, `unit_id IS NULL AND community_id IS NULL = 0`, and missing pass artifacts (`entry_code` or `qr_code_data`) = 0.
+- [x] Enabled scoped RLS on remaining empty Phase 5B leftover tables (`app_extensions`, `application_settings`, `document_categories`, `equipment_id_mapping`, `equipment_maintenance`, `groups`, `translations`) with Phase 45 admin/service-role policies.
+- [x] Synced local active migration history with live Casa Nirvana migration metadata: `79` local active versions match `79` live active versions, with `0` missing local and `0` local-only migration versions. Recovered missing March/April files from `/Users/andromeda/casanirvana`, recovered two stored SQL migrations from Supabase metadata, and added no-op active baseline markers for the three live Feb 6 seed metadata records whose SQL is folded into `20260206_baseline_schema.sql`.
 
 ## Environment Variables (Required)
 - `ADMIN_INVITE_REDIRECT_URL`
