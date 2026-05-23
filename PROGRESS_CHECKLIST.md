@@ -218,6 +218,12 @@ Date: 2026-02-06
 - [x] Fixed payments FK runtime blocker (`payments_booking_id_fkey`) by removing invalid `booking_id` writes from user checkout screens (amenity/service request IDs are now stored as `metadata.source_booking_id` + `metadata.source_booking_type` instead of writing into `payments.booking_id` which references `service_bookings` only).
 - [x] Reworked user `successScreen` into a context-aware receipt view (service booking vs amenity booking vs generic payment), fixed nested navigation target (`bottomTab -> homeScreen`), and added Expo Go-safe receipt fallback when native PDF module is unavailable.
 - [x] Fixed remaining direct `homeScreen` navigation calls in non-tab stack screens (`messageScreen`, `guardCallingScreen`, `paymentReceiptScreen`, `mobileMoneyScreen`) by routing through nested navigator target (`bottomTab -> homeScreen`).
+
+## Phase 46-48 - Supabase Advisor Launch Hardening
+- [x] Applied `20260523120000_phase46_advisor_security_performance_cleanup.sql` to live Casa Nirvana (`pswnlowvmdgeifhxilao`): replaced `auth.users`-backed public views with profile-backed equivalents, set flagged views to `security_invoker`, locked datafix/archive tables with RLS, added scoped `equipment_assignments` RLS, pinned mutable function search paths, removed duplicate archive indexes, added missing FK indexes, added primary keys to empty backup tables, and removed broad public bucket listing policies.
+- [x] Applied `20260523121500_phase47_advisor_safe_followups.sql`: added service-role policies to already RLS-locked/no-policy tables and removed direct anonymous execute grants from security-definer functions.
+- [x] Applied `20260523123000_phase48_advisor_function_grant_tightening.sql`: removed inherited `PUBLIC` execute grants from security-definer functions and explicitly preserved `authenticated`/`service_role` execution.
+- [x] Supabase Advisor rerun after Phase 48 has zero `ERROR` findings. Remaining warnings are not safe blind fixes before release freeze: authenticated security-definer RPC grants, GraphQL exposure, broad/duplicated RLS policy shape, auth RLS initplan performance rewrites, auth MFA/leaked-password settings, Supabase Postgres version upgrade, and unused-index review after real traffic.
 - [x] Fixed amenity post-payment RLS violation path by updating only `payment_status` (not booking `status`) for user-driven amenity payment completion.
 
 ## Phase 15 - Book Amenities Hardening

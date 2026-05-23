@@ -24,6 +24,7 @@ You can also apply a migration manually in the Supabase Dashboard SQL editor.
 - Do not add new migrations under app-specific folders.
 - Keep filenames timestamped and ordered.
 - On 2026-05-22, local active migration filenames were synced to the live Casa Nirvana project (`pswnlowvmdgeifhxilao`). The live project still records three Feb 6 seed migrations after baseline repair; local active files for those versions are no-op baseline markers, and the original recovered seed SQL is archived under `_archive/2026-02-06-pre-baseline/recovered-live-history`.
+- On 2026-05-23, Phase 46-48 Advisor cleanup migrations were applied live to Casa Nirvana and recorded in `supabase_migrations.schema_migrations`. Phase 48 Advisor verification returned zero security `ERROR` findings; remaining warnings require product/config decisions rather than blind schema changes.
 
 ## Personal Hub Migrations
 
