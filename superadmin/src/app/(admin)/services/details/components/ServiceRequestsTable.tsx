@@ -16,6 +16,9 @@ const formatMoney = (amount?: number | null) =>
     minimumFractionDigits: 2,
   }).format(Number(amount || 0));
 
+const getPaymentLabel = (value?: string | null) =>
+  value ? formatServiceRequestStatusLabel(value) : "Not tracked";
+
 const getStatusVariant = (status?: string | null) => {
   switch (status) {
     case "completed":
@@ -52,8 +55,7 @@ const ServiceRequestsTable = () => {
     try {
       await updateServiceRequest.mutateAsync({
         id,
-        status,
-        completion_date: status === "completed" ? new Date().toISOString().slice(0, 10) : null,
+        data: { status },
       });
       setFeedback({
         variant: "success",
@@ -75,7 +77,7 @@ const ServiceRequestsTable = () => {
           <CardTitle as="h5" className="mb-1">
             Service Requests
           </CardTitle>
-          <p className="text-muted mb-0">Live requests tied to this service.</p>
+          <p className="text-muted mb-0">Requests tied to this service.</p>
         </div>
         <div style={{ minWidth: 220 }}>
           <Form.Label>Status</Form.Label>
@@ -133,7 +135,7 @@ const ServiceRequestsTable = () => {
                     <td>
                       <Badge bg={getStatusVariant(request.status)}>{formatServiceRequestStatusLabel(request.status)}</Badge>
                     </td>
-                    <td>{formatServiceRequestStatusLabel((request as any).payment_status || "not_required")}</td>
+                    <td>{getPaymentLabel((request as any).payment_status)}</td>
                     <td>{formatMoney(request.total_amount)}</td>
                     <td>
                       <div className="d-flex justify-content-end gap-2">

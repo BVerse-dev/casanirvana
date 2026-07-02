@@ -1,4 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
+
+import { createHttpError } from '../lib/httpError';
 import { supabase } from '../lib/supabase';
 import {
   canAccessAgency,
@@ -160,7 +162,9 @@ export async function listCommunityConfigurations(req: Request, res: Response, n
     const scope = await resolveAdminScope(req);
 
     if (requestedCommunityId && !canAccessCommunity(scope, requestedCommunityId)) {
-      return res.status(403).json({ error: 'Access denied for the requested community.' });
+      return next(
+        createHttpError(403, 'COMMUNITY_CONFIGURATION_SCOPE_VIOLATION', 'Access denied for the requested community.')
+      );
     }
 
     let query = supabase
@@ -179,7 +183,14 @@ export async function listCommunityConfigurations(req: Request, res: Response, n
 
     const { data, error } = await query;
     if (error) {
-      return res.status(500).json({ error: 'Failed to fetch community configurations', details: error.message });
+      return next(
+        createHttpError(
+          500,
+          'COMMUNITY_CONFIGURATION_LIST_FAILED',
+          'Failed to fetch community configurations',
+          error
+        )
+      );
     }
 
     const normalized = (data || []).map((row: any) => ({
@@ -197,7 +208,7 @@ export async function updateCommunityConfiguration(req: Request, res: Response, 
   try {
     const { id } = req.params;
     if (!isUuid(id)) {
-      return res.status(400).json({ error: 'Invalid configuration id' });
+      return next(createHttpError(400, 'CONFIGURATION_ID_INVALID', 'Invalid configuration id'));
     }
 
     const scope = await resolveAdminScope(req);
@@ -208,18 +219,33 @@ export async function updateCommunityConfiguration(req: Request, res: Response, 
       .maybeSingle();
 
     if (existingError) {
-      return res.status(500).json({ error: 'Failed to load community configuration', details: existingError.message });
+      return next(
+        createHttpError(
+          500,
+          'COMMUNITY_CONFIGURATION_LOOKUP_FAILED',
+          'Failed to load community configuration',
+          existingError
+        )
+      );
     }
     if (!existing) {
-      return res.status(404).json({ error: 'Community configuration not found' });
+      return next(createHttpError(404, 'COMMUNITY_CONFIGURATION_NOT_FOUND', 'Community configuration not found'));
     }
     if (!canAccessCommunity(scope, existing.community_id)) {
-      return res.status(403).json({ error: 'Access denied for the requested community.' });
+      return next(
+        createHttpError(403, 'COMMUNITY_CONFIGURATION_SCOPE_VIOLATION', 'Access denied for the requested community.')
+      );
     }
 
     const payload = sanitizePayload(req.body || {}, COMMUNITY_CONFIGURATION_COLUMNS);
     if (Object.keys(payload).length === 0) {
-      return res.status(400).json({ error: 'No supported community configuration fields were provided' });
+      return next(
+        createHttpError(
+          400,
+          'COMMUNITY_CONFIGURATION_UPDATE_EMPTY',
+          'No supported community configuration fields were provided'
+        )
+      );
     }
     payload.updated_at = new Date().toISOString();
 
@@ -231,7 +257,14 @@ export async function updateCommunityConfiguration(req: Request, res: Response, 
       .single();
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to update community configuration', details: error.message });
+      return next(
+        createHttpError(
+          500,
+          'COMMUNITY_CONFIGURATION_UPDATE_FAILED',
+          'Failed to update community configuration',
+          error
+        )
+      );
     }
 
     return res.json({
@@ -254,7 +287,9 @@ export async function listAgencyConfigurations(req: Request, res: Response, next
     const scope = await resolveAdminScope(req);
 
     if (requestedAgencyId && !canAccessAgency(scope, requestedAgencyId)) {
-      return res.status(403).json({ error: 'Access denied for the requested agency.' });
+      return next(
+        createHttpError(403, 'AGENCY_CONFIGURATION_SCOPE_VIOLATION', 'Access denied for the requested agency.')
+      );
     }
 
     let query = supabase
@@ -273,7 +308,9 @@ export async function listAgencyConfigurations(req: Request, res: Response, next
 
     const { data, error } = await query;
     if (error) {
-      return res.status(500).json({ error: 'Failed to fetch agency configurations', details: error.message });
+      return next(
+        createHttpError(500, 'AGENCY_CONFIGURATION_LIST_FAILED', 'Failed to fetch agency configurations', error)
+      );
     }
 
     return res.json({ data: data || [] });
@@ -288,13 +325,15 @@ export async function createAgencyConfiguration(req: Request, res: Response, nex
     const payload = sanitizePayload(req.body || {}, AGENCY_CONFIGURATION_COLUMNS);
 
     if (!isUuid(payload.agency_id)) {
-      return res.status(400).json({ error: 'agency_id is required' });
+      return next(createHttpError(400, 'AGENCY_ID_REQUIRED', 'agency_id is required'));
     }
     if (typeof payload.agency_name !== 'string' || payload.agency_name.trim().length === 0) {
-      return res.status(400).json({ error: 'agency_name is required' });
+      return next(createHttpError(400, 'AGENCY_NAME_REQUIRED', 'agency_name is required'));
     }
     if (!canAccessAgency(scope, payload.agency_id)) {
-      return res.status(403).json({ error: 'Access denied for the requested agency.' });
+      return next(
+        createHttpError(403, 'AGENCY_CONFIGURATION_SCOPE_VIOLATION', 'Access denied for the requested agency.')
+      );
     }
 
     payload.last_updated = new Date().toISOString();
@@ -307,7 +346,9 @@ export async function createAgencyConfiguration(req: Request, res: Response, nex
       .single();
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to create agency configuration', details: error.message });
+      return next(
+        createHttpError(500, 'AGENCY_CONFIGURATION_CREATE_FAILED', 'Failed to create agency configuration', error)
+      );
     }
 
     return res.status(201).json({ data });
@@ -320,7 +361,7 @@ export async function updateAgencyConfiguration(req: Request, res: Response, nex
   try {
     const { id } = req.params;
     if (!isUuid(id)) {
-      return res.status(400).json({ error: 'Invalid configuration id' });
+      return next(createHttpError(400, 'CONFIGURATION_ID_INVALID', 'Invalid configuration id'));
     }
 
     const scope = await resolveAdminScope(req);
@@ -331,20 +372,35 @@ export async function updateAgencyConfiguration(req: Request, res: Response, nex
       .maybeSingle();
 
     if (existingError) {
-      return res.status(500).json({ error: 'Failed to load agency configuration', details: existingError.message });
+      return next(
+        createHttpError(
+          500,
+          'AGENCY_CONFIGURATION_LOOKUP_FAILED',
+          'Failed to load agency configuration',
+          existingError
+        )
+      );
     }
     if (!existing) {
-      return res.status(404).json({ error: 'Agency configuration not found' });
+      return next(createHttpError(404, 'AGENCY_CONFIGURATION_NOT_FOUND', 'Agency configuration not found'));
     }
     if (!canAccessAgency(scope, existing.agency_id)) {
-      return res.status(403).json({ error: 'Access denied for the requested agency.' });
+      return next(
+        createHttpError(403, 'AGENCY_CONFIGURATION_SCOPE_VIOLATION', 'Access denied for the requested agency.')
+      );
     }
 
     const payload = sanitizePayload(req.body || {}, AGENCY_CONFIGURATION_COLUMNS);
     delete payload.agency_id;
 
     if (Object.keys(payload).length === 0) {
-      return res.status(400).json({ error: 'No supported agency configuration fields were provided' });
+      return next(
+        createHttpError(
+          400,
+          'AGENCY_CONFIGURATION_UPDATE_EMPTY',
+          'No supported agency configuration fields were provided'
+        )
+      );
     }
 
     payload.last_updated = new Date().toISOString();
@@ -358,7 +414,9 @@ export async function updateAgencyConfiguration(req: Request, res: Response, nex
       .single();
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to update agency configuration', details: error.message });
+      return next(
+        createHttpError(500, 'AGENCY_CONFIGURATION_UPDATE_FAILED', 'Failed to update agency configuration', error)
+      );
     }
 
     return res.json({ data });
@@ -371,7 +429,7 @@ export async function deleteAgencyConfiguration(req: Request, res: Response, nex
   try {
     const { id } = req.params;
     if (!isUuid(id)) {
-      return res.status(400).json({ error: 'Invalid configuration id' });
+      return next(createHttpError(400, 'CONFIGURATION_ID_INVALID', 'Invalid configuration id'));
     }
 
     const scope = await resolveAdminScope(req);
@@ -382,18 +440,29 @@ export async function deleteAgencyConfiguration(req: Request, res: Response, nex
       .maybeSingle();
 
     if (existingError) {
-      return res.status(500).json({ error: 'Failed to load agency configuration', details: existingError.message });
+      return next(
+        createHttpError(
+          500,
+          'AGENCY_CONFIGURATION_LOOKUP_FAILED',
+          'Failed to load agency configuration',
+          existingError
+        )
+      );
     }
     if (!existing) {
-      return res.status(404).json({ error: 'Agency configuration not found' });
+      return next(createHttpError(404, 'AGENCY_CONFIGURATION_NOT_FOUND', 'Agency configuration not found'));
     }
     if (!canAccessAgency(scope, existing.agency_id)) {
-      return res.status(403).json({ error: 'Access denied for the requested agency.' });
+      return next(
+        createHttpError(403, 'AGENCY_CONFIGURATION_SCOPE_VIOLATION', 'Access denied for the requested agency.')
+      );
     }
 
     const { error } = await supabase.from('agency_configurations').delete().eq('id', id);
     if (error) {
-      return res.status(500).json({ error: 'Failed to delete agency configuration', details: error.message });
+      return next(
+        createHttpError(500, 'AGENCY_CONFIGURATION_DELETE_FAILED', 'Failed to delete agency configuration', error)
+      );
     }
 
     return res.status(204).send();
@@ -440,7 +509,14 @@ export async function getAgencyConfigurationStats(req: Request, res: Response, n
 
     const { data, error } = await query;
     if (error) {
-      return res.status(500).json({ error: 'Failed to fetch agency configuration stats', details: error.message });
+      return next(
+        createHttpError(
+          500,
+          'AGENCY_CONFIGURATION_STATS_FAILED',
+          'Failed to fetch agency configuration stats',
+          error
+        )
+      );
     }
 
     const rows = data || [];

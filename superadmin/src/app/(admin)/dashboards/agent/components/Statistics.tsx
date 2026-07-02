@@ -1,45 +1,30 @@
 "use client";
+
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
-import { Card, CardBody, Col } from "react-bootstrap";
 import { useResidentSummary } from "@/hooks/useResidentDashboard";
+import { Card, CardBody, Col } from "react-bootstrap";
 
 interface StatCardProps {
   amount: string;
   icon: string;
   title: string;
-  change?: number;
+  detail?: string;
   variant: string;
 }
 
-const StatCard = ({ amount, icon, title, change, variant }: StatCardProps) => {
+const StatCard = ({ amount, icon, title, detail, variant }: StatCardProps) => {
   return (
     <Card>
       <CardBody>
         <div className="d-flex align-items-center justify-content-between">
           <div>
-            <p className="mb-2 fs-15 fw-medium">
-              {title} &nbsp;{" "}
-              {change && (
-                <span className="badge text-success bg-success-subtle fs-11 icons-center">
-                  <IconifyIcon width={11} height={11} icon="ri:arrow-up-line" />
-                  {change}%
-                </span>
-              )}{" "}
-            </p>
-            <h3 className="text-dark fw-bold d-flex align-items-center gap-2 mb-0">
-              {amount}
-            </h3>
+            <p className="mb-2 fs-15 fw-medium">{title}</p>
+            <h3 className="text-dark fw-bold d-flex align-items-center gap-2 mb-1">{amount}</h3>
+            {detail ? <small className="text-muted">{detail}</small> : null}
           </div>
           <div>
-            <div
-              className={`avatar-md bg-${variant} bg-opacity-10 rounded flex-centered`}
-            >
-              <IconifyIcon
-                icon={icon}
-                width={32}
-                height={32}
-                className={`text-${variant}`}
-              />
+            <div className={`avatar-md bg-${variant} bg-opacity-10 rounded flex-centered`}>
+              <IconifyIcon icon={icon} width={32} height={32} className={`text-${variant}`} />
             </div>
           </div>
         </div>
@@ -49,7 +34,7 @@ const StatCard = ({ amount, icon, title, change, variant }: StatCardProps) => {
 };
 
 const Statistics = () => {
-  const { data: residentSummary, isLoading } = useResidentSummary();
+  const { data: residentSummary, error, isLoading } = useResidentSummary();
 
   if (isLoading) {
     return (
@@ -71,30 +56,45 @@ const Statistics = () => {
     );
   }
 
+  if (error) {
+    return (
+      <Col xl={12}>
+        <Card>
+          <CardBody className="text-center text-muted py-4">
+            Resident dashboard metrics are unavailable right now.
+          </CardBody>
+        </Card>
+      </Col>
+    );
+  }
+
   const statData = [
     {
       title: "Total Residents",
       amount: residentSummary?.totalResidents.toString() || "0",
+      detail: `${residentSummary?.inactiveResidents || 0} inactive`,
       icon: "solar:users-group-two-rounded-broken",
       variant: "primary",
     },
     {
       title: "Active Residents",
       amount: residentSummary?.activeResidents.toString() || "0",
+      detail: `${residentSummary?.newResidentsThisMonth || 0} added this month`,
       icon: "solar:user-check-broken",
-      change: residentSummary?.newResidentsThisMonth || 0,
       variant: "success",
     },
     {
       title: "Occupancy Rate",
       amount: `${residentSummary?.occupancyRate || 0}%`,
+      detail: "Occupied units across the current portfolio",
       icon: "solar:home-2-broken",
       variant: "warning",
     },
     {
-      title: "Avg Stay Duration",
-      amount: `${residentSummary?.averageStayDuration || 0} months`,
-      icon: "solar:calendar-date-broken",
+      title: "Open Maintenance",
+      amount: residentSummary?.maintenanceRequests.toString() || "0",
+      detail: `${residentSummary?.averageStayDuration || 0} months average stay`,
+      icon: "solar:settings-broken",
       variant: "info",
     },
   ];

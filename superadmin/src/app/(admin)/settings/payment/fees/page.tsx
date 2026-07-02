@@ -55,7 +55,10 @@ const PaymentFeesPage = () => {
     paymentFeeSettings: settings, 
     isLoadingData: loadingSettings,
     updateSettings,
-    isUpdating: updatingSettings 
+    isUpdating: updatingSettings,
+    loadError,
+    updateError,
+    updateSuccess,
   } = usePaymentFeeSettings();
 
   const {
@@ -65,7 +68,7 @@ const PaymentFeesPage = () => {
     reset,
     watch,
   } = useForm<PaymentFeeSettings>({
-    resolver: yupResolver(schema),
+    resolver: yupResolver(schema) as any,
     defaultValues: {
       // Transaction Fees
       credit_card_fee_percentage: settings?.credit_card_fee_percentage ?? 2.5,
@@ -169,35 +172,35 @@ const PaymentFeesPage = () => {
   ];
 
   const paymentMethods = [
-    { 
-      name: 'Credit / Debit Card', 
-      percentageField: 'credit_card_fee_percentage' as const, 
-      fixedField: 'credit_card_fee_fixed' as const, 
-      icon: 'ri-bank-card-line' 
+    {
+      name: 'Card Payments',
+      percentageField: 'credit_card_fee_percentage' as const,
+      fixedField: 'credit_card_fee_fixed' as const,
+      icon: 'ri-bank-card-line'
     },
-    { 
-      name: 'Debit Card', 
-      percentageField: 'debit_card_fee_percentage' as const, 
-      fixedField: 'debit_card_fee_fixed' as const, 
-      icon: 'ri-bank-card-2-line' 
+    {
+      name: 'Debit Card (Reserved)',
+      percentageField: 'debit_card_fee_percentage' as const,
+      fixedField: 'debit_card_fee_fixed' as const,
+      icon: 'ri-bank-card-2-line'
     },
-    { 
-      name: 'ExpressPay', 
-      percentageField: 'expresspay_fee_percentage' as const, 
-      fixedField: 'expresspay_fee_fixed' as const, 
-      icon: 'ri-money-dollar-circle-line' 
+    {
+      name: 'ExpressPay',
+      percentageField: 'expresspay_fee_percentage' as const,
+      fixedField: 'expresspay_fee_fixed' as const,
+      icon: 'ri-money-dollar-circle-line'
     },
-    { 
-      name: 'Online Banking', 
-      percentageField: 'net_banking_fee_percentage' as const, 
-      fixedField: 'net_banking_fee_fixed' as const, 
-      icon: 'ri-bank-line' 
+    {
+      name: 'Online Banking (Reserved)',
+      percentageField: 'net_banking_fee_percentage' as const,
+      fixedField: 'net_banking_fee_fixed' as const,
+      icon: 'ri-bank-line'
     },
-    { 
-      name: 'PayPal (Deferred)', 
-      percentageField: 'wallet_fee_percentage' as const, 
-      fixedField: 'wallet_fee_fixed' as const, 
-      icon: 'ri-wallet-line' 
+    {
+      name: 'PayPal (Deferred)',
+      percentageField: 'wallet_fee_percentage' as const,
+      fixedField: 'wallet_fee_fixed' as const,
+      icon: 'ri-wallet-line'
     },
   ];
 
@@ -208,6 +211,28 @@ const PaymentFeesPage = () => {
           <span className="visually-hidden">Loading...</span>
         </div>
       </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <>
+        <Row>
+          <Col xs={12}>
+            <div className="page-title-box">
+              <h4 className="page-title">Payment Fees & Charges</h4>
+            </div>
+          </Col>
+        </Row>
+        <Row>
+          <Col xs={12}>
+            <Alert variant="danger">
+              <i className="ri-alert-line me-2"></i>
+              Failed to load payment fee settings: {loadError.message}
+            </Alert>
+          </Col>
+        </Row>
+      </>
     );
   }
 
@@ -222,6 +247,37 @@ const PaymentFeesPage = () => {
       </Row>
 
       <form onSubmit={handleSubmit(onSubmit)}>
+        {updateSuccess && !updatingSettings && (
+          <Row>
+            <Col xs={12}>
+              <Alert variant="success">
+                <i className="ri-checkbox-circle-line me-2"></i>
+                Payment fee settings updated successfully.
+              </Alert>
+            </Col>
+          </Row>
+        )}
+
+        {updateError && (
+          <Row>
+            <Col xs={12}>
+              <Alert variant="danger">
+                <i className="ri-alert-line me-2"></i>
+                Failed to update payment fee settings: {updateError.message}
+              </Alert>
+            </Col>
+          </Row>
+        )}
+
+        <Row>
+          <Col xs={12}>
+            <Alert variant="info">
+              <i className="ri-information-line me-2"></i>
+              Card Payments and Mobile Money (ExpressPay) are the live checkout methods today. Fees for the remaining reserved methods are stored here for later rollout and do not affect the current user checkout flow.
+            </Alert>
+          </Col>
+        </Row>
+
         <Row>
           {/* Transaction Fees */}
           <Col lg={12}>

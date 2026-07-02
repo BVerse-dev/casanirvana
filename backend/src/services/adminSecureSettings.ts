@@ -606,7 +606,10 @@ const INTEGRATION_TEST_REQUIREMENTS: Record<
   razorpay_key_id: { label: 'Razorpay', keys: ['razorpay_key_id'] },
   stripe_public_key: { label: 'Stripe', keys: ['stripe_public_key'] },
   paypal_client_id: { label: 'PayPal', keys: ['paypal_client_id'] },
-  aws_access_key: { label: 'Amazon S3', keys: ['aws_access_key'] },
+  aws_access_key: {
+    label: 'Amazon S3',
+    keys: ['aws_access_key', 'aws_secret_key', 'aws_region', 'aws_bucket_name'],
+  },
   google_cloud_key: { label: 'Google Cloud Storage', keys: ['google_cloud_key'] },
   azure_storage_key: { label: 'Azure Storage', keys: ['azure_storage_key'] },
   firebase_config: {
@@ -614,7 +617,10 @@ const INTEGRATION_TEST_REQUIREMENTS: Record<
     keys: ['firebase_config'],
     jsonKeys: ['firebase_config'],
   },
-  pusher_key: { label: 'Pusher', keys: ['pusher_key'] },
+  pusher_key: {
+    label: 'Pusher',
+    keys: ['pusher_app_id', 'pusher_key', 'pusher_secret'],
+  },
 };
 
 function parseStoredValue(value: string, dataType?: string | null) {
@@ -660,7 +666,8 @@ async function readSystemSettings(category: string): Promise<SystemSettingRow[]>
   const { data, error } = await supabase
     .from('system_settings')
     .select('key, value, data_type, is_sensitive')
-    .eq('category', category);
+    .eq('category', category)
+    .eq('subcategory', '');
 
   if (error) {
     throw new Error(`Failed to fetch ${category} settings`);
@@ -743,6 +750,7 @@ async function upsertSettingsCategory(
 ) {
   const rows = Object.entries(settings).map(([key, value]) => ({
     category,
+    subcategory: '',
     key,
     value: serializeValue(value),
     data_type: inferDataType(value),
@@ -752,7 +760,9 @@ async function upsertSettingsCategory(
     updated_at: new Date().toISOString(),
   }));
 
-  const { error } = await supabase.from('system_settings').upsert(rows, { onConflict: 'key' });
+  const { error } = await supabase.from('system_settings').upsert(rows, {
+    onConflict: 'category,subcategory,key',
+  });
   if (error) {
     throw new Error(`Failed to save ${category} settings`);
   }
@@ -800,6 +810,7 @@ async function upsertNamespacedSettingsCategory(
 ) {
   const rows = Object.entries(settings).map(([key, value]) => ({
     category,
+    subcategory: '',
     key: buildNamespacedKey(storageKeyPrefix, key),
     value: serializeValue(value),
     data_type: inferDataType(value),
@@ -809,7 +820,9 @@ async function upsertNamespacedSettingsCategory(
     updated_at: new Date().toISOString(),
   }));
 
-  const { error } = await supabase.from('system_settings').upsert(rows, { onConflict: 'key' });
+  const { error } = await supabase.from('system_settings').upsert(rows, {
+    onConflict: 'category,subcategory,key',
+  });
   if (error) {
     throw new Error(`Failed to save ${category} settings`);
   }
@@ -852,7 +865,8 @@ export async function getAdminSmtpSettings() {
 export async function saveAdminSmtpSettings(input: Record<string, unknown>, updatedBy?: string | null) {
   const current = await loadSettings('smtp', SMTP_DEFAULTS);
   const merged = mergeSubmittedSettings(input, current, SMTP_DEFAULTS, SMTP_SENSITIVE_KEYS);
-  return upsertSettingsCategory('smtp', merged, SMTP_DESCRIPTIONS, SMTP_SENSITIVE_KEYS, updatedBy);
+  const saved = await upsertSettingsCategory('smtp', merged, SMTP_DESCRIPTIONS, SMTP_SENSITIVE_KEYS, updatedBy);
+  return maskSensitiveValues(saved, SMTP_SENSITIVE_KEYS);
 }
 
 export async function testAdminSmtpSettings(input: Record<string, unknown>) {
@@ -927,23 +941,35 @@ export async function getAdminIntegrationSettings() {
 export async function saveAdminIntegrationSettings(input: Record<string, unknown>, updatedBy?: string | null) {
   const current = await loadSettings('integrations', INTEGRATION_DEFAULTS);
   const merged = mergeSubmittedSettings(input, current, INTEGRATION_DEFAULTS, INTEGRATION_SENSITIVE_KEYS);
-  return upsertSettingsCategory('integrations', merged, INTEGRATION_DESCRIPTIONS, INTEGRATION_SENSITIVE_KEYS, updatedBy);
+  const saved = await upsertSettingsCategory(
+    'integrations',
+    merged,
+    INTEGRATION_DESCRIPTIONS,
+    INTEGRATION_SENSITIVE_KEYS,
+    updatedBy
+  );
+  return maskSensitiveValues(saved, INTEGRATION_SENSITIVE_KEYS);
 }
 
-export async function testAdminIntegrationSetting(service: string, value?: unknown) {
+export async function testAdminIntegrationSetting(
+  service: string,
+  value?: unknown,
+  input: Record<string, unknown> = {}
+) {
   const requirements = INTEGRATION_TEST_REQUIREMENTS[service];
   if (!requirements) {
     throw new Error('Unsupported integration test target');
   }
 
   const current = await loadSettings('integrations', INTEGRATION_DEFAULTS);
+  const merged = mergeSubmittedSettings(input, current, INTEGRATION_DEFAULTS, INTEGRATION_SENSITIVE_KEYS);
   const candidateValue =
     value === undefined || value === null || String(value).trim() === '' || value === MASKED_SECRET_VALUE
-      ? current[service]
+      ? merged[service]
       : value;
 
   const candidateConfig: SettingsMap = {
-    ...current,
+    ...merged,
     [service]: candidateValue as Primitive,
   };
 
@@ -993,13 +1019,14 @@ export async function getAdminPushSettings() {
 export async function saveAdminPushSettings(input: Record<string, unknown>, updatedBy?: string | null) {
   const current = await loadSettings('push_notifications', PUSH_DEFAULTS);
   const merged = mergeSubmittedSettings(input, current, PUSH_DEFAULTS, PUSH_SENSITIVE_KEYS);
-  return upsertSettingsCategory(
+  const saved = await upsertSettingsCategory(
     'push_notifications',
     merged,
     PUSH_DESCRIPTIONS,
     PUSH_SENSITIVE_KEYS,
     updatedBy
   );
+  return maskSensitiveValues(saved, PUSH_SENSITIVE_KEYS);
 }
 
 export async function testAdminPushSettings(input: Record<string, unknown>) {
@@ -1064,13 +1091,14 @@ export async function getAdminSmsSettings() {
 export async function saveAdminSmsSettings(input: Record<string, unknown>, updatedBy?: string | null) {
   const current = await loadSettings('sms_notifications', SMS_DEFAULTS);
   const merged = mergeSubmittedSettings(input, current, SMS_DEFAULTS, SMS_SENSITIVE_KEYS);
-  return upsertSettingsCategory(
+  const saved = await upsertSettingsCategory(
     'sms_notifications',
     merged,
     SMS_DESCRIPTIONS,
     SMS_SENSITIVE_KEYS,
     updatedBy
   );
+  return maskSensitiveValues(saved, SMS_SENSITIVE_KEYS);
 }
 
 export async function testAdminSmsSettings(input: Record<string, unknown>) {
@@ -1161,6 +1189,113 @@ export async function saveAdminPaymentGatewaySettings(input: Record<string, unkn
   );
   await mirrorLegacyAppSettingsCategory('payment_gateways', saved, PAYMENT_GATEWAY_DESCRIPTIONS);
   return maskSensitiveValues(saved, PAYMENT_GATEWAY_SENSITIVE_KEYS);
+}
+
+export async function testAdminPaymentGatewaySettings(
+  gateway: string,
+  input: Record<string, unknown> = {}
+) {
+  const current = await loadSettings('payment_gateways', PAYMENT_GATEWAY_DEFAULTS);
+  const merged = mergeSubmittedSettings(input, current, PAYMENT_GATEWAY_DEFAULTS, PAYMENT_GATEWAY_SENSITIVE_KEYS);
+
+  const requirements: Record<
+    string,
+    { label: string; enabledKey?: string; keys: string[]; urlKeys?: string[]; secretKeys?: string[] }
+  > = {
+    razorpay: {
+      label: 'Razorpay',
+      enabledKey: 'razorpay_enabled',
+      keys: ['razorpay_key_id', 'razorpay_key_secret'],
+      secretKeys: ['razorpay_key_secret'],
+    },
+    stripe: {
+      label: 'Stripe',
+      enabledKey: 'stripe_enabled',
+      keys: ['stripe_publishable_key', 'stripe_secret_key'],
+      secretKeys: ['stripe_secret_key'],
+    },
+    paypal: {
+      label: 'PayPal',
+      enabledKey: 'paypal_enabled',
+      keys: ['paypal_client_id', 'paypal_client_secret'],
+      secretKeys: ['paypal_client_secret'],
+    },
+    paytm: {
+      label: 'Paytm',
+      enabledKey: 'paytm_enabled',
+      keys: ['paytm_merchant_id', 'paytm_merchant_key', 'paytm_website'],
+      secretKeys: ['paytm_merchant_key'],
+    },
+    bank_transfer: {
+      label: 'Bank Transfer',
+      enabledKey: 'bank_transfer_enabled',
+      keys: ['bank_name', 'account_number', 'account_holder_name'],
+      secretKeys: ['account_number'],
+    },
+  };
+
+  const requirement = requirements[gateway];
+
+  if (!requirement) {
+    return {
+      success: false,
+      message: 'Select a supported payment gateway before validating configuration.',
+    };
+  }
+
+  if (requirement.enabledKey && !merged[requirement.enabledKey]) {
+    return {
+      success: false,
+      message: `Enable ${requirement.label} before running validation.`,
+    };
+  }
+
+  for (const key of requirement.keys) {
+    const value = merged[key];
+    if (value === undefined || value === null || String(value).trim() === '') {
+      return {
+        success: false,
+        message: `${requirement.label} configuration is incomplete. Set ${key.replace(/_/g, ' ')} first.`,
+      };
+    }
+  }
+
+  for (const key of requirement.urlKeys || []) {
+    const value = String(merged[key] || '');
+    if (!validateUrl(value)) {
+      return {
+        success: false,
+        message: `${requirement.label} requires a valid URL in ${key.replace(/_/g, ' ')}.`,
+      };
+    }
+  }
+
+  const identityKeys = requirement.keys.filter((key) => !(requirement.secretKeys || []).includes(key));
+  const identityChanged = identityKeys.some((key) => {
+    if (typeof input[key] !== 'string') return false;
+    const submitted = String(input[key]).trim();
+    return submitted.length > 0 && submitted !== String(current[key] || '');
+  });
+  const secretKeys = requirement.secretKeys || [];
+  const secretsProvided =
+    secretKeys.length === 0 ||
+    secretKeys.every((key) => {
+      if (typeof input[key] !== 'string') return false;
+      const submitted = String(input[key]).trim();
+      return submitted.length > 0 && submitted !== MASKED_SECRET_VALUE;
+    });
+
+  if (identityChanged && secretKeys.length > 0 && !secretsProvided) {
+    return {
+      success: false,
+      message: `Provide fresh ${requirement.label} secret credentials when changing gateway identity details, then validate again.`,
+    };
+  }
+
+  return {
+    success: true,
+    message: `${requirement.label} configuration is valid. Live payment processing still depends on your active provider account, webhooks, and callback handling.`,
+  };
 }
 
 export async function getAdminPaymentMethodSettings() {

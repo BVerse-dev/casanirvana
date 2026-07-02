@@ -1,12 +1,10 @@
 "use client";
-import avatar3 from "@/assets/images/users/avatar-3.jpg";
-import avatar4 from "@/assets/images/users/avatar-4.jpg";
-import avatar5 from "@/assets/images/users/avatar-5.jpg";
-import avatar6 from "@/assets/images/users/avatar-6.jpg";
-import avatar7 from "@/assets/images/users/avatar-7.jpg";
+
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
 import { currency } from "@/context/constants";
-import Image from "next/image";
+import { usePaymentAnalyticsSummary } from "@/hooks/usePaymentAnalyticsSummary";
+import Link from "next/link";
+import { useMemo, useState } from "react";
 import {
   Button,
   Card,
@@ -20,71 +18,96 @@ import {
   DropdownToggle,
   ProgressBar,
 } from "react-bootstrap";
-import { useListPayments } from "@/hooks/usePayments";
-import { useState, useMemo } from "react";
+
+const OPEN_OBLIGATION_STATUSES = new Set(["unpaid", "partially_paid", "overdue"]);
+const OPEN_PAYMENT_STATUSES = new Set(["pending", "initiated", "processing", "open"]);
+
+const getRecordDate = (record: Record<string, any>) => {
+  const raw = record.payment_date || record.paid_at || record.completed_at || record.due_date || record.created_at;
+  if (!raw) return null;
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const getPeriodBounds = (timeFilter: "current" | "last" | "year") => {
+  const now = new Date();
+
+  if (timeFilter === "year") {
+    const currentStart = new Date(now.getFullYear(), 0, 1);
+    return {
+      currentStart,
+      currentEnd: new Date(now.getFullYear() + 1, 0, 1),
+      periodLabel: "This Year",
+    };
+  }
+
+  if (timeFilter === "last") {
+    const currentStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    return {
+      currentStart,
+      currentEnd: new Date(now.getFullYear(), now.getMonth(), 1),
+      periodLabel: "Last Month",
+    };
+  }
+
+  const currentStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  return {
+    currentStart,
+    currentEnd: new Date(now.getFullYear(), now.getMonth() + 1, 1),
+    periodLabel: "This Month",
+  };
+};
+
+const isInRange = (date: Date | null, start: Date, end: Date) => Boolean(date && date >= start && date < end);
 
 const ResidentPayments = () => {
-  const { data: payments, isLoading } = useListPayments();
-  const [timeFilter, setTimeFilter] = useState<'current' | 'last' | 'year'>('current');
+  const { error, isLoading, obligations, payments } = usePaymentAnalyticsSummary();
+  const [timeFilter, setTimeFilter] = useState<"current" | "last" | "year">("current");
 
-  // Calculate payment statistics based on time filter
   const paymentMetrics = useMemo(() => {
-    if (!payments || payments.length === 0) {
-      return {
-        totalPeriod: 0,
-        totalCollected: 0,
-        totalPending: 0,
-        collectionRate: 0,
-        periodLabel: 'This Month'
-      };
-    }
+    const { currentEnd, currentStart, periodLabel } = getPeriodBounds(timeFilter);
 
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
-    
-    let filteredPayments: any[] = [];
-    let periodLabel = '';
+    const dueObligations = obligations.filter((obligation) =>
+      isInRange(getRecordDate(obligation), currentStart, currentEnd)
+    );
+    const openObligations = dueObligations.filter((obligation) =>
+      OPEN_OBLIGATION_STATUSES.has(String(obligation.status || "").toLowerCase())
+    );
+    const filteredPayments = payments.filter((payment) => isInRange(getRecordDate(payment), currentStart, currentEnd));
+    const collectedPayments = filteredPayments.filter((payment) =>
+      ["completed", "paid", "success", "successful"].includes(String(payment.status || "").toLowerCase())
+    );
+    const pendingPayments = filteredPayments.filter((payment) =>
+      OPEN_PAYMENT_STATUSES.has(String(payment.status || "").toLowerCase())
+    );
 
-    if (timeFilter === 'current') {
-      filteredPayments = payments.filter(payment => {
-        const paymentDate = new Date(payment.payment_date || new Date());
-        return paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear;
-      });
-      periodLabel = 'This Month';
-    } else if (timeFilter === 'last') {
-      const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
-      const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
-      filteredPayments = payments.filter(payment => {
-        const paymentDate = new Date(payment.payment_date || new Date());
-        return paymentDate.getMonth() === lastMonth && paymentDate.getFullYear() === lastMonthYear;
-      });
-      periodLabel = 'Last Month';
-    } else if (timeFilter === 'year') {
-      filteredPayments = payments.filter(payment => {
-        const paymentDate = new Date(payment.payment_date || new Date());
-        return paymentDate.getFullYear() === currentYear;
-      });
-      periodLabel = 'This Year';
-    }
+    const totalDue = dueObligations.reduce((sum, obligation) => sum + Number(obligation.amount || 0), 0);
+    const totalCollected = collectedPayments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+    const totalOutstanding = openObligations.reduce((sum, obligation) => sum + Number(obligation.amount || 0), 0);
+    const collectionRate = totalDue > 0 ? Math.round((totalCollected / totalDue) * 100) : 0;
 
-    const totalPeriod = filteredPayments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
-    const collectedPayments = filteredPayments.filter(p => p.status === 'completed');
-    const pendingPayments = filteredPayments.filter(p => p.status === 'pending');
-    
-    const totalCollected = collectedPayments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
-    const totalPending = pendingPayments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
-    
-    const collectionRate = totalPeriod > 0 ? Math.round((totalCollected / totalPeriod) * 100) : 0;
+    const residentsWithPendingPayments = Array.from(
+      pendingPayments.reduce<Map<string, { id: string; name: string; amount: number }>>((acc, payment) => {
+        const payerId = payment.payer_profile?.id || payment.payer_id || payment.id;
+        const payerName = payment.payer_profile?.full_name || payment.payer_profile?.name || "Unknown Resident";
+        const current = acc.get(payerId) || { id: payerId, name: payerName, amount: 0 };
+        current.amount += Number(payment.amount || 0);
+        acc.set(payerId, current);
+        return acc;
+      }, new Map()).values()
+    )
+      .sort((left, right) => right.amount - left.amount)
+      .slice(0, 5);
 
     return {
-      totalPeriod,
+      totalDue,
       totalCollected,
-      totalPending,
+      totalOutstanding,
       collectionRate,
-      periodLabel
+      periodLabel,
+      residentsWithPendingPayments,
     };
-  }, [payments, timeFilter]);
+  }, [obligations, payments, timeFilter]);
 
   if (isLoading) {
     return (
@@ -97,8 +120,8 @@ const ResidentPayments = () => {
             <div className="placeholder-glow">
               <div className="placeholder col-8 mb-3"></div>
               <div className="placeholder col-6 mb-3"></div>
-              <div className="placeholder" style={{ height: '15px' }}></div>
-              <div className="placeholder col-12 mt-4" style={{ height: '100px' }}></div>
+              <div className="placeholder" style={{ height: "15px" }}></div>
+              <div className="placeholder col-12 mt-4" style={{ height: "100px" }}></div>
             </div>
           </CardBody>
         </Card>
@@ -106,116 +129,109 @@ const ResidentPayments = () => {
     );
   }
 
+  if (error) {
+    return (
+      <Col lg={5}>
+        <Card>
+          <CardHeader>
+            <CardTitle as={"h4"}>Resident Payments</CardTitle>
+          </CardHeader>
+          <CardBody className="text-center text-muted py-5">Resident payment metrics are unavailable right now.</CardBody>
+        </Card>
+      </Col>
+    );
+  }
+
   return (
     <Col lg={5}>
-              <Card>
-          <CardHeader className="d-flex justify-content-between align-items-center border-0">
-            <CardTitle as={"h4"}>Resident Payments</CardTitle>
-            <Dropdown>
-              <DropdownToggle
-                as={"a"}
-                className="btn btn-sm btn-outline-light rounded content-none icons-center"
-                data-bs-toggle="dropdown"
-                aria-expanded="false"
-              >
-                {paymentMetrics.periodLabel}{" "}
-                <IconifyIcon
-                  className="ms-1"
-                  width={16}
-                  height={16}
-                  icon="ri:arrow-down-s-line"
-                />
-              </DropdownToggle>
-              <DropdownMenu className="dropdown-menu-end">
-                <DropdownItem onClick={() => setTimeFilter('current')}>This Month</DropdownItem>
-                <DropdownItem onClick={() => setTimeFilter('last')}>Last Month</DropdownItem>
-                <DropdownItem onClick={() => setTimeFilter('year')}>This Year</DropdownItem>
-              </DropdownMenu>
-            </Dropdown>
-          </CardHeader>
-          <CardBody>
-            <div className="d-flex align-items-center justify-content-between">
-              <div>
-                <p className="text-muted fs-14 mb-2">Total {timeFilter === 'year' ? 'Yearly' : timeFilter === 'last' ? 'Last Month' : 'Monthly'}</p>
-                <h3 className="text-dark fw-bold mb-1">{currency}{(paymentMetrics.totalPeriod / 1000).toFixed(1)}K</h3>
-              </div>
-              <div className="avatar-md bg-light bg-opacity-50 rounded flex-centered">
-                <IconifyIcon
-                  icon="solar:card-broken"
-                  width={32}
-                  height={32}
-                  className="fs-32 text-primary"
-                />
-              </div>
+      <Card>
+        <CardHeader className="d-flex justify-content-between align-items-center border-0">
+          <CardTitle as={"h4"}>Resident Payments</CardTitle>
+          <Dropdown>
+            <DropdownToggle
+              as={"a"}
+              className="btn btn-sm btn-outline-light rounded content-none icons-center"
+              data-bs-toggle="dropdown"
+              aria-expanded="false"
+            >
+              {paymentMetrics.periodLabel}{" "}
+              <IconifyIcon className="ms-1" width={16} height={16} icon="ri:arrow-down-s-line" />
+            </DropdownToggle>
+            <DropdownMenu className="dropdown-menu-end">
+              <DropdownItem onClick={() => setTimeFilter("current")}>This Month</DropdownItem>
+              <DropdownItem onClick={() => setTimeFilter("last")}>Last Month</DropdownItem>
+              <DropdownItem onClick={() => setTimeFilter("year")}>This Year</DropdownItem>
+            </DropdownMenu>
+          </Dropdown>
+        </CardHeader>
+        <CardBody>
+          <div className="d-flex align-items-center justify-content-between">
+            <div>
+              <p className="text-muted fs-14 mb-2">Open Obligations Due</p>
+              <h3 className="text-dark fw-bold mb-1">
+                {currency}
+                {(paymentMetrics.totalDue / 1000).toFixed(1)}K
+              </h3>
             </div>
-            <ProgressBar
-              style={{ height: 15 }}
-              now={paymentMetrics.collectionRate}
-              striped
-              animated
-              variant="success"
-              className="mt-3"
-              role="progressbar"
-            ></ProgressBar>
+            <div className="avatar-md bg-light bg-opacity-50 rounded flex-centered">
+              <IconifyIcon icon="solar:card-broken" width={32} height={32} className="fs-32 text-primary" />
+            </div>
+          </div>
+          <ProgressBar
+            style={{ height: 15 }}
+            now={paymentMetrics.collectionRate}
+            striped
+            animated
+            variant="success"
+            className="mt-3"
+            role="progressbar"
+          ></ProgressBar>
 
-            <div className="d-flex align-items-center justify-content-between mt-3">
-              <div>
-                <p className="mb-2 text-success fs-15 fw-medium">Collected</p>
-                <h4 className="text-dark fw-bold mb-0">{currency}{(paymentMetrics.totalCollected / 1000).toFixed(1)}K</h4>
-              </div>
-              <div className="text-end">
-                <p className="mb-2 fs-15 fw-medium">Pending</p>
-                <h4 className="text-dark fw-bold mb-0">{currency}{(paymentMetrics.totalPending / 1000).toFixed(1)}K</h4>
-              </div>
+          <div className="d-flex align-items-center justify-content-between mt-3">
+            <div>
+              <p className="mb-2 text-success fs-15 fw-medium">Collected</p>
+              <h4 className="text-dark fw-bold mb-0">
+                {currency}
+                {(paymentMetrics.totalCollected / 1000).toFixed(1)}K
+              </h4>
             </div>
-            <div className="d-flex align-items-center bg-light-subtle border justify-content-between p-3 rounded mt-4">
-              <div>
-                <h5 className="fw-medium mb-1 text-dark fs-16">
-                  Residents with pending payments
-                </h5>
-                <div className="avatar-group mt-3">
-                  <div className="avatar d-flex align-items-center justify-content-center">
-                    <Image
-                      src={avatar4}
-                      alt="resident1"
-                      className="rounded-circle avatar border border-light border-3"
-                    />
-                  </div>
-                  <div className="avatar d-flex align-items-center justify-content-center">
-                    <Image
-                      src={avatar5}
-                      alt="resident2"
-                      className="rounded-circle avatar border border-light border-3"
-                    />
-                  </div>
-                  <div className="avatar d-flex align-items-center justify-content-center">
-                    <Image
-                      src={avatar3}
-                      alt="resident3"
-                      className="rounded-circle avatar border border-light border-3"
-                    />
-                  </div>
-                  <div className="avatar d-flex align-items-center justify-content-center">
-                    <Image
-                      src={avatar6}
-                      alt="resident4"
-                      className="rounded-circle avatar border border-light border-3"
-                    />
-                  </div>
-                  <div className="avatar d-flex align-items-center justify-content-center">
-                    <Image
-                      src={avatar7}
-                      alt="resident5"
-                      className="rounded-circle avatar border border-light border-3"
-                    />
-                  </div>
+            <div className="text-end">
+              <p className="mb-2 fs-15 fw-medium">Outstanding</p>
+              <h4 className="text-dark fw-bold mb-0">
+                {currency}
+                {(paymentMetrics.totalOutstanding / 1000).toFixed(1)}K
+              </h4>
+            </div>
+          </div>
+          <div className="d-flex align-items-center bg-light-subtle border justify-content-between p-3 rounded mt-4 gap-3">
+            <div className="flex-grow-1">
+              <h5 className="fw-medium mb-1 text-dark fs-16">Residents with pending payment attempts</h5>
+              {paymentMetrics.residentsWithPendingPayments.length > 0 ? (
+                <div className="mt-3">
+                  {paymentMetrics.residentsWithPendingPayments.map((resident) => (
+                    <div key={resident.id} className="d-flex align-items-center justify-content-between mb-2">
+                      <span className="text-muted">{resident.name}</span>
+                      <span className="fw-semibold text-dark">
+                        {currency}
+                        {resident.amount.toLocaleString()}
+                      </span>
+                    </div>
+                  ))}
                 </div>
-              </div>
-              <div>
-                <Button variant="primary">Send Reminder</Button>
-              </div>
+              ) : (
+                <p className="text-muted mb-0 mt-3">No pending payment attempts were recorded in this period.</p>
+              )}
             </div>
-          </CardBody>
+            <div className="d-flex flex-column gap-2">
+              <Link href="/payments" className="btn btn-primary">
+                Open Payments
+              </Link>
+              <Link href="/payments/invoices" className="btn btn-light">
+                View Invoices
+              </Link>
+            </div>
+          </div>
+        </CardBody>
       </Card>
     </Col>
   );

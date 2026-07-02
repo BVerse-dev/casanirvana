@@ -148,14 +148,10 @@ const InquiriesPage = () => {
     setFeedback(null);
 
     try {
-      const nowIso = new Date().toISOString();
-
       await updateInquiryMutation.mutateAsync({
         inquiryId,
         updates: {
           status: nextStatus,
-          resolved_at: nextStatus === "resolved" || nextStatus === "closed" ? nowIso : null,
-          resolution_notes: nextStatus === "open" ? null : undefined,
         },
       });
 

@@ -1,51 +1,45 @@
 "use client";
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
+import Link from "next/link";
 import ReactApexChart from "react-apexcharts";
 import {
-  Button,
   Card,
   CardBody,
   CardFooter,
   CardHeader,
   CardTitle,
   Col,
-  Dropdown,
-  DropdownItem,
-  DropdownMenu,
-  DropdownToggle,
   Row,
 } from "react-bootstrap";
 import SalesLocation from "./SalesLocation";
 import WeeklySales from "./WeeklySales";
-import { useListVisitorPasses } from "@/hooks/useVisitorPasses";
-import { useListProfiles } from "@/hooks/useProfiles";
+import { useAdminAnalyticsDashboard } from "@/hooks/useAdminAnalyticsDashboard";
 import { ApexOptions } from "apexcharts";
 
 const SocialSourceCard = () => {
-  const { data: visitorPasses = [] } = useListVisitorPasses();
-  const { data: profiles = [] } = useListProfiles();
+  const { data: dashboard, isLoading } = useAdminAnalyticsDashboard();
 
-  // Filter for active residents
-  const activeResidents = profiles.filter((profile: any) => profile.role === 'user');
-  
-  // Calculate weekly visitors
-  const now = new Date();
-  const weekStart = new Date(now);
-  weekStart.setDate(now.getDate() - now.getDay()); // Start of week (Sunday)
-  weekStart.setHours(0, 0, 0, 0);
-  
-  const weeklyVisitors = visitorPasses.filter((pass: any) => {
-    const fromDate = new Date(pass.from_date);
-    const toDate = new Date(pass.to_date);
-    return pass.status === 'approved' && 
-           fromDate <= now && 
-           toDate >= weekStart;
-  });
+  if (isLoading) {
+    return (
+      <Col xl={3} lg={6}>
+        <Card>
+          <CardHeader>
+            <CardTitle as={"h4"} className="mb-1">
+              Visitor Activity
+            </CardTitle>
+          </CardHeader>
+          <CardBody>
+            <div className="placeholder-glow">
+              <div className="placeholder rounded-circle mx-auto" style={{ width: "220px", height: "220px" }}></div>
+            </div>
+          </CardBody>
+        </Card>
+      </Col>
+    );
+  }
 
-  // Calculate visitor source percentage (visitors vs residents)
-  const visitorPercentage = activeResidents.length > 0 
-    ? Math.min(Math.round((weeklyVisitors.length / activeResidents.length) * 100), 100)
-    : 0;
+  const activeResidentsCount = dashboard?.summary.activeResidents || 0;
+  const visitorPercentage = dashboard?.visitorActivity.weeklyApprovedPercentage || 0;
 
   const socialOptions: ApexOptions = {
     chart: {
@@ -121,31 +115,11 @@ const SocialSourceCard = () => {
         <CardHeader className="d-flex justify-content-between align-items-center pb-1">
           <div>
             <CardTitle as={"h4"} className="mb-1">
-              Visitor Source
+              Visitor Activity
             </CardTitle>
-            <p className="fs-13 mb-0">Total Visitors This Week</p>
+            <p className="fs-13 mb-0">Approved visitor passes active this week</p>
           </div>
-          <Dropdown>
-            <DropdownToggle
-              as={"a"}
-              className="btn btn-sm btn-outline-light rounded content-none icons-center"
-              data-bs-toggle="dropdown"
-              aria-expanded="false"
-            >
-              This Week{" "}
-              <IconifyIcon
-                className="ms-1"
-                width={16}
-                height={16}
-                icon="ri:arrow-down-s-line"
-              />
-            </DropdownToggle>
-            <DropdownMenu className="dropdown-menu-end">
-              <DropdownItem>Week</DropdownItem>
-              <DropdownItem>Months</DropdownItem>
-              <DropdownItem>Years</DropdownItem>
-            </DropdownMenu>
-          </Dropdown>
+          <span className="badge bg-light text-dark">This Week</span>
         </CardHeader>
         <CardBody>
           <ReactApexChart
@@ -157,15 +131,15 @@ const SocialSourceCard = () => {
           />
           <p className="mb-0 fs-18 fw-medium text-dark">
             <IconifyIcon icon="ri:group-fill" /> Residents :{" "}
-            <span className="text-primary fw-bold">{activeResidents.length}</span>
+            <span className="text-primary fw-bold">{activeResidentsCount}</span>
           </p>
         </CardBody>
         <CardFooter className="border-top d-flex align-items-center justify-content-between">
-          <h5 className="mb-0">See More Statistic</h5>
+          <h5 className="mb-0">Open visitor workspace</h5>
           <div>
-            <Button variant="primary" size="sm">
-              See Details
-            </Button>
+            <Link href="/visitors/list-view" className="btn btn-primary btn-sm">
+              View Visitors
+            </Link>
           </div>
         </CardFooter>
       </Card>

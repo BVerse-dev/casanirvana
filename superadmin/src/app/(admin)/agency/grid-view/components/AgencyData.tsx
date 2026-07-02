@@ -1,17 +1,14 @@
 'use client'
-import { useState } from 'react'
-import IconifyIcon from '@/components/wrappers/IconifyIcon'
+
+import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useListAgenciesDirectory, useDeleteAgencyDirectory } from '@/hooks/useAgencyDirectory'
-import { getAgencyAvatar, getAgencyPropertyImage } from '@/utils/avatarMapper'
+import { Button, Card, Col, Dropdown, Row } from 'react-bootstrap'
 
-// Import individual components directly
-import Button from 'react-bootstrap/Button'
-import Card from 'react-bootstrap/Card'
-import Row from 'react-bootstrap/Row'
-import Col from 'react-bootstrap/Col'
-import Dropdown from 'react-bootstrap/Dropdown'
+import IconifyIcon from '@/components/wrappers/IconifyIcon'
+import type { AgencyDirectoryItem } from '@/hooks/useAgencyDirectory'
+import { useDeleteAgencyDirectory } from '@/hooks/useAgencyDirectory'
+import { getAgencyAvatar, getAgencyPropertyImage } from '@/utils/avatarMapper'
 
 const SOCIAL_LINKS = [
   { key: 'facebook', icon: 'ri:facebook-fill', variant: 'soft-primary' },
@@ -20,17 +17,16 @@ const SOCIAL_LINKS = [
   { key: 'linkedin', icon: 'ri:linkedin-fill', variant: 'soft-primary' },
 ] as const
 
-const AgencyCard = ({ agency, onDelete }: { agency: any; onDelete: (id: string) => void }) => {
-  // Get the correct avatar image from the centralized mapping
-  const avatarImage = getAgencyAvatar(agency.logo_url)
-  // Get property image for banner using static import (same as details page)
+const AgencyCard = ({ agency, onDelete }: { agency: AgencyDirectoryItem; onDelete: (id: string) => void }) => {
+  const avatarImage = getAgencyAvatar(agency.logo_url ?? null)
   const bannerImage = getAgencyPropertyImage(agency)
   const socialMedia = agency.social_media || {}
-  const availableSocialLinks = SOCIAL_LINKS.filter((item) => typeof socialMedia[item.key] === 'string' && socialMedia[item.key])
+  const availableSocialLinks = SOCIAL_LINKS.filter(
+    (item) => typeof socialMedia[item.key] === 'string' && socialMedia[item.key]
+  )
 
   return (
     <Card className="h-100">
-      {/* Banner Image */}
       <div className="position-relative" style={{ height: '200px', overflow: 'hidden' }}>
         <Image
           src={bannerImage}
@@ -60,7 +56,13 @@ const AgencyCard = ({ agency, onDelete }: { agency: any; onDelete: (id: string) 
             <Link href={`/agency/details?id=${agency.id}`} className="text-dark fw-medium fs-15">
               {agency.name || 'Agency Name'}
             </Link>
-            <p className="mb-0 small text-muted">{agency.description ? (agency.description.length > 50 ? agency.description.substring(0, 50) + '...' : agency.description) : 'No description'}</p>
+            <p className="mb-0 small text-muted">
+              {agency.description
+                ? agency.description.length > 50
+                  ? `${agency.description.substring(0, 50)}...`
+                  : agency.description
+                : 'No description'}
+            </p>
             <p className="mb-0 text-primary small"># {String(agency.id).slice(0, 8)}</p>
           </div>
           <div className="ms-auto">
@@ -69,12 +71,17 @@ const AgencyCard = ({ agency, onDelete }: { agency: any; onDelete: (id: string) 
                 as={'a'}
                 className="btn btn-sm btn-outline-light rounded arrow-none fs-16"
                 data-bs-toggle="dropdown"
-                aria-expanded="false">
+                aria-expanded="false"
+              >
                 <IconifyIcon icon="ri:more-2-fill" />
               </Dropdown.Toggle>
               <Dropdown.Menu className="dropdown-menu-end">
-                <Dropdown.Item as={Link} href={`/agency/details?id=${agency.id}`}>View Details</Dropdown.Item>
-                <Dropdown.Item as={Link} href={`/agency/manage?tab=profiles&agencyId=${agency.id}`}>Manage</Dropdown.Item>
+                <Dropdown.Item as={Link} href={`/agency/details?id=${agency.id}`}>
+                  View Details
+                </Dropdown.Item>
+                <Dropdown.Item as={Link} href={`/agency/manage?tab=profiles&agencyId=${agency.id}`}>
+                  Manage
+                </Dropdown.Item>
                 <Dropdown.Item onClick={() => onDelete(agency.id)}>Delete</Dropdown.Item>
               </Dropdown.Menu>
             </Dropdown>
@@ -90,7 +97,9 @@ const AgencyCard = ({ agency, onDelete }: { agency: any; onDelete: (id: string) 
         </p>
         <div className="d-flex justify-content-between align-items-center my-3">
           <h6 className="mb-0 small">Social Media</h6>
-          <span className={`badge bg-${agency.is_active ? 'success' : 'danger'}-subtle text-${agency.is_active ? 'success' : 'danger'} py-1 px-2 fs-12`}>
+          <span
+            className={`badge bg-${agency.is_active ? 'success' : 'danger'}-subtle text-${agency.is_active ? 'success' : 'danger'} py-1 px-2 fs-12`}
+          >
             {agency.is_active ? 'Active' : 'Inactive'}
           </span>
         </div>
@@ -161,30 +170,36 @@ const AgencyCard = ({ agency, onDelete }: { agency: any; onDelete: (id: string) 
   )
 }
 
-const AgencyData = () => {
-  const { data: agencies = [], isLoading, error } = useListAgenciesDirectory()
+type AgencyDataProps = {
+  agencies: AgencyDirectoryItem[]
+  isLoading: boolean
+  error: Error | null
+}
+
+const AgencyData = ({ agencies, isLoading, error }: AgencyDataProps) => {
   const deleteAgency = useDeleteAgencyDirectory()
   const [currentPage, setCurrentPage] = useState(1)
-  const agenciesPerPage = 6 // 3 columns x 2 rows per page
+  const agenciesPerPage = 6
 
-  // Calculate pagination
   const totalPages = Math.ceil(agencies.length / agenciesPerPage)
   const startIndex = (currentPage - 1) * agenciesPerPage
   const endIndex = startIndex + agenciesPerPage
   const currentAgencies = agencies.slice(startIndex, endIndex)
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [agencies])
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page)
   }
 
   const handleDeleteAgency = async (agencyId: string) => {
-    if (window.confirm('Are you sure you want to delete this agency?')) {
-      try {
-        await deleteAgency.mutateAsync(agencyId)
-        // The list will automatically refresh due to React Query cache invalidation
-      } catch (error) {
-        console.error('Failed to delete agency:', error)
-      }
+    if (!window.confirm('Are you sure you want to delete this agency?')) return
+    try {
+      await deleteAgency.mutateAsync(agencyId)
+    } catch (deleteError) {
+      console.error('Failed to delete agency:', deleteError)
     }
   }
 
@@ -208,7 +223,7 @@ const AgencyData = () => {
         <Col xl={12}>
           <Card>
             <Card.Body className="text-center py-5">
-              <div className="text-danger">Error loading agencies</div>
+              <div className="text-danger">{error.message}</div>
             </Card.Body>
           </Card>
         </Col>
@@ -225,53 +240,46 @@ const AgencyData = () => {
               <Card.Body className="text-center py-5">
                 <IconifyIcon icon="ri:building-4-line" className="fs-48 text-muted mb-3" />
                 <h5 className="text-muted">No agencies found</h5>
-                <p className="text-muted">Start by adding agencies to your system.</p>
+                <p className="text-muted">Adjust the active filter or add a new agency.</p>
                 <Link href="/agency/add" className="btn btn-primary">
                   <IconifyIcon icon="ri:add-line" className="me-1" />
-                  Add First Agency
+                  Add Agency
                 </Link>
               </Card.Body>
             </Card>
           </Col>
         ) : (
-          currentAgencies.map((agency: any, idx: number) => (
-            <Col xl={4} lg={6} key={agency.id || idx} className="mb-4">
+          currentAgencies.map((agency) => (
+            <Col xl={4} lg={6} key={agency.id} className="mb-4">
               <AgencyCard agency={agency} onDelete={handleDeleteAgency} />
             </Col>
           ))
         )}
       </Row>
-      
-      {/* Pagination */}
+
       {agencies.length > agenciesPerPage && (
         <div className="p-3 border-top">
           <nav aria-label="Agency pagination">
             <ul className="pagination justify-content-end mb-0">
               <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-                <button 
-                  className="page-link" 
+                <button
+                  className="page-link"
                   onClick={() => handlePageChange(currentPage - 1)}
                   disabled={currentPage === 1}
                 >
                   Previous
                 </button>
               </li>
-              {[...Array(totalPages)].map((_, index) => {
-                const page = index + 1
-                return (
-                  <li key={page} className={`page-item ${currentPage === page ? 'active' : ''}`}>
-                    <button 
-                      className="page-link" 
-                      onClick={() => handlePageChange(page)}
-                    >
-                      {page}
-                    </button>
-                  </li>
-                )
-              })}
+              {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
+                <li key={page} className={`page-item ${currentPage === page ? 'active' : ''}`}>
+                  <button className="page-link" onClick={() => handlePageChange(page)}>
+                    {page}
+                  </button>
+                </li>
+              ))}
               <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
-                <button 
-                  className="page-link" 
+                <button
+                  className="page-link"
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={currentPage === totalPages}
                 >

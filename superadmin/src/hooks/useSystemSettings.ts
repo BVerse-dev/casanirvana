@@ -95,7 +95,7 @@ export const useSystemSettings = () => {
   return useQuery({
     queryKey: ['system-settings'],
     queryFn: async () => {
-      const response = await fetchAdmin('/admin/system-settings');
+      const response = await fetchAdmin('/admin/system-settings?category=system');
       return {
         data: response?.data || [],
         settings: response?.settings || {},

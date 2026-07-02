@@ -995,6 +995,44 @@ $$;
 ALTER FUNCTION public.increment_notice_likes(notice_id uuid) OWNER TO postgres;
 
 --
+-- Name: increment_comment_likes(uuid); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION public.increment_comment_likes(comment_id uuid) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public'
+    SET row_security TO 'off'
+    AS $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.comments c
+    WHERE c.id = comment_id
+  ) THEN
+    RAISE EXCEPTION 'COMMENT_NOT_FOUND' USING ERRCODE = 'P0002';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.comments c
+    JOIN public.notices n ON n.id = c.notice_id
+    WHERE c.id = comment_id
+      AND public.can_access_community(n.community_id)
+  ) THEN
+    RAISE EXCEPTION 'COMMENT_SCOPE_VIOLATION' USING ERRCODE = '42501';
+  END IF;
+
+  UPDATE public.comments
+  SET likes_count = COALESCE(likes_count, 0) + 1,
+      updated_at = NOW()
+  WHERE id = comment_id;
+END;
+$$;
+
+
+ALTER FUNCTION public.increment_comment_likes(comment_id uuid) OWNER TO postgres;
+
+--
 -- Name: increment_notice_views(uuid); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -1875,17 +1913,28 @@ ALTER FUNCTION public.update_guard_performance_updated_at() OWNER TO postgres;
 CREATE FUNCTION public.update_guard_training_names() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
+DECLARE
+  target_user_id uuid := COALESCE(NEW.user_id, NEW.id);
+  target_guard_name text := trim(concat_ws(' ', NEW.first_name, NEW.last_name));
 BEGIN
-  -- Update guard_trainings table
-  UPDATE guard_trainings 
-  SET guard_name = NEW.first_name || ' ' || NEW.last_name
-  WHERE guard_id = NEW.id;
-  
-  -- Update guard_certifications table
-  UPDATE guard_certifications 
-  SET guard_name = NEW.first_name || ' ' || NEW.last_name
-  WHERE guard_id = NEW.id;
-  
+  UPDATE public.guard_trainings gt
+  SET guard_name = target_guard_name
+  WHERE EXISTS (
+    SELECT 1
+    FROM public.guards g
+    WHERE g.id = gt.guard_id
+      AND g.user_id = target_user_id
+  );
+
+  UPDATE public.guard_certifications gc
+  SET guard_name = target_guard_name
+  WHERE EXISTS (
+    SELECT 1
+    FROM public.guards g
+    WHERE g.id = gc.guard_id
+      AND g.user_id = target_user_id
+  );
+
   RETURN NEW;
 END;
 $$;
@@ -2150,6 +2199,7 @@ CREATE TABLE public.users (
     phone_number text,
     address text,
     date_of_birth date,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT users_role_check CHECK ((role = ANY (ARRAY['user'::text, 'guard'::text, 'admin'::text])))
 );
 
@@ -3192,9 +3242,10 @@ ALTER TABLE public.chats OWNER TO postgres;
 
 CREATE TABLE public.comments (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
-    notice_id text,
+    notice_id uuid NOT NULL,
     author_name text NOT NULL,
     author_avatar text,
+    author_user_id uuid DEFAULT auth.uid(),
     content text NOT NULL,
     likes_count integer DEFAULT 0,
     created_at timestamp with time zone DEFAULT now(),
@@ -3209,7 +3260,14 @@ ALTER TABLE public.comments OWNER TO postgres;
 -- Name: COLUMN comments.notice_id; Type: COMMENT; Schema: public; Owner: postgres
 --
 
-COMMENT ON COLUMN public.comments.notice_id IS 'Can store either UUID (for database notices) or custom string (for static notices)';
+COMMENT ON COLUMN public.comments.notice_id IS 'References public.notices.id (UUID).';
+
+
+--
+-- Name: COLUMN comments.author_user_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.comments.author_user_id IS 'Authenticated user id that created the comment.';
 
 
 --
@@ -4466,7 +4524,7 @@ CREATE TABLE public.profiles (
     notification_preferences jsonb DEFAULT '{"sound": true, "notices": true, "payments": true, "visitors": true, "vibration": true, "quietHours": {"enabled": false, "endTime": "08:00", "startTime": "22:00"}, "emergencies": true, "maintenance": true}'::jsonb,
     qr_code_data text,
     entry_code text,
-    CONSTRAINT profiles_role_check CHECK ((role = ANY (ARRAY['resident'::text, 'guard'::text, 'admin'::text, 'maintenance'::text, 'management'::text, 'user'::text, 'superadmin'::text]))),
+    CONSTRAINT profiles_role_check CHECK ((role = ANY (ARRAY['resident'::text, 'guard'::text, 'admin'::text, 'maintenance'::text, 'management'::text, 'user'::text, 'superadmin'::text, 'agency_manager'::text, 'facility_manager'::text]))),
     CONSTRAINT profiles_status_check CHECK ((status = ANY (ARRAY['active'::text, 'inactive'::text, 'suspended'::text, 'pending'::text])))
 );
 
@@ -4841,14 +4899,23 @@ CREATE VIEW public.guard_performance_detailed AS
     gpm.monthly_progress,
     gpm.created_at,
     gpm.updated_at,
-    ((p.first_name || ' '::text) || p.last_name) AS guard_name,
-    p.avatar_url,
+    COALESCE(NULLIF(g.full_name, ''::text), NULLIF(TRIM(BOTH FROM concat_ws(' '::text, g.first_name, g.last_name)), ''::text), NULLIF(TRIM(BOTH FROM concat_ws(' '::text, p.first_name, p.last_name)), ''::text)) AS guard_name,
+    COALESCE(g.avatar_url, p.avatar_url) AS avatar_url,
     g.employee_id,
     g.shift_type,
     g.employment_date
    FROM ((public.guard_performance_metrics gpm
-     LEFT JOIN public.profiles p ON ((gpm.guard_id = p.id)))
-     LEFT JOIN public.guards g ON ((gpm.guard_id = g.user_id)));
+     LEFT JOIN public.guards g ON ((g.id = gpm.guard_id)))
+     LEFT JOIN LATERAL ( SELECT p_1.first_name,
+            p_1.last_name,
+            p_1.avatar_url
+           FROM public.profiles p_1
+          WHERE ((g.user_id IS NOT NULL) AND ((p_1.user_id = g.user_id) OR (p_1.id = g.user_id)))
+          ORDER BY (CASE
+                        WHEN (p_1.user_id = g.user_id) THEN 0
+                        ELSE 1
+                    END), p_1.id
+         LIMIT 1) p ON (true));
 
 
 ALTER TABLE public.guard_performance_detailed OWNER TO postgres;
@@ -4924,11 +4991,20 @@ CREATE VIEW public.guard_performance_reviews_detailed AS
     gpr.status,
     gpr.created_at,
     gpr.updated_at,
-    ((gp.first_name || ' '::text) || gp.last_name) AS guard_name,
-    ((rp.first_name || ' '::text) || rp.last_name) AS reviewer_name
-   FROM ((public.guard_performance_reviews gpr
-     LEFT JOIN public.profiles gp ON ((gpr.guard_id = gp.id)))
-     LEFT JOIN public.profiles rp ON ((gpr.reviewer_id = rp.id)));
+    COALESCE(NULLIF(g.full_name, ''::text), NULLIF(TRIM(BOTH FROM concat_ws(' '::text, g.first_name, g.last_name)), ''::text), NULLIF(TRIM(BOTH FROM concat_ws(' '::text, gp.first_name, gp.last_name)), ''::text)) AS guard_name,
+    NULLIF(TRIM(BOTH FROM concat_ws(' '::text, rp.first_name, rp.last_name)), ''::text) AS reviewer_name
+   FROM (((public.guard_performance_reviews gpr
+     LEFT JOIN public.guards g ON ((g.id = gpr.guard_id)))
+     LEFT JOIN LATERAL ( SELECT p.first_name,
+            p.last_name
+           FROM public.profiles p
+          WHERE ((g.user_id IS NOT NULL) AND ((p.user_id = g.user_id) OR (p.id = g.user_id)))
+          ORDER BY (CASE
+                        WHEN (p.user_id = g.user_id) THEN 0
+                        ELSE 1
+                    END), p.id
+         LIMIT 1) gp ON (true))
+     LEFT JOIN public.profiles rp ON ((rp.id = gpr.reviewer_id)));
 
 
 ALTER TABLE public.guard_performance_reviews_detailed OWNER TO postgres;
@@ -5788,10 +5864,12 @@ CREATE TABLE public.notification_campaigns (
     updated_at timestamp with time zone DEFAULT now(),
     name text,
     template text,
+    template_id integer,
+    community_id uuid,
     audience text,
     budget numeric DEFAULT 0,
     spent numeric DEFAULT 0,
-    CONSTRAINT notification_campaigns_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'scheduled'::text, 'processing'::text, 'delivered'::text, 'failed'::text, 'paused'::text]))),
+    CONSTRAINT notification_campaigns_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'scheduled'::text, 'active'::text, 'completed'::text, 'paused'::text, 'processing'::text, 'delivered'::text, 'failed'::text]))),
     CONSTRAINT notification_campaigns_type_check CHECK ((type = ANY (ARRAY['push'::text, 'sms'::text, 'email'::text, 'in-app'::text])))
 );
 
@@ -7353,11 +7431,13 @@ CREATE TABLE public.system_settings (
     key text NOT NULL,
     value text NOT NULL,
     description text,
-    category character varying(50),
+    category character varying(50) DEFAULT ''::character varying NOT NULL,
+    subcategory text DEFAULT ''::text NOT NULL,
     data_type character varying(20) DEFAULT 'string'::character varying,
     is_sensitive boolean DEFAULT false,
     created_at timestamp with time zone DEFAULT now(),
-    updated_at timestamp with time zone DEFAULT now()
+    updated_at timestamp with time zone DEFAULT now(),
+    updated_by uuid
 );
 
 
@@ -7880,6 +7960,261 @@ d6f62487-9b45-4967-8a82-6b48c34e9ac7	Elite Properties	123 MG Road	Bangalore	Karn
 --
 -- Data for Name: agency_services; Type: TABLE DATA; Schema: public; Owner: postgres
 --
+
+-- Phase 35 backport: Personal Hub ExpressPay catalog alignment
+ALTER TABLE public.service_providers
+    ADD COLUMN IF NOT EXISTS catalog_source text DEFAULT 'manual'::text NOT NULL,
+    ADD COLUMN IF NOT EXISTS external_service_code text,
+    ADD COLUMN IF NOT EXISTS bill_category text DEFAULT 'general'::text NOT NULL,
+    ADD COLUMN IF NOT EXISTS supports_query boolean DEFAULT false NOT NULL,
+    ADD COLUMN IF NOT EXISTS supports_pay boolean DEFAULT false NOT NULL,
+    ADD COLUMN IF NOT EXISTS supports_status boolean DEFAULT false NOT NULL,
+    ADD COLUMN IF NOT EXISTS provider_metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+    ADD COLUMN IF NOT EXISTS last_synced_at timestamp with time zone,
+    ADD COLUMN IF NOT EXISTS is_enabled_for_app boolean DEFAULT true NOT NULL;
+
+UPDATE public.service_providers
+SET
+    catalog_source = COALESCE(NULLIF(trim(catalog_source), ''), 'manual'),
+    bill_category = COALESCE(NULLIF(trim(bill_category), ''), 'general'),
+    provider_metadata = COALESCE(provider_metadata, '{}'::jsonb),
+    is_enabled_for_app = COALESCE(is_enabled_for_app, true),
+    supports_query = COALESCE(supports_query, false),
+    supports_pay = COALESCE(supports_pay, false),
+    supports_status = COALESCE(supports_status, false)
+WHERE
+    catalog_source IS NULL
+    OR bill_category IS NULL
+    OR provider_metadata IS NULL
+    OR is_enabled_for_app IS NULL
+    OR supports_query IS NULL
+    OR supports_pay IS NULL
+    OR supports_status IS NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS service_providers_catalog_external_code_uidx
+    ON public.service_providers USING btree (catalog_source, service_type, bill_category, external_service_code);
+
+CREATE INDEX IF NOT EXISTS service_providers_service_type_bill_category_enabled_idx
+    ON public.service_providers USING btree (service_type, bill_category, is_active, is_enabled_for_app);
+
+ALTER TABLE public.service_packages
+    ADD COLUMN IF NOT EXISTS catalog_source text DEFAULT 'manual'::text NOT NULL,
+    ADD COLUMN IF NOT EXISTS provider_metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+    ADD COLUMN IF NOT EXISTS last_synced_at timestamp with time zone,
+    ADD COLUMN IF NOT EXISTS is_enabled_for_app boolean DEFAULT true NOT NULL;
+
+UPDATE public.service_packages
+SET
+    catalog_source = COALESCE(NULLIF(trim(catalog_source), ''), 'manual'),
+    provider_metadata = COALESCE(provider_metadata, '{}'::jsonb),
+    is_enabled_for_app = COALESCE(is_enabled_for_app, true)
+WHERE
+    catalog_source IS NULL
+    OR provider_metadata IS NULL
+    OR is_enabled_for_app IS NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS service_packages_provider_package_code_uidx
+    ON public.service_packages USING btree (provider_id, package_code);
+
+CREATE INDEX IF NOT EXISTS service_packages_provider_active_enabled_idx
+    ON public.service_packages USING btree (provider_id, is_active, is_enabled_for_app);
+
+ALTER TABLE public.airtime_purchases
+    ADD COLUMN IF NOT EXISTS provider_display_name text,
+    ADD COLUMN IF NOT EXISTS external_service_code text,
+    ADD COLUMN IF NOT EXISTS query_context jsonb DEFAULT '{}'::jsonb NOT NULL,
+    ADD COLUMN IF NOT EXISTS provider_payload jsonb DEFAULT '{}'::jsonb NOT NULL,
+    ADD COLUMN IF NOT EXISTS fulfillment_status character varying(50) DEFAULT 'pending'::character varying NOT NULL,
+    ADD COLUMN IF NOT EXISTS fulfillment_reference text,
+    ADD COLUMN IF NOT EXISTS provider_status_checked_at timestamp with time zone;
+
+ALTER TABLE public.data_purchases
+    ADD COLUMN IF NOT EXISTS provider_display_name text,
+    ADD COLUMN IF NOT EXISTS external_service_code text,
+    ADD COLUMN IF NOT EXISTS query_context jsonb DEFAULT '{}'::jsonb NOT NULL,
+    ADD COLUMN IF NOT EXISTS provider_payload jsonb DEFAULT '{}'::jsonb NOT NULL,
+    ADD COLUMN IF NOT EXISTS fulfillment_status character varying(50) DEFAULT 'pending'::character varying NOT NULL,
+    ADD COLUMN IF NOT EXISTS fulfillment_reference text,
+    ADD COLUMN IF NOT EXISTS provider_status_checked_at timestamp with time zone;
+
+ALTER TABLE public.money_transfers
+    ADD COLUMN IF NOT EXISTS provider_code text,
+    ADD COLUMN IF NOT EXISTS provider_display_name text,
+    ADD COLUMN IF NOT EXISTS external_service_code text,
+    ADD COLUMN IF NOT EXISTS query_context jsonb DEFAULT '{}'::jsonb NOT NULL,
+    ADD COLUMN IF NOT EXISTS provider_payload jsonb DEFAULT '{}'::jsonb NOT NULL,
+    ADD COLUMN IF NOT EXISTS fulfillment_status character varying(50) DEFAULT 'pending'::character varying NOT NULL,
+    ADD COLUMN IF NOT EXISTS fulfillment_reference text,
+    ADD COLUMN IF NOT EXISTS provider_status_checked_at timestamp with time zone;
+
+ALTER TABLE public.bill_payments
+    ADD COLUMN IF NOT EXISTS provider_display_name text,
+    ADD COLUMN IF NOT EXISTS external_service_code text,
+    ADD COLUMN IF NOT EXISTS query_context jsonb DEFAULT '{}'::jsonb NOT NULL,
+    ADD COLUMN IF NOT EXISTS provider_payload jsonb DEFAULT '{}'::jsonb NOT NULL,
+    ADD COLUMN IF NOT EXISTS fulfillment_status character varying(50) DEFAULT 'pending'::character varying NOT NULL,
+    ADD COLUMN IF NOT EXISTS fulfillment_reference text,
+    ADD COLUMN IF NOT EXISTS provider_status_checked_at timestamp with time zone;
+
+ALTER TABLE public.insurance_payments
+    ADD COLUMN IF NOT EXISTS provider_display_name text,
+    ADD COLUMN IF NOT EXISTS external_service_code text,
+    ADD COLUMN IF NOT EXISTS query_context jsonb DEFAULT '{}'::jsonb NOT NULL,
+    ADD COLUMN IF NOT EXISTS provider_payload jsonb DEFAULT '{}'::jsonb NOT NULL,
+    ADD COLUMN IF NOT EXISTS fulfillment_status character varying(50) DEFAULT 'pending'::character varying NOT NULL,
+    ADD COLUMN IF NOT EXISTS fulfillment_reference text,
+    ADD COLUMN IF NOT EXISTS provider_status_checked_at timestamp with time zone;
+
+DROP FUNCTION IF EXISTS public.list_active_service_providers(text);
+
+CREATE OR REPLACE FUNCTION public.list_active_service_providers(p_service_type text) RETURNS TABLE(id uuid, provider_name text, service_type text, logo_url text, external_service_code text, bill_category text, supports_query boolean, supports_pay boolean, supports_status boolean, provider_metadata jsonb)
+    LANGUAGE sql SECURITY DEFINER
+    SET search_path TO 'public'
+    SET row_security TO 'off'
+    AS $$
+  select
+    sp.id,
+    sp.provider_name::text,
+    sp.service_type::text,
+    sp.logo_url,
+    sp.external_service_code,
+    sp.bill_category,
+    sp.supports_query,
+    sp.supports_pay,
+    sp.supports_status,
+    sp.provider_metadata
+  from public.service_providers sp
+  where sp.is_active = true
+    and sp.is_enabled_for_app = true
+    and sp.service_type = p_service_type
+  order by sp.provider_name asc;
+$$;
+
+REVOKE ALL ON FUNCTION public.list_active_service_providers(text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.list_active_service_providers(text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.list_active_service_providers(text) TO service_role;
+
+CREATE OR REPLACE VIEW public.personal_hub_transactions AS
+ SELECT 'airtime'::text AS transaction_type,
+    a.id AS transaction_id,
+    a.user_id,
+    a.profile_id,
+    COALESCE(a.provider_display_name, a.provider)::character varying AS provider,
+    a.phone_number AS recipient_identifier,
+    a.description AS recipient_name,
+    a.amount,
+    a.amount AS total_amount,
+    a.status,
+    a.payment_ref_id AS payment_id,
+    a.created_at,
+    a.updated_at,
+    a.external_service_code,
+    a.fulfillment_status,
+    a.fulfillment_reference,
+    a.query_context
+   FROM public.airtime_purchases a
+UNION ALL
+ SELECT 'data'::text AS transaction_type,
+    d.id AS transaction_id,
+    d.user_id,
+    d.profile_id,
+    COALESCE(d.provider_display_name, d.provider)::character varying AS provider,
+    d.phone_number AS recipient_identifier,
+    d.description AS recipient_name,
+    d.amount,
+    d.amount AS total_amount,
+    d.status,
+    d.payment_ref_id AS payment_id,
+    d.created_at,
+    d.updated_at,
+    d.external_service_code,
+    d.fulfillment_status,
+    d.fulfillment_reference,
+    d.query_context
+   FROM public.data_purchases d
+UNION ALL
+ SELECT 'money_transfer'::text AS transaction_type,
+    m.id AS transaction_id,
+    m.user_id,
+    m.profile_id,
+    COALESCE(m.provider_display_name, m.provider_code, 'Transfer'::text)::character varying AS provider,
+    m.recipient_phone AS recipient_identifier,
+    m.recipient_name,
+    m.amount,
+    m.total_amount,
+    m.status,
+    m.payment_ref_id AS payment_id,
+    m.created_at,
+    m.updated_at,
+    m.external_service_code,
+    m.fulfillment_status,
+    m.fulfillment_reference,
+    m.query_context
+   FROM public.money_transfers m
+UNION ALL
+ SELECT 'bill_payment'::text AS transaction_type,
+    b.id AS transaction_id,
+    b.user_id,
+    b.profile_id,
+    COALESCE(b.provider_display_name, b.provider)::character varying AS provider,
+    b.account_number AS recipient_identifier,
+    b.customer_name AS recipient_name,
+    b.amount,
+    b.total_amount,
+    b.status,
+    b.payment_ref_id AS payment_id,
+    b.created_at,
+    b.updated_at,
+    b.external_service_code,
+    b.fulfillment_status,
+    b.fulfillment_reference,
+    b.query_context
+   FROM public.bill_payments b
+UNION ALL
+ SELECT 'insurance'::text AS transaction_type,
+    i.id AS transaction_id,
+    i.user_id,
+    i.profile_id,
+    COALESCE(i.provider_display_name, i.provider)::character varying AS provider,
+    i.policy_number AS recipient_identifier,
+    i.insured_name AS recipient_name,
+    i.amount,
+    i.total_amount,
+    i.status,
+    i.payment_ref_id AS payment_id,
+    i.created_at,
+    i.updated_at,
+    i.external_service_code,
+    i.fulfillment_status,
+    i.fulfillment_reference,
+    i.query_context
+   FROM public.insurance_payments i
+UNION ALL
+ SELECT 'shopping'::text AS transaction_type,
+    s.id AS transaction_id,
+    s.user_id,
+    s.profile_id,
+    s.merchant AS provider,
+    s.order_number AS recipient_identifier,
+    s.merchant AS recipient_name,
+    s.amount,
+    s.total_amount,
+    s.status,
+    s.payment_ref_id AS payment_id,
+    s.created_at,
+    s.updated_at,
+    NULL::text AS external_service_code,
+    NULL::character varying(50) AS fulfillment_status,
+    NULL::text AS fulfillment_reference,
+    '{}'::jsonb AS query_context
+   FROM public.shopping_payments s;
+
+ALTER VIEW public.personal_hub_transactions SET (security_invoker = true);
+REVOKE ALL ON TABLE public.personal_hub_transactions FROM anon;
+REVOKE ALL ON TABLE public.personal_hub_transactions FROM authenticated;
+REVOKE ALL ON TABLE public.personal_hub_transactions FROM service_role;
+GRANT SELECT ON TABLE public.personal_hub_transactions TO authenticated;
+GRANT SELECT ON TABLE public.personal_hub_transactions TO service_role;
 
 COPY public.agency_services (id, agency_id, service_name, description, rate, rate_type, status, created_at, updated_at, category, base_price, commission_rate, duration, availability, requirements, target_market, features, tags, bookings, revenue, rating, completion_rate) FROM stdin;
 6231051c-4759-4c60-9467-b64215e2bf55	cba1d1ff-0ff1-415b-a6c2-c47a5467996a	Premium Property Listing	Professional photography, virtual tours, and premium placement on top property portals	\N	hourly	Active	2025-07-09 14:39:35.385331+00	2025-07-09 14:39:35.385331+00	Listing Services	299	2.5	30 days	Available	Property documents, keys for photography	Luxury Properties	{"Professional Photography","Virtual Tours","3D Floor Plans","Drone Footage"}	{premium,photography,virtual-tour}	45	13455	4.8	98
@@ -8629,59 +8964,44 @@ d2921ded-3d4d-46a2-90f8-06c9f3c967f5	11111111-1111-1111-1111-111111111111	2025-0
 -- Data for Name: comments; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.comments (id, notice_id, author_name, author_avatar, content, likes_count, created_at, updated_at, parent_id) FROM stdin;
-772744d7-2473-4227-9d56-3d7d77204801	331f7ab3-9171-4acb-b2d9-32ef54cd6b62	John Doe	/images/avatars/avatar1.jpg	Great post! This is very informative and helpful for our community.	12	2025-07-14 15:32:22.059942+00	2025-07-14 17:32:22.059942+00	\N
-5ac53bb8-3ed7-4f9f-8b8e-69694cd797ae	331f7ab3-9171-4acb-b2d9-32ef54cd6b62	Sarah Wilson	/images/avatars/avatar2.jpg	Thank you for sharing this. I have been waiting for this update.	8	2025-07-14 16:32:22.059942+00	2025-07-14 17:32:22.059942+00	\N
-5b41dd24-7ee4-47e6-8599-e813564fef93	331f7ab3-9171-4acb-b2d9-32ef54cd6b62	Mike Johnson	/images/avatars/avatar3.jpg	This is exactly what we needed. Looking forward to the implementation.	15	2025-07-14 17:02:22.059942+00	2025-07-14 17:32:22.059942+00	\N
-759285bd-d4f1-4fd7-a069-c29c0ef7120a	331f7ab3-9171-4acb-b2d9-32ef54cd6b62	Admin User	/images/avatars/admin.jpg	Thank you for your feedback! We're glad you found it helpful.	5	2025-07-14 16:02:22.059942+00	2025-07-14 17:32:22.059942+00	772744d7-2473-4227-9d56-3d7d77204801
-812e726a-fdb7-42f6-90b5-ecf67f232ccd	331f7ab3-9171-4acb-b2d9-32ef54cd6b62	Jane Smith	/images/avatars/avatar4.jpg	I completely agree with you on this.	3	2025-07-14 16:47:22.059942+00	2025-07-14 17:32:22.059942+00	772744d7-2473-4227-9d56-3d7d77204801
-d8e07a72-8da5-48e7-8d1f-9c48f07ecb41	331f7ab3-9171-4acb-b2d9-32ef54cd6b62	Community Manager	/images/avatars/manager.jpg	We're working on rolling this out as soon as possible!	7	2025-07-14 17:12:22.059942+00	2025-07-14 17:32:22.059942+00	5ac53bb8-3ed7-4f9f-8b8e-69694cd797ae
-d0522e3f-85cd-4ded-8d38-a3720957902c	a751eea5-5a27-43b9-ac0d-20c708b65bbd	Administrator	/images/users/avatar-6.jpg	hehehehe	0	2025-07-15 09:59:50.201068+00	2025-07-15 09:59:50.201068+00	\N
-e63a4b60-b18c-4184-8de5-0a1d5050e863	91b18a6a-c487-4403-8180-04f19950b154	Administrator	/images/users/avatar-6.jpg	Hello	0	2025-07-15 10:01:00.190775+00	2025-07-15 10:01:00.190775+00	\N
-b4f49e29-f8e0-4e37-910b-570893810c90	91b18a6a-c487-4403-8180-04f19950b154	Administrator	/images/users/avatar-6.jpg	Hello	0	2025-07-15 10:01:05.429612+00	2025-07-15 10:01:05.429612+00	\N
-4b059ce9-ed05-40ee-8eb1-7480f8c8b643	91b18a6a-c487-4403-8180-04f19950b154	Administrator	/images/users/avatar-6.jpg	hello	0	2025-07-15 10:01:16.024207+00	2025-07-15 10:01:16.024207+00	\N
-16e53ad7-3c64-4644-a904-64add8bc080c	91b18a6a-c487-4403-8180-04f19950b154	Administrator	/images/users/avatar-6.jpg	hello	0	2025-07-15 10:01:19.892625+00	2025-07-15 10:01:19.892625+00	\N
-4a355b58-b1da-4ceb-b716-7424a736f552	91b18a6a-c487-4403-8180-04f19950b154	Administrator	/images/users/avatar-6.jpg	hello	0	2025-07-15 10:01:28.312004+00	2025-07-15 10:01:28.312004+00	\N
-f35e1ab6-33db-4b24-acf8-b77fa6595b2b	91b18a6a-c487-4403-8180-04f19950b154	Administrator	/images/users/avatar-6.jpg	hello	0	2025-07-15 10:01:42.237655+00	2025-07-15 10:01:42.237655+00	\N
-d675791d-8caf-430e-8cc9-0d79b003de8d	static-notice-1	Administrator	/images/users/avatar-6.jpg	This is a test comment for a static notice.	0	2025-07-15 10:02:48.009224+00	2025-07-15 10:02:48.009224+00	\N
-c163f1d2-4f1b-417c-9b9a-66755f37ea50	static-notice-2	Community Manager	/images/users/avatar-6.jpg	Another test comment for static content.	1	2025-07-15 10:02:48.009224+00	2025-07-15 10:02:48.009224+00	\N
-82c65e4c-2e88-4537-adae-c7986f3f7fdb	179c78c2-9ea2-4c6f-94c1-5e14c5f78ff4	Administrator	/images/users/avatar-6.jpg	Helo	0	2025-07-15 10:03:22.49275+00	2025-07-15 10:03:22.49275+00	\N
-58e9c0b3-6601-4249-a596-d22d58fb04e6	2c88f901-7c18-49e6-acac-4b36499a39f5	Administrator	/images/users/avatar-6.jpg	hi	0	2025-07-15 10:03:32.961304+00	2025-07-15 10:03:32.961304+00	\N
-36297c25-8505-4732-99b5-15c9b9e1f507	e006d456-556d-4fa1-b040-263d67d2126b	Administrator	/images/users/avatar-6.jpg	hello	0	2025-07-15 10:03:42.787282+00	2025-07-15 10:03:42.787282+00	\N
-8f2b82a8-7c37-4524-840e-c360da5c4931	community-events-and-recreation-activities-schedule	Administrator	/images/users/avatar-6.jpg	hello	0	2025-07-15 10:05:28.547475+00	2025-07-15 10:05:28.547475+00	\N
-3fdd239a-3499-4481-ac24-d8eb6ffbca05	community-events-and-recreation-activities-schedule	Administrator	/images/users/avatar-6.jpg	hello	0	2025-07-15 10:05:32.896735+00	2025-07-15 10:05:32.896735+00	\N
-27317105-a2cd-4ac1-9625-14c43be5ff71	community-events-and-recreation-activities-schedule	Administrator	/images/users/avatar-6.jpg	hello	0	2025-07-15 10:05:36.305256+00	2025-07-15 10:05:36.305256+00	\N
-8923e37b-345a-4a96-89b9-9007b9f87c23	community-events-and-recreation-activities-schedule	Administrator	/images/users/avatar-6.jpg	hello	0	2025-07-15 10:05:41.435129+00	2025-07-15 10:05:41.435129+00	\N
-7b73da0e-6978-4e88-aba8-fdf84b5bad15	community-events-and-recreation-activities-schedule	Administrator	/images/users/avatar-6.jpg	Hi	0	2025-07-15 10:06:25.416993+00	2025-07-15 10:06:25.416993+00	8923e37b-345a-4a96-89b9-9007b9f87c23
-907260fa-8286-48f8-b068-44567adf132a	static-notice-1	Community Member	/images/users/avatar-6.jpg	Thank you for the information!	2	2025-07-15 10:06:50.100744+00	2025-07-15 10:06:50.100744+00	d675791d-8caf-430e-8cc9-0d79b003de8d
-a2881e86-1631-4489-acd5-24cff819ba2b	static-notice-1	Resident	/images/users/avatar-6.jpg	Great update, very helpful.	1	2025-07-15 10:06:50.100744+00	2025-07-15 10:06:50.100744+00	d675791d-8caf-430e-8cc9-0d79b003de8d
-43d6d595-9470-4385-ae51-53766f5341a8	331f7ab3-9171-4acb-b2d9-32ef54cd6b62	Administrator	/images/users/avatar-6.jpg	This is an important notice for all residents.	5	2025-07-15 10:07:12.141155+00	2025-07-15 10:07:12.141155+00	\N
-fe3eb9e2-7680-4bdf-8aba-665f79ff1a97	331f7ab3-9171-4acb-b2d9-32ef54cd6b62	Resident A	/images/users/avatar-6.jpg	Thank you for keeping us informed!	3	2025-07-15 10:07:20.52511+00	2025-07-15 10:07:20.52511+00	43d6d595-9470-4385-ae51-53766f5341a8
-86d18df4-e56c-4b19-b205-c842b3d7dcb4	331f7ab3-9171-4acb-b2d9-32ef54cd6b62	Resident B	/images/users/avatar-6.jpg	Very helpful information.	1	2025-07-15 10:07:20.52511+00	2025-07-15 10:07:20.52511+00	43d6d595-9470-4385-ae51-53766f5341a8
-6164e26e-2c31-4592-af19-749d7e1ba76e	community-events-and-recreation-activities-schedule	Administrator	/images/users/avatar-6.jpg	Okay	0	2025-07-15 10:08:08.275615+00	2025-07-15 10:08:08.275615+00	3fdd239a-3499-4481-ac24-d8eb6ffbca05
-9150068b-f995-499a-9d9e-275787ef2619	maintenance-schedule-updates-upcoming-building-improvements-and-temporary-service-disruptions	Administrator	/images/users/avatar-6.jpg	hello	0	2025-07-15 10:10:22.822151+00	2025-07-15 10:10:22.822151+00	\N
-39a7597d-568e-4af7-a9e4-0ed8c0f6de00	maintenance-schedule-updates-upcoming-building-improvements-and-temporary-service-disruptions	Administrator	/images/users/avatar-6.jpg	hello	0	2025-07-15 10:10:26.895048+00	2025-07-15 10:10:26.895048+00	\N
-cb7ba02c-0ce1-43bd-865f-74dbc253d67f	maintenance-schedule-updates-upcoming-building-improvements-and-temporary-service-disruptions	Administrator	/images/users/avatar-6.jpg	hello	0	2025-07-15 10:10:31.284747+00	2025-07-15 10:10:31.284747+00	\N
-5c602a93-d791-4b91-ab5c-9e692ca2de25	maintenance-schedule-updates-upcoming-building-improvements-and-temporary-service-disruptions	Administrator	/images/users/avatar-6.jpg	Hello	0	2025-07-15 10:23:17.608781+00	2025-07-15 10:23:17.608781+00	\N
-0e86f945-b6b3-4fa6-a1ea-7e63f7f16a28	static-notice	Administrator	/images/users/avatar-6.jpg	HBJKB	0	2025-07-15 10:50:28.813078+00	2025-07-15 10:50:28.813078+00	\N
-0043ad0a-b2a0-48dd-b714-8bb2c38406ef	6eb618ae-8ce0-4040-9bab-e06eedbd348d	Administrator	/images/users/avatar-6.jpg	hello	0	2025-07-15 11:36:01.957374+00	2025-07-15 11:36:01.957374+00	\N
-c82d8f06-0f70-4a7c-bb58-6d45c37adfa2	6eb618ae-8ce0-4040-9bab-e06eedbd348d	Administrator	/images/users/avatar-6.jpg	hello	0	2025-07-15 11:36:05.161416+00	2025-07-15 11:36:05.161416+00	\N
-e6bcdce7-aad5-479a-b316-086a299dc7c9	6eb618ae-8ce0-4040-9bab-e06eedbd348d	Administrator	/images/users/avatar-6.jpg	hello	0	2025-07-15 11:36:09.414925+00	2025-07-15 11:36:09.414925+00	\N
-fe70f04e-03e8-4973-a51d-f25ba4210bee	6eb618ae-8ce0-4040-9bab-e06eedbd348d	Administrator	/images/users/avatar-6.jpg	hjeehehe	0	2025-07-15 11:36:24.564553+00	2025-07-15 11:36:24.564553+00	\N
-a0126d46-38c4-49c4-b279-f9c3aff7a22d	6eb618ae-8ce0-4040-9bab-e06eedbd348d	Administrator	/images/users/avatar-6.jpg	hello	0	2025-07-15 11:36:40.629582+00	2025-07-15 11:36:40.629582+00	\N
-f0f34503-8851-40f8-9e8a-3337ee19ade4	f4b1342a-179f-43d8-90a9-01d12a47c13d	Administrator	/images/users/avatar-6.jpg	Hello	0	2025-07-15 11:43:40.292613+00	2025-07-15 11:43:40.292613+00	\N
-ae5492f5-9570-412d-9170-2b7ce702bf12	f4b1342a-179f-43d8-90a9-01d12a47c13d	Administrator	/images/users/avatar-6.jpg	hello	0	2025-07-15 11:43:55.097569+00	2025-07-15 11:43:55.097569+00	\N
-3384215e-dde5-4729-aebf-60e303479700	f4b1342a-179f-43d8-90a9-01d12a47c13d	Administrator	/images/users/avatar-6.jpg	d	0	2025-07-15 11:43:57.41767+00	2025-07-15 11:43:57.41767+00	\N
-1e8753e9-d997-43b8-bbde-40d811dc8f49	f4b1342a-179f-43d8-90a9-01d12a47c13d	Administrator	/images/users/avatar-6.jpg	s	0	2025-07-15 11:44:01.519555+00	2025-07-15 11:44:01.519555+00	\N
-deb42252-03ef-4476-826f-04930de0a08b	f4b1342a-179f-43d8-90a9-01d12a47c13d	Administrator	/images/users/avatar-6.jpg	s	0	2025-07-15 11:44:05.489255+00	2025-07-15 11:44:05.489255+00	\N
-d269bc4a-c543-48be-948e-44c8b21f514f	f4b1342a-179f-43d8-90a9-01d12a47c13d	Administrator	/images/users/avatar-6.jpg	Hello	0	2025-07-15 11:53:09.996946+00	2025-07-15 11:53:09.996946+00	\N
-7f590972-fe36-4137-9620-58d5a9aa763d	c970b73e-e65a-4d0b-989c-ab470700ef61	Demo User	\N	Hello.	1	2025-07-18 09:17:37.711463+00	2025-07-18 09:17:37.711463+00	\N
-493ce0b9-930b-45b8-a3f9-c1a480220059	c970b73e-e65a-4d0b-989c-ab470700ef61	Demo User	\N	Hi	0	2025-07-18 09:18:32.523113+00	2025-07-18 09:18:32.523113+00	\N
-58b92a9d-1df0-477c-bca4-0927b8cedda9	7628f8da-21e9-4337-98a2-c8e6fbcf093b	Demo User	\N	Great. 🙂	0	2025-07-18 09:43:10.751197+00	2025-07-18 09:43:10.751197+00	\N
-6363a46a-a608-47fc-ae71-3bf17d0d61a1	7628f8da-21e9-4337-98a2-c8e6fbcf093b	Demo User	\N	Dueh	0	2025-12-03 09:34:11.922398+00	2025-12-03 09:34:11.922398+00	58b92a9d-1df0-477c-bca4-0927b8cedda9
-3199946b-5080-492e-b635-84ae65e1c8d2	7628f8da-21e9-4337-98a2-c8e6fbcf093b	Demo User	\N	Shsh	0	2025-12-03 09:34:20.376526+00	2025-12-03 09:34:20.376526+00	58b92a9d-1df0-477c-bca4-0927b8cedda9
-6e3b5cbf-20ef-41f0-b066-1fb14004a808	7628f8da-21e9-4337-98a2-c8e6fbcf093b	Demo User	\N	Zusbe	0	2025-12-03 09:34:25.259184+00	2025-12-03 09:34:25.259184+00	\N
-38a7d1aa-70bb-40f1-b4de-5fed83713695	7628f8da-21e9-4337-98a2-c8e6fbcf093b	Demo User	\N	Diehe	0	2025-12-03 09:34:38.203415+00	2025-12-03 09:34:38.203415+00	\N
+COPY public.comments (id, notice_id, author_name, author_avatar, author_user_id, content, likes_count, created_at, updated_at, parent_id) FROM stdin;
+772744d7-2473-4227-9d56-3d7d77204801	331f7ab3-9171-4acb-b2d9-32ef54cd6b62	John Doe	/images/avatars/avatar1.jpg	\N	Great post! This is very informative and helpful for our community.	12	2025-07-14 15:32:22.059942+00	2025-07-14 17:32:22.059942+00	\N
+5ac53bb8-3ed7-4f9f-8b8e-69694cd797ae	331f7ab3-9171-4acb-b2d9-32ef54cd6b62	Sarah Wilson	/images/avatars/avatar2.jpg	\N	Thank you for sharing this. I have been waiting for this update.	8	2025-07-14 16:32:22.059942+00	2025-07-14 17:32:22.059942+00	\N
+5b41dd24-7ee4-47e6-8599-e813564fef93	331f7ab3-9171-4acb-b2d9-32ef54cd6b62	Mike Johnson	/images/avatars/avatar3.jpg	\N	This is exactly what we needed. Looking forward to the implementation.	15	2025-07-14 17:02:22.059942+00	2025-07-14 17:32:22.059942+00	\N
+759285bd-d4f1-4fd7-a069-c29c0ef7120a	331f7ab3-9171-4acb-b2d9-32ef54cd6b62	Admin User	/images/avatars/admin.jpg	\N	Thank you for your feedback! We're glad you found it helpful.	5	2025-07-14 16:02:22.059942+00	2025-07-14 17:32:22.059942+00	772744d7-2473-4227-9d56-3d7d77204801
+812e726a-fdb7-42f6-90b5-ecf67f232ccd	331f7ab3-9171-4acb-b2d9-32ef54cd6b62	Jane Smith	/images/avatars/avatar4.jpg	\N	I completely agree with you on this.	3	2025-07-14 16:47:22.059942+00	2025-07-14 17:32:22.059942+00	772744d7-2473-4227-9d56-3d7d77204801
+d8e07a72-8da5-48e7-8d1f-9c48f07ecb41	331f7ab3-9171-4acb-b2d9-32ef54cd6b62	Community Manager	/images/avatars/manager.jpg	\N	We're working on rolling this out as soon as possible!	7	2025-07-14 17:12:22.059942+00	2025-07-14 17:32:22.059942+00	5ac53bb8-3ed7-4f9f-8b8e-69694cd797ae
+d0522e3f-85cd-4ded-8d38-a3720957902c	a751eea5-5a27-43b9-ac0d-20c708b65bbd	Administrator	/images/users/avatar-6.jpg	\N	hehehehe	0	2025-07-15 09:59:50.201068+00	2025-07-15 09:59:50.201068+00	\N
+e63a4b60-b18c-4184-8de5-0a1d5050e863	91b18a6a-c487-4403-8180-04f19950b154	Administrator	/images/users/avatar-6.jpg	\N	Hello	0	2025-07-15 10:01:00.190775+00	2025-07-15 10:01:00.190775+00	\N
+b4f49e29-f8e0-4e37-910b-570893810c90	91b18a6a-c487-4403-8180-04f19950b154	Administrator	/images/users/avatar-6.jpg	\N	Hello	0	2025-07-15 10:01:05.429612+00	2025-07-15 10:01:05.429612+00	\N
+4b059ce9-ed05-40ee-8eb1-7480f8c8b643	91b18a6a-c487-4403-8180-04f19950b154	Administrator	/images/users/avatar-6.jpg	\N	hello	0	2025-07-15 10:01:16.024207+00	2025-07-15 10:01:16.024207+00	\N
+16e53ad7-3c64-4644-a904-64add8bc080c	91b18a6a-c487-4403-8180-04f19950b154	Administrator	/images/users/avatar-6.jpg	\N	hello	0	2025-07-15 10:01:19.892625+00	2025-07-15 10:01:19.892625+00	\N
+4a355b58-b1da-4ceb-b716-7424a736f552	91b18a6a-c487-4403-8180-04f19950b154	Administrator	/images/users/avatar-6.jpg	\N	hello	0	2025-07-15 10:01:28.312004+00	2025-07-15 10:01:28.312004+00	\N
+f35e1ab6-33db-4b24-acf8-b77fa6595b2b	91b18a6a-c487-4403-8180-04f19950b154	Administrator	/images/users/avatar-6.jpg	\N	hello	0	2025-07-15 10:01:42.237655+00	2025-07-15 10:01:42.237655+00	\N
+82c65e4c-2e88-4537-adae-c7986f3f7fdb	179c78c2-9ea2-4c6f-94c1-5e14c5f78ff4	Administrator	/images/users/avatar-6.jpg	\N	Helo	0	2025-07-15 10:03:22.49275+00	2025-07-15 10:03:22.49275+00	\N
+58e9c0b3-6601-4249-a596-d22d58fb04e6	2c88f901-7c18-49e6-acac-4b36499a39f5	Administrator	/images/users/avatar-6.jpg	\N	hi	0	2025-07-15 10:03:32.961304+00	2025-07-15 10:03:32.961304+00	\N
+36297c25-8505-4732-99b5-15c9b9e1f507	e006d456-556d-4fa1-b040-263d67d2126b	Administrator	/images/users/avatar-6.jpg	\N	hello	0	2025-07-15 10:03:42.787282+00	2025-07-15 10:03:42.787282+00	\N
+43d6d595-9470-4385-ae51-53766f5341a8	331f7ab3-9171-4acb-b2d9-32ef54cd6b62	Administrator	/images/users/avatar-6.jpg	\N	This is an important notice for all residents.	5	2025-07-15 10:07:12.141155+00	2025-07-15 10:07:12.141155+00	\N
+fe3eb9e2-7680-4bdf-8aba-665f79ff1a97	331f7ab3-9171-4acb-b2d9-32ef54cd6b62	Resident A	/images/users/avatar-6.jpg	\N	Thank you for keeping us informed!	3	2025-07-15 10:07:20.52511+00	2025-07-15 10:07:20.52511+00	43d6d595-9470-4385-ae51-53766f5341a8
+86d18df4-e56c-4b19-b205-c842b3d7dcb4	331f7ab3-9171-4acb-b2d9-32ef54cd6b62	Resident B	/images/users/avatar-6.jpg	\N	Very helpful information.	1	2025-07-15 10:07:20.52511+00	2025-07-15 10:07:20.52511+00	43d6d595-9470-4385-ae51-53766f5341a8
+0043ad0a-b2a0-48dd-b714-8bb2c38406ef	6eb618ae-8ce0-4040-9bab-e06eedbd348d	Administrator	/images/users/avatar-6.jpg	\N	hello	0	2025-07-15 11:36:01.957374+00	2025-07-15 11:36:01.957374+00	\N
+c82d8f06-0f70-4a7c-bb58-6d45c37adfa2	6eb618ae-8ce0-4040-9bab-e06eedbd348d	Administrator	/images/users/avatar-6.jpg	\N	hello	0	2025-07-15 11:36:05.161416+00	2025-07-15 11:36:05.161416+00	\N
+e6bcdce7-aad5-479a-b316-086a299dc7c9	6eb618ae-8ce0-4040-9bab-e06eedbd348d	Administrator	/images/users/avatar-6.jpg	\N	hello	0	2025-07-15 11:36:09.414925+00	2025-07-15 11:36:09.414925+00	\N
+fe70f04e-03e8-4973-a51d-f25ba4210bee	6eb618ae-8ce0-4040-9bab-e06eedbd348d	Administrator	/images/users/avatar-6.jpg	\N	hjeehehe	0	2025-07-15 11:36:24.564553+00	2025-07-15 11:36:24.564553+00	\N
+a0126d46-38c4-49c4-b279-f9c3aff7a22d	6eb618ae-8ce0-4040-9bab-e06eedbd348d	Administrator	/images/users/avatar-6.jpg	\N	hello	0	2025-07-15 11:36:40.629582+00	2025-07-15 11:36:40.629582+00	\N
+f0f34503-8851-40f8-9e8a-3337ee19ade4	f4b1342a-179f-43d8-90a9-01d12a47c13d	Administrator	/images/users/avatar-6.jpg	\N	Hello	0	2025-07-15 11:43:40.292613+00	2025-07-15 11:43:40.292613+00	\N
+ae5492f5-9570-412d-9170-2b7ce702bf12	f4b1342a-179f-43d8-90a9-01d12a47c13d	Administrator	/images/users/avatar-6.jpg	\N	hello	0	2025-07-15 11:43:55.097569+00	2025-07-15 11:43:55.097569+00	\N
+3384215e-dde5-4729-aebf-60e303479700	f4b1342a-179f-43d8-90a9-01d12a47c13d	Administrator	/images/users/avatar-6.jpg	\N	d	0	2025-07-15 11:43:57.41767+00	2025-07-15 11:43:57.41767+00	\N
+1e8753e9-d997-43b8-bbde-40d811dc8f49	f4b1342a-179f-43d8-90a9-01d12a47c13d	Administrator	/images/users/avatar-6.jpg	\N	s	0	2025-07-15 11:44:01.519555+00	2025-07-15 11:44:01.519555+00	\N
+deb42252-03ef-4476-826f-04930de0a08b	f4b1342a-179f-43d8-90a9-01d12a47c13d	Administrator	/images/users/avatar-6.jpg	\N	s	0	2025-07-15 11:44:05.489255+00	2025-07-15 11:44:05.489255+00	\N
+d269bc4a-c543-48be-948e-44c8b21f514f	f4b1342a-179f-43d8-90a9-01d12a47c13d	Administrator	/images/users/avatar-6.jpg	\N	Hello	0	2025-07-15 11:53:09.996946+00	2025-07-15 11:53:09.996946+00	\N
+7f590972-fe36-4137-9620-58d5a9aa763d	c970b73e-e65a-4d0b-989c-ab470700ef61	Demo User	\N	\N	Hello.	1	2025-07-18 09:17:37.711463+00	2025-07-18 09:17:37.711463+00	\N
+493ce0b9-930b-45b8-a3f9-c1a480220059	c970b73e-e65a-4d0b-989c-ab470700ef61	Demo User	\N	\N	Hi	0	2025-07-18 09:18:32.523113+00	2025-07-18 09:18:32.523113+00	\N
+58b92a9d-1df0-477c-bca4-0927b8cedda9	7628f8da-21e9-4337-98a2-c8e6fbcf093b	Demo User	\N	\N	Great. 🙂	0	2025-07-18 09:43:10.751197+00	2025-07-18 09:43:10.751197+00	\N
+6363a46a-a608-47fc-ae71-3bf17d0d61a1	7628f8da-21e9-4337-98a2-c8e6fbcf093b	Demo User	\N	\N	Dueh	0	2025-12-03 09:34:11.922398+00	2025-12-03 09:34:11.922398+00	58b92a9d-1df0-477c-bca4-0927b8cedda9
+3199946b-5080-492e-b635-84ae65e1c8d2	7628f8da-21e9-4337-98a2-c8e6fbcf093b	Demo User	\N	\N	Shsh	0	2025-12-03 09:34:20.376526+00	2025-12-03 09:34:20.376526+00	58b92a9d-1df0-477c-bca4-0927b8cedda9
+6e3b5cbf-20ef-41f0-b066-1fb14004a808	7628f8da-21e9-4337-98a2-c8e6fbcf093b	Demo User	\N	\N	Zusbe	0	2025-12-03 09:34:25.259184+00	2025-12-03 09:34:25.259184+00	\N
+38a7d1aa-70bb-40f1-b4de-5fed83713695	7628f8da-21e9-4337-98a2-c8e6fbcf093b	Demo User	\N	\N	Diehe	0	2025-12-03 09:34:38.203415+00	2025-12-03 09:34:38.203415+00	\N
 \.
 
 
@@ -9432,7 +9752,6 @@ COPY public.groups (id, name, description, avatar_url, created_by, created_at, u
 --
 
 COPY public.guard_assignments (id, community_id, guard_id, assignment_name, shift_type, start_time, end_time, days_of_week, start_date, end_date, is_permanent, is_temporary, assigned_gate, assigned_location, patrol_areas, responsibilities, special_instructions, performance_rating, attendance_percentage, punctuality_score, last_performance_review, status, current_status, last_checkin, last_checkout, emergency_contact, backup_guard_id, supervisor_id, created_at, updated_at) FROM stdin;
-fa117d99-1db9-43a9-8ae1-1b4513c15b4d	e1d40ef7-f1d5-4756-88a2-054fe30cb06a	00000000-0000-0000-0000-000000000003	Main Gate Security	day	08:00:00	17:00:00	{1,2,3,4,5}	2024-01-01	\N	t	f	Main Gate	Main Gate	\N	{"Gate security","Visitor management"}	\N	\N	\N	\N	\N	active	off_duty	\N	\N	+1-555-0911	\N	\N	2025-07-08 23:22:59.090895+00	2025-07-08 23:22:59.090895+00
 0f955764-eded-4bdd-8263-22262b75a737	11111111-1111-1111-1111-111111111111	0b654222-6ef8-4fc2-a06e-6beab9eb0b69	Main Gate Day Shift	day	06:00:00	18:00:00	{1,2,3,4,5,6}	2025-08-11	2025-09-10	f	f	Main Gate	Casa Nirvana Main Entrance	{"Main Gate Area","Parking Zone A","Reception Area"}	{"Visitor Check-in/out","Vehicle Verification","Emergency Response","Incident Reporting"}	Regular day shift duties. Monitor all entries/exits, verify visitor passes, maintain security logs. Report any suspicious activities immediately.	4.50	95.00	98.00	\N	active	on_duty	2025-08-11 17:18:10.022581+00	\N	+1-555-0911	\N	\N	2025-08-11 19:18:10.022581+00	2025-08-11 19:18:10.022581+00
 \.
 
@@ -9442,9 +9761,6 @@ fa117d99-1db9-43a9-8ae1-1b4513c15b4d	e1d40ef7-f1d5-4756-88a2-054fe30cb06a	000000
 --
 
 COPY public.guard_certifications (id, guard_id, guard_name, certificate_type, issuing_authority, certificate_number, issue_date, expiry_date, status, document_url, renewal_required, reminder_sent, created_at, updated_at) FROM stdin;
-dddddddd-dddd-dddd-dddd-dddddddddddd	11111111-1111-1111-1111-111111111111	John Smith	Security License	State Security Board	SEC-2024-001	2024-01-01	2026-01-01	valid	/documents/john-security-license.pdf	f	f	2025-07-09 00:01:23.305924+00	2025-07-09 00:01:23.305924+00
-eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee	22222222-2222-2222-2222-222222222222	Mike Wilson	First Aid Certification	Red Cross	FA-2023-045	2023-06-15	2025-06-15	expiring_soon	/documents/mike-first-aid.pdf	t	t	2025-07-09 00:01:23.305924+00	2025-07-09 00:01:23.305924+00
-ffffffff-ffff-ffff-ffff-ffffffffffff	33333333-3333-3333-3333-333333333333	Sarah Johnson	Security License	State Security Board	SEC-2022-089	2022-03-10	2024-03-10	expired	/documents/sarah-security-license.pdf	t	t	2025-07-09 00:01:23.305924+00	2025-07-09 00:01:23.305924+00
 \.
 
 
@@ -9508,11 +9824,6 @@ COPY public.guard_performance (id, guard_id, evaluation_period, evaluation_date,
 --
 
 COPY public.guard_performance_metrics (id, guard_id, overall_rating, punctuality_rating, professionalism_rating, reliability_rating, communication_rating, attendance_percentage, total_shifts, completed_shifts, late_arrivals, incident_reports, compliments, complaints, last_review_date, next_review_date, status, monthly_progress, created_at, updated_at) FROM stdin;
-79538b67-e14a-47bb-9d9b-080290a72a13	00000000-0000-0000-0000-000000000003	4.50	4.80	4.60	4.40	4.20	96.00	120	115	3	0	8	1	2024-01-01	2024-04-01	excellent	[{"month": "Oct", "rating": 4.3, "attendance": 94}, {"month": "Nov", "rating": 4.4, "attendance": 96}, {"month": "Dec", "rating": 4.5, "attendance": 98}, {"month": "Jan", "rating": 4.5, "attendance": 96}]	2025-07-08 23:34:13.929628+00	2025-07-08 23:34:37.066024+00
-9a6ea182-fb3d-4933-834e-61368d447399	00000000-0000-0000-0000-000000000004	4.20	4.50	4.10	4.30	3.90	92.00	118	108	5	1	6	2	2024-01-01	2024-04-01	good	[{"month": "Oct", "rating": 4.0, "attendance": 89}, {"month": "Nov", "rating": 4.1, "attendance": 91}, {"month": "Dec", "rating": 4.2, "attendance": 94}, {"month": "Jan", "rating": 4.2, "attendance": 92}]	2025-07-10 05:43:20.486375+00	2025-07-10 05:43:20.486375+00
-b54cb44b-0527-416f-b6ed-044c7ade2517	00000000-0000-0000-0000-000000000005	4.40	4.60	4.40	4.50	4.20	94.50	125	118	2	0	10	0	2024-01-01	2024-04-01	excellent	[{"month": "Oct", "rating": 4.2, "attendance": 92}, {"month": "Nov", "rating": 4.3, "attendance": 94}, {"month": "Dec", "rating": 4.4, "attendance": 96}, {"month": "Jan", "rating": 4.4, "attendance": 95}]	2025-07-10 05:43:20.486375+00	2025-07-10 05:43:20.486375+00
-2c43522e-094b-4b26-b459-674a96778226	00000000-0000-0000-0000-000000000006	4.10	4.30	4.00	4.20	3.80	89.50	115	103	7	2	4	3	2024-01-01	2024-04-01	good	[{"month": "Oct", "rating": 3.9, "attendance": 87}, {"month": "Nov", "rating": 4.0, "attendance": 89}, {"month": "Dec", "rating": 4.1, "attendance": 91}, {"month": "Jan", "rating": 4.1, "attendance": 90}]	2025-07-10 05:45:42.772489+00	2025-07-10 05:45:42.772489+00
-7deb45fb-aa7a-43e6-b536-32e45c23d139	00000000-0000-0000-0000-000000000007	3.90	4.10	3.80	4.00	3.70	87.00	110	96	8	1	3	2	2024-01-01	2024-04-01	satisfactory	[{"month": "Oct", "rating": 3.7, "attendance": 85}, {"month": "Nov", "rating": 3.8, "attendance": 87}, {"month": "Dec", "rating": 3.9, "attendance": 89}, {"month": "Jan", "rating": 3.9, "attendance": 87}]	2025-07-10 05:45:42.772489+00	2025-07-10 05:45:42.772489+00
 \.
 
 
@@ -9521,8 +9832,6 @@ b54cb44b-0527-416f-b6ed-044c7ade2517	00000000-0000-0000-0000-000000000005	4.40	4
 --
 
 COPY public.guard_performance_reviews (id, guard_id, reviewer_id, review_date, overall_rating, punctuality_rating, professionalism_rating, reliability_rating, communication_rating, strengths, areas_for_improvement, goals, comments, action_plan, follow_up_date, status, created_at, updated_at) FROM stdin;
-880e8400-e29b-41d4-a716-446655440001	00000000-0000-0000-0000-000000000003	00000000-0000-0000-0000-000000000001	2024-01-01	4.5	4.8	4.6	4.4	4.2	Excellent punctuality, professional demeanor, strong security awareness	Could improve communication with residents	Complete advanced security training, improve resident interaction skills	Outstanding performance overall. One of our top guards.	Enroll in customer service training program	2024-02-01	completed	2025-07-08 23:34:13.929628+00	2025-07-08 23:34:13.929628+00
-880e8400-e29b-41d4-a716-446655440002	00000000-0000-0000-0000-000000000003	00000000-0000-0000-0000-000000000001	2023-10-01	4.3	4.6	4.4	4.2	4.0	Reliable and punctual, good security practices	Communication skills need development	Focus on resident relations training	Solid performance with room for growth	Monthly communication skills coaching	2023-11-01	completed	2025-07-08 23:34:13.929628+00	2025-07-08 23:34:13.929628+00
 \.
 
 
@@ -9531,9 +9840,6 @@ COPY public.guard_performance_reviews (id, guard_id, reviewer_id, review_date, o
 --
 
 COPY public.guard_schedules (id, guard_id, shift_type, start_time, end_time, assigned_date, end_date, community_id, post_location, status, notes, replacement_id, created_at, updated_at) FROM stdin;
-aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa	00000000-0000-0000-0000-000000000003	day	09:00:00	17:00:00	2024-12-10	\N	d43c2bee-7f16-4a9e-8165-110b114c3f13	Main Gate	scheduled	Regular day shift at main entrance	\N	2025-07-08 23:52:59.913473+00	2025-07-08 23:52:59.913473+00
-bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb	00000000-0000-0000-0000-000000000003	night	21:00:00	05:00:00	2024-12-11	\N	e1d40ef7-f1d5-4756-88a2-054fe30cb06a	Main Gate	active	Night patrol duty	\N	2025-07-08 23:52:59.913473+00	2025-07-08 23:52:59.913473+00
-cccccccc-cccc-cccc-cccc-cccccccccccc	00000000-0000-0000-0000-000000000003	rotating	12:00:00	20:00:00	2024-12-12	2024-12-20	3a47abc1-bb41-4c85-b134-8258d36d59e8	Side Gate	completed	Rotating shift assignment for the week	\N	2025-07-08 23:52:59.913473+00	2025-07-08 23:52:59.913473+00
 \.
 
 
@@ -9571,9 +9877,6 @@ d485e7c5-bd44-4975-8b43-7c997fea7db0	4e080222-d500-4a23-8de7-ff0f53e022fc	Fire S
 --
 
 COPY public.guard_trainings (id, guard_id, guard_name, program_id, program_name, enrollment_date, start_date, completion_date, expiry_date, status, score, instructor, certificate_url, notes, created_at, updated_at) FROM stdin;
-aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa	11111111-1111-1111-1111-111111111111	John Smith	11111111-1111-1111-1111-111111111111	Basic Security Training	2024-01-01	2024-01-15	2024-02-15	2026-02-15	completed	95	John Security	/certificates/john-smith-basic.pdf	Excellent performance throughout the training	2025-07-09 00:01:05.0514+00	2025-07-09 00:01:05.0514+00
-bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb	22222222-2222-2222-2222-222222222222	Mike Wilson	22222222-2222-2222-2222-222222222222	Fire Safety & Emergency Response	2024-01-10	2024-01-20	\N	\N	in_progress	\N	Jane Firefighter	\N	Currently attending weekend sessions	2025-07-09 00:01:05.0514+00	2025-07-09 00:01:05.0514+00
-cccccccc-cccc-cccc-cccc-cccccccccccc	33333333-3333-3333-3333-333333333333	Sarah Johnson	11111111-1111-1111-1111-111111111111	Basic Security Training	2024-01-05	2024-01-25	\N	\N	enrolled	\N	John Security	\N	Scheduled to start next week	2025-07-09 00:01:05.0514+00	2025-07-09 00:01:05.0514+00
 \.
 
 
@@ -10219,42 +10522,42 @@ COPY public.notification_analytics (id, metric_type, metric_date, data, created_
 -- Data for Name: notification_campaigns; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.notification_campaigns (id, title, type, status, recipients_count, delivered_count, opened_count, clicked_count, failed_count, scheduled_at, sent_at, created_at, updated_at, name, template, audience, budget, spent) FROM stdin;
-302f752d-6b8c-41cf-8b62-c65ea760303a	January Community Newsletter 2025	email	delivered	487	487	342	89	0	\N	2025-01-15 10:00:00+00	2025-01-15 09:45:00+00	2025-01-15 10:30:00+00	January Community Newsletter 2025	Standard Email Template	all-residents	73.05	73.05
-a9569d91-93fa-417e-9e32-166c30f1beb2	December Holiday Notice 2024	email	delivered	487	487	398	124	0	\N	2024-12-20 14:30:00+00	2024-12-20 14:15:00+00	2024-12-20 15:00:00+00	December Holiday Notice 2024	Standard Email Template	all-residents	73.05	73.05
-98fff429-9fa2-4d8c-a926-71af96e43f71	Building A Maintenance Alert	email	delivered	156	156	128	45	0	\N	2024-12-15 09:15:00+00	2024-12-15 09:00:00+00	2024-12-15 10:00:00+00	Building A Maintenance Alert	Standard Email Template	building-a	23.40	23.40
-e5e7b296-c9fa-4ba3-b87c-c25c3f524105	November Payment Reminder	email	delivered	89	89	67	23	0	\N	2024-11-28 09:15:00+00	2024-11-28 09:00:00+00	2024-11-28 10:00:00+00	November Payment Reminder	Standard Email Template	specific-units	13.35	13.35
-9b26e069-211b-48a7-baa2-0fde27bc732d	New Resident Welcome Package	email	delivered	18	18	15	12	0	\N	2024-11-25 11:45:00+00	2024-11-25 11:30:00+00	2024-11-25 12:00:00+00	New Resident Welcome Package	Standard Email Template	specific-units	2.70	2.70
-137ba9dc-fbd5-4d7a-83d3-01331b5889b0	Security Update Notice	email	delivered	487	487	365	78	0	\N	2024-11-20 16:00:00+00	2024-11-20 15:45:00+00	2024-11-20 16:30:00+00	Security Update Notice	Standard Email Template	all-residents	73.05	73.05
-0b60c754-f7f3-4561-b430-a843880fba32	Amenity Booking Changes	email	delivered	487	487	298	45	0	\N	2024-11-10 12:00:00+00	2024-11-10 11:45:00+00	2024-11-10 12:30:00+00	Amenity Booking Changes	Standard Email Template	all-residents	73.05	73.05
-acdd8d8a-e9d4-4b22-bae9-ba8340f2be4e	Community Event Invitation	email	delivered	487	487	289	67	0	\N	2024-11-05 18:00:00+00	2024-11-05 17:45:00+00	2024-11-05 18:30:00+00	Community Event Invitation	Standard Email Template	all-residents	73.05	73.05
-bff0af58-a0eb-4c69-8509-fcf555c6ff80	Parking Policy Update	email	delivered	487	487	234	34	0	\N	2024-10-30 10:00:00+00	2024-10-30 09:45:00+00	2024-10-30 10:30:00+00	Parking Policy Update	Standard Email Template	all-residents	73.05	73.05
-a1bec315-9ea5-4d8b-8026-ac1113a9915b	Diwali Celebration Guidelines	email	delivered	487	487	412	156	0	\N	2024-10-25 15:00:00+00	2024-10-25 14:45:00+00	2024-10-25 15:30:00+00	Diwali Celebration Guidelines	Standard Email Template	all-residents	73.05	73.05
-d072f70f-4967-4d06-a04a-71cbe6f4330c	Holiday Special Promotion	email	delivered	850	840	425	180	10	2024-01-25 12:00:00+00	2024-01-25 12:00:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Holiday Special Promotion	Holiday Email Template	Premium Members	1200	980
-c21a707e-a560-4fd3-9c00-639c0723894f	Maintenance Alert System	sms	processing	2500	2450	2400	450	50	2024-01-26 08:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Maintenance Alert System	Maintenance SMS	All Residents	300	150
-7245a5a2-2d14-4f86-8293-aab807bb4070	Security Update Notice	push	delivered	1200	1180	980	120	20	2024-01-24 16:00:00+00	2024-01-24 16:00:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Security Update Notice	Security Push Template	Security Subscribers	0	0
-e57e4dcd-fd35-40fa-8b3a-e01b26210529	Birthday Wishes Campaign	in-app	processing	45	42	40	15	3	2024-01-27 00:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Birthday Wishes Campaign	Birthday Template	Birthday Today	0	0
-be5ee456-51af-416d-916b-24229e764eb8	Rent Reminder Series	email	scheduled	680	0	0	0	0	2024-01-30 09:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Rent Reminder Series	Rent Reminder Template	Rent Due Soon	500	0
-252b5215-b2da-4a7b-8810-624320971b65	Community Event Invite	push	delivered	920	900	780	290	20	2024-01-23 14:00:00+00	2024-01-23 14:00:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Community Event Invite	Event Invitation	Active Community Members	150	125
-64f089e3-ea0a-478d-8b32-1c54bb460ad2	Power Outage Alert	sms	delivered	2800	2780	2750	890	20	2024-01-22 06:30:00+00	2024-01-22 06:30:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Power Outage Alert	Emergency SMS	All Units	200	185
-09ad72cb-8c6e-45d3-827e-f5a1f265a3a7	New Feature Announcement	in-app	processing	1500	1480	1200	450	20	2024-01-28 10:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	New Feature Announcement	Feature Update Template	App Users	0	0
-c7a76d31-95db-4f5e-816b-a3bd80cef6d5	Monthly Newsletter Vol 2	email	scheduled	1800	0	0	0	0	2024-02-01 10:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Monthly Newsletter Vol 2	Newsletter Template v2	Newsletter Subscribers	800	0
-3aadb0e0-24e0-4ccf-bad0-bc4c5c4ef4c1	Visitor Policy Update	push	delivered	2200	2150	1950	580	50	2024-01-21 15:00:00+00	2024-01-21 15:00:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Visitor Policy Update	Policy Update Push	All Residents	100	85
-ecde3435-a664-4b79-a18d-9d95fd5d082b	Gym Membership Promo	email	processing	450	440	380	95	10	2024-01-29 11:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Gym Membership Promo	Fitness Promo Template	Fitness Interested	600	320
-40aee5e2-30c2-4a60-84be-69b79237a05f	Water Supply Notice	sms	delivered	580	575	570	280	5	2024-01-20 07:00:00+00	2024-01-20 07:00:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Water Supply Notice	Utility Notice SMS	Block A Residents	150	140
-136828ae-d8de-47fb-8cf8-694c5f53d04c	App Rating Request	in-app	processing	890	880	650	120	10	2024-01-26 12:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	App Rating Request	Rating Request Template	Long Term Users	0	0
-0bcd0af2-3e5f-4a72-9131-311d5cc9236f	Parking Policy Reminder	email	scheduled	720	0	0	0	0	2024-01-31 08:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Parking Policy Reminder	Parking Rules Template	Car Owners	250	0
-914b6a68-24c2-4d68-8fe0-cbeab3cb7d2f	Emergency Contact Update	push	delivered	2100	2050	1890	340	50	2024-01-19 13:00:00+00	2024-01-19 13:00:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Emergency Contact Update	Emergency Contact Push	All Profiles	0	0
-e135b878-058c-4356-9dda-77f0ee6c7bb5	Survey Participation	email	processing	650	640	520	85	10	2024-01-27 14:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Survey Participation	Survey Email Template	Survey Participants	300	180
-947cd945-8489-46ee-a127-9674cbb1e733	Garbage Collection Schedule	sms	delivered	2400	2380	2350	890	20	2024-01-18 18:00:00+00	2024-01-18 18:00:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Garbage Collection Schedule	Utility Schedule SMS	All Blocks	200	195
-5aa34642-7b89-4004-95f4-41bbcdea5439	Festival Celebration Notice	in-app	scheduled	340	0	0	0	0	2024-02-05 00:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Festival Celebration Notice	Festival Template	Cultural Group	0	0
-df8a7f54-50fa-4a50-871f-73c0632877ac	Late Fee Warning	email	processing	89	87	82	45	2	2024-01-25 09:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Late Fee Warning	Late Fee Template	Overdue Accounts	100	75
-9488ba25-cee0-4a8e-a0ec-b99c392711d7	Club Membership Drive	push	delivered	780	760	690	230	20	2024-01-17 16:00:00+00	2024-01-17 16:00:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Club Membership Drive	Club Invitation Push	Social Members	400	350
-bf5e1ea6-6a3b-48e6-9232-b3170d5fbf40	Internet Connectivity Issues	sms	delivered	125	122	120	45	3	2024-01-16 10:30:00+00	2024-01-16 10:30:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Internet Connectivity Issues	Tech Support SMS	Tech Issues Reported	150	130
-d0e4734d-c0d1-4ada-80f3-464f675da65f	Welcome Package Info	email	processing	25	24	20	8	1	2024-01-28 15:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Welcome Package Info	Welcome Package Template	New Residents	200	120
-6c555921-2e48-4cfd-9bb2-01679272263b	CCTV Maintenance Alert	in-app	scheduled	15	0	0	0	0	2024-02-02 06:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	CCTV Maintenance Alert	CCTV Alert Template	Security Team	0	0
-10f2fe13-0e0f-4f08-bcba-fa1b30ff1365	Pool Closure Notice	push	delivered	180	175	165	78	5	2024-01-15 12:00:00+00	2024-01-15 12:00:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Pool Closure Notice	Pool Closure Push	Pool Members	50	45
-06832ef5-ee6e-44f8-af79-9b43a2ea7ee8	Annual Meeting Reminder	email	scheduled	2500	0	0	0	0	2024-02-10 09:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Annual Meeting Reminder	Annual Meeting Template	All Members	500	0
+COPY public.notification_campaigns (id, title, type, status, recipients_count, delivered_count, opened_count, clicked_count, failed_count, scheduled_at, sent_at, created_at, updated_at, name, template, template_id, community_id, audience, budget, spent) FROM stdin;
+302f752d-6b8c-41cf-8b62-c65ea760303a	January Community Newsletter 2025	email	delivered	487	487	342	89	0	\N	2025-01-15 10:00:00+00	2025-01-15 09:45:00+00	2025-01-15 10:30:00+00	January Community Newsletter 2025	Standard Email Template	\N	\N	all-residents	73.05	73.05
+a9569d91-93fa-417e-9e32-166c30f1beb2	December Holiday Notice 2024	email	delivered	487	487	398	124	0	\N	2024-12-20 14:30:00+00	2024-12-20 14:15:00+00	2024-12-20 15:00:00+00	December Holiday Notice 2024	Standard Email Template	\N	\N	all-residents	73.05	73.05
+98fff429-9fa2-4d8c-a926-71af96e43f71	Building A Maintenance Alert	email	delivered	156	156	128	45	0	\N	2024-12-15 09:15:00+00	2024-12-15 09:00:00+00	2024-12-15 10:00:00+00	Building A Maintenance Alert	Standard Email Template	\N	\N	building-a	23.40	23.40
+e5e7b296-c9fa-4ba3-b87c-c25c3f524105	November Payment Reminder	email	delivered	89	89	67	23	0	\N	2024-11-28 09:15:00+00	2024-11-28 09:00:00+00	2024-11-28 10:00:00+00	November Payment Reminder	Standard Email Template	\N	\N	specific-units	13.35	13.35
+9b26e069-211b-48a7-baa2-0fde27bc732d	New Resident Welcome Package	email	delivered	18	18	15	12	0	\N	2024-11-25 11:45:00+00	2024-11-25 11:30:00+00	2024-11-25 12:00:00+00	New Resident Welcome Package	Standard Email Template	\N	\N	specific-units	2.70	2.70
+137ba9dc-fbd5-4d7a-83d3-01331b5889b0	Security Update Notice	email	delivered	487	487	365	78	0	\N	2024-11-20 16:00:00+00	2024-11-20 15:45:00+00	2024-11-20 16:30:00+00	Security Update Notice	Standard Email Template	\N	\N	all-residents	73.05	73.05
+0b60c754-f7f3-4561-b430-a843880fba32	Amenity Booking Changes	email	delivered	487	487	298	45	0	\N	2024-11-10 12:00:00+00	2024-11-10 11:45:00+00	2024-11-10 12:30:00+00	Amenity Booking Changes	Standard Email Template	\N	\N	all-residents	73.05	73.05
+acdd8d8a-e9d4-4b22-bae9-ba8340f2be4e	Community Event Invitation	email	delivered	487	487	289	67	0	\N	2024-11-05 18:00:00+00	2024-11-05 17:45:00+00	2024-11-05 18:30:00+00	Community Event Invitation	Standard Email Template	\N	\N	all-residents	73.05	73.05
+bff0af58-a0eb-4c69-8509-fcf555c6ff80	Parking Policy Update	email	delivered	487	487	234	34	0	\N	2024-10-30 10:00:00+00	2024-10-30 09:45:00+00	2024-10-30 10:30:00+00	Parking Policy Update	Standard Email Template	\N	\N	all-residents	73.05	73.05
+a1bec315-9ea5-4d8b-8026-ac1113a9915b	Diwali Celebration Guidelines	email	delivered	487	487	412	156	0	\N	2024-10-25 15:00:00+00	2024-10-25 14:45:00+00	2024-10-25 15:30:00+00	Diwali Celebration Guidelines	Standard Email Template	\N	\N	all-residents	73.05	73.05
+d072f70f-4967-4d06-a04a-71cbe6f4330c	Holiday Special Promotion	email	delivered	850	840	425	180	10	2024-01-25 12:00:00+00	2024-01-25 12:00:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Holiday Special Promotion	Holiday Email Template	\N	\N	Premium Members	1200	980
+c21a707e-a560-4fd3-9c00-639c0723894f	Maintenance Alert System	sms	processing	2500	2450	2400	450	50	2024-01-26 08:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Maintenance Alert System	Maintenance SMS	\N	\N	All Residents	300	150
+7245a5a2-2d14-4f86-8293-aab807bb4070	Security Update Notice	push	delivered	1200	1180	980	120	20	2024-01-24 16:00:00+00	2024-01-24 16:00:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Security Update Notice	Security Push Template	\N	\N	Security Subscribers	0	0
+e57e4dcd-fd35-40fa-8b3a-e01b26210529	Birthday Wishes Campaign	in-app	processing	45	42	40	15	3	2024-01-27 00:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Birthday Wishes Campaign	Birthday Template	\N	\N	Birthday Today	0	0
+be5ee456-51af-416d-916b-24229e764eb8	Rent Reminder Series	email	scheduled	680	0	0	0	0	2024-01-30 09:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Rent Reminder Series	Rent Reminder Template	\N	\N	Rent Due Soon	500	0
+252b5215-b2da-4a7b-8810-624320971b65	Community Event Invite	push	delivered	920	900	780	290	20	2024-01-23 14:00:00+00	2024-01-23 14:00:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Community Event Invite	Event Invitation	\N	\N	Active Community Members	150	125
+64f089e3-ea0a-478d-8b32-1c54bb460ad2	Power Outage Alert	sms	delivered	2800	2780	2750	890	20	2024-01-22 06:30:00+00	2024-01-22 06:30:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Power Outage Alert	Emergency SMS	\N	\N	All Units	200	185
+09ad72cb-8c6e-45d3-827e-f5a1f265a3a7	New Feature Announcement	in-app	processing	1500	1480	1200	450	20	2024-01-28 10:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	New Feature Announcement	Feature Update Template	\N	\N	App Users	0	0
+c7a76d31-95db-4f5e-816b-a3bd80cef6d5	Monthly Newsletter Vol 2	email	scheduled	1800	0	0	0	0	2024-02-01 10:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Monthly Newsletter Vol 2	Newsletter Template v2	\N	\N	Newsletter Subscribers	800	0
+3aadb0e0-24e0-4ccf-bad0-bc4c5c4ef4c1	Visitor Policy Update	push	delivered	2200	2150	1950	580	50	2024-01-21 15:00:00+00	2024-01-21 15:00:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Visitor Policy Update	Policy Update Push	\N	\N	All Residents	100	85
+ecde3435-a664-4b79-a18d-9d95fd5d082b	Gym Membership Promo	email	processing	450	440	380	95	10	2024-01-29 11:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Gym Membership Promo	Fitness Promo Template	\N	\N	Fitness Interested	600	320
+40aee5e2-30c2-4a60-84be-69b79237a05f	Water Supply Notice	sms	delivered	580	575	570	280	5	2024-01-20 07:00:00+00	2024-01-20 07:00:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Water Supply Notice	Utility Notice SMS	\N	\N	Block A Residents	150	140
+136828ae-d8de-47fb-8cf8-694c5f53d04c	App Rating Request	in-app	processing	890	880	650	120	10	2024-01-26 12:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	App Rating Request	Rating Request Template	\N	\N	Long Term Users	0	0
+0bcd0af2-3e5f-4a72-9131-311d5cc9236f	Parking Policy Reminder	email	scheduled	720	0	0	0	0	2024-01-31 08:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Parking Policy Reminder	Parking Rules Template	\N	\N	Car Owners	250	0
+914b6a68-24c2-4d68-8fe0-cbeab3cb7d2f	Emergency Contact Update	push	delivered	2100	2050	1890	340	50	2024-01-19 13:00:00+00	2024-01-19 13:00:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Emergency Contact Update	Emergency Contact Push	\N	\N	All Profiles	0	0
+e135b878-058c-4356-9dda-77f0ee6c7bb5	Survey Participation	email	processing	650	640	520	85	10	2024-01-27 14:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Survey Participation	Survey Email Template	\N	\N	Survey Participants	300	180
+947cd945-8489-46ee-a127-9674cbb1e733	Garbage Collection Schedule	sms	delivered	2400	2380	2350	890	20	2024-01-18 18:00:00+00	2024-01-18 18:00:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Garbage Collection Schedule	Utility Schedule SMS	\N	\N	All Blocks	200	195
+5aa34642-7b89-4004-95f4-41bbcdea5439	Festival Celebration Notice	in-app	scheduled	340	0	0	0	0	2024-02-05 00:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Festival Celebration Notice	Festival Template	\N	\N	Cultural Group	0	0
+df8a7f54-50fa-4a50-871f-73c0632877ac	Late Fee Warning	email	processing	89	87	82	45	2	2024-01-25 09:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Late Fee Warning	Late Fee Template	\N	\N	Overdue Accounts	100	75
+9488ba25-cee0-4a8e-a0ec-b99c392711d7	Club Membership Drive	push	delivered	780	760	690	230	20	2024-01-17 16:00:00+00	2024-01-17 16:00:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Club Membership Drive	Club Invitation Push	\N	\N	Social Members	400	350
+bf5e1ea6-6a3b-48e6-9232-b3170d5fbf40	Internet Connectivity Issues	sms	delivered	125	122	120	45	3	2024-01-16 10:30:00+00	2024-01-16 10:30:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Internet Connectivity Issues	Tech Support SMS	\N	\N	Tech Issues Reported	150	130
+d0e4734d-c0d1-4ada-80f3-464f675da65f	Welcome Package Info	email	processing	25	24	20	8	1	2024-01-28 15:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Welcome Package Info	Welcome Package Template	\N	\N	New Residents	200	120
+6c555921-2e48-4cfd-9bb2-01679272263b	CCTV Maintenance Alert	in-app	scheduled	15	0	0	0	0	2024-02-02 06:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	CCTV Maintenance Alert	CCTV Alert Template	\N	\N	Security Team	0	0
+10f2fe13-0e0f-4f08-bcba-fa1b30ff1365	Pool Closure Notice	push	delivered	180	175	165	78	5	2024-01-15 12:00:00+00	2024-01-15 12:00:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Pool Closure Notice	Pool Closure Push	\N	\N	Pool Members	50	45
+06832ef5-ee6e-44f8-af79-9b43a2ea7ee8	Annual Meeting Reminder	email	scheduled	2500	0	0	0	0	2024-02-10 09:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Annual Meeting Reminder	Annual Meeting Template	\N	\N	All Members	500	0
 68686dae-85f4-41ab-8517-f2f42a169d4c	Fire Safety Drill	sms	delivered	2600	2570	2580	1200	30	2024-01-14 11:00:00+00	2024-01-14 11:00:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Fire Safety Drill	Safety Drill SMS	Emergency Contacts	100	95
 c13b0a61-ae3d-45e8-acfa-43fe0c32d44c	Loyalty Program Launch	in-app	processing	560	550	480	125	10	2024-01-26 13:00:00+00	\N	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Loyalty Program Launch	Loyalty Program Template	Premium Users	800	450
 01aa02b1-b4e0-43d5-ba9e-1ff33f852afc	Elevator Maintenance	push	delivered	890	870	820	234	20	2024-01-13 08:00:00+00	2024-01-13 08:00:00+00	2025-07-14 12:10:19.469057+00	2025-07-14 12:10:19.469057+00	Elevator Maintenance	Elevator Alert Push	High Floor Residents	75	70
@@ -12092,20 +12395,14 @@ e1497ea1-1d4a-46e2-a955-cd63c7dced21	30b509aa-3376-46a6-9602-333fd6bf64e4	Ahad	2
 9d6d5ccf-c89a-4932-88e5-a34e47117120	44444444-4444-4444-4444-444444444441	Moirainne Sedai	2025-08-12 12:19:54.582+00	2025-08-12 14:19:54.582+00	pending		Guest visit - 1 hour	\N	\N	\N	0b654222-6ef8-4fc2-a06e-6beab9eb0b69	0b654222-6ef8-4fc2-a06e-6beab9eb0b69	2025-08-12	2025-08-12 12:19:56.61+00	2025-08-12 12:19:57.271892+00	f	\N	\N	guest	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	walk_in	\N	pending	11111111-1111-1111-1111-111111111111
 77ca6036-c021-4802-8c0b-d6877a0ff8ec	30b509aa-3376-46a6-9602-333fd6bf64e4	Delivery Person	2025-11-10 09:00:00+00	2025-11-10 18:00:00+00	checked_in		Delivery	\N	\N	\N	ae9984c4-b5c1-4ba3-a6b5-30cfd4119cd7	\N	2025-11-10	2025-11-10 09:04:58.224996+00	2025-11-10 09:06:12.818085+00	t	{"id":"VP-1762765497841-mbdrwmkf3","visitor_name":"Delivery Person","visitor_phone":"","unit_id":"30b509aa-3376-46a6-9602-333fd6bf64e4","visit_date":"2025-11-10","from_date":"2025-11-10T09:00:00.000Z","to_date":"2025-11-10T18:00:00.000Z","created_by":"ae9984c4-b5c1-4ba3-a6b5-30cfd4119cd7","created_at":"2025-11-10T09:04:57.841Z","purpose":"Delivery","type":"visitor_pass","entry_code":"BDRWMKF3","visitor_type":"delivery","company_name":"Bolt Delivery","service_type":null,"vehicle_type":null,"vehicle_number":null,"driver_name":null,"delivery_details":"Package delivery"}	BDRWMKF3	delivery	Bolt Delivery	\N	\N	\N	Package delivery	23bc2901-fbfd-47d1-ae78-bb23a67c370b	23bc2901-fbfd-47d1-ae78-bb23a67c370b	2025-11-10 09:06:10.263+00	2025-11-10 09:05:48.494+00	\N	pre_approved	\N	pending	\N
 251d7551-8816-4c69-b80a-6137288b28bb	7f54e744-6c8f-4ec0-a0ac-0f0ba0d68127	Hhh	2025-08-13 15:01:56.176+00	2025-08-13 19:02:19.371+00	checked_in		Pickup	\N	\N	4444	0b654222-6ef8-4fc2-a06e-6beab9eb0b69	0b654222-6ef8-4fc2-a06e-6beab9eb0b69	\N	2025-08-13 15:02:19.375+00	2025-08-13 15:02:20.268954+00	f	\N	\N	cab	Uber	Pickup	cab	Hhh	\N	0b654222-6ef8-4fc2-a06e-6beab9eb0b69	\N	2025-08-13 15:02:20.041+00	\N	Driver approved by guard. Host: Michael Smith, Unit: A-101	walk_in	\N	pending	11111111-1111-1111-1111-111111111111
-55aab94c-f5b6-443c-b92e-993d6527609f	048bd32e-6069-4a71-9aba-09da0b28ef66	Test Visitor	2024-01-20 09:00:00+00	2024-01-20 18:00:00+00	checked_in	1234567890	\N	\N	\N	\N	\N	\N	2024-01-20	2025-07-22 15:48:13.064093+00	2025-11-12 17:30:43.09901+00	t	\N	123455	guest	\N	\N	\N	\N	\N	23bc2901-fbfd-47d1-ae78-bb23a67c370b	23bc2901-fbfd-47d1-ae78-bb23a67c370b	2025-11-06 19:10:09.962+00	2025-11-10 06:21:31.545+00	\N	pre_approved	\N	pending	\N
 813392ac-358e-4abd-b7ae-ea38de1fc72b	7f54e744-6c8f-4ec0-a0ac-0f0ba0d68127	Mmmmmm	2025-08-13 17:25:37.599+00	2025-08-13 21:25:52.97+00	checked_out		Pickup	\N	\N	8888	0b654222-6ef8-4fc2-a06e-6beab9eb0b69	0b654222-6ef8-4fc2-a06e-6beab9eb0b69	\N	2025-08-13 17:25:52.973+00	2025-08-13 18:13:25.42841+00	f	\N	\N	cab	Uber	Pickup	cab	Mmmmmm	\N	0b654222-6ef8-4fc2-a06e-6beab9eb0b69	0b654222-6ef8-4fc2-a06e-6beab9eb0b69	2025-08-13 17:25:53.551+00	2025-08-13 18:13:25.173+00	Driver approved by guard. Host: Michael Smith, Unit: A-101	walk_in	\N	pending	11111111-1111-1111-1111-111111111111
 c961247f-5cb2-4b29-868c-7fa41d57f829	44444444-4444-4444-4444-444444444444	Cameron Williamson	2025-08-13 16:49:59.817111+00	2025-08-13 20:49:59.817111+00	checked_out	+91 1234567890	\N	\N	\N	\N	0b654222-6ef8-4fc2-a06e-6beab9eb0b69	0b654222-6ef8-4fc2-a06e-6beab9eb0b69	\N	2025-08-13 16:49:59.817111+00	2025-08-13 18:24:49.818116+00	f	\N	\N	guest	\N	\N	\N	\N	\N	0b654222-6ef8-4fc2-a06e-6beab9eb0b69	0b654222-6ef8-4fc2-a06e-6beab9eb0b69	2025-08-13 16:49:59.817111+00	2025-08-13 18:24:49.818116+00	Guest approved for A-120	pre_approved	\N	pending	11111111-1111-1111-1111-111111111111
 f176ca8d-f587-4cb2-ae2c-307815a2dac0	4ec7687c-d6d3-476b-a057-4dd85bf8be0c	Voice Mail	2025-10-15 09:00:00+00	2025-10-15 18:00:00+00	pending	555	Guest Visit	\N	\N	\N	98f0ddd3-3a81-4b04-a199-a787d20a7afc	\N	2025-10-15	2025-10-14 20:22:33.063541+00	2025-10-14 20:22:33.063541+00	t	{"id":"VP-1760473353920-d0o2qskl7","visitor_name":"Voice Mail","visitor_phone":"555","unit_id":"4ec7687c-d6d3-476b-a057-4dd85bf8be0c","visit_date":"2025-10-15","from_date":"2025-10-15T09:00:00.000Z","to_date":"2025-10-15T18:00:00.000Z","created_by":"98f0ddd3-3a81-4b04-a199-a787d20a7afc","created_at":"2025-10-14T20:22:33.920Z","purpose":"Guest Visit","type":"visitor_pass","entry_code":"0O2QSKL7","visitor_type":"guest","company_name":null,"service_type":null,"vehicle_type":null,"vehicle_number":null,"driver_name":null,"delivery_details":null}	0O2QSKL7	guest	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	pre_approved	\N	pending	\N
-42eab617-57a2-438e-bbb2-8133ba2b4d62	\N	Kavya Patel	2025-06-21 09:09:59.794653+00	2025-06-21 15:09:59.794653+00	pending	+91-9876501002	Business meeting	\N	\N	\N	\N	\N	\N	2025-07-11 17:44:39.394237+00	2025-07-11 17:44:39.394237+00	f	\N	\N	guest	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	pre_approved	\N	pending	\N
-d75a69b0-c8fe-402f-afd0-dc3d7b80f051	\N	Arjun Singh	2025-06-22 09:09:59.794653+00	2025-06-22 12:09:59.794653+00	pending	+91-9876501003	Delivery	\N	\N	\N	\N	\N	\N	2025-07-11 17:44:39.394237+00	2025-07-11 17:44:39.394237+00	f	\N	\N	guest	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	pre_approved	\N	pending	\N
 e796e8ef-18b0-402c-8460-1baf2d725e06	b172df8c-3858-4eef-b9c8-4b224b971baf	Testrwv	2025-11-12 17:42:10.098+00	2025-11-12 21:42:20.85+00	checked_in	0348605278	Guest visit	\N	\N	\N	23bc2901-fbfd-47d1-ae78-bb23a67c370b	23bc2901-fbfd-47d1-ae78-bb23a67c370b	\N	2025-11-12 17:42:20.85+00	2025-11-12 17:42:22.342087+00	f	\N	\N	guest	\N	\N	\N	\N	\N	23bc2901-fbfd-47d1-ae78-bb23a67c370b	\N	2025-11-12 17:42:21.351+00	\N	Guest approved by guard. Host: Bob Smith, Unit: A-102	walk_in	\N	pending	11111111-1111-1111-1111-111111111111
 30dbef43-577b-4355-b169-1cf3f44d1084	f4cc72fb-5001-4934-bd4a-7f0111cffc5d	Test	2025-11-12 09:00:00+00	2025-11-12 18:00:00+00	checked_in	0348608213	Guest Visit	\N	\N	\N	276cff4b-c75a-46d7-8552-6c2ed2d8f1a2	\N	2025-11-12	2025-11-12 17:37:35.001496+00	2025-12-03 14:57:35.83582+00	t	{"id":"VP-1762969053894-4tfmtguyx","visitor_name":"Test","visitor_phone":"0348608213","unit_id":"f4cc72fb-5001-4934-bd4a-7f0111cffc5d","visit_date":"2025-11-12","from_date":"2025-11-12T09:00:00.000Z","to_date":"2025-11-12T18:00:00.000Z","created_by":"276cff4b-c75a-46d7-8552-6c2ed2d8f1a2","created_at":"2025-11-12T17:37:33.894Z","purpose":"Guest Visit","type":"visitor_pass","entry_code":"TFMTGUYX","visitor_type":"guest","company_name":null,"service_type":null,"vehicle_type":null,"vehicle_number":null,"driver_name":null,"delivery_details":null}	TFMTGUYX	guest	\N	\N	\N	\N	\N	23bc2901-fbfd-47d1-ae78-bb23a67c370b	23bc2901-fbfd-47d1-ae78-bb23a67c370b	2025-12-03 14:57:27.761+00	2025-11-12 17:40:37.33+00	\N	pre_approved	\N	pending	\N
 4ce81d34-3eb6-4b99-b58a-aa641d44253d	7f54e744-6c8f-4ec0-a0ac-0f0ba0d68127	2BTech | Business IT Solutions Company	2025-12-03 15:02:07.32+00	2025-12-03 19:04:50.5+00	checked_out	3449889555	Guest visit	\N	\N	\N	23bc2901-fbfd-47d1-ae78-bb23a67c370b	23bc2901-fbfd-47d1-ae78-bb23a67c370b	\N	2025-12-03 15:04:50.5+00	2025-12-03 15:07:36.80971+00	f	\N	\N	guest	\N	\N	\N	\N	\N	23bc2901-fbfd-47d1-ae78-bb23a67c370b	23bc2901-fbfd-47d1-ae78-bb23a67c370b	2025-12-03 15:04:51.106+00	2025-12-03 15:07:32.161+00	Guest approved by guard. Host: Sarah Wilson, Unit: A-101	walk_in	\N	pending	11111111-1111-1111-1111-111111111111
 51c74c53-a9bb-4252-b0db-d7d67286c85a	96c18cc6-7815-4841-82d2-5da293562467	Susheue	2025-12-03 08:56:30.477+00	2025-12-03 12:57:21.984+00	checked_in	4646595944	Guest visit	\N	\N	\N	0b654222-6ef8-4fc2-a06e-6beab9eb0b69	0b654222-6ef8-4fc2-a06e-6beab9eb0b69	\N	2025-12-03 08:57:21.984+00	2025-12-03 15:08:30.858127+00	f	\N	\N	guest	\N	\N	\N	\N	\N	23bc2901-fbfd-47d1-ae78-bb23a67c370b	23bc2901-fbfd-47d1-ae78-bb23a67c370b	2025-12-03 15:08:27.14+00	2025-12-03 14:58:04.933+00	Guest approved by guard. Host: Unknown Resident, Unit: A-404	walk_in	\N	pending	11111111-1111-1111-1111-111111111111
 661b6251-228d-4055-99aa-8b50d7e66d09	7f54e744-6c8f-4ec0-a0ac-0f0ba0d68127	Nyarko Taxi Bridge View	2025-08-13 16:51:34.045+00	2025-08-13 18:51:34.045+00	checked_out		Package delivery	\N	\N	\N	0b654222-6ef8-4fc2-a06e-6beab9eb0b69	0b654222-6ef8-4fc2-a06e-6beab9eb0b69	\N	2025-08-13 16:51:34.05+00	2025-12-03 15:36:09.391296+00	f	\N	\N	delivery	Bolt Delivery	Package delivery	delivery	Nyarko Taxi Bridge View	Package delivery	0b654222-6ef8-4fc2-a06e-6beab9eb0b69	23bc2901-fbfd-47d1-ae78-bb23a67c370b	2025-08-13 16:51:34.881+00	2025-12-03 15:36:05.816+00	Name approved by guard. Host: Michael Smith, Unit: A-101	walk_in	\N	pending	11111111-1111-1111-1111-111111111111
-66bff9f8-46a7-473c-aff6-2fad18954f2b	550e8400-e29b-41d4-a716-446655440001	John Smith	2024-01-15 10:00:00+00	2024-01-15 18:00:00+00	approved	+1234567890	\N	\N	\N	\N	\N	\N	\N	2025-07-11 17:44:39.394237+00	2025-08-12 09:27:18.687703+00	f	\N	\N	guest	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	pre_approved	\N	pending	a17d8cbd-db60-4575-b64d-18a1ee87599f
-11904e58-3870-4e38-9cc8-12cbb03918b8	550e8400-e29b-41d4-a716-446655440002	Sarah Johnson	2024-01-16 14:00:00+00	2024-01-16 20:00:00+00	pending	+9876543210	\N	\N	\N	\N	\N	\N	\N	2025-07-11 17:44:39.394237+00	2025-08-12 09:27:18.687703+00	f	\N	\N	guest	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	pre_approved	\N	pending	a3da0aa3-32c1-4087-8799-c18040d22e28
-b143799d-9f8b-4a18-bf04-9c76b0ad3e88	550e8400-e29b-41d4-a716-446655440003	Mike Wilson	2024-01-17 09:00:00+00	2024-01-17 17:00:00+00	approved	+5555555555	\N	\N	\N	\N	\N	\N	\N	2025-07-11 17:44:39.394237+00	2025-08-12 09:27:18.687703+00	f	\N	\N	guest	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	pre_approved	\N	pending	a493529e-862b-4972-b732-57b9dfaa37ec
 095ce846-f934-4d37-83b7-9b6853293617	44444444-4444-4444-4444-444444444441	Moirainne Sedai	2025-08-12 11:33:44.224+00	2025-08-12 13:33:44.224+00	checked_in		Guest visit - 1 hour	\N	\N	\N	0b654222-6ef8-4fc2-a06e-6beab9eb0b69	0b654222-6ef8-4fc2-a06e-6beab9eb0b69	2025-08-12	2025-08-12 11:33:50.369+00	2025-08-12 11:34:02.306981+00	f	\N	\N	guest	\N	\N	\N	\N	\N	0b654222-6ef8-4fc2-a06e-6beab9eb0b69	\N	2025-08-12 11:34:01.665+00	\N	Guest approved by guard. Host: Michael Smith, Unit: A-101	walk_in	\N	pending	11111111-1111-1111-1111-111111111111
 44f2c640-fd81-424a-ae19-0d334e39144f	0a9744d2-3ee4-44e4-bec2-757488292bd3	0336 4055969	2025-11-10 09:00:00+00	2025-11-10 18:00:00+00	checked_in	3364055969	Guest Visit	\N	\N	\N	f080855e-0298-46f6-92d7-1da846b64f07	\N	2025-11-10	2025-11-10 09:29:19.627148+00	2025-11-10 09:30:03.512694+00	t	{"id":"VP-1762766959154-8x8didwv5","visitor_name":"0336 4055969","visitor_phone":"3364055969","unit_id":"0a9744d2-3ee4-44e4-bec2-757488292bd3","visit_date":"2025-11-10","from_date":"2025-11-10T09:00:00.000Z","to_date":"2025-11-10T18:00:00.000Z","created_by":"f080855e-0298-46f6-92d7-1da846b64f07","created_at":"2025-11-10T09:29:19.154Z","purpose":"Guest Visit","type":"visitor_pass","entry_code":"X8DIDWV5","visitor_type":"guest","company_name":null,"service_type":null,"vehicle_type":null,"vehicle_number":null,"driver_name":null,"delivery_details":null}	X8DIDWV5	guest	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	pre_approved	\N	pending	\N
 11126f78-ec11-4622-bbb3-497fb3238c12	44444444-4444-4444-4444-444444444441	Moirainne Sedai	2025-08-12 12:05:34.325+00	2025-08-12 14:05:34.325+00	checked_in		Guest visit - 1 hour	\N	\N	\N	0b654222-6ef8-4fc2-a06e-6beab9eb0b69	0b654222-6ef8-4fc2-a06e-6beab9eb0b69	2025-08-12	2025-08-12 12:05:37.503+00	2025-08-12 12:05:49.358083+00	f	\N	\N	guest	\N	\N	\N	\N	\N	0b654222-6ef8-4fc2-a06e-6beab9eb0b69	\N	2025-08-12 12:05:48.811+00	\N	Guest approved by guard. Host: Michael Smith, Unit: A-101	walk_in	\N	pending	11111111-1111-1111-1111-111111111111
@@ -12114,9 +12411,7 @@ b143799d-9f8b-4a18-bf04-9c76b0ad3e88	550e8400-e29b-41d4-a716-446655440003	Mike W
 90a3a0d3-9bce-45c4-9dbd-f106da4dd998	44444444-4444-4444-4444-444444444441	Mensah	2025-08-13 14:05:48.698+00	2025-08-13 18:05:48.698+00	checked_in		Pickup & Dropoff	\N	\N	444	0b654222-6ef8-4fc2-a06e-6beab9eb0b69	0b654222-6ef8-4fc2-a06e-6beab9eb0b69	\N	2025-08-13 14:05:48.717+00	2025-08-13 14:05:59.711799+00	f	\N	\N	cab	Uber	Pickup & Dropoff	cab	Mensah	\N	0b654222-6ef8-4fc2-a06e-6beab9eb0b69	\N	2025-08-13 14:05:59.492+00	\N	Guest approved by guard. Host: Michael Smith, Unit: A-101	walk_in	\N	pending	11111111-1111-1111-1111-111111111111
 5d7fc38a-e7cf-49b3-98ff-f6cc359b9e0e	7d41fbab-b8a1-4571-b460-aab71c36cf0d	Adnan	2025-12-03 15:23:47.552+00	2025-12-03 18:23:47.552+00	checked_out	3433173482	Plumbing Service service requested	\N	\N	\N	23bc2901-fbfd-47d1-ae78-bb23a67c370b	23bc2901-fbfd-47d1-ae78-bb23a67c370b	\N	2025-12-03 15:23:47.553+00	2025-12-03 15:36:47.303944+00	f	\N	\N	service	Plumbing Service	Plumbing Service	service	\N	\N	23bc2901-fbfd-47d1-ae78-bb23a67c370b	23bc2901-fbfd-47d1-ae78-bb23a67c370b	2025-12-03 15:23:48.373+00	2025-12-03 15:36:43.951+00	Service Person approved by guard. Host: Martin Smith, Unit: A-301	walk_in	\N	pending	11111111-1111-1111-1111-111111111111
 cb5c446b-81f1-4104-b5dc-c88bed939138	7f54e744-6c8f-4ec0-a0ac-0f0ba0d68127	Nyarko Taxi Bridge View	2025-08-13 16:57:52.564+00	2025-08-13 18:57:52.564+00	checked_in		Package delivery	\N	\N	\N	0b654222-6ef8-4fc2-a06e-6beab9eb0b69	0b654222-6ef8-4fc2-a06e-6beab9eb0b69	\N	2025-08-13 16:57:52.569+00	2025-08-13 16:57:53.496113+00	f	\N	\N	delivery	Taxi/Bike	Package delivery	delivery	Nyarko Taxi Bridge View	Package delivery	0b654222-6ef8-4fc2-a06e-6beab9eb0b69	\N	2025-08-13 16:57:53.242+00	\N	Name approved by guard. Host: Michael Smith, Unit: A-101	walk_in	\N	pending	11111111-1111-1111-1111-111111111111
-77acb25e-60ef-4ecc-b4c6-aa8c76d4ae95	\N	Deepak Mehta	2025-06-20 09:09:59.794653+00	2025-06-20 13:09:59.794653+00	pending	+91-9876501001	Family visit	\N	\N	\N	\N	\N	\N	2025-07-11 17:44:39.394237+00	2025-07-22 19:23:19.982948+00	f	{"visitor_name":"Deepak Mehta","visitor_phone":"+91-9876501001","purpose":"Family visit","entry_code":"VP12345A","type":"visitor_pass"}	VP12345A	guest	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	pre_approved	\N	pending	\N
 d168e76e-1aa5-4fc2-b183-336050e63bfc	44444444-4444-4444-4444-444444444444	Yango - 1234	2025-12-04 09:00:00+00	2025-12-04 18:00:00+00	pending		Transportation	\N	\N	1234	a351c021-6a38-441e-be59-62b27ec41de8	\N	2025-12-04	2025-12-03 15:50:15.688067+00	2025-12-03 15:50:15.688067+00	t	{"id":"VP-1764777014969-d8qx1ysgc","visitor_name":"Yango - 1234","visitor_phone":"","unit_id":"44444444-4444-4444-4444-444444444444","visit_date":"2025-12-04","from_date":"2025-12-04T09:00:00.000Z","to_date":"2025-12-04T18:00:00.000Z","created_by":"a351c021-6a38-441e-be59-62b27ec41de8","created_at":"2025-12-03T15:50:14.969Z","purpose":"Transportation","type":"visitor_pass","entry_code":"8QX1YSGC","visitor_type":"cab","company_name":"Yango","service_type":null,"vehicle_type":"Car","vehicle_number":"1234","driver_name":"Yango - 1234","delivery_details":null}	8QX1YSGC	cab	Yango	\N	Car	Yango - 1234	\N	\N	\N	\N	\N	\N	pre_approved	\N	pending	\N
-534d5b36-934a-433b-9695-a1cd509b009d	44444444-4444-4444-4444-444444444444	Emmanuel Darko (Guest)	2025-07-22 14:30:00+00	2025-07-22 20:00:00+00	approved	+233501234568	Guest Visit	\N	\N	\N	\N	\N	2025-07-22	2025-07-22 19:06:22.932321+00	2025-08-12 09:27:18.687703+00	t	{"id":"VP-GUEST-002","visitor_name":"Emmanuel Darko","type":"visitor_pass","status":"pre_approved"}	GU002345	guest	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	pre_approved	\N	pending	11111111-1111-1111-1111-111111111111
 424e4bf9-71ba-40b5-b211-abb9dbd09d08	8f88127c-d8f0-47f9-b144-64519a1f00ae	Testing	2025-12-08 16:41:41.916+00	2025-12-08 20:41:55.103+00	checked_in	3364055969	Guest visit	\N	\N	\N	23bc2901-fbfd-47d1-ae78-bb23a67c370b	23bc2901-fbfd-47d1-ae78-bb23a67c370b	\N	2025-12-08 16:41:55.103+00	2025-12-08 16:48:03.756603+00	f	\N	\N	guest	\N	\N	\N	\N	\N	23bc2901-fbfd-47d1-ae78-bb23a67c370b	23bc2901-fbfd-47d1-ae78-bb23a67c370b	2025-12-08 16:48:02.574+00	2025-12-08 16:42:46.1+00	Guest approved by guard. Host: David Brown, Unit: A-104	walk_in	\N	pending	11111111-1111-1111-1111-111111111111
 c7e02a68-e5e5-43b6-bdcb-c665afde1663	44444444-4444-4444-4444-444444444444	Delivery Person	2025-12-09 09:00:00+00	2025-12-09 18:00:00+00	checked_in		Delivery	\N	\N	\N	a351c021-6a38-441e-be59-62b27ec41de8	\N	2025-12-09	2025-12-08 16:11:53.557943+00	2025-12-08 16:49:14.370692+00	t	{"id":"VP-1765210312770-uhpnzn7zd","visitor_name":"Delivery Person","visitor_phone":"","unit_id":"44444444-4444-4444-4444-444444444444","visit_date":"2025-12-09","from_date":"2025-12-09T09:00:00.000Z","to_date":"2025-12-09T18:00:00.000Z","created_by":"a351c021-6a38-441e-be59-62b27ec41de8","created_at":"2025-12-08T16:11:52.770Z","purpose":"Delivery","type":"visitor_pass","entry_code":"HPNZN7ZD","visitor_type":"delivery","company_name":"Uber Delivery","service_type":null,"vehicle_type":null,"vehicle_number":null,"driver_name":null,"delivery_details":"Package delivery"}	HPNZN7ZD	delivery	Uber Delivery	\N	\N	\N	Package delivery	\N	\N	\N	\N	\N	pre_approved	\N	pending	\N
 ef26494c-12d1-494b-9ef9-38b30a318ac2	44444444-4444-4444-4444-444444444444	Anees Patwari	2025-12-13 09:00:00+00	2025-12-13 18:00:00+00	checked_out	3035475601	General Service Service	\N	\N	\N	a351c021-6a38-441e-be59-62b27ec41de8	\N	2025-12-13	2025-12-03 15:49:30.04736+00	2025-12-08 16:50:17.953323+00	t	{"id":"VP-1764776969311-c3l50vrgf","visitor_name":"Anees Patwari","visitor_phone":"3035475601","unit_id":"44444444-4444-4444-4444-444444444444","visit_date":"2025-12-13","from_date":"2025-12-13T09:00:00.000Z","to_date":"2025-12-13T18:00:00.000Z","created_by":"a351c021-6a38-441e-be59-62b27ec41de8","created_at":"2025-12-03T15:49:29.311Z","purpose":"General Service Service","type":"visitor_pass","entry_code":"3L50VRGF","visitor_type":"service","service_type":"General Service","delivery_details":null}	3L50VRGF	service	\N	General Service	\N	\N	\N	\N	23bc2901-fbfd-47d1-ae78-bb23a67c370b	\N	2025-12-08 16:50:14.788+00	\N	pre_approved	\N	pending	\N
@@ -12141,9 +12436,6 @@ f1d94f4e-2629-4397-8297-3a3c11cdd0ab	44444444-4444-4444-4444-444444444444	Delive
 96e77a18-37c4-4f7d-86dc-1df86f140008	44444444-4444-4444-4444-444444444441	Moirainne Sedai	2025-08-12 12:12:09.168+00	2025-08-12 14:12:09.168+00	checked_in		Guest visit - 1 hour	\N	\N	\N	0b654222-6ef8-4fc2-a06e-6beab9eb0b69	0b654222-6ef8-4fc2-a06e-6beab9eb0b69	2025-08-12	2025-08-12 12:12:11.196+00	2025-08-12 12:12:22.952482+00	f	\N	\N	guest	\N	\N	\N	\N	\N	0b654222-6ef8-4fc2-a06e-6beab9eb0b69	\N	2025-08-12 12:12:22.347+00	\N	Guest approved by guard. Host: Michael Smith, Unit: A-101	walk_in	\N	pending	11111111-1111-1111-1111-111111111111
 33d13f27-6cc1-41e6-a65d-f11e11a43209	44444444-4444-4444-4444-444444444441	Moirainne Sedai	2025-08-12 12:40:24.706+00	2025-08-12 14:40:24.706+00	checked_in		Guest visit - 1 hour	\N	\N	\N	0b654222-6ef8-4fc2-a06e-6beab9eb0b69	0b654222-6ef8-4fc2-a06e-6beab9eb0b69	2025-08-12	2025-08-12 12:40:27.069+00	2025-08-12 12:42:25.649762+00	f	\N	\N	guest	\N	\N	\N	\N	\N	0b654222-6ef8-4fc2-a06e-6beab9eb0b69	\N	2025-08-12 12:42:25.022+00	\N	Guest approved by guard. Host: Michael Smith, Unit: A-101	walk_in	\N	pending	11111111-1111-1111-1111-111111111111
 fbaf08a8-4e0d-4f8a-aaf8-a47f835ef5f4	7f54e744-6c8f-4ec0-a0ac-0f0ba0d68127	Moirainne Sedai	2025-08-13 13:42:25.414+00	2025-08-13 17:42:42.152+00	pending	3203604244	Guest visit	\N	\N	\N	0b654222-6ef8-4fc2-a06e-6beab9eb0b69	0b654222-6ef8-4fc2-a06e-6beab9eb0b69	\N	2025-08-13 13:42:42.153+00	2025-08-13 13:42:42.308496+00	f	\N	\N	guest	\N	\N	\N	\N	\N	\N	\N	\N	\N	Walk-in visitor approved by guard	walk_in	\N	pending	11111111-1111-1111-1111-111111111111
-098e8dd0-2ec0-4e42-a0ed-f78a485fad54	550e8400-e29b-41d4-a716-446655440005	Robert Brown	2024-01-19 13:00:00+00	2024-01-19 21:00:00+00	approved	\N	\N	\N	\N	\N	\N	\N	\N	2025-07-11 17:44:39.394237+00	2025-08-12 09:27:18.687703+00	f	\N	\N	cab	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	pre_approved	\N	pending	b21fa9a9-f8cc-4a3f-a1d9-0240b258657e
-64a77c2b-15c7-4135-986b-30b85c95babb	550e8400-e29b-41d4-a716-446655440001	Test Complete Visitor	2024-01-20 08:00:00+00	2024-01-20 16:00:00+00	pending	+1234567890	Testing enhanced gate pass	\N	\N	ABC-123	\N	\N	\N	2025-07-11 17:44:39.394237+00	2025-08-12 09:27:18.687703+00	f	{"visitor_name":"Test Complete Visitor","visitor_phone":"+1234567890","purpose":"Testing enhanced gate pass","vehicle_number":"ABC-123","entry_code":"VP12TEST","type":"visitor_pass"}	VP12TEST	guest	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	pre_approved	\N	pending	a17d8cbd-db60-4575-b64d-18a1ee87599f
-e796c571-edd5-42c6-924f-e2edddac74ce	550e8400-e29b-41d4-a716-446655440002	David Miller	2024-01-21 15:00:00+00	2024-01-21 23:00:00+00	approved	\N	\N	\N	\N	\N	\N	\N	\N	2025-07-11 17:44:39.394237+00	2025-08-12 09:27:18.687703+00	f	\N	\N	guest	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	pre_approved	\N	pending	a3da0aa3-32c1-4087-8799-c18040d22e28
 c6cf45fa-9c56-4e1b-a8db-cf9aa80990dd	550e8400-e29b-41d4-a716-446655440001	Arjun Sharma	2024-01-15 09:00:00+00	2024-01-15 18:00:00+00	approved	+91 98765 43210	Family Visit	2024-01-15 09:15:00+00	\N	MH 12 AB 1234	8f59ad68-fcbd-48ad-b3f4-35fcaaccab93	8f59ad68-fcbd-48ad-b3f4-35fcaaccab93	2024-01-15	2024-01-14 14:30:00+00	2025-08-12 09:27:18.687703+00	f	\N	\N	guest	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	pre_approved	\N	pending	a17d8cbd-db60-4575-b64d-18a1ee87599f
 050a1e3e-0326-4e65-ab2e-13c4d125b2a6	626da4f3-6c08-4364-84a7-d85aa083281d	Kavya Reddy	2024-01-16 10:00:00+00	2024-01-16 17:00:00+00	pending	+91 87654 32109	Business Meeting	\N	\N	KA 05 CD 5678	8f59ad68-fcbd-48ad-b3f4-35fcaaccab93	\N	2024-01-16	2024-01-15 10:15:00+00	2025-08-12 09:27:18.687703+00	f	\N	\N	guest	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	pre_approved	\N	pending	b16d5f0b-fbb5-4bdd-ac33-ffa2069a6fa9
 97ff7ec0-c40f-4be2-8f37-c286bd44d8ce	6460dfd7-dc07-49c7-af29-2593b62147c7	Mohammed Ali	2024-01-15 14:00:00+00	2024-01-15 15:00:00+00	approved	+91 76543 21098	Delivery	2024-01-15 14:05:00+00	2024-01-15 14:45:00+00	DL 8C EF 9012	8f59ad68-fcbd-48ad-b3f4-35fcaaccab93	8f59ad68-fcbd-48ad-b3f4-35fcaaccab93	2024-01-15	2024-01-15 13:30:00+00	2025-08-12 09:27:18.687703+00	f	\N	\N	guest	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	pre_approved	\N	pending	cf3308fa-1ab5-4904-b794-9da1db6d9307
@@ -12171,10 +12463,6 @@ da5be9a8-3196-498f-afe2-ca78e6b3f3fe	44444444-4444-4444-4444-444444444445		2025-
 2390ea99-cef4-404e-a524-a40eb6bacc82	44444444-4444-4444-4444-444444444445	Delivery Person	2025-07-23 09:00:00+00	2025-07-23 18:00:00+00	pending		Delivery	\N	\N	\N	8fcb1ff1-a385-4c26-8bb4-80c5f23477de	\N	2025-07-23	2025-07-22 18:13:01.096792+00	2025-08-12 09:27:18.687703+00	t	{"id":"VP-1753207979612-5j83k5mj7","visitor_name":"Delivery Person","visitor_phone":"","unit_id":"44444444-4444-4444-4444-444444444445","visit_date":"2025-07-23","from_date":"2025-07-23T09:00:00.000Z","to_date":"2025-07-23T18:00:00.000Z","created_by":"8fcb1ff1-a385-4c26-8bb4-80c5f23477de","created_at":"2025-07-22T18:12:59.612Z","purpose":"Delivery","type":"visitor_pass","entry_code":"J83K5MJ7","visitor_type":"delivery","company_name":"Uber Delivery","service_type":null,"vehicle_type":null,"vehicle_number":null,"driver_name":null,"delivery_details":"Package delivery"}	J83K5MJ7	delivery	Uber Delivery	\N	\N	\N	Package delivery	\N	\N	\N	\N	\N	pre_approved	\N	pending	11111111-1111-1111-1111-111111111111
 26305ca3-de67-4159-8d1f-a9eca374488d	44444444-4444-4444-4444-444444444445	Good	2025-07-23 09:00:00+00	2025-07-23 18:00:00+00	pending	0546854216	Guest Visit	\N	\N	\N	8fcb1ff1-a385-4c26-8bb4-80c5f23477de	\N	2025-07-23	2025-07-22 18:13:10.428856+00	2025-08-12 09:27:18.687703+00	t	{"id":"VP-1753207989018-v8y0rt2o7","visitor_name":"Good","visitor_phone":"0546854216","unit_id":"44444444-4444-4444-4444-444444444445","visit_date":"2025-07-23","from_date":"2025-07-23T09:00:00.000Z","to_date":"2025-07-23T18:00:00.000Z","created_by":"8fcb1ff1-a385-4c26-8bb4-80c5f23477de","created_at":"2025-07-22T18:13:09.018Z","purpose":"Guest Visit","type":"visitor_pass","entry_code":"8Y0RT2O7","visitor_type":"guest","company_name":null,"service_type":null,"vehicle_type":null,"vehicle_number":null,"driver_name":null,"delivery_details":null}	8Y0RT2O7	guest	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	pre_approved	\N	pending	11111111-1111-1111-1111-111111111111
 188960f6-badf-4247-9312-a63659000336	44444444-4444-4444-4444-444444444445	Yango - 2222	2025-07-22 09:00:00+00	2025-07-22 18:00:00+00	pending		Transportation	\N	\N	2222	8fcb1ff1-a385-4c26-8bb4-80c5f23477de	\N	2025-07-22	2025-07-22 18:54:23.191535+00	2025-08-12 09:27:18.687703+00	t	{"id":"VP-1753210460422-zmw04zpca","visitor_name":"Yango - 2222","visitor_phone":"","unit_id":"44444444-4444-4444-4444-444444444445","visit_date":"2025-07-22","from_date":"2025-07-22T09:00:00.000Z","to_date":"2025-07-22T18:00:00.000Z","created_by":"8fcb1ff1-a385-4c26-8bb4-80c5f23477de","created_at":"2025-07-22T18:54:20.423Z","purpose":"Transportation","type":"visitor_pass","entry_code":"MW04ZPCA","visitor_type":"cab","company_name":"Yango","service_type":null,"vehicle_type":"Car","vehicle_number":"2222","driver_name":"Yango - 2222","delivery_details":null}	MW04ZPCA	cab	Yango	\N	Car	Yango - 2222	\N	\N	\N	\N	\N	\N	pre_approved	\N	pending	11111111-1111-1111-1111-111111111111
-e6730016-220d-41aa-a267-57bf4cc1ff8b	44444444-4444-4444-4444-444444444444	Comfort Adjei (Housekeeper)	2025-07-22 09:00:00+00	2025-07-22 17:00:00+00	approved	+233501234567	Daily housekeeping service	\N	\N	\N	\N	\N	2025-07-22	2025-07-22 19:06:22.932321+00	2025-08-12 09:27:18.687703+00	t	{"id":"VP-HOUSEKEEPER-001","visitor_name":"Comfort Adjei","type":"visitor_pass","status":"inside"}	HK001234	service	Casa Nirvana Staff	Housekeeping	\N	\N	\N	\N	\N	\N	\N	\N	pre_approved	\N	pending	11111111-1111-1111-1111-111111111111
-0727d039-5522-4c27-8eb2-4d554e7ef932	44444444-4444-4444-4444-444444444444	Uber Driver	2025-07-22 12:15:00+00	2025-07-22 13:00:00+00	approved	+233501234569	Transportation	\N	\N	GH-4521-24	\N	\N	2025-07-22	2025-07-22 19:06:22.932321+00	2025-08-12 09:27:18.687703+00	t	{"id":"VP-CAB-003","visitor_name":"Uber Driver","vehicle_number":"GH-4521-24","type":"visitor_pass","status":"pre_approved"}	CB003456	cab	Uber	\N	\N	Uber Driver	\N	\N	\N	\N	\N	\N	pre_approved	\N	pending	11111111-1111-1111-1111-111111111111
-7419a889-2bca-4bfb-8f67-33648fc8e406	44444444-4444-4444-4444-444444444444	AC Repair Technician	2025-07-22 16:00:00+00	2025-07-22 18:00:00+00	pending	+233501234570	Air conditioning repair service	\N	\N	\N	\N	\N	2025-07-22	2025-07-22 19:06:22.932321+00	2025-08-12 09:27:18.687703+00	t	{"id":"VP-SERVICE-004","visitor_name":"AC Repair Technician","service_type":"AC Repair","type":"visitor_pass","status":"service_booked"}	SR004567	service	Cool Tech Services	AC Repair	\N	\N	\N	\N	\N	\N	\N	\N	pre_approved	\N	pending	11111111-1111-1111-1111-111111111111
-cfbefc8e-545d-4a71-b945-0f63d3dfa84d	44444444-4444-4444-4444-444444444444	Delivery Person	2025-07-22 13:45:00+00	2025-07-22 14:15:00+00	pending	+233501234571	Food delivery	\N	\N	\N	\N	\N	2025-07-22	2025-07-22 19:06:22.932321+00	2025-08-12 09:27:18.687703+00	t	{"id":"VP-DELIVERY-005","visitor_name":"Delivery Person","company_name":"Jumia Food","type":"visitor_pass","status":"service_booked"}	DL005678	delivery	Jumia Food	\N	\N	\N	Food delivery from restaurant	\N	\N	\N	\N	\N	pre_approved	\N	pending	11111111-1111-1111-1111-111111111111
 73d94f73-d3bb-4f6b-8592-bccd22013d5f	44444444-4444-4444-4444-444444444445	Uber - 7777	2025-07-24 09:00:00+00	2025-07-24 18:00:00+00	pending		Transportation	\N	\N	7777	8fcb1ff1-a385-4c26-8bb4-80c5f23477de	\N	2025-07-24	2025-07-24 16:08:51.19753+00	2025-08-12 09:27:18.687703+00	t	{"id":"VP-1753373332018-h0ia922n8","visitor_name":"Uber - 7777","visitor_phone":"","unit_id":"44444444-4444-4444-4444-444444444445","visit_date":"2025-07-24","from_date":"2025-07-24T09:00:00.000Z","to_date":"2025-07-24T18:00:00.000Z","created_by":"8fcb1ff1-a385-4c26-8bb4-80c5f23477de","created_at":"2025-07-24T16:08:52.018Z","purpose":"Transportation","type":"visitor_pass","entry_code":"0IA922N8","visitor_type":"cab","company_name":"Uber","service_type":null,"vehicle_type":"Car","vehicle_number":"7777","driver_name":"Uber - 7777","delivery_details":null}	0IA922N8	cab	Uber	\N	Car	Uber - 7777	\N	\N	\N	\N	\N	\N	pre_approved	\N	pending	11111111-1111-1111-1111-111111111111
 7abaf6fc-23b4-4cb1-bb53-4183c96e3927	44444444-4444-4444-4444-444444444445	Mine	2025-07-25 09:00:00+00	2025-07-25 18:00:00+00	pending	0548764512	General Service Service	\N	\N	\N	8fcb1ff1-a385-4c26-8bb4-80c5f23477de	\N	2025-07-25	2025-07-24 17:17:38.235714+00	2025-08-12 09:27:18.687703+00	t	{"id":"VP-1753377459220-il3y5v0xg","visitor_name":"Mine","visitor_phone":"0548764512","unit_id":"44444444-4444-4444-4444-444444444445","visit_date":"2025-07-25","from_date":"2025-07-25T09:00:00.000Z","to_date":"2025-07-25T18:00:00.000Z","created_by":"8fcb1ff1-a385-4c26-8bb4-80c5f23477de","created_at":"2025-07-24T17:17:39.220Z","purpose":"General Service Service","type":"visitor_pass","entry_code":"L3Y5V0XG","visitor_type":"service","service_type":"General Service","delivery_details":null}	L3Y5V0XG	service	\N	General Service	\N	\N	\N	\N	\N	\N	\N	\N	pre_approved	\N	pending	11111111-1111-1111-1111-111111111111
 eb41a46a-28f8-4833-b670-965da3a7e7cf	44444444-4444-4444-4444-444444444445	Serviceman	2025-07-24 09:00:00+00	2025-07-24 18:00:00+00	pending	0546784242	General Service Service	\N	\N	\N	8fcb1ff1-a385-4c26-8bb4-80c5f23477de	\N	2025-07-24	2025-07-24 17:23:45.970357+00	2025-08-12 09:27:18.687703+00	t	{"id":"VP-1753377826725-8yroivvsd","visitor_name":"Serviceman","visitor_phone":"0546784242","unit_id":"44444444-4444-4444-4444-444444444445","visit_date":"2025-07-24","from_date":"2025-07-24T09:00:00.000Z","to_date":"2025-07-24T18:00:00.000Z","created_by":"8fcb1ff1-a385-4c26-8bb4-80c5f23477de","created_at":"2025-07-24T17:23:46.725Z","purpose":"General Service Service","type":"visitor_pass","entry_code":"YROIVVSD","visitor_type":"service","service_type":"General Service","delivery_details":null}	YROIVVSD	service	\N	General Service	\N	\N	\N	\N	\N	\N	\N	\N	pre_approved	\N	pending	11111111-1111-1111-1111-111111111111
@@ -14069,11 +14357,11 @@ ALTER TABLE ONLY public.system_performance
 
 
 --
--- Name: system_settings system_settings_key_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: system_settings system_settings_category_subcategory_key_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.system_settings
-    ADD CONSTRAINT system_settings_key_key UNIQUE (key);
+    ADD CONSTRAINT system_settings_category_subcategory_key_key UNIQUE (category, subcategory, key);
 
 
 --
@@ -14286,6 +14574,13 @@ CREATE INDEX admin_onboarding_requests_status_idx ON public.admin_onboarding_req
 --
 
 CREATE INDEX guards_email_idx ON public.guards USING btree (email);
+
+
+--
+-- Name: guards_user_id_unique_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX guards_user_id_unique_idx ON public.guards USING btree (user_id) WHERE (user_id IS NOT NULL);
 
 
 --
@@ -14636,6 +14931,13 @@ CREATE INDEX idx_chat_settings_user_id ON public.chat_settings USING btree (user
 --
 
 CREATE INDEX idx_comments_notice_id ON public.comments USING btree (notice_id);
+
+
+--
+-- Name: idx_comments_author_user_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_comments_author_user_id ON public.comments USING btree (author_user_id);
 
 
 --
@@ -15318,6 +15620,13 @@ CREATE INDEX idx_notification_campaigns_created_at ON public.notification_campai
 
 
 --
+-- Name: idx_notification_campaigns_community_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_notification_campaigns_community_id ON public.notification_campaigns USING btree (community_id);
+
+
+--
 -- Name: idx_notification_campaigns_status; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -15329,6 +15638,13 @@ CREATE INDEX idx_notification_campaigns_status ON public.notification_campaigns 
 --
 
 CREATE INDEX idx_notification_campaigns_type ON public.notification_campaigns USING btree (type);
+
+
+--
+-- Name: idx_notification_campaigns_template_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_notification_campaigns_template_id ON public.notification_campaigns USING btree (template_id);
 
 
 --
@@ -15990,6 +16306,13 @@ CREATE INDEX idx_system_settings_category ON public.system_settings USING btree 
 
 
 --
+-- Name: idx_system_settings_lookup; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_system_settings_lookup ON public.system_settings USING btree (category, subcategory, key);
+
+
+--
 -- Name: idx_system_settings_key; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -16575,6 +16898,13 @@ CREATE TRIGGER update_user_groups_updated_at BEFORE UPDATE ON public.user_groups
 
 
 --
+-- Name: users users_set_updated_at; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER users_set_updated_at BEFORE UPDATE ON public.users FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
+--
 -- Name: user_payment_methods update_user_payment_methods_updated_at; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
@@ -16911,6 +17241,14 @@ ALTER TABLE ONLY public.chats
 
 ALTER TABLE ONLY public.chats
     ADD CONSTRAINT chats_society_id_fkey FOREIGN KEY (community_id) REFERENCES public.communities(id);
+
+
+--
+-- Name: comments comments_notice_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.comments
+    ADD CONSTRAINT comments_notice_id_fkey FOREIGN KEY (notice_id) REFERENCES public.notices(id) ON DELETE CASCADE;
 
 
 --
@@ -17282,6 +17620,22 @@ ALTER TABLE ONLY public.notification_rules
 
 
 --
+-- Name: notification_campaigns notification_campaigns_community_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.notification_campaigns
+    ADD CONSTRAINT notification_campaigns_community_id_fkey FOREIGN KEY (community_id) REFERENCES public.communities(id) ON DELETE SET NULL;
+
+
+--
+-- Name: notification_campaigns notification_campaigns_template_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.notification_campaigns
+    ADD CONSTRAINT notification_campaigns_template_id_fkey FOREIGN KEY (template_id) REFERENCES public.notification_templates(id) ON DELETE SET NULL;
+
+
+--
 -- Name: service_requests fk_service_requests_service_id; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -17454,7 +17808,7 @@ ALTER TABLE ONLY public.groups
 --
 
 ALTER TABLE ONLY public.guard_assignments
-    ADD CONSTRAINT guard_assignments_backup_guard_id_fkey FOREIGN KEY (backup_guard_id) REFERENCES public.profiles(id);
+    ADD CONSTRAINT guard_assignments_backup_guard_id_fkey FOREIGN KEY (backup_guard_id) REFERENCES public.guards(id);
 
 
 --
@@ -17470,7 +17824,7 @@ ALTER TABLE ONLY public.guard_assignments
 --
 
 ALTER TABLE ONLY public.guard_assignments
-    ADD CONSTRAINT guard_assignments_guard_id_fkey FOREIGN KEY (guard_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+    ADD CONSTRAINT guard_assignments_guard_id_fkey FOREIGN KEY (guard_id) REFERENCES public.guards(id) ON DELETE CASCADE;
 
 
 --
@@ -17478,7 +17832,7 @@ ALTER TABLE ONLY public.guard_assignments
 --
 
 ALTER TABLE ONLY public.guard_assignments
-    ADD CONSTRAINT guard_assignments_supervisor_id_fkey FOREIGN KEY (supervisor_id) REFERENCES public.profiles(id);
+    ADD CONSTRAINT guard_assignments_supervisor_id_fkey FOREIGN KEY (supervisor_id) REFERENCES public.guards(id);
 
 
 --
@@ -17486,7 +17840,7 @@ ALTER TABLE ONLY public.guard_assignments
 --
 
 ALTER TABLE ONLY public.guard_certifications
-    ADD CONSTRAINT guard_certifications_guard_id_fkey FOREIGN KEY (guard_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+    ADD CONSTRAINT guard_certifications_guard_id_fkey FOREIGN KEY (guard_id) REFERENCES public.guards(id) ON DELETE CASCADE;
 
 
 --
@@ -17518,7 +17872,7 @@ ALTER TABLE ONLY public.guard_performance
 --
 
 ALTER TABLE ONLY public.guard_performance_metrics
-    ADD CONSTRAINT guard_performance_metrics_guard_id_fkey FOREIGN KEY (guard_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+    ADD CONSTRAINT guard_performance_metrics_guard_id_fkey FOREIGN KEY (guard_id) REFERENCES public.guards(id) ON DELETE CASCADE;
 
 
 --
@@ -17526,7 +17880,7 @@ ALTER TABLE ONLY public.guard_performance_metrics
 --
 
 ALTER TABLE ONLY public.guard_performance_reviews
-    ADD CONSTRAINT guard_performance_reviews_guard_id_fkey FOREIGN KEY (guard_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+    ADD CONSTRAINT guard_performance_reviews_guard_id_fkey FOREIGN KEY (guard_id) REFERENCES public.guards(id) ON DELETE CASCADE;
 
 
 --
@@ -17542,7 +17896,7 @@ ALTER TABLE ONLY public.guard_performance_reviews
 --
 
 ALTER TABLE ONLY public.guard_schedules
-    ADD CONSTRAINT guard_schedules_guard_id_fkey FOREIGN KEY (guard_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+    ADD CONSTRAINT guard_schedules_guard_id_fkey FOREIGN KEY (guard_id) REFERENCES public.guards(id) ON DELETE CASCADE;
 
 
 --
@@ -17550,7 +17904,7 @@ ALTER TABLE ONLY public.guard_schedules
 --
 
 ALTER TABLE ONLY public.guard_schedules
-    ADD CONSTRAINT guard_schedules_replacement_id_fkey FOREIGN KEY (replacement_id) REFERENCES public.profiles(id) ON DELETE SET NULL;
+    ADD CONSTRAINT guard_schedules_replacement_id_fkey FOREIGN KEY (replacement_id) REFERENCES public.guards(id) ON DELETE SET NULL;
 
 
 --
@@ -17590,7 +17944,7 @@ ALTER TABLE ONLY public.guard_training
 --
 
 ALTER TABLE ONLY public.guard_trainings
-    ADD CONSTRAINT guard_trainings_guard_id_fkey FOREIGN KEY (guard_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+    ADD CONSTRAINT guard_trainings_guard_id_fkey FOREIGN KEY (guard_id) REFERENCES public.guards(id) ON DELETE CASCADE;
 
 
 --
@@ -18647,15 +19001,6 @@ CREATE POLICY "Admins can manage all notifications" ON public.notifications TO a
 
 
 --
--- Name: notices Admins can manage notices; Type: POLICY; Schema: public; Owner: postgres
---
-
-CREATE POLICY "Admins can manage notices" ON public.notices TO authenticated USING ((EXISTS ( SELECT 1
-   FROM public.community_admins
-  WHERE ((community_admins.community_id = notices.community_id) AND (community_admins.user_id = auth.uid()))))) WITH CHECK (true);
-
-
---
 -- Name: payments Admins can manage payments; Type: POLICY; Schema: public; Owner: postgres
 --
 
@@ -19342,10 +19687,12 @@ CREATE POLICY "Authenticated full access to society_documents" ON public.communi
 
 
 --
--- Name: comments Authenticated users can insert comments; Type: POLICY; Schema: public; Owner: postgres
+-- Name: comments p39_comments_insert_scoped; Type: POLICY; Schema: public; Owner: postgres
 --
 
-CREATE POLICY "Authenticated users can insert comments" ON public.comments FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY p39_comments_insert_scoped ON public.comments FOR INSERT TO authenticated WITH CHECK (((author_user_id = auth.uid()) AND (EXISTS ( SELECT 1
+   FROM public.notices n
+  WHERE ((n.id = comments.notice_id) AND public.can_access_community(n.community_id))))));
 
 
 --
@@ -19356,10 +19703,12 @@ CREATE POLICY "Authenticated users can view all profiles for messaging" ON publi
 
 
 --
--- Name: comments Comments are viewable by everyone; Type: POLICY; Schema: public; Owner: postgres
+-- Name: comments p39_comments_select_scoped; Type: POLICY; Schema: public; Owner: postgres
 --
 
-CREATE POLICY "Comments are viewable by everyone" ON public.comments FOR SELECT TO authenticated USING (true);
+CREATE POLICY p39_comments_select_scoped ON public.comments FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
+   FROM public.notices n
+  WHERE ((n.id = comments.notice_id) AND public.can_access_community(n.community_id)))));
 
 
 --
@@ -19581,23 +19930,25 @@ CREATE POLICY "Guards can view their own entry logs" ON public.entry_logs FOR SE
 -- Name: guard_performance_metrics Guards can view their own performance metrics; Type: POLICY; Schema: public; Owner: postgres
 --
 
-CREATE POLICY "Guards can view their own performance metrics" ON public.guard_performance_metrics FOR SELECT TO authenticated USING ((guard_id = auth.uid()));
+CREATE POLICY "Guards can view their own performance metrics" ON public.guard_performance_metrics FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
+   FROM public.guards g
+  WHERE ((g.id = guard_performance_metrics.guard_id) AND (g.user_id = auth.uid())))));
 
 
 --
 -- Name: guard_performance_reviews Guards can view their own performance reviews; Type: POLICY; Schema: public; Owner: postgres
 --
 
-CREATE POLICY "Guards can view their own performance reviews" ON public.guard_performance_reviews FOR SELECT TO authenticated USING ((guard_id = auth.uid()));
+CREATE POLICY "Guards can view their own performance reviews" ON public.guard_performance_reviews FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
+   FROM public.guards g
+  WHERE ((g.id = guard_performance_reviews.guard_id) AND (g.user_id = auth.uid())))));
 
 
 --
--- Name: notices Notices are viewable by society members; Type: POLICY; Schema: public; Owner: postgres
+-- Name: notices p13_notices_select_scoped; Type: POLICY; Schema: public; Owner: postgres
 --
 
-CREATE POLICY "Notices are viewable by society members" ON public.notices FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
-   FROM public.units
-  WHERE ((units.community_id = notices.community_id) AND (units.owner_id = auth.uid())))));
+CREATE POLICY p13_notices_select_scoped ON public.notices FOR SELECT TO authenticated USING (public.can_access_community(community_id));
 
 
 --
@@ -19917,10 +20268,12 @@ CREATE POLICY "Users can create visitor passes for their own units" ON public.vi
 
 
 --
--- Name: comments Users can delete their own comments; Type: POLICY; Schema: public; Owner: postgres
+-- Name: comments p39_comments_delete_admin_scoped; Type: POLICY; Schema: public; Owner: postgres
 --
 
-CREATE POLICY "Users can delete their own comments" ON public.comments FOR DELETE TO authenticated USING (true);
+CREATE POLICY p39_comments_delete_admin_scoped ON public.comments FOR DELETE TO authenticated USING ((public.is_admin_role() AND (EXISTS ( SELECT 1
+   FROM public.notices n
+  WHERE ((n.id = comments.notice_id) AND public.can_access_community(n.community_id))))));
 
 
 --
@@ -20067,10 +20420,10 @@ CREATE POLICY "Users can update read status of received messages" ON public.mess
 
 
 --
--- Name: comments Users can update their own comments; Type: POLICY; Schema: public; Owner: postgres
+-- Name: notices p13_notices_delete_admin_scoped; Type: POLICY; Schema: public; Owner: postgres
 --
 
-CREATE POLICY "Users can update their own comments" ON public.comments FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY p13_notices_delete_admin_scoped ON public.notices FOR DELETE TO authenticated USING ((public.is_admin_role() AND public.can_access_community(community_id)));
 
 
 --
@@ -20664,10 +21017,10 @@ ALTER TABLE public.amenities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.amenity_bookings ENABLE ROW LEVEL SECURITY;
 
 --
--- Name: notices anon_read_notices; Type: POLICY; Schema: public; Owner: postgres
+-- Name: notices p13_notices_insert_admin_scoped; Type: POLICY; Schema: public; Owner: postgres
 --
 
-CREATE POLICY anon_read_notices ON public.notices FOR SELECT TO authenticated USING (true);
+CREATE POLICY p13_notices_insert_admin_scoped ON public.notices FOR INSERT TO authenticated WITH CHECK ((public.is_admin_role() AND public.can_access_community(community_id)));
 
 
 --
@@ -20702,10 +21055,10 @@ CREATE POLICY authenticated_read_complaints ON public.complaints FOR SELECT TO a
 
 
 --
--- Name: notices authenticated_read_notices; Type: POLICY; Schema: public; Owner: postgres
+-- Name: notices p13_notices_update_admin_scoped; Type: POLICY; Schema: public; Owner: postgres
 --
 
-CREATE POLICY authenticated_read_notices ON public.notices FOR SELECT TO authenticated USING (true);
+CREATE POLICY p13_notices_update_admin_scoped ON public.notices FOR UPDATE TO authenticated USING ((public.is_admin_role() AND public.can_access_community(community_id))) WITH CHECK ((public.is_admin_role() AND public.can_access_community(community_id)));
 
 
 --
@@ -21651,7 +22004,13 @@ ALTER TABLE public.notification_campaigns ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY notification_campaigns_admin_read ON public.notification_campaigns FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
    FROM public.profiles p
-  WHERE (((p.id = auth.uid()) OR (p.user_id = auth.uid())) AND (p.role = ANY (ARRAY['superadmin'::text, 'admin'::text, 'agency_manager'::text, 'facility_manager'::text]))))));
+  WHERE (((p.id = auth.uid()) OR (p.user_id = auth.uid())) AND (p.role = ANY (ARRAY['superadmin'::text, 'admin'::text]))))) OR ((community_id IS NOT NULL) AND (EXISTS ( SELECT 1
+   FROM public.profiles p
+  WHERE (((p.id = auth.uid()) OR (p.user_id = auth.uid())) AND (p.role = ANY (ARRAY['agency_manager'::text, 'facility_manager'::text])) AND ((p.community_id = notification_campaigns.community_id) OR (EXISTS ( SELECT 1
+           FROM public.community_admins ca
+          WHERE ((ca.community_id = notification_campaigns.community_id) AND (ca.user_id = p.id)))) OR (EXISTS ( SELECT 1
+           FROM public.communities c
+          WHERE ((c.id = notification_campaigns.community_id) AND (c.admins @> ARRAY[p.id])))))))));
 
 
 --
@@ -21660,9 +22019,21 @@ CREATE POLICY notification_campaigns_admin_read ON public.notification_campaigns
 
 CREATE POLICY notification_campaigns_admin_write ON public.notification_campaigns TO authenticated USING ((EXISTS ( SELECT 1
    FROM public.profiles p
-  WHERE (((p.id = auth.uid()) OR (p.user_id = auth.uid())) AND (p.role = ANY (ARRAY['superadmin'::text, 'admin'::text, 'agency_manager'::text, 'facility_manager'::text])))))) WITH CHECK ((EXISTS ( SELECT 1
+  WHERE (((p.id = auth.uid()) OR (p.user_id = auth.uid())) AND (p.role = ANY (ARRAY['superadmin'::text, 'admin'::text]))))) OR ((community_id IS NOT NULL) AND (EXISTS ( SELECT 1
    FROM public.profiles p
-  WHERE (((p.id = auth.uid()) OR (p.user_id = auth.uid())) AND (p.role = ANY (ARRAY['superadmin'::text, 'admin'::text, 'agency_manager'::text, 'facility_manager'::text]))))));
+  WHERE (((p.id = auth.uid()) OR (p.user_id = auth.uid())) AND (p.role = ANY (ARRAY['agency_manager'::text, 'facility_manager'::text])) AND ((p.community_id = notification_campaigns.community_id) OR (EXISTS ( SELECT 1
+           FROM public.community_admins ca
+          WHERE ((ca.community_id = notification_campaigns.community_id) AND (ca.user_id = p.id)))) OR (EXISTS ( SELECT 1
+           FROM public.communities c
+          WHERE ((c.id = notification_campaigns.community_id) AND (c.admins @> ARRAY[p.id])))))))))) WITH CHECK (((EXISTS ( SELECT 1
+   FROM public.profiles p
+  WHERE (((p.id = auth.uid()) OR (p.user_id = auth.uid())) AND (p.role = ANY (ARRAY['superadmin'::text, 'admin'::text]))))) OR ((community_id IS NOT NULL) AND (EXISTS ( SELECT 1
+   FROM public.profiles p
+  WHERE (((p.id = auth.uid()) OR (p.user_id = auth.uid())) AND (p.role = ANY (ARRAY['agency_manager'::text, 'facility_manager'::text])) AND ((p.community_id = notification_campaigns.community_id) OR (EXISTS ( SELECT 1
+           FROM public.community_admins ca
+          WHERE ((ca.community_id = notification_campaigns.community_id) AND (ca.user_id = p.id)))) OR (EXISTS ( SELECT 1
+           FROM public.communities c
+          WHERE ((c.id = notification_campaigns.community_id) AND (c.admins @> ARRAY[p.id]))))))))));
 
 
 --
@@ -21899,7 +22270,9 @@ CREATE POLICY select_own_audit_logs ON public.audit_logs FOR SELECT TO authentic
 -- Name: guard_assignments select_own_guard_assignments; Type: POLICY; Schema: public; Owner: postgres
 --
 
-CREATE POLICY select_own_guard_assignments ON public.guard_assignments FOR SELECT TO authenticated USING ((guard_id = ( SELECT auth.uid() AS uid)));
+CREATE POLICY select_own_guard_assignments ON public.guard_assignments FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
+   FROM public.guards g
+  WHERE ((g.id = guard_assignments.guard_id) AND (g.user_id = auth.uid())))));
 
 
 --
@@ -22204,15 +22577,6 @@ CREATE POLICY superadmin_access_societies ON public.communities TO authenticated
 CREATE POLICY superadmin_access_units ON public.units TO authenticated USING ((EXISTS ( SELECT 1
    FROM public.users
   WHERE ((users.id = auth.uid()) AND (users.role = 'admin'::text))))) WITH CHECK (true);
-
-
---
--- Name: notices superadmin_all_notices; Type: POLICY; Schema: public; Owner: postgres
---
-
-CREATE POLICY superadmin_all_notices ON public.notices TO authenticated USING ((EXISTS ( SELECT 1
-   FROM public.profiles
-  WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'superadmin'::text)))));
 
 
 --
@@ -22795,6 +23159,14 @@ GRANT ALL ON FUNCTION public.handle_new_auth_user() TO supabase_admin;
 GRANT ALL ON FUNCTION public.increment_notice_likes(notice_id uuid) TO anon;
 GRANT ALL ON FUNCTION public.increment_notice_likes(notice_id uuid) TO authenticated;
 GRANT ALL ON FUNCTION public.increment_notice_likes(notice_id uuid) TO service_role;
+
+
+--
+-- Name: FUNCTION increment_comment_likes(comment_id uuid); Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON FUNCTION public.increment_comment_likes(comment_id uuid) TO authenticated;
+GRANT ALL ON FUNCTION public.increment_comment_likes(comment_id uuid) TO service_role;
 
 
 --
@@ -24985,5 +25357,78 @@ ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public GRANT ALL ON T
 -- PostgreSQL database dump complete
 --
 
-\unrestrict iRXuFHSW7QoDpb8i2PPDjqdmIauzd5e2Y6aDD7ehLL9ErZ0JV3tOxfSl0WQtMvO
+create or replace function public.normalize_chat_attachment_storage_path(input text)
+returns text
+language sql
+immutable
+set search_path = public
+as $$
+  select nullif(
+    split_part(
+      regexp_replace(coalesce(input, ''), '^.*?/chat-attachments/', ''),
+      '?',
+      1
+    ),
+    ''
+  );
+$$;
 
+create or replace function public.can_access_chat_attachment(object_name text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.messages message_row
+    where message_row.deleted_at is null
+      and message_row.message_type = 'file'
+      and public.normalize_chat_attachment_storage_path(
+        coalesce(message_row.attachments ->> 'path', message_row.attachments ->> 'url')
+      ) = object_name
+      and (
+        public.matches_current_actor(message_row.from_user)
+        or public.matches_current_actor(message_row.to_user)
+        or (
+          public.is_admin_role()
+          and (
+            public.actor_profile_in_accessible_community(message_row.from_user)
+            or public.actor_profile_in_accessible_community(message_row.to_user)
+          )
+        )
+      )
+  )
+  or exists (
+    select 1
+    from public.group_messages group_message_row
+    where coalesce(group_message_row.is_active, true)
+      and group_message_row.message_type = 'file'
+      and public.normalize_chat_attachment_storage_path(
+        coalesce(group_message_row.attachments ->> 'path', group_message_row.attachments ->> 'url')
+      ) = object_name
+      and public.is_admin_role()
+  );
+$$;
+
+grant execute on function public.normalize_chat_attachment_storage_path(text) to authenticated, service_role;
+grant execute on function public.can_access_chat_attachment(text) to authenticated, service_role;
+
+update storage.buckets
+set public = false
+where id = 'chat-attachments';
+
+drop policy if exists p19_chat_attachments_select_authenticated on storage.objects;
+drop policy if exists p42_chat_attachments_select_scoped on storage.objects;
+
+create policy p42_chat_attachments_select_scoped
+on storage.objects
+for select
+to authenticated
+using (
+  bucket_id = 'chat-attachments'
+  and public.can_access_chat_attachment(name)
+);
+
+\unrestrict iRXuFHSW7QoDpb8i2PPDjqdmIauzd5e2Y6aDD7ehLL9ErZ0JV3tOxfSl0WQtMvO

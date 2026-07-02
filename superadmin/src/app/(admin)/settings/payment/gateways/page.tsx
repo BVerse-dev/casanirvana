@@ -14,7 +14,11 @@ import SelectFormInput from '@/components/from/SelectFormInput';
 import IconifyIcon from '@/components/wrappers/IconifyIcon';
 
 // Hooks
-import usePaymentGatewaySettings, { PaymentGatewaySettings } from '@/hooks/usePaymentGatewaySettings';
+import usePaymentGatewaySettings, {
+  PaymentGatewaySettings,
+  PaymentGatewayTestTarget,
+  useTestPaymentGatewaySettings,
+} from '@/hooks/usePaymentGatewaySettings';
 import {
   useExpressPayGatewayConfig,
   useTestExpressPayGatewayConnection,
@@ -92,6 +96,13 @@ const schema = yup.object({
     .url('Webhook URL must be a valid URL')
     .notRequired(),
   expresspay_mode: yup.string(),
+  expresspay_billpay_url: yup
+    .string()
+    .transform((value) => (typeof value === 'string' && value.trim() === '' ? undefined : value))
+    .url('BillPay URL must be a valid URL')
+    .notRequired(),
+  expresspay_billpay_username: yup.string(),
+  expresspay_billpay_auth_token: yup.string(),
 
   // Bank Transfer
   bank_transfer_enabled: yup.boolean(),
@@ -108,6 +119,7 @@ const schema = yup.object({
 });
 
 const PaymentGatewaysPage = () => {
+  const [activeGatewayTest, setActiveGatewayTest] = useState<string | null>(null);
   const [gatewayTestFeedback, setGatewayTestFeedback] = useState<{
     variant: 'success' | 'danger' | 'info';
     message: string;
@@ -133,7 +145,7 @@ const PaymentGatewaysPage = () => {
     setValue,
     getValues,
   } = useForm<PaymentGatewaySettings>({
-    resolver: yupResolver(schema),
+    resolver: yupResolver(schema) as any,
   });
 
   const razorpayEnabled = watch('razorpay_enabled');
@@ -151,6 +163,7 @@ const PaymentGatewaysPage = () => {
   } = useExpressPayGatewayConfig(expresspayMode, 'global');
   const updateExpressPayConfig = useUpdateExpressPayGatewayConfig();
   const testExpressPayConnection = useTestExpressPayGatewayConnection();
+  const testGatewaySettings = useTestPaymentGatewaySettings();
 
   // Reset form when settings are loaded, while keeping ExpressPay sourced from secure config.
   useEffect(() => {
@@ -165,8 +178,14 @@ const PaymentGatewaysPage = () => {
           expressPayConfig?.webhook_url ??
           paymentGatewaySettings.expresspay_webhook_url ??
           '',
+        expresspay_billpay_url:
+          expressPayConfig?.billpay_url ??
+          paymentGatewaySettings.expresspay_billpay_url ??
+          '',
         expresspay_merchant_id: '',
         expresspay_api_key: '',
+        expresspay_billpay_username: '',
+        expresspay_billpay_auth_token: '',
       });
     }
   }, [expressPayConfig, getValues, paymentGatewaySettings, reset]);
@@ -177,9 +196,12 @@ const PaymentGatewaysPage = () => {
     setValue('expresspay_enabled', expressPayConfig.is_enabled);
     setValue('expresspay_mode', expressPayConfig.mode);
     setValue('expresspay_webhook_url', expressPayConfig.webhook_url || '');
+    setValue('expresspay_billpay_url', expressPayConfig.billpay_url || '');
     // Never rehydrate secrets from DB/Vault into the form.
     setValue('expresspay_merchant_id', '');
     setValue('expresspay_api_key', '');
+    setValue('expresspay_billpay_username', '');
+    setValue('expresspay_billpay_auth_token', '');
   }, [expressPayConfig, setValue]);
 
   const onSubmit = async (data: PaymentGatewaySettings) => {
@@ -189,6 +211,9 @@ const PaymentGatewaysPage = () => {
     delete legacyPayload.expresspay_api_key;
     delete legacyPayload.expresspay_webhook_url;
     delete legacyPayload.expresspay_mode;
+    delete legacyPayload.expresspay_billpay_url;
+    delete legacyPayload.expresspay_billpay_username;
+    delete legacyPayload.expresspay_billpay_auth_token;
 
     updateSettings(legacyPayload);
 
@@ -199,17 +224,39 @@ const PaymentGatewaysPage = () => {
       currency: data.payment_currency || 'GHS',
       callback_path: '/payments/expresspay/callback',
       webhook_url: data.expresspay_webhook_url || null,
+      billpay_url: data.expresspay_billpay_url || null,
       merchant_id: data.expresspay_merchant_id || null,
       api_key: data.expresspay_api_key || null,
+      billpay_username: data.expresspay_billpay_username || null,
+      billpay_auth_token: data.expresspay_billpay_auth_token || null,
     });
   };
 
-  const testPaymentGateway = async (gateway: string) => {
-    if (gateway !== 'ExpressPay') {
-      setGatewayTestFeedback({
-        variant: 'info',
-        message: `${gateway} test is not wired yet in this slice.`,
-      });
+  const testPaymentGateway = async (
+    gateway: PaymentGatewayTestTarget | 'expresspay',
+    label: string,
+    target: 'checkout' | 'billpay' = 'checkout'
+  ) => {
+    if (gateway !== 'expresspay') {
+      setActiveGatewayTest(gateway);
+      try {
+        const result = await testGatewaySettings.mutateAsync({
+          gateway,
+          settings: getValues(),
+        });
+
+        setGatewayTestFeedback({
+          variant: result.success ? 'success' : 'danger',
+          message: result.message,
+        });
+      } catch (error) {
+        setGatewayTestFeedback({
+          variant: 'danger',
+          message: error instanceof Error ? error.message : `${label} validation failed.`,
+        });
+      } finally {
+        setActiveGatewayTest(null);
+      }
       return;
     }
 
@@ -217,6 +264,7 @@ const PaymentGatewaysPage = () => {
       const result = await testExpressPayConnection.mutateAsync({
         mode: expresspayMode,
         scope: 'global',
+        target,
       });
 
       setGatewayTestFeedback({
@@ -226,9 +274,42 @@ const PaymentGatewaysPage = () => {
     } catch (error) {
       setGatewayTestFeedback({
         variant: 'danger',
-        message: error instanceof Error ? error.message : 'ExpressPay connection test failed.',
+        message: error instanceof Error ? error.message : `${label} connection test failed.`,
       });
     }
+  };
+
+  const renderGatewayValidationButton = (
+    gateway: PaymentGatewayTestTarget | 'expresspay',
+    label: string,
+    disabled = false,
+    target: 'checkout' | 'billpay' = 'checkout'
+  ) => {
+    const isPending =
+      gateway === 'expresspay'
+        ? testExpressPayConnection.isPending
+        : testGatewaySettings.isPending && activeGatewayTest === gateway;
+
+    return (
+      <button
+        type="button"
+        className="btn btn-outline-primary btn-sm"
+        onClick={() => testPaymentGateway(gateway, label, target)}
+        disabled={disabled || isPending}
+      >
+        {isPending ? (
+          <>
+            <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+            Validating...
+          </>
+        ) : (
+          <>
+            <i className="ri-shield-check-line me-1"></i>
+            Validate Config
+          </>
+        )}
+      </button>
+    );
   };
 
   // Loading state
@@ -324,7 +405,8 @@ const PaymentGatewaysPage = () => {
 
       <Alert variant="info">
         <IconifyIcon icon="solar:shield-check-line-duotone" className="fs-18 me-2" />
-        Credential validation is currently wired for ExpressPay only. Other gateway forms are saved, but live connection tests are not enabled yet.
+        Validation checks configuration completeness and secret availability for each gateway. Live payment processing
+        still depends on each provider account, webhook configuration, and runtime callbacks.
       </Alert>
 
       <form onSubmit={handleSubmit(onSubmit)}>
@@ -394,14 +476,7 @@ const PaymentGatewaysPage = () => {
                       containerClassName="mb-3"
                     />
 
-                    <button
-                      type="button"
-                      className="btn btn-outline-secondary btn-sm"
-                      disabled
-                    >
-                      <i className="ri-time-line me-1"></i>
-                      Validation Pending
-                    </button>
+                    {renderGatewayValidationButton('razorpay', 'Razorpay')}
                   </>
                 )}
               </CardBody>
@@ -473,14 +548,7 @@ const PaymentGatewaysPage = () => {
                       containerClassName="mb-3"
                     />
 
-                    <button
-                      type="button"
-                      className="btn btn-outline-secondary btn-sm"
-                      disabled
-                    >
-                      <i className="ri-time-line me-1"></i>
-                      Validation Pending
-                    </button>
+                    {renderGatewayValidationButton('stripe', 'Stripe')}
                   </>
                 )}
               </CardBody>
@@ -554,14 +622,7 @@ const PaymentGatewaysPage = () => {
                       containerClassName="mb-3"
                     />
 
-                    <button
-                      type="button"
-                      className="btn btn-outline-secondary btn-sm"
-                      disabled
-                    >
-                      <i className="ri-time-line me-1"></i>
-                      Validation Pending
-                    </button>
+                    {renderGatewayValidationButton('paypal', 'PayPal')}
                   </>
                 )}
               </CardBody>
@@ -633,14 +694,7 @@ const PaymentGatewaysPage = () => {
                       containerClassName="mb-3"
                     />
 
-                    <button
-                      type="button"
-                      className="btn btn-outline-secondary btn-sm"
-                      disabled
-                    >
-                      <i className="ri-time-line me-1"></i>
-                      Validation Pending
-                    </button>
+                    {renderGatewayValidationButton('paytm', 'Paytm')}
                   </>
                 )}
               </CardBody>
@@ -722,19 +776,82 @@ const PaymentGatewaysPage = () => {
                       ExpressPay requires Merchant ID and API Key. Secret key is not required for this integration mode.
                     </Alert>
 
-                    <button
-                      type="button"
-                      className="btn btn-outline-primary btn-sm"
-                      onClick={() => testPaymentGateway('ExpressPay')}
-                      disabled={isLoadingExpressPayConfig || testExpressPayConnection.isPending}
-                    >
-                      <i className="ri-test-tube-line me-1"></i>
-                      {testExpressPayConnection.isPending ? 'Testing...' : 'Test Connection'}
-                    </button>
+                    <div className="d-flex flex-wrap gap-2 mb-3">
+                      {renderGatewayValidationButton(
+                        'expresspay',
+                        'ExpressPay Checkout',
+                        isLoadingExpressPayConfig,
+                        'checkout'
+                      )}
+                      {renderGatewayValidationButton(
+                        'expresspay',
+                        'ExpressPay BillPay',
+                        isLoadingExpressPayConfig,
+                        'billpay'
+                      )}
+                    </div>
 
-                    <div className="mt-3 small text-muted">
-                      Merchant ID configured: {expressPayConfig?.merchant_id_configured ? 'Yes' : 'No'} | API Key configured:{' '}
+                    <div className="small text-muted mb-3">
+                      Checkout readiness: Merchant ID configured:{' '}
+                      {expressPayConfig?.merchant_id_configured ? 'Yes' : 'No'} | API Key configured:{' '}
                       {expressPayConfig?.api_key_configured ? 'Yes' : 'No'}
+                    </div>
+
+                    <div className="border rounded p-3 bg-light-subtle">
+                      <div className="d-flex justify-content-between align-items-center mb-2">
+                        <h6 className="mb-0">
+                          <i className="ri-bill-line me-2"></i>
+                          BillPay Fulfillment
+                        </h6>
+                        <Badge
+                          bg={
+                            expressPayConfig?.billpay_username_configured &&
+                            expressPayConfig?.billpay_auth_token_configured
+                              ? 'success'
+                              : 'warning'
+                          }
+                        >
+                          {expressPayConfig?.billpay_username_configured &&
+                          expressPayConfig?.billpay_auth_token_configured
+                            ? 'Configured'
+                            : 'Needs Credentials'}
+                        </Badge>
+                      </div>
+
+                      <TextFormInput
+                        name="expresspay_billpay_url"
+                        label="BillPay API URL (Optional Override)"
+                        placeholder="https://expresspaygh.com/billpay/api.php"
+                        control={control}
+                        containerClassName="mb-3"
+                      />
+
+                      <TextFormInput
+                        name="expresspay_billpay_username"
+                        label="BillPay Username"
+                        placeholder="billpay_username"
+                        control={control}
+                        containerClassName="mb-3"
+                      />
+
+                      <PasswordFormInput
+                        name="expresspay_billpay_auth_token"
+                        label="BillPay Auth Token"
+                        placeholder="billpay_auth_token"
+                        control={control}
+                        containerClassName="mb-3"
+                      />
+
+                      <Alert variant="warning" className="mb-2">
+                        <i className="ri-information-line me-2"></i>
+                        BillPay credentials are required for provider-side fulfillment after checkout succeeds.
+                        Catalog sync alone does not complete airtime, data, bill, insurance, or transfer delivery.
+                      </Alert>
+
+                      <div className="small text-muted">
+                        Username configured: {expressPayConfig?.billpay_username_configured ? 'Yes' : 'No'} | Auth token configured:{' '}
+                        {expressPayConfig?.billpay_auth_token_configured ? 'Yes' : 'No'}
+                      </div>
                     </div>
                   </>
                 )}
@@ -806,6 +923,8 @@ const PaymentGatewaysPage = () => {
                       control={control}
                       containerClassName="mb-3"
                     />
+
+                    {renderGatewayValidationButton('bank_transfer', 'Bank Transfer')}
                   </>
                 )}
               </CardBody>

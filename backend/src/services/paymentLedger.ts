@@ -722,18 +722,25 @@ export const listAdminPaymentTransactions = async ({
   const unitMap = await fetchUnits(unitIds);
   const payerMap = await fetchProfiles(payerIds);
   const communityIds = Array.from(
-    new Set(unitIds.map((id) => unitMap.get(id)?.community_id).filter(Boolean) as string[])
+    new Set(
+      [
+        ...unitIds.map((id) => unitMap.get(id)?.community_id),
+        ...payerIds.map((id) => payerMap.get(id)?.community_id),
+      ].filter(Boolean) as string[]
+    )
   );
   const communityMap = await fetchCommunities(communityIds);
 
   return rows.map((row) => {
     const unit = row.unit_id ? unitMap.get(row.unit_id) : undefined;
-    const community = unit?.community_id ? communityMap.get(unit.community_id) : undefined;
+    const payerProfile = row.payer_id ? payerMap.get(row.payer_id) || null : null;
+    const communityId = unit?.community_id || payerProfile?.community_id;
+    const community = communityId ? communityMap.get(communityId) : undefined;
     return serializeTransaction({
       row,
       unit,
       community,
-      payerProfile: row.payer_id ? payerMap.get(row.payer_id) || null : null,
+      payerProfile,
     });
   });
 };
@@ -757,14 +764,18 @@ export const getAdminPaymentTransaction = async (id: string) => {
   const unitMap = await fetchUnits([row.unit_id].filter(Boolean) as string[]);
   const unit = row.unit_id ? unitMap.get(row.unit_id) : undefined;
   const payerMap = await fetchProfiles([row.payer_id].filter(Boolean) as string[]);
-  const communityMap = await fetchCommunities([unit?.community_id].filter(Boolean) as string[]);
-  const community = unit?.community_id ? communityMap.get(unit.community_id) : undefined;
+  const payerProfile = row.payer_id ? payerMap.get(row.payer_id) || null : null;
+  const communityMap = await fetchCommunities(
+    [unit?.community_id, payerProfile?.community_id].filter(Boolean) as string[]
+  );
+  const communityId = unit?.community_id || payerProfile?.community_id;
+  const community = communityId ? communityMap.get(communityId) : undefined;
 
   return serializeTransaction({
     row,
     unit,
     community,
-    payerProfile: row.payer_id ? payerMap.get(row.payer_id) || null : null,
+    payerProfile,
   });
 };
 
@@ -822,21 +833,35 @@ export const listAdminPaymentStatements = async ({ unitId }: { unitId?: string }
   const rows = (data || []) as PaymentStatementRow[];
   const unitIds = Array.from(new Set(rows.map((row) => row.unit_id)));
   const unitMap = await fetchUnits(unitIds);
+  const communityMap = await fetchCommunities(
+    Array.from(new Set(unitIds.map((id) => unitMap.get(id)?.community_id).filter(Boolean) as string[]))
+  );
 
-  return rows.map((row) => ({
-    ...row,
-    total_amount: asNumber(row.total_amount),
-    total_amount_formatted: formatMoney(row.total_amount),
-    currency_code: DEFAULT_PAYMENT_CURRENCY_CODE,
-    currency_symbol: DEFAULT_PAYMENT_CURRENCY_SYMBOL,
-    unit: row.unit_id
-      ? {
-          id: row.unit_id,
-          number: unitMap.get(row.unit_id)?.number || unitMap.get(row.unit_id)?.unit_number || null,
-          block: unitMap.get(row.unit_id)?.block || null,
-        }
-      : null,
-  }));
+  return rows.map((row) => {
+    const unit = row.unit_id ? unitMap.get(row.unit_id) : null;
+    const community = unit?.community_id ? communityMap.get(unit.community_id) || null : null;
+
+    return {
+      ...row,
+      total_amount: asNumber(row.total_amount),
+      total_amount_formatted: formatMoney(row.total_amount),
+      currency_code: DEFAULT_PAYMENT_CURRENCY_CODE,
+      currency_symbol: DEFAULT_PAYMENT_CURRENCY_SYMBOL,
+      unit: row.unit_id
+        ? {
+            id: row.unit_id,
+            number: unit?.number || unit?.unit_number || null,
+            block: unit?.block || null,
+          }
+        : null,
+      community: community
+        ? {
+            id: community.id,
+            name: community.name || null,
+          }
+        : null,
+    };
+  });
 };
 
 export const DEFAULT_PAYMENT_DISPLAY = {

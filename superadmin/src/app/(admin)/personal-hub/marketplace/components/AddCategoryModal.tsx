@@ -1,534 +1,182 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Modal, Button, Form, Row, Col, InputGroup } from 'react-bootstrap';
-import IconifyIcon from '@/components/wrappers/IconifyIcon';
+import { useEffect, useState } from 'react';
+import { Button, Form, Modal, Row, Col } from 'react-bootstrap';
+
+import type { MarketplaceCategoryView } from '@/hooks/useMarketplaceWorkspace';
+
+type CategoryFormValues = {
+  name: string;
+  description: string;
+  icon_name: string;
+  background_colors: string;
+  category_type: string;
+  display_order: number;
+  is_active: boolean;
+};
 
 interface AddCategoryModalProps {
   show: boolean;
   onHide: () => void;
-  onSave: (categoryData: any) => void;
-  editCategory?: any;
-  parentCategories?: any[];
+  onSave: (categoryData: CategoryFormValues) => Promise<void> | void;
+  editCategory?: MarketplaceCategoryView | null;
 }
 
-const AddCategoryModal: React.FC<AddCategoryModalProps> = ({ 
-  show, 
-  onHide,
-  onSave,
-  editCategory,
-  parentCategories = []
-}) => {
+const defaultValues: CategoryFormValues = {
+  name: '',
+  description: '',
+  icon_name: '',
+  background_colors: '',
+  category_type: 'local',
+  display_order: 0,
+  is_active: true,
+};
+
+const AddCategoryModal = ({ show, onHide, onSave, editCategory }: AddCategoryModalProps) => {
+  const [formValues, setFormValues] = useState<CategoryFormValues>(defaultValues);
   const [validated, setValidated] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // Form state
-  const [categoryData, setCategoryData] = useState({
-    name: editCategory?.name || '',
-    slug: editCategory?.slug || '',
-    description: editCategory?.description || '',
-    parent_id: editCategory?.parent_id || '',
-    icon: editCategory?.icon || '',
-    image_url: editCategory?.image_url || '',
-    banner_url: editCategory?.banner_url || '',
-    meta_title: editCategory?.meta_title || '',
-    meta_description: editCategory?.meta_description || '',
-    display_order: editCategory?.display_order || 0,
-    is_featured: editCategory?.is_featured || false,
-    status: editCategory?.status || 'active',
-    attributes: editCategory?.attributes ? JSON.stringify(editCategory.attributes, null, 2) : JSON.stringify([
-      {
-        name: "Color",
-        type: "select",
-        required: false,
-        options: ["Red", "Blue", "Green", "Black", "White"]
-      },
-      {
-        name: "Size",
-        type: "select",
-        required: false,
-        options: ["S", "M", "L", "XL", "XXL"]
-      }
-    ], null, 2)
-  });
+  const [submitting, setSubmitting] = useState(false);
 
-  // Auto-generate slug from name
   useEffect(() => {
-    if (!editCategory && categoryData.name && !categoryData.slug) {
-      const generatedSlug = categoryData.name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '');
-      
-      setCategoryData(prev => ({
-        ...prev,
-        slug: generatedSlug
-      }));
+    if (!show) {
+      return;
     }
-  }, [categoryData.name, editCategory]);
 
-  // Reset form when modal is opened or closed
-  useEffect(() => {
-    if (show) {
-      setValidated(false);
-      if (editCategory) {
-        setCategoryData({
-          name: editCategory.name || '',
-          slug: editCategory.slug || '',
-          description: editCategory.description || '',
-          parent_id: editCategory.parent_id || '',
-          icon: editCategory.icon || '',
-          image_url: editCategory.image_url || '',
-          banner_url: editCategory.banner_url || '',
-          meta_title: editCategory.meta_title || '',
-          meta_description: editCategory.meta_description || '',
-          display_order: editCategory.display_order || 0,
-          is_featured: editCategory.is_featured || false,
-          status: editCategory.status || 'active',
-          attributes: editCategory.attributes ? JSON.stringify(editCategory.attributes, null, 2) : JSON.stringify([
-            {
-              name: "Color",
-              type: "select",
-              required: false,
-              options: ["Red", "Blue", "Green", "Black", "White"]
-            },
-            {
-              name: "Size",
-              type: "select",
-              required: false,
-              options: ["S", "M", "L", "XL", "XXL"]
-            }
-          ], null, 2)
-        });
-      } else {
-        setCategoryData({
-          name: '',
-          slug: '',
-          description: '',
-          parent_id: '',
-          icon: '',
-          image_url: '',
-          banner_url: '',
-          meta_title: '',
-          meta_description: '',
-          display_order: 0,
-          is_featured: false,
-          status: 'active',
-          attributes: JSON.stringify([
-            {
-              name: "Color",
-              type: "select",
-              required: false,
-              options: ["Red", "Blue", "Green", "Black", "White"]
-            },
-            {
-              name: "Size",
-              type: "select",
-              required: false,
-              options: ["S", "M", "L", "XL", "XXL"]
-            }
-          ], null, 2)
-        });
-      }
+    if (editCategory) {
+      setFormValues({
+        name: editCategory.name,
+        description: editCategory.description || '',
+        icon_name: editCategory.icon_name || '',
+        background_colors: editCategory.background_colors || '',
+        category_type: editCategory.category_type || 'local',
+        display_order: editCategory.display_order || 0,
+        is_active: Boolean(editCategory.is_active),
+      });
+      return;
     }
-  }, [show, editCategory]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setCategoryData(prev => ({
-      ...prev,
-      [name]: value
+    setFormValues(defaultValues);
+    setValidated(false);
+  }, [editCategory, show]);
+
+  const handleChange = (field: keyof CategoryFormValues, value: string | number | boolean) => {
+    setFormValues((current) => ({
+      ...current,
+      [field]: value,
     }));
   };
 
-  const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setCategoryData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, checked } = e.target;
-    setCategoryData(prev => ({
-      ...prev,
-      [name]: checked
-    }));
-  };
-
-  const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setCategoryData(prev => ({
-      ...prev,
-      [name]: parseInt(value, 10)
-    }));
-  };
-
-  const handleTextAreaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setCategoryData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    
-    const form = e.currentTarget;
-    
-    if (form.checkValidity() === false) {
-      e.stopPropagation();
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    if (!form.checkValidity()) {
+      event.stopPropagation();
       setValidated(true);
       return;
     }
-    
-    setIsSubmitting(true);
-    
+
+    setSubmitting(true);
     try {
-      // Parse JSON fields
-      let parsedAttributes;
-      
-      try {
-        parsedAttributes = JSON.parse(categoryData.attributes);
-      } catch (error) {
-        alert('Invalid JSON format in Attributes');
-        setIsSubmitting(false);
-        return;
-      }
-      
-      // Prepare data for saving
-      const dataToSave = {
-        ...categoryData,
-        attributes: parsedAttributes,
-        display_order: parseInt(categoryData.display_order as unknown as string, 10)
-      };
-      
-      // Call onSave function passed from parent
-      onSave(dataToSave);
-      
-      // Close modal
+      await onSave(formValues);
       onHide();
-    } catch (error) {
-      console.error('Error submitting form:', error);
     } finally {
-      setIsSubmitting(false);
+      setSubmitting(false);
     }
   };
 
   return (
-    <Modal
-      show={show}
-      onHide={onHide}
-      size="lg"
-      backdrop="static"
-      keyboard={false}
-      centered
-    >
-      <Modal.Header closeButton>
-        <Modal.Title>
-          {editCategory ? `Edit Category: ${editCategory.name}` : 'Add New Category'}
-        </Modal.Title>
-      </Modal.Header>
-      
+    <Modal show={show} onHide={onHide} centered>
       <Form noValidate validated={validated} onSubmit={handleSubmit}>
+        <Modal.Header closeButton>
+          <Modal.Title>{editCategory ? 'Edit Category' : 'Add Category'}</Modal.Title>
+        </Modal.Header>
         <Modal.Body>
-          <Row className="mb-3">
-            <Col md={6}>
-              <Form.Group controlId="categoryName">
-                <Form.Label>Category Name <span className="text-danger">*</span></Form.Label>
+          <Row className="g-3">
+            <Col md={8}>
+              <Form.Group>
+                <Form.Label>Name</Form.Label>
                 <Form.Control
                   required
-                  type="text"
-                  name="name"
-                  value={categoryData.name}
-                  onChange={handleChange}
-                  placeholder="Enter category name"
+                  value={formValues.name}
+                  onChange={(event) => handleChange('name', event.target.value)}
                 />
-                <Form.Control.Feedback type="invalid">
-                  Category name is required
-                </Form.Control.Feedback>
+              </Form.Group>
+            </Col>
+            <Col md={4}>
+              <Form.Group>
+                <Form.Label>Display Order</Form.Label>
+                <Form.Control
+                  type="number"
+                  min={0}
+                  value={formValues.display_order}
+                  onChange={(event) => handleChange('display_order', Number(event.target.value))}
+                />
               </Form.Group>
             </Col>
             <Col md={6}>
-              <Form.Group controlId="categorySlug">
-                <Form.Label>Slug <span className="text-danger">*</span></Form.Label>
-                <Form.Control
-                  required
-                  type="text"
-                  name="slug"
-                  value={categoryData.slug}
-                  onChange={handleChange}
-                  placeholder="Enter category slug"
-                />
-                <Form.Text className="text-muted">
-                  URL-friendly version of the name (auto-generated)
-                </Form.Text>
+              <Form.Group>
+                <Form.Label>Category Type</Form.Label>
+                <Form.Select
+                  value={formValues.category_type}
+                  onChange={(event) => handleChange('category_type', event.target.value)}
+                >
+                  <option value="local">Local</option>
+                  <option value="imported">Imported</option>
+                  <option value="featured">Featured</option>
+                </Form.Select>
               </Form.Group>
             </Col>
-          </Row>
-          
-          <Row className="mb-3">
-            <Col md={12}>
-              <Form.Group controlId="categoryDescription">
+            <Col md={6}>
+              <Form.Group>
+                <Form.Label>Icon Name</Form.Label>
+                <Form.Control
+                  placeholder="ri:shopping-bag-3-line"
+                  value={formValues.icon_name}
+                  onChange={(event) => handleChange('icon_name', event.target.value)}
+                />
+              </Form.Group>
+            </Col>
+            <Col xs={12}>
+              <Form.Group>
                 <Form.Label>Description</Form.Label>
                 <Form.Control
                   as="textarea"
                   rows={3}
-                  name="description"
-                  value={categoryData.description}
-                  onChange={handleTextAreaChange}
-                  placeholder="Enter category description"
+                  value={formValues.description}
+                  onChange={(event) => handleChange('description', event.target.value)}
                 />
               </Form.Group>
             </Col>
-          </Row>
-          
-          <Row className="mb-3">
-            <Col md={6}>
-              <Form.Group controlId="parentCategory">
-                <Form.Label>Parent Category</Form.Label>
-                <Form.Select
-                  name="parent_id"
-                  value={categoryData.parent_id}
-                  onChange={handleSelectChange}
-                >
-                  <option value="">None (Top Level Category)</option>
-                  {parentCategories.map(category => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </Form.Select>
-                <Form.Text className="text-muted">
-                  Select a parent category if this is a subcategory
-                </Form.Text>
-              </Form.Group>
-            </Col>
-            <Col md={6}>
-              <Form.Group controlId="categoryStatus">
-                <Form.Label>Status</Form.Label>
-                <Form.Select
-                  name="status"
-                  value={categoryData.status}
-                  onChange={handleSelectChange}
-                >
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                  <option value="draft">Draft</option>
-                </Form.Select>
-              </Form.Group>
-            </Col>
-          </Row>
-          
-          <Row className="mb-3">
-            <Col md={6}>
-              <Form.Group controlId="categoryIcon">
-                <Form.Label>Icon</Form.Label>
-                <InputGroup>
-                  <InputGroup.Text>
-                    <IconifyIcon icon="ri:image-line" />
-                  </InputGroup.Text>
-                  <Form.Control
-                    type="text"
-                    name="icon"
-                    value={categoryData.icon}
-                    onChange={handleChange}
-                    placeholder="e.g. ri:t-shirt-line"
-                  />
-                </InputGroup>
-                <Form.Text className="text-muted">
-                  Iconify icon name or custom icon URL
-                </Form.Text>
-              </Form.Group>
-            </Col>
-            <Col md={6}>
-              <Form.Group controlId="displayOrder">
-                <Form.Label>Display Order</Form.Label>
+            <Col xs={12}>
+              <Form.Group>
+                <Form.Label>Background Colors</Form.Label>
                 <Form.Control
-                  type="number"
-                  name="display_order"
-                  value={categoryData.display_order}
-                  onChange={handleNumberChange}
-                  min="0"
-                  placeholder="0"
+                  placeholder="#F3F4F6, #E5E7EB"
+                  value={formValues.background_colors}
+                  onChange={(event) => handleChange('background_colors', event.target.value)}
                 />
                 <Form.Text className="text-muted">
-                  Order in which category appears (lower numbers first)
+                  Optional comma-separated palette used by the marketplace UI.
                 </Form.Text>
               </Form.Group>
             </Col>
-          </Row>
-          
-          <Row className="mb-3">
-            <Col md={12}>
-              <Form.Group controlId="imageUrl">
-                <Form.Label>Category Image URL</Form.Label>
-                <InputGroup>
-                  <InputGroup.Text>
-                    <IconifyIcon icon="ri:image-2-line" />
-                  </InputGroup.Text>
-                  <Form.Control
-                    type="url"
-                    name="image_url"
-                    value={categoryData.image_url}
-                    onChange={handleChange}
-                    placeholder="Enter image URL"
-                  />
-                </InputGroup>
-                <Form.Text className="text-muted">
-                  URL for the category thumbnail image
-                </Form.Text>
-              </Form.Group>
-            </Col>
-          </Row>
-          
-          <Row className="mb-3">
-            <Col md={12}>
-              <Form.Group controlId="bannerUrl">
-                <Form.Label>Banner Image URL</Form.Label>
-                <InputGroup>
-                  <InputGroup.Text>
-                    <IconifyIcon icon="ri:image-edit-line" />
-                  </InputGroup.Text>
-                  <Form.Control
-                    type="url"
-                    name="banner_url"
-                    value={categoryData.banner_url}
-                    onChange={handleChange}
-                    placeholder="Enter banner URL"
-                  />
-                </InputGroup>
-                <Form.Text className="text-muted">
-                  URL for the category banner image (displayed at top of category page)
-                </Form.Text>
-              </Form.Group>
-            </Col>
-          </Row>
-          
-          <Row className="mb-3">
-            <Col md={12}>
+            <Col xs={12}>
               <Form.Check
-                type="checkbox"
-                id="isFeatured"
-                label="Featured Category (display prominently on homepage)"
-                name="is_featured"
-                checked={categoryData.is_featured}
-                onChange={handleCheckboxChange}
+                type="switch"
+                id="category-is-active"
+                label="Category is active"
+                checked={formValues.is_active}
+                onChange={(event) => handleChange('is_active', event.target.checked)}
               />
             </Col>
           </Row>
-          
-          <hr className="my-4" />
-          <h5>SEO Settings</h5>
-          
-          <Row className="mb-3">
-            <Col md={12}>
-              <Form.Group controlId="metaTitle">
-                <Form.Label>Meta Title</Form.Label>
-                <Form.Control
-                  type="text"
-                  name="meta_title"
-                  value={categoryData.meta_title}
-                  onChange={handleChange}
-                  placeholder="Enter meta title"
-                />
-                <Form.Text className="text-muted">
-                  Title used for SEO purposes (defaults to category name if empty)
-                </Form.Text>
-              </Form.Group>
-            </Col>
-          </Row>
-          
-          <Row className="mb-3">
-            <Col md={12}>
-              <Form.Group controlId="metaDescription">
-                <Form.Label>Meta Description</Form.Label>
-                <Form.Control
-                  as="textarea"
-                  rows={2}
-                  name="meta_description"
-                  value={categoryData.meta_description}
-                  onChange={handleTextAreaChange}
-                  placeholder="Enter meta description"
-                />
-                <Form.Text className="text-muted">
-                  Description used for SEO purposes
-                </Form.Text>
-              </Form.Group>
-            </Col>
-          </Row>
-          
-          <hr className="my-4" />
-          <h5>Category Attributes</h5>
-          
-          <Row className="mb-3">
-            <Col md={12}>
-              <Form.Group controlId="attributes">
-                <Form.Label>Product Attributes (JSON)</Form.Label>
-                <Form.Control
-                  as="textarea"
-                  rows={8}
-                  name="attributes"
-                  value={categoryData.attributes}
-                  onChange={handleTextAreaChange}
-                  placeholder="Enter attributes in JSON format"
-                />
-                <Form.Text className="text-muted">
-                  Define product attributes for this category in JSON format
-                </Form.Text>
-              </Form.Group>
-            </Col>
-          </Row>
-          
-          <div className="alert alert-info">
-            <h6 className="alert-heading">Attributes Format Example</h6>
-            <p className="mb-0">Define attributes that products in this category can have:</p>
-            <pre className="mb-0" style={{ fontSize: '0.8rem' }}>
-{`[
-  {
-    "name": "Color",
-    "type": "select",
-    "required": false,
-    "options": ["Red", "Blue", "Green", "Black", "White"]
-  },
-  {
-    "name": "Size",
-    "type": "select",
-    "required": false,
-    "options": ["S", "M", "L", "XL", "XXL"]
-  },
-  {
-    "name": "Material",
-    "type": "text",
-    "required": false
-  }
-]`}
-            </pre>
-          </div>
         </Modal.Body>
-        
         <Modal.Footer>
-          <Button variant="secondary" onClick={onHide} disabled={isSubmitting}>
+          <Button variant="light" onClick={onHide} disabled={submitting}>
             Cancel
           </Button>
-          <Button 
-            variant="primary" 
-            type="submit"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (
-              <>
-                <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-                Saving...
-              </>
-            ) : (
-              <>
-                <IconifyIcon icon="ri:save-line" className="me-1" />
-                {editCategory ? 'Update Category' : 'Save Category'}
-              </>
-            )}
+          <Button variant="primary" type="submit" disabled={submitting}>
+            {submitting ? 'Saving...' : editCategory ? 'Save Changes' : 'Create Category'}
           </Button>
         </Modal.Footer>
       </Form>

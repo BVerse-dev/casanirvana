@@ -5,10 +5,8 @@ import { Row, Col, Card, CardBody, CardHeader, Button, Alert, Table, Badge, Form
 import PageTitle from '@/components/PageTitle';
 import ComponentContainerCard from '@/components/ComponentContainerCard';
 import IconifyIcon from '@/components/wrappers/IconifyIcon';
-import { useSession } from 'next-auth/react';
 import { useQuery } from '@tanstack/react-query';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+import { useAdminApi } from '@/hooks/useAdminApi';
 
 type OnboardingRequest = {
   id: string;
@@ -53,7 +51,7 @@ const statusVariant = (status: string) => {
 };
 
 const OnboardingRequestsPage = () => {
-  const { data: session } = useSession();
+  const { fetchAdmin, hasToken } = useAdminApi();
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
   const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -64,29 +62,7 @@ const OnboardingRequestsPage = () => {
   const [reviewNotes, setReviewNotes] = useState('');
   const [selectedRequest, setSelectedRequest] = useState<OnboardingRequest | null>(null);
 
-  const fetchAdmin = async (path: string, options: RequestInit = {}) => {
-    const token = session?.accessToken as string | undefined;
-    if (!token) {
-      throw new Error('Missing admin session. Please sign in again.');
-    }
-
-    const response = await fetch(`${API_BASE_URL}${path}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-        ...options.headers,
-      },
-    });
-
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      throw new Error(payload.error || payload.message || 'Request failed');
-    }
-    return payload;
-  };
-
-  const { data, isLoading, isFetching, refetch } = useQuery({
+  const { data, isLoading, isFetching, refetch, error } = useQuery({
     queryKey: ['adminOnboardingRequests', statusFilter, searchTerm],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -95,7 +71,7 @@ const OnboardingRequestsPage = () => {
       const query = params.toString();
       return fetchAdmin(`/admin/onboarding-requests${query ? `?${query}` : ''}`);
     },
-    enabled: !!session?.accessToken,
+    enabled: hasToken,
   });
 
   const requests: OnboardingRequest[] = useMemo(() => data?.data || [], [data]);
@@ -111,7 +87,10 @@ const OnboardingRequestsPage = () => {
       refetch();
     } catch (error) {
       console.error('Status update error:', error);
-      setShowAlert({ type: 'danger', message: 'Failed to update request status.' });
+      setShowAlert({
+        type: 'danger',
+        message: error instanceof Error ? error.message : 'Failed to update request status.',
+      });
     } finally {
       setActionId(null);
       setTimeout(() => setShowAlert(null), 4000);
@@ -146,7 +125,10 @@ const OnboardingRequestsPage = () => {
       refetch();
     } catch (error) {
       console.error('Invite error:', error);
-      setShowAlert({ type: 'danger', message: 'Failed to approve and invite.' });
+      setShowAlert({
+        type: 'danger',
+        message: error instanceof Error ? error.message : 'Failed to approve and invite.',
+      });
     } finally {
       setActionId(null);
       setTimeout(() => setShowAlert(null), 4000);
@@ -165,7 +147,10 @@ const OnboardingRequestsPage = () => {
       refetch();
     } catch (error) {
       console.error('Save notes error:', error);
-      setShowAlert({ type: 'danger', message: 'Failed to save review notes.' });
+      setShowAlert({
+        type: 'danger',
+        message: error instanceof Error ? error.message : 'Failed to save review notes.',
+      });
     } finally {
       setActionId(null);
       setTimeout(() => setShowAlert(null), 4000);
@@ -264,6 +249,13 @@ const OnboardingRequestsPage = () => {
                   <div className="spinner-border text-primary" role="status" />
                   <p className="text-muted mt-2">Loading requests...</p>
                 </div>
+              ) : error ? (
+                <Alert variant="danger" className="m-3">
+                  <IconifyIcon icon="ri:error-warning-line" className="me-2" />
+                  {error instanceof Error
+                    ? error.message
+                    : 'Failed to load onboarding requests. Reload this page before making changes.'}
+                </Alert>
               ) : (
                 <div className="table-responsive">
                   <Table hover className="mb-0 align-middle">

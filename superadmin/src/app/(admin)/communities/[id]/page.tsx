@@ -10,9 +10,8 @@ const CommunityDetailsRedirect = () => {
   const societyId = params.id as string;
 
   useEffect(() => {
-    // Redirect to the page with tabs
     if (societyId) {
-      router.replace(`/societies/details?id=${societyId}`);
+      router.replace(`/communities/details?id=${societyId}`);
     }
   }, [societyId, router]);
 

@@ -1,343 +1,145 @@
 "use client";
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
+import { useAdminApi } from "./useAdminApi";
+
+export type JoinRequestStatus =
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "pending_manual_review";
 
 export type JoinRequest = {
   id: string;
   user_id: string;
-  community_id?: string;
-  unit_id?: string;
-  comments?: string;
-  status: 'pending' | 'approved' | 'rejected' | 'pending_manual_review';
+  community_id?: string | null;
+  unit_id?: string | null;
+  comments?: string | null;
+  status: JoinRequestStatus;
   created_at: string;
-  updated_at?: string;
-  reviewed_by?: string;
-  reviewed_at?: string;
-  review_notes?: string;
-  community_name?: string;
-  manual_unit_info?: string;
+  updated_at?: string | null;
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
+  review_notes?: string | null;
+  community_name?: string | null;
+  manual_unit_info?: string | null;
   is_manual_entry: boolean;
-  // Joined data from profiles
-  full_name?: string;
-  email?: string;
-  phone?: string;
-  // Joined data from communities/units
-  community_name?: string;
-  unit_number?: string;
-  unit_block?: string;
-};
-
-export type CreateJoinRequestData = {
-  user_id: string;
-  community_id?: string;
-  unit_id?: string;
-  comments?: string;
-  community_name?: string;
-  manual_unit_info?: string;
-  is_manual_entry?: boolean;
+  full_name?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  reviewer_name?: string | null;
+  unit_number?: string | null;
+  unit_block?: string | null;
 };
 
 export type UpdateJoinRequestData = {
   id: string;
-  status?: 'pending' | 'approved' | 'rejected' | 'pending_manual_review';
+  status?: JoinRequestStatus;
   review_notes?: string;
-  reviewed_by?: string;
 };
 
-// List all join requests
+type JoinRequestsPayload = {
+  data: JoinRequest[];
+  count: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+};
+
+const buildJoinRequestsQuery = ({
+  status,
+  search,
+  page,
+  limit,
+}: {
+  status?: JoinRequestStatus;
+  search?: string;
+  page?: number;
+  limit?: number;
+}) => {
+  const params = new URLSearchParams();
+
+  if (status) params.set("status", status);
+  if (search?.trim()) params.set("search", search.trim());
+  if (page) params.set("page", String(page));
+  if (limit) params.set("limit", String(limit));
+
+  const query = params.toString();
+  return query ? `?${query}` : "";
+};
+
 export const useListJoinRequests = () => {
+  const { fetchAdmin, hasToken } = useAdminApi();
+
   return useQuery({
-    queryKey: ['join-requests'],
+    queryKey: ["join-requests"],
     queryFn: async () => {
-      try {
-        const { data, error } = await supabase
-          .from('join_requests')
-          .select(`
-            *,
-            user_profile:profiles!join_requests_user_id_fkey (
-              full_name,
-              email,
-              phone,
-              first_name,
-              last_name
-            ),
-            reviewer_profile:profiles!join_requests_reviewed_by_fkey (
-              full_name,
-              first_name,
-              last_name
-            ),
-            communities (
-              id,
-              name
-            ),
-            units (
-              id,
-              number,
-              block
-            )
-          `)
-          .order('created_at', { ascending: false });
-
-        if (error) {
-          console.error('Error fetching join requests:', error);
-          throw error;
-        }
-
-        // Transform the data to flatten the nested objects
-        const transformedData = data?.map(item => ({
-          ...item,
-          full_name: item.user_profile?.full_name || `${item.user_profile?.first_name} ${item.user_profile?.last_name}`,
-          email: item.user_profile?.email,
-          phone: item.user_profile?.phone,
-          reviewer_name: item.reviewer_profile?.full_name || `${item.reviewer_profile?.first_name} ${item.reviewer_profile?.last_name}`,
-          community_name: item.communities?.name,
-          unit_number: item.units?.number,
-          unit_block: item.units?.block,
-          // Remove the nested objects to avoid duplication
-          user_profile: undefined,
-          reviewer_profile: undefined,
-          communities: undefined,
-          units: undefined,
-        })) || [];
-
-        return transformedData;
-      } catch (error) {
-        console.error('Error in useListJoinRequests:', error);
-        throw error;
-      }
+      const response = await fetchAdmin<{ data: JoinRequestsPayload }>("/admin/join-requests?limit=1000");
+      return response.data.data;
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchInterval: 30 * 1000, // Refetch every 30 seconds for real-time updates
+    enabled: hasToken,
+    staleTime: 5 * 60 * 1000,
   });
 };
 
-// Get a specific join request by ID
 export const useGetJoinRequest = (id: string) => {
-  return useQuery({
-    queryKey: ['join-request', id],
-    queryFn: async () => {
-      try {
-        const { data, error } = await supabase
-          .from('join_requests')
-          .select(`
-            *,
-            communities (
-              id,
-              name
-            ),
-            units (
-              id,
-              number,
-              block
-            )
-          `)
-          .eq('id', id)
-          .single();
+  const { data: joinRequests = [], ...query } = useListJoinRequests();
 
-        if (error) {
-          console.error('Error fetching join request:', error);
-          throw error;
-        }
-
-        return data;
-      } catch (error) {
-        console.error('Error in useGetJoinRequest:', error);
-        throw error;
-      }
-    },
-    enabled: !!id,
-  });
+  return {
+    ...query,
+    data: joinRequests.find((request) => request.id === id),
+  };
 };
 
-// Create a new join request
-export const useCreateJoinRequest = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (joinRequestData: CreateJoinRequestData) => {
-      try {
-        const { data, error } = await supabase
-          .from('join_requests')
-          .insert({
-            ...joinRequestData,
-            status: 'pending',
-          })
-          .select()
-          .single();
-
-        if (error) {
-          console.error('Error creating join request:', error);
-          throw error;
-        }
-
-        return data;
-      } catch (error) {
-        console.error('Error in useCreateJoinRequest:', error);
-        throw error;
-      }
-    },
-    onSuccess: () => {
-      // Invalidate and refetch join requests
-      queryClient.invalidateQueries({ queryKey: ['join-requests'] });
-    },
-  });
-};
-
-// Update a join request (mainly for status changes and admin notes)
 export const useUpdateJoinRequest = () => {
   const queryClient = useQueryClient();
+  const { fetchAdmin } = useAdminApi();
 
   return useMutation({
-    mutationFn: async ({ id, ...updateData }: UpdateJoinRequestData) => {
-      try {
-        const updates: any = {
-          ...updateData,
-          updated_at: new Date().toISOString(),
-        };
-
-        // If status is being updated, also set reviewed timestamp
-        if (updateData.status && updateData.status !== 'pending') {
-          updates.reviewed_at = new Date().toISOString();
-        }
-
-        const { data, error } = await supabase
-          .from('join_requests')
-          .update(updates)
-          .eq('id', id)
-          .select()
-          .single();
-
-        if (error) {
-          console.error('Error updating join request:', error);
-          throw error;
-        }
-
-        return data;
-      } catch (error) {
-        console.error('Error in useUpdateJoinRequest:', error);
-        throw error;
-      }
-    },
-    onSuccess: (data) => {
-      // Invalidate and refetch join requests
-      queryClient.invalidateQueries({ queryKey: ['join-requests'] });
-      // Also invalidate the specific join request
-      queryClient.invalidateQueries({ queryKey: ['join-request', data.id] });
+    mutationFn: async ({ id, ...updateData }: UpdateJoinRequestData) =>
+      fetchAdmin(`/admin/join-requests/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(updateData),
+      }),
+    onSuccess: (data: any, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["join-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["join-request", variables.id] });
     },
   });
 };
 
-// Delete a join request
-export const useDeleteJoinRequest = () => {
-  const queryClient = useQueryClient();
+export const useJoinRequestsByStatus = (status: JoinRequestStatus) => {
+  const { fetchAdmin, hasToken } = useAdminApi();
 
-  return useMutation({
-    mutationFn: async (id: string) => {
-      try {
-        const { error } = await supabase
-          .from('join_requests')
-          .delete()
-          .eq('id', id);
-
-        if (error) {
-          console.error('Error deleting join request:', error);
-          throw error;
-        }
-
-        return id;
-      } catch (error) {
-        console.error('Error in useDeleteJoinRequest:', error);
-        throw error;
-      }
-    },
-    onSuccess: () => {
-      // Invalidate and refetch join requests
-      queryClient.invalidateQueries({ queryKey: ['join-requests'] });
-    },
-  });
-};
-
-// Get join requests by status
-export const useJoinRequestsByStatus = (status: 'pending' | 'approved' | 'rejected' | 'pending_manual_review') => {
   return useQuery({
-    queryKey: ['join-requests', 'status', status],
+    queryKey: ["join-requests", "status", status],
     queryFn: async () => {
-      try {
-        const { data, error } = await supabase
-          .from('join_requests')
-          .select(`
-            *,
-            profiles (
-              full_name,
-              email,
-              phone
-            ),
-            communities (
-              id,
-              name
-            ),
-            units (
-              id,
-              number,
-              block
-            )
-          `)
-          .eq('status', status)
-          .order('created_at', { ascending: false });
+      const response = await fetchAdmin<{ data: JoinRequestsPayload }>(
+        `/admin/join-requests${buildJoinRequestsQuery({ status, limit: 1000 })}`
+      );
 
-        if (error) {
-          console.error('Error fetching join requests by status:', error);
-          throw error;
-        }
-
-        // Transform the data to flatten the nested objects
-        const transformedData = data?.map(item => ({
-          ...item,
-          full_name: item.profiles?.full_name,
-          email: item.profiles?.email,
-          phone: item.profiles?.phone,
-          community_name: item.communities?.name,
-          unit_number: item.units?.number,
-          unit_block: item.units?.block,
-          // Remove the nested objects to avoid duplication
-          profiles: undefined,
-          communities: undefined,
-          units: undefined,
-        })) || [];
-
-        return transformedData;
-      } catch (error) {
-        console.error('Error in useJoinRequestsByStatus:', error);
-        throw error;
-      }
+      return response.data.data;
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: hasToken,
+    staleTime: 5 * 60 * 1000,
   });
 };
 
-// Get pending join requests count for notifications
 export const usePendingJoinRequestsCount = () => {
+  const { fetchAdmin, hasToken } = useAdminApi();
+
   return useQuery({
-    queryKey: ['join-requests', 'pending-count'],
+    queryKey: ["join-requests", "pending-count"],
     queryFn: async () => {
-      try {
-        const { count, error } = await supabase
-          .from('join_requests')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'pending');
+      const response = await fetchAdmin<{ data: JoinRequestsPayload }>(
+        `/admin/join-requests${buildJoinRequestsQuery({ status: "pending", limit: 1 })}`
+      );
 
-        if (error) {
-          console.error('Error fetching pending join requests count:', error);
-          throw error;
-        }
-
-        return count || 0;
-      } catch (error) {
-        console.error('Error in usePendingJoinRequestsCount:', error);
-        throw error;
-      }
+      return response.data.count || 0;
     },
-    staleTime: 1 * 60 * 1000, // 1 minute
-    refetchInterval: 30 * 1000, // Refetch every 30 seconds
+    enabled: hasToken,
+    staleTime: 60 * 1000,
+    refetchInterval: 30 * 1000,
   });
 };

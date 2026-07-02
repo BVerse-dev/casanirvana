@@ -186,18 +186,18 @@ const AgencyDetails = ({ agency, profile, stats }: AgencyDetailsProps) => {
             <CardTitle className="mb-0">Quick actions</CardTitle>
           </CardHeader>
           <CardBody className="d-grid gap-2">
-            <Button as={Link} href={`/agency/manage?tab=profiles&agencyId=${agency.id}`} variant="primary">
+            <Link href={`/agency/manage?tab=profiles&agencyId=${agency.id}`} className="btn btn-primary">
               <IconifyIcon icon="solar:settings-bold-duotone" className="me-2" /> Manage agency profile
-            </Button>
-            <Button as={Link} href={`/agency/manage?tab=staff&agencyId=${agency.id}`} variant="light">
+            </Link>
+            <Link href={`/agency/manage?tab=staff&agencyId=${agency.id}`} className="btn btn-light">
               <IconifyIcon icon="solar:users-group-rounded-bold-duotone" className="me-2" /> Manage staff
-            </Button>
-            <Button as={Link} href={`/agency/manage?tab=services&agencyId=${agency.id}`} variant="light">
+            </Link>
+            <Link href={`/agency/manage?tab=services&agencyId=${agency.id}`} className="btn btn-light">
               <IconifyIcon icon="solar:box-bold-duotone" className="me-2" /> Manage services
-            </Button>
-            <Button as={Link} href={`/agency/manage?tab=documents&agencyId=${agency.id}`} variant="light">
+            </Link>
+            <Link href={`/agency/manage?tab=documents&agencyId=${agency.id}`} className="btn btn-light">
               <IconifyIcon icon="solar:document-bold-duotone" className="me-2" /> Manage documents
-            </Button>
+            </Link>
             {agency.phone ? (
               <Button as="a" href={`tel:${agency.phone}`} variant="outline-primary">
                 <IconifyIcon icon="solar:outgoing-call-rounded-broken" className="me-2" /> Call agency

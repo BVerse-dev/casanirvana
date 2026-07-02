@@ -10,6 +10,17 @@ const booleanFromString = z.preprocess((value) => {
 }, z.boolean());
 
 const optionalString = nonEmptyString.optional();
+const optionalLooseString = z.preprocess((value) => {
+  if (typeof value !== 'string') return value;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}, z.string().min(1).optional());
+const optionalLooseNullableString = z.preprocess((value) => {
+  if (value === null) return null;
+  if (typeof value !== 'string') return value;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}, z.string().min(1).nullable().optional());
 const nonEmptyObject = z
   .object({})
   .passthrough()
@@ -26,6 +37,28 @@ const allowedRoles = z.enum([
 
 const onboardingRoles = z.enum(['agency_manager', 'facility_manager']);
 const onboardingStatuses = z.enum(['pending', 'approved', 'rejected']);
+const residentRoles = z.enum(['resident', 'tenant']);
+const residentStatuses = z.enum(['active', 'inactive', 'suspended', 'pending']);
+const visitorPassStatuses = z.enum(['pending', 'approved', 'checked_in', 'checked_out', 'denied', 'cancelled', 'expired']);
+const visitorPassTypes = z.enum(['guest', 'cab', 'delivery', 'service']);
+const maintenanceRequestStatuses = z.enum(['pending', 'in_progress', 'completed', 'cancelled']);
+const maintenanceRequestPriorities = z.enum(['low', 'medium', 'high', 'urgent']);
+const serviceRequestStatuses = z.enum(['pending', 'in_progress', 'completed', 'cancelled']);
+const serviceRequestPriorities = z.enum(['low', 'medium', 'high', 'urgent']);
+const inquiryStatuses = z.enum(['open', 'in_progress', 'resolved', 'closed']);
+const inquiryPriorities = z.enum(['low', 'medium', 'high', 'urgent']);
+const inquiryTypes = z.enum(['general_inquiry', 'technical_support', 'feedback', 'suggestion', 'suggestions']);
+const adminSettingsAssetType = z.enum(['splash', 'onboarding']);
+const emergencyAlertStatuses = z.enum(['pending', 'active', 'investigating', 'escalated', 'resolved']);
+const emergencyAlertPriorities = z.enum(['low', 'medium', 'high', 'critical']);
+const noticeStatuses = z.enum(['draft', 'published', 'archived']);
+const noticePriorities = z.enum(['low', 'medium', 'high', 'urgent']);
+const notificationCampaignStatus = z.enum(['draft', 'scheduled', 'active', 'completed', 'paused', 'processing', 'delivered', 'failed']);
+const notificationChannel = z.enum(['sms', 'email', 'push', 'in-app']);
+const notificationAnalyticsDateRange = z.enum(['7days', '30days', '90days', 'custom']);
+const activityLogDateRange = z.enum(['all', 'today', 'yesterday', 'last_7_days', 'last_30_days', 'last_90_days', 'custom']);
+const userGroupType = z.enum(['block', 'role', 'interest', 'committee', 'custom']);
+const preferenceSettingType = z.enum(['boolean', 'select', 'text', 'number', 'color', 'time']);
 
 const pageLimitQuery = z.object({
   page: z.coerce.number().int().min(1).optional(),
@@ -42,6 +75,8 @@ const withSearchQuery = z.object({
 
 const idParam = z.object({ id: nonEmptyString });
 const uuidParam = z.object({ id: z.string().uuid() });
+const maintenanceRequestIdParam = z.object({ id: z.coerce.number().int().positive() });
+const serviceIdParam = z.object({ id: z.coerce.number().int().positive() });
 const paymentChargeScope = z.enum(['agency', 'community']);
 const paymentChargeType = z.enum(['fixed', 'variable', 'formula']);
 const paymentChargeFrequency = z.enum(['monthly', 'quarterly', 'yearly', 'one_time', 'custom_period']);
@@ -61,22 +96,142 @@ const payoutDestinationType = z.enum(['bank_account', 'mobile_money']);
 const payoutRequestAction = z.enum(['cancel', 'approve', 'reject', 'mark_processing', 'mark_paid', 'fail']);
 const payoutRuleShareMode = z.enum(['fixed', 'percentage']);
 const payoutRuleAgencyShareMode = z.enum(['remainder', 'fixed', 'percentage']);
+const personalHubServiceType = z.enum(['airtime', 'data', 'bill_payment', 'insurance', 'money_transfer']);
+const personalHubBillCategory = z.enum(['general', 'utilities', 'tv']);
+const joinRequestStatus = z.enum(['pending', 'approved', 'rejected', 'pending_manual_review']);
+const communityDirectoryRole = z.enum(['member', 'admin', 'committee']);
 const adminEmailFolder = z.enum(['all', 'inbox', 'sent', 'drafts', 'draft', 'archive', 'archived', 'deleted', 'trash', 'starred', 'important']);
 const adminEmailPriority = z.enum(['low', 'normal', 'high', 'urgent']);
 const adminEmailAction = z.enum(['draft', 'queue']);
 const adminEmailStatus = z.enum(['draft', 'queued', 'processing', 'sent', 'delivered', 'failed']);
+const adminMessageType = z.enum(['text', 'image', 'video', 'audio', 'file', 'system', 'location', 'contact']);
+const adminMessageStatus = z.enum(['sent', 'delivered', 'read', 'failed']);
+const clientObservabilityLevel = z.enum(['info', 'warn', 'error']);
+const ownershipType = z.enum(['owned', 'rented']);
 const paymentChargeTemplateTargetSchema = z.object({
   target_type: paymentChargeTargetType,
   target_value: z.union([z.string(), z.array(z.string()), z.record(z.any())]).optional(),
 });
+
+const optionalQueryStringArray = z.preprocess((value) => {
+  if (Array.isArray(value)) {
+    const flattened = value
+      .flatMap((entry) => (typeof entry === 'string' ? entry.split(',') : []))
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+    return flattened.length > 0 ? flattened : undefined;
+  }
+
+  if (typeof value === 'string') {
+    const entries = value
+      .split(',')
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+    return entries.length > 0 ? entries : undefined;
+  }
+
+  return undefined;
+}, z.array(nonEmptyString).optional());
 
 const atLeastOne = <T extends z.ZodTypeAny>(schema: T) =>
   schema.refine((value) => Object.keys(value as Record<string, unknown>).length > 0, {
     message: 'At least one field is required',
   });
 
+const maintenanceUpdateSchema = atLeastOne(
+  z.object({
+    status: optionalString,
+    assigned_to: optionalString,
+    completed_at: optionalString,
+    notes: optionalString,
+  })
+);
+
+const complaintUpdateSchema = atLeastOne(
+  z.object({
+    status: optionalString,
+    priority: optionalString,
+    category: optionalString,
+    subject: optionalString,
+    details: optionalString,
+    assigned_to: optionalString,
+    resolution: optionalString,
+    resolution_notes: optionalString,
+    resolved_at: optionalString,
+    in_progress_at: optionalString,
+    resolved_by_profile_id: optionalString,
+    updated_at: optionalString,
+  })
+);
+
+const adminComplaintUpdateSchema = atLeastOne(
+  z.object({
+    status: optionalLooseString,
+    priority: optionalLooseString,
+    category: optionalLooseString,
+    subject: optionalLooseString,
+    details: optionalLooseString,
+    title: optionalLooseString,
+    description: optionalLooseString,
+    assigned_to: optionalLooseNullableString,
+    resolution: optionalLooseNullableString,
+    resolution_notes: optionalLooseNullableString,
+  })
+);
+
+const paymentFieldsSchema = z
+  .object({
+    amount: z.coerce.number().positive(),
+    booking_id: z.string().uuid().optional().nullable(),
+    completed_at: z.string().optional().nullable(),
+    created_at: z.string().optional().nullable(),
+    description: z.string().optional().nullable(),
+    due_date: z.string().optional().nullable(),
+    failed_at: z.string().optional().nullable(),
+    id: z.string().uuid().optional(),
+    initiated_at: z.string().optional().nullable(),
+    invoice_generated_at: z.string().optional().nullable(),
+    metadata: z.record(z.any()).optional().nullable(),
+    notes: z.string().optional().nullable(),
+    paid_at: z.string().optional().nullable(),
+    payer_id: z.string().uuid().optional().nullable(),
+    payment_date: z.string().optional().nullable(),
+    payment_gateway: z.string().optional().nullable(),
+    payment_method: z.string().optional().nullable(),
+    payment_type: z.string().optional().nullable(),
+    receipt_url: z.string().optional().nullable(),
+    reference_number: z.string().optional().nullable(),
+    reminder_sent_at: z.string().optional().nullable(),
+    status: z.string().optional().nullable(),
+    title: z.string().optional().nullable(),
+    transaction_id: z.string().optional().nullable(),
+    unit_id: z.string().uuid().optional().nullable(),
+    updated_at: z.string().optional().nullable(),
+  });
+
+const paymentCreateSchema = paymentFieldsSchema.passthrough();
+
+const paymentUpdateSchema = atLeastOne(paymentFieldsSchema.partial());
+
+const adminBulkNoticeItemSchema = z.object({
+  community_id: z.string().uuid(),
+  title: nonEmptyString,
+  body: nonEmptyString,
+  image_url: optionalString,
+  video_url: optionalString,
+  tags: z.array(nonEmptyString).optional(),
+  author_name: optionalString,
+  author_avatar: optionalString,
+  category: optionalString,
+  priority: z.enum(['low', 'medium', 'high', 'urgent']).optional(),
+  status: z.enum(['draft', 'published', 'archived']).optional(),
+  posted_at: z.string().nullable().optional(),
+  is_featured: z.boolean().optional(),
+});
+
 export const schemas = {
   idParam,
+  uuidParam,
   authRegister: z.object({
     email,
     password: nonEmptyString,
@@ -86,6 +241,18 @@ export const schemas = {
   authLogin: z.object({
     email,
     password: nonEmptyString,
+  }),
+  clientObservabilityEvent: z.object({
+    app: z.enum(['superadmin', 'user', 'guard']),
+    source: nonEmptyString.max(100),
+    level: clientObservabilityLevel,
+    message: z.string().min(1).max(4000),
+    errorName: z.string().max(255).optional(),
+    stack: z.string().max(20000).optional(),
+    route: z.string().max(512).optional(),
+    release: z.string().max(255).optional(),
+    environment: z.string().max(255).optional(),
+    metadata: z.record(z.unknown()).optional(),
   }),
   accountDelete: z.object({
     current_password: nonEmptyString,
@@ -144,6 +311,114 @@ export const schemas = {
   adminAnalyticsQuery: z.object({
     timeFrame: optionalString,
   }),
+  adminAnalyticsDashboardQuery: z.object({
+    days: z.coerce.number().int().min(7).max(30).optional(),
+  }),
+  adminResidentDashboardQuery: z.object({
+    months: z.coerce.number().int().min(3).max(24).optional(),
+  }),
+  adminGuardDashboardQuery: z.object({
+    weeks: z.coerce.number().int().min(2).max(12).optional(),
+  }),
+  adminResidentListQuery: pageLimitQuery.merge(withSearchQuery).extend({
+    status: residentStatuses.optional(),
+    community_id: optionalLooseString,
+    unit_id: optionalLooseString,
+  }),
+  adminResidentCreate: z.object({
+    first_name: nonEmptyString,
+    last_name: nonEmptyString,
+    email,
+    phone: optionalLooseString,
+    mobile: optionalLooseString,
+    date_of_birth: optionalLooseString,
+    address: optionalLooseString,
+    avatar_url: optionalLooseString,
+    unit_number: optionalLooseString,
+    block_number: optionalLooseString,
+    unit_id: optionalLooseNullableString,
+    community_id: optionalLooseNullableString,
+    society_id: optionalLooseNullableString,
+    emergency_contact_name: optionalLooseString,
+    emergency_contact_phone: optionalLooseString,
+    role: residentRoles.optional(),
+    status: residentStatuses.optional(),
+    is_active: z.boolean().optional(),
+  }),
+  adminResidentUpdate: atLeastOne(
+    z.object({
+      first_name: optionalLooseString,
+      last_name: optionalLooseString,
+      email: z.preprocess((value) => {
+        if (typeof value !== 'string') return value;
+        const trimmed = value.trim();
+        return trimmed.length > 0 ? trimmed : undefined;
+      }, email.optional()),
+      phone: optionalLooseString,
+      mobile: optionalLooseString,
+      date_of_birth: optionalLooseString,
+      address: optionalLooseString,
+      avatar_url: optionalLooseString,
+      unit_number: optionalLooseString,
+      block_number: optionalLooseString,
+      unit_id: optionalLooseNullableString,
+      community_id: optionalLooseNullableString,
+      society_id: optionalLooseNullableString,
+      emergency_contact_name: optionalLooseString,
+      emergency_contact_phone: optionalLooseString,
+      role: residentRoles.optional(),
+      status: residentStatuses.optional(),
+      is_active: z.boolean().optional(),
+    })
+  ),
+  adminVisitorPassListQuery: withSearchQuery.extend({
+    status: visitorPassStatuses.optional(),
+    visitor_type: visitorPassTypes.optional(),
+    community_id: optionalLooseString,
+    unit_id: optionalLooseString,
+  }),
+  adminVisitorPassCreate: z.object({
+    visitor_name: nonEmptyString,
+    visitor_phone: optionalLooseNullableString,
+    purpose: optionalLooseString,
+    visitor_type: visitorPassTypes.optional(),
+    visit_date: optionalLooseString,
+    from_date: nonEmptyString,
+    to_date: nonEmptyString,
+    unit_id: nonEmptyString,
+    company_name: optionalLooseNullableString,
+    service_type: optionalLooseNullableString,
+    vehicle_type: optionalLooseNullableString,
+    vehicle_number: optionalLooseNullableString,
+    driver_name: optionalLooseNullableString,
+    delivery_details: optionalLooseNullableString,
+    send_gate_pass_notification: z.boolean().optional(),
+    entry_code: optionalLooseString,
+    entry_method: optionalLooseString,
+    qr_code_data: optionalLooseString,
+    status: visitorPassStatuses.optional(),
+  }),
+  adminVisitorPassUpdate: atLeastOne(
+    z.object({
+      status: z.enum(['approved', 'denied', 'checked_in', 'checked_out']).optional(),
+      guard_notes: optionalLooseNullableString,
+    })
+  ),
+  maintenanceRequestIdParam,
+  adminMaintenanceRequestListQuery: withSearchQuery.extend({
+    status: maintenanceRequestStatuses.optional(),
+    priority: maintenanceRequestPriorities.optional(),
+    unit_id: optionalLooseString,
+  }),
+  adminMaintenanceRequestUpdate: atLeastOne(
+    z.object({
+      status: maintenanceRequestStatuses.optional(),
+      assigned_to: optionalLooseNullableString,
+      priority: maintenanceRequestPriorities.optional(),
+      estimated_cost: z.coerce.number().min(0).optional().nullable(),
+      actual_cost: z.coerce.number().min(0).optional().nullable(),
+    })
+  ),
   adminUsersListQuery: pageLimitQuery.merge(withSearchQuery).extend({
     role: allowedRoles.optional(),
   }),
@@ -175,7 +450,16 @@ export const schemas = {
   ),
   adminBulkUpdateUsers: z.object({
     userIds: z.array(nonEmptyString).nonempty(),
-    updates: nonEmptyObject,
+    updates: atLeastOne(
+      z.object({
+        first_name: optionalString,
+        last_name: optionalString,
+        role: allowedRoles.optional(),
+        phone: optionalString,
+        profile_pic_url: optionalString,
+        is_active: z.boolean().optional(),
+      })
+    ),
   }).superRefine((value, ctx) => {
     if ('role' in value.updates && value.updates.role !== undefined) {
       const result = allowedRoles.safeParse(value.updates.role);
@@ -189,42 +473,305 @@ export const schemas = {
     }
   }),
 
-  adminCommunityCreate: nonEmptyObject,
-  adminCommunityUpdate: nonEmptyObject,
-  adminUnitCreate: nonEmptyObject,
-  adminUnitUpdate: nonEmptyObject,
-  adminProfileCreate: nonEmptyObject.superRefine((value, ctx) => {
-    if ('role' in value && value.role !== undefined) {
-      const result = allowedRoles.safeParse(value.role);
-      if (!result.success) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['role'],
-          message: 'Invalid role provided',
-        });
-      }
-    }
+  adminCommunityCreate: z
+    .object({
+      name: nonEmptyString,
+      society_type: optionalString,
+      community_type: optionalString,
+      address: optionalString,
+      city: optionalString,
+      state: optionalString,
+      country: optionalString,
+      pincode: optionalString,
+      phone: optionalString,
+      email: email.optional(),
+      website: z.string().url().optional(),
+      established_year: z.union([z.coerce.number().int(), z.string()]).optional(),
+      description: z.string().optional(),
+      total_units: z.coerce.number().int().nonnegative().optional(),
+      total_floors: z.coerce.number().int().nonnegative().optional(),
+      total_blocks: z.coerce.number().int().nonnegative().optional(),
+      parking_slots: z.coerce.number().int().nonnegative().optional(),
+      status: optionalString,
+      maintenance_charge: z.coerce.number().nonnegative().optional(),
+      security_deposit: z.coerce.number().nonnegative().optional(),
+      management_name: optionalString,
+      management_email: email.optional(),
+      management_phone: optionalString,
+      management_role: optionalString,
+      agency_id: z.string().uuid().optional().nullable(),
+    })
+    .passthrough(),
+  adminCommunityUpdate: atLeastOne(
+    z
+      .object({
+        name: optionalString,
+        society_type: optionalString,
+        community_type: optionalString,
+        address: optionalString,
+        city: optionalString,
+        state: optionalString,
+        country: optionalString,
+        pincode: optionalString,
+        phone: optionalString,
+        email: email.optional(),
+        website: z.string().url().optional(),
+        established_year: z.union([z.coerce.number().int(), z.string()]).optional(),
+        description: z.string().optional(),
+        total_units: z.coerce.number().int().nonnegative().optional(),
+        total_floors: z.coerce.number().int().nonnegative().optional(),
+        total_blocks: z.coerce.number().int().nonnegative().optional(),
+        parking_slots: z.coerce.number().int().nonnegative().optional(),
+        status: optionalString,
+        maintenance_charge: z.coerce.number().nonnegative().optional(),
+        security_deposit: z.coerce.number().nonnegative().optional(),
+        management_name: optionalString,
+        management_email: email.optional(),
+        management_phone: optionalString,
+        management_role: optionalString,
+        agency_id: z.string().uuid().optional().nullable(),
+      })
+      .passthrough()
+  ),
+  adminCommunityListQuery: pageLimitQuery
+    .merge(withSearchQuery)
+    .extend({
+      location: optionalString,
+      status: optionalString,
+      communityType: optionalString,
+      minUnits: z.coerce.number().int().nonnegative().optional(),
+      maxUnits: z.coerce.number().int().nonnegative().optional(),
+      minOccupancy: z.coerce.number().min(0).max(100).optional(),
+      maxOccupancy: z.coerce.number().min(0).max(100).optional(),
+      minArea: z.coerce.number().nonnegative().optional(),
+      maxArea: z.coerce.number().nonnegative().optional(),
+      amenities: optionalQueryStringArray,
+    })
+    .refine((value) => (value.minUnits ?? 0) <= (value.maxUnits ?? Number.MAX_SAFE_INTEGER), {
+      message: 'minUnits cannot exceed maxUnits',
+      path: ['minUnits'],
+    })
+    .refine((value) => (value.minOccupancy ?? 0) <= (value.maxOccupancy ?? 100), {
+      message: 'minOccupancy cannot exceed maxOccupancy',
+      path: ['minOccupancy'],
+    })
+    .refine((value) => (value.minArea ?? 0) <= (value.maxArea ?? Number.MAX_SAFE_INTEGER), {
+      message: 'minArea cannot exceed maxArea',
+      path: ['minArea'],
+    }),
+  adminCommunityDirectoryUpsert: z.object({
+    profileId: z.string().uuid(),
+    role: communityDirectoryRole,
+    committeePosition: optionalString.nullable(),
+    tenureStart: optionalString.nullable(),
+    tenureEnd: optionalString.nullable(),
   }),
-  adminProfileUpdate: nonEmptyObject.superRefine((value, ctx) => {
-    if ('role' in value && value.role !== undefined) {
-      const result = allowedRoles.safeParse(value.role);
-      if (!result.success) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['role'],
-          message: 'Invalid role provided',
-        });
-      }
-    }
+  adminUnitCreate: z
+    .object({
+      community_id: z.string().uuid().optional(),
+      society_id: z.string().uuid().optional(),
+      block: nonEmptyString,
+      number: nonEmptyString,
+      floor: z.coerce.number().int(),
+      ownership_type: ownershipType,
+      floor_area: z.coerce.number().nonnegative().optional(),
+      bedrooms: z.coerce.number().int().nonnegative().optional(),
+      bathrooms: z.coerce.number().int().nonnegative().optional(),
+      balconies: z.coerce.number().int().nonnegative().optional(),
+      parking_slots: z.coerce.number().int().nonnegative().optional(),
+      owner_id: z.string().uuid().optional().nullable(),
+      owner_name: optionalString,
+      owner_email: email.optional(),
+      owner_phone: optionalString,
+      tenant_id: z.string().uuid().optional().nullable(),
+      tenant_name: optionalString,
+      tenant_email: email.optional(),
+      tenant_phone: optionalString,
+      occupancy_start_date: optionalString,
+      occupancy_end_date: optionalString,
+      status: optionalString,
+    })
+    .passthrough()
+    .refine((value) => Boolean(value.community_id || value.society_id), {
+      message: 'community_id or society_id is required',
+      path: ['community_id'],
+    }),
+  adminUnitListQuery: pageLimitQuery.merge(withSearchQuery).extend({
+    community_id: optionalString,
+    status: optionalString,
+    type: optionalString,
   }),
-  adminMessageCreate: nonEmptyObject,
-  adminMessageUpdate: nonEmptyObject,
-
+  adminUnitUpdate: atLeastOne(
+    z
+      .object({
+        community_id: z.string().uuid().optional(),
+        society_id: z.string().uuid().optional(),
+        block: optionalString,
+        number: optionalString,
+        floor: z.coerce.number().int().optional(),
+        ownership_type: ownershipType.optional(),
+        floor_area: z.coerce.number().nonnegative().optional(),
+        bedrooms: z.coerce.number().int().nonnegative().optional(),
+        bathrooms: z.coerce.number().int().nonnegative().optional(),
+        balconies: z.coerce.number().int().nonnegative().optional(),
+        parking_slots: z.coerce.number().int().nonnegative().optional(),
+        owner_id: z.string().uuid().optional().nullable(),
+        owner_name: optionalString,
+        owner_email: email.optional(),
+        owner_phone: optionalString,
+        tenant_id: z.string().uuid().optional().nullable(),
+        tenant_name: optionalString,
+        tenant_email: email.optional(),
+        tenant_phone: optionalString,
+        occupancy_start_date: optionalString,
+        occupancy_end_date: optionalString,
+        status: optionalString,
+      })
+      .passthrough()
+  ),
+  adminJoinRequestListQuery: pageLimitQuery.merge(withSearchQuery).extend({
+    status: joinRequestStatus.optional(),
+    community_id: optionalString,
+  }),
+  adminJoinRequestUpdate: atLeastOne(
+    z.object({
+      status: joinRequestStatus.optional(),
+      review_notes: optionalString.nullable(),
+    })
+  ),
+  adminProfileCreate: z
+    .object({
+      email,
+      first_name: nonEmptyString,
+      last_name: nonEmptyString,
+      role: allowedRoles.optional(),
+      avatar_url: z.string().url().optional().nullable(),
+      bio: z.string().optional().nullable(),
+      block_number: optionalString.nullable(),
+      community_id: z.string().uuid().optional().nullable(),
+      email_verified: z.boolean().optional().nullable(),
+      emergency_contact: z.string().optional().nullable(),
+      entry_code: z.string().optional().nullable(),
+      full_name: z.string().optional().nullable(),
+      id: z.string().uuid().optional(),
+      is_active: z.boolean().optional().nullable(),
+      notification_preferences: z.record(z.any()).optional().nullable(),
+      phone: z.string().optional().nullable(),
+      phone_verified: z.boolean().optional().nullable(),
+      preferences: z.record(z.any()).optional().nullable(),
+      push_notification_token: z.string().optional().nullable(),
+      push_notifications_enabled: z.boolean().optional().nullable(),
+      qr_code_data: z.string().optional().nullable(),
+      role_id: z.string().uuid().optional().nullable(),
+      status: optionalString.nullable(),
+      two_factor_enabled: z.boolean().optional().nullable(),
+      unit_id: z.string().uuid().optional().nullable(),
+      user_id: z.string().uuid().optional().nullable(),
+    })
+    .passthrough(),
+  adminProfileUpdate: atLeastOne(
+    z
+      .object({
+        email: email.optional(),
+        first_name: optionalString,
+        last_name: optionalString,
+        role: allowedRoles.optional(),
+        avatar_url: z.string().url().optional().nullable(),
+        bio: z.string().optional().nullable(),
+        block_number: optionalString.nullable(),
+        community_id: z.string().uuid().optional().nullable(),
+        email_verified: z.boolean().optional().nullable(),
+        emergency_contact: z.string().optional().nullable(),
+        entry_code: z.string().optional().nullable(),
+        full_name: z.string().optional().nullable(),
+        is_active: z.boolean().optional().nullable(),
+        notification_preferences: z.record(z.any()).optional().nullable(),
+        phone: z.string().optional().nullable(),
+        phone_verified: z.boolean().optional().nullable(),
+        preferences: z.record(z.any()).optional().nullable(),
+        push_notification_token: z.string().optional().nullable(),
+        push_notifications_enabled: z.boolean().optional().nullable(),
+        qr_code_data: z.string().optional().nullable(),
+        role_id: z.string().uuid().optional().nullable(),
+        status: optionalString.nullable(),
+        two_factor_enabled: z.boolean().optional().nullable(),
+        unit_id: z.string().uuid().optional().nullable(),
+        user_id: z.string().uuid().optional().nullable(),
+      })
+      .passthrough()
+  ),
+  adminMessageCreate: z
+    .object({
+      to_user: z.string().uuid(),
+      body: z.string().optional(),
+      content: z.string().optional().nullable(),
+      attachments: z.any().optional().nullable(),
+      message_type: adminMessageType.optional(),
+      reply_to_id: z.string().uuid().optional().nullable(),
+    })
+    .refine((value) => Boolean(value.body?.trim() || value.content?.trim() || value.attachments != null), {
+      message: 'Message body, content, or attachments are required',
+      path: ['body'],
+    }),
+  adminMessageUpdate: atLeastOne(
+    z.object({
+      body: z.string().optional(),
+      content: z.string().optional().nullable(),
+      attachments: z.any().optional().nullable(),
+      message_type: adminMessageType.optional(),
+      read: z.boolean().optional(),
+      is_read: z.boolean().optional(),
+      read_at: z.string().datetime({ offset: true }).optional().nullable(),
+      message_status: adminMessageStatus.optional(),
+      delivered_at: z.string().datetime({ offset: true }).optional().nullable(),
+      reply_to_id: z.string().uuid().optional().nullable(),
+    })
+  ),
+  adminMessageGroupCreate: z.object({
+    name: nonEmptyString,
+    description: z.string().optional().nullable(),
+    member_ids: z.array(z.string().uuid()).optional(),
+  }),
+  adminMessageGroupMessageCreate: z
+    .object({
+      body: z.string().optional(),
+      attachments: z.any().optional().nullable(),
+      message_type: adminMessageType.optional(),
+    })
+    .refine((value) => Boolean(value.body?.trim() || value.attachments != null), {
+      message: 'Message body or attachments are required',
+      path: ['body'],
+    }),
+  adminNotificationCampaignListQuery: offsetQuery.extend({
+    status: notificationCampaignStatus.optional(),
+    type: z.union([notificationChannel, z.literal('all')]).optional(),
+    limit: z.coerce.number().int().min(1).max(200).optional(),
+  }),
+  adminNotificationDashboardQuery: z.object({
+    limit: z.coerce.number().int().min(1).max(25).optional(),
+  }),
+  adminNotificationAnalyticsQuery: z
+    .object({
+      dateRange: notificationAnalyticsDateRange.optional(),
+      startDate: optionalLooseString,
+      endDate: optionalLooseString,
+      channel: z.union([notificationChannel, z.literal('all')]).optional(),
+      page: z.coerce.number().int().min(1).optional(),
+      pageSize: z.coerce.number().int().min(1).max(100).optional(),
+    })
+    .refine(
+      (value) => value.dateRange !== 'custom' || Boolean(value.startDate && value.endDate),
+      {
+        message: 'startDate and endDate are required when dateRange is custom',
+        path: ['startDate'],
+      }
+    ),
   adminNotificationCreate: z
     .object({
       title: optionalString,
       name: optionalString,
-      type: nonEmptyString,
+      type: notificationChannel,
+      community_id: z.string().uuid().optional().nullable(),
       recipients_count: z.number().int().min(0).optional(),
       message: z.string().optional(),
       template: z.string().optional(),
@@ -234,7 +781,7 @@ export const schemas = {
       spent: z.number().optional().nullable(),
       scheduled_at: z.string().optional().nullable(),
       sent_at: z.string().optional().nullable(),
-      status: z.enum(['draft', 'scheduled', 'active', 'completed', 'paused', 'processing', 'delivered', 'failed']).optional(),
+      status: notificationCampaignStatus.optional(),
     })
     .refine((value) => value.name || value.title, {
       message: 'name or title is required',
@@ -245,12 +792,23 @@ export const schemas = {
       .object({
         title: optionalString,
         name: optionalString,
+        type: notificationChannel.optional(),
+        community_id: z.string().uuid().optional().nullable(),
         message: z.string().optional(),
         template: z.string().optional(),
         template_id: z.coerce.number().int().positive().optional().nullable(),
-        status: z.enum(['draft', 'scheduled', 'active', 'completed', 'paused', 'processing', 'delivered', 'failed']).optional(),
+        audience: z.any().optional(),
+        recipients_count: z.number().int().min(0).optional(),
+        delivered_count: z.number().int().min(0).optional(),
+        opened_count: z.number().int().min(0).optional(),
+        clicked_count: z.number().int().min(0).optional(),
+        failed_count: z.number().int().min(0).optional(),
+        budget: z.number().optional().nullable(),
+        spent: z.number().optional().nullable(),
+        scheduled_at: z.string().optional().nullable(),
+        sent_at: z.string().optional().nullable(),
+        status: notificationCampaignStatus.optional(),
       })
-      .passthrough()
   ),
   adminNotificationTemplateCreate: z.object({
     name: nonEmptyString,
@@ -304,6 +862,73 @@ export const schemas = {
       priority: adminEmailPriority.optional(),
     })
   ),
+  adminEmergencyAlertsListQuery: pageLimitQuery.extend({
+    community_id: optionalString,
+    status: emergencyAlertStatuses.optional(),
+    search: optionalString,
+  }),
+  adminEmergencyAlertCreate: z.object({
+    title: nonEmptyString,
+    description: optionalLooseNullableString,
+    alert_type: nonEmptyString,
+    priority: emergencyAlertPriorities.optional(),
+    status: emergencyAlertStatuses.optional(),
+    community_id: optionalString,
+    unit_id: optionalString,
+  }),
+  adminEmergencyAlertUpdate: atLeastOne(
+    z.object({
+      title: optionalString,
+      description: optionalLooseNullableString,
+      alert_type: optionalString,
+      priority: emergencyAlertPriorities.optional(),
+      status: emergencyAlertStatuses.optional(),
+      community_id: optionalString,
+      unit_id: optionalString.nullable(),
+    })
+  ),
+  adminNoticesListQuery: pageLimitQuery.extend({
+    community_id: optionalString,
+    status: noticeStatuses.optional(),
+    category: optionalString,
+    search: optionalString,
+  }),
+  adminNoticeCreate: z.object({
+    community_id: z.string().uuid(),
+    title: nonEmptyString,
+    body: nonEmptyString,
+    author_name: optionalString,
+    author_avatar: z.string().url().optional().nullable(),
+    category: optionalString,
+    priority: noticePriorities.optional(),
+    status: noticeStatuses.optional(),
+    tags: z.array(nonEmptyString).optional(),
+    image_url: z.string().url().optional().nullable(),
+    video_url: z.string().url().optional().nullable(),
+    posted_at: z.string().optional().nullable(),
+    is_featured: z.boolean().optional(),
+  }),
+  adminNoticeUpdate: atLeastOne(
+    z.object({
+      community_id: z.string().uuid().optional(),
+      title: optionalString,
+      body: optionalString,
+      author_name: optionalString,
+      author_avatar: z.string().url().optional().nullable(),
+      category: optionalString,
+      priority: noticePriorities.optional(),
+      status: noticeStatuses.optional(),
+      tags: z.array(nonEmptyString).optional(),
+      image_url: z.string().url().optional().nullable(),
+      video_url: z.string().url().optional().nullable(),
+      posted_at: z.string().optional().nullable(),
+      is_featured: z.boolean().optional(),
+    })
+  ),
+  adminNoticeCommentCreate: z.object({
+    content: nonEmptyString,
+    parent_id: z.string().uuid().optional().nullable(),
+  }),
 
   adminSocietyCreate: z.object({
     name: nonEmptyString,
@@ -320,25 +945,31 @@ export const schemas = {
 
   adminBulkUpdateMaintenance: z.object({
     requestIds: z.array(nonEmptyString).nonempty(),
-    updates: nonEmptyObject,
+    updates: maintenanceUpdateSchema,
   }),
   adminBulkUpdateComplaints: z.object({
     complaintIds: z.array(nonEmptyString).nonempty(),
-    updates: nonEmptyObject,
+    updates: complaintUpdateSchema,
   }),
   adminBulkUpdatePayments: z.object({
     paymentIds: z.array(nonEmptyString).nonempty(),
-    updates: nonEmptyObject,
+    updates: paymentUpdateSchema,
   }),
-  adminGeneratePayments: z.object({
-    societyId: nonEmptyString,
-    unitIds: z.array(nonEmptyString).optional(),
-    amount: z.coerce.number(),
-    dueDate: nonEmptyString,
-    description: z.string().optional(),
-  }),
+  adminGeneratePayments: z
+    .object({
+      societyId: optionalString,
+      communityId: optionalString,
+      unitIds: z.array(nonEmptyString).optional(),
+      amount: z.coerce.number(),
+      dueDate: nonEmptyString,
+      description: z.string().optional(),
+    })
+    .refine((value) => Boolean(value.societyId || value.communityId), {
+      message: 'communityId or societyId is required',
+      path: ['communityId'],
+    }),
   adminBulkCreateNotices: z.object({
-    notices: z.array(nonEmptyObject).nonempty(),
+    notices: z.array(adminBulkNoticeItemSchema).nonempty(),
   }),
   adminSettingsUpdate: nonEmptyObject,
   adminDeleteSettingParams: z.object({ key: nonEmptyString }),
@@ -864,8 +1495,11 @@ export const schemas = {
       submit_url: z.string().optional().nullable(),
       query_url: z.string().optional().nullable(),
       checkout_url: z.string().optional().nullable(),
+      billpay_url: z.string().optional().nullable(),
       merchant_id: z.string().optional().nullable(),
       api_key: z.string().optional().nullable(),
+      billpay_username: z.string().optional().nullable(),
+      billpay_auth_token: z.string().optional().nullable(),
     })
     .superRefine((value, ctx) => {
       if (value.scope === 'community' && !value.community_id) {
@@ -881,6 +1515,7 @@ export const schemas = {
       mode: z.enum(['test', 'live']).default('test'),
       scope: z.enum(['global', 'community']).default('global'),
       community_id: z.string().uuid().optional().nullable(),
+      target: z.enum(['checkout', 'billpay']).optional().default('checkout'),
     })
     .superRefine((value, ctx) => {
       if (value.scope === 'community' && !value.community_id) {
@@ -891,6 +1526,87 @@ export const schemas = {
         });
       }
     }),
+  adminUserGroupCreate: z.object({
+    name: nonEmptyString,
+    description: z.string().optional().nullable(),
+    color: z.string().optional().nullable(),
+    type: userGroupType,
+    max_members: z.coerce.number().int().positive().optional().nullable(),
+    auto_assign: z.boolean().optional(),
+    assignment_rules: z.array(nonEmptyString).optional(),
+    leader_id: z.string().uuid().optional().nullable(),
+    is_active: z.boolean().optional(),
+    tags: z.array(nonEmptyString).optional(),
+  }),
+  adminUserGroupUpdate: atLeastOne(
+    z.object({
+      name: optionalLooseString,
+      description: z.string().optional().nullable(),
+      color: z.string().optional().nullable(),
+      type: userGroupType.optional(),
+      max_members: z.coerce.number().int().positive().optional().nullable(),
+      auto_assign: z.boolean().optional(),
+      assignment_rules: z.array(nonEmptyString).optional(),
+      leader_id: z.string().uuid().optional().nullable(),
+      is_active: z.boolean().optional(),
+      tags: z.array(nonEmptyString).optional(),
+    })
+  ),
+  adminActivityLogListQuery: z.object({
+    dateRange: activityLogDateRange.optional(),
+    actionType: optionalString,
+    status: optionalString,
+    severity: optionalString,
+    userId: optionalString,
+    searchTerm: optionalString,
+    limit: z.coerce.number().int().min(1).max(500).optional(),
+    offset: z.coerce.number().int().min(0).optional(),
+  }),
+  adminActivityLogExportQuery: z.object({
+    dateRange: activityLogDateRange.optional(),
+    actionType: optionalString,
+    status: optionalString,
+    severity: optionalString,
+    userId: optionalString,
+    searchTerm: optionalString,
+  }),
+  adminPreferenceSettingsListQuery: z.object({
+    search: optionalString,
+    categoryId: z.string().uuid().optional(),
+    type: preferenceSettingType.optional(),
+    isUserEditable: booleanFromString.optional(),
+    isSystemSetting: booleanFromString.optional(),
+    sortBy: z.enum(['name', 'key', 'created_at', 'affected_users']).optional(),
+    sortOrder: z.enum(['asc', 'desc']).optional(),
+    page: z.coerce.number().int().min(1).optional(),
+    pageSize: z.coerce.number().int().min(1).max(200).optional(),
+  }),
+  adminPreferenceSettingCreate: z.object({
+    category_id: z.string().uuid(),
+    key: nonEmptyString,
+    name: nonEmptyString,
+    description: z.string().optional().nullable(),
+    type: preferenceSettingType,
+    default_value: z.any().optional(),
+    options: z.array(z.any()).optional().nullable(),
+    validation: z.record(z.any()).optional().nullable(),
+    is_user_editable: z.boolean().optional(),
+    is_system_setting: z.boolean().optional(),
+  }),
+  adminPreferenceSettingUpdate: atLeastOne(
+    z.object({
+      category_id: z.string().uuid().optional(),
+      key: optionalLooseString,
+      name: optionalLooseString,
+      description: z.string().optional().nullable(),
+      type: preferenceSettingType.optional(),
+      default_value: z.any().optional(),
+      options: z.array(z.any()).optional().nullable(),
+      validation: z.record(z.any()).optional().nullable(),
+      is_user_editable: z.boolean().optional(),
+      is_system_setting: z.boolean().optional(),
+    })
+  ),
   adminSmtpSettingsUpdate: z.object({
     smtp_host: optionalString,
     smtp_port: z.coerce.number().int().positive().optional(),
@@ -977,6 +1693,46 @@ export const schemas = {
       'pusher_key',
     ]),
     value: z.any().optional(),
+    settings: z
+      .object({
+        openai_api_key: optionalString,
+        openai_organization_id: optionalString,
+        anthropic_api_key: optionalString,
+        google_ai_api_key: optionalString,
+        azure_openai_endpoint: optionalString,
+        azure_openai_key: optionalString,
+        huggingface_api_key: optionalString,
+        sms_provider: optionalString,
+        sms_api_key: optionalString,
+        email_provider: optionalString,
+        email_api_key: optionalString,
+        whatsapp_business_api_key: optionalString,
+        telegram_bot_token: optionalString,
+        slack_webhook_url: optionalString,
+        razorpay_key_id: optionalString,
+        razorpay_key_secret: optionalString,
+        stripe_public_key: optionalString,
+        stripe_secret_key: optionalString,
+        paypal_client_id: optionalString,
+        paypal_client_secret: optionalString,
+        aws_access_key: optionalString,
+        aws_secret_key: optionalString,
+        aws_region: optionalString,
+        aws_bucket_name: optionalString,
+        google_cloud_key: optionalString,
+        azure_storage_key: optionalString,
+        firebase_config: optionalString,
+        pusher_app_id: optionalString,
+        pusher_key: optionalString,
+        pusher_secret: optionalString,
+        ai_chat_enabled: z.boolean().optional(),
+        ai_maintenance_predictions: z.boolean().optional(),
+        ai_document_processing: z.boolean().optional(),
+        smart_notifications: z.boolean().optional(),
+        automated_billing: z.boolean().optional(),
+        real_time_analytics: z.boolean().optional(),
+      })
+      .optional(),
   }),
   adminPushSettingsUpdate: z.object({
     firebase_enabled: z.boolean().optional(),
@@ -1090,6 +1846,38 @@ export const schemas = {
     payment_timeout: z.coerce.number().int().positive().optional(),
     auto_refund_enabled: z.boolean().optional(),
     partial_payment_enabled: z.boolean().optional(),
+  }),
+  adminPaymentGatewaySettingsTest: z.object({
+    gateway: z.enum(['razorpay', 'stripe', 'paypal', 'paytm', 'bank_transfer']),
+    settings: z
+      .object({
+        razorpay_enabled: z.boolean().optional(),
+        razorpay_key_id: optionalString,
+        razorpay_key_secret: optionalString,
+        razorpay_webhook_secret: optionalString,
+        razorpay_mode: optionalString,
+        stripe_enabled: z.boolean().optional(),
+        stripe_publishable_key: optionalString,
+        stripe_secret_key: optionalString,
+        stripe_webhook_secret: optionalString,
+        stripe_mode: optionalString,
+        paypal_enabled: z.boolean().optional(),
+        paypal_client_id: optionalString,
+        paypal_client_secret: optionalString,
+        paypal_webhook_id: optionalString,
+        paypal_mode: optionalString,
+        paytm_enabled: z.boolean().optional(),
+        paytm_merchant_id: optionalString,
+        paytm_merchant_key: optionalString,
+        paytm_website: optionalString,
+        paytm_mode: optionalString,
+        bank_transfer_enabled: z.boolean().optional(),
+        bank_name: optionalString,
+        account_number: optionalString,
+        ifsc_code: optionalString,
+        account_holder_name: optionalString,
+      })
+      .optional(),
   }),
   adminPaymentMethodSettingsUpdate: z.object({
     credit_card_enabled: z.boolean().optional(),
@@ -1225,10 +2013,17 @@ export const schemas = {
     category: optionalString,
     subcategory: optionalString,
   }),
+  adminSettingsAssetParams: z.object({
+    assetType: adminSettingsAssetType,
+  }),
+  adminSettingsAssetDelete: z.object({
+    path: nonEmptyString,
+  }),
 
   roleParams: z.object({ role: nonEmptyString }),
   rolePermissions: z.object({
     permissions: z.array(nonEmptyString).nonempty(),
+    description: optionalString,
   }),
 
   visitorPassCreate: z.object({
@@ -1262,12 +2057,34 @@ export const schemas = {
     priority: optionalString,
     requested_by: optionalString,
   }),
-  maintenanceUpdate: atLeastOne(
+  maintenanceUpdate: maintenanceUpdateSchema,
+
+  adminComplaintListQuery: z.object({
+    status: optionalLooseString,
+    priority: optionalLooseString,
+    unit_id: optionalLooseString,
+    search: optionalLooseString,
+  }),
+  adminComplaintCommentCreate: z.object({
+    comment: nonEmptyString,
+  }),
+  adminComplaintUpdate: adminComplaintUpdateSchema,
+  adminInquiryListQuery: z.object({
+    status: inquiryStatuses.optional(),
+    inquiry_type: inquiryTypes.optional(),
+    priority: inquiryPriorities.optional(),
+    community_id: z.string().uuid().optional(),
+    search: optionalLooseString,
+  }),
+  adminInquiryAssignableAdminsQuery: z.object({
+    community_id: z.string().uuid().optional(),
+  }),
+  adminInquiryUpdate: atLeastOne(
     z.object({
-      status: optionalString,
-      assigned_to: optionalString,
-      completed_at: optionalString,
-      notes: optionalString,
+      status: inquiryStatuses.optional(),
+      assigned_to: z.string().uuid().optional().nullable(),
+      admin_response: optionalLooseNullableString,
+      resolution_notes: optionalLooseNullableString,
     })
   ),
 
@@ -1282,22 +2099,7 @@ export const schemas = {
     category_id: optionalString,
     created_by: optionalString,
   }),
-  complaintUpdate: atLeastOne(
-    z.object({
-      status: optionalString,
-      priority: optionalString,
-      category: optionalString,
-      subject: optionalString,
-      details: optionalString,
-      assigned_to: optionalString,
-      resolution: optionalString,
-      resolution_notes: optionalString,
-      resolved_at: optionalString,
-      in_progress_at: optionalString,
-      resolved_by_profile_id: optionalString,
-      updated_at: optionalString,
-    })
-  ),
+  complaintUpdate: complaintUpdateSchema,
 
   messageQuery: z.object({
     withUser: nonEmptyString,
@@ -1331,8 +2133,8 @@ export const schemas = {
     paymentType: optionalString,
     unitId: optionalString,
   }),
-  paymentCreate: nonEmptyObject,
-  paymentUpdate: nonEmptyObject,
+  paymentCreate: paymentCreateSchema,
+  paymentUpdate: paymentUpdateSchema,
   paymentStatusUpdate: z.object({
     status: nonEmptyString,
     notes: z.string().optional(),
@@ -1433,6 +2235,154 @@ export const schemas = {
     agency_id: optionalString,
     community_id: optionalString,
   }),
+  adminPersonalHubDashboardQuery: z.object({
+    period: z.enum(['7', '30', '90', '365']).optional(),
+    recent_limit: z.coerce.number().int().min(1).max(25).optional(),
+  }),
+  adminPersonalHubReportsQuery: z.object({
+    period: z.enum(['7', '30', '90', '365']).optional(),
+    service_types: optionalString,
+    statuses: optionalString,
+    providers: optionalString,
+    search: optionalString,
+    min_amount: z.coerce.number().min(0).optional(),
+    max_amount: z.coerce.number().min(0).optional(),
+    limit: z.coerce.number().int().min(50).max(1000).optional(),
+  }),
+  personalHubCatalogProvidersQuery: z.object({
+    service_type: personalHubServiceType.optional(),
+    bill_category: personalHubBillCategory.optional(),
+  }),
+  adminPersonalHubCatalogProvidersQuery: z.object({
+    service_type: personalHubServiceType.optional(),
+    bill_category: personalHubBillCategory.optional(),
+    include_disabled: booleanFromString.optional(),
+  }),
+  adminPersonalHubCatalogPackagesQuery: z.object({
+    service_type: personalHubServiceType.optional(),
+    provider_id: z.string().uuid().optional(),
+    include_disabled: booleanFromString.optional(),
+  }),
+  adminPersonalHubCatalogProviderUpdateParams: uuidParam,
+  adminPersonalHubCatalogProviderUpdate: atLeastOne(
+    z.object({
+      provider_name: optionalString,
+      logo_url: z.string().optional().nullable(),
+      is_enabled_for_app: booleanFromString.optional(),
+    })
+  ),
+  adminMarketplaceCategoryCreate: z.object({
+    name: nonEmptyString,
+    description: z.string().optional().nullable(),
+    icon_name: z.string().optional().nullable(),
+    background_colors: z.string().optional().nullable(),
+    category_type: z.enum(['local', 'imported', 'featured']).optional().nullable(),
+    display_order: z.coerce.number().int().min(0).optional(),
+    is_active: z.boolean().optional(),
+  }),
+  adminMarketplaceCategoryUpdate: atLeastOne(
+    z.object({
+      name: nonEmptyString.optional(),
+      description: z.string().optional().nullable(),
+      icon_name: z.string().optional().nullable(),
+      background_colors: z.string().optional().nullable(),
+      category_type: z.enum(['local', 'imported', 'featured']).optional().nullable(),
+      display_order: z.coerce.number().int().min(0).optional(),
+      is_active: z.boolean().optional(),
+    })
+  ),
+  adminMarketplaceProductCreate: z.object({
+    name: nonEmptyString,
+    description: z.string().optional().nullable(),
+    category_id: z.string().uuid().optional().nullable(),
+    vendor_id: z.string().uuid().optional().nullable(),
+    sku: z.string().optional().nullable(),
+    price: z.coerce.number().min(0),
+    original_price: z.coerce.number().min(0).optional().nullable(),
+    stock_quantity: z.coerce.number().int().min(0).optional().nullable(),
+    country_of_origin: z.string().optional().nullable(),
+    images: z.array(z.string()).optional().nullable(),
+    is_imported: z.boolean().optional(),
+    is_featured: z.boolean().optional(),
+    is_active: z.boolean().optional(),
+  }),
+  adminMarketplaceProductUpdate: atLeastOne(
+    z.object({
+      name: nonEmptyString.optional(),
+      description: z.string().optional().nullable(),
+      category_id: z.string().uuid().optional().nullable(),
+      vendor_id: z.string().uuid().optional().nullable(),
+      sku: z.string().optional().nullable(),
+      price: z.coerce.number().min(0).optional(),
+      original_price: z.coerce.number().min(0).optional().nullable(),
+      stock_quantity: z.coerce.number().int().min(0).optional().nullable(),
+      country_of_origin: z.string().optional().nullable(),
+      images: z.array(z.string()).optional().nullable(),
+      is_imported: z.boolean().optional(),
+      is_featured: z.boolean().optional(),
+      is_active: z.boolean().optional(),
+    })
+  ),
+  adminMarketplaceVendorCreate: z.object({
+    store_name: nonEmptyString,
+    owner_name: z.string().optional().nullable(),
+    email: email.optional().nullable(),
+    phone: z.string().optional().nullable(),
+    address: z.string().optional().nullable(),
+    description: z.string().optional().nullable(),
+    logo_url: z.string().optional().nullable(),
+    banner_url: z.string().optional().nullable(),
+    is_active: z.boolean().optional(),
+    is_verified: z.boolean().optional(),
+  }),
+  adminMarketplaceVendorUpdate: atLeastOne(
+    z.object({
+      store_name: nonEmptyString.optional(),
+      owner_name: z.string().optional().nullable(),
+      email: email.optional().nullable(),
+      phone: z.string().optional().nullable(),
+      address: z.string().optional().nullable(),
+      description: z.string().optional().nullable(),
+      logo_url: z.string().optional().nullable(),
+      banner_url: z.string().optional().nullable(),
+      is_active: z.boolean().optional(),
+      is_verified: z.boolean().optional(),
+    })
+  ),
+  adminMarketplaceOrderStatusUpdate: z.object({
+    status: z.enum(['pending', 'processing', 'shipped', 'on_the_way', 'delivered', 'cancelled', 'refunded']),
+  }),
+  adminMarketplaceReviewVisibilityUpdate: z.object({
+    is_active: z.boolean(),
+  }),
+  personalHubCatalogQuery: z.object({
+    provider_id: optionalString,
+    external_service_code: optionalString,
+    service_type: personalHubServiceType.optional(),
+    bill_category: personalHubBillCategory.optional(),
+    payload: z.record(z.any()).default({}),
+  }).refine((value) => Boolean(value.provider_id || value.external_service_code), {
+    message: 'provider_id or external_service_code is required',
+    path: ['provider_id'],
+  }),
+  personalHubTransactionInitiate: z.object({
+    transaction_type: personalHubServiceType,
+    provider_id: optionalString,
+    external_service_code: optionalString,
+    bill_category: personalHubBillCategory.optional(),
+    payment_method: z.enum(['mobile_money', 'card']),
+    amount: z.coerce.number().positive(),
+    currency_code: optionalString,
+    description: optionalString,
+    query_context: z.record(z.any()).optional(),
+    recipient: z.record(z.any()).optional(),
+    selected_option: z.record(z.any()).optional(),
+    metadata: z.record(z.any()).optional(),
+    idempotency_key: optionalString,
+  }).refine((value) => Boolean(value.provider_id || value.external_service_code), {
+    message: 'provider_id or external_service_code is required',
+    path: ['provider_id'],
+  }),
   adminPayoutDestinationCreate: z.object({
     agency_id: optionalString.nullable(),
     community_id: optionalString.nullable(),
@@ -1493,6 +2443,18 @@ export const schemas = {
     notes: z.string().optional().nullable(),
     failure_reason: z.string().optional().nullable(),
   }),
+  adminPaymentTransactionsQuery: z.object({
+    status: optionalString,
+    source_type: optionalString,
+    unit_id: optionalString,
+  }),
+  adminPaymentObligationsQuery: z.object({
+    status: optionalString,
+    unit_id: optionalString,
+  }),
+  adminPaymentStatementsQuery: z.object({
+    unit_id: optionalString,
+  }),
   expressPayInitiate: z.object({
     amount: z.coerce.number().positive(),
     currency: optionalString,
@@ -1510,6 +2472,20 @@ export const schemas = {
   }),
   expressPayStatusParams: z.object({
     paymentId: nonEmptyString,
+  }),
+  expressPayCallbackPayload: z
+    .object({
+      token: optionalString,
+      order_id: optionalString,
+      'order-id': optionalString,
+    })
+    .passthrough(),
+  expressPayRedirectQuery: z.object({
+    return_url: optionalString,
+    payment_id: optionalString,
+  }),
+  personalHubTransactionStatusParams: z.object({
+    id: nonEmptyString,
   }),
   expressPayVerify: z
     .object({
@@ -1709,11 +2685,194 @@ export const schemas = {
     phone: nonEmptyString,
   }),
 
+  adminAmenityCreate: z.object({
+    name: nonEmptyString,
+    community_id: nonEmptyString,
+    description: optionalString,
+    category: optionalString,
+    type: z.enum(['free', 'paid', 'subscription', 'booking_required']).optional(),
+    location: optionalString,
+    capacity: z.number().int().nonnegative().optional(),
+    status: z.enum(['active', 'inactive', 'maintenance', 'coming_soon', 'renovation']).optional(),
+    operating_hours: z
+      .object({
+        open: nonEmptyString,
+        close: nonEmptyString,
+        days: z.array(nonEmptyString).min(1),
+      })
+      .optional(),
+    booking_required: z.boolean().optional(),
+    advance_booking_days: z.number().int().min(0).optional(),
+    advance_booking_hours: z.number().int().min(0).optional(),
+    max_booking_duration: z.number().int().min(1).optional(),
+    charges_per_hour: z.number().min(0).optional(),
+    monthly_charges: z.number().min(0).optional(),
+    security_deposit: z.number().min(0).optional(),
+    amenity_features: z.array(nonEmptyString).optional(),
+    contact_person: optionalString,
+    contact_phone: optionalString,
+    maintenance_frequency: optionalString,
+    maintenance_schedule: z.any().optional(),
+    last_maintenance: optionalString,
+    rules: optionalString,
+    images: z.array(z.string()).optional(),
+    amenity_type: optionalString,
+    is_paid: z.boolean().optional(),
+    is_active: z.boolean().optional(),
+    price: z.number().min(0).optional(),
+    price_per_hour: z.number().min(0).optional(),
+    availability_start: optionalString,
+    availability_end: optionalString,
+    booking_limit_per_day: z.number().int().min(0).optional(),
+    cancellation_policy: optionalString,
+    rules_and_regulations: optionalString,
+    contact_number: optionalString,
+    availability_schedule: z.any().optional(),
+    max_advance_booking_days: z.number().int().min(0).optional(),
+    maximum_booking_duration_hours: z.number().int().min(1).optional(),
+    minimum_booking_duration_hours: z.number().int().min(1).optional(),
+    booking_slots_per_day: z.number().int().min(0).optional(),
+    booking_cancellation_hours: z.number().int().min(0).optional(),
+  }),
+  adminAmenityUpdate: atLeastOne(
+    z.object({
+      name: optionalString,
+      community_id: optionalString,
+      description: optionalString,
+      category: optionalString,
+      type: z.enum(['free', 'paid', 'subscription', 'booking_required']).optional(),
+      location: optionalString,
+      capacity: z.number().int().nonnegative().optional(),
+      status: z.enum(['active', 'inactive', 'maintenance', 'coming_soon', 'renovation']).optional(),
+      operating_hours: z
+        .object({
+          open: nonEmptyString,
+          close: nonEmptyString,
+          days: z.array(nonEmptyString).min(1),
+        })
+        .optional(),
+      booking_required: z.boolean().optional(),
+      advance_booking_days: z.number().int().min(0).optional(),
+      advance_booking_hours: z.number().int().min(0).optional(),
+      max_booking_duration: z.number().int().min(1).optional(),
+      charges_per_hour: z.number().min(0).optional(),
+      monthly_charges: z.number().min(0).optional(),
+      security_deposit: z.number().min(0).optional(),
+      amenity_features: z.array(nonEmptyString).optional(),
+      contact_person: optionalString,
+      contact_phone: optionalString,
+      maintenance_frequency: optionalString,
+      maintenance_schedule: z.any().optional(),
+      last_maintenance: optionalString,
+      rules: optionalString,
+      images: z.array(z.string()).optional(),
+      amenity_type: optionalString,
+      is_paid: z.boolean().optional(),
+      is_active: z.boolean().optional(),
+      price: z.number().min(0).optional(),
+      price_per_hour: z.number().min(0).optional(),
+      availability_start: optionalString,
+      availability_end: optionalString,
+      booking_limit_per_day: z.number().int().min(0).optional(),
+      cancellation_policy: optionalString,
+      rules_and_regulations: optionalString,
+      contact_number: optionalString,
+      availability_schedule: z.any().optional(),
+      max_advance_booking_days: z.number().int().min(0).optional(),
+      maximum_booking_duration_hours: z.number().int().min(1).optional(),
+      minimum_booking_duration_hours: z.number().int().min(1).optional(),
+      booking_slots_per_day: z.number().int().min(0).optional(),
+      booking_cancellation_hours: z.number().int().min(0).optional(),
+    })
+  ),
+  adminAmenityListQuery: withSearchQuery.extend({
+    community_id: optionalString,
+    amenity_type: optionalString,
+    status: optionalString,
+    is_active: booleanFromString.optional(),
+    is_paid: booleanFromString.optional(),
+  }),
+  adminAmenityBookingListQuery: withSearchQuery.extend({
+    community_id: optionalString,
+    amenity_id: optionalString,
+    status: optionalString,
+    payment_status: optionalString,
+  }),
+  adminAmenityBookingCreate: z.object({
+    amenity_id: nonEmptyString,
+    user_id: nonEmptyString,
+    booking_date: optionalString,
+    start_time: optionalString,
+    end_time: optionalString,
+    start_datetime: optionalString,
+    end_datetime: optionalString,
+    total_days: z.number().int().min(1).optional(),
+    amount: z.number().min(0).optional(),
+    total_amount: z.number().min(0).optional(),
+    community_id: optionalString,
+    is_paid: z.boolean().optional(),
+    status: z.enum(['pending', 'confirmed', 'cancelled', 'completed']).optional(),
+    payment_status: z.enum(['pending', 'paid', 'failed', 'refunded']).optional(),
+  }),
+  adminAmenityBookingUpdate: atLeastOne(
+    z.object({
+      status: z.enum(['pending', 'confirmed', 'cancelled', 'completed']).optional(),
+      payment_status: z.enum(['pending', 'paid', 'failed', 'refunded']).optional(),
+    })
+  ),
+  adminServiceListQuery: withSearchQuery.extend({
+    community_id: optionalString,
+    category: optionalString,
+    is_active: booleanFromString.optional(),
+  }),
+  adminServiceCreate: z.object({
+    name: nonEmptyString,
+    community_id: nonEmptyString,
+    description: optionalString,
+    category: optionalString,
+    base_price: z.number().min(0).optional(),
+    provider_contact: optionalString,
+    icon_url: optionalString,
+    is_active: z.boolean().optional(),
+    features: z.record(z.any()).optional(),
+  }),
+  adminServiceUpdate: atLeastOne(
+    z.object({
+      name: optionalString,
+      community_id: optionalString,
+      description: optionalString,
+      category: optionalString,
+      base_price: z.number().min(0).optional().nullable(),
+      provider_contact: optionalString,
+      icon_url: optionalString,
+      is_active: z.boolean().optional(),
+      features: z.record(z.any()).optional(),
+    })
+  ),
+  adminServiceRequestListQuery: withSearchQuery.extend({
+    community_id: optionalString,
+    priority: serviceRequestPriorities.optional(),
+    service_id: z.coerce.number().int().positive().optional(),
+    status: serviceRequestStatuses.optional(),
+    user_id: optionalString,
+  }),
+  adminServiceRequestUpdate: atLeastOne(
+    z.object({
+      status: serviceRequestStatuses.optional(),
+      assigned_to: optionalLooseNullableString,
+      notes: optionalLooseNullableString,
+      priority: serviceRequestPriorities.optional(),
+      scheduled_date: optionalLooseNullableString,
+      total_amount: z.number().min(0).optional().nullable(),
+    })
+  ),
+
   societyListQuery: pageLimitQuery.merge(withSearchQuery).extend({
     sortBy: optionalString,
     sortOrder: z.enum(['asc', 'desc']).optional(),
     type: optionalString,
   }),
   societyIdParams: idParam,
+  serviceIdParam,
   unitBySocietyParams: idParam,
 };

@@ -1,34 +1,32 @@
 "use client";
+
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
-import Link from "next/link";
-import ReactApexChart from "react-apexcharts";
-import {
-  Card,
-  CardBody,
-  CardHeader,
-  CardTitle,
-  Col,
-  Row,
-} from "react-bootstrap";
 import { useResidentPerformanceTrends } from "@/hooks/useResidentDashboard";
+import ReactApexChart from "react-apexcharts";
 import { useMemo } from "react";
+import { Card, CardBody, CardHeader, CardTitle, Col, Row } from "react-bootstrap";
 
 const ResidentSatisfaction = () => {
-  const { data: performanceTrends, isLoading } = useResidentPerformanceTrends();
+  const { data: performanceTrends, error, isLoading } = useResidentPerformanceTrends();
 
   const chartData = useMemo(() => {
-    if (!performanceTrends) return { series: [75], avgSatisfaction: 4.6, engagement: 95 };
+    if (!performanceTrends) {
+      return { series: [0], avgSatisfaction: 0, engagement: 0, hasSatisfactionData: false };
+    }
 
-    const avgSatisfaction = performanceTrends.satisfactionScores.reduce((a, b) => a + b, 0) / performanceTrends.satisfactionScores.length;
-    const currentEngagement = performanceTrends.communityEngagement[performanceTrends.communityEngagement.length - 1];
-    
-    // Convert satisfaction to percentage for radial chart
-    const satisfactionPercentage = Math.round((avgSatisfaction / 5) * 100);
+    const satisfactionValues = performanceTrends.satisfactionScores.filter((value) => value > 0);
+    const engagementValues = performanceTrends.communityEngagement.filter((value) => value > 0);
+    const avgSatisfaction =
+      satisfactionValues.length > 0
+        ? satisfactionValues.reduce((sum, value) => sum + value, 0) / satisfactionValues.length
+        : 0;
+    const currentEngagement = engagementValues[engagementValues.length - 1] || 0;
 
     return {
-      series: [satisfactionPercentage],
-      avgSatisfaction: avgSatisfaction,
-      engagement: currentEngagement
+      series: [Math.round((avgSatisfaction / 5) * 100)],
+      avgSatisfaction,
+      engagement: currentEngagement,
+      hasSatisfactionData: satisfactionValues.length > 0,
     };
   }, [performanceTrends]);
 
@@ -80,9 +78,7 @@ const ResidentSatisfaction = () => {
             fontSize: "17px",
           },
           value: {
-            formatter: function (val: number) {
-              return parseInt(val.toString()) + "%";
-            },
+            formatter: (value: number) => `${parseInt(value.toString(), 10)}%`,
             color: "#111",
             fontSize: "36px",
             show: true,
@@ -117,12 +113,21 @@ const ResidentSatisfaction = () => {
         </CardHeader>
         <CardBody className="pt-0">
           <div className="placeholder-glow">
-            <div className="placeholder rounded-circle mx-auto" style={{ width: '200px', height: '200px' }}></div>
-            <div className="mt-3">
-              <span className="placeholder col-6"></span>
-              <span className="placeholder col-4"></span>
-            </div>
+            <div className="placeholder rounded-circle mx-auto" style={{ width: "200px", height: "200px" }}></div>
           </div>
+        </CardBody>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader className="pb-0">
+          <CardTitle as={"h4"}>Satisfaction Goals</CardTitle>
+        </CardHeader>
+        <CardBody className="text-center text-muted py-5">
+          Satisfaction metrics are unavailable right now.
         </CardBody>
       </Card>
     );
@@ -132,11 +137,7 @@ const ResidentSatisfaction = () => {
     <Card>
       <CardHeader className="d-flex align-items-center justify-content-between pb-0">
         <CardTitle as={"h4"}>Satisfaction Goals</CardTitle>
-        <div>
-          <Link href="" className="link-dark fs-20">
-            <IconifyIcon icon="ri-settings-4-line" />
-          </Link>
-        </div>
+        <span className="text-muted fs-13">Resident feedback</span>
       </CardHeader>
       <CardBody className="pt-0">
         <ReactApexChart
@@ -147,22 +148,18 @@ const ResidentSatisfaction = () => {
           className="apex-charts mb-4"
         />
         <h5>Satisfaction Metrics</h5>
+        {!chartData.hasSatisfactionData ? (
+          <p className="text-muted mb-0 mt-3">No scored resident feedback has been recorded yet.</p>
+        ) : null}
         <Row className="align-items-center justify-content-center mt-3 ">
           <Col lg={6} xs={6}>
             <div className="d-flex align-items-center gap-2">
               <div className="avatar bg-light bg-opacity-50 rounded flex-centered">
-                <IconifyIcon
-                  icon="solar:heart-broken"
-                  width={28}
-                  height={28}
-                  className="fs-28 text-primary"
-                />
+                <IconifyIcon icon="solar:heart-broken" width={28} height={28} className="fs-28 text-primary" />
               </div>
               <div>
-                <p className="mb-0 fs-16 text-dark fw-semibold">
-                  {chartData.avgSatisfaction.toFixed(1)} / 5.0
-                </p>
-                <small>This Month</small>
+                <p className="mb-0 fs-16 text-dark fw-semibold">{chartData.avgSatisfaction.toFixed(1)} / 5.0</p>
+                <small>Average score</small>
               </div>
             </div>
           </Col>
@@ -177,10 +174,8 @@ const ResidentSatisfaction = () => {
                 />
               </div>
               <div>
-                <p className="mb-0 fs-16 text-dark fw-semibold">
-                  {chartData.engagement}%
-                </p>
-                <small>Engagement</small>
+                <p className="mb-0 fs-16 text-dark fw-semibold">{chartData.engagement.toFixed(0)}%</p>
+                <small>Latest engagement</small>
               </div>
             </div>
           </Col>

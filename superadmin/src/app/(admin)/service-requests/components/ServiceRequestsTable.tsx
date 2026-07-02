@@ -18,6 +18,9 @@ const formatMoney = (amount?: number | null) =>
     minimumFractionDigits: 2,
   }).format(Number(amount || 0));
 
+const getPaymentLabel = (value?: string | null) =>
+  value ? formatServiceRequestStatusLabel(value) : "Not tracked";
+
 const getStatusVariant = (status?: string | null) => {
   switch (status) {
     case "completed":
@@ -92,7 +95,7 @@ const ServiceRequestsTable = ({ serviceRequests, onStatusUpdate, isUpdating }: S
               <td>
                 <Badge bg={getStatusVariant(request.status)}>{formatServiceRequestStatusLabel(request.status)}</Badge>
               </td>
-              <td>{formatServiceRequestStatusLabel(request.payment_status || "not_required")}</td>
+              <td>{getPaymentLabel(request.payment_status)}</td>
               <td>{formatMoney(request.total_amount)}</td>
               <td>
                 <div className="d-flex justify-content-end gap-2">

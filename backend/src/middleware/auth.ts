@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { createHttpError } from '../lib/httpError';
 import { supabase } from '../lib/supabase';
 
 interface UserProfile {
@@ -151,12 +152,12 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
   try {
     const token = req.headers['authorization']?.split(' ')[1];
     if (!token) {
-      return res.status(401).json({ error: 'Missing authorization token' });
+      return next(createHttpError(401, 'AUTH_TOKEN_MISSING', 'Missing authorization token'));
     }
 
     const { data: { user }, error } = await supabase.auth.getUser(token);
     if (error || !user) {
-      return res.status(401).json({ error: 'Invalid or expired token' });
+      return next(createHttpError(401, 'AUTH_TOKEN_INVALID', 'Invalid or expired token'));
     }
 
     // Resolve the canonical profile the same way the mobile/web apps do:
@@ -168,7 +169,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
       .maybeSingle();
 
     if (profileByUserId.error && !isNotFoundError(profileByUserId.error)) {
-      return res.status(500).json({ error: 'Failed to load user profile' });
+      return next(createHttpError(500, 'AUTH_PROFILE_LOOKUP_FAILED', 'Failed to load user profile', profileByUserId.error));
     }
 
     const profileById =
@@ -181,13 +182,13 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
             .maybeSingle();
 
     if (profileById.error && !isNotFoundError(profileById.error)) {
-      return res.status(500).json({ error: 'Failed to load user profile' });
+      return next(createHttpError(500, 'AUTH_PROFILE_LOOKUP_FAILED', 'Failed to load user profile', profileById.error));
     }
 
     const profile = profileByUserId.data || profileById.data;
 
     if (!profile) {
-      return res.status(401).json({ error: 'User profile not found' });
+      return next(createHttpError(401, 'AUTH_PROFILE_NOT_FOUND', 'User profile not found'));
     }
 
     const roleNameCandidates = getRoleNameCandidates(profile.role);
@@ -212,7 +213,12 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
         rolePermissionsError: rolePermissionsError.message,
         roleRowsError: roleRowsError.message,
       });
-      return res.status(500).json({ error: 'Failed to fetch user permissions' });
+      return next(
+        createHttpError(500, 'AUTH_PERMISSIONS_LOOKUP_FAILED', 'Failed to fetch user permissions', {
+          rolePermissionsError,
+          roleRowsError,
+        })
+      );
     }
 
     const effectivePermissions = new Set<string>();
@@ -249,7 +255,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
 export function requirePermission(permission: string) {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.permissions || !req.permissions.includes(permission)) {
-      return res.status(403).json({ error: 'Permission denied' });
+      return next(createHttpError(403, 'AUTH_PERMISSION_DENIED', 'Permission denied'));
     }
     next();
   };
@@ -258,7 +264,7 @@ export function requirePermission(permission: string) {
 // Middleware to check if user is an admin
 export function requireAdmin(req: Request, res: Response, next: NextFunction) {
   if (!req.userProfile || !isAdminLikeRole(req.userProfile.role)) {
-    return res.status(403).json({ error: 'Admin access required' });
+    return next(createHttpError(403, 'AUTH_ADMIN_REQUIRED', 'Admin access required'));
   }
   next();
 }
@@ -267,7 +273,7 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction) {
 export function requireSuperAdmin(req: Request, res: Response, next: NextFunction) {
   const normalizedRole = normalizeRoleName(req.userProfile?.role);
   if (!req.userProfile || (normalizedRole !== 'superadmin' && normalizedRole !== 'super_admin')) {
-    return res.status(403).json({ error: 'Super admin access required' });
+    return next(createHttpError(403, 'AUTH_SUPERADMIN_REQUIRED', 'Super admin access required'));
   }
   next();
 }

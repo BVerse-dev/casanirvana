@@ -186,18 +186,18 @@ export const useListEmailCampaigns = (
       // Transform to campaign format
       const campaigns: EmailCampaign[] = (data || []).map(campaign => ({
         id: campaign.id,
-        title: campaign.title,
-        type: campaign.type,
-        status: campaign.status,
-        recipients_count: campaign.recipients_count,
-        delivered_count: campaign.delivered_count,
-        opened_count: campaign.opened_count,
-        clicked_count: campaign.clicked_count,
-        failed_count: campaign.failed_count,
+        title: campaign.title || campaign.name || 'Untitled campaign',
+        type: campaign.type || 'email',
+        status: campaign.status || 'draft',
+        recipients_count: campaign.recipients_count || 0,
+        delivered_count: campaign.delivered_count || 0,
+        opened_count: campaign.opened_count || 0,
+        clicked_count: campaign.clicked_count || 0,
+        failed_count: campaign.failed_count || 0,
         scheduled_at: null,
         sent_at: campaign.sent_at,
-        created_at: campaign.created_at,
-        updated_at: campaign.updated_at,
+        created_at: campaign.created_at || new Date().toISOString(),
+        updated_at: campaign.updated_at || campaign.created_at || new Date().toISOString(),
       }));
 
       return campaigns;

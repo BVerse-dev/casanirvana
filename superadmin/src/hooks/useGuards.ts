@@ -306,14 +306,14 @@ export const useGuardsStats = () => {
 
         const { data: performanceData, error: performanceError } = await supabase
           .from('guard_performance')
-          .select('overall_rating');
+          .select('overall_score');
 
         if (performanceError) {
           console.error('Error fetching guard performance stats:', performanceError);
         }
 
         const ratingValues = (performanceData || [])
-          .map((performance) => Number(performance.overall_rating) || 0)
+          .map((performance) => Number(performance.overall_score) || 0)
           .filter((value) => value > 0);
 
         const averageRating = ratingValues.length > 0

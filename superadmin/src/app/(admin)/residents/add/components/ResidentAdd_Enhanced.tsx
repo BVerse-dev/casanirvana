@@ -1,5 +1,6 @@
 'use client'
 import { useCreateResident, useUpdateResident, type CreateResidentData } from '@/hooks/useResidents'
+import type { Resident } from '@/hooks/useResidents'
 import { useListCommunities } from '@/hooks/useCommunities'
 import { useListUnits } from '@/hooks/useUnits'
 import ChoicesFormInput from '@/components/from/ChoicesFormInput'
@@ -12,20 +13,18 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import React from 'react'
 import { toast } from 'react-hot-toast'
-import type { ResidentProfile } from '@/assets/data/residents'
 
 type ResidentAddProps = {
   onFormChange?: (data: CreateResidentData) => void
   mode?: 'create' | 'edit'
-  resident?: ResidentProfile | null
+  resident?: Resident | null
   residentId?: string
   onSuccess?: () => void
   onSubmittingChange?: (isSubmitting: boolean) => void
 }
 
-const normalizeRoleForForm = (role?: string | null): 'resident' | 'tenant' | 'admin' => {
+const normalizeRoleForForm = (role?: string | null): 'resident' | 'tenant' => {
   if (role === 'tenant') return 'tenant'
-  if (role === 'admin') return 'admin'
   return 'resident'
 }
 
@@ -40,7 +39,7 @@ const normalizeStatusForForm = (
   return 'active'
 }
 
-const buildInitialFormValues = (resident?: ResidentProfile | null): CreateResidentData => ({
+const buildInitialFormValues = (resident?: Resident | null): CreateResidentData => ({
   first_name: resident?.first_name || '',
   last_name: resident?.last_name || '',
   email: resident?.email || '',
@@ -58,7 +57,7 @@ const buildInitialFormValues = (resident?: ResidentProfile | null): CreateReside
   is_active: resident?.is_active,
 })
 
-const getCommunityFieldValue = (resident?: ResidentProfile | null, selectedCommunity?: string) => {
+const getCommunityFieldValue = (resident?: Resident | null, selectedCommunity?: string) => {
   if (selectedCommunity) return selectedCommunity
   return resident?.community_id || resident?.societies?.id || resident?.communities?.id || ''
 }
@@ -99,7 +98,7 @@ const ResidentAddEnhanced = ({
     unit_number: yup.string().optional(),
     block_number: yup.string().optional(),
     society_id: yup.string().optional(),
-    role: yup.string().oneOf(['resident', 'tenant', 'admin']).required(),
+    role: yup.string().oneOf(['resident', 'tenant']).required(),
     status: yup.string().oneOf(['active', 'inactive', 'suspended', 'pending']).optional(),
   })
 
@@ -109,7 +108,7 @@ const ResidentAddEnhanced = ({
   })
 
   React.useEffect(() => {
-    const initialValues = isEditMode ? buildInitialFormValues(resident) : {
+    const initialValues: CreateResidentData = isEditMode ? buildInitialFormValues(resident) : {
       ...buildInitialFormValues(null),
       role: 'resident',
       status: 'active',
@@ -161,7 +160,7 @@ const ResidentAddEnhanced = ({
       router.push('/residents/list-view')
     } catch (error) {
       console.error(`Error ${isEditMode ? 'updating' : 'creating'} resident:`, error)
-      toast.error(isEditMode ? 'Error updating resident' : 'Error creating resident')
+      toast.error(error instanceof Error ? error.message : isEditMode ? 'Error updating resident' : 'Error creating resident')
     } finally {
       if (onSubmittingChange) {
         onSubmittingChange(false)
@@ -173,7 +172,7 @@ const ResidentAddEnhanced = ({
   const submitLabel = isEditMode ? 'Update Resident' : 'Add Resident'
   const submittingLabel = isEditMode ? 'Updating...' : 'Adding...'
 
-  const filteredUnits = selectedCommunity ? units.filter(unit => unit.society_id === selectedCommunity) : units
+  const filteredUnits = selectedCommunity ? units.filter(unit => unit.community_id === selectedCommunity) : units
 
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
@@ -315,7 +314,6 @@ const ResidentAddEnhanced = ({
                     >
                       <option value="resident">Resident</option>
                       <option value="tenant">Tenant</option>
-                      <option value="admin">Admin</option>
                     </ChoicesFormInput>
                   )}
                 />

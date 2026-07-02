@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Alert,
   Badge,
@@ -30,7 +30,8 @@ import {
   useUpdateCampaign,
   type Campaign,
 } from '@/hooks/useNotificationCampaigns'
-import { useNotificationRealtime } from '@/hooks/useNotificationRealtime'
+import { useAdminCapabilities } from '@/hooks/useAdminCapabilities'
+import { useListCommunities } from '@/hooks/useCommunities'
 import { useListNotificationTemplates } from '@/hooks/useNotificationTemplates'
 
 const formatDateTime = (value?: string | null, fallback = 'Not scheduled') => {
@@ -146,6 +147,11 @@ const getCampaignWindowLabel = (campaign: Campaign) => {
   return `Updated ${formatDateTime(campaign.updated_at, 'Not updated')}`
 }
 
+const normalizeRoleName = (role?: string | null) =>
+  typeof role === 'string' ? role.trim().toLowerCase().replace(/\s+/g, '_') : ''
+
+const GLOBAL_ADMIN_ROLES = new Set(['superadmin', 'super_admin', 'admin', 'administrator'])
+
 const NotificationCampaignsView = () => {
   const router = useRouter()
 
@@ -161,6 +167,7 @@ const NotificationCampaignsView = () => {
   const [formData, setFormData] = useState({
     name: '',
     type: 'sms' as Campaign['type'],
+    communityId: '',
     templateId: '',
     audiencePreset: 'all-residents',
     audience: '',
@@ -169,17 +176,13 @@ const NotificationCampaignsView = () => {
     budget: '',
   })
 
+  const { data: capabilities } = useAdminCapabilities()
+  const { data: communitiesPayload } = useListCommunities({ page: 1, pageSize: 200 })
   const { data: campaigns = [], isLoading, error } = useListCampaigns({ limit: 200, offset: 0 })
   const { data: templates = [] } = useListNotificationTemplates()
   const createCampaignMutation = useCreateCampaign()
   const updateCampaignMutation = useUpdateCampaign()
   const deleteCampaignMutation = useDeleteCampaign()
-
-  useNotificationRealtime({
-    channelName: 'superadmin-notification-campaigns',
-    tables: ['notification_campaigns', 'notification_templates'],
-    queryKeys: [['campaigns'], ['notification-templates'], ['notification_campaigns']],
-  })
 
   const templateOptions = useMemo<TemplateOption[]>(() => {
     return templates.map((template) => ({
@@ -195,6 +198,22 @@ const NotificationCampaignsView = () => {
   const filteredTemplateOptions = useMemo(() => {
     return templateOptions.filter((template) => template.status !== 'archived' && template.type === formData.type)
   }, [formData.type, templateOptions])
+
+  const normalizedRole = normalizeRoleName(capabilities?.role)
+  const isGlobalAdmin = GLOBAL_ADMIN_ROLES.has(normalizedRole)
+  const scopedCommunityIds = capabilities?.scope?.community_ids || []
+  const communityOptions = useMemo(() => {
+    const communities = communitiesPayload?.data || []
+    if (isGlobalAdmin) {
+      return communities
+    }
+
+    const allowedIds = new Set(scopedCommunityIds)
+    return communities.filter((community) => allowedIds.has(community.id))
+  }, [communitiesPayload?.data, isGlobalAdmin, scopedCommunityIds])
+  const defaultCommunityId = !isGlobalAdmin && scopedCommunityIds.length === 1 ? scopedCommunityIds[0] : ''
+  const selectedCommunityName =
+    communityOptions.find((community) => community.id === (formData.communityId || defaultCommunityId))?.name || null
 
   const selectedTemplate = useMemo(
     () => templateOptions.find((template) => template.id === formData.templateId) ?? null,
@@ -245,6 +264,7 @@ const NotificationCampaignsView = () => {
     setFormData({
       name: '',
       type: 'sms',
+      communityId: defaultCommunityId,
       templateId: '',
       audiencePreset: 'all-residents',
       audience: '',
@@ -254,14 +274,40 @@ const NotificationCampaignsView = () => {
     })
   }
 
+  useEffect(() => {
+    if (!showCreateModal || isGlobalAdmin || !defaultCommunityId || formData.communityId) {
+      return
+    }
+
+    setFormData((current) => ({
+      ...current,
+      communityId: defaultCommunityId,
+    }))
+  }, [defaultCommunityId, formData.communityId, isGlobalAdmin, showCreateModal])
+
   const closeCreateModal = () => {
     setShowCreateModal(false)
     resetForm()
   }
 
+  const openCreateModal = () => {
+    resetForm()
+    setShowCreateModal(true)
+  }
+
   const handleCreateCampaign = async (status: 'draft' | 'scheduled' | 'processing') => {
     if (!formData.name.trim()) {
       toast.error('Campaign name is required.')
+      return
+    }
+
+    if (!isGlobalAdmin && scopedCommunityIds.length === 0) {
+      toast.error('No community scope is assigned to this admin account for notification campaigns.')
+      return
+    }
+
+    if (!isGlobalAdmin && scopedCommunityIds.length > 1 && !formData.communityId) {
+      toast.error('Select the community this campaign belongs to before continuing.')
       return
     }
 
@@ -281,6 +327,7 @@ const NotificationCampaignsView = () => {
         name: formData.name.trim(),
         title: formData.name.trim(),
         type: formData.type,
+        community_id: formData.communityId || undefined,
         template: selectedTemplate?.name,
         template_id: selectedTemplate ? Number(selectedTemplate.id) : null,
         audience,
@@ -379,7 +426,7 @@ const NotificationCampaignsView = () => {
             <IconifyIcon icon="ri:bar-chart-box-line" className="me-2" />
             View Reports
           </Button>
-          <Button variant="primary" onClick={() => setShowCreateModal(true)}>
+          <Button variant="primary" onClick={openCreateModal}>
             <IconifyIcon icon="ri:add-line" className="me-2" />
             Create Campaign
           </Button>
@@ -741,6 +788,36 @@ const NotificationCampaignsView = () => {
                 </div>
               </div>
             </Alert>
+            {!isGlobalAdmin && scopedCommunityIds.length === 0 ? (
+              <Alert variant="warning">
+                This admin account does not currently have a community scope, so campaign creation is unavailable until one is assigned.
+              </Alert>
+            ) : null}
+            {isGlobalAdmin || scopedCommunityIds.length > 1 ? (
+              <div className="mb-3">
+                <FormLabel>Community scope</FormLabel>
+                <FormSelect
+                  value={formData.communityId}
+                  onChange={(event) => setFormData({ ...formData, communityId: event.target.value })}
+                >
+                  {isGlobalAdmin ? <option value="">Platform-wide campaign</option> : <option value="">Select a community</option>}
+                  {communityOptions.map((community) => (
+                    <option key={community.id} value={community.id}>
+                      {community.name}
+                    </option>
+                  ))}
+                </FormSelect>
+                <div className="form-text">
+                  {isGlobalAdmin
+                    ? 'Leave this blank only for a true platform-wide campaign. Choose a community whenever the campaign belongs to one tenant.'
+                    : 'Scoped admins must attach each campaign to the correct community before it can be queued.'}
+                </div>
+              </div>
+            ) : selectedCommunityName ? (
+              <Alert variant="light" className="border">
+                <strong>Community scope:</strong> {selectedCommunityName}
+              </Alert>
+            ) : null}
             <Row>
               <Col md={6}>
                 <div className="mb-3">

@@ -11,11 +11,8 @@ import PageTitle from '@/components/PageTitle';
 import ComponentContainerCard from '@/components/ComponentContainerCard';
 import TextFormInput from '@/components/from/TextFormInput';
 import IconifyIcon from '@/components/wrappers/IconifyIcon';
-
-import { useSession } from 'next-auth/react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+import { useAdminApi } from '@/hooks/useAdminApi';
 
 // Validation schema
 const roleSchema = yup.object({
@@ -205,54 +202,43 @@ const defaultRoles = [
 ];
 
 const RolesPermissionsSettingsPage = () => {
-  const { data: session } = useSession();
+  const { fetchAdmin, hasToken } = useAdminApi();
   const queryClient = useQueryClient();
-  const token = session?.accessToken as string | undefined;
-
-  const fetchAdmin = async (path: string, options: RequestInit = {}) => {
-    if (!token) {
-      throw new Error('Missing admin session. Please sign in again.');
-    }
-
-    const response = await fetch(`${API_BASE_URL}${path}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-        ...options.headers,
-      },
-    });
-
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      throw new Error(payload.error || payload.message || 'Request failed');
-    }
-    return payload;
-  };
 
   const [showModal, setShowModal] = useState(false);
   const [editingRole, setEditingRole] = useState<any>(null);
-  const [selectedRole, setSelectedRole] = useState<string>('user');
+  const [selectedRole, setSelectedRole] = useState<string>('');
   const [showAlert, setShowAlert] = useState<{ type: 'success' | 'danger'; message: string } | null>(null);
-  const [roles, setRoles] = useState(defaultRoles);
+  const [roles, setRoles] = useState<Array<{ name: string; description: string; permissions: string[] }>>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { data: rolesData, isLoading: loadingRoles } = useQuery({
+  const { data: rolesData, isLoading: loadingRoles, error: rolesError } = useQuery({
     queryKey: ['adminRoles'],
     queryFn: async () => fetchAdmin('/admin/roles'),
-    enabled: Boolean(token),
+    enabled: hasToken,
   });
 
   useEffect(() => {
-    if (!rolesData) return;
+    if (!Array.isArray(rolesData)) return;
     const roleDefaults = new Map(defaultRoles.map(role => [role.name, role]));
-    const normalized = (rolesData as Array<{ role: string; permissions: string[] }>).map(role => ({
+    const normalized = rolesData.map((role: { role: string; description?: string; permissions: string[] }) => ({
       name: role.role,
-      description: roleDefaults.get(role.role)?.description || '',
+      description: role.description || roleDefaults.get(role.role)?.description || 'Custom role',
       permissions: role.permissions || [],
     }));
-    setRoles(normalized.length ? normalized : defaultRoles);
+    setRoles(normalized);
   }, [rolesData]);
+
+  useEffect(() => {
+    if (roles.length === 0) {
+      setSelectedRole('');
+      return;
+    }
+
+    if (!roles.some((role) => role.name === selectedRole)) {
+      setSelectedRole(roles[0].name);
+    }
+  }, [roles, selectedRole]);
 
   const {
     control,
@@ -299,12 +285,18 @@ const RolesPermissionsSettingsPage = () => {
         .then(() => {
           const updatedRoles = roles.filter(role => role.name !== roleName);
           setRoles(updatedRoles);
+          if (selectedRole === roleName) {
+            setSelectedRole(updatedRoles[0]?.name || '');
+          }
           setShowAlert({ type: 'success', message: 'Role deleted successfully!' });
           queryClient.invalidateQueries({ queryKey: ['adminRoles'] });
         })
         .catch((error) => {
           console.error('Error deleting role:', error);
-          setShowAlert({ type: 'danger', message: 'Failed to delete role.' });
+          setShowAlert({
+            type: 'danger',
+            message: error instanceof Error ? error.message : 'Failed to delete role.',
+          });
         })
         .finally(() => {
           setIsSubmitting(false);
@@ -329,7 +321,10 @@ const RolesPermissionsSettingsPage = () => {
         }
         await fetchAdmin(`/admin/roles/${encodeURIComponent(roleData.name)}/permissions`, {
           method: 'PUT',
-          body: JSON.stringify({ permissions: roleData.permissions }),
+          body: JSON.stringify({
+            description: roleData.description,
+            permissions: roleData.permissions,
+          }),
         });
         const updatedRoles = roles.map(role =>
           role.name === editingRole.name ? roleData : role
@@ -339,7 +334,10 @@ const RolesPermissionsSettingsPage = () => {
       } else {
         await fetchAdmin(`/admin/roles/${encodeURIComponent(roleData.name)}/permissions`, {
           method: 'PUT',
-          body: JSON.stringify({ permissions: roleData.permissions }),
+          body: JSON.stringify({
+            description: roleData.description,
+            permissions: roleData.permissions,
+          }),
         });
         const updatedRoles = [...roles, roleData];
         setRoles(updatedRoles);
@@ -350,7 +348,10 @@ const RolesPermissionsSettingsPage = () => {
       setTimeout(() => setShowAlert(null), 5000);
     } catch (error) {
       console.error('Error saving role:', error);
-      setShowAlert({ type: 'danger', message: 'Failed to save role.' });
+      setShowAlert({
+        type: 'danger',
+        message: error instanceof Error ? error.message : 'Failed to save role.',
+      });
       setTimeout(() => setShowAlert(null), 5000);
     } finally {
       setIsSubmitting(false);
@@ -417,6 +418,20 @@ const RolesPermissionsSettingsPage = () => {
     );
   }
 
+  if (rolesError) {
+    return (
+      <>
+        <PageTitle subName="Identity & Access" title="Roles & Permissions" />
+        <Alert variant="danger">
+          <IconifyIcon icon="ri:error-warning-line" className="me-2" />
+          {rolesError instanceof Error
+            ? rolesError.message
+            : 'Failed to load roles. Reload this page before making changes.'}
+        </Alert>
+      </>
+    );
+  }
+
   return (
     <>
       <PageTitle subName="Identity & Access" title="Roles & Permissions" />
@@ -452,26 +467,33 @@ const RolesPermissionsSettingsPage = () => {
                 </Row>
               </CardHeader>
               <CardBody>
-                <div className="list-group list-group-flush">
-                  {roles.map((role) => (
-                    <div 
-                      key={role.name}
-                      className={`list-group-item list-group-item-action d-flex justify-content-between align-items-center ${selectedRole === role.name ? 'active' : ''}`}
-                      style={{ cursor: 'pointer' }}
-                      onClick={() => setSelectedRole(role.name)}
-                    >
-                      <div>
-                        <div className="fw-semibold">{getRoleDisplayName(role.name)}</div>
-                        <small className="text-muted">{role.permissions.length} permissions</small>
+                {roles.length === 0 ? (
+                  <Alert variant="info" className="mb-0">
+                    <IconifyIcon icon="ri:information-line" className="me-2" />
+                    No role permission mappings are stored yet. Add a role to begin configuring permissions.
+                  </Alert>
+                ) : (
+                  <div className="list-group list-group-flush">
+                    {roles.map((role) => (
+                      <div
+                        key={role.name}
+                        className={`list-group-item list-group-item-action d-flex justify-content-between align-items-center ${selectedRole === role.name ? 'active' : ''}`}
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => setSelectedRole(role.name)}
+                      >
+                        <div>
+                          <div className="fw-semibold">{getRoleDisplayName(role.name)}</div>
+                          <small className="text-muted">{role.permissions.length} permissions</small>
+                        </div>
+                        <div>
+                          <Badge bg={getRoleBadgeVariant(role.name)}>
+                            {getRoleDisplayName(role.name)}
+                          </Badge>
+                        </div>
                       </div>
-                      <div>
-                        <Badge bg={getRoleBadgeVariant(role.name)}>
-                          {getRoleDisplayName(role.name)}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </CardBody>
             </Card>
           </ComponentContainerCard>
@@ -492,7 +514,13 @@ const RolesPermissionsSettingsPage = () => {
                     <Button 
                       variant="outline-primary" 
                       size="sm" 
-                      onClick={() => handleEditRole(roles.find(r => r.name === selectedRole))}
+                      onClick={() => {
+                        const role = roles.find((item) => item.name === selectedRole);
+                        if (role) {
+                          handleEditRole(role);
+                        }
+                      }}
+                      disabled={!selectedRole}
                     >
                       <IconifyIcon icon="ri:edit-line" className="me-1" />
                       Edit Role

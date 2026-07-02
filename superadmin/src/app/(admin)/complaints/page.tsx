@@ -42,7 +42,7 @@ const ComplaintsPage = () => {
   if (isLoading) {
     return (
       <>
-        <PageTitle title="Complaints Management" subName="Community Management" />
+        <PageTitle title="Complaints Management" subName="Operations" />
         <Row>
           <Col xl={12}>
             <Card>
@@ -57,7 +57,7 @@ const ComplaintsPage = () => {
   if (error) {
     return (
       <>
-        <PageTitle title="Complaints Management" subName="Community Management" />
+        <PageTitle title="Complaints Management" subName="Operations" />
         <Row>
           <Col xl={12}>
             <Card>
@@ -102,7 +102,10 @@ const ComplaintsPage = () => {
     }
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString?: string | null) => {
+    if (!dateString) {
+      return "N/A";
+    }
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
@@ -116,22 +119,7 @@ const ComplaintsPage = () => {
   ) => {
     setFeedback(null);
     try {
-      const now = new Date().toISOString();
-      const updates: Record<string, string | null> = {
-        status,
-        updated_at: now,
-      };
-      if (status === "in_progress") {
-        updates.in_progress_at = now;
-        updates.resolved_at = null;
-      } else if (status === "resolved") {
-        updates.resolved_at = now;
-      } else if (status === "pending") {
-        updates.in_progress_at = null;
-        updates.resolved_at = null;
-        updates.resolution_notes = null;
-      }
-      await updateComplaintMutation.mutateAsync({ id: complaintId, data: updates });
+      await updateComplaintMutation.mutateAsync({ id: complaintId, data: { status } });
       setFeedback({
         variant: "success",
         message: `Complaint ${complaintId.slice(0, 8)} updated to ${formatLabel(status)}.`,
@@ -165,7 +153,7 @@ const ComplaintsPage = () => {
 
   return (
     <>
-      <PageTitle title="Complaints Management" subName="Community Management" />
+      <PageTitle title="Complaints Management" subName="Operations" />
       
       {/* Dashboard Components */}
       <ComplaintGridCard />
@@ -181,7 +169,7 @@ const ComplaintsPage = () => {
                 </CardTitle>
               </div>
               <span className="badge bg-light-subtle text-muted border">
-                Real-time list
+                Scoped admin data
               </span>
             </CardHeader>
             {feedback ? (

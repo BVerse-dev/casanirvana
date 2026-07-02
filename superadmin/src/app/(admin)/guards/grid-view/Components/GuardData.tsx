@@ -31,8 +31,8 @@ const GuardCard = ({ id, full_name, email, phone, avatar_url, societies, is_acti
       case 'view':
         window.open(`/guards/details?id=${id}`, '_blank')
         break
-      case 'edit':
-        window.open(`/guards/edit?id=${id}`, '_blank')
+      case 'manage':
+        window.open(`/guards/manage?tab=assignments&guardId=${id}`, '_blank')
         break
       case 'delete':
         onDelete({
@@ -88,9 +88,9 @@ const GuardCard = ({ id, full_name, email, phone, avatar_url, societies, is_acti
                   <IconifyIcon icon="solar:eye-broken" className="me-2" />
                   View Details
                 </DropdownItem>
-                <DropdownItem onClick={() => handleActionClick('edit')}>
-                  <IconifyIcon icon="solar:pen-2-broken" className="me-2" />
-                  Edit
+                <DropdownItem onClick={() => handleActionClick('manage')}>
+                  <IconifyIcon icon="ri:settings-3-line" className="me-2" />
+                  Manage Assignments
                 </DropdownItem>
                 <DropdownItem onClick={() => handleActionClick('delete')} className="text-danger">
                   <IconifyIcon icon="solar:trash-bin-minimalistic-2-broken" className="me-2" />
@@ -184,7 +184,7 @@ const GuardData = ({
         setShowDeleteModal(false)
         setSelectedGuard(null)
       } catch (error) {
-        toast.error('Failed to delete guard')
+        toast.error(error instanceof Error ? error.message : 'Failed to delete guard')
       }
     }
   }
@@ -271,17 +271,17 @@ const GuardData = ({
               <GuardCard 
                 id={guard.id}
                 full_name={guard.full_name}
-                email={guard.email}
-                phone={guard.phone}
-                avatar_url={guard.avatar_url}
+                email={guard.email ?? null}
+                phone={guard.phone ?? null}
+                avatar_url={guard.avatar_url ?? null}
                 societies={guard.societies ? {
-                  id: guard.societies.id,
-                  name: guard.societies.name,
-                  address: guard.societies.address || undefined
+                  id: guard.societies.id ?? "",
+                  name: guard.societies.name ?? "",
+                  address: guard.societies.address ?? undefined
                 } : null}
-                is_active={guard.is_active}
-                shift_type={guard.shift_type}
-                employment_date={guard.employment_date}
+                is_active={guard.is_active ?? null}
+                shift_type={guard.shift_type ?? null}
+                employment_date={guard.employment_date ?? null}
                 onDelete={handleDeleteClick}
               />
             </Col>

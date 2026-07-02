@@ -81,7 +81,7 @@ const UnitAddEnhanced = () => {
   })
 
   const { handleSubmit, control, reset, watch } = useForm<UnitFormData>({
-    resolver: yupResolver(unitSchema),
+    resolver: yupResolver(unitSchema) as any,
     defaultValues: {
       ownership_type: 'owned',
       is_occupied: false,

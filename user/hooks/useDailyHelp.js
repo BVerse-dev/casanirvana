@@ -1,5 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../utils/supabase';
+import {
+  buildDailyHelpQrCode,
+  createDirectoryEntryIdentity,
+  resolveDirectoryEntryIdentity,
+} from '../utils/directoryEntryQr';
 
 // Hook to list daily help for a user
 export const useListDailyHelp = (userId) => {
@@ -28,23 +33,15 @@ export const useCreateDailyHelp = () => {
   
   return useMutation({
     mutationFn: async (helpData) => {
-      // Generate unique daily help ID for QR code
-      const dailyHelpId = `DH-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      
-      // Generate entry code from daily help ID (last 8 characters)
-      const entryCode = dailyHelpId.slice(-8).toUpperCase();
-
-      // Generate unique QR code data with daily help information
-      const qrCodeData = JSON.stringify({
-        id: dailyHelpId,
-        name: helpData.name,
-        type: helpData.type,
-        phone: helpData.phone,
-        user_id: helpData.user_id,
-        type_category: 'daily_help',
-        entry_code: entryCode,
-        created_at: new Date().toISOString(),
-        expires_at: null // Daily help doesn't expire
+      const createdAt = new Date().toISOString();
+      const { entityId, entryCode } = createDirectoryEntryIdentity('DH');
+      const qrCodeData = buildDailyHelpQrCode({
+        entityId,
+        entryCode,
+        data: {
+          ...helpData,
+          created_at: createdAt,
+        },
       });
       
       const { data, error } = await supabase
@@ -53,9 +50,9 @@ export const useCreateDailyHelp = () => {
           ...helpData,
           qr_code: qrCodeData,
           entry_code: entryCode,
-          expires_at: null, // Daily help doesn't expire
+          expires_at: null,
           is_active: true,
-          created_at: new Date().toISOString()
+          created_at: createdAt,
         }])
         .select()
         .single();
@@ -75,9 +72,39 @@ export const useUpdateDailyHelp = () => {
   
   return useMutation({
     mutationFn: async ({ id, updates }) => {
+      const { data: existingData, error: existingError } = await supabase
+        .from('daily_help')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (existingError) throw existingError;
+
+      const mergedData = {
+        ...existingData,
+        ...updates,
+      };
+      const { entityId, entryCode } = resolveDirectoryEntryIdentity({
+        prefix: 'DH',
+        existingEntryCode: existingData.entry_code,
+        existingQrCode: existingData.qr_code,
+      });
+      const qrCode = buildDailyHelpQrCode({
+        entityId,
+        entryCode,
+        data: {
+          ...mergedData,
+          created_at: existingData.created_at,
+        },
+      });
+
       const { data, error } = await supabase
         .from('daily_help')
-        .update(updates)
+        .update({
+          ...updates,
+          entry_code: entryCode,
+          qr_code: qrCode,
+        })
         .eq('id', id)
         .select()
         .single();

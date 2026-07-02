@@ -27,10 +27,26 @@ router.get(
   ExpressPayController.getStatus
 );
 
-router.post('/payments/expresspay/callback', ExpressPayController.callback);
-router.get('/payments/expresspay/callback', ExpressPayController.callback);
-router.get('/payments/expresspay/redirect', ExpressPayController.redirectToApp);
-router.post('/xp/cb', ExpressPayController.callback);
-router.get('/xp/cb', ExpressPayController.callback);
+router.post(
+  '/payments/expresspay/callback',
+  validateRequest({ body: schemas.expressPayCallbackPayload, query: schemas.expressPayCallbackPayload }),
+  ExpressPayController.callback
+);
+router.get(
+  '/payments/expresspay/callback',
+  validateRequest({ query: schemas.expressPayCallbackPayload }),
+  ExpressPayController.callback
+);
+router.get(
+  '/payments/expresspay/redirect',
+  validateRequest({ query: schemas.expressPayRedirectQuery }),
+  ExpressPayController.redirectToApp
+);
+router.post(
+  '/xp/cb',
+  validateRequest({ body: schemas.expressPayCallbackPayload, query: schemas.expressPayCallbackPayload }),
+  ExpressPayController.callback
+);
+router.get('/xp/cb', validateRequest({ query: schemas.expressPayCallbackPayload }), ExpressPayController.callback);
 
 export default router;

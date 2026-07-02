@@ -76,6 +76,15 @@ const EMPTY_PREVIEW_FORM = {
   run_mode: 'manual' as const,
 };
 
+type PreviewForm = {
+  templateId: string;
+  community_id: string;
+  billing_period_start: string;
+  billing_period_end: string;
+  due_date: string;
+  run_mode: 'manual' | 'scheduled';
+};
+
 const targetTypeNeedsValue = (targetType: TargetType) =>
   !['all_units', 'occupied_only', 'owner_only', 'tenant_only'].includes(targetType);
 
@@ -129,7 +138,7 @@ const PaymentChargesPage = () => {
   const [workspaceTab, setWorkspaceTab] = useState<'templates' | 'issue' | 'issued' | 'runs'>('templates');
   const [templateForm, setTemplateForm] = useState<PaymentChargeTemplateInput>(EMPTY_TEMPLATE_FORM);
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
-  const [previewForm, setPreviewForm] = useState(EMPTY_PREVIEW_FORM);
+  const [previewForm, setPreviewForm] = useState<PreviewForm>(EMPTY_PREVIEW_FORM);
   const [previewData, setPreviewData] = useState<PaymentChargePreview | null>(null);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<{ variant: 'success' | 'danger' | 'info'; text: string } | null>(null);

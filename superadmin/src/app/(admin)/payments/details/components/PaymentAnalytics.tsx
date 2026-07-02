@@ -1,51 +1,58 @@
 "use client";
 
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
-import { Database } from "@/lib/database.types";
+import type { AdminPaymentRecord } from "@/hooks/usePayments";
+import { usePaymentAnalyticsSummary } from "@/hooks/usePaymentAnalyticsSummary";
 import { Card, CardBody, CardHeader, Col, Row } from "react-bootstrap";
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 
-type Payment = Partial<Database["public"]["Tables"]["payments"]["Row"]> & {
-  id: string;
-  amount: number;
-  unit?: {
-    id: string;
-    unit_number: string | null;
-    block: string | null;
-    floor_area: number | null;
-    bedrooms: number | null;
-    bathrooms: number | null;
-    society_id: string | null;
-    owner_id: string | null;
-    tenant_id: string | null;
-  } | null;
-  payer_profile?: {
-    id: string;
-    first_name: string | null;
-    last_name: string | null;
-    full_name: string | null;
-    email: string | null;
-    avatar_url: string | null;
-    phone: string | null;
-    role: string | null;
-  } | null;
-  society?: {
-    id: string;
-    name: string;
-    address: string | null;
-  } | null;
-  created_at?: string;
-};
-
 interface PaymentAnalyticsProps {
-  payment: Payment;
+  payment: AdminPaymentRecord;
 }
 
 const PaymentAnalytics = ({ payment }: PaymentAnalyticsProps) => {
-  // Generate payment status data
-  const completedPayments = 8;
-  const failedPayments = 2;
-  const pendingPayments = 3;
+  const { error, payments } = usePaymentAnalyticsSummary();
+
+  if (error) {
+    return (
+      <Card className="shadow-sm mb-4">
+        <CardHeader className="border-bottom bg-transparent py-3">
+          <h5 className="mb-0">Payment Status</h5>
+        </CardHeader>
+        <CardBody className="text-center text-muted py-4">Payment analytics are unavailable right now.</CardBody>
+      </Card>
+    );
+  }
+
+  const relatedPayments = payments.filter((item) => {
+    if (item.id === payment.id) return true;
+
+    if (payment.payer_profile?.id && item.payer_profile?.id === payment.payer_profile.id) {
+      return true;
+    }
+
+    if (payment.unit?.id && item.unit?.id === payment.unit.id) {
+      return true;
+    }
+
+    if (payment.society?.id && item.society?.id === payment.society.id) {
+      return true;
+    }
+
+    return false;
+  });
+
+  const completedPayments = relatedPayments.filter((item) =>
+    ["completed", "paid", "success", "successful"].includes(String(item.status || "").toLowerCase())
+  ).length;
+  const failedPayments = relatedPayments.filter((item) =>
+    ["failed", "cancelled", "canceled", "expired", "rejected"].includes(String(item.status || "").toLowerCase())
+  ).length;
+  const pendingPayments = relatedPayments.filter((item) =>
+    !["completed", "paid", "success", "successful", "failed", "cancelled", "canceled", "expired", "rejected"].includes(
+      String(item.status || "").toLowerCase()
+    )
+  ).length;
   const totalPayments = completedPayments + failedPayments + pendingPayments;
   
   const analyticsData = [
@@ -169,4 +176,4 @@ const PaymentAnalytics = ({ payment }: PaymentAnalyticsProps) => {
   );
 };
 
-export default PaymentAnalytics; 
+export default PaymentAnalytics;

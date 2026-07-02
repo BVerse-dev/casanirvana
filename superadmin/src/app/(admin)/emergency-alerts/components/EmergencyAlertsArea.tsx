@@ -5,7 +5,11 @@ import { Alert, Badge, Button, Card, CardBody, CardHeader, Col, Dropdown, Dropdo
 import { toast } from "react-hot-toast";
 
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
-import type { EmergencyAlertRecord } from "@/hooks/useEmergencyAlerts";
+import type {
+  EmergencyAlertRecord,
+  EmergencyAlertStatus,
+  UpdateEmergencyAlertInput,
+} from "@/hooks/useEmergencyAlerts";
 import { formatEmergencyAlertStatusLabel, normalizeEmergencyAlertStatus, useDeleteEmergencyAlert, useUpdateEmergencyAlert } from "@/hooks/useEmergencyAlerts";
 import { getEmergencyAlertTypeMeta, normalizeEmergencyAlertType } from "@/lib/emergencyAlertTypes";
 
@@ -106,7 +110,9 @@ const EmergencyAlertsArea = ({ selectedAlert }: EmergencyAlertsAreaProps) => {
   }, [selectedAlert]);
 
   const updateAlert = async (
-    updates: { status?: string | null; priority?: string | null; resolved_at?: string | null; resolved_by?: string | null },
+    updates: Pick<UpdateEmergencyAlertInput, "status" | "priority"> & {
+      status?: EmergencyAlertStatus;
+    },
     successMessage: string,
   ) => {
     if (!selectedAlert) {
@@ -260,7 +266,7 @@ const EmergencyAlertsArea = ({ selectedAlert }: EmergencyAlertsAreaProps) => {
                 Mark as Resolved
               </DropdownItem>
             ) : (
-              <DropdownItem onClick={() => void updateAlert({ status: "active", resolved_at: null, resolved_by: null }, "Emergency alert reopened.")} disabled={isPending}>
+              <DropdownItem onClick={() => void updateAlert({ status: "active" }, "Emergency alert reopened.")} disabled={isPending}>
                 Reopen Alert
               </DropdownItem>
             )}
@@ -290,12 +296,12 @@ const EmergencyAlertsArea = ({ selectedAlert }: EmergencyAlertsAreaProps) => {
             <CardBody>
               <div className="d-flex flex-wrap gap-2">
                 {canInvestigate ? (
-                  <Button variant="primary" onClick={() => void updateAlert({ status: "investigating", resolved_at: null, resolved_by: null }, "Investigation started.")} disabled={isPending}>
+                  <Button variant="primary" onClick={() => void updateAlert({ status: "investigating" }, "Investigation started.")} disabled={isPending}>
                     Start Investigation
                   </Button>
                 ) : null}
                 {canEscalate ? (
-                  <Button variant="outline-danger" onClick={() => void updateAlert({ status: "escalated", priority: "critical", resolved_at: null, resolved_by: null }, "Emergency alert escalated.")} disabled={isPending}>
+                  <Button variant="outline-danger" onClick={() => void updateAlert({ status: "escalated", priority: "critical" }, "Emergency alert escalated.")} disabled={isPending}>
                     Escalate
                   </Button>
                 ) : null}
@@ -304,7 +310,7 @@ const EmergencyAlertsArea = ({ selectedAlert }: EmergencyAlertsAreaProps) => {
                     Resolve
                   </Button>
                 ) : (
-                  <Button variant="outline-warning" onClick={() => void updateAlert({ status: "active", resolved_at: null, resolved_by: null }, "Emergency alert reopened.")} disabled={isPending}>
+                  <Button variant="outline-warning" onClick={() => void updateAlert({ status: "active" }, "Emergency alert reopened.")} disabled={isPending}>
                     Reopen
                   </Button>
                 )}

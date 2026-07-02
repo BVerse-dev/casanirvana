@@ -80,14 +80,14 @@ const EmailNotificationSettingsPage = () => {
     emailSettings,
     isLoadingData,
     loadError,
-    updateSettings,
+    updateSettingsAsync,
     isUpdating,
     updateError,
     updateSuccess,
   } = useEmailNotificationSettingsAdvanced();
 
   const { control, handleSubmit, reset, formState: { isDirty } } = useForm<EmailNotificationSettingsAdvanced>({
-    resolver: yupResolver(emailNotificationSchema),
+    resolver: yupResolver(emailNotificationSchema) as any,
     defaultValues: {
       // Email Delivery Settings
       email_enabled: true,
@@ -165,7 +165,7 @@ const EmailNotificationSettingsPage = () => {
 
   useEffect(() => {
     if (updateError) {
-      setShowAlert({ type: 'danger', message: 'Failed to update email notification setup. Please try again.' });
+      setShowAlert({ type: 'danger', message: updateError.message || 'Failed to update email notification setup. Please try again.' });
       setTimeout(() => setShowAlert(null), 5000);
     }
   }, [updateError]);
@@ -173,10 +173,13 @@ const EmailNotificationSettingsPage = () => {
   const onSubmit = async (data: EmailNotificationSettingsAdvanced) => {
     try {
       setShowAlert(null);
-      updateSettings(data);
+      await updateSettingsAsync(data);
     } catch (error) {
       console.error('Error submitting email notification settings:', error);
-      setShowAlert({ type: 'danger', message: 'Failed to update email notification setup' });
+      setShowAlert({
+        type: 'danger',
+        message: error instanceof Error ? error.message : 'Failed to update email notification setup',
+      });
     }
   };
 
@@ -200,7 +203,7 @@ const EmailNotificationSettingsPage = () => {
         <PageTitle subName="Notification Setup" title="Email Notification Setup" />
         <Alert variant="danger">
           <IconifyIcon icon="ri:error-warning-line" className="me-2" />
-          Failed to load email notification setup. Please refresh the page to try again.
+          Failed to load email notification setup: {loadError.message}
         </Alert>
       </>
     );
@@ -219,6 +222,11 @@ const EmailNotificationSettingsPage = () => {
           {showAlert.message}
         </Alert>
       )}
+
+      <Alert variant="info">
+        <IconifyIcon icon="ri:information-line" className="me-2" />
+        This page controls queueing, delivery limits, and email-notification policy. SMTP transport lives on SMTP Configuration, and reusable message bodies belong on Email Templates.
+      </Alert>
 
       <form onSubmit={handleSubmit(onSubmit)}>
         <Tabs defaultActiveKey="delivery" className="mb-4">

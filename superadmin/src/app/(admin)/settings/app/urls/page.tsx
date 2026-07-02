@@ -108,37 +108,11 @@ export default function AppUrlsSettingsPage() {
       deep_linking_enabled: true,
       url_scheme: 'casanirvana',
       universal_links_enabled: true,
-      ios_app_store_url: 'https://apps.apple.com/app/casa-nirvana/id123456789',
-      android_play_store_url: 'https://play.google.com/store/apps/details?id=com.casanirvana.app',
-      share_base_url: 'https://share.casanirvana.com',
-      url_redirects: [
-        {
-          name: 'Legacy Dashboard',
-          source_url: 'https://old.casanirvana.com/dashboard',
-          target_url: 'https://app.casanirvana.com/dashboard',
-          status_code: 301,
-          enabled: true,
-          description: 'Redirect from old dashboard to new dashboard',
-        },
-      ],
-      deep_links: [
-        {
-          name: 'Unit Details',
-          url_pattern: '/unit/:unitId',
-          screen: 'unit-details',
-          params: '{"unitId": ":unitId"}',
-          enabled: true,
-          description: 'Deep link to specific unit details',
-        },
-        {
-          name: 'Visitor Pass',
-          url_pattern: '/visitor/:passId',
-          screen: 'visitors',
-          params: '{"passId": ":passId", "tab": "passes"}',
-          enabled: true,
-          description: 'Deep link to specific visitor pass',
-        },
-      ],
+      ios_app_store_url: null,
+      android_play_store_url: null,
+      share_base_url: null,
+      url_redirects: [],
+      deep_links: [],
     },
   });
 

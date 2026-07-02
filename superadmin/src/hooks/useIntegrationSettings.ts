@@ -118,10 +118,18 @@ export const useIntegrationSettings = () => {
   });
 
   const testIntegrationMutation = useMutation({
-    mutationFn: async ({ service, value }: { service: string; value?: string }) => {
+    mutationFn: async ({
+      service,
+      value,
+      settings,
+    }: {
+      service: string;
+      value?: string;
+      settings?: Partial<IntegrationSettingsData>;
+    }) => {
       return fetchAdmin<{ success: boolean; message: string }>('/admin/settings/integrations/test', {
         method: 'POST',
-        body: JSON.stringify({ service, value }),
+        body: JSON.stringify({ service, value, settings }),
       });
     },
     onSuccess: (data) => {

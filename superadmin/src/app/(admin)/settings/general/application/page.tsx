@@ -50,11 +50,10 @@ interface ApplicationConfigFormData {
 const ApplicationConfigPage = () => {
   const [showAlert, setShowAlert] = useState<{ type: 'success' | 'danger'; message: string } | null>(null);
 
-  // Hooks for real Supabase data
   const { data: applicationConfig, isLoading: isLoadingConfig, error: configError } = useApplicationConfig();
   const updateApplicationConfig = useUpdateApplicationConfig();
 
-  const { control, handleSubmit, reset, formState: { isDirty, isSubmitting } } = useForm<ApplicationConfigFormData>({
+  const { control, handleSubmit, reset, watch, formState: { isDirty, isSubmitting } } = useForm<ApplicationConfigFormData>({
     resolver: yupResolver(applicationConfigSchema),
     defaultValues: {
       application_name: '',
@@ -76,17 +75,6 @@ const ApplicationConfigPage = () => {
     }
   }, [applicationConfig, reset]);
 
-  // Show error if config loading failed
-  useEffect(() => {
-    if (configError) {
-      console.error('Error loading application config:', configError);
-      setShowAlert({ 
-        type: 'danger', 
-        message: 'Failed to load application configuration. Please refresh the page.' 
-      });
-    }
-  }, [configError]);
-
   const onSubmit = async (data: ApplicationConfigFormData) => {
     try {
       await updateApplicationConfig.mutateAsync(data);
@@ -99,6 +87,31 @@ const ApplicationConfigPage = () => {
       setShowAlert({ type: 'danger', message: 'Failed to update application configuration. Please try again.' });
     }
   };
+
+  const watchedValues = watch();
+  const supportChannels = [
+    watchedValues.contact_email,
+    watchedValues.support_email,
+    watchedValues.contact_phone,
+  ].filter((value) => typeof value === 'string' && value.trim().length > 0).length;
+  const publicWebsiteConfigured =
+    typeof watchedValues.website_url === 'string' && watchedValues.website_url.trim().length > 0;
+
+  if (configError && !applicationConfig) {
+    return (
+      <>
+        <PageTitle title="Application Configuration" subName="General Settings" />
+        <Card>
+          <CardBody>
+            <Alert variant="danger" className="mb-0">
+              <IconifyIcon icon="material-symbols:error" className="me-2" />
+              Failed to load application configuration. Fix the backend connection and reload this page before making changes.
+            </Alert>
+          </CardBody>
+        </Card>
+      </>
+    );
+  }
 
   return (
     <>
@@ -234,7 +247,7 @@ const ApplicationConfigPage = () => {
             <div className="mb-4">
               <h6 className="mb-3 text-info">
                 <IconifyIcon icon="material-symbols:apps" className="me-2" />
-                Application Status
+                Configuration Coverage
               </h6>
               <Row className="g-3">
                 <Col md={4}>
@@ -245,8 +258,10 @@ const ApplicationConfigPage = () => {
                           <IconifyIcon icon="material-symbols:smartphone" className="text-primary fs-2" />
                         </div>
                         <div>
-                          <h6 className="mb-1">User App</h6>
-                          <span className="badge bg-success-subtle text-success">Active</span>
+                          <h6 className="mb-1">Public Website</h6>
+                          <span className={`badge ${publicWebsiteConfigured ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning'}`}>
+                            {publicWebsiteConfigured ? 'Configured' : 'Needs URL'}
+                          </span>
                         </div>
                       </div>
                     </CardBody>
@@ -260,8 +275,8 @@ const ApplicationConfigPage = () => {
                           <IconifyIcon icon="material-symbols:security" className="text-warning fs-2" />
                         </div>
                         <div>
-                          <h6 className="mb-1">Guard App</h6>
-                          <span className="badge bg-success-subtle text-success">Active</span>
+                          <h6 className="mb-1">Support Channels</h6>
+                          <span className="badge bg-success-subtle text-success">{supportChannels} Configured</span>
                         </div>
                       </div>
                     </CardBody>
@@ -275,8 +290,10 @@ const ApplicationConfigPage = () => {
                           <IconifyIcon icon="material-symbols:admin-panel-settings" className="text-danger fs-2" />
                         </div>
                         <div>
-                          <h6 className="mb-1">Super Admin</h6>
-                          <span className="badge bg-success-subtle text-success">Active</span>
+                          <h6 className="mb-1">Organization Profile</h6>
+                          <span className={`badge ${watchedValues.organization_name ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning'}`}>
+                            {watchedValues.organization_name ? 'Configured' : 'Needs Review'}
+                          </span>
                         </div>
                       </div>
                     </CardBody>

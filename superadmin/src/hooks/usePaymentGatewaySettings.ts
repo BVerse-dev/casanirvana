@@ -29,6 +29,9 @@ export interface PaymentGatewaySettings {
   expresspay_api_key?: string;
   expresspay_webhook_url?: string;
   expresspay_mode?: string;
+  expresspay_billpay_url?: string;
+  expresspay_billpay_username?: string;
+  expresspay_billpay_auth_token?: string;
   bank_transfer_enabled?: boolean;
   bank_name?: string;
   account_number?: string;
@@ -39,6 +42,13 @@ export interface PaymentGatewaySettings {
   auto_refund_enabled?: boolean;
   partial_payment_enabled?: boolean;
 }
+
+export type PaymentGatewayTestTarget =
+  | 'razorpay'
+  | 'stripe'
+  | 'paypal'
+  | 'paytm'
+  | 'bank_transfer';
 
 const DEFAULT_PAYMENT_GATEWAY_SETTINGS: PaymentGatewaySettings = {
   razorpay_enabled: false,
@@ -61,6 +71,14 @@ const DEFAULT_PAYMENT_GATEWAY_SETTINGS: PaymentGatewaySettings = {
   paytm_merchant_key: '',
   paytm_website: '',
   paytm_mode: 'test',
+  expresspay_enabled: false,
+  expresspay_merchant_id: '',
+  expresspay_api_key: '',
+  expresspay_webhook_url: '',
+  expresspay_mode: 'test',
+  expresspay_billpay_url: '',
+  expresspay_billpay_username: '',
+  expresspay_billpay_auth_token: '',
   bank_transfer_enabled: false,
   bank_name: '',
   account_number: '',
@@ -121,6 +139,25 @@ const usePaymentGatewaySettings = () => {
     updateSettings: updateMutation.mutate,
     updateSettingsAsync: updateMutation.mutateAsync,
   };
+};
+
+export const useTestPaymentGatewaySettings = () => {
+  const { fetchAdmin } = useAdminApi();
+
+  return useMutation({
+    mutationFn: async ({
+      gateway,
+      settings,
+    }: {
+      gateway: PaymentGatewayTestTarget;
+      settings: Partial<PaymentGatewaySettings>;
+    }) => {
+      return fetchAdmin<{ success: boolean; message: string }>('/admin/settings/payment-gateways/test', {
+        method: 'POST',
+        body: JSON.stringify({ gateway, settings }),
+      });
+    },
+  });
 };
 
 export default usePaymentGatewaySettings;

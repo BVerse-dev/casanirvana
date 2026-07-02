@@ -11,10 +11,16 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Modal, Form, FloatingLabel, Alert } from "react-bootstrap";
 import { toast } from "react-hot-toast";
+import { useAdminCapabilities } from "@/hooks/useAdminCapabilities";
+import { useListCommunities } from "@/hooks/useCommunities";
 import {
   useCreateNotificationTemplate,
 } from "@/hooks/useNotificationTemplates";
-import { useNotificationRealtime } from "@/hooks/useNotificationRealtime";
+
+const normalizeRoleName = (role?: string | null) =>
+  typeof role === "string" ? role.trim().toLowerCase().replace(/\s+/g, "_") : "";
+
+const GLOBAL_ADMIN_ROLES = new Set(["superadmin", "super_admin", "admin", "administrator"]);
 
 const formatSignedPercent = (value: unknown) => {
   const numericValue =
@@ -49,6 +55,8 @@ const NotificationsDashboardView = () => {
   const { data: campaigns = [], isLoading: campaignsLoading, error: campaignsError } = useListNotificationCampaigns(undefined, 5);
   const { data: todayStats, isLoading: statsLoading, error: statsError } = useTodayActivitySummary();
   const { data: channelPerformance, isLoading: channelLoading, error: channelError } = useChannelPerformance();
+  const { data: capabilities } = useAdminCapabilities();
+  const { data: communitiesPayload } = useListCommunities({ page: 1, pageSize: 200 });
   const createCampaignMutation = useCreateNotificationCampaign();
   const createTemplateMutation = useCreateNotificationTemplate();
 
@@ -56,19 +64,13 @@ const NotificationsDashboardView = () => {
   const [showCreateTemplateModal, setShowCreateTemplateModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useNotificationRealtime({
-    channelName: "superadmin-notifications-dashboard",
-    tables: ["notification_campaigns", "notification_analytics", "notification_templates"],
-    queryKeys: [
-      ["notification_campaigns"],
-      ["notification_analytics"],
-      ["notification_dashboard_stats"],
-      ["notification-templates"],
-    ],
-  });
-
   const isLoading = campaignsLoading || statsLoading || channelLoading;
   const hasError = campaignsError || statsError || channelError;
+  const isGlobalAdmin = GLOBAL_ADMIN_ROLES.has(normalizeRoleName(capabilities?.role));
+  const scopedCommunityIds = capabilities?.scope?.community_ids || [];
+  const communityOptions = (communitiesPayload?.data || []).filter((community) =>
+    isGlobalAdmin ? true : scopedCommunityIds.includes(community.id)
+  );
 
   const handleSendBroadcastClick = () => {
     setShowSendBroadcastModal(true);
@@ -90,11 +92,22 @@ const NotificationsDashboardView = () => {
     const formData = new FormData(e.target as HTMLFormElement);
     const title = formData.get('title') as string;
     const type = formData.get('type') as string;
+    const communityId = (formData.get('community_id') as string | null)?.trim() || '';
     const recipients = formData.get('recipients') as string;
     const message = formData.get('message') as string;
 
     if (!title || !type || !recipients || !message) {
       toast.error("Please fill in all fields for the broadcast.");
+      return;
+    }
+
+    if (!isGlobalAdmin && scopedCommunityIds.length === 0) {
+      toast.error("No community scope is assigned to this admin account for notification broadcasts.");
+      return;
+    }
+
+    if (!isGlobalAdmin && scopedCommunityIds.length > 1 && !communityId) {
+      toast.error("Select the community this broadcast belongs to before sending it.");
       return;
     }
 
@@ -108,6 +121,7 @@ const NotificationsDashboardView = () => {
       await createCampaignMutation.mutateAsync({
         title,
         type,
+        community_id: communityId || undefined,
         recipients_count: recipientCount,
         audience: recipients,
         message,
@@ -146,7 +160,6 @@ const NotificationsDashboardView = () => {
         type: "in-app",
         category: "general",
         status: "draft",
-        usage_count: 0,
         variables: [],
       });
       
@@ -287,7 +300,10 @@ const NotificationsDashboardView = () => {
     }
   };
 
-  const formatTimeAgo = (dateString: string) => {
+  const formatTimeAgo = (dateString?: string | null) => {
+    if (!dateString) {
+      return "Not recorded";
+    }
     const now = new Date();
     const sentDate = new Date(dateString);
     const diffInHours = Math.floor((now.getTime() - sentDate.getTime()) / (1000 * 60 * 60));
@@ -452,7 +468,7 @@ const NotificationsDashboardView = () => {
                           <td className="text-muted">
                             {campaign.sent_at ? formatTimeAgo(campaign.sent_at) : 
                              campaign.scheduled_at ? `Scheduled for ${new Date(campaign.scheduled_at).toLocaleString()}` :
-                             formatTimeAgo(campaign.created_at)}
+                             formatTimeAgo(campaign.created_at || null)}
                           </td>
                           <td>
                             <span className="fw-medium">
@@ -526,6 +542,23 @@ const NotificationsDashboardView = () => {
                   </FloatingLabel>
                 </Col>
               </Row>
+              {!isGlobalAdmin && scopedCommunityIds.length === 0 ? (
+                <Alert variant="warning">
+                  This admin account does not currently have a community scope, so broadcasts cannot be sent until one is assigned.
+                </Alert>
+              ) : null}
+              {isGlobalAdmin || scopedCommunityIds.length > 1 ? (
+                <FloatingLabel label="Community Scope" className="mb-3">
+                  <Form.Select name="community_id" defaultValue="">
+                    {isGlobalAdmin ? <option value="">Platform-wide broadcast</option> : <option value="">Select community</option>}
+                    {communityOptions.map((community) => (
+                      <option key={community.id} value={community.id}>
+                        {community.name}
+                      </option>
+                    ))}
+                  </Form.Select>
+                </FloatingLabel>
+              ) : null}
               <FloatingLabel label="Recipients (comma-separated emails/phones)" className="mb-3">
                 <Form.Control 
                   type="text" 

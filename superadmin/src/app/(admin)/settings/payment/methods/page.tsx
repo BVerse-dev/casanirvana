@@ -53,11 +53,13 @@ const PaymentMethodsPage = () => {
   const { 
     paymentMethodSettings: settings, 
     isLoadingData: loadingSettings,
+    loadError,
     updateSettings,
     isUpdating: updatingSettings,
     updateError,
     updateSuccess,
   } = usePaymentMethodSettings();
+  const [submitError, setSubmitError] = React.useState<string | null>(null);
 
   const {
     control,
@@ -66,7 +68,7 @@ const PaymentMethodsPage = () => {
     reset,
     watch,
   } = useForm<PaymentMethodSettings>({
-    resolver: yupResolver(schema),
+    resolver: yupResolver(schema) as any,
     defaultValues: {
       // Payment Methods
       credit_card_enabled: settings?.credit_card_enabled ?? true,
@@ -140,6 +142,15 @@ const PaymentMethodsPage = () => {
   }, [settings, reset]);
 
   const onSubmit = (data: PaymentMethodSettings) => {
+    const hasLiveCheckoutMethod = Boolean(data.credit_card_enabled || data.expresspay_enabled);
+    if (!hasLiveCheckoutMethod) {
+      setSubmitError(
+        'Enable at least one live checkout method before saving. Card Payments or Mobile Money (ExpressPay) must remain available.'
+      );
+      return;
+    }
+
+    setSubmitError(null);
     updateSettings(data);
   };
 
@@ -228,6 +239,28 @@ const PaymentMethodsPage = () => {
     );
   }
 
+  if (loadError) {
+    return (
+      <>
+        <Row>
+          <Col xs={12}>
+            <div className="page-title-box">
+              <h4 className="page-title">Payment Methods</h4>
+            </div>
+          </Col>
+        </Row>
+        <Row>
+          <Col xs={12}>
+            <Alert variant="danger">
+              <i className="ri-alert-line me-2"></i>
+              Failed to load payment method settings: {loadError.message}
+            </Alert>
+          </Col>
+        </Row>
+      </>
+    );
+  }
+
   return (
     <>
       <Row>
@@ -245,6 +278,17 @@ const PaymentMethodsPage = () => {
               <Alert variant="danger">
                 <i className="ri-alert-line me-2"></i>
                 {errors.max_payment_amount.message}
+              </Alert>
+            </Col>
+          </Row>
+        )}
+
+        {submitError && (
+          <Row>
+            <Col xs={12}>
+              <Alert variant="danger">
+                <i className="ri-alert-line me-2"></i>
+                {submitError}
               </Alert>
             </Col>
           </Row>
@@ -285,7 +329,7 @@ const PaymentMethodsPage = () => {
               <CardBody>
                 <Alert variant="info" className="mb-3">
                   Card Payments, Mobile Money (ExpressPay), and payment limits are the settings currently enforced in the user app.
-                  PayPal and the remaining methods stay configured here for future rollout only.
+                  PayPal and the remaining methods stay configured here for future rollout only, so changing those reserved toggles does not affect the current checkout experience.
                 </Alert>
                 <div className="table-responsive">
                   <Table className="table table-hover table-nowrap mb-0">
@@ -513,8 +557,8 @@ const PaymentMethodsPage = () => {
               <CardBody>
                 <Alert variant="info" className="mb-3">
                   <i className="ri-information-line me-2"></i>
-                  <strong>Note:</strong> Disabling a payment method will hide it from users during checkout. 
-                  Ensure at least one payment method is enabled at all times.
+                  <strong>Note:</strong> Only Card Payments and Mobile Money (ExpressPay) are currently surfaced in checkout.
+                  Reserved methods are stored for later rollout, while live checkout always requires at least one active method.
                 </Alert>
 
                 <div className="d-flex justify-content-end gap-2">

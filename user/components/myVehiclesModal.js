@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   Dimensions,
   Modal,
-  Image,
   StyleSheet,
   TextInput,
   ScrollView,
@@ -16,7 +15,6 @@ import {
 import { Colors, Fonts, Default } from "../constants/styles";
 import { useTranslation } from "react-i18next";
 import Ionicons from "react-native-vector-icons/Ionicons";
-import Feather from "react-native-vector-icons/Feather";
 import AwesomeButton from "react-native-really-awesome-button";
 import CameraModule from "./cameraModule";
 import { Camera } from "expo-camera";
@@ -24,8 +22,10 @@ import * as ImagePicker from "expo-image-picker";
 import SnackbarToast from "./snackbarToast";
 import AddImageBottomSheet from "./addImageBottomSheet";
 import GatePassModal from "./gatePassModal";
+import AppAvatar from "./AppAvatar";
 import { useAuth } from "../contexts/AuthContext";
 import { useCreateVehicle } from "../hooks/useVehicles";
+import { uploadDirectoryAvatarIfNeeded } from "../utils/directoryAvatarStorage";
 
 const { width, height } = Dimensions.get("window");
 
@@ -34,7 +34,7 @@ const MyVehiclesModal = (props) => {
   const { user, profile } = useAuth();
   const createVehicle = useCreateVehicle();
 
-  const isRtl = i18n.dir() == "rtl";
+  const isRtl = i18n.dir() === "rtl";
   const activeUserId = user?.id || profile?.user_id || null;
 
   function tr(key) {
@@ -116,12 +116,17 @@ const MyVehiclesModal = (props) => {
         return;
       }
 
+      const avatarUrl = await uploadDirectoryAvatarIfNeeded({
+        imageUri: pickedImage,
+        ownerId: activeUserId,
+        scope: 'vehicles',
+      });
       const vehicleData = {
         user_id: activeUserId,
         vehicle_number: vehicleNumber.trim(),
         model: vehicleModel.trim(),
         color: vehicleColor.trim(),
-        avatar_url: pickedImage,
+        avatar_url: avatarUrl,
       };
 
       const result = await createVehicle.mutateAsync(vehicleData);
@@ -189,19 +194,13 @@ const MyVehiclesModal = (props) => {
                     onPress={() => setOpenAddImageBottomSheet(true)}
                     style={styles.imageTouchOpacity}
                   >
-                    {!pickedImage ? (
-                      <Feather name="camera" size={28} color={Colors.black} />
-                    ) : (
-                      <Image
-                        source={{ uri: pickedImage }}
-                        style={{
-                          resizeMode: "cover",
-                          width: 84,
-                          height: 84,
-                          borderRadius: 42,
-                        }}
-                      />
-                    )}
+                    <AppAvatar
+                      avatarUrl={pickedImage}
+                      name={vehicleNumber || vehicleModel || "Vehicle"}
+                      seed={`vehicle-create:${activeUserId || 'resident'}:${vehicleNumber || vehicleModel || 'vehicle'}`}
+                      size={84}
+                      borderRadius={42}
+                    />
                   </TouchableOpacity>
                 </View>
                 <TouchableOpacity

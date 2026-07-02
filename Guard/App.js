@@ -7,7 +7,7 @@ import {
   TransitionPresets,
 } from "@react-navigation/stack";
 import { withTranslation } from "react-i18next";
-import { NavigationContainer } from "@react-navigation/native";
+import { NavigationContainer, createNavigationContainerRef } from "@react-navigation/native";
 import { AppQueryClientProvider } from "./components/QueryClientProvider";
 import SplashScreen from "./screens/splashScreen";
 import LoginScreen from "./screens/auth/loginScreen";
@@ -53,8 +53,11 @@ import QRScanner from "./screens/qrScanner";
 import AssignmentScreen from "./screens/assignmentScreen";
 import i18n from "./languages/index"; //don't remove this line
 import { LogBox } from "react-native";
+import MonitoringErrorBoundary from "./components/MonitoringErrorBoundary";
+import { initializeMonitoring, setMonitoringRouteName } from "./services/monitoringService";
 
 const Stack = createStackNavigator();
+const navigationRef = createNavigationContainerRef();
 LogBox.ignoreAllLogs();
 
 // Polyfill for deprecated BackHandler.removeEventListener used by some libs
@@ -68,7 +71,11 @@ if (typeof BackHandler.removeEventListener !== 'function') {
 const MainNavigation = () => {
   return (
     <AppQueryClientProvider>
-      <NavigationContainer>
+      <NavigationContainer
+        ref={navigationRef}
+        onReady={() => setMonitoringRouteName(navigationRef.getCurrentRoute()?.name)}
+        onStateChange={() => setMonitoringRouteName(navigationRef.getCurrentRoute()?.name)}
+      >
         <Stack.Navigator
           screenOptions={{
             ...TransitionPresets.SlideFromRightIOS,
@@ -153,6 +160,8 @@ export default function App() {
   const [fontsLoaded, setFontsLoaded] = useState(false);
 
   useEffect(() => {
+    initializeMonitoring();
+
     async function loadFonts() {
       try {
         await Font.loadAsync({
@@ -179,5 +188,9 @@ export default function App() {
     );
   }
 
-  return <ReloadAppOnLanguageChange />;
+  return (
+    <MonitoringErrorBoundary>
+      <ReloadAppOnLanguageChange />
+    </MonitoringErrorBoundary>
+  );
 }

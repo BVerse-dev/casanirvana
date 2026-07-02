@@ -1,9 +1,8 @@
-import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
 import { toast } from 'react-toastify';
 
-// Types
+import { useAdminApi } from './useAdminApi';
+
 export interface SystemMetrics {
   id: string;
   cpu_usage: number;
@@ -74,7 +73,6 @@ export interface SystemComponent {
   updated_at: string;
 }
 
-// UI mapping interfaces
 export interface UISystemMetrics {
   cpu: number;
   memory: number;
@@ -114,7 +112,18 @@ export interface UIPerformanceData {
   satisfaction: number;
 }
 
-// Helper functions
+type SystemOverviewResponse = {
+  data?: {
+    metrics?: SystemMetrics | null;
+    activities?: SystemActivity[];
+    alerts?: SystemAlert[];
+    performance?: SystemPerformance[];
+    components?: SystemComponent[];
+  };
+};
+
+const systemOverviewQueryKey = ['settings-system-overview'] as const;
+
 export const mapSystemMetricsToUI = (metrics: SystemMetrics): UISystemMetrics => ({
   cpu: metrics.cpu_usage,
   memory: metrics.memory_usage,
@@ -156,7 +165,7 @@ export const mapResourceUsageToUI = (metrics: SystemMetrics): UIResourceUsage =>
 });
 
 export const mapSystemStatusToUI = (components: SystemComponent[]): UISystemStatus[] =>
-  components.map(component => ({
+  components.map((component) => ({
     label: component.component_label,
     status: component.status,
     icon: component.icon,
@@ -164,210 +173,85 @@ export const mapSystemStatusToUI = (components: SystemComponent[]): UISystemStat
   }));
 
 export const mapPerformanceDataToUI = (performance: SystemPerformance[]): UIPerformanceData[] =>
-  performance.map(perf => ({
-    month: perf.month,
-    users: perf.users_count,
-    complaints: perf.complaints_count,
-    revenue: perf.revenue,
-    satisfaction: perf.satisfaction_rating,
+  performance.map((item) => ({
+    month: item.month,
+    users: item.users_count,
+    complaints: item.complaints_count,
+    revenue: item.revenue,
+    satisfaction: item.satisfaction_rating,
   }));
 
-// Hooks
-export const useSystemMetrics = () => {
-  return useQuery({
-    queryKey: ['system-metrics'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('system_overview')
-        .select('*')
-        .single();
+const useSystemOverviewData = () => {
+  const { fetchAdmin, hasToken } = useAdminApi();
 
-      if (error) throw error;
-      return data as SystemMetrics;
+  return useQuery({
+    queryKey: systemOverviewQueryKey,
+    enabled: hasToken,
+    staleTime: 60 * 1000,
+    refetchInterval: 60 * 1000,
+    queryFn: async () => {
+      const response = await fetchAdmin<SystemOverviewResponse>('/admin/settings/system-overview');
+      return response.data || {};
     },
   });
+};
+
+export const useSystemMetrics = () => {
+  const query = useSystemOverviewData();
+  return {
+    ...query,
+    data: query.data?.metrics || null,
+  };
 };
 
 export const useSystemActivities = () => {
-  return useQuery({
-    queryKey: ['system-activities'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('system_activities')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(10);
-
-      if (error) throw error;
-      return data as SystemActivity[];
-    },
-  });
+  const query = useSystemOverviewData();
+  return {
+    ...query,
+    data: query.data?.activities || [],
+  };
 };
 
 export const useSystemAlerts = () => {
-  return useQuery({
-    queryKey: ['system-alerts'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('system_alerts')
-        .select('*')
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data as SystemAlert[];
-    },
-  });
+  const query = useSystemOverviewData();
+  return {
+    ...query,
+    data: query.data?.alerts || [],
+  };
 };
 
 export const useSystemPerformance = () => {
-  return useQuery({
-    queryKey: ['system-performance'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('system_performance')
-        .select('*')
-        .order('created_at', { ascending: true });
-
-      if (error) throw error;
-      return data as SystemPerformance[];
-    },
-  });
+  const query = useSystemOverviewData();
+  return {
+    ...query,
+    data: query.data?.performance || [],
+  };
 };
 
 export const useSystemComponents = () => {
-  return useQuery({
-    queryKey: ['system-components'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('system_components')
-        .select('*')
-        .order('component_label', { ascending: true });
-
-      if (error) throw error;
-      return data as SystemComponent[];
-    },
-  });
-};
-
-// Mutation hooks
-export const useUpdateSystemMetrics = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (metrics: Partial<SystemMetrics>) => {
-      const { data, error } = await supabase
-        .from('system_overview')
-        .update(metrics)
-        .eq('id', metrics.id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['system-metrics'] });
-      toast.success('System metrics updated successfully');
-    },
-    onError: (error) => {
-      console.error('Error updating system metrics:', error);
-      toast.error('Failed to update system metrics');
-    },
-  });
-};
-
-export const useUpdateSystemComponent = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (component: Partial<SystemComponent>) => {
-      const { data, error } = await supabase
-        .from('system_components')
-        .update(component)
-        .eq('id', component.id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['system-components'] });
-      toast.success('System component updated successfully');
-    },
-    onError: (error) => {
-      console.error('Error updating system component:', error);
-      toast.error('Failed to update system component');
-    },
-  });
-};
-
-export const useCreateSystemActivity = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (activity: Omit<SystemActivity, 'id' | 'created_at'>) => {
-      const { data, error } = await supabase
-        .from('system_activities')
-        .insert([activity])
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['system-activities'] });
-    },
-    onError: (error) => {
-      console.error('Error creating system activity:', error);
-      toast.error('Failed to create system activity');
-    },
-  });
-};
-
-export const useCreateSystemAlert = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (alert: Omit<SystemAlert, 'id' | 'created_at'>) => {
-      const { data, error } = await supabase
-        .from('system_alerts')
-        .insert([alert])
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['system-alerts'] });
-    },
-    onError: (error) => {
-      console.error('Error creating system alert:', error);
-      toast.error('Failed to create system alert');
-    },
-  });
+  const query = useSystemOverviewData();
+  return {
+    ...query,
+    data: query.data?.components || [],
+  };
 };
 
 export const useDismissSystemAlert = () => {
+  const { fetchAdmin } = useAdminApi();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (alertId: string) => {
-      const { data, error } = await supabase
-        .from('system_alerts')
-        .update({ is_active: false })
-        .eq('id', alertId)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      const response = await fetchAdmin<{ data: SystemAlert }>(
+        `/admin/settings/system-overview/alerts/${alertId}/dismiss`,
+        {
+          method: 'PATCH',
+        }
+      );
+      return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['system-alerts'] });
+      queryClient.invalidateQueries({ queryKey: systemOverviewQueryKey });
       toast.success('Alert dismissed');
     },
     onError: (error) => {
@@ -377,29 +261,4 @@ export const useDismissSystemAlert = () => {
   });
 };
 
-// Real-time subscription hook for system overview resources
-export const useSystemOverviewRealtime = () => {
-  const queryClient = useQueryClient();
-
-  useEffect(() => {
-    const channel = supabase
-      .channel('system-overview-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'system_overview' }, () => {
-        queryClient.invalidateQueries({ queryKey: ['system-metrics'] });
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'system_activities' }, () => {
-        queryClient.invalidateQueries({ queryKey: ['system-activities'] });
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'system_alerts' }, () => {
-        queryClient.invalidateQueries({ queryKey: ['system-alerts'] });
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'system_components' }, () => {
-        queryClient.invalidateQueries({ queryKey: ['system-components'] });
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [queryClient]);
-};
+export const useSystemOverviewRealtime = () => undefined;

@@ -41,7 +41,7 @@ const ComplaintDetailsPage = () => {
   if (isLoading) {
     return (
       <>
-        <PageTitle title="Complaint Details" subName="Complaints Management" />
+        <PageTitle title="Complaint Details" subName="Operations" />
         <Row>
           <Col xl={12}>
             <Card>
@@ -56,7 +56,7 @@ const ComplaintDetailsPage = () => {
   if (error || !complaint) {
     return (
       <>
-        <PageTitle title="Complaint Details" subName="Complaints Management" />
+        <PageTitle title="Complaint Details" subName="Operations" />
         <Row>
           <Col xl={12}>
             <Card>
@@ -111,11 +111,14 @@ const ComplaintDetailsPage = () => {
     }
   };
 
-  const getComplaintType = (complaintType: string) => {
+  const getComplaintType = (complaintType?: string | null) => {
     return complaintType === 'personal' ? 'Personal' : 'Community';
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString?: string | null) => {
+    if (!dateString) {
+      return "N/A";
+    }
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
       month: "long",
@@ -129,28 +132,10 @@ const ComplaintDetailsPage = () => {
     status: "pending" | "in_progress" | "resolved",
     options?: { resolutionNotes?: string },
   ) => {
-    const now = new Date().toISOString();
-    const updates: Record<string, string | null> = {
+    await updateComplaintMutation.mutateAsync({
       status,
-      updated_at: now,
-    };
-
-    if (status === "in_progress") {
-      updates.in_progress_at = now;
-      updates.resolved_at = null;
-      updates.resolution_notes = null;
-    } else if (status === "resolved") {
-      updates.resolved_at = now;
-      if (options?.resolutionNotes) {
-        updates.resolution_notes = options.resolutionNotes;
-      }
-    } else if (status === "pending") {
-      updates.in_progress_at = null;
-      updates.resolved_at = null;
-      updates.resolution_notes = null;
-    }
-
-    await updateComplaintMutation.mutateAsync(updates);
+      ...(options?.resolutionNotes ? { resolution_notes: options.resolutionNotes } : {}),
+    });
   };
 
   const handlePriorityChange = async (
@@ -159,7 +144,6 @@ const ComplaintDetailsPage = () => {
   ) => {
     await updateComplaintMutation.mutateAsync({
       priority,
-      updated_at: new Date().toISOString(),
       ...(options?.reason ? { resolution: `Priority update: ${options.reason}` } : {}),
     });
   };
@@ -227,7 +211,7 @@ const ComplaintDetailsPage = () => {
 
   return (
     <>
-      <PageTitle title="Complaint Details" subName="Complaints Management" />
+      <PageTitle title="Complaint Details" subName="Operations" />
       
       <Row className="mb-3">
         <Col xl={12}>

@@ -71,6 +71,32 @@ const transformPatternRow = (row: any): ShiftPattern => ({
   description: row.description || '',
 });
 
+type GuardProfileLookup = {
+  id: string;
+  full_name?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+};
+
+const isNonEmptyString = (value: string | null | undefined): value is string =>
+  typeof value === 'string' && value.length > 0;
+
+const formatGuardName = (guard?: GuardProfileLookup | null) => {
+  if (!guard) return 'Unknown';
+  const fullName = guard.full_name?.trim();
+  if (fullName) return fullName;
+  const parts = [guard.first_name?.trim(), guard.last_name?.trim()].filter(isNonEmptyString);
+  return parts.length > 0 ? parts.join(' ') : 'Unknown';
+};
+
+const getCommunityName = (
+  communitiesMap: Map<string, { id: string; name: string | null; address: string | null }>,
+  communityId: string | null
+) => {
+  if (!communityId) return 'Unknown Community';
+  return communitiesMap.get(communityId)?.name || 'Unknown Community';
+};
+
 // Query Keys
 const QUERY_KEYS = {
   schedules: ['guard-schedules'] as const,
@@ -112,13 +138,19 @@ export const useGuardSchedules = () => {
 
       // Fetch related data separately to avoid ambiguous relationships
       const schedules = data || [];
-      const guardIds = [...new Set([...schedules.map(s => s.guard_id), ...schedules.map(s => s.replacement_id).filter(Boolean)])];
-      const communityIds = [...new Set(schedules.map(s => s.community_id))];
+      const guardIds = [
+        ...new Set(
+          [...schedules.map((schedule) => schedule.guard_id), ...schedules.map((schedule) => schedule.replacement_id)].filter(
+            isNonEmptyString
+          )
+        ),
+      ];
+      const communityIds = [...new Set(schedules.map((schedule) => schedule.community_id).filter(isNonEmptyString))];
 
       // Fetch guards data from profiles table
       const { data: guardsData } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, email')
+        .select('id, full_name, first_name, last_name, email')
         .in('id', guardIds);
 
       // Fetch communities data
@@ -135,25 +167,20 @@ export const useGuardSchedules = () => {
       return schedules.map(schedule => ({
         id: schedule.id,
         guardId: schedule.guard_id,
-        guardName: guardsMap.get(schedule.guard_id)?.full_name || 
-                  `${guardsMap.get(schedule.guard_id)?.first_name} ${guardsMap.get(schedule.guard_id)?.last_name}` || 
-                  'Unknown',
+        guardName: formatGuardName(guardsMap.get(schedule.guard_id)),
         shiftType: schedule.shift_type,
         startTime: schedule.start_time,
         endTime: schedule.end_time,
         assignedDate: schedule.assigned_date,
         endDate: schedule.end_date,
         communityId: schedule.community_id,
-        communityName: communitiesMap.get(schedule.community_id)?.name || 'Unknown Community',
+        communityName: getCommunityName(communitiesMap, schedule.community_id),
         postLocation: schedule.post_location,
         status: schedule.status,
         notes: schedule.notes,
         createdAt: schedule.created_at,
         replacementId: schedule.replacement_id,
-        replacementName: schedule.replacement_id ? 
-                        (guardsMap.get(schedule.replacement_id)?.full_name || 
-                         `${guardsMap.get(schedule.replacement_id)?.first_name} ${guardsMap.get(schedule.replacement_id)?.last_name}`) :
-                        undefined,
+        replacementName: schedule.replacement_id ? formatGuardName(guardsMap.get(schedule.replacement_id)) : undefined,
       }));
     },
     staleTime: 1000 * 60, // 1 minute
@@ -215,8 +242,14 @@ export const useSchedulesByDate = (date: string) => {
       }
 
       const schedules = data || [];
-      const guardIds = [...new Set([...schedules.map(s => s.guard_id), ...schedules.map(s => s.replacement_id).filter(Boolean)])];
-      const communityIds = [...new Set(schedules.map(s => s.community_id))];
+      const guardIds = [
+        ...new Set(
+          [...schedules.map((schedule) => schedule.guard_id), ...schedules.map((schedule) => schedule.replacement_id)].filter(
+            isNonEmptyString
+          )
+        ),
+      ];
+      const communityIds = [...new Set(schedules.map((schedule) => schedule.community_id).filter(isNonEmptyString))];
 
       // Fetch guards data
       const { data: guardsData } = await supabase
@@ -238,25 +271,20 @@ export const useSchedulesByDate = (date: string) => {
       return schedules.map(schedule => ({
         id: schedule.id,
         guardId: schedule.guard_id,
-        guardName: guardsMap.get(schedule.guard_id)?.full_name || 
-                  `${guardsMap.get(schedule.guard_id)?.first_name} ${guardsMap.get(schedule.guard_id)?.last_name}` || 
-                  'Unknown',
+        guardName: formatGuardName(guardsMap.get(schedule.guard_id)),
         shiftType: schedule.shift_type,
         startTime: schedule.start_time,
         endTime: schedule.end_time,
         assignedDate: schedule.assigned_date,
         endDate: schedule.end_date,
         communityId: schedule.community_id,
-        communityName: communitiesMap.get(schedule.community_id)?.name || 'Unknown Community',
+        communityName: getCommunityName(communitiesMap, schedule.community_id),
         postLocation: schedule.post_location,
         status: schedule.status,
         notes: schedule.notes,
         createdAt: schedule.created_at,
         replacementId: schedule.replacement_id,
-        replacementName: schedule.replacement_id ? 
-                        (guardsMap.get(schedule.replacement_id)?.full_name || 
-                         `${guardsMap.get(schedule.replacement_id)?.first_name} ${guardsMap.get(schedule.replacement_id)?.last_name}`) :
-                        undefined,
+        replacementName: schedule.replacement_id ? formatGuardName(guardsMap.get(schedule.replacement_id)) : undefined,
       }));
     },
     enabled: !!date,
@@ -295,15 +323,15 @@ export const useCreateSchedule = () => {
       // Fetch related data separately
       const [guardResponse, communityResponse] = await Promise.all([
         supabase.from('guards').select('id, first_name, last_name, full_name, email').eq('id', data.guard_id).single(),
-        supabase.from('communities').select('id, name, address').eq('id', data.community_id).single()
+        data.community_id
+          ? supabase.from('communities').select('id, name, address').eq('id', data.community_id).single()
+          : Promise.resolve({ data: null, error: null })
       ]);
 
       return {
         id: data.id,
         guardId: data.guard_id,
-        guardName: guardResponse.data?.full_name || 
-                  `${guardResponse.data?.first_name} ${guardResponse.data?.last_name}` || 
-                  'Unknown',
+        guardName: formatGuardName(guardResponse.data),
         shiftType: data.shift_type,
         startTime: data.start_time,
         endTime: data.end_time,
@@ -363,10 +391,12 @@ export const useUpdateSchedule = () => {
       }
 
       // Fetch related data separately
-      const guardIds = [data.guard_id, data.replacement_id].filter(Boolean);
+      const guardIds = [data.guard_id, data.replacement_id].filter(isNonEmptyString);
       const [guardsResponse, communityResponse] = await Promise.all([
         supabase.from('guards').select('id, first_name, last_name, full_name, email').in('id', guardIds),
-        supabase.from('communities').select('id, name, address').eq('id', data.community_id).single()
+        data.community_id
+          ? supabase.from('communities').select('id, name, address').eq('id', data.community_id).single()
+          : Promise.resolve({ data: null, error: null })
       ]);
 
       const guardsMap = new Map(guardsResponse.data?.map(g => [g.id, g]) || []);
@@ -374,9 +404,7 @@ export const useUpdateSchedule = () => {
       return {
         id: data.id,
         guardId: data.guard_id,
-        guardName: guardsMap.get(data.guard_id)?.full_name || 
-                  `${guardsMap.get(data.guard_id)?.first_name} ${guardsMap.get(data.guard_id)?.last_name}` || 
-                  'Unknown',
+        guardName: formatGuardName(guardsMap.get(data.guard_id)),
         shiftType: data.shift_type,
         startTime: data.start_time,
         endTime: data.end_time,
@@ -389,10 +417,7 @@ export const useUpdateSchedule = () => {
         notes: data.notes,
         createdAt: data.created_at,
         replacementId: data.replacement_id,
-        replacementName: data.replacement_id ? 
-                        (guardsMap.get(data.replacement_id)?.full_name || 
-                         `${guardsMap.get(data.replacement_id)?.first_name} ${guardsMap.get(data.replacement_id)?.last_name}`) :
-                        undefined,
+        replacementName: data.replacement_id ? formatGuardName(guardsMap.get(data.replacement_id)) : undefined,
       };
     },
     onSuccess: (updatedSchedule) => {
@@ -429,15 +454,15 @@ export const useUpdateScheduleStatus = () => {
       // Fetch related data separately
       const [guardResponse, communityResponse] = await Promise.all([
         supabase.from('guards').select('id, first_name, last_name, full_name, email').eq('id', data.guard_id).single(),
-        supabase.from('communities').select('id, name, address').eq('id', data.community_id).single()
+        data.community_id
+          ? supabase.from('communities').select('id, name, address').eq('id', data.community_id).single()
+          : Promise.resolve({ data: null, error: null })
       ]);
 
       return {
         id: data.id,
         guardId: data.guard_id,
-        guardName: guardResponse.data?.full_name || 
-                  `${guardResponse.data?.first_name} ${guardResponse.data?.last_name}` || 
-                  'Unknown',
+        guardName: formatGuardName(guardResponse.data),
         shiftType: data.shift_type,
         startTime: data.start_time,
         endTime: data.end_time,

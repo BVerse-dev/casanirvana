@@ -66,7 +66,6 @@ const currencyOptions = [
 const BusinessConfigPage = () => {
   const [showAlert, setShowAlert] = useState<{ type: 'success' | 'danger'; message: string } | null>(null);
 
-  // Hooks for real Supabase data
   const { data: businessConfig, isLoading: isLoadingConfig, error: configError } = useBusinessConfig();
   const updateBusinessConfig = useUpdateBusinessConfig();
 
@@ -102,23 +101,11 @@ const BusinessConfigPage = () => {
   };
   const currencySymbol = currencySymbolMap[watchedCurrency || 'GHS'] || '';
 
-  // Load data from Supabase when available
   useEffect(() => {
     if (businessConfig) {
       reset(businessConfig);
     }
   }, [businessConfig, reset]);
-
-  // Show error if config loading failed
-  useEffect(() => {
-    if (configError) {
-      console.error('Error loading business config:', configError);
-      setShowAlert({ 
-        type: 'danger', 
-        message: 'Failed to load business configuration. Please refresh the page.' 
-      });
-    }
-  }, [configError]);
 
   const onSubmit = async (data: BusinessConfigFormData) => {
     try {
@@ -132,6 +119,22 @@ const BusinessConfigPage = () => {
       setShowAlert({ type: 'danger', message: 'Failed to update business configuration. Please try again.' });
     }
   };
+
+  if (configError && !businessConfig) {
+    return (
+      <>
+        <PageTitle title="Business Configuration" subName="General Settings" />
+        <Card>
+          <CardBody>
+            <Alert variant="danger" className="mb-0">
+              <IconifyIcon icon="material-symbols:error" className="me-2" />
+              Failed to load business configuration. Fix the backend connection and reload this page before making changes.
+            </Alert>
+          </CardBody>
+        </Card>
+      </>
+    );
+  }
 
   return (
     <>

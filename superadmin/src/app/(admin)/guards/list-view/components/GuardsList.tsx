@@ -31,6 +31,7 @@ interface GuardsListProps {
   statusFilter: 'all' | 'active' | 'inactive'
   currentPage: number
   onPageChange: (page: number) => void
+  onRefresh: () => void
 }
 
 const GuardsList = ({ 
@@ -40,7 +41,8 @@ const GuardsList = ({
   searchTerm, 
   statusFilter, 
   currentPage, 
-  onPageChange 
+  onPageChange,
+  onRefresh,
 }: GuardsListProps) => {
   const [selectedGuard, setSelectedGuard] = useState<GuardDirectoryItem | null>(null)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
@@ -66,7 +68,7 @@ const GuardsList = ({
         setShowDeleteModal(false)
         setSelectedGuard(null)
       } catch (error) {
-        toast.error('Failed to delete guard')
+        toast.error(error instanceof Error ? error.message : 'Failed to delete guard')
       }
     }
   }
@@ -106,6 +108,15 @@ const GuardsList = ({
     a.click()
     window.URL.revokeObjectURL(url)
     toast.success('Guards data exported successfully')
+  }
+
+  const handlePrint = () => {
+    window.print()
+  }
+
+  const handleRefresh = () => {
+    onRefresh()
+    toast.success('Guard directory refreshed')
   }
 
   if (isLoading) {
@@ -170,11 +181,11 @@ const GuardsList = ({
                     <IconifyIcon icon="solar:download-broken" className="me-2" />
                     Export CSV
                   </DropdownItem>
-                  <DropdownItem>
+                  <DropdownItem onClick={handlePrint}>
                     <IconifyIcon icon="solar:printer-broken" className="me-2" />
                     Print List
                   </DropdownItem>
-                  <DropdownItem>
+                  <DropdownItem onClick={handleRefresh}>
                     <IconifyIcon icon="solar:refresh-broken" className="me-2" />
                     Refresh
                   </DropdownItem>
@@ -297,9 +308,9 @@ const GuardsList = ({
                                   <IconifyIcon icon="solar:eye-broken" className="align-middle fs-18" />
                                 </Button>
                               </Link>
-                              <Link href={`/guards/edit?id=${guard.id}`}>
-                                <Button variant="soft-primary" size="sm" title="Edit Guard">
-                                  <IconifyIcon icon="solar:pen-2-broken" className="align-middle fs-18" />
+                              <Link href={`/guards/manage?tab=assignments&guardId=${guard.id}`}>
+                                <Button variant="soft-primary" size="sm" title="Manage Guard Assignments">
+                                  <IconifyIcon icon="ri:settings-3-line" className="align-middle fs-18" />
                                 </Button>
                               </Link>
                               <Button 

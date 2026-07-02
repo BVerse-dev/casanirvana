@@ -59,9 +59,9 @@ const EmptyState = ({ title, description, ctaHref, ctaLabel }: { title: string; 
       <h5>{title}</h5>
       <p className="text-muted mb-0">{description}</p>
       {ctaHref && ctaLabel ? (
-        <Button as={Link} href={ctaHref} variant="primary" className="mt-3">
+        <Link href={ctaHref} className="btn btn-primary mt-3">
           {ctaLabel}
-        </Button>
+        </Link>
       ) : null}
     </CardBody>
   </Card>
@@ -130,12 +130,12 @@ const AgencyDetailsPage = () => {
               <IconifyIcon icon="ri:arrow-left-line" className="me-1" /> Back to agencies
             </Link>
             <div className="d-flex gap-2">
-              <Button as={Link} href={`/agency/manage?tab=profiles&agencyId=${agency.id}`} variant="primary">
+              <Link href={`/agency/manage?tab=profiles&agencyId=${agency.id}`} className="btn btn-primary">
                 <IconifyIcon icon="solar:settings-bold-duotone" className="me-1" /> Manage agency
-              </Button>
-              <Button as={Link} href="/agency/list-view" variant="light">
+              </Link>
+              <Link href="/agency/list-view" className="btn btn-light">
                 <IconifyIcon icon="solar:list-bold-duotone" className="me-1" /> Directory
-              </Button>
+              </Link>
             </div>
           </div>
         </Col>
@@ -205,9 +205,9 @@ const AgencyDetailsPage = () => {
                       </td>
                       <td>{formatDate(community.created_at)}</td>
                       <td className="text-end">
-                        <Button as={Link} href={`/communities/details?id=${community.id}`} size="sm" variant="light">
+                        <Link href={`/communities/details?id=${community.id}`} className="btn btn-light btn-sm">
                           View
-                        </Button>
+                        </Link>
                       </td>
                     </tr>
                   ))}
@@ -338,9 +338,9 @@ const AgencyDetailsPage = () => {
                         <p className="text-muted mb-0">{activity.description}</p>
                       </div>
                       {activity.href ? (
-                        <Button as={Link} href={activity.href} size="sm" variant="light">
+                        <Link href={activity.href} className="btn btn-light btn-sm">
                           Open
-                        </Button>
+                        </Link>
                       ) : null}
                     </div>
                   </div>
@@ -386,9 +386,9 @@ const AgencyDetailsPage = () => {
                 <CardBody className="d-flex flex-column">
                   <CardTitle className="mb-2">{item.title}</CardTitle>
                   <p className="text-muted flex-grow-1">{item.description}</p>
-                  <Button as={Link} href={item.href} variant="primary">
+                  <Link href={item.href} className="btn btn-primary">
                     {item.cta}
-                  </Button>
+                  </Link>
                 </CardBody>
               </Card>
             </Col>

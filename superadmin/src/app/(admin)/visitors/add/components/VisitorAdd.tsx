@@ -18,7 +18,6 @@ interface CreateVisitorPassData {
   to_date: string
   unit_id: string
   vehicle_number?: string
-  created_by: string
 }
 
 const VisitorAdd = () => {
@@ -35,7 +34,6 @@ const VisitorAdd = () => {
     to_date: yup.string().required('Please enter visit end date'),
     unit_id: yup.string().required('Please select a unit'),
     vehicle_number: yup.string(),
-    created_by: yup.string().required('Created by is required'),
   })
 
   const { handleSubmit, control, reset } = useForm<CreateVisitorPassData>({
@@ -43,7 +41,6 @@ const VisitorAdd = () => {
     defaultValues: {
       from_date: new Date().toISOString().split('T')[0],
       to_date: new Date().toISOString().split('T')[0],
-      created_by: 'current-user-id', // This should be dynamically set from auth
     },
   })
 

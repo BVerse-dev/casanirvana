@@ -1,7 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
 import { supabase } from '../lib/supabase';
+import { createHttpError } from '../lib/httpError';
 
-const parseSettingValue = (value: any, dataType?: string | null) => {
+const normalizeNamespaceValue = (value: unknown) =>
+  typeof value === 'string' ? value.trim() : '';
+
+const parseSettingValue = (value: unknown, dataType?: string | null) => {
   try {
     if (dataType === 'boolean') {
       return value === true || value === 'true';
@@ -21,7 +25,7 @@ const parseSettingValue = (value: any, dataType?: string | null) => {
   }
 };
 
-const inferDataType = (value: any): 'string' | 'boolean' | 'number' | 'json' => {
+const inferDataType = (value: unknown): 'string' | 'boolean' | 'number' | 'json' => {
   if (typeof value === 'boolean') return 'boolean';
   if (typeof value === 'number') return 'number';
   if (typeof value === 'object' && value !== null) return 'json';
@@ -31,19 +35,22 @@ const inferDataType = (value: any): 'string' | 'boolean' | 'number' | 'json' => 
 export async function getSystemSettings(req: Request, res: Response, next: NextFunction) {
   try {
     const { category, subcategory, raw } = req.query;
+    const hasCategory = typeof category === 'string';
+    const hasSubcategory = typeof subcategory === 'string';
 
     let query = supabase
       .from('system_settings')
       .select('*')
       .order('category')
+      .order('subcategory')
       .order('key');
 
-    if (category && typeof category === 'string') {
-      query = query.eq('category', category);
+    if (hasCategory) {
+      query = query.eq('category', normalizeNamespaceValue(category));
     }
 
-    if (subcategory && typeof subcategory === 'string') {
-      query = query.eq('subcategory', subcategory);
+    if (hasCategory || hasSubcategory) {
+      query = query.eq('subcategory', normalizeNamespaceValue(subcategory));
     }
 
     const { data, error } = await query;
@@ -52,17 +59,17 @@ export async function getSystemSettings(req: Request, res: Response, next: NextF
       if (error.code === '42P01') {
         return res.json(raw ? [] : { data: [], settings: {} });
       }
-      return res.status(500).json({ error: 'Failed to fetch system settings', details: error });
+      return next(createHttpError(500, 'SYSTEM_SETTINGS_FETCH_FAILED', 'Failed to fetch system settings', error));
     }
 
     if (raw === 'true') {
       return res.json(data || []);
     }
 
-    const settings = (data || []).reduce((acc: Record<string, any>, item: any) => {
+    const settings = (data || []).reduce((acc: Record<string, unknown>, item) => {
       acc[item.key] = parseSettingValue(item.value, item.data_type);
       return acc;
-    }, {});
+    }, {} as Record<string, unknown>);
 
     return res.json({ data: data || [], settings });
   } catch (err) {
@@ -73,18 +80,20 @@ export async function getSystemSettings(req: Request, res: Response, next: NextF
 export async function systemSettingsExists(req: Request, res: Response, next: NextFunction) {
   try {
     const { category, subcategory } = req.query;
+    const hasCategory = typeof category === 'string';
+    const hasSubcategory = typeof subcategory === 'string';
 
     let query = supabase
       .from('system_settings')
       .select('id', { count: 'exact', head: true })
       .order('category');
 
-    if (category && typeof category === 'string') {
-      query = query.eq('category', category);
+    if (hasCategory) {
+      query = query.eq('category', normalizeNamespaceValue(category));
     }
 
-    if (subcategory && typeof subcategory === 'string') {
-      query = query.eq('subcategory', subcategory);
+    if (hasCategory || hasSubcategory) {
+      query = query.eq('subcategory', normalizeNamespaceValue(subcategory));
     }
 
     const { count, error } = await query;
@@ -93,7 +102,7 @@ export async function systemSettingsExists(req: Request, res: Response, next: Ne
       if (error.code === '42P01') {
         return res.json({ exists: false });
       }
-      return res.status(500).json({ error: 'Failed to check system settings', details: error });
+      return next(createHttpError(500, 'SYSTEM_SETTINGS_EXISTS_FAILED', 'Failed to check system settings', error));
     }
 
     return res.json({ exists: (count || 0) > 0 });
@@ -105,14 +114,16 @@ export async function systemSettingsExists(req: Request, res: Response, next: Ne
 export async function upsertSystemSettings(req: Request, res: Response, next: NextFunction) {
   try {
     const { category, subcategory, settings, descriptions, sensitivities } = req.body || {};
+    const normalizedCategory = normalizeNamespaceValue(category);
+    const normalizedSubcategory = normalizeNamespaceValue(subcategory);
 
     if (!settings || typeof settings !== 'object' || Array.isArray(settings)) {
-      return res.status(400).json({ error: 'settings object is required' });
+      return next(createHttpError(400, 'SYSTEM_SETTINGS_INVALID_BODY', 'settings object is required'));
     }
 
     const rows = Object.entries(settings).map(([key, value]) => ({
-      category: category || null,
-      subcategory: subcategory || null,
+      category: normalizedCategory,
+      subcategory: normalizedSubcategory,
       key,
       value: typeof value === 'object' && value !== null ? JSON.stringify(value) : String(value),
       data_type: inferDataType(value),
@@ -129,12 +140,12 @@ export async function upsertSystemSettings(req: Request, res: Response, next: Ne
     const { data, error } = await supabase
       .from('system_settings')
       .upsert(rows, {
-        onConflict: 'key',
+        onConflict: 'category,subcategory,key',
       })
       .select();
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to update system settings', details: error });
+      return next(createHttpError(500, 'SYSTEM_SETTINGS_UPDATE_FAILED', 'Failed to update system settings', error));
     }
 
     return res.json({ updated: data?.length || 0, data });
@@ -147,9 +158,11 @@ export async function deleteSystemSetting(req: Request, res: Response, next: Nex
   try {
     const { key } = req.params;
     const { category, subcategory } = req.query;
+    const hasCategory = typeof category === 'string';
+    const hasSubcategory = typeof subcategory === 'string';
 
     if (!key) {
-      return res.status(400).json({ error: 'settings key is required' });
+      return next(createHttpError(400, 'SYSTEM_SETTINGS_KEY_REQUIRED', 'settings key is required'));
     }
 
     let query = supabase
@@ -157,18 +170,18 @@ export async function deleteSystemSetting(req: Request, res: Response, next: Nex
       .delete()
       .eq('key', key);
 
-    if (category && typeof category === 'string') {
-      query = query.eq('category', category);
+    if (hasCategory) {
+      query = query.eq('category', normalizeNamespaceValue(category));
     }
 
-    if (subcategory && typeof subcategory === 'string') {
-      query = query.eq('subcategory', subcategory);
+    if (hasCategory || hasSubcategory) {
+      query = query.eq('subcategory', normalizeNamespaceValue(subcategory));
     }
 
     const { error } = await query;
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to delete system setting', details: error });
+      return next(createHttpError(500, 'SYSTEM_SETTINGS_DELETE_FAILED', 'Failed to delete system setting', error));
     }
 
     return res.status(204).send();

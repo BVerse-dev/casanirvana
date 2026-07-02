@@ -27,9 +27,18 @@ export const getCommentsForNotice = async (noticeId) => {
  * @returns {Promise}
  */
 export const createComment = async (comment) => {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   const { data, error } = await supabase
     .from('comments')
-    .insert([comment])
+    .insert([
+      {
+        ...comment,
+        author_user_id: user?.id || null,
+      },
+    ])
     .select()
     .single();
 
@@ -89,15 +98,20 @@ export const deleteComment = async (id) => {
  * @returns {Promise}
  */
 export const updateCommentLikes = async (id, likesCount) => {
-  const { data, error } = await supabase
-    .from('comments')
-    .update({ likes_count: likesCount })
-    .eq('id', id)
-    .select()
-    .single();
+  const { error } = await supabase.rpc('increment_comment_likes', { comment_id: id });
 
   if (error) {
     throw error;
+  }
+
+  const { data, error: fetchError } = await supabase
+    .from('comments')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (fetchError) {
+    throw fetchError;
   }
 
   return data;

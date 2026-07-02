@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 
 import type { Database } from '../lib/database.types';
+import { createHttpError } from '../lib/httpError';
 import { supabase } from '../lib/supabase';
 import { canAccessCommunity, resolveAdminScope } from '../services/adminScope';
 
@@ -102,11 +103,11 @@ async function loadEmailContactsMap(userIds: string[]) {
   ]);
 
   if (usersError) {
-    throw new Error(`Failed to load email users: ${usersError.message}`);
+    throw createHttpError(500, 'EMAIL_USERS_LOOKUP_FAILED', 'Failed to load email users', usersError);
   }
 
   if (profilesError) {
-    throw new Error(`Failed to load email profiles: ${profilesError.message}`);
+    throw createHttpError(500, 'EMAIL_PROFILES_LOOKUP_FAILED', 'Failed to load email profiles', profilesError);
   }
 
   const userMap = new Map<string, Pick<UserRow, 'id' | 'email'>>();
@@ -158,7 +159,7 @@ async function attachCommunityNames(contacts: Map<string, EnrichedParty>, fallba
     .in('id', communityIds);
 
   if (error) {
-    throw new Error(`Failed to load communities: ${error.message}`);
+    throw createHttpError(500, 'EMAIL_COMMUNITIES_LOOKUP_FAILED', 'Failed to load communities', error);
   }
 
   const communityMap = new Map<string, CommunityRow>();
@@ -235,7 +236,7 @@ async function buildEmailSummary(scope: Awaited<ReturnType<typeof resolveAdminSc
   const { data, error } = await query;
 
   if (error) {
-    throw new Error(`Failed to load email summary: ${error.message}`);
+    throw createHttpError(500, 'EMAIL_SUMMARY_LOOKUP_FAILED', 'Failed to load email summary', error);
   }
 
   const rows = data || [];
@@ -281,7 +282,7 @@ async function loadContacts(scope: Awaited<ReturnType<typeof resolveAdminScope>>
   const { data, error } = await query;
 
   if (error) {
-    throw new Error(`Failed to load email contacts: ${error.message}`);
+    throw createHttpError(500, 'EMAIL_CONTACTS_LOOKUP_FAILED', 'Failed to load email contacts', error);
   }
 
   const communityIds = [...new Set((data || []).map((profile) => profile.community_id).filter((value): value is string => typeof value === 'string' && value.length > 0))];
@@ -290,7 +291,12 @@ async function loadContacts(scope: Awaited<ReturnType<typeof resolveAdminScope>>
     : { data: [], error: null };
 
   if (communitiesError) {
-    throw new Error(`Failed to load email contact communities: ${communitiesError.message}`);
+    throw createHttpError(
+      500,
+      'EMAIL_CONTACT_COMMUNITIES_LOOKUP_FAILED',
+      'Failed to load email contact communities',
+      communitiesError
+    );
   }
 
   const communityMap = new Map<string, CommunityRow>();
@@ -361,7 +367,7 @@ export async function listEmails(req: Request, res: Response, next: NextFunction
     const { data, error } = await query;
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to load emails', details: error.message });
+      return next(createHttpError(500, 'EMAIL_LIST_FAILED', 'Failed to load emails', error));
     }
 
     const [emails, summary] = await Promise.all([enrichEmails(data || []), buildEmailSummary(scope)]);
@@ -379,18 +385,18 @@ export async function getEmail(req: Request, res: Response, next: NextFunction) 
     const { data, error } = await supabase.from('emails').select('*').eq('id', id).maybeSingle();
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to load email', details: error.message });
+      return next(createHttpError(500, 'EMAIL_LOOKUP_FAILED', 'Failed to load email', error));
     }
 
     if (!data) {
-      return res.status(404).json({ error: 'Email not found' });
+      return next(createHttpError(404, 'EMAIL_NOT_FOUND', 'Email not found'));
     }
 
     const [enriched] = await enrichEmails([data]);
     const resolvedCommunityId = enriched?.resolved_community_id || null;
 
     if (!scope.isGlobal && (!resolvedCommunityId || !canAccessCommunity(scope, resolvedCommunityId))) {
-      return res.status(403).json({ error: 'Email is outside your tenant scope' });
+      return next(createHttpError(403, 'EMAIL_SCOPE_VIOLATION', 'Email is outside your tenant scope'));
     }
 
     return res.json({ data: enriched });
@@ -417,7 +423,7 @@ export async function createEmail(req: Request, res: Response, next: NextFunctio
     const actorCommunityId = req.userProfile?.community_id || null;
 
     if (!actorUserId) {
-      return res.status(401).json({ error: 'Missing admin auth context' });
+      return next(createHttpError(401, 'ADMIN_AUTH_REQUIRED', 'Missing admin auth context'));
     }
 
     const recipientId = normalizeOptionalString(req.body?.recipient_id);
@@ -427,7 +433,9 @@ export async function createEmail(req: Request, res: Response, next: NextFunctio
     const action = normalizeOptionalString(req.body?.action)?.toLowerCase() === 'draft' ? 'draft' : 'queue';
 
     if (!recipientId || !subject || !body) {
-      return res.status(400).json({ error: 'Recipient, subject, and body are required' });
+      return next(
+        createHttpError(400, 'EMAIL_REQUIRED_FIELDS', 'Recipient, subject, and body are required')
+      );
     }
 
     const { data: recipientProfile, error: recipientError } = await supabase
@@ -437,16 +445,18 @@ export async function createEmail(req: Request, res: Response, next: NextFunctio
       .maybeSingle();
 
     if (recipientError) {
-      return res.status(500).json({ error: 'Failed to resolve recipient', details: recipientError.message });
+      return next(createHttpError(500, 'EMAIL_RECIPIENT_LOOKUP_FAILED', 'Failed to resolve recipient', recipientError));
     }
 
     if (!recipientProfile) {
-      return res.status(404).json({ error: 'Recipient not found' });
+      return next(createHttpError(404, 'EMAIL_RECIPIENT_NOT_FOUND', 'Recipient not found'));
     }
 
     const resolvedCommunityId = recipientProfile.community_id || actorCommunityId || null;
     if (!scope.isGlobal && (!resolvedCommunityId || !canAccessCommunity(scope, resolvedCommunityId))) {
-      return res.status(403).json({ error: 'Recipient is outside your tenant scope' });
+      return next(
+        createHttpError(403, 'EMAIL_RECIPIENT_SCOPE_VIOLATION', 'Recipient is outside your tenant scope')
+      );
     }
 
     const insertPayload: EmailInsert = {
@@ -473,7 +483,7 @@ export async function createEmail(req: Request, res: Response, next: NextFunctio
     const { data, error } = await supabase.from('emails').insert(insertPayload).select('*').single();
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to create email record', details: error.message });
+      return next(createHttpError(500, 'EMAIL_CREATE_FAILED', 'Failed to create email record', error));
     }
 
     const [enriched] = await enrichEmails([data]);
@@ -491,18 +501,18 @@ export async function updateEmail(req: Request, res: Response, next: NextFunctio
     const { data: existing, error: existingError } = await supabase.from('emails').select('*').eq('id', id).maybeSingle();
 
     if (existingError) {
-      return res.status(500).json({ error: 'Failed to load email', details: existingError.message });
+      return next(createHttpError(500, 'EMAIL_LOOKUP_FAILED', 'Failed to load email', existingError));
     }
 
     if (!existing) {
-      return res.status(404).json({ error: 'Email not found' });
+      return next(createHttpError(404, 'EMAIL_NOT_FOUND', 'Email not found'));
     }
 
     const [enrichedExisting] = await enrichEmails([existing]);
     const resolvedCommunityId = enrichedExisting?.resolved_community_id || null;
 
     if (!scope.isGlobal && (!resolvedCommunityId || !canAccessCommunity(scope, resolvedCommunityId))) {
-      return res.status(403).json({ error: 'Email is outside your tenant scope' });
+      return next(createHttpError(403, 'EMAIL_SCOPE_VIOLATION', 'Email is outside your tenant scope'));
     }
 
     const updates: Database['public']['Tables']['emails']['Update'] = {};
@@ -557,7 +567,7 @@ export async function updateEmail(req: Request, res: Response, next: NextFunctio
     const body = normalizeOptionalString(req.body?.body);
     if (subject || body) {
       if (!existing.is_draft) {
-        return res.status(400).json({ error: 'Only draft emails can be edited' });
+        return next(createHttpError(400, 'EMAIL_EDIT_REQUIRES_DRAFT', 'Only draft emails can be edited'));
       }
       if (subject) updates.subject = subject;
       if (body) updates.body = body;
@@ -570,13 +580,13 @@ export async function updateEmail(req: Request, res: Response, next: NextFunctio
     }
 
     if (Object.keys(updates).length === 0) {
-      return res.status(400).json({ error: 'No supported email updates were provided' });
+      return next(createHttpError(400, 'EMAIL_UPDATE_EMPTY', 'No supported email updates were provided'));
     }
 
     const { data, error } = await supabase.from('emails').update(updates).eq('id', id).select('*').single();
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to update email', details: error.message });
+      return next(createHttpError(500, 'EMAIL_UPDATE_FAILED', 'Failed to update email', error));
     }
 
     const [enriched] = await enrichEmails([data]);

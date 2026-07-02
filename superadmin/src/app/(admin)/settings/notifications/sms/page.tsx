@@ -323,7 +323,12 @@ const SmsSettingsPage = () => {
 
       <Alert variant="info">
         <IconifyIcon icon="solar:shield-check-line-duotone" className="fs-18 me-2" />
-        Validate SMS Setup checks provider configuration completeness. Live delivery still depends on your SMS provider account and approved sender setup.
+        This page owns SMS provider credentials and delivery defaults only. Notification content and routing stay on their dedicated email, in-app, notice, and emergency settings pages.
+      </Alert>
+
+      <Alert variant="info">
+        <IconifyIcon icon="solar:shield-check-line-duotone" className="fs-18 me-2" />
+        Validate SMS Setup checks provider configuration completeness. Live delivery still depends on your SMS provider account, approved sender setup, and carrier acceptance.
       </Alert>
 
       <form onSubmit={handleSubmit(onSubmit)}>

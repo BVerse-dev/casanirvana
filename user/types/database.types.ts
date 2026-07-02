@@ -1100,6 +1100,9 @@ export type Database = {
           description: string | null
           error_code: string | null
           error_message: string | null
+          external_service_code: string | null
+          fulfillment_reference: string | null
+          fulfillment_status: string
           id: string
           package_id: string | null
           payment_ref_id: string | null
@@ -1107,8 +1110,12 @@ export type Database = {
           processed_by: string | null
           profile_id: string | null
           provider: string
+          provider_display_name: string | null
           provider_id: string | null
+          provider_payload: Json
           provider_response_time: number | null
+          provider_status_checked_at: string | null
+          query_context: Json
           status: string
           updated_at: string | null
           user_id: string | null
@@ -1121,6 +1128,9 @@ export type Database = {
           description?: string | null
           error_code?: string | null
           error_message?: string | null
+          external_service_code?: string | null
+          fulfillment_reference?: string | null
+          fulfillment_status?: string
           id?: string
           package_id?: string | null
           payment_ref_id?: string | null
@@ -1128,8 +1138,12 @@ export type Database = {
           processed_by?: string | null
           profile_id?: string | null
           provider: string
+          provider_display_name?: string | null
           provider_id?: string | null
+          provider_payload?: Json
           provider_response_time?: number | null
+          provider_status_checked_at?: string | null
+          query_context?: Json
           status?: string
           updated_at?: string | null
           user_id?: string | null
@@ -1142,6 +1156,9 @@ export type Database = {
           description?: string | null
           error_code?: string | null
           error_message?: string | null
+          external_service_code?: string | null
+          fulfillment_reference?: string | null
+          fulfillment_status?: string
           id?: string
           package_id?: string | null
           payment_ref_id?: string | null
@@ -1149,8 +1166,12 @@ export type Database = {
           processed_by?: string | null
           profile_id?: string | null
           provider?: string
+          provider_display_name?: string | null
           provider_id?: string | null
+          provider_payload?: Json
           provider_response_time?: number | null
+          provider_status_checked_at?: string | null
+          query_context?: Json
           status?: string
           updated_at?: string | null
           user_id?: string | null
@@ -1678,14 +1699,21 @@ export type Database = {
           customer_name: string | null
           error_code: string | null
           error_message: string | null
+          external_service_code: string | null
           fee: number | null
+          fulfillment_reference: string | null
+          fulfillment_status: string
           id: string
           payment_ref_id: string | null
           processed_by: string | null
           profile_id: string | null
           provider: string
+          provider_display_name: string | null
           provider_id: string | null
+          provider_payload: Json
           provider_response_time: number | null
+          provider_status_checked_at: string | null
+          query_context: Json
           status: string
           total_amount: number
           updated_at: string | null
@@ -1702,14 +1730,21 @@ export type Database = {
           customer_name?: string | null
           error_code?: string | null
           error_message?: string | null
+          external_service_code?: string | null
           fee?: number | null
+          fulfillment_reference?: string | null
+          fulfillment_status?: string
           id?: string
           payment_ref_id?: string | null
           processed_by?: string | null
           profile_id?: string | null
           provider: string
+          provider_display_name?: string | null
           provider_id?: string | null
+          provider_payload?: Json
           provider_response_time?: number | null
+          provider_status_checked_at?: string | null
+          query_context?: Json
           status?: string
           total_amount: number
           updated_at?: string | null
@@ -1726,14 +1761,21 @@ export type Database = {
           customer_name?: string | null
           error_code?: string | null
           error_message?: string | null
+          external_service_code?: string | null
           fee?: number | null
+          fulfillment_reference?: string | null
+          fulfillment_status?: string
           id?: string
           payment_ref_id?: string | null
           processed_by?: string | null
           profile_id?: string | null
           provider?: string
+          provider_display_name?: string | null
           provider_id?: string | null
+          provider_payload?: Json
           provider_response_time?: number | null
+          provider_status_checked_at?: string | null
+          query_context?: Json
           status?: string
           total_amount?: number
           updated_at?: string | null
@@ -2158,37 +2200,47 @@ export type Database = {
         Row: {
           author_avatar: string | null
           author_name: string
+          author_user_id: string | null
           content: string
           created_at: string | null
           id: string
           likes_count: number | null
-          notice_id: string | null
+          notice_id: string
           parent_id: string | null
           updated_at: string | null
         }
         Insert: {
           author_avatar?: string | null
           author_name: string
+          author_user_id?: string | null
           content: string
           created_at?: string | null
           id?: string
           likes_count?: number | null
-          notice_id?: string | null
+          notice_id: string
           parent_id?: string | null
           updated_at?: string | null
         }
         Update: {
           author_avatar?: string | null
           author_name?: string
+          author_user_id?: string | null
           content?: string
           created_at?: string | null
           id?: string
           likes_count?: number | null
-          notice_id?: string | null
+          notice_id?: string
           parent_id?: string | null
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "comments_notice_id_fkey"
+            columns: ["notice_id"]
+            isOneToOne: false
+            referencedRelation: "notices"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "comments_parent_id_fkey"
             columns: ["parent_id"]
@@ -3540,6 +3592,9 @@ export type Database = {
           description: string | null
           error_code: string | null
           error_message: string | null
+          external_service_code: string | null
+          fulfillment_reference: string | null
+          fulfillment_status: string
           id: string
           package_id: string | null
           package_name: string
@@ -3548,8 +3603,12 @@ export type Database = {
           processed_by: string | null
           profile_id: string | null
           provider: string
+          provider_display_name: string | null
           provider_id: string | null
+          provider_payload: Json
           provider_response_time: number | null
+          provider_status_checked_at: string | null
+          query_context: Json
           status: string
           updated_at: string | null
           user_id: string | null
@@ -3564,6 +3623,9 @@ export type Database = {
           description?: string | null
           error_code?: string | null
           error_message?: string | null
+          external_service_code?: string | null
+          fulfillment_reference?: string | null
+          fulfillment_status?: string
           id?: string
           package_id?: string | null
           package_name: string
@@ -3572,8 +3634,12 @@ export type Database = {
           processed_by?: string | null
           profile_id?: string | null
           provider: string
+          provider_display_name?: string | null
           provider_id?: string | null
+          provider_payload?: Json
           provider_response_time?: number | null
+          provider_status_checked_at?: string | null
+          query_context?: Json
           status?: string
           updated_at?: string | null
           user_id?: string | null
@@ -3588,6 +3654,9 @@ export type Database = {
           description?: string | null
           error_code?: string | null
           error_message?: string | null
+          external_service_code?: string | null
+          fulfillment_reference?: string | null
+          fulfillment_status?: string
           id?: string
           package_id?: string | null
           package_name?: string
@@ -3596,8 +3665,12 @@ export type Database = {
           processed_by?: string | null
           profile_id?: string | null
           provider?: string
+          provider_display_name?: string | null
           provider_id?: string | null
+          provider_payload?: Json
           provider_response_time?: number | null
+          provider_status_checked_at?: string | null
+          query_context?: Json
           status?: string
           updated_at?: string | null
           user_id?: string | null
@@ -5039,7 +5112,7 @@ export type Database = {
             foreignKeyName: "guard_assignments_backup_guard_id_fkey"
             columns: ["backup_guard_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "guards"
             referencedColumns: ["id"]
           },
           {
@@ -5053,14 +5126,14 @@ export type Database = {
             foreignKeyName: "guard_assignments_guard_id_fkey"
             columns: ["guard_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "guards"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "guard_assignments_supervisor_id_fkey"
             columns: ["supervisor_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "guards"
             referencedColumns: ["id"]
           },
         ]
@@ -5119,7 +5192,7 @@ export type Database = {
             foreignKeyName: "guard_certifications_guard_id_fkey"
             columns: ["guard_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "guards"
             referencedColumns: ["id"]
           },
         ]
@@ -5468,7 +5541,7 @@ export type Database = {
             foreignKeyName: "guard_performance_reviews_guard_id_fkey"
             columns: ["guard_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "guards"
             referencedColumns: ["id"]
           },
           {
@@ -5534,14 +5607,14 @@ export type Database = {
             foreignKeyName: "guard_schedules_guard_id_fkey"
             columns: ["guard_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "guards"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "guard_schedules_replacement_id_fkey"
             columns: ["replacement_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "guards"
             referencedColumns: ["id"]
           },
           {
@@ -5750,7 +5823,7 @@ export type Database = {
             foreignKeyName: "guard_trainings_guard_id_fkey"
             columns: ["guard_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "guards"
             referencedColumns: ["id"]
           },
           {
@@ -6386,7 +6459,10 @@ export type Database = {
           created_at: string | null
           error_code: string | null
           error_message: string | null
+          external_service_code: string | null
           fee: number | null
+          fulfillment_reference: string | null
+          fulfillment_status: string
           id: string
           insurance_type: string
           insured_name: string | null
@@ -6397,8 +6473,12 @@ export type Database = {
           processed_by: string | null
           profile_id: string | null
           provider: string
+          provider_display_name: string | null
           provider_id: string | null
+          provider_payload: Json
           provider_response_time: number | null
+          provider_status_checked_at: string | null
+          query_context: Json
           status: string
           total_amount: number
           updated_at: string | null
@@ -6413,7 +6493,10 @@ export type Database = {
           created_at?: string | null
           error_code?: string | null
           error_message?: string | null
+          external_service_code?: string | null
           fee?: number | null
+          fulfillment_reference?: string | null
+          fulfillment_status?: string
           id?: string
           insurance_type: string
           insured_name?: string | null
@@ -6424,8 +6507,12 @@ export type Database = {
           processed_by?: string | null
           profile_id?: string | null
           provider: string
+          provider_display_name?: string | null
           provider_id?: string | null
+          provider_payload?: Json
           provider_response_time?: number | null
+          provider_status_checked_at?: string | null
+          query_context?: Json
           status?: string
           total_amount: number
           updated_at?: string | null
@@ -6440,7 +6527,10 @@ export type Database = {
           created_at?: string | null
           error_code?: string | null
           error_message?: string | null
+          external_service_code?: string | null
           fee?: number | null
+          fulfillment_reference?: string | null
+          fulfillment_status?: string
           id?: string
           insurance_type?: string
           insured_name?: string | null
@@ -6451,8 +6541,12 @@ export type Database = {
           processed_by?: string | null
           profile_id?: string | null
           provider?: string
+          provider_display_name?: string | null
           provider_id?: string | null
+          provider_payload?: Json
           provider_response_time?: number | null
+          provider_status_checked_at?: string | null
+          query_context?: Json
           status?: string
           total_amount?: number
           updated_at?: string | null
@@ -7604,14 +7698,22 @@ export type Database = {
           created_at: string | null
           error_code: string | null
           error_message: string | null
+          external_service_code: string | null
           fee: number | null
+          fulfillment_reference: string | null
+          fulfillment_status: string
           id: string
           kyc_verified: boolean | null
           payment_ref_id: string | null
           processed_by: string | null
           profile_id: string | null
+          provider_code: string | null
+          provider_display_name: string | null
           provider_id: string | null
+          provider_payload: Json
           provider_response_time: number | null
+          provider_status_checked_at: string | null
+          query_context: Json
           recipient_account: string | null
           recipient_bank: string | null
           recipient_name: string
@@ -7629,14 +7731,22 @@ export type Database = {
           created_at?: string | null
           error_code?: string | null
           error_message?: string | null
+          external_service_code?: string | null
           fee?: number | null
+          fulfillment_reference?: string | null
+          fulfillment_status?: string
           id?: string
           kyc_verified?: boolean | null
           payment_ref_id?: string | null
           processed_by?: string | null
           profile_id?: string | null
+          provider_code?: string | null
+          provider_display_name?: string | null
           provider_id?: string | null
+          provider_payload?: Json
           provider_response_time?: number | null
+          provider_status_checked_at?: string | null
+          query_context?: Json
           recipient_account?: string | null
           recipient_bank?: string | null
           recipient_name: string
@@ -7654,14 +7764,22 @@ export type Database = {
           created_at?: string | null
           error_code?: string | null
           error_message?: string | null
+          external_service_code?: string | null
           fee?: number | null
+          fulfillment_reference?: string | null
+          fulfillment_status?: string
           id?: string
           kyc_verified?: boolean | null
           payment_ref_id?: string | null
           processed_by?: string | null
           profile_id?: string | null
+          provider_code?: string | null
+          provider_display_name?: string | null
           provider_id?: string | null
+          provider_payload?: Json
           provider_response_time?: number | null
+          provider_status_checked_at?: string | null
+          query_context?: Json
           recipient_account?: string | null
           recipient_bank?: string | null
           recipient_name?: string
@@ -7813,6 +7931,7 @@ export type Database = {
           audience: string | null
           budget: number | null
           clicked_count: number | null
+          community_id: string | null
           created_at: string | null
           delivered_count: number | null
           failed_count: number | null
@@ -7825,6 +7944,7 @@ export type Database = {
           spent: number | null
           status: string
           template: string | null
+          template_id: number | null
           title: string
           type: string
           updated_at: string | null
@@ -7833,6 +7953,7 @@ export type Database = {
           audience?: string | null
           budget?: number | null
           clicked_count?: number | null
+          community_id?: string | null
           created_at?: string | null
           delivered_count?: number | null
           failed_count?: number | null
@@ -7845,6 +7966,7 @@ export type Database = {
           spent?: number | null
           status?: string
           template?: string | null
+          template_id?: number | null
           title: string
           type: string
           updated_at?: string | null
@@ -7853,6 +7975,7 @@ export type Database = {
           audience?: string | null
           budget?: number | null
           clicked_count?: number | null
+          community_id?: string | null
           created_at?: string | null
           delivered_count?: number | null
           failed_count?: number | null
@@ -7865,11 +7988,27 @@ export type Database = {
           spent?: number | null
           status?: string
           template?: string | null
+          template_id?: number | null
           title?: string
           type?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "notification_campaigns_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_campaigns_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "notification_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notification_channel_configs: {
         Row: {
@@ -9455,6 +9594,7 @@ export type Database = {
       }
       service_packages: {
         Row: {
+          catalog_source: string
           created_at: string | null
           data_amount: string | null
           denomination: number | null
@@ -9462,14 +9602,18 @@ export type Database = {
           display_order: number | null
           id: string
           is_active: boolean | null
+          is_enabled_for_app: boolean
+          last_synced_at: string | null
           package_code: string | null
           package_name: string
           provider_id: string | null
+          provider_metadata: Json
           service_type: string
           updated_at: string | null
           validity_days: number | null
         }
         Insert: {
+          catalog_source?: string
           created_at?: string | null
           data_amount?: string | null
           denomination?: number | null
@@ -9477,14 +9621,18 @@ export type Database = {
           display_order?: number | null
           id?: string
           is_active?: boolean | null
+          is_enabled_for_app?: boolean
+          last_synced_at?: string | null
           package_code?: string | null
           package_name: string
           provider_id?: string | null
+          provider_metadata?: Json
           service_type: string
           updated_at?: string | null
           validity_days?: number | null
         }
         Update: {
+          catalog_source?: string
           created_at?: string | null
           data_amount?: string | null
           denomination?: number | null
@@ -9492,9 +9640,12 @@ export type Database = {
           display_order?: number | null
           id?: string
           is_active?: boolean | null
+          is_enabled_for_app?: boolean
+          last_synced_at?: string | null
           package_code?: string | null
           package_name?: string
           provider_id?: string | null
+          provider_metadata?: Json
           service_type?: string
           updated_at?: string | null
           validity_days?: number | null
@@ -9514,14 +9665,23 @@ export type Database = {
           api_endpoint: string | null
           api_key_encrypted: string | null
           average_response_time: number | null
+          bill_category: string
+          catalog_source: string
           commission_rate: number | null
           created_at: string | null
+          external_service_code: string | null
           id: string
           is_active: boolean | null
+          is_enabled_for_app: boolean
+          last_synced_at: string | null
           last_transaction_at: string | null
           logo_url: string | null
           provider_name: string
+          provider_metadata: Json
           service_type: string
+          supports_pay: boolean
+          supports_query: boolean
+          supports_status: boolean
           success_rate: number | null
           total_transactions: number | null
           total_volume: number | null
@@ -9531,14 +9691,23 @@ export type Database = {
           api_endpoint?: string | null
           api_key_encrypted?: string | null
           average_response_time?: number | null
+          bill_category?: string
+          catalog_source?: string
           commission_rate?: number | null
           created_at?: string | null
+          external_service_code?: string | null
           id?: string
           is_active?: boolean | null
+          is_enabled_for_app?: boolean
+          last_synced_at?: string | null
           last_transaction_at?: string | null
           logo_url?: string | null
           provider_name: string
+          provider_metadata?: Json
           service_type: string
+          supports_pay?: boolean
+          supports_query?: boolean
+          supports_status?: boolean
           success_rate?: number | null
           total_transactions?: number | null
           total_volume?: number | null
@@ -9548,14 +9717,23 @@ export type Database = {
           api_endpoint?: string | null
           api_key_encrypted?: string | null
           average_response_time?: number | null
+          bill_category?: string
+          catalog_source?: string
           commission_rate?: number | null
           created_at?: string | null
+          external_service_code?: string | null
           id?: string
           is_active?: boolean | null
+          is_enabled_for_app?: boolean
+          last_synced_at?: string | null
           last_transaction_at?: string | null
           logo_url?: string | null
           provider_name?: string
+          provider_metadata?: Json
           service_type?: string
+          supports_pay?: boolean
+          supports_query?: boolean
+          supports_status?: boolean
           success_rate?: number | null
           total_transactions?: number | null
           total_volume?: number | null
@@ -10538,36 +10716,42 @@ export type Database = {
       }
       system_settings: {
         Row: {
-          category: string | null
+          category: string
           created_at: string | null
           data_type: string | null
           description: string | null
           id: number
           is_sensitive: boolean | null
           key: string
+          subcategory: string
           updated_at: string | null
+          updated_by: string | null
           value: string
         }
         Insert: {
-          category?: string | null
+          category?: string
           created_at?: string | null
           data_type?: string | null
           description?: string | null
           id?: number
           is_sensitive?: boolean | null
           key: string
+          subcategory?: string
           updated_at?: string | null
+          updated_by?: string | null
           value: string
         }
         Update: {
-          category?: string | null
+          category?: string
           created_at?: string | null
           data_type?: string | null
           description?: string | null
           id?: number
           is_sensitive?: boolean | null
           key?: string
+          subcategory?: string
           updated_at?: string | null
+          updated_by?: string | null
           value?: string
         }
         Relationships: []
@@ -11211,6 +11395,7 @@ export type Database = {
           push_token: string | null
           role: string
           unit_id: string | null
+          updated_at: string
         }
         Insert: {
           address?: string | null
@@ -11227,6 +11412,7 @@ export type Database = {
           push_token?: string | null
           role: string
           unit_id?: string | null
+          updated_at?: string
         }
         Update: {
           address?: string | null
@@ -11243,6 +11429,7 @@ export type Database = {
           push_token?: string | null
           role?: string
           unit_id?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
@@ -11683,7 +11870,7 @@ export type Database = {
             foreignKeyName: "guard_performance_reviews_guard_id_fkey"
             columns: ["guard_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "guards"
             referencedColumns: ["id"]
           },
           {
@@ -11733,9 +11920,13 @@ export type Database = {
         Row: {
           amount: number | null
           created_at: string | null
+          external_service_code: string | null
+          fulfillment_reference: string | null
+          fulfillment_status: string | null
           payment_id: string | null
           profile_id: string | null
           provider: string | null
+          query_context: Json | null
           recipient_identifier: string | null
           recipient_name: string | null
           status: string | null
@@ -12143,6 +12334,10 @@ export type Database = {
       }
       increment_notice_likes: {
         Args: { notice_id: string }
+        Returns: undefined
+      }
+      increment_comment_likes: {
+        Args: { comment_id: string }
         Returns: undefined
       }
       increment_notice_views: {

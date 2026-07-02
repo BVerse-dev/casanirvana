@@ -301,8 +301,9 @@ export const usePushNotificationAnalytics = (days = 30) => {
       if (error) throw new Error(`Failed to fetch analytics: ${error.message}`);
 
       // Calculate platform performance
-      const platformStats = data.reduce((acc: any, notification) => {
-        const platform = notification.platform;
+      const platformStats = data.reduce<Record<string, { sent: number; delivered: number; opened: number; clicked: number; deliveryRate?: number; openRate?: number; clickRate?: number }>>(
+        (acc, notification) => {
+        const platform = notification.platform || 'unknown';
         if (!acc[platform]) {
           acc[platform] = { sent: 0, delivered: 0, opened: 0, clicked: 0 };
         }
@@ -360,4 +361,4 @@ export const useSearchPushNotifications = (searchTerm: string) => {
     },
     enabled: !!searchTerm && searchTerm.length >= 2,
   });
-}; 
+};

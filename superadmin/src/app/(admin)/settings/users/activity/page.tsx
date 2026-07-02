@@ -179,6 +179,11 @@ export default function UserActivityPage() {
   const handleExport = async () => {
     try {
       const data = await exportMutation.mutateAsync(filters);
+
+      if (data.length === 0) {
+        console.warn('No activity logs matched the current filters for export.');
+        return;
+      }
       
       const csvData = data.map(log => ({
         Timestamp: formatTimestamp(log.timestamp),
@@ -219,6 +224,8 @@ export default function UserActivityPage() {
   // Calculate total pages based on total count from stats
   const totalCount = activityStats?.total || 0;
   const totalPages = Math.ceil(totalCount / pagination.itemsPerPage);
+  const rangeStart = totalCount === 0 ? 0 : (pagination.currentPage - 1) * pagination.itemsPerPage + 1;
+  const rangeEnd = totalCount === 0 ? 0 : Math.min(pagination.currentPage * pagination.itemsPerPage, totalCount);
 
   const handlePageChange = (page: number) => {
     setPagination(prev => ({ ...prev, currentPage: page }));
@@ -280,9 +287,7 @@ export default function UserActivityPage() {
               "No entries to show"
             ) : (
               <>
-                Showing {Math.min((pagination.currentPage - 1) * pagination.itemsPerPage + 1, filteredLogs.length)} to{' '}
-                {Math.min(pagination.currentPage * pagination.itemsPerPage, filteredLogs.length)} of{' '}
-                {filteredLogs.length} entries
+                Showing {rangeStart} to {rangeEnd} of {totalCount} entries
               </>
             )}
           </small>

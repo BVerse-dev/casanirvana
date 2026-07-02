@@ -304,7 +304,7 @@ const NotificationRulesPage = () => {
   };
 
   const formatLastTriggered = (dateString?: string) => {
-    if (!dateString) return 'Never';
+    if (!dateString) return 'Not tracked';
     return new Date(dateString).toLocaleDateString();
   };
 
@@ -336,7 +336,7 @@ const NotificationRulesPage = () => {
     <>
       <PageTitle 
         title="Notification Rules" 
-        subName="Configure automated notification triggers and actions"
+        subName="Configure stored rule definitions and notification throttling"
       />
 
       {updateSuccess && (
@@ -367,6 +367,11 @@ const NotificationRulesPage = () => {
         </Alert>
       )}
 
+      <Alert variant="info">
+        <IconifyIcon icon="ri:information-line" className="me-2" />
+        This workspace stores rule definitions and throttling metadata for the admin notification stack. Channel delivery still depends on the dedicated push, SMS, email, and in-app settings pages.
+      </Alert>
+
       <Row>
         <Col xs={12}>
           <ComponentContainerCard id="notification-rules-config" title="Notification Rules Configuration">
@@ -380,7 +385,7 @@ const NotificationRulesPage = () => {
                   <div>
                     <h5>Notification Rules</h5>
                     <p className="text-muted mb-0">
-                      Configure automated notification triggers based on system events
+                      Configure stored notification rule definitions, priorities, and launch guardrails
                     </p>
                   </div>
                   <Button variant="primary" onClick={addNewRule}>
@@ -398,8 +403,8 @@ const NotificationRulesPage = () => {
                           <th>Trigger</th>
                           <th>Priority</th>
                           <th>Status</th>
-                          <th>Executions</th>
-                          <th>Last Triggered</th>
+                          <th>Telemetry</th>
+                          <th>Runtime Signal</th>
                           <th>Actions</th>
                         </tr>
                       </thead>
@@ -439,7 +444,7 @@ const NotificationRulesPage = () => {
                               </Button>
                             </td>
                             <td>
-                              <Badge bg="info">{rule.executionCount}</Badge>
+                              <Badge bg="secondary">Not tracked</Badge>
                               {rule.maxExecutions && (
                                 <small className="text-muted d-block">
                                   Max: {rule.maxExecutions}
@@ -498,7 +503,7 @@ const NotificationRulesPage = () => {
                                 <Form.Check
                                   type="switch"
                                   id="enable_notification_rules"
-                                  label="Enable Notification Rules System"
+                                  label="Enable Notification Rule Definitions"
                                   checked={Boolean(field.value)}
                                   onChange={(e) => field.onChange(e.target.checked)}
                                 />
@@ -601,8 +606,7 @@ const NotificationRulesPage = () => {
 
                           <Alert variant="info">
                             <IconifyIcon icon="ri:information-line" className="me-2" />
-                            Throttling prevents rules from executing too frequently. 
-                            A rule will not execute again until the throttle time has passed.
+                            Throttling stores the default cooldown metadata used when downstream services honor these rule definitions. It does not by itself deliver notifications.
                           </Alert>
                         </Card.Body>
                       </Card>
@@ -634,17 +638,17 @@ const NotificationRulesPage = () => {
                             <Col md={3}>
                               <div className="text-center">
                                 <h4 className="text-warning">
-                                  {rules.reduce((sum, r) => sum + r.executionCount, 0)}
+                                  {rules.filter((rule) => typeof rule.throttle === 'number' && rule.throttle > 0).length}
                                 </h4>
-                                <small className="text-muted">Total Executions</small>
+                                <small className="text-muted">Rules With Throttle</small>
                               </div>
                             </Col>
                             <Col md={3}>
                               <div className="text-center">
                                 <h4 className="text-info">
-                                  {rules.filter(r => r.priority === 'critical').length}
+                                  {rules.filter((rule) => typeof rule.maxExecutions === 'number' && rule.maxExecutions > 0).length}
                                 </h4>
-                                <small className="text-muted">Critical Rules</small>
+                                <small className="text-muted">Rules With Limit</small>
                               </div>
                             </Col>
                           </Row>

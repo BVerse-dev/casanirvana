@@ -5,7 +5,7 @@ import IconifyIcon from '@/components/wrappers/IconifyIcon'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Card, CardBody, CardFooter, CardHeader, CardTitle, Col, Row } from '@/components/ReactBootstrap'
-import { useListAgenciesDirectory } from '@/hooks/useAgencyDirectory'
+import type { AgencyDirectoryItem } from '@/hooks/useAgencyDirectory'
 
 const formatDate = (value?: string | null) => {
   if (!value) return 'No recent updates'
@@ -14,9 +14,7 @@ const formatDate = (value?: string | null) => {
   return date.toLocaleDateString()
 }
 
-const AgencyGridCard = () => {
-  const { data: agencies = [] } = useListAgenciesDirectory()
-
+const AgencyGridCard = ({ agencies }: { agencies: AgencyDirectoryItem[] }) => {
   const totalAgencies = agencies.length
   const activeAgencies = agencies.filter((agency) => agency.is_active).length
   const inactiveAgencies = totalAgencies - activeAgencies

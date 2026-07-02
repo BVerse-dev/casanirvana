@@ -3,19 +3,28 @@
 import { Card, CardBody, CardHeader, CardTitle, Col, Row } from "react-bootstrap";
 import { useSearchParams } from "next/navigation";
 
-import { getServiceDisplayName, useGetService } from "@/hooks/useServices";
+import { getServiceDisplayName, getServiceFeatureLabels, getServiceStatus, useGetService } from "@/hooks/useServices";
 import { useListServiceRequests } from "@/hooks/useServiceRequests";
 
-const formatMoney = (amount?: number | null) =>
+const formatCurrency = (amount?: number | null) =>
+  new Intl.NumberFormat("en-GH", {
+    style: "currency",
+    currency: "GHS",
+    minimumFractionDigits: 2,
+  }).format(Number(amount || 0));
+
+const formatBasePrice = (amount?: number | null) =>
   Number(amount || 0) > 0
-    ? new Intl.NumberFormat("en-GH", {
-        style: "currency",
-        currency: "GHS",
-        minimumFractionDigits: 2,
-      }).format(Number(amount || 0))
+    ? formatCurrency(amount)
     : "Free";
 
-const formatList = (items?: string[] | null) => (items && items.length ? items.join(", ") : "Not configured");
+const formatRating = (rating?: number | null, ratingCount?: number | null) => {
+  if (!Number(ratingCount || 0)) {
+    return "No ratings recorded";
+  }
+
+  return `${Number(rating || 0).toFixed(1)} / 5 (${Number(ratingCount || 0)} reviews)`;
+};
 
 const ServiceOverview = () => {
   const searchParams = useSearchParams();
@@ -29,6 +38,15 @@ const ServiceOverview = () => {
 
   const recentRequests = requests.slice(0, 5);
   const activeRequests = requests.filter((request) => ["pending", "in_progress"].includes(String(request.status || "pending"))).length;
+  const completedRequests = requests.filter((request) => request.status === "completed").length;
+  const completedRevenue = requests
+    .filter((request) => request.status === "completed")
+    .reduce((sum, request) => sum + Number(request.total_amount || 0), 0);
+  const averageRequestValue = requests.length
+    ? requests.reduce((sum, request) => sum + Number(request.total_amount || 0), 0) / requests.length
+    : 0;
+  const featureLabels = getServiceFeatureLabels(service);
+  const serviceStatus = getServiceStatus(service);
 
   return (
     <Row className="g-4 mb-4">
@@ -46,32 +64,38 @@ const ServiceOverview = () => {
                 <span className="fw-semibold">{service.description || "No service description has been added yet."}</span>
               </Col>
               <Col md={6}>
-                <small className="text-muted d-block">Pricing Model</small>
-                <span className="fw-semibold">{formatMoney((service as any).base_price)}</span>
+                <small className="text-muted d-block">Base Price</small>
+                <span className="fw-semibold">{formatBasePrice((service as any).base_price)}</span>
               </Col>
               <Col md={6}>
-                <small className="text-muted d-block">Availability</small>
-                <span className="fw-semibold">{(service as any).availability || "Not specified"}</span>
+                <small className="text-muted d-block">Status</small>
+                <span className="fw-semibold">
+                  {serviceStatus.charAt(0).toUpperCase() + serviceStatus.slice(1)}
+                </span>
               </Col>
               <Col md={6}>
-                <small className="text-muted d-block">Duration</small>
-                <span className="fw-semibold">{(service as any).duration || "Not specified"}</span>
+                <small className="text-muted d-block">Community</small>
+                <span className="fw-semibold">{(service as any).communities?.name || "Not assigned"}</span>
               </Col>
               <Col md={6}>
                 <small className="text-muted d-block">Features</small>
-                <span className="fw-semibold">{formatList((service as any).features)}</span>
+                <span className="fw-semibold">{featureLabels.length ? featureLabels.join(", ") : "Not configured"}</span>
               </Col>
               <Col md={6}>
-                <small className="text-muted d-block">Tags</small>
-                <span className="fw-semibold">{formatList((service as any).tags)}</span>
+                <small className="text-muted d-block">Provider Contact</small>
+                <span className="fw-semibold">{(service as any).provider_contact || "Not provided"}</span>
               </Col>
               <Col md={6}>
-                <small className="text-muted d-block">Requirements</small>
-                <span className="fw-semibold">{(service as any).requirements || "No requirements documented."}</span>
+                <small className="text-muted d-block">Rating</small>
+                <span className="fw-semibold">
+                  {formatRating((service as any).rating, (service as any).rating_count)}
+                </span>
               </Col>
               <Col md={6}>
-                <small className="text-muted d-block">Target Market</small>
-                <span className="fw-semibold">{(service as any).target_market || "General residents"}</span>
+                <small className="text-muted d-block">Last Updated</small>
+                <span className="fw-semibold">
+                  {service.updated_at ? new Date(service.updated_at).toLocaleString() : "N/A"}
+                </span>
               </Col>
             </Row>
           </CardBody>
@@ -94,12 +118,16 @@ const ServiceOverview = () => {
               <span className="fw-semibold">{requests.length}</span>
             </div>
             <div className="d-flex justify-content-between mb-2">
-              <span className="text-muted">Commission rate</span>
-              <span className="fw-semibold">{Number((service as any).commission_rate || 0)}%</span>
+              <span className="text-muted">Completed requests</span>
+              <span className="fw-semibold">{completedRequests}</span>
+            </div>
+            <div className="d-flex justify-content-between mb-2">
+              <span className="text-muted">Completed value</span>
+              <span className="fw-semibold">{formatCurrency(completedRevenue)}</span>
             </div>
             <div className="d-flex justify-content-between">
-              <span className="text-muted">Community</span>
-              <span className="fw-semibold">{(service as any).communities?.name || "All Communities"}</span>
+              <span className="text-muted">Average request value</span>
+              <span className="fw-semibold">{formatCurrency(averageRequestValue)}</span>
             </div>
           </CardBody>
         </Card>

@@ -106,6 +106,33 @@ export interface TrainingStats {
   averageScore: number;
 }
 
+type GuardLookup = Pick<
+  Database['public']['Tables']['guards']['Row'],
+  'id' | 'full_name' | 'first_name' | 'last_name'
+>;
+
+const formatGuardName = (guard?: Partial<GuardLookup> | null) => {
+  if (!guard) return 'Unknown';
+  const fullName = guard.full_name?.trim();
+  if (fullName) return fullName;
+  const parts = [guard.first_name?.trim(), guard.last_name?.trim()].filter(Boolean);
+  return parts.length > 0 ? parts.join(' ') : 'Unknown';
+};
+
+const TRAINING_PROGRAM_CATEGORIES: TrainingProgram['category'][] = [
+  'security',
+  'safety',
+  'technology',
+  'communication',
+  'emergency',
+];
+
+const TRAINING_PROGRAM_STATUSES: TrainingProgram['status'][] = ['active', 'inactive', 'draft'];
+const GUARD_TRAINING_STATUSES: GuardTraining['status'][] = ['enrolled', 'in_progress', 'completed', 'failed', 'expired', 'cancelled'];
+const GUARD_CERTIFICATION_STATUSES: GuardCertification['status'][] = ['valid', 'expired', 'expiring_soon', 'renewed'];
+
+const isInArray = <T extends string>(values: readonly T[], value: string): value is T => values.includes(value as T);
+
 // Transform functions
 const transformDbTrainingProgramToUI = (dbProgram: any): TrainingProgram => ({
   id: dbProgram.id,
@@ -177,11 +204,11 @@ export const useTrainingPrograms = (filters?: {
           .select('*')
           .order('created_at', { ascending: false });
 
-        if (filters?.category && filters.category !== 'all') {
+        if (filters?.category && filters.category !== 'all' && isInArray(TRAINING_PROGRAM_CATEGORIES, filters.category)) {
           query = query.eq('category', filters.category);
         }
 
-        if (filters?.status && filters.status !== 'all') {
+        if (filters?.status && filters.status !== 'all' && isInArray(TRAINING_PROGRAM_STATUSES, filters.status)) {
           query = query.eq('status', filters.status);
         }
 
@@ -326,7 +353,7 @@ export const useGuardTrainings = (filters?: {
           .select('*')
           .order('created_at', { ascending: false });
 
-        if (filters?.status && filters.status !== 'all') {
+        if (filters?.status && filters.status !== 'all' && isInArray(GUARD_TRAINING_STATUSES, filters.status)) {
           query = query.eq('status', filters.status);
         }
 
@@ -366,14 +393,14 @@ export const useCreateGuardTraining = () => {
     mutationFn: async (data: CreateGuardTrainingData) => {
       // Get guard and program details first
       const [guardResult, programResult] = await Promise.all([
-        supabase.from('profiles').select('first_name, last_name').eq('id', data.guardId).single(),
+        supabase.from('guards').select('id, full_name, first_name, last_name').eq('id', data.guardId).single(),
         supabase.from('training_programs').select('name, instructor').eq('id', data.programId).single()
       ]);
 
       if (guardResult.error) throw guardResult.error;
       if (programResult.error) throw programResult.error;
 
-      const guardName = `${guardResult.data.first_name} ${guardResult.data.last_name}`;
+      const guardName = formatGuardName(guardResult.data);
       const programName = programResult.data.name;
       const instructor = programResult.data.instructor;
 
@@ -525,7 +552,7 @@ export const useGuardCertifications = (filters?: {
           .select('*')
           .order('created_at', { ascending: false });
 
-        if (filters?.status && filters.status !== 'all') {
+        if (filters?.status && filters.status !== 'all' && isInArray(GUARD_CERTIFICATION_STATUSES, filters.status)) {
           query = query.eq('status', filters.status);
         }
 
@@ -561,14 +588,14 @@ export const useCreateGuardCertification = () => {
     mutationFn: async (data: CreateCertificationData) => {
       // Get guard details first
       const { data: guardData, error: guardError } = await supabase
-        .from('profiles')
-        .select('first_name, last_name')
+        .from('guards')
+        .select('id, full_name, first_name, last_name')
         .eq('id', data.guardId)
         .single();
 
       if (guardError) throw guardError;
 
-      const guardName = `${guardData.first_name} ${guardData.last_name}`;
+      const guardName = formatGuardName(guardData);
 
       const { data: result, error } = await supabase
         .from('guard_certifications')
@@ -674,8 +701,11 @@ export const useTrainingStats = () => {
         
         const completionRate = totalTrainings > 0 ? (completedTrainings / totalTrainings) * 100 : 0;
         
-        const scores = trainings.filter(t => t.score !== null).map(t => t.score);
-        const averageScore = scores.length > 0 ? scores.reduce((sum, score) => sum + score, 0) / scores.length : 0;
+        const scores = trainings
+          .map((training) => training.score)
+          .filter((score): score is number => typeof score === 'number');
+        const averageScore =
+          scores.length > 0 ? scores.reduce((sum, score) => sum + score, 0) / scores.length : 0;
 
         const stats: TrainingStats = {
           totalPrograms,
@@ -736,4 +766,4 @@ export const useGuardTrainingRealtime = () => {
       supabase.removeChannel(certificationChannel);
     };
   }, [queryClient]);
-}; 
+};

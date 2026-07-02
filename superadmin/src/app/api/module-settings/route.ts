@@ -26,10 +26,10 @@ interface ModuleSetting {
   name: string;
   hub_type: string;
   user_type: string;
-  status: number;
+  status: number | null;
   description: string | null;
   icon: string | null;
-  display_order: number;
+  display_order: number | null;
 }
 
 interface ModuleWithOverride extends ModuleSetting {
@@ -122,9 +122,9 @@ export async function GET(request: NextRequest) {
     }
     
     // Merge modules with overrides
-    const modulesWithStatus: ModuleWithOverride[] = (modules || []).map((module: ModuleSetting) => ({
+    const modulesWithStatus: ModuleWithOverride[] = (modules || []).map((module) => ({
       ...module,
-      effective_status: overrides[module.id] !== undefined ? overrides[module.id] : module.status,
+      effective_status: overrides[module.id] !== undefined ? overrides[module.id] : module.status ?? 0,
       has_override: overrides[module.id] !== undefined,
     }));
     

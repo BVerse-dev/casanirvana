@@ -1,5 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../utils/supabase';
+import {
+  buildFamilyMemberQrCode,
+  createDirectoryEntryIdentity,
+  resolveDirectoryEntryIdentity,
+} from '../utils/directoryEntryQr';
 
 // Hook to list family members for a user
 export const useListFamilyMembers = (userId) => {
@@ -28,23 +33,15 @@ export const useCreateFamilyMember = () => {
   
   return useMutation({
     mutationFn: async (familyData) => {
-      // Generate unique family member ID for QR code
-      const familyMemberId = `FM-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      
-      // Generate entry code from family member ID (last 8 characters)
-      const entryCode = familyMemberId.slice(-8).toUpperCase();
-
-      // Generate unique QR code data with family member information
-      const qrCodeData = JSON.stringify({
-        id: familyMemberId,
-        name: familyData.name,
-        relation: familyData.relation,
-        phone: familyData.phone,
-        user_id: familyData.user_id,
-        type: 'family_member',
-        entry_code: entryCode,
-        created_at: new Date().toISOString(),
-        expires_at: null // Family members don't expire
+      const createdAt = new Date().toISOString();
+      const { entityId, entryCode } = createDirectoryEntryIdentity('FM');
+      const qrCodeData = buildFamilyMemberQrCode({
+        entityId,
+        entryCode,
+        data: {
+          ...familyData,
+          created_at: createdAt,
+        },
       });
       
       const { data, error } = await supabase
@@ -53,9 +50,9 @@ export const useCreateFamilyMember = () => {
           ...familyData,
           qr_code: qrCodeData,
           entry_code: entryCode,
-          expires_at: null, // Family members don't expire
+          expires_at: null,
           is_active: true,
-          created_at: new Date().toISOString()
+          created_at: createdAt,
         }])
         .select()
         .single();
@@ -75,9 +72,39 @@ export const useUpdateFamilyMember = () => {
   
   return useMutation({
     mutationFn: async ({ id, updates }) => {
+      const { data: existingData, error: existingError } = await supabase
+        .from('family_members')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (existingError) throw existingError;
+
+      const mergedData = {
+        ...existingData,
+        ...updates,
+      };
+      const { entityId, entryCode } = resolveDirectoryEntryIdentity({
+        prefix: 'FM',
+        existingEntryCode: existingData.entry_code,
+        existingQrCode: existingData.qr_code,
+      });
+      const qrCode = buildFamilyMemberQrCode({
+        entityId,
+        entryCode,
+        data: {
+          ...mergedData,
+          created_at: existingData.created_at,
+        },
+      });
+
       const { data, error } = await supabase
         .from('family_members')
-        .update(updates)
+        .update({
+          ...updates,
+          entry_code: entryCode,
+          qr_code: qrCode,
+        })
         .eq('id', id)
         .select()
         .single();

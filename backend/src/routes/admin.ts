@@ -1,18 +1,30 @@
 
 import express from 'express';
+import multer from 'multer';
 import { requireAuth, requireAdmin, requireSuperAdmin, requirePermission } from '../middleware/auth';
 import { validateRequest } from '../middleware/validate';
 import { schemas } from '../validation/schemas';
 import * as adminController from '../controllers/admin';
+import * as adminDashboardController from '../controllers/adminDashboard';
 import * as notificationsController from '../controllers/notifications';
 import * as onboardingController from '../controllers/onboarding';
 import * as systemSettingsController from '../controllers/systemSettings';
 import * as communitiesAdminController from '../controllers/adminCommunities';
+import * as joinRequestsAdminController from '../controllers/adminJoinRequests';
 import * as unitsAdminController from '../controllers/adminUnits';
+import * as residentsAdminController from '../controllers/adminResidents';
+import * as visitorsAdminController from '../controllers/adminVisitors';
+import * as maintenanceRequestsAdminController from '../controllers/adminMaintenanceRequests';
+import * as complaintsAdminController from '../controllers/adminComplaints';
+import * as inquiriesAdminController from '../controllers/adminInquiries';
+import * as amenitiesAdminController from '../controllers/adminAmenities';
+import * as servicesAdminController from '../controllers/adminServices';
 import * as profilesAdminController from '../controllers/adminProfiles';
 import * as messagesAdminController from '../controllers/adminMessages';
+import * as messagesReadModelsAdminController from '../controllers/adminMessagesReadModels';
 import * as adminNotificationsController from '../controllers/adminNotifications';
-import * as complaintController from '../controllers/complaint';
+import * as adminNoticesController from '../controllers/adminNotices';
+import * as adminMarketplaceController from '../controllers/adminMarketplace';
 import * as paymentController from '../controllers/payment';
 import * as adminPaymentGatewayController from '../controllers/adminPaymentGateway';
 import * as adminSecureSettingsController from '../controllers/adminSecureSettings';
@@ -21,8 +33,15 @@ import * as adminCapabilitiesController from '../controllers/adminCapabilities';
 import * as adminGuardsOperationsController from '../controllers/adminGuardsOperations';
 import * as adminAgenciesOperationsController from '../controllers/adminAgenciesOperations';
 import * as adminEmailsController from '../controllers/adminEmails';
+import * as adminEmergencyAlertsController from '../controllers/adminEmergencyAlerts';
+import * as adminSettingsAssetsController from '../controllers/adminSettingsAssets';
+import * as adminSettingsWorkspacesController from '../controllers/adminSettingsWorkspaces';
 
 const router = express.Router();
+const settingsAssetUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+});
 
 // Unread notifications count for dashboard
 router.get('/notifications/unread-count', requireAuth, requirePermission('read:all_profiles'), notificationsController.getUnreadNotificationsCount);
@@ -37,6 +56,27 @@ router.get(
   requirePermission('read:analytics'),
   validateRequest({ query: schemas.adminAnalyticsQuery }),
   adminController.getAnalytics
+);
+router.get(
+  '/dashboard/analytics',
+  requireAuth,
+  requirePermission('read:analytics'),
+  validateRequest({ query: schemas.adminAnalyticsDashboardQuery }),
+  adminDashboardController.getAnalyticsDashboard
+);
+router.get(
+  '/dashboard/residents',
+  requireAuth,
+  requirePermission('read:analytics'),
+  validateRequest({ query: schemas.adminResidentDashboardQuery }),
+  adminDashboardController.getResidentDashboard
+);
+router.get(
+  '/dashboard/guards',
+  requireAuth,
+  requirePermission('read:analytics'),
+  validateRequest({ query: schemas.adminGuardDashboardQuery }),
+  adminDashboardController.getGuardDashboard
 );
 
 // User management routes
@@ -111,7 +151,22 @@ router.get(
   '/communities',
   requireAuth,
   requireAdmin,
+  validateRequest({ query: schemas.adminCommunityListQuery }),
   communitiesAdminController.listCommunities
+);
+router.get(
+  '/communities/:id',
+  requireAuth,
+  requireAdmin,
+  validateRequest({ params: schemas.idParam }),
+  communitiesAdminController.getCommunity
+);
+router.get(
+  '/communities/:id/management',
+  requireAuth,
+  requireAdmin,
+  validateRequest({ params: schemas.idParam }),
+  communitiesAdminController.getCommunityManagementData
 );
 router.post(
   '/communities',
@@ -134,8 +189,29 @@ router.delete(
   validateRequest({ params: schemas.idParam }),
   communitiesAdminController.deleteCommunity
 );
+router.put(
+  '/communities/:id/directory-members',
+  requireAuth,
+  requireAdmin,
+  validateRequest({ params: schemas.idParam, body: schemas.adminCommunityDirectoryUpsert }),
+  communitiesAdminController.upsertCommunityDirectoryMember
+);
 
-// Units management (admin writes)
+// Units management
+router.get(
+  '/units',
+  requireAuth,
+  requireAdmin,
+  validateRequest({ query: schemas.adminUnitListQuery }),
+  unitsAdminController.listUnits
+);
+router.get(
+  '/units/:id',
+  requireAuth,
+  requireAdmin,
+  validateRequest({ params: schemas.idParam }),
+  unitsAdminController.getUnit
+);
 router.post(
   '/units',
   requireAuth,
@@ -156,6 +232,138 @@ router.delete(
   requireAdmin,
   validateRequest({ params: schemas.idParam }),
   unitsAdminController.deleteUnit
+);
+
+// Community join requests
+router.get(
+  '/join-requests',
+  requireAuth,
+  requireAdmin,
+  validateRequest({ query: schemas.adminJoinRequestListQuery }),
+  joinRequestsAdminController.listJoinRequests
+);
+router.patch(
+  '/join-requests/:id',
+  requireAuth,
+  requireAdmin,
+  validateRequest({ params: schemas.idParam, body: schemas.adminJoinRequestUpdate }),
+  joinRequestsAdminController.updateJoinRequest
+);
+
+// Profiles management (admin-only direct profile CRUD)
+router.get(
+  '/residents',
+  requireAuth,
+  requirePermission('read:all_profiles'),
+  validateRequest({ query: schemas.adminResidentListQuery }),
+  residentsAdminController.listResidents
+);
+router.get(
+  '/residents/:id',
+  requireAuth,
+  requirePermission('read:all_profiles'),
+  validateRequest({ params: schemas.idParam }),
+  residentsAdminController.getResident
+);
+router.get(
+  '/residents/:id/activity',
+  requireAuth,
+  requirePermission('read:all_profiles'),
+  validateRequest({ params: schemas.idParam }),
+  residentsAdminController.getResidentActivity
+);
+router.get(
+  '/residents/:id/directory',
+  requireAuth,
+  requirePermission('read:all_profiles'),
+  validateRequest({ params: schemas.idParam }),
+  residentsAdminController.getResidentDirectory
+);
+router.post(
+  '/residents',
+  requireAuth,
+  requirePermission('create:profiles'),
+  validateRequest({ body: schemas.adminResidentCreate }),
+  residentsAdminController.createResident
+);
+router.put(
+  '/residents/:id',
+  requireAuth,
+  requirePermission('update:all_profiles'),
+  validateRequest({ params: schemas.idParam, body: schemas.adminResidentUpdate }),
+  residentsAdminController.updateResident
+);
+router.delete(
+  '/residents/:id',
+  requireAuth,
+  requirePermission('delete:profiles'),
+  validateRequest({ params: schemas.idParam }),
+  residentsAdminController.deleteResident
+);
+
+router.get(
+  '/visitor-passes',
+  requireAuth,
+  requirePermission('read:all_profiles'),
+  validateRequest({ query: schemas.adminVisitorPassListQuery }),
+  visitorsAdminController.listVisitorPasses
+);
+router.get(
+  '/visitor-passes/:id',
+  requireAuth,
+  requirePermission('read:all_profiles'),
+  validateRequest({ params: schemas.idParam }),
+  visitorsAdminController.getVisitorPass
+);
+router.post(
+  '/visitor-passes',
+  requireAuth,
+  requirePermission('create:profiles'),
+  validateRequest({ body: schemas.adminVisitorPassCreate }),
+  visitorsAdminController.createVisitorPass
+);
+router.patch(
+  '/visitor-passes/:id',
+  requireAuth,
+  requirePermission('update:all_profiles'),
+  validateRequest({ params: schemas.idParam, body: schemas.adminVisitorPassUpdate }),
+  visitorsAdminController.updateVisitorPass
+);
+router.delete(
+  '/visitor-passes/:id',
+  requireAuth,
+  requirePermission('delete:profiles'),
+  validateRequest({ params: schemas.idParam }),
+  visitorsAdminController.deleteVisitorPass
+);
+
+router.get(
+  '/maintenance-requests',
+  requireAuth,
+  requirePermission('read:all_maintenance_requests'),
+  validateRequest({ query: schemas.adminMaintenanceRequestListQuery }),
+  maintenanceRequestsAdminController.listMaintenanceRequests
+);
+router.get(
+  '/maintenance-requests/:id',
+  requireAuth,
+  requirePermission('read:all_maintenance_requests'),
+  validateRequest({ params: schemas.maintenanceRequestIdParam }),
+  maintenanceRequestsAdminController.getMaintenanceRequest
+);
+router.patch(
+  '/maintenance-requests/:id',
+  requireAuth,
+  requirePermission('update:maintenance_requests'),
+  validateRequest({ params: schemas.maintenanceRequestIdParam, body: schemas.adminMaintenanceRequestUpdate }),
+  maintenanceRequestsAdminController.updateMaintenanceRequest
+);
+router.delete(
+  '/maintenance-requests/:id',
+  requireAuth,
+  requirePermission('update:maintenance_requests'),
+  validateRequest({ params: schemas.maintenanceRequestIdParam }),
+  maintenanceRequestsAdminController.deleteMaintenanceRequest
 );
 
 // Profiles management (admin-only direct profile CRUD)
@@ -181,30 +389,288 @@ router.delete(
   profilesAdminController.deleteProfile
 );
 
-// Complaints (admin writes)
+// Complaints
+router.get(
+  '/complaints/stats',
+  requireAuth,
+  requirePermission('read:all_complaints'),
+  complaintsAdminController.getComplaintStats
+);
+router.get(
+  '/complaints',
+  requireAuth,
+  requirePermission('read:all_complaints'),
+  validateRequest({ query: schemas.adminComplaintListQuery }),
+  complaintsAdminController.listComplaints
+);
+router.get(
+  '/complaints/:id',
+  requireAuth,
+  requirePermission('read:all_complaints'),
+  validateRequest({ params: schemas.idParam }),
+  complaintsAdminController.getComplaint
+);
+router.get(
+  '/complaints/:id/comments',
+  requireAuth,
+  requirePermission('read:all_complaints'),
+  validateRequest({ params: schemas.idParam }),
+  complaintsAdminController.listComplaintComments
+);
 router.post(
   '/complaints',
   requireAuth,
   requirePermission('create:complaints'),
   validateRequest({ body: schemas.complaintCreate }),
-  complaintController.createComplaint
+  complaintsAdminController.createComplaint
+);
+router.post(
+  '/complaints/:id/comments',
+  requireAuth,
+  requirePermission('update:complaints'),
+  validateRequest({ params: schemas.idParam, body: schemas.adminComplaintCommentCreate }),
+  complaintsAdminController.createComplaintComment
 );
 router.patch(
   '/complaints/:id',
   requireAuth,
   requirePermission('update:complaints'),
-  validateRequest({ params: schemas.idParam, body: schemas.complaintUpdate }),
-  complaintController.updateComplaint
+  validateRequest({ params: schemas.idParam, body: schemas.adminComplaintUpdate }),
+  complaintsAdminController.updateComplaint
 );
 router.delete(
   '/complaints/:id',
   requireAuth,
   requirePermission('delete:complaints'),
   validateRequest({ params: schemas.idParam }),
-  complaintController.deleteComplaint
+  complaintsAdminController.deleteComplaint
+);
+
+// Help desk inquiries
+router.get(
+  '/inquiries',
+  requireAuth,
+  requireAdmin,
+  validateRequest({ query: schemas.adminInquiryListQuery }),
+  inquiriesAdminController.listInquiries
+);
+router.get(
+  '/inquiries/assignable-admins',
+  requireAuth,
+  requireAdmin,
+  validateRequest({ query: schemas.adminInquiryAssignableAdminsQuery }),
+  inquiriesAdminController.listAssignableInquiryAdmins
+);
+router.get(
+  '/inquiries/:id',
+  requireAuth,
+  requireAdmin,
+  validateRequest({ params: schemas.idParam }),
+  inquiriesAdminController.getInquiry
+);
+router.patch(
+  '/inquiries/:id',
+  requireAuth,
+  requireAdmin,
+  validateRequest({ params: schemas.idParam, body: schemas.adminInquiryUpdate }),
+  inquiriesAdminController.updateInquiry
+);
+
+// Amenities management
+router.get(
+  '/amenities',
+  requireAuth,
+  requireAdmin,
+  validateRequest({ query: schemas.adminAmenityListQuery }),
+  amenitiesAdminController.listAmenities
+);
+router.get(
+  '/amenities/:id',
+  requireAuth,
+  requireAdmin,
+  validateRequest({ params: schemas.idParam }),
+  amenitiesAdminController.getAmenity
+);
+router.post(
+  '/amenities',
+  requireAuth,
+  requireAdmin,
+  validateRequest({ body: schemas.adminAmenityCreate }),
+  amenitiesAdminController.createAmenity
+);
+router.put(
+  '/amenities/:id',
+  requireAuth,
+  requireAdmin,
+  validateRequest({ params: schemas.idParam, body: schemas.adminAmenityUpdate }),
+  amenitiesAdminController.updateAmenity
+);
+router.delete(
+  '/amenities/:id',
+  requireAuth,
+  requireAdmin,
+  validateRequest({ params: schemas.idParam }),
+  amenitiesAdminController.deleteAmenity
+);
+
+// Amenity bookings management
+router.get(
+  '/amenity-bookings',
+  requireAuth,
+  requireAdmin,
+  validateRequest({ query: schemas.adminAmenityBookingListQuery }),
+  amenitiesAdminController.listAmenityBookings
+);
+router.get(
+  '/amenity-bookings/:id',
+  requireAuth,
+  requireAdmin,
+  validateRequest({ params: schemas.idParam }),
+  amenitiesAdminController.getAmenityBooking
+);
+router.post(
+  '/amenity-bookings',
+  requireAuth,
+  requireAdmin,
+  validateRequest({ body: schemas.adminAmenityBookingCreate }),
+  amenitiesAdminController.createAmenityBooking
+);
+router.patch(
+  '/amenity-bookings/:id',
+  requireAuth,
+  requireAdmin,
+  validateRequest({ params: schemas.idParam, body: schemas.adminAmenityBookingUpdate }),
+  amenitiesAdminController.updateAmenityBooking
+);
+router.delete(
+  '/amenity-bookings/:id',
+  requireAuth,
+  requireAdmin,
+  validateRequest({ params: schemas.idParam }),
+  amenitiesAdminController.deleteAmenityBooking
+);
+
+// Services management
+router.get(
+  '/services',
+  requireAuth,
+  requireAdmin,
+  validateRequest({ query: schemas.adminServiceListQuery }),
+  servicesAdminController.listServices
+);
+router.get(
+  '/services/:id',
+  requireAuth,
+  requireAdmin,
+  validateRequest({ params: schemas.serviceIdParam }),
+  servicesAdminController.getService
+);
+router.post(
+  '/services',
+  requireAuth,
+  requireAdmin,
+  validateRequest({ body: schemas.adminServiceCreate }),
+  servicesAdminController.createService
+);
+router.put(
+  '/services/:id',
+  requireAuth,
+  requireAdmin,
+  validateRequest({ params: schemas.serviceIdParam, body: schemas.adminServiceUpdate }),
+  servicesAdminController.updateService
+);
+router.delete(
+  '/services/:id',
+  requireAuth,
+  requireAdmin,
+  validateRequest({ params: schemas.serviceIdParam }),
+  servicesAdminController.deleteService
+);
+
+// Service requests management
+router.get(
+  '/service-requests',
+  requireAuth,
+  requireAdmin,
+  validateRequest({ query: schemas.adminServiceRequestListQuery }),
+  servicesAdminController.listServiceRequests
+);
+router.get(
+  '/service-requests/:id',
+  requireAuth,
+  requireAdmin,
+  validateRequest({ params: schemas.uuidParam }),
+  servicesAdminController.getServiceRequest
+);
+router.patch(
+  '/service-requests/:id',
+  requireAuth,
+  requireAdmin,
+  validateRequest({ params: schemas.uuidParam, body: schemas.adminServiceRequestUpdate }),
+  servicesAdminController.updateServiceRequest
 );
 
 // Messages (admin writes)
+router.get(
+  '/messages/stats',
+  requireAuth,
+  requireAdmin,
+  messagesReadModelsAdminController.getMessageStats
+);
+router.get(
+  '/messages/contacts',
+  requireAuth,
+  requireAdmin,
+  messagesReadModelsAdminController.listMessageContacts
+);
+router.get(
+  '/messages/contacts/:id',
+  requireAuth,
+  requireAdmin,
+  validateRequest({ params: schemas.idParam }),
+  messagesReadModelsAdminController.getMessageContact
+);
+router.get(
+  '/messages/conversations/:id',
+  requireAuth,
+  requireAdmin,
+  validateRequest({ params: schemas.idParam }),
+  messagesReadModelsAdminController.getMessageConversation
+);
+router.get(
+  '/messages/groups',
+  requireAuth,
+  requireAdmin,
+  messagesReadModelsAdminController.listMessageGroups
+);
+router.post(
+  '/messages/groups',
+  requireAuth,
+  requireAdmin,
+  validateRequest({ body: schemas.adminMessageGroupCreate }),
+  messagesReadModelsAdminController.createMessageGroup
+);
+router.get(
+  '/messages/groups/:id',
+  requireAuth,
+  requireAdmin,
+  validateRequest({ params: schemas.idParam }),
+  messagesReadModelsAdminController.getMessageGroup
+);
+router.get(
+  '/messages/groups/:id/messages',
+  requireAuth,
+  requireAdmin,
+  validateRequest({ params: schemas.idParam }),
+  messagesReadModelsAdminController.listMessageGroupMessages
+);
+router.post(
+  '/messages/groups/:id/messages',
+  requireAuth,
+  requireAdmin,
+  validateRequest({ params: schemas.idParam, body: schemas.adminMessageGroupMessageCreate }),
+  messagesReadModelsAdminController.createMessageGroupMessage
+);
 router.post(
   '/messages',
   requireAuth,
@@ -236,6 +702,13 @@ router.post(
   paymentController.createPayment
 );
 router.put(
+  '/payments/bulk-update',
+  requireAuth,
+  requirePermission('update:payments'),
+  validateRequest({ body: schemas.adminBulkUpdatePayments }),
+  adminController.bulkUpdatePayments
+);
+router.put(
   '/payments/:id',
   requireAuth,
   requirePermission('update:payments'),
@@ -251,6 +724,85 @@ router.delete(
 );
 
 // Notification campaigns (admin writes)
+router.get(
+  '/notices',
+  requireAuth,
+  requirePermission('read:all_notifications'),
+  validateRequest({ query: schemas.adminNoticesListQuery }),
+  adminNoticesController.listNotices
+);
+router.get(
+  '/notices/:id',
+  requireAuth,
+  requirePermission('read:all_notifications'),
+  validateRequest({ params: schemas.idParam }),
+  adminNoticesController.getNotice
+);
+router.post(
+  '/notices',
+  requireAuth,
+  requirePermission('write:all_notifications'),
+  validateRequest({ body: schemas.adminNoticeCreate }),
+  adminNoticesController.createNotice
+);
+router.patch(
+  '/notices/:id',
+  requireAuth,
+  requirePermission('write:all_notifications'),
+  validateRequest({ params: schemas.idParam, body: schemas.adminNoticeUpdate }),
+  adminNoticesController.updateNotice
+);
+router.delete(
+  '/notices/:id',
+  requireAuth,
+  requirePermission('write:all_notifications'),
+  validateRequest({ params: schemas.idParam }),
+  adminNoticesController.deleteNotice
+);
+router.get(
+  '/notices/:id/comments',
+  requireAuth,
+  requirePermission('read:all_notifications'),
+  validateRequest({ params: schemas.idParam }),
+  adminNoticesController.listNoticeComments
+);
+router.post(
+  '/notices/:id/comments',
+  requireAuth,
+  requirePermission('write:all_notifications'),
+  validateRequest({ params: schemas.idParam, body: schemas.adminNoticeCommentCreate }),
+  adminNoticesController.createNoticeComment
+);
+
+// Notification campaigns (admin writes)
+router.get(
+  '/notifications/dashboard',
+  requireAuth,
+  requirePermission('read:all_notifications'),
+  validateRequest({ query: schemas.adminNotificationDashboardQuery }),
+  adminNotificationsController.getNotificationDashboard
+);
+router.get(
+  '/notifications/analytics',
+  requireAuth,
+  requirePermission('read:all_notifications'),
+  validateRequest({ query: schemas.adminNotificationAnalyticsQuery }),
+  adminNotificationsController.getNotificationAnalytics
+);
+router.get(
+  '/notification-campaigns',
+  requireAuth,
+  requirePermission('read:all_notifications'),
+  validateRequest({ query: schemas.adminNotificationCampaignListQuery }),
+  adminNotificationsController.listNotificationCampaigns
+);
+router.get(
+  '/notification-campaigns/:id',
+  requireAuth,
+  requirePermission('read:all_notifications'),
+  validateRequest({ params: schemas.idParam }),
+  adminNotificationsController.getNotificationCampaign
+);
 router.post(
   '/notification-campaigns',
   requireAuth,
@@ -342,6 +894,43 @@ router.patch(
   requirePermission('write:all_notifications'),
   validateRequest({ params: schemas.idParam, body: schemas.adminEmailUpdate }),
   adminEmailsController.updateEmail
+);
+
+// Emergency Alerts (admin operations)
+router.get(
+  '/emergency-alerts',
+  requireAuth,
+  requirePermission('read:all_notifications'),
+  validateRequest({ query: schemas.adminEmergencyAlertsListQuery }),
+  adminEmergencyAlertsController.listEmergencyAlerts
+);
+router.get(
+  '/emergency-alerts/:id',
+  requireAuth,
+  requirePermission('read:all_notifications'),
+  validateRequest({ params: schemas.idParam }),
+  adminEmergencyAlertsController.getEmergencyAlert
+);
+router.post(
+  '/emergency-alerts',
+  requireAuth,
+  requirePermission('write:all_notifications'),
+  validateRequest({ body: schemas.adminEmergencyAlertCreate }),
+  adminEmergencyAlertsController.createEmergencyAlert
+);
+router.patch(
+  '/emergency-alerts/:id',
+  requireAuth,
+  requirePermission('write:all_notifications'),
+  validateRequest({ params: schemas.idParam, body: schemas.adminEmergencyAlertUpdate }),
+  adminEmergencyAlertsController.updateEmergencyAlert
+);
+router.delete(
+  '/emergency-alerts/:id',
+  requireAuth,
+  requirePermission('write:all_notifications'),
+  validateRequest({ params: schemas.idParam }),
+  adminEmergencyAlertsController.deleteEmergencyAlert
 );
 
 // Guard operational routes (People -> Guards)
@@ -684,7 +1273,6 @@ router.put(
 );
 
 // Complaint management routes
-router.get('/complaints/stats', requireAuth, requirePermission('read:all_complaints'), adminController.getComplaintStats);
 router.put(
   '/complaints/bulk-update',
   requireAuth,
@@ -696,9 +1284,116 @@ router.put(
 // Payment management routes
 router.get('/payments/stats', requireAuth, requirePermission('read:all_payments'), adminController.getPaymentStats);
 router.get(
+  '/personal-hub/dashboard',
+  requireAuth,
+  requirePermission('read:all_payments'),
+  validateRequest({ query: schemas.adminPersonalHubDashboardQuery }),
+  paymentController.getAdminPersonalHubDashboard
+);
+router.get(
+  '/personal-hub/catalog/providers',
+  requireAuth,
+  requirePermission('read:all_payments'),
+  validateRequest({ query: schemas.adminPersonalHubCatalogProvidersQuery }),
+  paymentController.listAdminPersonalHubCatalogProviders
+);
+router.patch(
+  '/personal-hub/catalog/providers/:id',
+  requireAuth,
+  requirePermission('update:payments'),
+  validateRequest({
+    params: schemas.adminPersonalHubCatalogProviderUpdateParams,
+    body: schemas.adminPersonalHubCatalogProviderUpdate,
+  }),
+  paymentController.updateAdminPersonalHubCatalogProvider
+);
+router.get(
+  '/personal-hub/catalog/packages',
+  requireAuth,
+  requirePermission('read:all_payments'),
+  validateRequest({ query: schemas.adminPersonalHubCatalogPackagesQuery }),
+  paymentController.listAdminPersonalHubCatalogPackages
+);
+router.post(
+  '/personal-hub/catalog/sync',
+  requireAuth,
+  requirePermission('update:payments'),
+  paymentController.syncAdminPersonalHubCatalog
+);
+router.get(
+  '/personal-hub/reports',
+  requireAuth,
+  requirePermission('read:all_payments'),
+  validateRequest({ query: schemas.adminPersonalHubReportsQuery }),
+  paymentController.getAdminPersonalHubReports
+);
+router.get(
+  '/personal-hub/marketplace/workspace',
+  requireAuth,
+  requirePermission('read:all_payments'),
+  adminMarketplaceController.getMarketplaceWorkspace
+);
+router.post(
+  '/personal-hub/marketplace/categories',
+  requireAuth,
+  requirePermission('create:payments'),
+  validateRequest({ body: schemas.adminMarketplaceCategoryCreate }),
+  adminMarketplaceController.createMarketplaceCategory
+);
+router.patch(
+  '/personal-hub/marketplace/categories/:id',
+  requireAuth,
+  requirePermission('update:payments'),
+  validateRequest({ params: schemas.idParam, body: schemas.adminMarketplaceCategoryUpdate }),
+  adminMarketplaceController.updateMarketplaceCategory
+);
+router.post(
+  '/personal-hub/marketplace/products',
+  requireAuth,
+  requirePermission('create:payments'),
+  validateRequest({ body: schemas.adminMarketplaceProductCreate }),
+  adminMarketplaceController.createMarketplaceProduct
+);
+router.patch(
+  '/personal-hub/marketplace/products/:id',
+  requireAuth,
+  requirePermission('update:payments'),
+  validateRequest({ params: schemas.idParam, body: schemas.adminMarketplaceProductUpdate }),
+  adminMarketplaceController.updateMarketplaceProduct
+);
+router.post(
+  '/personal-hub/marketplace/vendors',
+  requireAuth,
+  requirePermission('create:payments'),
+  validateRequest({ body: schemas.adminMarketplaceVendorCreate }),
+  adminMarketplaceController.createMarketplaceVendor
+);
+router.patch(
+  '/personal-hub/marketplace/vendors/:id',
+  requireAuth,
+  requirePermission('update:payments'),
+  validateRequest({ params: schemas.idParam, body: schemas.adminMarketplaceVendorUpdate }),
+  adminMarketplaceController.updateMarketplaceVendor
+);
+router.patch(
+  '/personal-hub/marketplace/orders/:id/status',
+  requireAuth,
+  requirePermission('update:payments'),
+  validateRequest({ params: schemas.idParam, body: schemas.adminMarketplaceOrderStatusUpdate }),
+  adminMarketplaceController.updateMarketplaceOrderStatus
+);
+router.patch(
+  '/personal-hub/marketplace/reviews/:id/visibility',
+  requireAuth,
+  requirePermission('update:payments'),
+  validateRequest({ params: schemas.idParam, body: schemas.adminMarketplaceReviewVisibilityUpdate }),
+  adminMarketplaceController.updateMarketplaceReviewVisibility
+);
+router.get(
   '/payments/transactions',
   requireAuth,
   requirePermission('read:all_payments'),
+  validateRequest({ query: schemas.adminPaymentTransactionsQuery }),
   paymentController.listAdminTransactions
 );
 router.get(
@@ -712,12 +1407,14 @@ router.get(
   '/payments/obligations',
   requireAuth,
   requirePermission('read:all_payments'),
+  validateRequest({ query: schemas.adminPaymentObligationsQuery }),
   paymentController.listAdminObligations
 );
 router.get(
   '/payments/statements',
   requireAuth,
   requirePermission('read:all_payments'),
+  validateRequest({ query: schemas.adminPaymentStatementsQuery }),
   paymentController.listAdminStatements
 );
 router.get(
@@ -860,13 +1557,6 @@ router.post(
   validateRequest({ body: schemas.adminGeneratePayments }),
   adminController.generatePayments
 );
-router.put(
-  '/payments/bulk-update',
-  requireAuth,
-  requirePermission('update:payments'),
-  validateRequest({ body: schemas.adminBulkUpdatePayments }),
-  adminController.bulkUpdatePayments
-);
 
 // Notice management routes
 router.post(
@@ -879,6 +1569,119 @@ router.post(
 
 // Settings routes (superadmin only)
 router.get('/settings', requireAuth, requirePermission('manage:settings'), adminController.getSettings);
+router.get(
+  '/settings/system-overview',
+  requireAuth,
+  requirePermission('manage:settings'),
+  adminSettingsWorkspacesController.getSettingsSystemOverview
+);
+router.patch(
+  '/settings/system-overview/alerts/:id/dismiss',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ params: schemas.idParam }),
+  adminSettingsWorkspacesController.dismissSettingsSystemAlert
+);
+router.get(
+  '/settings/user-groups',
+  requireAuth,
+  requirePermission('manage:settings'),
+  adminSettingsWorkspacesController.listSettingsUserGroups
+);
+router.get(
+  '/settings/user-groups/stats',
+  requireAuth,
+  requirePermission('manage:settings'),
+  adminSettingsWorkspacesController.getSettingsUserGroupStats
+);
+router.get(
+  '/settings/user-groups/:id/members',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ params: schemas.idParam }),
+  adminSettingsWorkspacesController.getSettingsUserGroupMembers
+);
+router.post(
+  '/settings/user-groups',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ body: schemas.adminUserGroupCreate }),
+  adminSettingsWorkspacesController.createSettingsUserGroup
+);
+router.put(
+  '/settings/user-groups/:id',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ params: schemas.idParam, body: schemas.adminUserGroupUpdate }),
+  adminSettingsWorkspacesController.updateSettingsUserGroup
+);
+router.delete(
+  '/settings/user-groups/:id',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ params: schemas.idParam }),
+  adminSettingsWorkspacesController.deleteSettingsUserGroup
+);
+router.get(
+  '/settings/activity-logs',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ query: schemas.adminActivityLogListQuery }),
+  adminSettingsWorkspacesController.listSettingsActivityLogs
+);
+router.get(
+  '/settings/activity-logs/stats',
+  requireAuth,
+  requirePermission('manage:settings'),
+  adminSettingsWorkspacesController.getSettingsActivityLogStats
+);
+router.get(
+  '/settings/activity-logs/export',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ query: schemas.adminActivityLogExportQuery }),
+  adminSettingsWorkspacesController.exportSettingsActivityLogs
+);
+router.get(
+  '/settings/preference-categories',
+  requireAuth,
+  requirePermission('manage:settings'),
+  adminSettingsWorkspacesController.listSettingsPreferenceCategories
+);
+router.get(
+  '/settings/preference-settings',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ query: schemas.adminPreferenceSettingsListQuery }),
+  adminSettingsWorkspacesController.listSettingsPreferenceSettings
+);
+router.get(
+  '/settings/preference-settings/stats',
+  requireAuth,
+  requirePermission('manage:settings'),
+  adminSettingsWorkspacesController.getSettingsPreferenceStats
+);
+router.post(
+  '/settings/preference-settings',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ body: schemas.adminPreferenceSettingCreate }),
+  adminSettingsWorkspacesController.createSettingsPreferenceSetting
+);
+router.put(
+  '/settings/preference-settings/:id',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ params: schemas.idParam, body: schemas.adminPreferenceSettingUpdate }),
+  adminSettingsWorkspacesController.updateSettingsPreferenceSetting
+);
+router.delete(
+  '/settings/preference-settings/:id',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ params: schemas.idParam }),
+  adminSettingsWorkspacesController.deleteSettingsPreferenceSetting
+);
 router.get(
   '/settings/smtp',
   requireAuth,
@@ -1024,6 +1827,13 @@ router.put(
   validateRequest({ body: schemas.adminPaymentGatewaySettingsUpdate }),
   adminSecureSettingsController.updatePaymentGatewaySettings
 );
+router.post(
+  '/settings/payment-gateways/test',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ body: schemas.adminPaymentGatewaySettingsTest }),
+  adminSecureSettingsController.testPaymentGatewaySettings
+);
 router.get(
   '/settings/payment-methods',
   requireAuth,
@@ -1159,6 +1969,24 @@ router.put(
   requirePermission('manage:settings'),
   validateRequest({ body: schemas.systemSettingsUpsert }),
   systemSettingsController.upsertSystemSettings
+);
+router.post(
+  '/system-settings/assets/:assetType',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({ params: schemas.adminSettingsAssetParams }),
+  settingsAssetUpload.single('file'),
+  adminSettingsAssetsController.uploadSettingsAsset
+);
+router.delete(
+  '/system-settings/assets/:assetType',
+  requireAuth,
+  requirePermission('manage:settings'),
+  validateRequest({
+    params: schemas.adminSettingsAssetParams,
+    body: schemas.adminSettingsAssetDelete,
+  }),
+  adminSettingsAssetsController.deleteSettingsAsset
 );
 router.delete(
   '/system-settings/:key',

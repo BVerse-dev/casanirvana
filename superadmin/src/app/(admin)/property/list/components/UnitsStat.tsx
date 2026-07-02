@@ -2,23 +2,18 @@
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
 import { useListUnits } from "@/hooks/useUnits";
 import { useListCommunities } from "@/hooks/useCommunities";
-import Link from "next/link";
 import { Card, CardBody, CardTitle, Col, Row } from "react-bootstrap";
 
 type UnitStatType = {
   amount: string;
-  change: number;
   icon: string;
   title: string;
-  variant: "success" | "danger";
 };
 
 const UnitStatCard = ({
   amount,
-  change,
   icon,
   title,
-  variant,
 }: UnitStatType) => {
   return (
     <Card>
@@ -42,26 +37,7 @@ const UnitStatCard = ({
           </div>
         </div>
         <div className="d-flex align-items-center justify-content-between mt-3">
-          <p className="mb-0">
-            <span className={`text-${variant} fw-medium mb-0`}>
-              {variant == "success" ? (
-                <IconifyIcon icon="ri:arrow-up-line" />
-              ) : (
-                <IconifyIcon icon="ri:arrow-down-line" />
-              )}
-              {change}%
-            </span>{" "}
-            vs last month
-          </p>
-          <div>
-            <Link href="" className="link-primary fw-medium">
-              See Details{" "}
-              <IconifyIcon
-                icon="ri:arrow-right-line"
-                className="align-middle"
-              />
-            </Link>
-          </div>
+          <p className="mb-0 text-muted">Live inventory snapshot</p>
         </div>
       </CardBody>
     </Card>
@@ -106,31 +82,23 @@ const UnitsStat = () => {
   const unitsStatData: UnitStatType[] = [
     {
       amount: totalUnits.toString(),
-      change: 8.72,
       icon: "solar:home-2-broken",
       title: "Total Units",
-      variant: "success",
     },
     {
       amount: occupiedUnits.toString(),
-      change: 4.63,
       icon: "solar:users-group-rounded-broken",
       title: "Occupied Units",
-      variant: "success",
     },
     {
       amount: vacantUnits.toString(),
-      change: -2.14,
       icon: "solar:home-broken",
       title: "Vacant Units",
-      variant: "danger",
     },
     {
       amount: totalCommunities.toString(),
-      change: 12.5,
       icon: "solar:buildings-3-broken",
       title: "Communities",
-      variant: "success",
     },
   ];
 

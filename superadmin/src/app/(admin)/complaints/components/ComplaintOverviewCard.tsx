@@ -8,17 +8,18 @@ import avatarImage from "@/assets/images/users/avatar-1.jpg";
 
 const ComplaintOverviewCard = () => {
   const { data: complaints = [] } = useListComplaints();
+  const toSafeDate = (value?: string | null) => (value ? new Date(value) : null);
 
   const todayComplaints = complaints.filter(complaint => {
     const today = new Date();
-    const complaintDate = new Date(complaint.created_at);
-    return complaintDate.toDateString() === today.toDateString();
+    const complaintDate = toSafeDate(complaint.created_at);
+    return complaintDate?.toDateString() === today.toDateString();
   }).length;
 
   const urgentComplaints = complaints.filter(c => c.priority === "high" && c.status !== "resolved").length;
   const resolvedToday = complaints.filter(complaint => {
     const today = new Date();
-    const resolvedAt = complaint.resolved_at ? new Date(complaint.resolved_at) : null;
+    const resolvedAt = toSafeDate(complaint.resolved_at);
     return Boolean(resolvedAt) && resolvedAt?.toDateString() === today.toDateString();
   }).length;
 
@@ -47,7 +48,7 @@ const ComplaintOverviewCard = () => {
           <div className="row mt-4">
             <div className="col-lg-9">
               <p className="text-white-50 mb-3 fs-14">
-                Monitor and manage resident complaints efficiently with real-time insights
+                Monitor and manage resident complaints with the current scoped operational view
               </p>
               
               <div className="row">
@@ -101,7 +102,7 @@ const ComplaintOverviewCard = () => {
                   <IconifyIcon icon="ri:dashboard-3-line" className="text-white fs-32" />
                 </div>
                 <div className="position-absolute" style={{ top: '-8px', right: '-8px' }}>
-                  <span className="badge bg-success rounded-pill fs-11 px-2 py-1">Active</span>
+                  <span className="badge bg-success rounded-pill fs-11 px-2 py-1">Ops View</span>
                 </div>
               </div>
             </div>

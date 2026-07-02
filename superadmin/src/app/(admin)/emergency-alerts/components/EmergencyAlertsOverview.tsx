@@ -1,19 +1,19 @@
 "use client";
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
 import { Card, CardBody, CardTitle, Col, Row, ProgressBar } from "react-bootstrap";
-import { useListEmergencyAlerts } from "@/hooks/useEmergencyAlerts";
+import { normalizeEmergencyAlertStatus, useListEmergencyAlerts } from "@/hooks/useEmergencyAlerts";
 import { getEmergencyAlertTypeMeta, normalizeEmergencyAlertType } from "@/lib/emergencyAlertTypes";
 
 const EmergencyAlertsOverview = () => {
-  // Fetch emergency alerts data from Supabase
+  // Fetch emergency alerts data from the scoped admin API contract.
   const { data: alerts = [], isLoading, error } = useListEmergencyAlerts();
 
   // Calculate emergency statistics
   const totalAlerts = alerts.length;
-  const activeAlerts = alerts.filter((a) => a.status === "active").length;
+  const activeAlerts = alerts.filter((a) => normalizeEmergencyAlertStatus(a.status) === "active").length;
   const criticalAlerts = alerts.filter((a) => a.priority === "high" || a.priority === "critical").length;
-  const pendingAlerts = alerts.filter((a) => a.status === "pending").length;
-  const resolvedAlerts = alerts.filter((a) => a.status === "resolved").length;
+  const pendingAlerts = alerts.filter((a) => normalizeEmergencyAlertStatus(a.status) === "pending").length;
+  const resolvedAlerts = alerts.filter((a) => normalizeEmergencyAlertStatus(a.status) === "resolved").length;
   
   // Calculate response metrics (DB-backed, no placeholders)
   const acknowledgedStatuses = new Set(["investigating", "escalated", "resolved"]);
@@ -23,7 +23,7 @@ const EmergencyAlertsOverview = () => {
   const acknowledgedPercentage = totalAlerts > 0 ? (acknowledgedAlerts / totalAlerts) * 100 : 0;
 
   const responseDurationsMinutes = alerts
-    .filter((alert) => alert.status === "resolved" && alert.resolved_at)
+    .filter((alert) => normalizeEmergencyAlertStatus(alert.status) === "resolved" && alert.resolved_at)
     .map((alert) => {
       const startedAt = new Date(alert.created_at).getTime();
       const resolvedAt = new Date(alert.resolved_at as string).getTime();

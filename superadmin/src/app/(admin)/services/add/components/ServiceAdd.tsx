@@ -5,13 +5,11 @@ import TextFormInput from '@/components/from/TextFormInput'
 import { useCreateService } from '@/hooks/useServices'
 import { useListCommunities } from '@/hooks/useCommunities'
 import { yupResolver } from '@hookform/resolvers/yup'
+import { useRouter } from 'next/navigation'
 import { Button, Card, CardBody, CardHeader, CardTitle, Col, Row } from 'react-bootstrap'
 import { useForm, Controller } from 'react-hook-form'
 import { toast } from 'react-hot-toast'
 import * as yup from 'yup'
-import { useEffect } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
-import { supabase } from '@/lib/supabase'
 
 const serviceCategories = [
   { value: 'maintenance', label: 'Maintenance' },
@@ -36,22 +34,26 @@ const serviceCategories = [
   { value: 'other', label: 'Other' },
 ]
 
+type ServiceFormValues = {
+  base_price: number | null
+  category: string
+  community_id: string
+  description: string
+  features: {
+    is_24_7_available: boolean
+    is_booking_required: boolean
+    is_emergency_service: boolean
+    is_premium_service: boolean
+  }
+  is_active: 'true' | 'false'
+  name: string
+}
+
 const ServiceAdd = () => {
+  const router = useRouter()
   const createServiceMutation = useCreateService()
   const { data: communitiesData = { data: [] } } = useListCommunities({ pageSize: 100 })
   const communities = communitiesData.data || []
-  const queryClient = useQueryClient()
-
-  // Real-time subscription for services
-  useEffect(() => {
-    const channel = supabase
-      .channel('public:services')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'services' }, () => {
-        queryClient.invalidateQueries({ queryKey: ['services'] });
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [queryClient]);
 
   const serviceSchema = yup.object({
     name: yup.string().required('Please enter service name'),
@@ -68,8 +70,8 @@ const ServiceAdd = () => {
     }).optional(),
   })
 
-  const { handleSubmit, control, reset, watch } = useForm({
-    resolver: yupResolver(serviceSchema),
+  const { handleSubmit, control, reset } = useForm<ServiceFormValues>({
+    resolver: yupResolver(serviceSchema) as any,
     defaultValues: {
       name: '',
       category: '',
@@ -86,9 +88,8 @@ const ServiceAdd = () => {
     },
   })
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (data: ServiceFormValues) => {
     try {
-      // Convert base_price to number if provided and is_active to boolean
       const serviceData = {
         name: data.name,
         category: data.category,
@@ -99,12 +100,12 @@ const ServiceAdd = () => {
         features: data.features || {},
       }
 
-      console.log('📋 Submitting service data:', serviceData)
-      await createServiceMutation.mutateAsync(serviceData)
+      const createdService = await createServiceMutation.mutateAsync(serviceData)
       toast.success('Service created successfully!')
       reset()
+      router.push(`/services/details?id=${createdService.id}`)
     } catch (error) {
-      console.error('❌ Error creating service:', error)
+      console.error('Failed to create service:', error)
       toast.error('Failed to create service. Please try again.')
     }
   }

@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto';
 import { NextFunction, Request, Response } from 'express';
 
+import { createHttpError } from '../lib/httpError';
 import { supabase } from '../lib/supabase';
 import { canAccessAgency, isUuid, resolveAdminScope } from '../services/adminScope';
 
@@ -16,8 +17,8 @@ const parseStringQueryParam = (req: Request, key: string): string | null => {
   return trimmed.length > 0 ? trimmed : null;
 };
 
-const toScopeError = (res: Response, message: string) =>
-  res.status(403).json({ error: message });
+const toScopeError = (message: string) =>
+  createHttpError(403, 'AGENCY_SCOPE_VIOLATION', message);
 
 const normalizeOptionalString = (value: unknown) => {
   if (typeof value !== 'string') return null;
@@ -205,7 +206,7 @@ export async function listAgencyProfiles(req: Request, res: Response, next: Next
     const search = parseStringQueryParam(req, 'search');
 
     if (requestedAgencyId && !canAccessAgency(scope, requestedAgencyId)) {
-      return toScopeError(res, 'Access denied for the requested agency.');
+      return next(toScopeError('Access denied for the requested agency.'));
     }
 
     let query = supabase.from('agency_profiles').select('*').order('created_at', { ascending: false });
@@ -225,7 +226,7 @@ export async function listAgencyProfiles(req: Request, res: Response, next: Next
 
     const { data, error } = await query;
     if (error) {
-      return res.status(500).json({ error: 'Failed to fetch agency profiles', details: error.message });
+      return next(createHttpError(500, 'AGENCY_PROFILES_LIST_FAILED', 'Failed to fetch agency profiles', error));
     }
 
     return res.json({ data: data || [] });
@@ -240,12 +241,12 @@ export async function createAgencyProfile(req: Request, res: Response, next: Nex
     const payload = buildAgencyProfilePayload({ ...(req.body || {}) });
 
     if (!isUuid(payload.id)) {
-      return res.status(400).json({ error: 'Agency ID is required to create a profile.' });
+      return next(createHttpError(400, 'AGENCY_PROFILE_ID_REQUIRED', 'Agency ID is required to create a profile.'));
     }
 
     const agencyScope = await ensureAgencyScope(scope, payload.id);
     if (!agencyScope.ok) {
-      return toScopeError(res, agencyScope.reason);
+      return next(toScopeError(agencyScope.reason));
     }
 
     const [{ data: agency, error: agencyError }, { data: existing, error: existingError }] = await Promise.all([
@@ -254,16 +255,18 @@ export async function createAgencyProfile(req: Request, res: Response, next: Nex
     ]);
 
     if (agencyError) {
-      return res.status(500).json({ error: 'Failed to load agency record', details: agencyError.message });
+      return next(createHttpError(500, 'AGENCY_LOOKUP_FAILED', 'Failed to load agency record', agencyError));
     }
     if (!agency) {
-      return res.status(404).json({ error: 'Agency not found for the selected profile id.' });
+      return next(createHttpError(404, 'AGENCY_NOT_FOUND', 'Agency not found for the selected profile id.'));
     }
     if (existingError) {
-      return res.status(500).json({ error: 'Failed to validate agency profile state', details: existingError.message });
+      return next(
+        createHttpError(500, 'AGENCY_PROFILE_STATE_CHECK_FAILED', 'Failed to validate agency profile state', existingError)
+      );
     }
     if (existing) {
-      return res.status(409).json({ error: 'Agency profile already exists for this agency.' });
+      return next(createHttpError(409, 'AGENCY_PROFILE_ALREADY_EXISTS', 'Agency profile already exists for this agency.'));
     }
 
     const { data, error } = await supabase
@@ -277,7 +280,7 @@ export async function createAgencyProfile(req: Request, res: Response, next: Nex
       .single();
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to create agency profile', details: error.message });
+      return next(createHttpError(500, 'AGENCY_PROFILE_CREATE_FAILED', 'Failed to create agency profile', error));
     }
 
     return res.status(201).json({ data });
@@ -289,11 +292,11 @@ export async function createAgencyProfile(req: Request, res: Response, next: Nex
 export async function updateAgencyProfile(req: Request, res: Response, next: NextFunction) {
   try {
     const { id } = req.params;
-    if (!isUuid(id)) return res.status(400).json({ error: 'Invalid agency profile id' });
+    if (!isUuid(id)) return next(createHttpError(400, 'AGENCY_PROFILE_ID_INVALID', 'Invalid agency profile id'));
 
     const scope = await resolveAdminScope(req);
     if (!canAccessAgency(scope, id)) {
-      return toScopeError(res, 'Access denied for the selected agency.');
+      return next(toScopeError('Access denied for the selected agency.'));
     }
 
     const { data: existing, error: existingError } = await supabase
@@ -303,10 +306,10 @@ export async function updateAgencyProfile(req: Request, res: Response, next: Nex
       .maybeSingle();
 
     if (existingError) {
-      return res.status(500).json({ error: 'Failed to load agency profile', details: existingError.message });
+      return next(createHttpError(500, 'AGENCY_PROFILE_LOOKUP_FAILED', 'Failed to load agency profile', existingError));
     }
     if (!existing) {
-      return res.status(404).json({ error: 'Agency profile not found' });
+      return next(createHttpError(404, 'AGENCY_PROFILE_NOT_FOUND', 'Agency profile not found'));
     }
 
     const payload = buildAgencyProfilePayload({ ...(req.body || {}) });
@@ -323,7 +326,7 @@ export async function updateAgencyProfile(req: Request, res: Response, next: Nex
       .single();
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to update agency profile', details: error.message });
+      return next(createHttpError(500, 'AGENCY_PROFILE_UPDATE_FAILED', 'Failed to update agency profile', error));
     }
 
     return res.json({ data });
@@ -339,7 +342,7 @@ export async function listAgencyDirectory(req: Request, res: Response, next: Nex
     const search = parseStringQueryParam(req, 'search');
 
     if (requestedAgencyId && !canAccessAgency(scope, requestedAgencyId)) {
-      return toScopeError(res, 'Access denied for the requested agency.');
+      return next(toScopeError('Access denied for the requested agency.'));
     }
 
     let query = supabase.from('agencies').select('*').order('created_at', { ascending: false });
@@ -359,7 +362,7 @@ export async function listAgencyDirectory(req: Request, res: Response, next: Nex
 
     const { data, error } = await query;
     if (error) {
-      return res.status(500).json({ error: 'Failed to fetch agency directory', details: error.message });
+      return next(createHttpError(500, 'AGENCY_DIRECTORY_LIST_FAILED', 'Failed to fetch agency directory', error));
     }
 
     return res.json({ data: data || [] });
@@ -374,7 +377,7 @@ export async function createAgencyDirectory(req: Request, res: Response, next: N
   try {
     const scope = await resolveAdminScope(req);
     if (!scope.isGlobal) {
-      return toScopeError(res, 'Only platform administrators can create agencies.');
+      return next(toScopeError('Only platform administrators can create agencies.'));
     }
 
     const payload = { ...(req.body || {}) };
@@ -400,7 +403,7 @@ export async function createAgencyDirectory(req: Request, res: Response, next: N
     const employeeCount = normalizeOptionalNumber(payload.employee_count);
 
     if (!agencyName || !agencyEmail || !agencyPhone) {
-      return res.status(400).json({ error: 'agency_name, email, and phone are required.' });
+      return next(createHttpError(400, 'AGENCY_DIRECTORY_REQUIRED_FIELDS', 'agency_name, email, and phone are required.'));
     }
 
     const { data: existingByEmail, error: existingByEmailError } = await supabase
@@ -411,7 +414,9 @@ export async function createAgencyDirectory(req: Request, res: Response, next: N
       .maybeSingle();
 
     if (existingByEmailError) {
-      return res.status(500).json({ error: 'Failed to validate existing agency email', details: existingByEmailError.message });
+      return next(
+        createHttpError(500, 'AGENCY_DIRECTORY_EMAIL_CHECK_FAILED', 'Failed to validate existing agency email', existingByEmailError)
+      );
     }
 
     const { data: existingByName, error: existingByNameError } = await supabase
@@ -422,13 +427,15 @@ export async function createAgencyDirectory(req: Request, res: Response, next: N
       .maybeSingle();
 
     if (existingByNameError) {
-      return res.status(500).json({ error: 'Failed to validate existing agency name', details: existingByNameError.message });
+      return next(
+        createHttpError(500, 'AGENCY_DIRECTORY_NAME_CHECK_FAILED', 'Failed to validate existing agency name', existingByNameError)
+      );
     }
 
     if (existingByEmail?.id || existingByName?.id) {
-      return res.status(409).json({
-        error: 'An agency already exists with this name or email address.',
-      });
+      return next(
+        createHttpError(409, 'AGENCY_DIRECTORY_DUPLICATE', 'An agency already exists with this name or email address.')
+      );
     }
 
     agencyId = randomUUID();
@@ -473,7 +480,14 @@ export async function createAgencyDirectory(req: Request, res: Response, next: N
       .single();
 
     if (agencyError || !agencyRecord) {
-      return res.status(500).json({ error: 'Failed to create agency directory record', details: agencyError?.message || 'Unknown error' });
+      return next(
+        createHttpError(
+          500,
+          'AGENCY_DIRECTORY_CREATE_FAILED',
+          'Failed to create agency directory record',
+          agencyError || 'Unknown error'
+        )
+      );
     }
 
     const { data: agencyProfile, error: profileError } = await supabase
@@ -516,7 +530,14 @@ export async function createAgencyDirectory(req: Request, res: Response, next: N
 
     if (profileError || !agencyProfile) {
       await rollbackCreatedAgency(agencyId);
-      return res.status(500).json({ error: 'Failed to create agency profile record', details: profileError?.message || 'Unknown error' });
+      return next(
+        createHttpError(
+          500,
+          'AGENCY_PROFILE_CREATE_FAILED',
+          'Failed to create agency profile record',
+          profileError || 'Unknown error'
+        )
+      );
     }
 
     const communityRows = managedCommunities.map((community) => {
@@ -555,7 +576,9 @@ export async function createAgencyDirectory(req: Request, res: Response, next: N
 
       if (error) {
         await rollbackCreatedAgency(agencyId);
-        return res.status(500).json({ error: 'Failed to create managed communities', details: error.message });
+        return next(
+          createHttpError(500, 'AGENCY_COMMUNITIES_CREATE_FAILED', 'Failed to create managed communities', error)
+        );
       }
 
       createdCommunities = (data || []) as Array<Record<string, unknown>>;
@@ -580,11 +603,11 @@ export async function createAgencyDirectory(req: Request, res: Response, next: N
 export async function getAgencyDirectorySummary(req: Request, res: Response, next: NextFunction) {
   try {
     const { id } = req.params;
-    if (!isUuid(id)) return res.status(400).json({ error: 'Invalid agency id' });
+    if (!isUuid(id)) return next(createHttpError(400, 'AGENCY_ID_INVALID', 'Invalid agency id'));
 
     const scope = await resolveAdminScope(req);
     if (!canAccessAgency(scope, id)) {
-      return toScopeError(res, 'Access denied for the selected agency.');
+      return next(toScopeError('Access denied for the selected agency.'));
     }
 
     const [
@@ -628,31 +651,31 @@ export async function getAgencyDirectorySummary(req: Request, res: Response, nex
     ]);
 
     if (agencyResult.error) {
-      return res.status(500).json({ error: 'Failed to load agency record', details: agencyResult.error.message });
+      return next(createHttpError(500, 'AGENCY_LOOKUP_FAILED', 'Failed to load agency record', agencyResult.error));
     }
     if (!agencyResult.data) {
-      return res.status(404).json({ error: 'Agency not found' });
+      return next(createHttpError(404, 'AGENCY_NOT_FOUND', 'Agency not found'));
     }
     if (profileResult.error) {
-      return res.status(500).json({ error: 'Failed to load agency profile', details: profileResult.error.message });
+      return next(createHttpError(500, 'AGENCY_PROFILE_LOOKUP_FAILED', 'Failed to load agency profile', profileResult.error));
     }
     if (communitiesResult.error) {
-      return res.status(500).json({ error: 'Failed to load agency communities', details: communitiesResult.error.message });
+      return next(createHttpError(500, 'AGENCY_COMMUNITIES_LOOKUP_FAILED', 'Failed to load agency communities', communitiesResult.error));
     }
     if (staffResult.error) {
-      return res.status(500).json({ error: 'Failed to load agency staff', details: staffResult.error.message });
+      return next(createHttpError(500, 'AGENCY_STAFF_LOOKUP_FAILED', 'Failed to load agency staff', staffResult.error));
     }
     if (servicesResult.error) {
-      return res.status(500).json({ error: 'Failed to load agency services', details: servicesResult.error.message });
+      return next(createHttpError(500, 'AGENCY_SERVICES_LOOKUP_FAILED', 'Failed to load agency services', servicesResult.error));
     }
     if (documentsResult.error) {
-      return res.status(500).json({ error: 'Failed to load agency documents', details: documentsResult.error.message });
+      return next(createHttpError(500, 'AGENCY_DOCUMENTS_LOOKUP_FAILED', 'Failed to load agency documents', documentsResult.error));
     }
     if (financeResult.error) {
-      return res.status(500).json({ error: 'Failed to load agency finance entries', details: financeResult.error.message });
+      return next(createHttpError(500, 'AGENCY_FINANCE_LOOKUP_FAILED', 'Failed to load agency finance entries', financeResult.error));
     }
     if (amountResult.error) {
-      return res.status(500).json({ error: 'Failed to load agency finance totals', details: amountResult.error.message });
+      return next(createHttpError(500, 'AGENCY_FINANCE_TOTALS_LOOKUP_FAILED', 'Failed to load agency finance totals', amountResult.error));
     }
 
     const communities = (communitiesResult.data || []) as Array<Record<string, any>>;
@@ -718,11 +741,11 @@ export async function getAgencyDirectorySummary(req: Request, res: Response, nex
 export async function deleteAgencyDirectory(req: Request, res: Response, next: NextFunction) {
   try {
     const { id } = req.params;
-    if (!isUuid(id)) return res.status(400).json({ error: 'Invalid agency id' });
+    if (!isUuid(id)) return next(createHttpError(400, 'AGENCY_ID_INVALID', 'Invalid agency id'));
 
     const scope = await resolveAdminScope(req);
     if (!canAccessAgency(scope, id)) {
-      return toScopeError(res, 'Access denied for the selected agency.');
+      return next(toScopeError('Access denied for the selected agency.'));
     }
 
     const { data: existing, error: existingError } = await supabase
@@ -732,13 +755,13 @@ export async function deleteAgencyDirectory(req: Request, res: Response, next: N
       .maybeSingle();
 
     if (existingError) {
-      return res.status(500).json({ error: 'Failed to load agency directory record', details: existingError.message });
+      return next(createHttpError(500, 'AGENCY_DIRECTORY_LOOKUP_FAILED', 'Failed to load agency directory record', existingError));
     }
-    if (!existing) return res.status(404).json({ error: 'Agency not found' });
+    if (!existing) return next(createHttpError(404, 'AGENCY_NOT_FOUND', 'Agency not found'));
 
     const { error } = await supabase.from('agencies').delete().eq('id', id);
     if (error) {
-      return res.status(500).json({ error: 'Failed to delete agency directory record', details: error.message });
+      return next(createHttpError(500, 'AGENCY_DIRECTORY_DELETE_FAILED', 'Failed to delete agency directory record', error));
     }
 
     return res.status(204).send();
@@ -753,7 +776,7 @@ export async function listAgencyStaff(req: Request, res: Response, next: NextFun
     const requestedAgencyId = parseUuidQueryParam(req, 'agency_id');
 
     if (requestedAgencyId && !canAccessAgency(scope, requestedAgencyId)) {
-      return toScopeError(res, 'Access denied for the requested agency.');
+      return next(toScopeError('Access denied for the requested agency.'));
     }
 
     let query = supabase.from('agency_staff').select('*').order('created_at', { ascending: false });
@@ -767,7 +790,7 @@ export async function listAgencyStaff(req: Request, res: Response, next: NextFun
 
     const { data, error } = await query;
     if (error) {
-      return res.status(500).json({ error: 'Failed to fetch agency staff', details: error.message });
+      return next(createHttpError(500, 'AGENCY_STAFF_LIST_FAILED', 'Failed to fetch agency staff', error));
     }
 
     return res.json({ data: data || [] });
@@ -784,7 +807,7 @@ export async function createAgencyStaff(req: Request, res: Response, next: NextF
     const effectiveAgencyId = withScopeFallbackAgency(scope, payload);
     const agencyScope = await ensureAgencyScope(scope, effectiveAgencyId);
     if (!agencyScope.ok) {
-      return toScopeError(res, agencyScope.reason);
+      return next(toScopeError(agencyScope.reason));
     }
     payload.agency_id = agencyScope.agencyId;
 
@@ -798,7 +821,7 @@ export async function createAgencyStaff(req: Request, res: Response, next: NextF
       .single();
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to create agency staff record', details: error.message });
+      return next(createHttpError(500, 'AGENCY_STAFF_CREATE_FAILED', 'Failed to create agency staff record', error));
     }
 
     return res.status(201).json({ data });
@@ -810,7 +833,7 @@ export async function createAgencyStaff(req: Request, res: Response, next: NextF
 export async function updateAgencyStaff(req: Request, res: Response, next: NextFunction) {
   try {
     const { id } = req.params;
-    if (!isUuid(id)) return res.status(400).json({ error: 'Invalid staff id' });
+    if (!isUuid(id)) return next(createHttpError(400, 'AGENCY_STAFF_ID_INVALID', 'Invalid staff id'));
 
     const scope = await resolveAdminScope(req);
     const payload = { ...(req.body || {}) };
@@ -822,15 +845,15 @@ export async function updateAgencyStaff(req: Request, res: Response, next: NextF
       .maybeSingle();
 
     if (existingError) {
-      return res.status(500).json({ error: 'Failed to load agency staff record', details: existingError.message });
+      return next(createHttpError(500, 'AGENCY_STAFF_LOOKUP_FAILED', 'Failed to load agency staff record', existingError));
     }
-    if (!existing) return res.status(404).json({ error: 'Agency staff record not found' });
+    if (!existing) return next(createHttpError(404, 'AGENCY_STAFF_NOT_FOUND', 'Agency staff record not found'));
     if (!isUuid(existing.agency_id) || !canAccessAgency(scope, existing.agency_id)) {
-      return toScopeError(res, 'Access denied for the selected agency.');
+      return next(toScopeError('Access denied for the selected agency.'));
     }
 
     if (isUuid(payload.agency_id) && !canAccessAgency(scope, payload.agency_id)) {
-      return toScopeError(res, 'Access denied for the selected agency.');
+      return next(toScopeError('Access denied for the selected agency.'));
     }
 
     payload.updated_by = req.user?.id || req.userProfile?.id || null;
@@ -844,7 +867,7 @@ export async function updateAgencyStaff(req: Request, res: Response, next: NextF
       .single();
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to update agency staff record', details: error.message });
+      return next(createHttpError(500, 'AGENCY_STAFF_UPDATE_FAILED', 'Failed to update agency staff record', error));
     }
 
     return res.json({ data });
@@ -856,7 +879,7 @@ export async function updateAgencyStaff(req: Request, res: Response, next: NextF
 export async function deleteAgencyStaff(req: Request, res: Response, next: NextFunction) {
   try {
     const { id } = req.params;
-    if (!isUuid(id)) return res.status(400).json({ error: 'Invalid staff id' });
+    if (!isUuid(id)) return next(createHttpError(400, 'AGENCY_STAFF_ID_INVALID', 'Invalid staff id'));
 
     const scope = await resolveAdminScope(req);
     const { data: existing, error: existingError } = await supabase
@@ -866,16 +889,16 @@ export async function deleteAgencyStaff(req: Request, res: Response, next: NextF
       .maybeSingle();
 
     if (existingError) {
-      return res.status(500).json({ error: 'Failed to load agency staff record', details: existingError.message });
+      return next(createHttpError(500, 'AGENCY_STAFF_LOOKUP_FAILED', 'Failed to load agency staff record', existingError));
     }
-    if (!existing) return res.status(404).json({ error: 'Agency staff record not found' });
+    if (!existing) return next(createHttpError(404, 'AGENCY_STAFF_NOT_FOUND', 'Agency staff record not found'));
     if (!isUuid(existing.agency_id) || !canAccessAgency(scope, existing.agency_id)) {
-      return toScopeError(res, 'Access denied for the selected agency.');
+      return next(toScopeError('Access denied for the selected agency.'));
     }
 
     const { error } = await supabase.from('agency_staff').delete().eq('id', id);
     if (error) {
-      return res.status(500).json({ error: 'Failed to delete agency staff record', details: error.message });
+      return next(createHttpError(500, 'AGENCY_STAFF_DELETE_FAILED', 'Failed to delete agency staff record', error));
     }
 
     return res.status(204).send();
@@ -890,7 +913,7 @@ export async function listAgencyServices(req: Request, res: Response, next: Next
     const requestedAgencyId = parseUuidQueryParam(req, 'agency_id');
 
     if (requestedAgencyId && !canAccessAgency(scope, requestedAgencyId)) {
-      return toScopeError(res, 'Access denied for the requested agency.');
+      return next(toScopeError('Access denied for the requested agency.'));
     }
 
     let query = supabase.from('agency_services').select('*').order('created_at', { ascending: false });
@@ -904,7 +927,7 @@ export async function listAgencyServices(req: Request, res: Response, next: Next
 
     const { data, error } = await query;
     if (error) {
-      return res.status(500).json({ error: 'Failed to fetch agency services', details: error.message });
+      return next(createHttpError(500, 'AGENCY_SERVICES_LIST_FAILED', 'Failed to fetch agency services', error));
     }
 
     return res.json({ data: data || [] });
@@ -920,7 +943,7 @@ export async function createAgencyService(req: Request, res: Response, next: Nex
 
     const effectiveAgencyId = withScopeFallbackAgency(scope, payload);
     const agencyScope = await ensureAgencyScope(scope, effectiveAgencyId);
-    if (!agencyScope.ok) return toScopeError(res, agencyScope.reason);
+    if (!agencyScope.ok) return next(toScopeError(agencyScope.reason));
     payload.agency_id = agencyScope.agencyId;
 
     const { data, error } = await supabase
@@ -930,7 +953,7 @@ export async function createAgencyService(req: Request, res: Response, next: Nex
       .single();
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to create agency service', details: error.message });
+      return next(createHttpError(500, 'AGENCY_SERVICE_CREATE_FAILED', 'Failed to create agency service', error));
     }
 
     return res.status(201).json({ data });
@@ -942,7 +965,7 @@ export async function createAgencyService(req: Request, res: Response, next: Nex
 export async function updateAgencyService(req: Request, res: Response, next: NextFunction) {
   try {
     const { id } = req.params;
-    if (!isUuid(id)) return res.status(400).json({ error: 'Invalid service id' });
+    if (!isUuid(id)) return next(createHttpError(400, 'AGENCY_SERVICE_ID_INVALID', 'Invalid service id'));
 
     const scope = await resolveAdminScope(req);
     const payload = { ...(req.body || {}) };
@@ -954,15 +977,15 @@ export async function updateAgencyService(req: Request, res: Response, next: Nex
       .maybeSingle();
 
     if (existingError) {
-      return res.status(500).json({ error: 'Failed to load agency service', details: existingError.message });
+      return next(createHttpError(500, 'AGENCY_SERVICE_LOOKUP_FAILED', 'Failed to load agency service', existingError));
     }
-    if (!existing) return res.status(404).json({ error: 'Agency service not found' });
+    if (!existing) return next(createHttpError(404, 'AGENCY_SERVICE_NOT_FOUND', 'Agency service not found'));
     if (!isUuid(existing.agency_id) || !canAccessAgency(scope, existing.agency_id)) {
-      return toScopeError(res, 'Access denied for the selected agency.');
+      return next(toScopeError('Access denied for the selected agency.'));
     }
 
     if (isUuid(payload.agency_id) && !canAccessAgency(scope, payload.agency_id)) {
-      return toScopeError(res, 'Access denied for the selected agency.');
+      return next(toScopeError('Access denied for the selected agency.'));
     }
 
     payload.updated_at = new Date().toISOString();
@@ -975,7 +998,7 @@ export async function updateAgencyService(req: Request, res: Response, next: Nex
       .single();
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to update agency service', details: error.message });
+      return next(createHttpError(500, 'AGENCY_SERVICE_UPDATE_FAILED', 'Failed to update agency service', error));
     }
 
     return res.json({ data });
@@ -987,7 +1010,7 @@ export async function updateAgencyService(req: Request, res: Response, next: Nex
 export async function deleteAgencyService(req: Request, res: Response, next: NextFunction) {
   try {
     const { id } = req.params;
-    if (!isUuid(id)) return res.status(400).json({ error: 'Invalid service id' });
+    if (!isUuid(id)) return next(createHttpError(400, 'AGENCY_SERVICE_ID_INVALID', 'Invalid service id'));
 
     const scope = await resolveAdminScope(req);
     const { data: existing, error: existingError } = await supabase
@@ -997,16 +1020,16 @@ export async function deleteAgencyService(req: Request, res: Response, next: Nex
       .maybeSingle();
 
     if (existingError) {
-      return res.status(500).json({ error: 'Failed to load agency service', details: existingError.message });
+      return next(createHttpError(500, 'AGENCY_SERVICE_LOOKUP_FAILED', 'Failed to load agency service', existingError));
     }
-    if (!existing) return res.status(404).json({ error: 'Agency service not found' });
+    if (!existing) return next(createHttpError(404, 'AGENCY_SERVICE_NOT_FOUND', 'Agency service not found'));
     if (!isUuid(existing.agency_id) || !canAccessAgency(scope, existing.agency_id)) {
-      return toScopeError(res, 'Access denied for the selected agency.');
+      return next(toScopeError('Access denied for the selected agency.'));
     }
 
     const { error } = await supabase.from('agency_services').delete().eq('id', id);
     if (error) {
-      return res.status(500).json({ error: 'Failed to delete agency service', details: error.message });
+      return next(createHttpError(500, 'AGENCY_SERVICE_DELETE_FAILED', 'Failed to delete agency service', error));
     }
 
     return res.status(204).send();
@@ -1021,7 +1044,7 @@ export async function listAgencyFinance(req: Request, res: Response, next: NextF
     const requestedAgencyId = parseUuidQueryParam(req, 'agency_id');
 
     if (requestedAgencyId && !canAccessAgency(scope, requestedAgencyId)) {
-      return toScopeError(res, 'Access denied for the requested agency.');
+      return next(toScopeError('Access denied for the requested agency.'));
     }
 
     let query = supabase
@@ -1039,7 +1062,7 @@ export async function listAgencyFinance(req: Request, res: Response, next: NextF
 
     const { data, error } = await query;
     if (error) {
-      return res.status(500).json({ error: 'Failed to fetch agency finance transactions', details: error.message });
+      return next(createHttpError(500, 'AGENCY_FINANCE_LIST_FAILED', 'Failed to fetch agency finance transactions', error));
     }
 
     return res.json({ data: data || [] });
@@ -1055,7 +1078,7 @@ export async function createAgencyFinance(req: Request, res: Response, next: Nex
 
     const effectiveAgencyId = withScopeFallbackAgency(scope, payload);
     const agencyScope = await ensureAgencyScope(scope, effectiveAgencyId);
-    if (!agencyScope.ok) return toScopeError(res, agencyScope.reason);
+    if (!agencyScope.ok) return next(toScopeError(agencyScope.reason));
     payload.agency_id = agencyScope.agencyId;
 
     const { data, error } = await supabase
@@ -1065,7 +1088,9 @@ export async function createAgencyFinance(req: Request, res: Response, next: Nex
       .single();
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to create agency finance transaction', details: error.message });
+      return next(
+        createHttpError(500, 'AGENCY_FINANCE_CREATE_FAILED', 'Failed to create agency finance transaction', error)
+      );
     }
 
     return res.status(201).json({ data });
@@ -1077,7 +1102,7 @@ export async function createAgencyFinance(req: Request, res: Response, next: Nex
 export async function updateAgencyFinance(req: Request, res: Response, next: NextFunction) {
   try {
     const { id } = req.params;
-    if (!isUuid(id)) return res.status(400).json({ error: 'Invalid finance record id' });
+    if (!isUuid(id)) return next(createHttpError(400, 'AGENCY_FINANCE_ID_INVALID', 'Invalid finance record id'));
 
     const scope = await resolveAdminScope(req);
     const payload = { ...(req.body || {}) };
@@ -1089,14 +1114,16 @@ export async function updateAgencyFinance(req: Request, res: Response, next: Nex
       .maybeSingle();
 
     if (existingError) {
-      return res.status(500).json({ error: 'Failed to load agency finance transaction', details: existingError.message });
+      return next(
+        createHttpError(500, 'AGENCY_FINANCE_LOOKUP_FAILED', 'Failed to load agency finance transaction', existingError)
+      );
     }
-    if (!existing) return res.status(404).json({ error: 'Agency finance transaction not found' });
+    if (!existing) return next(createHttpError(404, 'AGENCY_FINANCE_NOT_FOUND', 'Agency finance transaction not found'));
     if (!isUuid(existing.agency_id) || !canAccessAgency(scope, existing.agency_id)) {
-      return toScopeError(res, 'Access denied for the selected agency.');
+      return next(toScopeError('Access denied for the selected agency.'));
     }
     if (isUuid(payload.agency_id) && !canAccessAgency(scope, payload.agency_id)) {
-      return toScopeError(res, 'Access denied for the selected agency.');
+      return next(toScopeError('Access denied for the selected agency.'));
     }
 
     const { data, error } = await supabase
@@ -1107,7 +1134,9 @@ export async function updateAgencyFinance(req: Request, res: Response, next: Nex
       .single();
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to update agency finance transaction', details: error.message });
+      return next(
+        createHttpError(500, 'AGENCY_FINANCE_UPDATE_FAILED', 'Failed to update agency finance transaction', error)
+      );
     }
 
     return res.json({ data });
@@ -1122,7 +1151,7 @@ export async function listAgencyDocuments(req: Request, res: Response, next: Nex
     const requestedAgencyId = parseUuidQueryParam(req, 'agency_id');
 
     if (requestedAgencyId && !canAccessAgency(scope, requestedAgencyId)) {
-      return toScopeError(res, 'Access denied for the requested agency.');
+      return next(toScopeError('Access denied for the requested agency.'));
     }
 
     let query = supabase
@@ -1139,7 +1168,7 @@ export async function listAgencyDocuments(req: Request, res: Response, next: Nex
 
     const { data, error } = await query;
     if (error) {
-      return res.status(500).json({ error: 'Failed to fetch agency documents', details: error.message });
+      return next(createHttpError(500, 'AGENCY_DOCUMENTS_LIST_FAILED', 'Failed to fetch agency documents', error));
     }
 
     return res.json({ data: data || [] });
@@ -1155,7 +1184,7 @@ export async function createAgencyDocument(req: Request, res: Response, next: Ne
 
     const effectiveAgencyId = withScopeFallbackAgency(scope, payload);
     const agencyScope = await ensureAgencyScope(scope, effectiveAgencyId);
-    if (!agencyScope.ok) return toScopeError(res, agencyScope.reason);
+    if (!agencyScope.ok) return next(toScopeError(agencyScope.reason));
     payload.agency_id = agencyScope.agencyId;
     payload.uploaded_by = req.user?.id || req.userProfile?.id || null;
     payload.updated_at = new Date().toISOString();
@@ -1167,7 +1196,7 @@ export async function createAgencyDocument(req: Request, res: Response, next: Ne
       .single();
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to create agency document', details: error.message });
+      return next(createHttpError(500, 'AGENCY_DOCUMENT_CREATE_FAILED', 'Failed to create agency document', error));
     }
 
     return res.status(201).json({ data });
@@ -1179,7 +1208,7 @@ export async function createAgencyDocument(req: Request, res: Response, next: Ne
 export async function updateAgencyDocument(req: Request, res: Response, next: NextFunction) {
   try {
     const { id } = req.params;
-    if (!isUuid(id)) return res.status(400).json({ error: 'Invalid document id' });
+    if (!isUuid(id)) return next(createHttpError(400, 'AGENCY_DOCUMENT_ID_INVALID', 'Invalid document id'));
 
     const scope = await resolveAdminScope(req);
     const payload = { ...(req.body || {}) };
@@ -1191,14 +1220,14 @@ export async function updateAgencyDocument(req: Request, res: Response, next: Ne
       .maybeSingle();
 
     if (existingError) {
-      return res.status(500).json({ error: 'Failed to load agency document', details: existingError.message });
+      return next(createHttpError(500, 'AGENCY_DOCUMENT_LOOKUP_FAILED', 'Failed to load agency document', existingError));
     }
-    if (!existing) return res.status(404).json({ error: 'Agency document not found' });
+    if (!existing) return next(createHttpError(404, 'AGENCY_DOCUMENT_NOT_FOUND', 'Agency document not found'));
     if (!isUuid(existing.agency_id) || !canAccessAgency(scope, existing.agency_id)) {
-      return toScopeError(res, 'Access denied for the selected agency.');
+      return next(toScopeError('Access denied for the selected agency.'));
     }
     if (isUuid(payload.agency_id) && !canAccessAgency(scope, payload.agency_id)) {
-      return toScopeError(res, 'Access denied for the selected agency.');
+      return next(toScopeError('Access denied for the selected agency.'));
     }
 
     payload.updated_at = new Date().toISOString();
@@ -1211,7 +1240,7 @@ export async function updateAgencyDocument(req: Request, res: Response, next: Ne
       .single();
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to update agency document', details: error.message });
+      return next(createHttpError(500, 'AGENCY_DOCUMENT_UPDATE_FAILED', 'Failed to update agency document', error));
     }
 
     return res.json({ data });
@@ -1223,7 +1252,7 @@ export async function updateAgencyDocument(req: Request, res: Response, next: Ne
 export async function deleteAgencyDocument(req: Request, res: Response, next: NextFunction) {
   try {
     const { id } = req.params;
-    if (!isUuid(id)) return res.status(400).json({ error: 'Invalid document id' });
+    if (!isUuid(id)) return next(createHttpError(400, 'AGENCY_DOCUMENT_ID_INVALID', 'Invalid document id'));
 
     const scope = await resolveAdminScope(req);
     const { data: existing, error: existingError } = await supabase
@@ -1233,16 +1262,16 @@ export async function deleteAgencyDocument(req: Request, res: Response, next: Ne
       .maybeSingle();
 
     if (existingError) {
-      return res.status(500).json({ error: 'Failed to load agency document', details: existingError.message });
+      return next(createHttpError(500, 'AGENCY_DOCUMENT_LOOKUP_FAILED', 'Failed to load agency document', existingError));
     }
-    if (!existing) return res.status(404).json({ error: 'Agency document not found' });
+    if (!existing) return next(createHttpError(404, 'AGENCY_DOCUMENT_NOT_FOUND', 'Agency document not found'));
     if (!isUuid(existing.agency_id) || !canAccessAgency(scope, existing.agency_id)) {
-      return toScopeError(res, 'Access denied for the selected agency.');
+      return next(toScopeError('Access denied for the selected agency.'));
     }
 
     const { error } = await supabase.from('agency_documents').delete().eq('id', id);
     if (error) {
-      return res.status(500).json({ error: 'Failed to delete agency document', details: error.message });
+      return next(createHttpError(500, 'AGENCY_DOCUMENT_DELETE_FAILED', 'Failed to delete agency document', error));
     }
 
     return res.status(204).send();

@@ -1,241 +1,149 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useSession } from "next-auth/react";
-import { supabase } from "../lib/supabase";
-import type { Database } from "../lib/database.types";
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
-type NotificationCampaign = Database["public"]["Tables"]["notification_campaigns"]["Row"];
-type NotificationCampaignInsert = Database["public"]["Tables"]["notification_campaigns"]["Insert"];
-type NotificationCampaignUpdate = Database["public"]["Tables"]["notification_campaigns"]["Update"];
+import { useAdminApi } from '@/hooks/useAdminApi'
 
-type NotificationMetrics = Database["public"]["Tables"]["notification_metrics"]["Row"];
-type NotificationAnalytics = Database["public"]["Tables"]["notification_analytics"]["Row"];
+type NotificationCampaign = {
+  community_id?: string | null
+  id: string
+  title: string
+  name?: string | null
+  type: string
+  status: string
+  recipients_count?: number | null
+  delivered_count?: number | null
+  opened_count?: number | null
+  clicked_count?: number | null
+  failed_count?: number | null
+  audience?: string | null
+  budget?: number | null
+  spent?: number | null
+  scheduled_at?: string | null
+  sent_at?: string | null
+  created_at?: string | null
+  updated_at?: string | null
+  template_id?: number | null
+}
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+type CreateNotificationCampaignInput = {
+  community_id?: string | null
+  title?: string
+  name?: string
+  type: string
+  recipients_count?: number
+  message?: string
+  template?: string
+  template_id?: number | null
+  audience?: unknown
+  budget?: number | null
+  spent?: number | null
+  scheduled_at?: string | null
+  sent_at?: string | null
+  status?: string
+}
 
-const useAdminFetch = () => {
-  const { data: session } = useSession();
-  const token = session?.accessToken as string | undefined;
+type DashboardChannelPerformance = {
+  type: string
+  campaignCount: number
+  totalSent: number
+  totalDelivered: number
+  totalOpened: number
+  totalClicked: number
+  deliveryRate: number
+  openRate: number
+  clickRate: number
+  performance_score: number
+}
 
-  const fetchAdmin = async (path: string, options: RequestInit = {}) => {
-    if (!token) {
-      throw new Error('Missing admin session. Please sign in again.');
+type DashboardPayload = {
+  data: {
+    recent_campaigns: NotificationCampaign[]
+    today_summary: {
+      total_sent: number
+      total_delivered: number
+      total_opened: number
+      total_clicked: number
+      total_failed: number
+      total_scheduled: number
+      delivery_rate: number
+      open_rate: number
+      click_rate: number
+      change_vs_yesterday: Record<string, number>
     }
+    channel_performance: Record<string, DashboardChannelPerformance>
+  }
+}
 
-    const response = await fetch(`${API_BASE_URL}${path}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-        ...options.headers,
-      },
-    });
+const NOTIFICATION_REFRESH_INTERVAL_MS = 30_000
 
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      throw new Error(payload.error || payload.message || 'Request failed');
-    }
-    return payload;
-  };
+const dashboardQueryKey = (limit: number) => ['admin-notification-dashboard', limit] as const
 
-  return { fetchAdmin };
-};
+const invalidateNotificationQueries = (queryClient: ReturnType<typeof useQueryClient>) => {
+  queryClient.invalidateQueries({ queryKey: ['admin-notification-dashboard'] })
+  queryClient.invalidateQueries({ queryKey: ['campaigns'] })
+  queryClient.invalidateQueries({ queryKey: ['admin-notification-analytics'] })
+}
 
-// List all notification campaigns (for recent notifications table)
+const useNotificationDashboardQuery = (limit = 5) => {
+  const { fetchAdmin, hasToken } = useAdminApi()
+
+  return useQuery({
+    queryKey: dashboardQueryKey(limit),
+    enabled: hasToken,
+    queryFn: async () => {
+      const params = new URLSearchParams()
+      params.set('limit', String(limit))
+      return fetchAdmin<DashboardPayload>(`/admin/notifications/dashboard?${params.toString()}`)
+    },
+    staleTime: 30_000,
+    refetchInterval: NOTIFICATION_REFRESH_INTERVAL_MS,
+    refetchOnWindowFocus: true,
+    placeholderData: (previous) => previous,
+  })
+}
+
 export const useListNotificationCampaigns = (status?: string, limit = 10) => {
-  return useQuery({
-    queryKey: ["notification_campaigns", status, limit],
-    queryFn: async () => {
-      let query = supabase
-        .from("notification_campaigns")
-        .select("*")
-        .order("created_at", { ascending: false });
+  const query = useNotificationDashboardQuery(limit)
+  const campaigns = (query.data?.data.recent_campaigns || []).filter((campaign) =>
+    status ? campaign.status === status : true
+  )
 
-      if (status) {
-        query = query.eq("status", status);
-      }
+  return {
+    ...query,
+    data: campaigns,
+  }
+}
 
-      if (limit) {
-        query = query.limit(limit);
-      }
-
-      const { data, error } = await query;
-      if (error) throw new Error(`Failed to fetch notification campaigns: ${error.message}`);
-      return data as NotificationCampaign[];
-    },
-  });
-};
-
-// Get notification metrics for charts (last 7 days by default)
-export const useListNotificationMetrics = (days = 7, channel?: string) => {
-  return useQuery({
-    queryKey: ["notification_metrics", days, channel],
-    queryFn: async () => {
-      let query = supabase
-        .from("notification_metrics")
-        .select("*")
-        .gte("date", new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
-        .order("date", { ascending: true });
-
-      if (channel) {
-        query = query.eq("channel", channel);
-      }
-
-      const { data, error } = await query;
-      if (error) throw new Error(`Failed to fetch notification metrics: ${error.message}`);
-      return data as NotificationMetrics[];
-    },
-  });
-};
-
-// Get notification analytics data for dashboard summary
-export const useGetNotificationAnalytics = (metricType: string, date?: string) => {
-  return useQuery({
-    queryKey: ["notification_analytics", metricType, date],
-    queryFn: async () => {
-      let query = supabase
-        .from("notification_analytics")
-        .select("*")
-        .eq("metric_type", metricType);
-
-      if (date) {
-        query = query.eq("metric_date", date);
-      } else {
-        // Try to get today's data first
-        const today = new Date().toISOString().split('T')[0];
-        query = query.eq("metric_date", today);
-      }
-
-      let { data, error } = await query;
-      
-      // If no data found for today and no specific date was requested, get the most recent data
-      if (!date && (!data || data.length === 0) && !error) {
-        const fallbackQuery = supabase
-          .from("notification_analytics")
-          .select("*")
-          .eq("metric_type", metricType)
-          .order("metric_date", { ascending: false })
-          .limit(1);
-        
-        const fallbackResult = await fallbackQuery;
-        data = fallbackResult.data;
-        error = fallbackResult.error;
-      }
-      
-      if (error) throw new Error(`Failed to fetch notification analytics: ${error.message}`);
-      return data?.[0] as NotificationAnalytics | null;
-    },
-  });
-};
-
-// Get today's activity summary
 export const useTodayActivitySummary = () => {
-  return useGetNotificationAnalytics("daily_summary");
-};
+  const query = useNotificationDashboardQuery()
 
-// Get channel performance data
+  return {
+    ...query,
+    data: query.data ? { data: query.data.data.today_summary } : null,
+  }
+}
+
 export const useChannelPerformance = () => {
-  return useGetNotificationAnalytics("channel_performance");
-};
+  const query = useNotificationDashboardQuery()
 
-// Get engagement overview data
-export const useEngagementOverview = () => {
-  return useGetNotificationAnalytics("engagement_overview");
-};
+  return {
+    ...query,
+    data: query.data ? { data: query.data.data.channel_performance } : null,
+  }
+}
 
-// Get weekly trends data
-export const useWeeklyTrends = () => {
-  return useGetNotificationAnalytics("weekly_trends");
-};
-
-// Create a new notification campaign
 export const useCreateNotificationCampaign = () => {
-  const queryClient = useQueryClient();
-  const { fetchAdmin } = useAdminFetch();
+  const queryClient = useQueryClient()
+  const { fetchAdmin } = useAdminApi()
 
   return useMutation({
-    mutationFn: async (newCampaign: NotificationCampaignInsert) => {
-      const created = await fetchAdmin('/admin/notification-campaigns', {
+    mutationFn: async (newCampaign: CreateNotificationCampaignInput) => {
+      return fetchAdmin<NotificationCampaign>('/admin/notification-campaigns', {
         method: 'POST',
         body: JSON.stringify(newCampaign),
-      });
-      return created as NotificationCampaign;
+      })
     },
     onSuccess: () => {
-      // Invalidate and refetch campaigns
-      queryClient.invalidateQueries({ queryKey: ["notification_campaigns"] });
-      queryClient.invalidateQueries({ queryKey: ["notification_analytics"] });
+      invalidateNotificationQueries(queryClient)
     },
-  });
-};
-
-// Update a notification campaign
-export const useUpdateNotificationCampaign = () => {
-  const queryClient = useQueryClient();
-  const { fetchAdmin } = useAdminFetch();
-
-  return useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: NotificationCampaignUpdate }) => {
-      const updated = await fetchAdmin(`/admin/notification-campaigns/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify({ ...updates }),
-      });
-      return updated as NotificationCampaign;
-    },
-    onSuccess: () => {
-      // Invalidate and refetch campaigns
-      queryClient.invalidateQueries({ queryKey: ["notification_campaigns"] });
-      queryClient.invalidateQueries({ queryKey: ["notification_analytics"] });
-    },
-  });
-};
-
-// Delete a notification campaign
-export const useDeleteNotificationCampaign = () => {
-  const queryClient = useQueryClient();
-  const { fetchAdmin } = useAdminFetch();
-
-  return useMutation({
-    mutationFn: async (id: string) => {
-      await fetchAdmin(`/admin/notification-campaigns/${id}`, { method: 'DELETE' });
-      return { id };
-    },
-    onSuccess: () => {
-      // Invalidate and refetch campaigns
-      queryClient.invalidateQueries({ queryKey: ["notification_campaigns"] });
-      queryClient.invalidateQueries({ queryKey: ["notification_analytics"] });
-    },
-  });
-};
-
-// Get dashboard stats overview
-export const useNotificationDashboardStats = () => {
-  return useQuery({
-    queryKey: ["notification_dashboard_stats"],
-    queryFn: async () => {
-      // Get today's summary from analytics
-      const { data: todayData, error: todayError } = await supabase
-        .from("notification_analytics")
-        .select("*")
-        .eq("metric_type", "daily_summary")
-        .eq("metric_date", new Date().toISOString().split('T')[0])
-        .single();
-
-      if (todayError) throw new Error(`Failed to fetch today's stats: ${todayError.message}`);
-
-      // Get channel performance
-      const { data: channelData, error: channelError } = await supabase
-        .from("notification_analytics")
-        .select("*")
-        .eq("metric_type", "channel_performance")
-        .eq("metric_date", new Date().toISOString().split('T')[0])
-        .single();
-
-      if (channelError) throw new Error(`Failed to fetch channel performance: ${channelError.message}`);
-
-      return {
-        todayStats: todayData?.data,
-        channelPerformance: channelData?.data,
-      };
-    },
-  });
-}; 
+  })
+}

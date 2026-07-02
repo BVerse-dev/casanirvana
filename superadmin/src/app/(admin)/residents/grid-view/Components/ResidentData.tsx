@@ -7,7 +7,6 @@ import { Button, Card, CardBody, CardFooter, Col, Dropdown, DropdownItem, Dropdo
 import { useDeleteResident, type Resident } from '@/hooks/useResidents'
 import { mapAvatarUrl } from '@/utils/avatarMapper'
 import { avatars } from '@/assets/images/users'
-import { useState } from 'react'
 import { toast } from 'react-hot-toast'
 
 interface ResidentDataProps {
@@ -20,7 +19,6 @@ interface ResidentDataProps {
 }
 
 const ResidentCard = ({ id, full_name, email, phone, avatar_url, units, societies, is_active, unit_number }: Resident) => {
-  const [showActions, setShowActions] = useState(false)
   const deleteResidentMutation = useDeleteResident()
   const mappedAvatarUrl = mapAvatarUrl(avatar_url) || avatars.dummyAvatar
 
@@ -105,7 +103,13 @@ const ResidentCard = ({ id, full_name, email, phone, avatar_url, units, societie
             </Link>
           </Col>
           <Col lg={6}>
-            <Button variant="light" size="sm" className="w-100">
+            <Button
+              variant="light"
+              size="sm"
+              className="w-100"
+              disabled
+              title="Start resident conversations from the Messages & Chats module."
+            >
               <IconifyIcon icon="solar:chat-round-dots-broken" className="align-middle fs-16" /> Message
             </Button>
           </Col>

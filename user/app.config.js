@@ -68,6 +68,9 @@ module.exports = {
         process.env.API_BASE_URL ||
         process.env.EXPO_PUBLIC_API_BASE_URL ||
         "https://casanirvana-backend.onrender.com",
+      ALLOW_PRIVATE_API_BASE_URL:
+        process.env.ALLOW_PRIVATE_API_BASE_URL === "true" ||
+        process.env.EXPO_PUBLIC_ALLOW_PRIVATE_API_BASE_URL === "true",
       sizemattersBaseWidth: 414,
       sizemattersBaseHeight: 896,
       eas: {

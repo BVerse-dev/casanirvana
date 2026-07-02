@@ -1,4 +1,4 @@
-import type { Request, Response } from 'express';
+import type { NextFunction, Request, Response } from 'express';
 import {
   getExpressPayPaymentRecord,
   getExpressPayPaymentStatus,
@@ -6,6 +6,7 @@ import {
   initiateExpressPayPayment,
   verifyExpressPayPayment,
 } from '../services/expresspay';
+import { createHttpError } from '../lib/httpError';
 import { assertPaymentMethodAllowed } from '../services/paymentMethodPolicy';
 
 const ADMIN_ROLES = new Set(['admin', 'superadmin', 'agency_manager', 'facility_manager']);
@@ -100,13 +101,13 @@ const buildSafeAppReturnUrl = ({
   }
 };
 
-export const initiatePayment = async (req: Request, res: Response) => {
+export const initiatePayment = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const authUserId = req.user?.id as string | undefined;
     const authUser = (req.user || {}) as Record<string, unknown>;
 
     if (!authUserId) {
-      return res.status(401).json({ error: 'Authentication required' });
+      return next(createHttpError(401, 'AUTH_REQUIRED', 'Authentication required'));
     }
 
     const profile = (req.userProfile || {}) as Record<string, unknown>;
@@ -117,16 +118,18 @@ export const initiatePayment = async (req: Request, res: Response) => {
     const requestUnitId = typeof body.unit_id === 'string' ? body.unit_id : null;
 
     if (!requestUnitId) {
-      return res.status(400).json({ error: 'unit_id is required' });
+      return next(createHttpError(400, 'UNIT_ID_REQUIRED', 'unit_id is required'));
     }
 
     if (!isAdminRole(userRole) && profileUnitId && profileUnitId !== requestUnitId) {
-      return res.status(403).json({ error: 'You can only initiate payments for your assigned unit' });
+      return next(
+        createHttpError(403, 'PAYMENT_UNIT_SCOPE_VIOLATION', 'You can only initiate payments for your assigned unit')
+      );
     }
 
     const amount = Number(body.amount);
     if (!Number.isFinite(amount) || amount <= 0) {
-      return res.status(400).json({ error: 'amount must be a positive number' });
+      return next(createHttpError(400, 'AMOUNT_INVALID', 'amount must be a positive number'));
     }
 
     const paymentType = typeof body.payment_type === 'string' ? body.payment_type : 'general';
@@ -142,10 +145,14 @@ export const initiatePayment = async (req: Request, res: Response) => {
         payerId: authUserId,
       });
     } catch (policyError: unknown) {
-      return res.status(400).json({
-        success: false,
-        error: errorMessage(policyError, 'This payment method is unavailable for the current transaction.'),
-      });
+      return next(
+        createHttpError(
+          400,
+          'PAYMENT_METHOD_NOT_ALLOWED',
+          errorMessage(policyError, 'This payment method is unavailable for the current transaction.'),
+          policyError
+        )
+      );
     }
 
     const result = await initiateExpressPayPayment({
@@ -204,14 +211,13 @@ export const initiatePayment = async (req: Request, res: Response) => {
       },
     });
   } catch (error: unknown) {
-    return res.status(500).json({
-      success: false,
-      error: errorMessage(error, 'Failed to initiate ExpressPay payment'),
-    });
+    return next(
+      createHttpError(500, 'EXPRESSPAY_INITIATE_FAILED', errorMessage(error, 'Failed to initiate ExpressPay payment'), error)
+    );
   }
 };
 
-export const callback = async (req: Request, res: Response) => {
+export const callback = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const token = pickString(req.body, ['token']) || pickString(req.query, ['token']);
     const orderId =
@@ -239,10 +245,14 @@ export const callback = async (req: Request, res: Response) => {
         : null,
     });
   } catch (error: unknown) {
-    return res.status(500).json({
-      success: false,
-      error: errorMessage(error, 'ExpressPay callback processing failed'),
-    });
+    return next(
+      createHttpError(
+        500,
+        'EXPRESSPAY_CALLBACK_FAILED',
+        errorMessage(error, 'ExpressPay callback processing failed'),
+        error
+      )
+    );
   }
 };
 
@@ -284,37 +294,41 @@ export const redirectToApp = async (req: Request, res: Response) => {
 </html>`);
 };
 
-export const getStatus = async (req: Request, res: Response) => {
+export const getStatus = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const paymentId = req.params.paymentId;
     const authUserId = req.user?.id as string | undefined;
     const userRole = (req.userProfile?.role as string | undefined) || null;
 
     if (!paymentId) {
-      return res.status(400).json({ error: 'paymentId is required' });
+      return next(createHttpError(400, 'PAYMENT_ID_REQUIRED', 'paymentId is required'));
     }
 
     const paymentRecord = await getExpressPayPaymentRecord(paymentId);
     if (!paymentRecord) {
-      return res.status(404).json({ error: 'Payment not found' });
+      return next(createHttpError(404, 'PAYMENT_NOT_FOUND', 'Payment not found'));
     }
 
     if (!canAccessPayment({ role: userRole, authUserId, paymentPayerId: paymentRecord.payer_id })) {
-      return res.status(403).json({ error: 'You do not have access to this payment' });
+      return next(createHttpError(403, 'PAYMENT_ACCESS_DENIED', 'You do not have access to this payment'));
     }
 
     const status = await getExpressPayPaymentStatus(paymentId);
 
     return res.status(200).json({ success: true, data: status });
   } catch (error: unknown) {
-    return res.status(500).json({
-      success: false,
-      error: errorMessage(error, 'Failed to fetch ExpressPay payment status'),
-    });
+    return next(
+      createHttpError(
+        500,
+        'EXPRESSPAY_STATUS_FETCH_FAILED',
+        errorMessage(error, 'Failed to fetch ExpressPay payment status'),
+        error
+      )
+    );
   }
 };
 
-export const verifyPayment = async (req: Request, res: Response) => {
+export const verifyPayment = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const body = (req.body || {}) as Record<string, unknown>;
     const authUserId = req.user?.id as string | undefined;
@@ -328,22 +342,25 @@ export const verifyPayment = async (req: Request, res: Response) => {
       const paymentRecord = await getExpressPayPaymentRecord(paymentId);
 
       if (!paymentRecord) {
-        return res.status(404).json({ error: 'Payment not found' });
+        return next(createHttpError(404, 'PAYMENT_NOT_FOUND', 'Payment not found'));
       }
 
       if (!canAccessPayment({ role: userRole, authUserId, paymentPayerId: paymentRecord.payer_id })) {
-        return res.status(403).json({ error: 'You do not have access to this payment' });
+        return next(createHttpError(403, 'PAYMENT_ACCESS_DENIED', 'You do not have access to this payment'));
       }
     }
 
     const result = await verifyExpressPayPayment({ paymentId, token, orderId });
 
     if (!result.ok) {
-      return res.status(404).json({
-        success: false,
-        reason: result.reason,
-        error: 'Unable to resolve payment for verification',
-      });
+      return next(
+        createHttpError(
+          404,
+          'PAYMENT_VERIFY_RESOLUTION_FAILED',
+          'Unable to resolve payment for verification',
+          { reason: result.reason }
+        )
+      );
     }
 
     return res.status(200).json({
@@ -355,9 +372,8 @@ export const verifyPayment = async (req: Request, res: Response) => {
       },
     });
   } catch (error: unknown) {
-    return res.status(500).json({
-      success: false,
-      error: errorMessage(error, 'Failed to verify ExpressPay payment'),
-    });
+    return next(
+      createHttpError(500, 'EXPRESSPAY_VERIFY_FAILED', errorMessage(error, 'Failed to verify ExpressPay payment'), error)
+    );
   }
 };

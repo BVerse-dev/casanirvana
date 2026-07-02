@@ -397,8 +397,8 @@ export const useSmsCredits = () => {
 
       if (error) throw new Error(`Failed to fetch SMS credits: ${error.message}`);
 
-      const totalCreditsRemaining = data.reduce((sum, credit) => sum + credit.credits_remaining, 0);
-      const totalCreditsUsed = data.reduce((sum, credit) => sum + credit.credits_used, 0);
+      const totalCreditsRemaining = data.reduce((sum, credit) => sum + (credit.credits_remaining || 0), 0);
+      const totalCreditsUsed = data.reduce((sum, credit) => sum + (credit.credits_used || 0), 0);
       const totalCreditsPurchased = data.reduce((sum, credit) => sum + credit.credits_purchased, 0);
 
       return {

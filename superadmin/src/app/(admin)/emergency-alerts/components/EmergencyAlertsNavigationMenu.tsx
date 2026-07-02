@@ -67,7 +67,6 @@ const EmergencyAlertsNavigationMenu = ({ alerts, filters, onFilterChange }: Emer
         description: formData.description.trim() || null,
         alert_type: formData.alert_type,
         priority: formData.priority,
-        status: "active",
       });
 
       toast.success("Emergency alert created successfully.");
@@ -163,7 +162,12 @@ const EmergencyAlertsNavigationMenu = ({ alerts, filters, onFilterChange }: Emer
               <Form.Label>Alert Type</Form.Label>
               <Form.Select
                 value={formData.alert_type}
-                onChange={(event) => setFormData((current) => ({ ...current, alert_type: event.target.value }))}
+                onChange={(event) =>
+                  setFormData((current) => ({
+                    ...current,
+                    alert_type: event.target.value as typeof current.alert_type,
+                  }))
+                }
               >
                 {EMERGENCY_ALERT_CREATE_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>

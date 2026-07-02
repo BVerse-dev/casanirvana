@@ -1,45 +1,68 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Row, Col, Card, Button, Badge, Nav, Spinner } from 'react-bootstrap';
+import { Row, Col, Card, Button, Nav, Spinner } from 'react-bootstrap';
+
 import PageTitle from '@/components/PageTitle';
 import IconifyIcon from '@/components/wrappers/IconifyIcon';
-
-// Components
+import ExpressPayCatalogSyncNotice from '../components/ExpressPayCatalogSyncNotice';
 import InsuranceMetricCard from './components/InsuranceMetricCard';
 import InsuranceProviderTable from './components/InsuranceProviderTable';
 import PolicyManagementTable from './components/PolicyManagementTable';
 import ClaimsManagementTable from './components/ClaimsManagementTable';
 import InsuranceDistributionChart from './components/InsuranceDistributionChart';
 import ClaimsAnalyticsChart from './components/ClaimsAnalyticsChart';
-import AddProviderModal from './components/AddProviderModal';
-// Hook
+import { useAdminPersonalHubCatalog } from '@/hooks/useAdminPersonalHubCatalog';
 import { useInsuranceService } from '@/hooks/useInsuranceService';
 
 const InsuranceServicesPage = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'providers' | 'policies' | 'claims'>('overview');
-  const [showAddProviderModal, setShowAddProviderModal] = useState(false);
-  const [editProvider, setEditProvider] = useState(null);
+  const [syncFeedback, setSyncFeedback] = useState<{ variant: 'success' | 'danger'; message: string } | null>(null);
+  const { metrics, loading, error, refetch } = useInsuranceService();
+  const { providers: catalogProviders, syncCatalog, isSyncing } = useAdminPersonalHubCatalog({
+    serviceType: 'insurance',
+  });
+  const liveInsuranceProviders = catalogProviders.filter(
+    (provider) => provider.is_active && provider.is_enabled_for_app && provider.supports_query && provider.supports_pay
+  );
+  const availabilityAlert = liveInsuranceProviders.length
+    ? null
+    : {
+        variant: 'warning' as const,
+        message:
+          'The active ExpressPay catalog does not currently expose any live insurance providers for this merchant profile. Keep this workspace for historical premium-payment visibility only, and do not market insurance in the user app until insurers appear in the synced catalog.',
+      };
 
-  // Fetch metrics from database
-  const { metrics, loading, error } = useInsuranceService();
-
-  // Format helpers
   const formatNumber = (num: number) => num.toLocaleString();
-  const formatCurrency = (num: number) => `₦${num.toLocaleString()}`;
+  const formatCurrency = (num: number) => `GH₵${num.toLocaleString()}`;
+
+  const handleSyncCatalog = async () => {
+    try {
+      const result = await syncCatalog();
+      await refetch();
+      setSyncFeedback({
+        variant: 'success',
+        message: `ExpressPay insurance catalog synced successfully. Imported ${result.data.imported_count} provider records.`,
+      });
+    } catch (syncError) {
+      setSyncFeedback({
+        variant: 'danger',
+        message: syncError instanceof Error ? syncError.message : 'Failed to sync ExpressPay insurance catalog.',
+      });
+    }
+  };
 
   return (
     <>
       <PageTitle title="Insurance Services" subName="Management Dashboard" />
 
-      {/* Top navigation tabs */}
       <Card className="mb-3">
         <Card.Body className="p-0">
           <Nav
             variant="tabs"
             className="nav-bordered"
             activeKey={activeTab}
-            onSelect={(k) => setActiveTab(k as any)}
+            onSelect={(k) => setActiveTab(k as 'overview' | 'providers' | 'policies' | 'claims')}
           >
             <Nav.Item>
               <Nav.Link eventKey="overview">
@@ -53,21 +76,30 @@ const InsuranceServicesPage = () => {
             </Nav.Item>
             <Nav.Item>
               <Nav.Link eventKey="policies">
-                <IconifyIcon icon="ri:file-shield-line" className="me-1" /> Policies
+                <IconifyIcon icon="ri:file-shield-line" className="me-1" /> Policy Payments
               </Nav.Link>
             </Nav.Item>
             <Nav.Item>
               <Nav.Link eventKey="claims">
-                <IconifyIcon icon="ri:hand-coin-line" className="me-1" /> Claims
+                <IconifyIcon icon="ri:hand-coin-line" className="me-1" /> Claims Readiness
               </Nav.Link>
             </Nav.Item>
           </Nav>
         </Card.Body>
       </Card>
 
+      <ExpressPayCatalogSyncNotice
+        providers={catalogProviders}
+        isSyncing={isSyncing}
+        onSync={handleSyncCatalog}
+        feedback={syncFeedback}
+        availabilityAlert={availabilityAlert}
+        description="Insurance providers in this workspace are sourced from the cached ExpressPay Bill Payments catalog. Manual provider creation is disabled so policy validation and payment flows stay aligned with the insurers ExpressPay actually supports."
+        secondaryNote="Use catalog sync after ExpressPay updates the insurers or policy-payment services exposed to your merchant profile."
+      />
+
       {activeTab === 'overview' && (
         <>
-          {/* Key metrics */}
           {loading ? (
             <div className="text-center py-4"><Spinner animation="border" /></div>
           ) : error ? (
@@ -113,7 +145,6 @@ const InsuranceServicesPage = () => {
             </Row>
           )}
 
-          {/* Charts and analytics */}
           <Row>
             <Col xl={8}>
               <ClaimsAnalyticsChart />
@@ -123,12 +154,11 @@ const InsuranceServicesPage = () => {
             </Col>
           </Row>
 
-          {/* Recent policies and claims */}
           <Row>
             <Col xl={6}>
               <Card>
                 <Card.Header className="d-flex align-items-center">
-                  <Card.Title className="mb-0">Recent Policies</Card.Title>
+                  <Card.Title className="mb-0">Recent Policy Payments</Card.Title>
                   <Button
                     variant="link"
                     className="p-0 ms-auto"
@@ -145,7 +175,7 @@ const InsuranceServicesPage = () => {
             <Col xl={6}>
               <Card>
                 <Card.Header className="d-flex align-items-center">
-                  <Card.Title className="mb-0">Recent Claims</Card.Title>
+                  <Card.Title className="mb-0">Claims Readiness</Card.Title>
                   <Button
                     variant="link"
                     className="p-0 ms-auto"
@@ -167,18 +197,6 @@ const InsuranceServicesPage = () => {
         <Card>
           <Card.Header className="d-flex align-items-center">
             <Card.Title className="mb-0">Insurance Providers</Card.Title>
-            <Button
-              variant="primary"
-              size="sm"
-              className="ms-auto"
-              onClick={() => {
-                setEditProvider(null);
-                setShowAddProviderModal(true);
-              }}
-            >
-              <IconifyIcon icon="ri:add-line" className="me-1" />
-              Add Provider
-            </Button>
           </Card.Header>
           <Card.Body>
             <InsuranceProviderTable />
@@ -189,7 +207,7 @@ const InsuranceServicesPage = () => {
       {activeTab === 'policies' && (
         <Card>
           <Card.Header>
-            <Card.Title className="mb-0">Policy Management</Card.Title>
+            <Card.Title className="mb-0">Policy Payment Records</Card.Title>
           </Card.Header>
           <Card.Body>
             <PolicyManagementTable showFilters={true} />
@@ -200,35 +218,15 @@ const InsuranceServicesPage = () => {
       {activeTab === 'claims' && (
         <Card>
           <Card.Header>
-            <Card.Title className="mb-0">Claims Processing</Card.Title>
+            <Card.Title className="mb-0">Claims Readiness & Follow-up</Card.Title>
           </Card.Header>
           <Card.Body>
             <ClaimsManagementTable showFilters={true} />
           </Card.Body>
         </Card>
       )}
-
-      {/* Add/Edit Provider Modal */}
-      <AddProviderModal
-        show={showAddProviderModal}
-        onHide={() => setShowAddProviderModal(false)}
-        onSave={handleSaveProvider}
-        editProvider={editProvider}
-      />
     </>
   );
-
-  // Handler for saving provider data
-  function handleSaveProvider(providerData: any) {
-    // In a real application, this would call an API to save the provider
-    console.log('Saving insurance provider:', providerData);
-
-    // For now, just show a success message
-    alert(editProvider
-      ? `Provider ${providerData.name} updated successfully!`
-      : `Provider ${providerData.name} added successfully!`
-    );
-  }
 };
 
 export default InsuranceServicesPage;

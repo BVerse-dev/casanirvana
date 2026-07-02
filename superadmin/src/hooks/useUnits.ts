@@ -1,188 +1,155 @@
 "use client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useSession } from "next-auth/react";
-import { supabase } from '../lib/supabase';
+
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
 import type { Database } from "../lib/database.types";
-import { getSampleUnitsData } from "../assets/data/units";
+import { useAdminApi } from "./useAdminApi";
 
 type Unit = Database["public"]["Tables"]["units"]["Row"];
 type UnitInsert = Database["public"]["Tables"]["units"]["Insert"];
 type UnitUpdate = Database["public"]["Tables"]["units"]["Update"];
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-
-const useAdminFetch = () => {
-  const { data: session } = useSession();
-  const token = session?.accessToken as string | undefined;
-
-  const fetchAdmin = async (path: string, options: RequestInit = {}) => {
-    if (!token) {
-      throw new Error('Missing admin session. Please sign in again.');
-    }
-
-    const response = await fetch(`${API_BASE_URL}${path}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-        ...options.headers,
-      },
-    });
-
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      throw new Error(payload.error || payload.message || 'Request failed');
-    }
-    return payload;
-  };
-
-  return { fetchAdmin };
+type UnitCommunity = {
+  id: string;
+  name: string | null;
+  address: string | null;
+  city: string | null;
+  state: string | null;
 };
 
-// List all units with pagination
+type UnitOwnerProfile = {
+  first_name: string | null;
+  last_name: string | null;
+  full_name?: string | null;
+  email: string | null;
+  phone?: string | null;
+};
+
+export type UnitRecord = Unit & {
+  communities?: UnitCommunity | null;
+  profiles?: UnitOwnerProfile | null;
+};
+
+type UnitsPayload = {
+  data: UnitRecord[];
+  count: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+};
+
+const buildUnitsQuery = ({
+  page,
+  pageSize,
+  communityId,
+  search,
+  status,
+  type,
+}: {
+  page?: number;
+  pageSize?: number;
+  communityId?: string;
+  search?: string;
+  status?: string;
+  type?: string;
+}) => {
+  const params = new URLSearchParams();
+
+  if (page) params.set("page", String(page));
+  if (pageSize) params.set("limit", String(pageSize));
+  if (communityId?.trim()) params.set("community_id", communityId.trim());
+  if (search?.trim()) params.set("search", search.trim());
+  if (status?.trim()) params.set("status", status.trim());
+  if (type?.trim()) params.set("type", type.trim());
+
+  const query = params.toString();
+  return query ? `?${query}` : "";
+};
+
 export const useListUnits = (
   options: {
     page?: number;
     pageSize?: number;
     communityId?: string;
+    societyId?: string;
+    search?: string;
+    status?: string;
+    type?: string;
   } = {}
 ) => {
-  const { page = 1, pageSize = 9, communityId } = options;
+  const {
+    page = 1,
+    pageSize = 50,
+    communityId,
+    societyId,
+    search,
+    status,
+    type,
+  } = options;
+  const { fetchAdmin, hasToken } = useAdminApi();
+  const resolvedCommunityId = communityId || societyId;
+
   return useQuery({
-    queryKey: ["units", { page, pageSize, communityId }],
+    queryKey: ["units", { page, pageSize, communityId: resolvedCommunityId, search, status, type }],
     queryFn: async () => {
-      const from = (page - 1) * pageSize;
-      const to = from + pageSize - 1;
-      
-      // Use the specific foreign key constraint name to avoid ambiguity
-      let query = supabase
-        .from("units")
-        .select(
-          `*,
-          communities!units_community_id_fkey(name)
-        `, { count: "exact" })
-        .order("created_at", { ascending: false })
-        .range(from, to);
-        
-      if (communityId) {
-        query = query.eq("community_id", communityId);
-      }
-      
-      const { data, error, count } = await query;
-      if (error) {
-        console.error("Database query failed:", error.message);
-        throw error;
-      }
-      
-      // Manual join with profiles since owner_id references auth.users
-      const dataWithProfiles = await Promise.all(
-        (data || []).map(async (unit) => {
-          let profile = null;
-          
-          if (unit.owner_id) {
-            const { data: profileData } = await supabase
-              .from("profiles")
-              .select("first_name, last_name, email")
-              .eq("id", unit.owner_id)
-              .single();
-            
-            if (profileData) {
-              profile = profileData;
-            }
-          }
-          
-          return {
-            ...unit,
-            profiles: profile
-          };
-        })
+      const response = await fetchAdmin<UnitsPayload | { data: UnitsPayload }>(
+        `/admin/units${buildUnitsQuery({
+          page,
+          pageSize,
+          communityId: resolvedCommunityId,
+          search,
+          status,
+          type,
+        })}`
       );
-      
-      return {
-        data: dataWithProfiles || [],
-        count: count || 0,
-        page,
-        pageSize,
-        totalPages: count ? Math.ceil(count / pageSize) : 1
-      };
+
+      return "data" in response && Array.isArray(response.data)
+        ? (response as UnitsPayload)
+        : (response as { data: UnitsPayload }).data;
     },
+    enabled: hasToken,
   });
 };
 
-// Get single unit
 export const useGetUnit = (id: string) => {
+  const { fetchAdmin, hasToken } = useAdminApi();
+
   return useQuery({
     queryKey: ["units", id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("units")
-        .select(
-          `
-          *,
-          communities!units_community_id_fkey(name, address)
-        `,
-        )
-        .eq("id", id)
-        .single();
-
-      if (error) {
-        console.error("Database query failed:", error.message);
-        throw error;
-      }
-
-      // Manual join with profiles
-      let profile = null;
-      if (data?.owner_id) {
-        const { data: profileData } = await supabase
-          .from("profiles")
-          .select("first_name, last_name, email, phone")
-          .eq("id", data.owner_id)
-          .single();
-        
-        if (profileData) {
-          profile = profileData;
-        }
-      }
-
-      return {
-        ...data,
-        profiles: profile
-      };
+      const response = await fetchAdmin<{ data: UnitRecord }>(`/admin/units/${id}`);
+      return response.data;
     },
-    enabled: !!id,
+    enabled: hasToken && !!id,
   });
 };
 
-// Create unit
 export const useCreateUnit = () => {
   const queryClient = useQueryClient();
-  const { fetchAdmin } = useAdminFetch();
+  const { fetchAdmin } = useAdminApi();
 
   return useMutation({
-    mutationFn: async (newUnit: UnitInsert) => {
-      return fetchAdmin('/admin/units', {
-        method: 'POST',
+    mutationFn: async (newUnit: UnitInsert) =>
+      fetchAdmin("/admin/units", {
+        method: "POST",
         body: JSON.stringify(newUnit),
-      });
-    },
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["units"] });
     },
   });
 };
 
-// Update unit
 export const useUpdateUnit = (id: string) => {
   const queryClient = useQueryClient();
-  const { fetchAdmin } = useAdminFetch();
+  const { fetchAdmin } = useAdminApi();
 
   return useMutation({
-    mutationFn: async (updates: UnitUpdate) => {
-      return fetchAdmin(`/admin/units/${id}`, {
-        method: 'PUT',
+    mutationFn: async (updates: UnitUpdate) =>
+      fetchAdmin(`/admin/units/${id}`, {
+        method: "PUT",
         body: JSON.stringify(updates),
-      });
-    },
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["units"] });
       queryClient.invalidateQueries({ queryKey: ["units", id] });
@@ -190,14 +157,13 @@ export const useUpdateUnit = (id: string) => {
   });
 };
 
-// Delete unit
 export const useDeleteUnit = () => {
   const queryClient = useQueryClient();
-  const { fetchAdmin } = useAdminFetch();
+  const { fetchAdmin } = useAdminApi();
 
   return useMutation({
     mutationFn: async (id: string) => {
-      await fetchAdmin(`/admin/units/${id}`, { method: 'DELETE' });
+      await fetchAdmin(`/admin/units/${id}`, { method: "DELETE" });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["units"] });

@@ -206,6 +206,33 @@
     "block": "Block",
     "typeHere": "Type your text here...."
   },
+  "residentsTab": {
+    "roleAdmin": "Admin",
+    "roleCommittee": "Committee",
+    "roleMember": "Member",
+    "block": "Block",
+    "unassigned": "Unassigned",
+    "directoryUnavailableTitle": "Resident Directory Unavailable",
+    "directoryUnavailableMessage": "Resident directory access is disabled for this community.",
+    "goBack": "Go Back",
+    "loadingResidents": "Loading residents...",
+    "loadError": "Unable to load residents",
+    "emptyState": "No residents found for this community"
+  },
+  "searchScreen": {
+    "search": "Search",
+    "searchResultsPrefix": "Search Results",
+    "noResultsPrefix": "No results found for",
+    "recentSearch": "Recent Searches",
+    "clearAll": "Clear",
+    "noRecentLookups": "No recent resident lookups yet.",
+    "recentLookupHint": "Search by resident name, unit, phone number, or email.",
+    "openedPrefix": "Opened",
+    "lastMessagePrefix": "Last:",
+    "directoryUnavailableTitle": "Resident Directory Unavailable",
+    "directoryUnavailableMessage": "Resident directory access is disabled for this community.",
+    "loadError": "Unable to load residents"
+  },
   "settingScreen": {
     "settings": "Settings",
     "onDuty": "On Duty",

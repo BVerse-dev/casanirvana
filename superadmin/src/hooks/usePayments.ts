@@ -9,6 +9,51 @@ type Payment = Database["public"]["Tables"]["payments"]["Row"];
 type PaymentInsert = Database["public"]["Tables"]["payments"]["Insert"];
 type PaymentUpdate = Database["public"]["Tables"]["payments"]["Update"];
 
+export type AdminPaymentProfile = {
+  id: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  full_name: string | null;
+  email: string | null;
+  avatar_url: string | null;
+  phone: string | null;
+  role?: string | null;
+};
+
+export type AdminPaymentCommunity = {
+  id: string;
+  name: string | null;
+  address: string | null;
+};
+
+export type AdminPaymentUnit = {
+  id: string;
+  unit_number: string | null;
+  number?: string | null;
+  block: string | null;
+  floor_area: number | null;
+  bedrooms: number | null;
+  bathrooms: number | null;
+  society_id?: string | null;
+  community_id?: string | null;
+  owner_id: string | null;
+  tenant_id: string | null;
+};
+
+export type AdminPaymentRecord = Payment & {
+  amount_formatted?: string | null;
+  currency_symbol?: string | null;
+  unit?: AdminPaymentUnit | null;
+  payer_profile?: AdminPaymentProfile | null;
+  user_profile?: AdminPaymentProfile | null;
+  society?: AdminPaymentCommunity | null;
+  community?: AdminPaymentCommunity | null;
+};
+
+export type AdminPaymentObligationRecord = Record<string, any> & {
+  unit?: AdminPaymentUnit | null;
+};
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 const useAdminFetch = () => {
@@ -39,7 +84,7 @@ const useAdminFetch = () => {
   return { fetchAdmin };
 };
 
-const normalizePaymentRecord = (payment: Record<string, any>) => {
+const normalizePaymentRecord = (payment: Record<string, any>): AdminPaymentRecord => {
   const unit = payment?.unit
     ? {
         ...payment.unit,
@@ -55,7 +100,7 @@ const normalizePaymentRecord = (payment: Record<string, any>) => {
       }
     : payment?.payer_profile || null;
 
-  const society = payment?.community
+  const community = payment?.community
     ? {
         ...payment.community,
         address: payment.community?.address || null,
@@ -66,11 +111,15 @@ const normalizePaymentRecord = (payment: Record<string, any>) => {
     ...payment,
     unit,
     payer_profile,
-    society,
-  };
+    user_profile: payment?.user_profile || payer_profile,
+    society: community,
+    community,
+  } as AdminPaymentRecord;
 };
 
-const normalizePaymentObligationRecord = (obligation: Record<string, any>) => {
+const normalizePaymentObligationRecord = (
+  obligation: Record<string, any>
+): AdminPaymentObligationRecord => {
   const unit = obligation?.unit
     ? {
         ...obligation.unit,
@@ -90,9 +139,9 @@ const normalizePaymentObligationRecord = (obligation: Record<string, any>) => {
 export const useListPayments = (unitId?: string, status?: string) => {
   const { fetchAdmin } = useAdminFetch();
 
-  return useQuery({
+  return useQuery<AdminPaymentRecord[]>({
     queryKey: ["payments", unitId, status],
-    queryFn: async () => {
+    queryFn: async (): Promise<AdminPaymentRecord[]> => {
       const params = new URLSearchParams();
       if (unitId) params.set("unit_id", unitId);
       if (status) params.set("status", status);
@@ -111,9 +160,9 @@ export const useListPayments = (unitId?: string, status?: string) => {
 export const useListPaymentObligations = (unitId?: string, status?: string) => {
   const { fetchAdmin } = useAdminFetch();
 
-  return useQuery({
+  return useQuery<AdminPaymentObligationRecord[]>({
     queryKey: ["payment-obligations", unitId, status],
-    queryFn: async () => {
+    queryFn: async (): Promise<AdminPaymentObligationRecord[]> => {
       const params = new URLSearchParams();
       if (unitId) params.set("unit_id", unitId);
       if (status) params.set("status", status);
@@ -151,9 +200,9 @@ export const useListPaymentStatements = (unitId?: string) => {
 export const useGetPayment = (id: string) => {
   const { fetchAdmin } = useAdminFetch();
 
-  return useQuery({
+  return useQuery<AdminPaymentRecord>({
     queryKey: ["payments", id],
-    queryFn: async () => {
+    queryFn: async (): Promise<AdminPaymentRecord> => {
       const payload = await fetchAdmin(`/admin/payments/transactions/${id}`);
       return normalizePaymentRecord(payload?.data || {});
     },

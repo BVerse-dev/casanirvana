@@ -27,7 +27,8 @@ const DataScreen = ({ navigation }) => {
   const [selectedProvider, setSelectedProvider] = useState(null);
   const [providers, setProviders] = useState([]);
   const [providersLoading, setProvidersLoading] = useState(true);
-  const [providerLoadError, setProviderLoadError] = useState(null);
+  const [providerCatalogNotice, setProviderCatalogNotice] = useState(null);
+  const [usingFallbackProviders, setUsingFallbackProviders] = useState(false);
 
   // Safe translation function that ALWAYS returns a string
   function tr(key, fallback = "Missing Translation") {
@@ -52,10 +53,11 @@ const DataScreen = ({ navigation }) => {
 
     const loadProviders = async () => {
       setProvidersLoading(true);
-      const { data, error } = await getActiveServiceProviders({ serviceType: "data" });
+      const { data, warning, usedFallback } = await getActiveServiceProviders({ serviceType: "data" });
       if (!isMounted) return;
       setProviders(data || []);
-      setProviderLoadError(error?.message || null);
+      setProviderCatalogNotice(warning || null);
+      setUsingFallbackProviders(Boolean(usedFallback));
       setProvidersLoading(false);
     };
 
@@ -68,12 +70,14 @@ const DataScreen = ({ navigation }) => {
 
   const handleContinue = () => {
     if (selectedProvider) {
-        navigation.navigate("selectDataPackageScreen", {
+        navigation.navigate("dataAccountDetailsScreen", {
         provider: selectedProvider.providerCode,
+        externalServiceCode: selectedProvider.externalServiceCode || selectedProvider.providerCode,
         providerId: selectedProvider.providerId || null,
         providerName: selectedProvider.name,
         providerColor: selectedProvider.color,
-        providerLogo: selectedProvider.logo
+        providerLogo: selectedProvider.logo,
+        supportsQuery: selectedProvider.supportsQuery,
       });
     }
   };
@@ -241,7 +245,7 @@ const DataScreen = ({ navigation }) => {
             </View>
           ) : null}
 
-          {providerLoadError ? (
+          {providerCatalogNotice ? (
             <View
               style={{
                 backgroundColor: "#FFF3E0",
@@ -251,7 +255,9 @@ const DataScreen = ({ navigation }) => {
               }}
             >
               <Text style={{ ...Fonts.Medium14black }}>
-                {tr("Provider catalog is currently using fallback data.")}
+                {usingFallbackProviders
+                  ? tr("Provider catalog is currently using fallback data.")
+                  : providerCatalogNotice}
               </Text>
             </View>
           ) : null}

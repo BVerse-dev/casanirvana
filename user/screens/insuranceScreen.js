@@ -3,11 +3,9 @@ import {
   Text,
   View,
   TouchableOpacity,
-  StatusBar,
   Image,
   ScrollView,
   SafeAreaView,
-  StyleSheet,
   ActivityIndicator,
 } from "react-native";
 import { Colors, Fonts, Default } from "../constants/styles";
@@ -22,7 +20,8 @@ const InsuranceScreen = ({ navigation }) => {
   const isRtl = i18n.dir() === "rtl";
   const [insuranceProviders, setInsuranceProviders] = useState([]);
   const [loadingProviders, setLoadingProviders] = useState(true);
-  const [loadError, setLoadError] = useState(null);
+  const [catalogNotice, setCatalogNotice] = useState(null);
+  const [usingFallbackProviders, setUsingFallbackProviders] = useState(false);
 
   // Safe translation function that ALWAYS returns a string
   function tr(key, fallback = "Missing Translation") {
@@ -36,10 +35,14 @@ const InsuranceScreen = ({ navigation }) => {
 
     const loadProviders = async () => {
       setLoadingProviders(true);
-      const { data, error } = await getActiveServiceProviders({ serviceType: "insurance" });
+      const { data, warning, usedFallback } = await getActiveServiceProviders({
+        serviceType: "insurance",
+        allowFallback: false,
+      });
       if (!isMounted) return;
       setInsuranceProviders(data || []);
-      setLoadError(error?.message || null);
+      setCatalogNotice(warning || null);
+      setUsingFallbackProviders(Boolean(usedFallback));
       setLoadingProviders(false);
     };
 
@@ -53,6 +56,7 @@ const InsuranceScreen = ({ navigation }) => {
   const handleProviderSelect = (item) => {
     navigation.navigate("policyDetailsScreen", {
       provider: item.providerCode,
+      externalServiceCode: item.externalServiceCode || item.providerCode,
       providerId: item.providerId || null,
       providerName: item.name,
       providerLogo: item.logo,
@@ -157,18 +161,19 @@ const InsuranceScreen = ({ navigation }) => {
           {!loadingProviders && !insuranceProviders.length ? (
             <View
               style={{
-                backgroundColor: Colors.lightLinkWater,
+                backgroundColor: "#FFF3E0",
                 borderRadius: 10,
                 padding: Default.fixPadding * 1.5,
+                marginBottom: Default.fixPadding,
               }}
             >
               <Text style={{ ...Fonts.Medium14black }}>
-                {tr("No active insurance providers are available right now.")}
+                {tr("Insurance services are not currently available because the live ExpressPay catalog does not expose any supported insurance providers for this merchant profile.")}
               </Text>
             </View>
           ) : null}
 
-          {loadError ? (
+          {catalogNotice ? (
             <View
               style={{
                 backgroundColor: "#FFF3E0",
@@ -178,7 +183,9 @@ const InsuranceScreen = ({ navigation }) => {
               }}
             >
               <Text style={{ ...Fonts.Medium14black }}>
-                {tr("Provider catalog is currently using fallback data.")}
+                {usingFallbackProviders
+                  ? tr("Provider catalog is currently using fallback data.")
+                  : catalogNotice}
               </Text>
             </View>
           ) : null}

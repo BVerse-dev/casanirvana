@@ -170,8 +170,8 @@ const AddComplianceRuleModal: React.FC<AddComplianceRuleModalProps> = ({
         ...ruleData,
         threshold_amount: ruleData.threshold_amount ? parseFloat(ruleData.threshold_amount as unknown as string) : null,
         threshold_count: ruleData.threshold_count ? parseInt(ruleData.threshold_count as unknown as string, 10) : null,
-        countries: ruleData.countries ? ruleData.countries.split(',').map(c => c.trim()) : [],
-        notification_emails: ruleData.notification_emails ? ruleData.notification_emails.split(',').map(e => e.trim()) : [],
+        countries: ruleData.countries ? ruleData.countries.split(',').map((country: string) => country.trim()) : [],
+        notification_emails: ruleData.notification_emails ? ruleData.notification_emails.split(',').map((email: string) => email.trim()) : [],
         conditions: parsedConditions
       };
       

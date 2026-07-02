@@ -15,7 +15,8 @@ const GridViewPage = () => {
   const [showFilters, setShowFilters] = useState(false)
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
   
-  const { data: residents = [], isLoading, error } = useListResidents()
+  const { data: residentResponse, isLoading, error } = useListResidents({ pageSize: 200 })
+  const residents = residentResponse?.data || []
 
   // Filter residents based on search term and status
   const filteredResidents = residents.filter(resident => {
@@ -69,8 +70,16 @@ const GridViewPage = () => {
                 <Col lg={6}>
                   <div className="d-flex align-items-center gap-3">
                     <p className="mb-0 text-muted">
-                      Showing {startIndex + 1}-{Math.min(endIndex, filteredResidents.length)} of{' '}
-                      <span className="text-dark fw-semibold">{filteredResidents.length}</span> Residents
+                      {filteredResidents.length > 0 ? (
+                        <>
+                          Showing {startIndex + 1}-{Math.min(endIndex, filteredResidents.length)} of{' '}
+                          <span className="text-dark fw-semibold">{filteredResidents.length}</span> Residents
+                        </>
+                      ) : (
+                        <>
+                          Showing <span className="text-dark fw-semibold">0</span> Residents
+                        </>
+                      )}
                       {searchTerm && (
                         <span className="text-muted ms-2">
                           (filtered from {residents.length} total)

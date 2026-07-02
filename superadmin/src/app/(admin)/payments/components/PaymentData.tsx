@@ -1,7 +1,6 @@
 "use client";
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
-import { useListPayments } from "@/hooks/usePayments";
-import { Database } from "@/lib/database.types";
+import { type AdminPaymentRecord, useListPayments } from "@/hooks/usePayments";
 import { mapAvatarUrl } from "@/utils/avatarMapper";
 import Image from "next/image";
 import Link from "next/link";
@@ -23,15 +22,10 @@ import {
   Row,
 } from "react-bootstrap";
 
-type PaymentWithProfiles = Database["public"]["Tables"]["payments"]["Row"] & {
-  user_profile?: Database["public"]["Tables"]["profiles"]["Row"];
-  society?: Database["public"]["Tables"]["societies"]["Row"];
-};
-
 const PaymentData = () => {
   const { data: payments = [], isLoading } = useListPayments();
 
-  const formatAmount = (payment: Record<string, any>) =>
+  const formatAmount = (payment: AdminPaymentRecord) =>
     payment.amount_formatted || `${payment.currency_symbol || "GH₵"} ${Number(payment.amount || 0).toFixed(2)}`;
   
   // Pagination state
@@ -210,7 +204,7 @@ const PaymentData = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {paginatedPayments.map((payment, idx) => (
+                    {paginatedPayments.map((payment: AdminPaymentRecord, idx: number) => (
                       <tr key={idx}>
                         <td>
                           <div className="form-check">

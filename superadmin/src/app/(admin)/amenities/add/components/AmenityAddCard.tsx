@@ -1,10 +1,6 @@
 import IconifyIcon from '@/components/wrappers/IconifyIcon'
-import Image from 'next/image'
 import Link from 'next/link'
 import { Button, Card, CardBody, CardFooter, Col, Row } from 'react-bootstrap'
-
-// Using a placeholder image for amenity
-const amenityPlaceholder = '/images/amenity-placeholder.jpg'
 
 const AmenityAddCard = () => {
   return (
@@ -16,25 +12,25 @@ const AmenityAddCard = () => {
               <IconifyIcon icon="ri:building-line" className="fs-28 text-primary" />
             </div>
             <div className="d-block">
-              <Link href="" className="text-dark fw-medium fs-16">
-                New Amenity
+              <Link href="/amenities/list" className="text-dark fw-medium fs-16">
+                Amenity Draft
               </Link>
-              <p className="mb-0">amenities@casanirvana.com</p>
-              <p className="mb-0 text-primary"># NEW</p>
+              <p className="mb-0">Scoped to the community you select in the form.</p>
+              <p className="mb-0 text-primary">Launch-safe creation flow</p>
             </div>
           </div>
           <p className="mt-3 d-flex align-items-center gap-2 mb-2">
             <IconifyIcon icon="ri:community-line" className="fs-18 text-primary" />
-            Community Facility
+            Community amenity record
           </p>
           <p className="d-flex align-items-center gap-2 mt-2">
             <IconifyIcon icon="ri:map-pin-line" className="fs-18 text-primary" />
-            Casa Nirvana Community
+            Location and booking rules are saved with the record
           </p>
           <h5 className="my-3">Amenity Features :</h5>
           <ul className="list-inline d-flex gap-1 mb-0 align-items-center">
             <li className="list-inline-item">
-              <Link href="" className="btn btn-soft-primary avatar-sm d-flex align-items-center justify-content-center">
+              <Link href="/amenities/bookings" className="btn btn-soft-primary avatar-sm d-flex align-items-center justify-content-center">
                 <span>
                   <IconifyIcon width={20} height={20} icon="ri:calendar-line" />
                 </span>
@@ -57,7 +53,7 @@ const AmenityAddCard = () => {
             <li className="list-inline-item">
               <Button variant="soft-warning" className="avatar-sm d-flex align-items-center justify-content-center">
                 <span>
-                  <IconifyIcon width={20} height={20} icon="ri:money-rupee-circle-line" />
+                  <IconifyIcon width={20} height={20} icon="ri:wallet-3-line" />
                 </span>
               </Button>
             </li>
@@ -74,14 +70,14 @@ const AmenityAddCard = () => {
           <Row className="g-0 text-center">
             <Col sm={6} className="border-end border-light">
               <div>
-                <h5 className="mb-1">Booking</h5>
-                <p className="text-muted mb-0">Management</p>
+                <h5 className="mb-1">Bookings</h5>
+                <p className="text-muted mb-0">Queue-ready after create</p>
               </div>
             </Col>
             <Col sm={6}>
               <div>
                 <h5 className="mb-1">Pricing</h5>
-                <p className="text-muted mb-0">Configuration</p>
+                <p className="text-muted mb-0">Rules saved on submit</p>
               </div>
             </Col>
           </Row>

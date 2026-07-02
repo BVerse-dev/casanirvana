@@ -1,7 +1,10 @@
 "use client";
+
 import moneyImg from "@/assets/images/money.png";
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
 import { currency } from "@/context/constants";
+import { useAdminAnalyticsDashboard } from "@/hooks/useAdminAnalyticsDashboard";
+import { usePaymentAnalyticsSummary } from "@/hooks/usePaymentAnalyticsSummary";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -14,58 +17,48 @@ import {
   ProgressBar,
   Row,
 } from "react-bootstrap";
-import { useListPayments } from "@/hooks/usePayments";
-import { useListUnits } from "@/hooks/useUnits";
 
 const BalanceCard = () => {
-  const { data: payments = [] } = useListPayments();
-  const { data: unitsResponse } = useListUnits();
-  const units = unitsResponse?.data || [];
-  const totalUnitsCount = unitsResponse?.count || units.length; // Use the total count from pagination
+  const { currentMonthCollected, currentMonthDueTotal, currentMonthOutstanding, error } = usePaymentAnalyticsSummary();
+  const { data: dashboard } = useAdminAnalyticsDashboard();
 
-  // Calculate financial metrics from payments
-  const currentMonth = new Date().getMonth();
-  const currentYear = new Date().getFullYear();
-  
-  const currentMonthPayments = payments.filter((payment: any) => {
-    if (!payment.payment_date && !payment.due_date) return false;
-    const paymentDate = new Date(payment.payment_date || payment.due_date);
-    return paymentDate.getMonth() === currentMonth && 
-           paymentDate.getFullYear() === currentYear &&
-           payment.status === 'completed';
-  });
+  const totalUnitsCount = dashboard?.summary.totalUnits || 0;
+  const occupancyProgress = dashboard?.summary.occupiedRate || 0;
+  const occupiedUnits = Math.round((occupancyProgress / 100) * totalUnitsCount);
 
-  const totalCollections = currentMonthPayments.reduce((sum: number, payment: any) => sum + Number(payment.amount || 0), 0);
-  
-  const pendingPayments = payments
-    .filter((payment: any) => payment.status === 'pending')
-    .reduce((sum: number, payment: any) => sum + Number(payment.amount || 0), 0);
+  const collectionProgress = currentMonthDueTotal > 0 ? (currentMonthCollected / currentMonthDueTotal) * 100 : 0;
 
-  // Mock expenses for now (can be enhanced with real financial records)
-  const totalExpenses = totalCollections * 0.6; // Assume 60% of collections are expenses
-  const totalBalance = totalCollections - totalExpenses;
-
-  // Calculate dynamic target based on real data (use a reasonable target like 20% above current count)
-  const unitsTarget = Math.max(totalUnitsCount * 1.2, 100); // At least 100 units target
-  const collectionsTarget = Math.max(totalCollections * 1.5, 50000); // At least 50K target
-
-  // Calculate property data from real data
   const propertyData = [
     {
       title: "Units",
       icon: "solar:home-bold-duotone",
       amount: totalUnitsCount.toString(),
-      progress: Math.min((totalUnitsCount / unitsTarget) * 100, 100),
+      progress: occupancyProgress,
       variant: "primary",
+      caption: `${occupiedUnits} occupied`,
     },
     {
       title: "Collections",
       icon: "solar:money-bag-bold-duotone",
-      amount: `${currency}${((totalCollections || 0) / 1000).toFixed(1)}K`,
-      progress: Math.min(((totalCollections || 0) / collectionsTarget) * 100, 100),
+      amount: `${currency}${((currentMonthCollected || 0) / 1000).toFixed(1)}K`,
+      progress: collectionProgress,
       variant: "success",
+      caption:
+        currentMonthDueTotal > 0
+          ? `${Math.round(collectionProgress)}% of dues`
+          : "No dues this month",
     },
   ];
+
+  if (error) {
+    return (
+      <Col xl={4}>
+        <Card>
+          <CardBody className="text-center text-muted py-5">Collection balance is unavailable right now.</CardBody>
+        </Card>
+      </Col>
+    );
+  }
 
   return (
     <Col xl={4}>
@@ -73,58 +66,53 @@ const BalanceCard = () => {
         <CardBody>
           <Row className="align-items-center justify-content-between">
             <Col xl={7} lg={6} md={6}>
-              <h3 className="text-white fw-bold">{currency}{totalBalance?.toLocaleString() || '0'}</h3>
-              <p className="text-white-50">Society Balance</p>
+              <h3 className="text-white fw-bold">{currency}{currentMonthCollected.toLocaleString()}</h3>
+              <p className="text-white-50">Current Month Collections</p>
               <Row className="mt-4">
                 <Col lg={12} className="mb-2" md={6} xs={6}>
                   <div className="d-flex gap-2">
                     <div className="avatar-sm flex-shrink-0">
                       <span className="avatar-title bg-success bg-opacity-50 text-white rounded">
-                        <IconifyIcon
-                          icon="ri:arrow-down-line"
-                          className=" fs-4"
-                        />
+                        <IconifyIcon icon="ri:arrow-down-line" className=" fs-4" />
                       </span>
                     </div>
                     <div className="d-block">
                       <h5 className="text-white fw-medium mb-0">
-                        {currency}{totalCollections?.toLocaleString() || '0'}
+                        {currency}{currentMonthCollected.toLocaleString()}
                       </h5>
-                      <p className="mb-0 text-white-50">Collections</p>
+                      <p className="mb-0 text-white-50">Collected</p>
                     </div>
                   </div>
                 </Col>
                 <Col lg={6} md={6} xs={6}>
                   <div className="d-flex gap-2">
                     <div className="avatar-sm flex-shrink-0">
-                      <span className="avatar-title bg-danger bg-opacity-50 text-white rounded">
-                        <IconifyIcon
-                          icon="ri:arrow-up-line"
-                          className=" fs-4"
-                        />
+                      <span className="avatar-title bg-warning bg-opacity-50 text-white rounded">
+                        <IconifyIcon icon="ri:time-line" className=" fs-4" />
                       </span>
                     </div>
                     <div className="d-block">
                       <h5 className="text-white fw-medium mb-0">
-                        {currency}{totalExpenses?.toLocaleString() || '0'}
+                        {currency}{currentMonthOutstanding.toLocaleString()}
                       </h5>
-                      <p className="mb-0 text-white-50">Expenses</p>
+                      <p className="mb-0 text-white-50">Outstanding</p>
                     </div>
                   </div>
                 </Col>
               </Row>
               <Row className="mt-3 g-2">
                 <Col xl={6} lg={6} md={6}>
-                  <Button variant="warning" size="sm" className="w-100">
-                    Send
+                  <Button variant="warning" size="sm" className="w-100" disabled>
+                    Ledger Action Pending
                   </Button>
                 </Col>
                 <Col xl={6} lg={6} md={6}>
                   <Button
                     size="sm"
                     className="bg-light bg-opacity-25 text-white w-100"
+                    disabled
                   >
-                    Receive
+                    Runtime QA Later
                   </Button>
                 </Col>
               </Row>
@@ -153,7 +141,7 @@ const BalanceCard = () => {
                     />
                   </div>
                   <h4 className="text-dark fw-medium">{item.amount}</h4>
-                  <p className="text-muted">{item.progress.toFixed(0)}% Target</p>
+                  <p className="text-muted">{item.caption}</p>
                   <ProgressBar
                     animated
                     striped
@@ -169,8 +157,8 @@ const BalanceCard = () => {
           </Row>
         </CardBody>
         <CardFooter className="border-top mt-1">
-          <Link href="" className="link-dark fw-medium">
-            View More <IconifyIcon icon="ri-arrow-right-line" />
+          <Link href="/payments" className="link-dark fw-medium">
+            View Collections <IconifyIcon icon="ri-arrow-right-line" />
           </Link>
         </CardFooter>
       </Card>

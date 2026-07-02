@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   Dimensions,
   Modal,
-  Image,
   StyleSheet,
   TextInput,
   ScrollView,
@@ -17,7 +16,6 @@ import {
 import { Colors, Fonts, Default } from "../constants/styles";
 import { useTranslation } from "react-i18next";
 import Ionicons from "react-native-vector-icons/Ionicons";
-import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 
 import CameraModule from "./cameraModule";
 import { Camera } from "expo-camera";
@@ -25,22 +23,32 @@ import * as ImagePicker from "expo-image-picker";
 import * as Contacts from 'expo-contacts';
 import SnackbarToast from "./snackbarToast";
 import AddImageBottomSheet from "./addImageBottomSheet";
+import AppAvatar from "./AppAvatar";
 import { useAuth } from "../contexts/AuthContext";
 import { useUpdateDailyHelp } from "../hooks/useDailyHelp";
+import { uploadDirectoryAvatarIfNeeded } from "../utils/directoryAvatarStorage";
 
 const { width, height } = Dimensions.get("window");
+const HELP_TYPE_LIST = [
+  { id: 1, name: "Housekeeper" },
+  { id: 2, name: "Cook" },
+  { id: 3, name: "Driver" },
+  { id: 4, name: "Gardener" },
+  { id: 5, name: "Security Guard" },
+  { id: 6, name: "Nanny" },
+  { id: 7, name: "Tutor" },
+  { id: 8, name: "Personal Assistant" },
+  { id: 9, name: "Maintenance Worker" },
+  { id: 10, name: "Other" },
+];
 
 const EditDailyHelpModal = (props) => {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const { user, profile } = useAuth();
   const updateDailyHelp = useUpdateDailyHelp();
 
-  const isRtl = i18n.dir() == "rtl";
+  const isRtl = i18n.dir() === "rtl";
   const activeUserId = user?.id || profile?.user_id || null;
-
-  function tr(key) {
-    return t(`addFamilyMemberModal:${key}`);
-  }
 
   const [openAddImageBottomSheet, setOpenAddImageBottomSheet] = useState(false);
 
@@ -99,23 +107,10 @@ const EditDailyHelpModal = (props) => {
     }
   }, [props.entryData]);
 
-  const helpTypeList = [
-    { id: 1, name: "Housekeeper" },
-    { id: 2, name: "Cook" },
-    { id: 3, name: "Driver" },
-    { id: 4, name: "Gardener" },
-    { id: 5, name: "Security Guard" },
-    { id: 6, name: "Nanny" },
-    { id: 7, name: "Tutor" },
-    { id: 8, name: "Personal Assistant" },
-    { id: 9, name: "Maintenance Worker" },
-    { id: 10, name: "Other" },
-  ];
-
   // Set selected type from existing data
   useEffect(() => {
     if (props.entryData && props.entryData.other) {
-      const type = helpTypeList.find(t => t.name === props.entryData.other);
+      const type = HELP_TYPE_LIST.find(t => t.name === props.entryData.other);
       if (type) {
         setSelectedType(type);
       }
@@ -179,11 +174,17 @@ const EditDailyHelpModal = (props) => {
         return;
       }
 
+      const avatarUrl = await uploadDirectoryAvatarIfNeeded({
+        imageUri: pickedImage,
+        ownerId: activeUserId,
+        scope: 'daily-help',
+        existingAvatarUrl: props.entryData?.image || null,
+      });
       const dailyHelpData = {
-        name: name,
-        phone: phoneNumber,
+        name: name.trim(),
+        phone: phoneNumber.trim(),
         type: selectedType.name,
-        avatar_url: pickedImage,
+        avatar_url: avatarUrl,
         user_id: activeUserId,
       };
 
@@ -233,14 +234,15 @@ const EditDailyHelpModal = (props) => {
                       style={styles.imageContainer}
                       onPress={() => setOpenAddImageBottomSheet(true)}
                     >
-                      {pickedImage ? (
-                        <Image source={{ uri: pickedImage }} style={styles.selectedImage} />
-                      ) : (
-                        <View style={styles.placeholderImage}>
-                          <MaterialCommunityIcons name="account-cog" size={30} color={Colors.grey} />
-                          <Text style={styles.placeholderText}>Add Photo</Text>
-                        </View>
-                      )}
+                      <AppAvatar
+                        avatarUrl={pickedImage}
+                        name={name || selectedType?.name || "Daily Help"}
+                        seed={`daily-help:${props.entryData?.key || activeUserId || 'resident'}`}
+                        size={120}
+                        borderRadius={20}
+                        style={styles.selectedImage}
+                        imageStyle={styles.selectedImage}
+                      />
                     </TouchableOpacity>
                   </View>
 
@@ -321,11 +323,11 @@ const EditDailyHelpModal = (props) => {
                     {showTypeDropdown && (
                       <View style={styles.dropdownList}>
                         <ScrollView
-                          data={helpTypeList}
+                          data={HELP_TYPE_LIST}
                           showsVerticalScrollIndicator={true}
                           nestedScrollEnabled={true}
                         >
-                          {helpTypeList.map((item) => (
+                          {HELP_TYPE_LIST.map((item) => (
                             <TouchableOpacity
                               key={item.id}
                               style={styles.dropdownItem}

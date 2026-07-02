@@ -56,6 +56,7 @@ const PaymentMethodScreen = ({ navigation, route }) => {
     onPaymentMethodAdded,
     // Airtime purchase params
     provider,
+    externalServiceCode,
     providerId,
     providerName,
     providerColor,
@@ -80,6 +81,9 @@ const PaymentMethodScreen = ({ navigation, route }) => {
     totalAmount,
     billInfo,
     policyInfo,
+    billCategory,
+    queryContext,
+    selectedOption,
     isPersonalHubTransaction: isPersonalHubTransactionParam,
   } = route.params || {};
   
@@ -152,12 +156,6 @@ const PaymentMethodScreen = ({ navigation, route }) => {
       isMounted = false;
     };
   }, [isAddingMode]);
-
-  useEffect(() => {
-    if (isPersonalHubTransaction) {
-      setSelectedPaymentMethod("Mobile Money");
-    }
-  }, [isPersonalHubTransaction]);
 
   const resolvedPaymentAmount = React.useMemo(() => {
     if (bookingData) {
@@ -233,16 +231,14 @@ const PaymentMethodScreen = ({ navigation, route }) => {
   }, [obligationId, paymentData?.obligationId, paymentData?.sourceId, resolvedSourceType]);
 
   const availablePaymentList = React.useMemo(() => {
-    const basePaymentList = isPersonalHubTransaction
-      ? PAYMENT_METHOD_OPTIONS.filter((method) => method.title === "Mobile Money")
-      : PAYMENT_METHOD_OPTIONS;
+    const basePaymentList = PAYMENT_METHOD_OPTIONS;
 
     if (isAddingMode || isLoadingPaymentPolicy || !paymentPolicy) {
       return basePaymentList;
     }
 
     return basePaymentList.filter((method) => isPaymentMethodEnabled(paymentPolicy, method.title));
-  }, [isAddingMode, isLoadingPaymentPolicy, isPersonalHubTransaction, paymentPolicy]);
+  }, [isAddingMode, isLoadingPaymentPolicy, paymentPolicy]);
 
   const paymentAmountValidationMessage =
     !isAddingMode && paymentPolicy
@@ -376,6 +372,7 @@ const PaymentMethodScreen = ({ navigation, route }) => {
       navigationParams = {
         transactionType,
         provider,
+        externalServiceCode,
         providerId,
         providerName,
         providerColor,
@@ -399,6 +396,9 @@ const PaymentMethodScreen = ({ navigation, route }) => {
         totalAmount,
         billInfo,
         policyInfo,
+        billCategory,
+        queryContext,
+        selectedOption,
         isPersonalHubTransaction: true,
       };
     } else if (isAddingMode) {

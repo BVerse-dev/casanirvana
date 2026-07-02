@@ -1,6 +1,8 @@
 import { StaticImageData } from "next/image";
 import { BootstrapVariantType } from "./component-props";
 
+type ImageLike = string | StaticImageData;
+
 export type IdType = string;
 
 export type EmailLabelType =
@@ -57,13 +59,13 @@ export type Employee = {
 export type NotificationType = {
   from: string;
   content: string;
-  icon?: StaticImageData;
+  icon?: ImageLike;
 };
 
 export type UserType = {
   id: IdType;
   name: string;
-  avatar: StaticImageData;
+  avatar: ImageLike;
   email: string;
   mutualCount: number;
   contact: string;
@@ -112,7 +114,7 @@ export type TransactionType = {
   amountStatus: "Paid" | "Unpaid" | "Pending";
   investedProperty: string;
   paymentMethod: {
-    card: StaticImageData;
+    card: ImageLike;
     name: string;
   };
 };
@@ -120,7 +122,7 @@ export type TransactionType = {
 export type PropertyType = {
   id: IdType;
   icon: string;
-  image: StaticImageData;
+  image: ImageLike;
   name: string;
   propertyType: string;
   location: string;
@@ -211,7 +213,7 @@ export type SocialEventType = {
   title: string;
   venue: string;
   type: "togetherness" | "celebration" | "professional";
-  image: StaticImageData;
+  image: ImageLike;
   startsAt: Date;
 };
 

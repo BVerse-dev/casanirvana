@@ -15,6 +15,7 @@
     "supabase:gen:types": "supabase gen types typescript --project-id $SUPABASE_PROJECT_REF --schema public > ../supabase/database.types.ts && bash ../scripts/sync-db-types.sh"
   },
   "dependencies": {
+    "@sentry/node": "^10.43.0",
     "@supabase/supabase-js": "^2.33.1",
     "@types/multer": "^1.4.13",
     "body-parser": "^2.2.0",

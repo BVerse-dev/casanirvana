@@ -1,4 +1,4 @@
-import { supabase } from "../utils/supabase";
+import { getPersonalHubCatalogProviders } from "./expressPayService";
 
 const PROVIDER_THEMES = [
   { keywords: ["mtn"], logo: require("../assets/images/pay1.png"), color: "#FFB900" },
@@ -10,6 +10,8 @@ const PROVIDER_THEMES = [
 
 const TV_KEYWORDS = ["dstv", "gotv", "startimes", "showmax", "boxoffice", "entertainment", "tv"];
 const UTILITY_KEYWORDS = ["ecg", "electric", "water", "waste", "power", "utility", "phcn", "zoomlion"];
+const ALLOW_PROVIDER_FALLBACK =
+  __DEV__ || process.env.EXPO_PUBLIC_ALLOW_PERSONAL_HUB_PROVIDER_FALLBACK === "true";
 
 const FALLBACK_PROVIDERS = {
   airtime: [
@@ -158,14 +160,22 @@ const mapProviderRow = (row) => {
   return {
     id: row.id || getProviderCode(serviceType, providerName),
     providerId: isUuid(row.id) ? row.id : null,
-    providerCode: getProviderCode(serviceType, providerName),
+    providerCode: row.external_service_code || getProviderCode(serviceType, providerName),
+    externalServiceCode: row.external_service_code || null,
     name: providerName,
     serviceType,
     subtitle: getSubtitle(serviceType, providerName),
     logo: theme.logo,
     color: theme.color,
     icon: getIcon(serviceType),
-    billCategory: serviceType === "bill_payment" ? inferBillCategory(providerName) : null,
+    billCategory:
+      serviceType === "bill_payment"
+        ? row.bill_category || inferBillCategory(providerName)
+        : null,
+    supportsQuery: Boolean(row.supports_query),
+    supportsPay: row.supports_pay !== false,
+    supportsStatus: row.supports_status !== false,
+    providerMetadata: row.provider_metadata || {},
   };
 };
 
@@ -183,30 +193,82 @@ const filterForBillCategory = (providers, billCategory) => {
   return providers.filter((provider) => provider.billCategory === billCategory);
 };
 
-export const getActiveServiceProviders = async ({ serviceType, billCategory = null }) => {
+export const getActiveServiceProviders = async ({
+  serviceType,
+  billCategory = null,
+  allowFallback = ALLOW_PROVIDER_FALLBACK,
+}) => {
+  const fallbackMessage =
+    "Live ExpressPay catalog data is unavailable. The app is using fallback provider data.";
+  const unavailableMessage =
+    "Live ExpressPay catalog data is unavailable and fallback providers are disabled in this build.";
+
   try {
-    const { data, error } = await supabase.rpc("list_active_service_providers", {
-      p_service_type: serviceType,
+    const { data, error } = await getPersonalHubCatalogProviders({
+      serviceType,
+      billCategory: serviceType === "bill_payment" ? billCategory : null,
     });
 
     if (error) {
-      const fallback = getFallbackProviders(serviceType, billCategory);
-      return { data: fallback, error };
+      if (allowFallback) {
+        const fallback = getFallbackProviders(serviceType, billCategory);
+        return {
+          data: fallback,
+          error,
+          warning: fallbackMessage,
+          usedFallback: true,
+        };
+      }
+
+      return {
+        data: [],
+        error: new Error(error?.message || unavailableMessage),
+        warning: unavailableMessage,
+        usedFallback: false,
+      };
     }
 
-    const mapped = (data || []).map(mapProviderRow);
+    const mapped = (data?.items || []).map(mapProviderRow);
     const filtered = serviceType === "bill_payment"
       ? filterForBillCategory(mapped, billCategory)
       : mapped;
 
     if (!filtered.length) {
-      const fallback = getFallbackProviders(serviceType, billCategory);
-      return { data: fallback, error: null };
+      if (allowFallback) {
+        const fallback = getFallbackProviders(serviceType, billCategory);
+        return {
+          data: fallback,
+          error: null,
+          warning: fallbackMessage,
+          usedFallback: true,
+        };
+      }
+
+      return {
+        data: [],
+        error: new Error("No live providers are currently configured for this service."),
+        warning: "No live providers are currently configured for this service.",
+        usedFallback: false,
+      };
     }
 
-    return { data: filtered, error: null };
+    return { data: filtered, error: null, warning: null, usedFallback: false };
   } catch (error) {
-    const fallback = getFallbackProviders(serviceType, billCategory);
-    return { data: fallback, error };
+    if (ALLOW_PROVIDER_FALLBACK) {
+      const fallback = getFallbackProviders(serviceType, billCategory);
+      return {
+        data: fallback,
+        error,
+        warning: fallbackMessage,
+        usedFallback: true,
+      };
+    }
+
+    return {
+      data: [],
+      error: error instanceof Error ? error : new Error(unavailableMessage),
+      warning: unavailableMessage,
+      usedFallback: false,
+    };
   }
 };

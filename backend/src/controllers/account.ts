@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
+import { createHttpError } from '../lib/httpError';
 import { createPublicClient, supabase } from '../lib/supabase';
 
 const DELETE_CONFIRMATION_TEXT = 'DELETE MY ACCOUNT';
@@ -171,17 +172,17 @@ const parseReleaseHistory = (value: unknown): Array<Record<string, unknown>> => 
 
 async function authenticateAccountRequest(
   req: Request,
-  res: Response
+  next: NextFunction
 ): Promise<{ userId: string; email: string | null } | null> {
   const token = getBearerToken(req.headers.authorization);
   if (!token) {
-    res.status(401).json({ error: 'Missing authorization token' });
+    next(createHttpError(401, 'ACCOUNT_AUTH_TOKEN_MISSING', 'Missing authorization token'));
     return null;
   }
 
   const { data: authData, error: authError } = await supabase.auth.getUser(token);
   if (authError || !authData.user) {
-    res.status(401).json({ error: 'Invalid or expired token' });
+    next(createHttpError(401, 'ACCOUNT_AUTH_TOKEN_INVALID', 'Invalid or expired token'));
     return null;
   }
 
@@ -190,6 +191,20 @@ async function authenticateAccountRequest(
     email: authData.user.email || null,
   };
 }
+
+const forwardAccountControllerError = (
+  next: NextFunction,
+  error: unknown,
+  code: string,
+  fallbackMessage: string
+) => {
+  if (error instanceof Error && 'statusCode' in error) {
+    return next(error);
+  }
+
+  const message = error instanceof Error && error.message ? error.message : fallbackMessage;
+  return next(createHttpError(500, code, message, error));
+};
 
 async function fetchLatestChatSettingsRow(userId: string) {
   const { data, error } = await supabase
@@ -436,12 +451,12 @@ export async function deleteAccount(req: Request, res: Response, next: NextFunct
   try {
     const token = getBearerToken(req.headers.authorization);
     if (!token) {
-      return res.status(401).json({ error: 'Missing authorization token' });
+      return next(createHttpError(401, 'ACCOUNT_AUTH_TOKEN_MISSING', 'Missing authorization token'));
     }
 
     const { data: authData, error: authError } = await supabase.auth.getUser(token);
     if (authError || !authData.user) {
-      return res.status(401).json({ error: 'Invalid or expired token' });
+      return next(createHttpError(401, 'ACCOUNT_AUTH_TOKEN_INVALID', 'Invalid or expired token'));
     }
 
     const user = authData.user;
@@ -458,15 +473,23 @@ export async function deleteAccount(req: Request, res: Response, next: NextFunct
     };
 
     if (confirmationText.trim().toUpperCase() !== DELETE_CONFIRMATION_TEXT) {
-      return res.status(400).json({
-        error: `Confirmation text must match "${DELETE_CONFIRMATION_TEXT}"`,
-      });
+      return next(
+        createHttpError(
+          400,
+          'ACCOUNT_DELETE_CONFIRMATION_INVALID',
+          `Confirmation text must match "${DELETE_CONFIRMATION_TEXT}"`
+        )
+      );
     }
 
     if (!user.email) {
-      return res.status(400).json({
-        error: 'Account deletion via password re-auth is only available for email accounts.',
-      });
+      return next(
+        createHttpError(
+          400,
+          'ACCOUNT_DELETE_REAUTH_UNAVAILABLE',
+          'Account deletion via password re-auth is only available for email accounts.'
+        )
+      );
     }
 
     const publicClient = createPublicClient();
@@ -476,7 +499,9 @@ export async function deleteAccount(req: Request, res: Response, next: NextFunct
     });
 
     if (reauthError || !reauthData.user || reauthData.user.id !== user.id) {
-      return res.status(401).json({ error: 'Re-authentication failed. Please verify your password.' });
+      return next(
+        createHttpError(401, 'ACCOUNT_DELETE_REAUTH_FAILED', 'Re-authentication failed. Please verify your password.')
+      );
     }
 
     await publicClient.auth.signOut();
@@ -516,16 +541,20 @@ export async function deleteAccount(req: Request, res: Response, next: NextFunct
         .eq('id', profileRecord.id);
 
       if (profileUpdateError) {
-        return res.status(500).json({
-          error: 'Failed to anonymize user profile before deletion',
-          details: profileUpdateError,
-        });
+        return next(
+          createHttpError(
+            500,
+            'ACCOUNT_DELETE_PROFILE_ANONYMIZE_FAILED',
+            'Failed to anonymize user profile before deletion',
+            profileUpdateError
+          )
+        );
       }
     }
 
     const { error: deleteError } = await supabase.auth.admin.deleteUser(user.id);
     if (deleteError) {
-      return res.status(500).json({ error: 'Failed to delete account', details: deleteError });
+      return next(createHttpError(500, 'ACCOUNT_DELETE_FAILED', 'Failed to delete account', deleteError));
     }
 
     return res.status(200).json({
@@ -533,7 +562,7 @@ export async function deleteAccount(req: Request, res: Response, next: NextFunct
       message: 'Account deleted successfully',
     });
   } catch (error) {
-    return next(error);
+    return forwardAccountControllerError(next, error, 'ACCOUNT_DELETE_FAILED', 'Failed to delete account');
   }
 }
 
@@ -541,12 +570,12 @@ export async function deactivateAccount(req: Request, res: Response, next: NextF
   try {
     const token = getBearerToken(req.headers.authorization);
     if (!token) {
-      return res.status(401).json({ error: 'Missing authorization token' });
+      return next(createHttpError(401, 'ACCOUNT_AUTH_TOKEN_MISSING', 'Missing authorization token'));
     }
 
     const { data: authData, error: authError } = await supabase.auth.getUser(token);
     if (authError || !authData.user) {
-      return res.status(401).json({ error: 'Invalid or expired token' });
+      return next(createHttpError(401, 'ACCOUNT_AUTH_TOKEN_INVALID', 'Invalid or expired token'));
     }
 
     const user = authData.user;
@@ -557,7 +586,7 @@ export async function deactivateAccount(req: Request, res: Response, next: NextF
 
     const profileRecord = await resolveProfileForAuthUser(user.id);
     if (!profileRecord?.id) {
-      return res.status(404).json({ error: 'Profile not found for authenticated user' });
+      return next(createHttpError(404, 'ACCOUNT_PROFILE_NOT_FOUND', 'Profile not found for authenticated user'));
     }
 
     const existingPreferences = isObject(profileRecord.preferences) ? profileRecord.preferences : {};
@@ -583,7 +612,9 @@ export async function deactivateAccount(req: Request, res: Response, next: NextF
       .eq('id', profileRecord.id);
 
     if (profileUpdateError) {
-      return res.status(500).json({ error: 'Failed to deactivate account', details: profileUpdateError });
+      return next(
+        createHttpError(500, 'ACCOUNT_DEACTIVATION_FAILED', 'Failed to deactivate account', profileUpdateError)
+      );
     }
 
     return res.status(200).json({
@@ -591,20 +622,20 @@ export async function deactivateAccount(req: Request, res: Response, next: NextF
       message: 'Account deactivated successfully',
     });
   } catch (error) {
-    return next(error);
+    return forwardAccountControllerError(next, error, 'ACCOUNT_DEACTIVATION_FAILED', 'Failed to deactivate account');
   }
 }
 
 export async function getBackupStatus(req: Request, res: Response, next: NextFunction) {
   try {
-    const authUser = await authenticateAccountRequest(req, res);
+    const authUser = await authenticateAccountRequest(req, next);
     if (!authUser) {
       return;
     }
 
     const profileRecord = await resolveProfileForAuthUser(authUser.userId);
     if (!profileRecord?.id) {
-      return res.status(404).json({ error: 'Profile not found for authenticated user' });
+      return next(createHttpError(404, 'ACCOUNT_PROFILE_NOT_FOUND', 'Profile not found for authenticated user'));
     }
 
     const settingsRow = await fetchLatestChatSettingsRow(authUser.userId);
@@ -653,7 +684,7 @@ export async function getBackupStatus(req: Request, res: Response, next: NextFun
       },
     });
   } catch (error) {
-    return next(error);
+    return forwardAccountControllerError(next, error, 'ACCOUNT_BACKUP_STATUS_FAILED', 'Failed to load backup status');
   }
 }
 
@@ -760,14 +791,14 @@ async function fetchBackupDataset(userId: string, profileId: string) {
 
 export async function exportBackup(req: Request, res: Response, next: NextFunction) {
   try {
-    const authUser = await authenticateAccountRequest(req, res);
+    const authUser = await authenticateAccountRequest(req, next);
     if (!authUser) {
       return;
     }
 
     const profileRecord = await resolveProfileForAuthUser(authUser.userId);
     if (!profileRecord?.id) {
-      return res.status(404).json({ error: 'Profile not found for authenticated user' });
+      return next(createHttpError(404, 'ACCOUNT_PROFILE_NOT_FOUND', 'Profile not found for authenticated user'));
     }
 
     const snapshot = await fetchBackupDataset(authUser.userId, profileRecord.id);
@@ -800,7 +831,7 @@ export async function exportBackup(req: Request, res: Response, next: NextFuncti
       });
 
     if (uploadError) {
-      return res.status(500).json({ error: 'Failed to upload backup file', details: uploadError });
+      return next(createHttpError(500, 'ACCOUNT_BACKUP_UPLOAD_FAILED', 'Failed to upload backup file', uploadError));
     }
 
     const existingSettings = await fetchLatestChatSettingsRow(authUser.userId);
@@ -858,20 +889,20 @@ export async function exportBackup(req: Request, res: Response, next: NextFuncti
       },
     });
   } catch (error) {
-    return next(error);
+    return forwardAccountControllerError(next, error, 'ACCOUNT_BACKUP_EXPORT_FAILED', 'Failed to create backup');
   }
 }
 
 export async function restoreBackup(req: Request, res: Response, next: NextFunction) {
   try {
-    const authUser = await authenticateAccountRequest(req, res);
+    const authUser = await authenticateAccountRequest(req, next);
     if (!authUser) {
       return;
     }
 
     const profileRecord = await resolveProfileForAuthUser(authUser.userId);
     if (!profileRecord?.id) {
-      return res.status(404).json({ error: 'Profile not found for authenticated user' });
+      return next(createHttpError(404, 'ACCOUNT_PROFILE_NOT_FOUND', 'Profile not found for authenticated user'));
     }
 
     const sourcePath = toStringOrNull((req.body as { source_path?: string })?.source_path);
@@ -886,7 +917,7 @@ export async function restoreBackup(req: Request, res: Response, next: NextFunct
       (backupFiles[0]?.path ?? null);
 
     if (!backupPath) {
-      return res.status(404).json({ error: 'No backup found to restore' });
+      return next(createHttpError(404, 'ACCOUNT_BACKUP_NOT_FOUND', 'No backup found to restore'));
     }
 
     const { data: backupBlob, error: downloadError } = await supabase.storage
@@ -894,7 +925,7 @@ export async function restoreBackup(req: Request, res: Response, next: NextFunct
       .download(backupPath);
 
     if (downloadError || !backupBlob) {
-      return res.status(404).json({ error: 'Backup file not found', details: downloadError });
+      return next(createHttpError(404, 'ACCOUNT_BACKUP_DOWNLOAD_FAILED', 'Backup file not found', downloadError));
     }
 
     const backupText = await backupBlob.text();
@@ -905,7 +936,9 @@ export async function restoreBackup(req: Request, res: Response, next: NextFunct
       toStringOrNull(parsedBackup.user_id);
 
     if (backupUserId && backupUserId !== authUser.userId) {
-      return res.status(403).json({ error: 'Backup file does not belong to the authenticated user' });
+      return next(
+        createHttpError(403, 'ACCOUNT_BACKUP_FORBIDDEN', 'Backup file does not belong to the authenticated user')
+      );
     }
 
     const backupProfile = toRecord(parsedBackup.profile);
@@ -937,7 +970,14 @@ export async function restoreBackup(req: Request, res: Response, next: NextFunct
       .eq('id', profileRecord.id);
 
     if (profileUpdateError) {
-      return res.status(500).json({ error: 'Failed to restore profile settings', details: profileUpdateError });
+      return next(
+        createHttpError(
+          500,
+          'ACCOUNT_BACKUP_PROFILE_RESTORE_FAILED',
+          'Failed to restore profile settings',
+          profileUpdateError
+        )
+      );
     }
 
     const backupChatSettings = toRecord(parsedBackup.chat_settings);
@@ -977,13 +1017,13 @@ export async function restoreBackup(req: Request, res: Response, next: NextFunct
       },
     });
   } catch (error) {
-    return next(error);
+    return forwardAccountControllerError(next, error, 'ACCOUNT_BACKUP_RESTORE_FAILED', 'Failed to restore backup');
   }
 }
 
 export async function cleanupBackups(req: Request, res: Response, next: NextFunction) {
   try {
-    const authUser = await authenticateAccountRequest(req, res);
+    const authUser = await authenticateAccountRequest(req, next);
     if (!authUser) {
       return;
     }
@@ -1006,7 +1046,9 @@ export async function cleanupBackups(req: Request, res: Response, next: NextFunc
     if (filesToDelete.length > 0) {
       const { error: removeError } = await supabase.storage.from(BACKUP_BUCKET).remove(filesToDelete);
       if (removeError) {
-        return res.status(500).json({ error: 'Failed to remove old backups', details: removeError });
+        return next(
+          createHttpError(500, 'ACCOUNT_BACKUP_CLEANUP_FAILED', 'Failed to remove old backups', removeError)
+        );
       }
     }
 
@@ -1039,13 +1081,13 @@ export async function cleanupBackups(req: Request, res: Response, next: NextFunc
       },
     });
   } catch (error) {
-    return next(error);
+    return forwardAccountControllerError(next, error, 'ACCOUNT_BACKUP_CLEANUP_FAILED', 'Failed to clean old backups');
   }
 }
 
 export async function getAppUpdateStatus(req: Request, res: Response, next: NextFunction) {
   try {
-    const authUser = await authenticateAccountRequest(req, res);
+    const authUser = await authenticateAccountRequest(req, next);
     if (!authUser) {
       return;
     }
@@ -1068,7 +1110,9 @@ export async function getAppUpdateStatus(req: Request, res: Response, next: Next
       .eq('category', APP_UPDATE_SETTINGS_CATEGORY);
 
     if (settingsError && settingsError.code !== '42P01') {
-      return res.status(500).json({ error: 'Failed to fetch app update settings', details: settingsError });
+      return next(
+        createHttpError(500, 'ACCOUNT_APP_UPDATE_SETTINGS_FAILED', 'Failed to fetch app update settings', settingsError)
+      );
     }
 
     const settingsMap = (settingsRows || []).reduce<Record<string, unknown>>((acc, row) => {
@@ -1174,6 +1218,11 @@ export async function getAppUpdateStatus(req: Request, res: Response, next: Next
       },
     });
   } catch (error) {
-    return next(error);
+    return forwardAccountControllerError(
+      next,
+      error,
+      'ACCOUNT_APP_UPDATE_STATUS_FAILED',
+      'Failed to fetch app update status'
+    );
   }
 }

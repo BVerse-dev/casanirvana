@@ -5,21 +5,16 @@ import { Button, Card, CardBody, CardFooter, Col, Row, Form, InputGroup, Paginat
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
 import Link from "next/link";
 import { toast } from "react-hot-toast";
-import { useListCommunities, useDeleteCommunity } from "@/hooks/useCommunities";
-import { useListUnits } from "@/hooks/useUnits";
-import type { Database } from "@/lib/database.types";
+import {
+  useListCommunities,
+  useDeleteCommunity,
+  type CommunityRecord,
+} from "@/hooks/useCommunities";
 import { mapPropertyUrl, mapSocietyToPropertyImage } from "@/utils/propertyImageMapper";
 import Image from "next/image";
 import type { CommunityFilters } from "./CommunitiesFilter";
 
-type Community = Database["public"]["Tables"]["societies"]["Row"];
-type Unit = Database["public"]["Tables"]["units"]["Row"];
-
-type CommunityWithStats = Community & {
-  unitCount: number;
-  occupiedUnits: number;
-  occupancyRate: number;
-};
+type Community = CommunityRecord;
 
 interface CommunitiesGridProps {
   filters: CommunityFilters;
@@ -29,13 +24,11 @@ const CommunityCard = ({
   community, 
   onDelete,
   unitCount = 0,
-  occupiedUnits = 0,
   occupancyRate = 0
 }: { 
   community: Community; 
   onDelete: (id: string) => void;
   unitCount?: number;
-  occupiedUnits?: number;
   occupancyRate?: number;
 }) => {
   const handleDelete = (id: string, name: string) => {
@@ -59,7 +52,9 @@ const CommunityCard = ({
           height={200}
         />
         <div className="position-absolute top-0 end-0 m-3">
-          <span className="badge bg-success">Active</span>
+          <span className={`badge bg-${community.status === "inactive" ? "secondary" : "success"}`}>
+            {community.status ? community.status.replace(/_/g, " ") : "unknown"}
+          </span>
         </div>
       </div>
       
@@ -97,9 +92,7 @@ const CommunityCard = ({
           <div className="col-6">
             <div className="border rounded p-2">
               <div className="h6 mb-0 text-success">
-                {unitCount > 0 ? 
-                  `${Math.round(occupancyRate * 100)}%` : 
-                  '--'}
+                {unitCount > 0 ? `${occupancyRate}%` : "--"}
               </div>
               <small className="text-muted">Occupancy</small>
             </div>
@@ -136,56 +129,23 @@ const CommunitiesGrid = ({ filters }: CommunitiesGridProps) => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 9; // Show 9 communities per page
   
-  // Fetch communities data from Supabase with pagination and filters
   const { 
-    data: communitiesData = { data: [], count: 0, page: 1, pageSize: itemsPerPage, totalPages: 1 }, 
+    data: communitiesData = { data: [], count: 0, page: 1, pageSize: 1000, totalPages: 1 },
     isLoading, 
     error 
   } = useListCommunities({ 
-    page: currentPage, 
-    pageSize: itemsPerPage,
-    filters: filters // Pass filters to the hook
+    page: 1,
+    pageSize: 1000,
+    filters,
+    search: searchTerm,
   });
   
-  // Extract data from the paginated response
   const { data: communities = [], count: totalCount = 0, totalPages } = communitiesData;
-  
-  // Fetch ALL units data to calculate occupancy (use large page size to get all units)
-  // Note: Using pageSize: 1000 to ensure we get all units for statistics calculation
-  // Current DB has 316 units, so 1000 is more than sufficient
-  const { data: allUnitsResponse, isLoading: unitsLoading } = useListUnits({ 
-    pageSize: 1000 // Large enough to get all units for accurate statistics
-  });
-  const allUnits = allUnitsResponse?.data || [];
-  
-  // Calculate unit counts and occupancy rates for each community
-  const communitiesWithStats = useMemo(() => {
-    if (!communities || !allUnits) return [];
-    
-    return communities.map(community => {
-      // Find units belonging to this community
-      const communityUnits = allUnits.filter(unit => unit.community_id === community.id);
-      const unitCount = communityUnits.length;
-      
-      // Count occupied units (units with status 'occupied' are considered occupied)
-      const occupiedUnits = communityUnits.filter(unit => unit.status === 'occupied').length;
-      
-      // Calculate occupancy rate (prevent division by zero)
-      const occupancyRate = unitCount > 0 ? occupiedUnits / unitCount : 0;
-      
-      return {
-        ...community,
-        unitCount,
-        occupiedUnits,
-        occupancyRate
-      };
-    });
-  }, [communities, allUnits]);
 
   const deleteCommunityMutation = useDeleteCommunity();
 
   // Loading state
-  if (isLoading || unitsLoading) {
+  if (isLoading) {
     return (
       <Col xl={9}>
         <Card>
@@ -215,19 +175,11 @@ const CommunitiesGrid = ({ filters }: CommunitiesGridProps) => {
     );
   }
 
-  // Filter communities when search term is provided
-  const filteredCommunities = searchTerm ? communitiesWithStats.filter(community => 
-    community.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (community.address || '').toLowerCase().includes(searchTerm.toLowerCase())
-  ) : communitiesWithStats;
-
-  // Pagination calculations (always show controls)
-  const localTotalPages = Math.ceil((searchTerm ? filteredCommunities.length : totalCount || 0) / itemsPerPage) || 1;
+  const filteredCommunities = communities;
+  const localTotalPages = Math.ceil((filteredCommunities.length || 0) / itemsPerPage) || 1;
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentCommunities = searchTerm
-    ? filteredCommunities.slice(startIndex, endIndex)
-    : communitiesWithStats.slice(startIndex, endIndex);
+  const currentCommunities = filteredCommunities.slice(startIndex, endIndex);
 
   // Reset to first page when search changes
   const handleSearch = (term: string) => {
@@ -245,14 +197,7 @@ const CommunitiesGrid = ({ filters }: CommunitiesGridProps) => {
     }
   };
 
-  // Handle page change
-  const handlePageChange = (page: number) => {
-    window.scrollTo(0, 0); // Scroll to top on page change
-    setCurrentPage(page);
-  };
-
-  // Calculate display counts for pagination text
-  const totalItems = searchTerm ? filteredCommunities.length : (totalCount || 0);
+  const totalItems = filteredCommunities.length || totalCount;
 
   return (
     <Col xl={9}>
@@ -320,13 +265,17 @@ const CommunitiesGrid = ({ filters }: CommunitiesGridProps) => {
             <>
               <Row>
                 {currentCommunities.map((community) => (
-                  <Col xl={4} lg={6} key={community.id} className="mb-4">
+                  <Col
+                    xl={viewMode === "grid" ? 4 : 12}
+                    lg={viewMode === "grid" ? 6 : 12}
+                    key={community.id}
+                    className="mb-4"
+                  >
                     <CommunityCard 
                       community={community} 
                       onDelete={handleDelete}
-                      unitCount={community.unitCount}
-                      occupiedUnits={community.occupiedUnits}
-                      occupancyRate={community.occupancyRate}
+                      unitCount={community.unit_count || 0}
+                      occupancyRate={community.occupancy_rate || 0}
                     />
                   </Col>
                 ))}

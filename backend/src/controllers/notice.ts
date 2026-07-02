@@ -1,20 +1,20 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import * as NoticeService from '../services/notice';
 
-export async function getNotices(req: Request, res: Response) {
+export async function getNotices(req: Request, res: Response, next: NextFunction) {
   try {
     const notices = await NoticeService.getNoticesBySociety(req.query.societyId as string);
     res.json(notices);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error) {
+    next(error);
   }
 }
 
-export async function createNotice(req: Request, res: Response) {
+export async function createNotice(req: Request, res: Response, next: NextFunction) {
   try {
     const notice = await NoticeService.createNotice(req.body);
     res.status(201).json(notice);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (error) {
+    next(error);
   }
 }

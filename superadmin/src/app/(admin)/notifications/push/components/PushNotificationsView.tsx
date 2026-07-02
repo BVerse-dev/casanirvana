@@ -135,8 +135,8 @@ const PushNotificationsView = () => {
         ...prev,
         title: template.title,
         message: template.message,
-        priority: template.priority,
-        platform: template.platform,
+        priority: template.priority || "medium",
+        platform: template.platform || "both",
         actionUrl: template.action_url || "",
       }));
       
@@ -242,8 +242,9 @@ const PushNotificationsView = () => {
   };
 
   // Helper functions
-  const getStatusBadge = (status: string) => {
-    switch (status) {
+  const getStatusBadge = (status?: string | null) => {
+    const normalizedStatus = status || "draft";
+    switch (normalizedStatus) {
       case "delivered":
         return <Badge bg="success-subtle" text="success">Delivered</Badge>;
       case "scheduled":
@@ -255,12 +256,13 @@ const PushNotificationsView = () => {
       case "processing":
         return <Badge bg="warning-subtle" text="warning">Processing</Badge>;
       default:
-        return <Badge bg="primary-subtle" text="primary">{status}</Badge>;
+        return <Badge bg="primary-subtle" text="primary">{normalizedStatus}</Badge>;
     }
   };
 
-  const getPriorityBadge = (priority: string) => {
-    switch (priority) {
+  const getPriorityBadge = (priority?: string | null) => {
+    const normalizedPriority = priority || "medium";
+    switch (normalizedPriority) {
       case "high":
         return <Badge bg="danger-subtle" text="danger">High</Badge>;
       case "medium":
@@ -270,12 +272,12 @@ const PushNotificationsView = () => {
       case "urgent":
         return <Badge bg="danger" text="white">Urgent</Badge>;
       default:
-        return <Badge bg="secondary-subtle" text="secondary">{priority}</Badge>;
+        return <Badge bg="secondary-subtle" text="secondary">{normalizedPriority}</Badge>;
     }
   };
 
-  const getPlatformIcon = (platform: string) => {
-    switch (platform) {
+  const getPlatformIcon = (platform?: string | null) => {
+    switch (platform || "both") {
       case "mobile":
         return "ri:smartphone-line";
       case "web":
@@ -287,7 +289,10 @@ const PushNotificationsView = () => {
     }
   };
 
-  const formatTimeAgo = (dateString: string) => {
+  const formatTimeAgo = (dateString?: string | null) => {
+    if (!dateString) {
+      return "Not recorded";
+    }
     const now = new Date();
     const sentDate = new Date(dateString);
     const diffInHours = Math.floor((now.getTime() - sentDate.getTime()) / (1000 * 60 * 60));
@@ -528,7 +533,7 @@ const PushNotificationsView = () => {
                           >
                             {audiences.map((option) => (
                               <option key={option.value} value={option.value}>
-                                {option.label} ({option.recipient_count.toLocaleString()} recipients)
+                                {option.label} ({Number(option.recipient_count || 0).toLocaleString()} recipients)
                               </option>
                             ))}
                           </Form.Select>
@@ -743,26 +748,26 @@ const PushNotificationsView = () => {
                         </td>
                         <td>
                           <div className="d-flex align-items-center">
-                            <IconifyIcon 
-                              icon={getPlatformIcon(notification.platform)} 
-                              className="me-1" 
+                            <IconifyIcon
+                              icon={getPlatformIcon(notification.platform || "both")}
+                              className="me-1"
                             />
-                            {notification.platform}
+                            {notification.platform || "both"}
                           </div>
                         </td>
-                        <td>{getStatusBadge(notification.status)}</td>
-                        <td>{getPriorityBadge(notification.priority)}</td>
+                        <td>{getStatusBadge(notification.status || "draft")}</td>
+                        <td>{getPriorityBadge(notification.priority || "medium")}</td>
                                                  <td>
                            {notification.status === "delivered" ? (
                              <div>
                                <small className="text-muted d-block">
-                                 Delivered: {notification.delivered_count}
+                                 Delivered: {notification.delivered_count || 0}
                                </small>
                                <small className="text-muted d-block">
-                                 Opened: {notification.opened_count} ({notification.delivered_count > 0 ? Math.round((notification.opened_count / notification.delivered_count) * 100) : 0}%)
+                                 Opened: {notification.opened_count || 0} ({(notification.delivered_count || 0) > 0 ? Math.round(((notification.opened_count || 0) / (notification.delivered_count || 0)) * 100) : 0}%)
                                </small>
                                <small className="text-muted d-block">
-                                 Clicked: {notification.clicked_count} ({notification.delivered_count > 0 ? Math.round((notification.clicked_count / notification.delivered_count) * 100) : 0}%)
+                                 Clicked: {notification.clicked_count || 0} ({(notification.delivered_count || 0) > 0 ? Math.round(((notification.clicked_count || 0) / (notification.delivered_count || 0)) * 100) : 0}%)
                                </small>
                              </div>
                            ) : (

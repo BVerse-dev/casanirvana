@@ -1,5 +1,9 @@
 "use client";
+
+import IconifyIcon from "@/components/wrappers/IconifyIcon";
+import { useResidentDashboardStats } from "@/hooks/useResidentDashboard";
 import ReactApexChart from "react-apexcharts";
+import { useMemo, useState } from "react";
 import {
   Card,
   CardBody,
@@ -13,81 +17,47 @@ import {
   DropdownToggle,
   Row,
 } from "react-bootstrap";
-import { useResidentSummary } from "@/hooks/useResidentDashboard";
-import { useMemo, useState } from "react";
-import IconifyIcon from "@/components/wrappers/IconifyIcon";
 
 const ResidentOnboarding = () => {
-  const { data: residentSummary, isLoading } = useResidentSummary();
-  const [timeFilter, setTimeFilter] = useState<'today' | 'month' | 'year'>('month');
+  const { data: dashboardStats, error, isLoading } = useResidentDashboardStats();
+  const [timeFilter, setTimeFilter] = useState<"month" | "year" | "all">("year");
 
   const chartData = useMemo(() => {
-    if (!residentSummary) {
+    if (!dashboardStats) {
       return {
-        series: [{ name: "New Residents", data: [65, 59, 55, 47, 38, 27, 18] }],
-        categories: ["Inquiry", "Application", "Verification", "Approval", "Move-in", "Settled", "Active"]
+        labels: [] as string[],
+        registrations: [] as number[],
+        latestValue: 0,
+        totalInView: 0,
       };
     }
 
-    // Generate onboarding funnel data based on resident summary and time filter
-    const totalResidents = residentSummary.totalResidents;
-    const newThisMonth = residentSummary.newResidentsThisMonth;
-    const activeResidents = residentSummary.activeResidents;
-    const pendingApprovals = residentSummary.pendingApprovals;
+    const fullLabels = dashboardStats.monthlyLabels;
+    const fullRegistrations = dashboardStats.monthlyRegistrations;
 
-    // Calculate base values based on time filter
-    let chartBase = 5; // minimum base
-    
-    if (timeFilter === 'today') {
-      // For today - use daily average
-      chartBase = Math.max(Math.round(newThisMonth / 30), Math.round(activeResidents * 0.002), 2);
-    } else if (timeFilter === 'month') {
-      // For month - use monthly data
-      chartBase = Math.max(newThisMonth, Math.round(activeResidents * 0.1), 5);
-    } else if (timeFilter === 'year') {
-      // For year - use yearly projection
-      chartBase = Math.max(newThisMonth * 12, Math.round(activeResidents * 0.8), 25);
+    let labels = fullLabels;
+    let registrations = fullRegistrations;
+
+    if (timeFilter === "month") {
+      labels = fullLabels.slice(-4);
+      registrations = fullRegistrations.slice(-4);
     }
-
-    // Create a realistic funnel progression
-    const inquiry = Math.round(chartBase * 2.5); // More inquiries than applications
-    const application = Math.round(chartBase * 1.8);
-    const verification = Math.round(chartBase * 1.5);
-    const approval = Math.round(chartBase * 1.2);
-    const movein = chartBase;
-    const settled = Math.round(chartBase * 0.8);
-    const active = Math.round(chartBase * 0.7);
 
     return {
-      series: [{ name: "Onboarding Funnel", data: [inquiry, application, verification, approval, movein, settled, active] }],
-      categories: ["Inquiry", "Application", "Verification", "Approval", "Move-in", "Settled", "Active"]
+      labels,
+      registrations,
+      latestValue: registrations[registrations.length - 1] || 0,
+      totalInView: registrations.reduce((sum, value) => sum + value, 0),
     };
-  }, [residentSummary, timeFilter]);
+  }, [dashboardStats, timeFilter]);
 
-  // Calculate footer metrics based on time filter
-  const footerMetrics = useMemo(() => {
-    if (!residentSummary) return { newPeriod: 0, activePeriod: 0, periodLabel: 'This Month' };
-
-    let newPeriod = 0;
-    let activePeriod = residentSummary.activeResidents;
-    let periodLabel = 'This Month';
-
-    if (timeFilter === 'today') {
-      newPeriod = Math.round(residentSummary.newResidentsThisMonth / 30); // Daily average
-      periodLabel = 'Today';
-    } else if (timeFilter === 'month') {
-      newPeriod = residentSummary.newResidentsThisMonth;
-      periodLabel = 'This Month';
-    } else if (timeFilter === 'year') {
-      newPeriod = residentSummary.newResidentsThisMonth * 12; // Yearly projection
-      periodLabel = 'This Year';
-    }
-
-    return { newPeriod, activePeriod, periodLabel };
-  }, [residentSummary, timeFilter]);
-
-  const salesFunnelOptions = {
-    series: chartData.series,
+  const registrationsOptions = {
+    series: [
+      {
+        name: "New Residents",
+        data: chartData.registrations,
+      },
+    ],
     chart: {
       height: 165,
       type: "area" as const,
@@ -99,7 +69,8 @@ const ResidentOnboarding = () => {
       enabled: false,
     },
     stroke: {
-      curve: "straight" as const,
+      curve: "smooth" as const,
+      width: 2,
     },
     colors: ["#604ae3"],
     fill: {
@@ -107,13 +78,13 @@ const ResidentOnboarding = () => {
       gradient: {
         shadeIntensity: 1,
         inverseColors: false,
-        opacityFrom: 0.5,
-        opacityTo: 0.1,
+        opacityFrom: 0.45,
+        opacityTo: 0.08,
         stops: [0, 90, 100],
       },
     },
     xaxis: {
-      categories: chartData.categories,
+      categories: chartData.labels,
       axisBorder: {
         show: false,
       },
@@ -140,9 +111,7 @@ const ResidentOnboarding = () => {
     tooltip: {
       enabled: true,
       y: {
-        formatter: function (val: number) {
-          return val + " residents";
-        },
+        formatter: (value: number) => `${value} profiles`,
       },
     },
   };
@@ -152,12 +121,27 @@ const ResidentOnboarding = () => {
       <Col lg={6}>
         <Card>
           <CardHeader className="d-flex justify-content-between align-items-center border-0">
-            <CardTitle as={"h4"}>Resident Onboarding</CardTitle>
+            <CardTitle as={"h4"}>Resident Registrations</CardTitle>
           </CardHeader>
           <CardBody>
             <div className="placeholder-glow">
-              <div className="placeholder" style={{ height: '165px' }}></div>
+              <div className="placeholder" style={{ height: "165px" }}></div>
             </div>
+          </CardBody>
+        </Card>
+      </Col>
+    );
+  }
+
+  if (error) {
+    return (
+      <Col lg={6}>
+        <Card>
+          <CardHeader className="border-0">
+            <CardTitle as={"h4"}>Resident Registrations</CardTitle>
+          </CardHeader>
+          <CardBody className="text-center text-muted py-5">
+            Registration analytics are unavailable right now.
           </CardBody>
         </Card>
       </Col>
@@ -167,8 +151,11 @@ const ResidentOnboarding = () => {
   return (
     <Col lg={6}>
       <Card>
-        <CardHeader className="d-flex  justify-content-between align-items-center border-0">
-          <CardTitle as={"h4"}>Resident Onboarding</CardTitle>
+        <CardHeader className="d-flex justify-content-between align-items-center border-0">
+          <div>
+            <CardTitle as={"h4"}>Resident Registrations</CardTitle>
+            <p className="text-muted mb-0">New resident profiles created in the selected period</p>
+          </div>
           <Dropdown>
             <DropdownToggle
               as={"a"}
@@ -176,68 +163,53 @@ const ResidentOnboarding = () => {
               data-bs-toggle="dropdown"
               aria-expanded="false"
             >
-              {timeFilter === 'today' ? 'Today' : timeFilter === 'year' ? 'This Year' : 'This Month'}{" "}
-              <IconifyIcon
-                className="ms-1"
-                width={16}
-                height={16}
-                icon="ri:arrow-down-s-line"
-              />
+              {timeFilter === "month" ? "Last 4 Months" : timeFilter === "all" ? "All Available" : "This Year"}{" "}
+              <IconifyIcon className="ms-1" width={16} height={16} icon="ri:arrow-down-s-line" />
             </DropdownToggle>
             <DropdownMenu className="dropdown-menu-end">
-              <DropdownItem onClick={() => setTimeFilter('today')}>Today</DropdownItem>
-              <DropdownItem onClick={() => setTimeFilter('month')}>Month</DropdownItem>
-              <DropdownItem onClick={() => setTimeFilter('year')}>Year</DropdownItem>
+              <DropdownItem onClick={() => setTimeFilter("month")}>Last 4 Months</DropdownItem>
+              <DropdownItem onClick={() => setTimeFilter("year")}>This Year</DropdownItem>
+              <DropdownItem onClick={() => setTimeFilter("all")}>All Available</DropdownItem>
             </DropdownMenu>
           </Dropdown>
         </CardHeader>
         <CardBody>
-          <div className="mx-n3">
-            <ReactApexChart
-              key={`onboarding-${timeFilter}`}
-              options={salesFunnelOptions}
-              series={salesFunnelOptions.series}
-              height={165}
-              type="area"
-              className="apex-charts mt-2"
-            />
-          </div>
+          {chartData.registrations.length > 0 ? (
+            <div className="mx-n3">
+              <ReactApexChart
+                key={`resident-registrations-${timeFilter}`}
+                options={registrationsOptions}
+                series={registrationsOptions.series}
+                height={165}
+                type="area"
+                className="apex-charts mt-2"
+              />
+            </div>
+          ) : (
+            <div className="text-center text-muted py-4">No resident registrations are available yet.</div>
+          )}
         </CardBody>
         <CardFooter className="border-top">
           <Row className="text-center">
             <Col lg={6}>
               <div className="d-flex align-items-center justify-content-center gap-2">
                 <div className="avatar-sm bg-success-subtle rounded flex-centered">
-                  <IconifyIcon
-                    icon="solar:user-plus-broken"
-                    width={20}
-                    height={20}
-                    className="text-success"
-                  />
+                  <IconifyIcon icon="solar:user-plus-broken" width={20} height={20} className="text-success" />
                 </div>
                 <div>
-                  <p className="mb-0 fs-16 text-dark fw-semibold">
-                    {footerMetrics.newPeriod}
-                  </p>
-                  <small>New {footerMetrics.periodLabel}</small>
+                  <p className="mb-0 fs-16 text-dark fw-semibold">{chartData.latestValue}</p>
+                  <small>Latest Month</small>
                 </div>
               </div>
             </Col>
             <Col lg={6}>
               <div className="d-flex align-items-center justify-content-center gap-2">
                 <div className="avatar-sm bg-primary-subtle rounded flex-centered">
-                  <IconifyIcon
-                    icon="solar:users-group-rounded-broken"
-                    width={20}
-                    height={20}
-                    className="text-primary"
-                  />
+                  <IconifyIcon icon="solar:chart-2-broken" width={20} height={20} className="text-primary" />
                 </div>
                 <div>
-                  <p className="mb-0 fs-16 text-dark fw-semibold">
-                    {footerMetrics.activePeriod}
-                  </p>
-                  <small>Active Total</small>
+                  <p className="mb-0 fs-16 text-dark fw-semibold">{chartData.totalInView}</p>
+                  <small>Total In View</small>
                 </div>
               </div>
             </Col>

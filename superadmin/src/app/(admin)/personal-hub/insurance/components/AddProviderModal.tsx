@@ -173,9 +173,9 @@ const AddProviderModal: React.FC<AddProviderModalProps> = ({
         ...providerData,
         service_type: 'insurance',
         commission_rate: parseFloat(providerData.commission_rate as unknown as string),
-        insurance_types: providerData.insurance_types.split(',').map(type => type.trim()),
-        coverage_areas: providerData.coverage_areas.split(',').map(area => area.trim()),
-        payment_methods: providerData.payment_methods.split(',').map(method => method.trim()),
+        insurance_types: providerData.insurance_types.split(',').map((type: string) => type.trim()),
+        coverage_areas: providerData.coverage_areas.split(',').map((area: string) => area.trim()),
+        payment_methods: providerData.payment_methods.split(',').map((method: string) => method.trim()),
         contact_info: parsedContactInfo,
         document_requirements: parsedDocumentRequirements
       };

@@ -78,16 +78,6 @@ const SecurityConfigPage = () => {
     }
   }, [configData, reset]);
 
-  // Show error alert if data loading fails
-  useEffect(() => {
-    if (dataError) {
-      setShowAlert({ 
-        type: 'danger', 
-        message: `Failed to load configuration: ${dataError.message}` 
-      });
-    }
-  }, [dataError]);
-
   const onSubmit = async (data: SecurityPrivacyConfigData) => {
     try {
       await updateConfig(data);
@@ -97,6 +87,22 @@ const SecurityConfigPage = () => {
       setShowAlert({ type: 'danger', message: 'Failed to update security configuration. Please try again.' });
     }
   };
+
+  if (dataError && !configData) {
+    return (
+      <>
+        <PageTitle title="Security & Privacy" subName="General Settings" />
+        <Card>
+          <CardBody>
+            <Alert variant="danger" className="mb-0">
+              <IconifyIcon icon="material-symbols:error" className="me-2" />
+              Failed to load security and privacy configuration. Fix the backend connection and reload this page before making changes.
+            </Alert>
+          </CardBody>
+        </Card>
+      </>
+    );
+  }
 
   return (
     <>

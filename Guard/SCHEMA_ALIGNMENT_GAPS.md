@@ -43,18 +43,19 @@ Date: 2026-02-22
 | Guard settings screens used local-only placeholder state (no DB persistence) | `/Users/andromeda/casanirvana/Guard/screens/notificationSettingsScreen.js`, `/Users/andromeda/casanirvana/Guard/screens/chatSettingsScreen.js` | Settings reset after restart/device and produced non-production UX behavior | `Code alignment (completed)` |
 | Guard call create flow could insert `calls` with null/invalid callee and non-profile caller fallback | `/Users/andromeda/casanirvana/Guard/screens/callScreen.js`, `/Users/andromeda/casanirvana/Guard/hooks/useCallManager.js` | Violated hardened call RLS contract (`caller_id/callee_id` must map to actor-accessible `profiles.id`) and caused runtime call failures | `Code alignment (completed)` |
 | Visitor-detail call policy required split behavior (resident host in-app, visitor/personnel direct phone) | `/Users/andromeda/casanirvana/Guard/screens/visitorDetailScreen.js` | Needed explicit production rule so host/resident calls stay auditable in-app while guest/cab/delivery/service contacts use submitted phone numbers | `Code alignment (completed)` |
+| Community directory memberships needed recorded sync/validation plus community-scoped recent-search hygiene | `/Users/andromeda/casanirvana/Guard/hooks/useCommunityDirectoryMembers.js`, `/Users/andromeda/casanirvana/Guard/screens/searchScreen.js`, `/Users/andromeda/casanirvana/Guard/services/residentSearchHistoryService.js` | Guard resident directory/search could go stale after unit changes and could leak recent-search state across community reassignments; repo migrations also missed the already-live directory integrity layer | `Migration + Code alignment (completed)` |
 
 ## Migration vs Code Alignment Plan
 ### A) Objects to Migrate
-1. `supabase/migrations/20260222194000_phase25_guard_visitor_entry_rls_alignment.sql`
-2. `supabase/migrations/20260222195500_phase25_guard_visitor_insert_policy_fix.sql`
-3. `supabase/migrations/20260222201500_phase25_guard_profiles_read_scope.sql`
-4. `supabase/migrations/20260222213000_phase25_walkin_entry_artifacts_backfill.sql`
-5. `supabase/migrations/20260222225000_phase25_guard_profile_sync_on_users.sql`
-6. `supabase/migrations/20260222234000_phase25_guard_emergency_alert_update_policy.sql`
-7. `supabase/migrations/20260223000500_phase25_guard_emergency_recipient_notify_policy.sql`
-8. `supabase/migrations/20260223003000_phase25_guard_notify_user_profile_fallback.sql`
-9. `supabase/migrations/20260223103000_phase26_guard_profile_update_policy.sql`
+1. `supabase/migrations/20260222182257_phase25_guard_visitor_entry_rls_alignment.sql`
+2. `supabase/migrations/20260222182327_phase25_guard_visitor_insert_policy_fix.sql`
+3. `supabase/migrations/20260222184534_phase25_guard_profiles_read_scope.sql`
+4. `supabase/migrations/20260222190401_phase25_walkin_entry_artifacts_backfill.sql`
+5. `supabase/migrations/20260222193112_phase25_guard_profile_sync_on_users.sql`
+6. `supabase/migrations/20260222214458_phase25_guard_emergency_alert_update_policy.sql`
+7. `supabase/migrations/20260222215502_phase25_guard_emergency_recipient_notify_policy.sql`
+8. `supabase/migrations/20260222220109_phase25_guard_notify_user_profile_fallback.sql`
+9. `supabase/migrations/20260222224130_phase26_guard_profile_update_policy.sql`
 
 ### B) Objects to Refactor/Remove
 1. Replace mock QR scanner path with camera + DB lookup in `/Users/andromeda/casanirvana/Guard/screens/qrScanner.js`

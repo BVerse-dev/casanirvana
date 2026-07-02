@@ -1,134 +1,118 @@
-"use client";
+'use client';
 
-import React from 'react';
+import { useMemo } from 'react';
 import { Card } from 'react-bootstrap';
-import { ApexOptions } from 'apexcharts';
+import type { ApexOptions } from 'apexcharts';
+
+import type { MarketplaceProductView } from '@/hooks/useMarketplaceWorkspace';
 import ReactApexChart from '@/components/wrappers/ReactApexChart';
 
-const ProductPerformanceChart = () => {
-  // Sample data for top-selling products
-  const series = [42, 26, 15, 10, 7];
-  const labels = ['Electronics', 'Fashion', 'Home & Kitchen', 'Beauty', 'Others'];
-  const colors = ['#727cf5', '#0acf97', '#fa5c7c', '#ffbc00', '#39afd1'];
-  
-  // Chart options
-  const options: ApexOptions = {
-    chart: {
-      height: 320,
-      type: 'donut',
-    },
-    colors: colors,
+interface ProductPerformanceChartProps {
+  products: MarketplaceProductView[];
+}
+
+const ProductPerformanceChart = ({ products }: ProductPerformanceChartProps) => {
+  const categorySeries = useMemo(() => {
+    const totals = new Map<string, number>();
+    const useSalesCount = products.some((product) => (product.sales_count || 0) > 0);
+
+    products.forEach((product) => {
+      const key = product.category_name || 'Unassigned';
+      const value = useSalesCount ? (product.sales_count || 0) : 1;
+      totals.set(key, (totals.get(key) || 0) + value);
+    });
+
+    const entries = Array.from(totals.entries()).sort((left, right) => right[1] - left[1]);
+    return {
+      labels: entries.map(([label]) => label),
+      series: entries.map(([, value]) => value),
+      usesSalesCount: useSalesCount,
+    };
+  }, [products]);
+
+  const topProducts = useMemo(() => [...products]
+    .sort((left, right) => {
+      const salesDelta = (right.sales_count || 0) - (left.sales_count || 0);
+      if (salesDelta !== 0) {
+        return salesDelta;
+      }
+      return (right.review_count || 0) - (left.review_count || 0);
+    })
+    .slice(0, 5), [products]);
+
+  const options = useMemo<ApexOptions>(() => ({
+    chart: { height: 320, type: 'donut' },
+    labels: categorySeries.labels,
+    colors: ['#f16e2b', '#1abc9c', '#3b82f6', '#f59e0b', '#6f42c1'],
     legend: {
       show: true,
       position: 'bottom',
       horizontalAlign: 'center',
-      floating: false,
       fontSize: '13px',
-      offsetX: 0,
-      offsetY: 7,
+      offsetY: 8,
     },
-    labels: labels,
-    responsive: [
-      {
-        breakpoint: 600,
-        options: {
-          chart: {
-            height: 240,
-          },
-          legend: {
-            show: false,
-          },
-        },
-      },
-    ],
     plotOptions: {
       pie: {
         donut: {
           size: '70%',
           labels: {
             show: true,
-            name: {
-              show: true,
-            },
-            value: {
-              show: true,
-              formatter: function (val) {
-                return val + '%';
-              },
-            },
             total: {
               show: true,
-              label: 'Total',
-              formatter: function () {
-                return '100%';
-              },
+              label: categorySeries.usesSalesCount ? 'Units' : 'Products',
+              formatter: () => String(categorySeries.series.reduce((sum, value) => sum + value, 0)),
             },
           },
         },
       },
     },
-  };
-
-  // Top products by sales
-  const topProducts = [
-    { name: 'iPhone 13 Pro Max', category: 'Electronics', sales: '$12,450', percentage: '+15%' },
-    { name: 'Samsung Galaxy S22', category: 'Electronics', sales: '$8,750', percentage: '+8%' },
-    { name: 'Nike Air Max', category: 'Fashion', sales: '$6,320', percentage: '+12%' },
-    { name: 'Instant Pot Duo', category: 'Home & Kitchen', sales: '$4,580', percentage: '+5%' },
-    { name: 'Neutrogena Face Wash', category: 'Beauty', sales: '$3,250', percentage: '+10%' },
-  ];
+    responsive: [{
+      breakpoint: 600,
+      options: { chart: { height: 240 }, legend: { show: false } },
+    }],
+  }), [categorySeries.labels, categorySeries.series, categorySeries.usesSalesCount]);
 
   return (
     <Card className="mb-3">
       <Card.Header>
-        <Card.Title className="mb-0">Category Performance</Card.Title>
+        <Card.Title className="mb-0">Category Mix</Card.Title>
       </Card.Header>
       <Card.Body>
-        <div className="text-center mb-3">
-          <p className="text-muted mb-1">Sales distribution by category</p>
-        </div>
-        <ReactApexChart
-          options={options}
-          series={series}
-          type="donut"
-          height={320}
-          className="apex-charts"
-        />
-        
+        <p className="text-muted mb-3">
+          {categorySeries.usesSalesCount ? 'Distribution by recorded product sales counts.' : 'Distribution by active catalog size. Recorded sales are not populated yet.'}
+        </p>
+        {categorySeries.series.length === 0 ? (
+          <div className="text-center py-5 text-muted">No marketplace products are available yet.</div>
+        ) : (
+          <ReactApexChart options={options} series={categorySeries.series} type="donut" height={320} className="apex-charts" />
+        )}
+
         <div className="mt-3">
-          <h5 className="font-14 mb-2">Top Selling Products</h5>
+          <h5 className="font-14 mb-2">Top Products</h5>
           <div className="table-responsive">
             <table className="table table-sm table-centered mb-0">
               <thead className="table-light">
                 <tr>
                   <th>Product</th>
                   <th>Category</th>
-                  <th>Sales</th>
-                  <th>Growth</th>
+                  <th>Units Sold</th>
+                  <th>Reviews</th>
                 </tr>
               </thead>
               <tbody>
-                {topProducts.map((item, idx) => (
-                  <tr key={idx}>
-                    <td>{item.name}</td>
-                    <td>
-                      <div className="d-flex align-items-center">
-                        <div 
-                          className="me-2" 
-                          style={{ 
-                            width: '10px', 
-                            height: '10px', 
-                            borderRadius: '50%', 
-                            backgroundColor: colors[idx % colors.length] 
-                          }}
-                        ></div>
-                        {item.category}
-                      </div>
-                    </td>
-                    <td>{item.sales}</td>
-                    <td className="text-success font-weight-semibold">{item.percentage}</td>
+                {topProducts.map((product) => (
+                  <tr key={product.id}>
+                    <td>{product.name}</td>
+                    <td>{product.category_name || 'Unassigned'}</td>
+                    <td>{product.sales_count || 0}</td>
+                    <td>{product.review_count || 0}</td>
                   </tr>
                 ))}
+                {topProducts.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="text-center py-3 text-muted">No product performance data is available.</td>
+                  </tr>
+                ) : null}
               </tbody>
             </table>
           </div>
@@ -139,4 +123,3 @@ const ProductPerformanceChart = () => {
 };
 
 export default ProductPerformanceChart;
-

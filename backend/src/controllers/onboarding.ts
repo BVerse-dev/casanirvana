@@ -1,4 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
+
+import { createHttpError } from '../lib/httpError';
 import { supabase } from '../lib/supabase';
 
 const ALLOWED_ONBOARDING_ROLES = ['agency_manager', 'facility_manager'] as const;
@@ -32,15 +34,17 @@ export async function createOnboardingRequest(req: Request, res: Response, next:
     } = req.body || {};
 
     if (!requested_role || !isAllowedOnboardingRole(requested_role)) {
-      return res.status(400).json({ error: 'Invalid requested_role' });
+      return next(createHttpError(400, 'ONBOARDING_ROLE_INVALID', 'Invalid requested_role'));
     }
 
     if (!first_name || !last_name || !email) {
-      return res.status(400).json({ error: 'first_name, last_name, and email are required' });
+      return next(
+        createHttpError(400, 'ONBOARDING_REQUIRED_FIELDS', 'first_name, last_name, and email are required')
+      );
     }
 
     if (typeof email !== 'string' || !email.includes('@')) {
-      return res.status(400).json({ error: 'Invalid email address' });
+      return next(createHttpError(400, 'ONBOARDING_EMAIL_INVALID', 'Invalid email address'));
     }
 
     const { data: existing, error: existingError } = await supabase
@@ -50,11 +54,24 @@ export async function createOnboardingRequest(req: Request, res: Response, next:
       .eq('status', 'pending');
 
     if (existingError) {
-      return res.status(500).json({ error: 'Failed to check existing requests', details: existingError });
+      return next(
+        createHttpError(
+          500,
+          'ONBOARDING_DUPLICATE_CHECK_FAILED',
+          'Failed to check existing requests',
+          existingError
+        )
+      );
     }
 
     if (existing && existing.length > 0) {
-      return res.status(409).json({ error: 'An onboarding request is already pending for this email' });
+      return next(
+        createHttpError(
+          409,
+          'ONBOARDING_REQUEST_ALREADY_PENDING',
+          'An onboarding request is already pending for this email'
+        )
+      );
     }
 
     const { data, error } = await supabase
@@ -79,7 +96,9 @@ export async function createOnboardingRequest(req: Request, res: Response, next:
       .single();
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to create onboarding request', details: error });
+      return next(
+        createHttpError(500, 'ONBOARDING_CREATE_FAILED', 'Failed to create onboarding request', error)
+      );
     }
 
     return res.status(201).json(data);
@@ -93,11 +112,13 @@ export async function listOnboardingRequests(req: Request, res: Response, next: 
     const { status, requested_role, search, limit, offset } = req.query;
 
     if (status && !isAllowedStatus(status)) {
-      return res.status(400).json({ error: 'Invalid status filter' });
+      return next(createHttpError(400, 'ONBOARDING_STATUS_FILTER_INVALID', 'Invalid status filter'));
     }
 
     if (requested_role && !isAllowedOnboardingRole(requested_role)) {
-      return res.status(400).json({ error: 'Invalid requested_role filter' });
+      return next(
+        createHttpError(400, 'ONBOARDING_ROLE_FILTER_INVALID', 'Invalid requested_role filter')
+      );
     }
 
     const limitValue = Math.min(parseInt(limit as string, 10) || 50, 200);
@@ -132,7 +153,9 @@ export async function listOnboardingRequests(req: Request, res: Response, next: 
     const { data, error, count } = await query.range(offsetValue, offsetValue + limitValue - 1);
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to fetch onboarding requests', details: error });
+      return next(
+        createHttpError(500, 'ONBOARDING_LIST_FAILED', 'Failed to fetch onboarding requests', error)
+      );
     }
 
     return res.json({ data, count, limit: limitValue, offset: offsetValue });
@@ -147,11 +170,11 @@ export async function updateOnboardingRequest(req: Request, res: Response, next:
     const { status, review_notes, invited_user_id } = req.body || {};
 
     if (!id) {
-      return res.status(400).json({ error: 'Missing onboarding request id' });
+      return next(createHttpError(400, 'ONBOARDING_ID_REQUIRED', 'Missing onboarding request id'));
     }
 
     if (status && !isAllowedStatus(status)) {
-      return res.status(400).json({ error: 'Invalid status value' });
+      return next(createHttpError(400, 'ONBOARDING_STATUS_INVALID', 'Invalid status value'));
     }
 
     const updates: Record<string, unknown> = {
@@ -175,7 +198,7 @@ export async function updateOnboardingRequest(req: Request, res: Response, next:
     }
 
     if (Object.keys(updates).length === 1) {
-      return res.status(400).json({ error: 'No updates provided' });
+      return next(createHttpError(400, 'ONBOARDING_UPDATE_EMPTY', 'No updates provided'));
     }
 
     const { data, error } = await supabase
@@ -186,7 +209,9 @@ export async function updateOnboardingRequest(req: Request, res: Response, next:
       .single();
 
     if (error) {
-      return res.status(500).json({ error: 'Failed to update onboarding request', details: error });
+      return next(
+        createHttpError(500, 'ONBOARDING_UPDATE_FAILED', 'Failed to update onboarding request', error)
+      );
     }
 
     return res.json(data);

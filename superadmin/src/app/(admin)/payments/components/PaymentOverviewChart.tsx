@@ -1,7 +1,7 @@
 "use client";
 import homeImg from "@/assets/images/home-2.png";
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
-import { useListPayments } from "@/hooks/usePayments";
+import { type AdminPaymentRecord, useListPayments } from "@/hooks/usePayments";
 import { ApexOptions } from "apexcharts";
 import Image from "next/image";
 import React from "react";
@@ -12,10 +12,10 @@ const PaymentOverviewChart = () => {
   const { data: payments = [] } = useListPayments();
   
   // Calculate payment statistics
-  const completedPayments = payments.filter(p => p.status === 'completed').length;
-  const pendingPayments = payments.filter(p => p.status === 'pending').length;
-  const failedPayments = payments.filter(p => p.status === 'failed').length;
-  const overduePayments = payments.filter(p => p.status === 'overdue').length;
+  const completedPayments = payments.filter((payment: AdminPaymentRecord) => payment.status === 'completed').length;
+  const pendingPayments = payments.filter((payment: AdminPaymentRecord) => payment.status === 'pending').length;
+  const failedPayments = payments.filter((payment: AdminPaymentRecord) => payment.status === 'failed').length;
+  const overduePayments = payments.filter((payment: AdminPaymentRecord) => payment.status === 'overdue').length;
   const totalPayments = payments.length;
 
   const series = [completedPayments, pendingPayments, failedPayments, overduePayments];
@@ -62,7 +62,10 @@ const PaymentOverviewChart = () => {
     ],
   };
 
-  const totalAmount = payments.reduce((sum, payment) => sum + payment.amount, 0);
+  const totalAmount = payments.reduce(
+    (sum: number, payment: AdminPaymentRecord) => sum + Number(payment.amount || 0),
+    0
+  );
 
   return (
     <Col xl={12} lg={12}>

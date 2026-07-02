@@ -4,7 +4,7 @@ import EmojiPicker from "@emoji-mart/react";
 import clsx from "clsx";
 
 import { yupResolver } from "@hookform/resolvers/yup";
-import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import {
   Button,
   Card,
@@ -29,7 +29,6 @@ import SimplebarReactClient from "@/components/wrappers/SimplebarReactClient";
 import { useChatContext } from "@/context/useChatContext";
 import { useLayoutContext } from "@/context/useLayoutContext";
 import type { ChatMessageType, UserType } from "@/types/data";
-import { addOrSubtractMinutesFromDate } from "@/utils/date";
 import { getFileExtensionIcon } from "@/utils/get-icons";
 import { 
   useGetGroup, 
@@ -37,12 +36,8 @@ import {
   useCreateGroupMessage 
 } from "@/hooks/useGroups";
 import { avatars } from "@/assets/images/users";
-import { supabase } from '@/lib/supabase';
 import { mapAvatarUrl } from "@/utils/avatarMapper";
 
-import small1 from "@/assets/images/small/img-1.jpg";
-import small2 from "@/assets/images/small/img-2.jpg";
-import small3 from "@/assets/images/small/img-3.jpg";
 import TextFormInput from "@/components/from/TextFormInput";
 import Image from "next/image";
 
@@ -50,215 +45,70 @@ interface GroupChatAreaProps {
   groupId: string;
 }
 
-const VideoCall = ({ group }: { group: any }) => {
-  const { videoCall } = useChatContext();
-  return (
-    <>
-      <li className="list-inline-item fs-20 dropdown">
-        <div
-          role="button"
-          className="btn btn-light avatar-sm d-flex align-items-center justify-content-center text-dark fs-20"
-          onClick={videoCall.toggle}
-        >
-          <span>
-            {" "}
-            <IconifyIcon icon="solar:videocamera-record-bold-duotone" />
-          </span>
-        </div>
-      </li>
-
-      <Modal
-        show={videoCall.open}
-        onHide={videoCall.toggle}
-        centered
-        contentClassName="video-call"
-        className="fade mx-auto d-flex"
-        id="videocall"
-        aria-hidden="true"
-      >
-        <ModalHeader className="border-0 mb-5 justify-content-end">
-          <div className="video-call-head">
-            <div className="me-2 rounded bg-primary d-flex align-items-center justify-content-center" style={{ width: 100, height: 100 }}>
-              <IconifyIcon icon="ri:group-line" className="fs-48 text-white" />
-            </div>
-          </div>
-        </ModalHeader>
-        <ModalBody>
-          <div className="video-call-action text-center pt-4 pb-0">
-            <ul className="d-flex align-items-center justify-content-evenly bg-dark m-3 p-2 rounded-pill">
-              <li className="list-inline-item avatar-sm me-2">
-                <button
-                  type="button"
-                  className="avatar-title rounded-circle bg-soft-light text-white fs-16 border-0"
-                >
-                  <IconifyIcon icon="ri:mic-off-line" />
-                </button>
-              </li>
-              <li className="list-inline-item avatar-sm">
-                <button
-                  type="button"
-                  className="avatar-title rounded-circle bg-soft-light text-white fs-16 border-0"
-                >
-                  <IconifyIcon icon="ri:volume-up-line" />
-                </button>
-              </li>
-              <li className="list-inline-item avatar-sm me-2">
-                <button
-                  type="button"
-                  className="avatar-title rounded-circle bg-soft-light text-white fs-16 border-0"
-                >
-                  <IconifyIcon icon="ri:camera-switch-line" />
-                </button>
-              </li>
-              <li className="list-inline-item avatar-sm">
-                <button
-                  type="button"
-                  className="avatar-title rounded-circle bg-soft-light text-white fs-16 border-0"
-                >
-                  <IconifyIcon icon="ri:camera-off-line" />
-                </button>
-              </li>
-              <li className="list-inline-item fw-bold" data-bs-dismiss="modal">
-                <Button
-                  variant="danger"
-                  size="sm"
-                  onClick={videoCall.toggle}
-                  className="rounded-pill d-flex icons-center"
-                >
-                  <IconifyIcon
-                    width={13}
-                    height={13}
-                    icon="ri:phone-line"
-                    className="me-1"
-                  />
-                  10:02
-                </Button>
-              </li>
-            </ul>
-          </div>
-        </ModalBody>
-      </Modal>
-    </>
-  );
-};
-
-const VoiceCall = ({ group }: { group: any }) => {
-  const { voiceCall } = useChatContext();
-  return (
-    <>
-      <li className="list-inline-item fs-20 dropdown">
-        <div
-          role="button"
-          className="btn btn-light avatar-sm d-flex align-items-center justify-content-center text-dark fs-20"
-          onClick={voiceCall.toggle}
-        >
-          <span>
-            {" "}
-            <IconifyIcon icon="solar:outgoing-call-rounded-bold-duotone" />
-          </span>
-        </div>
-      </li>
-
-      <Modal
-        show={voiceCall.open}
-        onHide={voiceCall.toggle}
-        centered
-        contentClassName="voice-call  mx-auto d-flex"
-        className="fade"
-        id="voicecall"
-        aria-hidden="true"
-      >
-        <ModalHeader className="border-0 mt-5 justify-content-center">
-          <div className="voice-call-head">
-            <div className="me-2 rounded-circle bg-primary d-flex align-items-center justify-content-center" style={{ width: 80, height: 80 }}>
-              <IconifyIcon icon="ri:group-line" className="fs-24 text-white" />
-            </div>
-          </div>
-        </ModalHeader>
-        <ModalBody className="pt-0 text-center">
-          <h5>{group?.name || 'Group Chat'}</h5>
-          <p className="mb-5">Calling...</p>
-          <div className="voice-call-action pt-4 pb-0">
-            <ul className="d-flex align-items-center justify-content-between bg-dark mx-5 mb-3 p-2 rounded-pill">
-              <li className="list-inline-item avatar-sm me-2">
-                <button
-                  type="button"
-                  className="avatar-title rounded-circle bg-soft-light text-white fs-16 border-0"
-                >
-                  <IconifyIcon icon="ri:mic-off-line" />
-                </button>
-              </li>
-              <li
-                className="list-inline-item avatar-sm me-2"
-                data-bs-dismiss="modal"
-              >
-                <button
-                  type="button"
-                  onClick={voiceCall.toggle}
-                  className="avatar-title rounded-circle bg-danger text-white fs-18 border-0"
-                >
-                  <IconifyIcon icon="solar:end-call-linear" />
-                </button>
-              </li>
-              <li className="list-inline-item avatar-sm">
-                <button
-                  type="button"
-                  className="avatar-title rounded-circle bg-soft-light text-white fs-16 border-0"
-                >
-                  <IconifyIcon icon="ri:volume-up-line" />
-                </button>
-              </li>
-            </ul>
-          </div>
-        </ModalBody>
-      </Modal>
-    </>
-  );
-};
-
-const MessageDropdown = ({
-  message,
-  toUser,
+const UnavailableCallAction = ({
+  icon,
+  title,
 }: {
-  message: ChatMessageType;
-  toUser: UserType;
-}) => {
-  return (
-    <Dropdown
-      drop={message.from.id === toUser.id ? "end" : "start"}
-      className="chat-conversation-actions"
+  icon: string;
+  title: string;
+}) => (
+  <li className="list-inline-item fs-20 dropdown">
+    <button
+      type="button"
+      className="btn btn-light avatar-sm d-flex align-items-center justify-content-center text-dark fs-20"
+      onClick={() =>
+        toast("Calls are not enabled in the admin messaging launch surface yet.", {
+          icon: "i",
+        })
+      }
+      title={title}
     >
+      <span>
+        <IconifyIcon icon={icon} />
+      </span>
+    </button>
+  </li>
+);
+
+const VideoCall = () => (
+  <UnavailableCallAction
+    icon="solar:videocamera-record-bold-duotone"
+    title="Video calling is not enabled in admin messaging yet"
+  />
+);
+
+const VoiceCall = () => (
+  <UnavailableCallAction
+    icon="solar:outgoing-call-rounded-bold-duotone"
+    title="Voice calling is not enabled in admin messaging yet"
+  />
+);
+
+const MessageDropdown = ({ copyValue }: { copyValue?: string }) => {
+  const handleCopy = async () => {
+    if (!copyValue) return;
+
+    try {
+      await navigator.clipboard.writeText(copyValue);
+      toast.success("Message copied.");
+    } catch {
+      toast.error("Could not copy the message.");
+    }
+  };
+
+  if (!copyValue) {
+    return null;
+  }
+
+  return (
+    <Dropdown className="chat-conversation-actions">
       <DropdownToggle as={"a"} role="button" className="ps-1">
         <IconifyIcon icon="bx:dots-vertical-rounded" className="fs-18" />
       </DropdownToggle>
       <DropdownMenu>
-        <DropdownItem>
-          <IconifyIcon icon="bx:share" className="me-2" />
-          Reply
-        </DropdownItem>
-        <DropdownItem>
-          <IconifyIcon icon="bx:share-alt" className="me-2" />
-          Forward
-        </DropdownItem>
-        <DropdownItem>
+        <DropdownItem onClick={handleCopy}>
           <IconifyIcon icon="bx:copy" className="me-2" />
           Copy
-        </DropdownItem>
-        <DropdownItem>
-          <IconifyIcon icon="bx:bookmark" className="me-2" />
-          Bookmark
-        </DropdownItem>
-        <DropdownItem>
-          <IconifyIcon icon="bx:star" className="me-2" />
-          Starred
-        </DropdownItem>
-        <DropdownItem>
-          <IconifyIcon icon="bx:info-square" className="me-2" />
-          Mark as Unread
-        </DropdownItem>
-        <DropdownItem>
-          <IconifyIcon icon="bx:trash" className="me-2" />
-          Delete
         </DropdownItem>
       </DropdownMenu>
     </Dropdown>
@@ -329,7 +179,13 @@ const UserMessage = ({
           })}
         >
           {message.from.id === toUser.id && (
-            <MessageDropdown message={message} toUser={toUser} />
+            <MessageDropdown
+              copyValue={
+                typeof message.message.value === "string" && message.message.value.trim().length > 0
+                  ? message.message.value
+                  : undefined
+              }
+            />
           )}
           <div className="chat-ctext-wrap d-flex ">
             {/* Text messages */}
@@ -420,7 +276,13 @@ const UserMessage = ({
               ))}
           </div>
           {message.from.id != toUser.id && (
-            <MessageDropdown message={message} toUser={toUser} />
+            <MessageDropdown
+              copyValue={
+                typeof message.message.value === "string" && message.message.value.trim().length > 0
+                  ? message.message.value
+                  : undefined
+              }
+            />
           )}
         </div>
       </div>
@@ -448,9 +310,6 @@ const GroupChatArea = ({ groupId }: GroupChatAreaProps) => {
     resolver: yupResolver(messageSchema),
   });
 
-  // File input ref for attachment functionality
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  
   // Image viewer state
   const [imageViewer, setImageViewer] = useState<{
     isOpen: boolean;
@@ -482,7 +341,7 @@ const GroupChatArea = ({ groupId }: GroupChatAreaProps) => {
       id: msg.from_user || 'unknown',
       name: `${profileData.first_name || 'User'} ${profileData.last_name || ''}`.trim(),
       avatar: mapAvatarUrl(profileData.avatar_url) || avatars.avatar1,
-      email: profileData.email || "user@example.com",
+      email: profileData.email || "Not provided",
       mutualCount: 0,
       contact: profileData.phone || "Not provided",
       activityStatus: "online" as const,
@@ -496,7 +355,7 @@ const GroupChatArea = ({ groupId }: GroupChatAreaProps) => {
       id: msg.from_user || 'unknown',
       name: "User",
       avatar: avatars.avatar1,
-      email: "user@example.com",
+      email: "Not provided",
       mutualCount: 0,
       contact: "Not provided",
       activityStatus: "online" as const,
@@ -538,79 +397,16 @@ const GroupChatArea = ({ groupId }: GroupChatAreaProps) => {
     status: "Active",
   };
 
-  /**
-   * Handle attachment button click
-   */
   const handleAttachmentClick = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
+    toast("File attachments are not enabled in admin messaging yet.", {
+      icon: "i",
+    });
   };
 
-  /**
-   * Handle file selection from file input
-   */
-  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || !currentUserId) return;
-
-    try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
-      const storagePath = `${currentUserId}/group-chat/${fileName}`;
-
-      const { error: uploadError } = await supabase
-        .storage
-        .from('chat-attachments')
-        .upload(storagePath, file, {
-          cacheControl: '3600',
-          upsert: false,
-        });
-
-      if (uploadError) {
-        throw uploadError;
-      }
-
-      const { data: { publicUrl } } = supabase.storage.from('chat-attachments').getPublicUrl(storagePath);
-
-      await createGroupMessageMutation.mutateAsync({
-        group_id: groupId,
-        body: `📎 ${file.name}`,
-        message_type: "file",
-        attachments: { 
-          filename: file.name,
-          size: file.size,
-          mimeType: file.type,
-          name: file.name,
-          url: publicUrl,
-        },
-      });
-    } catch {
-    }
-
-    // Clear the file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  /**
-   * Handle video call button click
-   */
-  const handleVideoCallClick = async () => {
-    try {
-      await createGroupMessageMutation.mutateAsync({
-        group_id: groupId,
-        body: `📹 Video call initiated`,
-        attachments: {
-          type: 'video_call',
-          action: 'initiated',
-          timestamp: new Date().toISOString()
-        },
-        message_type: 'video_call',
-      });
-    } catch {
-    }
+  const handleVideoCallClick = () => {
+    toast("Call controls are not enabled in the admin messaging launch surface yet.", {
+      icon: "i",
+    });
   };
 
   /**
@@ -667,7 +463,7 @@ const GroupChatArea = ({ groupId }: GroupChatAreaProps) => {
     return <div ref={elementRef} />;
   };
 
-  const { chatList, videoCall, voiceCall } = useChatContext();
+  const { chatList } = useChatContext();
   const { theme } = useLayoutContext();
 
   // Show loading state
@@ -714,46 +510,9 @@ const GroupChatArea = ({ groupId }: GroupChatAreaProps) => {
           </div>
           <div className="flex-grow-1">
             <ul className="list-inline float-end d-flex gap-1 mb-0">
-              <VideoCall group={group} />
+              <VideoCall />
 
-              <VoiceCall group={group} />
-
-              <Dropdown className="list-inline-item fs-20 d-none d-md-flex">
-                <DropdownToggle
-                  as={"a"}
-                  role="button"
-                  className="arrow-none text-dark"
-                  data-bs-toggle="dropdown"
-                  aria-expanded="false"
-                >
-                  <IconifyIcon icon="bx:dots-vertical-rounded" />
-                </DropdownToggle>
-                <DropdownMenu className="dropdown-menu-end">
-                  <DropdownItem>
-                    <IconifyIcon icon="ri:group-line" className="me-2" />
-                    Group Info
-                  </DropdownItem>
-                  <DropdownItem>
-                    <IconifyIcon icon="ri:music-2-line" className="me-2" />
-                    Media, Links and Docs
-                  </DropdownItem>
-                  <DropdownItem>
-                    <IconifyIcon icon="ri:search-2-line" className="me-2" />
-                    Search
-                  </DropdownItem>
-                  <DropdownItem>
-                    <IconifyIcon icon="ri:notification-line" className="me-2" />
-                    Mute Notifications
-                  </DropdownItem>
-                  <DropdownItem>
-                    <IconifyIcon
-                      icon="ri:arrow-right-circle-line"
-                      className="me-2"
-                    />
-                    More
-                  </DropdownItem>
-                </DropdownMenu>
-              </Dropdown>
+              <VoiceCall />
             </ul>
           </div>
         </CardHeader>
@@ -821,21 +580,11 @@ const GroupChatArea = ({ groupId }: GroupChatAreaProps) => {
                 </Col>
                 <Col sm={"auto"}>
                   <div className="d-flex gap-2">
-                    {/* Hidden file input for attachments */}
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleFileSelect}
-                      style={{ display: 'none' }}
-                      accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt"
-                    />
-                    
-                    {/* Attachment button */}
                     <Button 
                       variant="soft-success" 
                       size="sm"
                       onClick={handleAttachmentClick}
-                      title="Attach file"
+                      title="Attachments are not enabled for launch yet"
                     >
                       <IconifyIcon
                         icon="ri:attachment-2"
@@ -850,7 +599,7 @@ const GroupChatArea = ({ groupId }: GroupChatAreaProps) => {
                       variant="soft-warning" 
                       size="sm"
                       onClick={handleVideoCallClick}
-                      title="Start video call"
+                      title="Calling is not enabled for launch yet"
                     >
                       <IconifyIcon
                         icon="ri:video-on-line"

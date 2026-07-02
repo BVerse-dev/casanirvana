@@ -160,7 +160,7 @@ const smsProviderOptions = [
 
 const SystemConfigSettings = () => {
   const router = useRouter();
-  const { data: systemSettingsData, isLoading } = useSystemSettings();
+  const { data: systemSettingsData, isLoading, error: systemSettingsError } = useSystemSettings();
   const updateSystemSettingsMutation = useUpdateSystemSettings();
   const [activeTab, setActiveTab] = useState("general");
 
@@ -360,6 +360,15 @@ const SystemConfigSettings = () => {
           <span className="visually-hidden">Loading...</span>
         </div>
       </div>
+    );
+  }
+
+  if (systemSettingsError && !systemSettingsData) {
+    return (
+      <Alert variant="danger">
+        <IconifyIcon icon="ri:error-warning-line" className="me-2" />
+        Failed to load system configuration. Fix the backend connection and reload this page before making changes.
+      </Alert>
     );
   }
 

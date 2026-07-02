@@ -62,6 +62,13 @@ const UnitDetailsPage = () => {
       </>
     );
   }
+
+  const mapQuery = encodeURIComponent(
+    unit.communities?.address ||
+      [unit.communities?.name, unit.communities?.city, unit.communities?.state].filter(Boolean).join(", ") ||
+      "Ghana"
+  );
+
   return (
     <>
       <PageTitle title="Unit Overview" subName="Casa Nirvana" />
@@ -105,7 +112,7 @@ const UnitDetailsPage = () => {
                 scrolling="no"
                 marginHeight={0}
                 marginWidth={0}
-                src="https://maps.google.com/maps?width=1980&height=400&hl=en&q=University of Oxford&t=&z=14&ie=UTF8&iwloc=B&output=embed"
+                src={`https://maps.google.com/maps?width=1980&height=400&hl=en&q=${mapQuery}&t=&z=14&ie=UTF8&iwloc=B&output=embed`}
               />
             </div>
           </div>

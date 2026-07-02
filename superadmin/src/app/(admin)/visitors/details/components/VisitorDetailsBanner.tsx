@@ -4,36 +4,10 @@ import { Badge, Button, Card, CardBody, Col, Row } from 'react-bootstrap'
 import IconifyIcon from '@/components/wrappers/IconifyIcon'
 import Image from 'next/image'
 import avatar1 from '@/assets/images/users/avatar-1.jpg'
+import type { VisitorPassRecord } from '@/hooks/useVisitorPasses'
 
 interface VisitorDetailsBannerProps {
-  visitor: {
-    id: string
-    visitor_name: string
-    visitor_type?: string | null
-    visitor_phone?: string
-    purpose?: string
-    status: string | null
-    checked_in_at?: string
-    checked_out_at?: string
-    from_date?: string
-    to_date?: string
-    visit_date?: string | null
-    unit_label?: string
-    community_name?: string
-    agency_name?: string
-    created_by_display?: string
-    visitor_profile?: {
-      avatar_url?: any
-      full_name?: string
-    }
-    created_by_profile?: {
-      first_name?: string
-      last_name?: string
-      full_name?: string
-      email?: string
-      phone?: string
-    }
-  }
+  visitor: VisitorPassRecord
   onApprove?: () => Promise<void>
   onDeny?: () => Promise<void>
   onCheckIn?: () => Promise<void>

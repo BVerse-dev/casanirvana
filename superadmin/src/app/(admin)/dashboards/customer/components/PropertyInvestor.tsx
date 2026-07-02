@@ -1,33 +1,22 @@
 "use client";
+
+import avatar2 from "@/assets/images/users/avatar-2.jpg";
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
+import { useGuardDashboardSnapshot, useGuardPerformanceTrends } from "@/hooks/useGuardDashboard";
 import Image from "next/image";
 import Link from "next/link";
 import ReactApexChart from "react-apexcharts";
-import {
-  Button,
-  Card,
-  CardBody,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-  Col,
-} from "react-bootstrap";
-import { useGuardPerformanceTrends } from "@/hooks/useGuardDashboard";
-import { useGuardPerformances } from "@/hooks/useGuardPerformance";
-import avatar2 from "@/assets/images/users/avatar-2.jpg";
+import { Button, Card, CardBody, CardFooter, CardHeader, CardTitle, Col } from "react-bootstrap";
 
 const TopGuardProfile = () => {
+  const { data: dashboard, isLoading: snapshotLoading } = useGuardDashboardSnapshot();
   const { data: performanceTrends, isLoading: trendsLoading } = useGuardPerformanceTrends();
-  const { data: performances, isLoading: performancesLoading } = useGuardPerformances();
+  const topGuard = dashboard?.topGuardProfile || null;
 
-  const isLoading = trendsLoading || performancesLoading;
+  const isLoading = trendsLoading || snapshotLoading;
+  const guardPhone = topGuard?.contactPhone || "";
+  const guardContactHref = guardPhone ? `tel:${guardPhone}` : "";
 
-  // Get top performing guard
-  const topGuard = performances && performances.length > 0 
-    ? performances.sort((a, b) => b.overallRating - a.overallRating)[0]
-    : null;
-
-  // Chart options for guard performance
   const guardPerformanceOptions = {
     chart: {
       height: 182,
@@ -61,17 +50,14 @@ const TopGuardProfile = () => {
     series: [
       {
         name: "Performance",
-        data: performanceTrends?.performanceScores || [85, 88, 92, 87, 90, 94, 89, 91, 88, 93, 87, 95],
+        data: performanceTrends?.performanceScores || [],
       },
     ],
     legend: {
       show: false,
     },
     xaxis: {
-      categories: performanceTrends?.labels || [
-        "Jan", "Feb", "Mar", "Apr", "May", "Jun", 
-        "July", "Aug", "Sep", "Oct", "Nov", "Dec"
-      ],
+      categories: performanceTrends?.labels || [],
       axisBorder: {
         show: false,
       },
@@ -87,25 +73,10 @@ const TopGuardProfile = () => {
     tooltip: {
       y: [
         {
-          formatter: function (y: number) {
-            if (typeof y !== "undefined") {
-              return y.toFixed(1) + "%";
-            }
-            return y;
-          },
+          formatter: (value: number) => (typeof value === "number" ? `${value.toFixed(1)}%` : value),
         },
       ],
     },
-    responsive: [
-      {
-        breakpoint: 1025,
-        options: {
-          chart: {
-            height: 199,
-          },
-        },
-      },
-    ],
   };
 
   if (isLoading) {
@@ -118,16 +89,29 @@ const TopGuardProfile = () => {
           <CardBody>
             <div className="placeholder-glow">
               <div className="d-flex align-items-center gap-3 mb-3">
-                <div className="placeholder rounded-circle" style={{ width: '80px', height: '80px' }}></div>
+                <div className="placeholder rounded-circle" style={{ width: "80px", height: "80px" }}></div>
                 <div className="flex-grow-1">
                   <span className="placeholder col-6"></span>
                   <span className="placeholder col-4"></span>
                   <span className="placeholder col-8"></span>
                 </div>
               </div>
-              <div className="placeholder" style={{ height: '182px' }}></div>
+              <div className="placeholder" style={{ height: "182px" }}></div>
             </div>
           </CardBody>
+        </Card>
+      </Col>
+    );
+  }
+
+  if (!topGuard) {
+    return (
+      <Col xl={4}>
+        <Card>
+          <CardHeader>
+            <CardTitle>Top Guard Performance</CardTitle>
+          </CardHeader>
+          <CardBody className="text-center text-muted py-5">No guard performance reviews are available yet.</CardBody>
         </Card>
       </Col>
     );
@@ -150,120 +134,77 @@ const TopGuardProfile = () => {
             />
             <div>
               <h4 className="mb-1">
-                <Link
-                  href={`/guards/details?id=${topGuard?.guardId}`}
-                  className="mb-1 link-dark fw-semibold"
-                >
-                  {topGuard?.guardName || "Top Guard"}
+                <Link href={`/guards/details?id=${topGuard.guardId}`} className="mb-1 link-dark fw-semibold">
+                  {topGuard.guardName}
                 </Link>
               </h4>
-              <p className="link-primary fw-medium fs-14 mb-2">
-                Rating: {topGuard?.overallRating?.toFixed(1) || "N/A"}/5.0
-              </p>
+              <p className="link-primary fw-medium fs-14 mb-2">Rating: {topGuard.overallRating.toFixed(1)}/5.0</p>
               <ul className="list-inline d-flex flex-wrap gap-1 mb-0 align-items-center">
                 <li className="list-inline-item">
-                  <Button
-                    variant="soft-primary"
-                    className="d-flex align-items-center justify-content-center avatar-sm"
-                    title={`Punctuality: ${topGuard?.punctualityRating?.toFixed(1) || "N/A"}`}
-                  >
+                  <Button variant="soft-primary" className="d-flex align-items-center justify-content-center avatar-sm" title={`Punctuality: ${topGuard.punctualityRating.toFixed(1)}`}>
                     <span>
-                      <IconifyIcon
-                        width={16}
-                        height={16}
-                        icon="ri:time-line"
-                      />
+                      <IconifyIcon width={16} height={16} icon="ri:time-line" />
                     </span>
                   </Button>
                 </li>
                 <li className="list-inline-item">
-                  <Button
-                    variant="soft-success"
-                    className="d-flex align-items-center justify-content-center avatar-sm"
-                    title={`Reliability: ${topGuard?.reliabilityRating?.toFixed(1) || "N/A"}`}
-                  >
+                  <Button variant="soft-success" className="d-flex align-items-center justify-content-center avatar-sm" title={`Reliability: ${topGuard.reliabilityRating.toFixed(1)}`}>
                     <span>
-                      <IconifyIcon
-                        width={16}
-                        height={16}
-                        icon="ri:shield-check-line"
-                      />
+                      <IconifyIcon width={16} height={16} icon="ri:shield-check-line" />
                     </span>
                   </Button>
                 </li>
                 <li className="list-inline-item">
-                  <Button
-                    variant="soft-info"
-                    className="d-flex align-items-center justify-content-center avatar-sm"
-                    title={`Communication: ${topGuard?.communicationRating?.toFixed(1) || "N/A"}`}
-                  >
+                  <Button variant="soft-info" className="d-flex align-items-center justify-content-center avatar-sm" title={`Communication: ${topGuard.communicationRating.toFixed(1)}`}>
                     <span>
-                      <IconifyIcon
-                        width={16}
-                        height={16}
-                        icon="ri:message-3-line"
-                      />
+                      <IconifyIcon width={16} height={16} icon="ri:message-3-line" />
                     </span>
                   </Button>
                 </li>
                 <li className="list-inline-item">
-                  <Button
-                    variant="soft-warning"
-                    className="d-flex align-items-center justify-content-center avatar-sm"
-                    title={`Attendance: ${topGuard?.attendancePercentage?.toFixed(1) || "N/A"}%`}
-                  >
+                  <Button variant="soft-warning" className="d-flex align-items-center justify-content-center avatar-sm" title={`Attendance: ${topGuard.attendancePercentage.toFixed(1)}%`}>
                     <span>
-                      <IconifyIcon 
-                        width={16} 
-                        height={16} 
-                        icon="ri:calendar-check-line" 
-                      />
+                      <IconifyIcon width={16} height={16} icon="ri:calendar-check-line" />
                     </span>
                   </Button>
                 </li>
                 <li className="list-inline-item">
-                  <Button
-                    variant="soft-danger"
-                    className="d-flex align-items-center justify-content-center avatar-sm"
-                    title={`Incidents: ${topGuard?.incidentReports || 0}`}
-                  >
+                  <Button variant="soft-danger" className="d-flex align-items-center justify-content-center avatar-sm" title={`Incidents: ${topGuard.incidentReports || 0}`}>
                     <span>
-                      <IconifyIcon 
-                        width={16} 
-                        height={16} 
-                        icon="ri:alert-line" 
-                      />
+                      <IconifyIcon width={16} height={16} icon="ri:alert-line" />
                     </span>
                   </Button>
                 </li>
               </ul>
             </div>
           </div>
-          <div>
-            <ReactApexChart
-              options={guardPerformanceOptions}
-              series={guardPerformanceOptions.series}
-              height={182}
-              type="bar"
-              className="apex-charts mt-3"
-            />
-          </div>
+          {performanceTrends?.performanceScores?.length ? (
+            <div>
+              <ReactApexChart
+                options={guardPerformanceOptions}
+                series={guardPerformanceOptions.series}
+                height={182}
+                type="bar"
+                className="apex-charts mt-3"
+              />
+            </div>
+          ) : (
+            <p className="text-muted mt-4 mb-0">No monthly performance trend is available for charting yet.</p>
+          )}
         </CardBody>
         <CardFooter className="border-top border-dashed gap-1 hstack">
-          <Button 
-            variant="primary" 
-            className="w-100"
-            onClick={() => window.open(`/guards/details?id=${topGuard?.guardId}`, '_blank')}
-          >
+          <Link href={`/guards/details?id=${topGuard.guardId}`} className="btn btn-primary w-100">
             View Profile
-          </Button>
-          <Button 
-            variant="light" 
-            className="w-100"
-            onClick={() => window.open(`tel:${topGuard?.guardId}`, '_self')}
-          >
-            Contact Guard
-          </Button>
+          </Link>
+          {guardContactHref ? (
+            <Button as={"a"} href={guardContactHref} variant="light" className="w-100">
+              Contact Guard
+            </Button>
+          ) : (
+            <Button variant="light" className="w-100" disabled>
+              No Phone On File
+            </Button>
+          )}
         </CardFooter>
       </Card>
     </Col>

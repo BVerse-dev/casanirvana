@@ -164,15 +164,14 @@ const Contact = ({ onContactSelect, onAddContact }: ContactProps) => {
           <Button variant="secondary" onClick={() => setShowAddModal(false)}>
             Cancel
           </Button>
-          <Button
-            as={Link}
+          <Link
             href="/residents/add"
-            variant="primary"
+            className="btn btn-primary"
             onClick={() => setShowAddModal(false)}
           >
             <IconifyIcon icon="ri:arrow-right-line" className="me-1" />
             Open Resident Add Flow
-          </Button>
+          </Link>
         </Modal.Footer>
       </Modal>
     </SimplebarReactClient>

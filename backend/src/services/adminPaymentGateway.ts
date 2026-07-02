@@ -1,4 +1,5 @@
 import { adminSupabase } from '../lib/supabase';
+import { testExpressPayBillPayConfig } from './expresspayBillPay';
 
 const EXPRESSPAY_PROVIDER = 'expresspay';
 const DEFAULT_CURRENCY = 'GHS';
@@ -62,8 +63,11 @@ export type ExpressPayConfigView = {
   submit_url: string | null;
   query_url: string | null;
   checkout_url: string | null;
+  billpay_url: string | null;
   merchant_id_configured: boolean;
   api_key_configured: boolean;
+  billpay_username_configured: boolean;
+  billpay_auth_token_configured: boolean;
   last_tested_at: string | null;
   last_test_status: string | null;
   last_test_message: string | null;
@@ -80,10 +84,15 @@ export type UpsertExpressPayConfigInput = {
   submit_url?: string | null;
   query_url?: string | null;
   checkout_url?: string | null;
+  billpay_url?: string | null;
   merchant_id?: string | null;
   api_key?: string | null;
+  billpay_username?: string | null;
+  billpay_auth_token?: string | null;
   actor_profile_id?: string | null;
 };
+
+type ExpressPayTestTarget = 'checkout' | 'billpay';
 
 const asObject = (value: unknown): JsonRecord => {
   if (value && typeof value === 'object' && !Array.isArray(value)) {
@@ -120,7 +129,7 @@ const buildSecretName = ({
   mode: GatewayMode;
   scope: GatewayScope;
   communityId?: string | null;
-  key: 'merchant_id' | 'api_key';
+  key: 'merchant_id' | 'api_key' | 'billpay_username' | 'billpay_auth_token';
 }) => {
   const communityPart = communityId ? sanitizeSecretSuffix(communityId) : 'global';
   return `expresspay_${mode}_${scope}_${communityPart}_${key}`;
@@ -226,8 +235,11 @@ const toView = (row: GatewayConfigRow | null, mode: GatewayMode, scope: GatewayS
     submit_url: readString(publicConfig, 'submit_url'),
     query_url: readString(publicConfig, 'query_url'),
     checkout_url: readString(publicConfig, 'checkout_url'),
+    billpay_url: readString(publicConfig, 'billpay_url'),
     merchant_id_configured: Boolean(readString(secretRefs, 'merchant_id_secret_name')),
     api_key_configured: Boolean(readString(secretRefs, 'api_key_secret_name')),
+    billpay_username_configured: Boolean(readString(secretRefs, 'billpay_username_secret_name')),
+    billpay_auth_token_configured: Boolean(readString(secretRefs, 'billpay_auth_token_secret_name')),
     last_tested_at: row?.last_tested_at || null,
     last_test_status: row?.last_test_status || null,
     last_test_message: row?.last_test_message || null,
@@ -288,12 +300,13 @@ export const upsertExpressPayConfig = async (input: UpsertExpressPayConfigInput)
   maybeAssign('submit_url', input.submit_url);
   maybeAssign('query_url', input.query_url);
   maybeAssign('checkout_url', input.checkout_url);
+  maybeAssign('billpay_url', input.billpay_url);
 
   const secretRefs: JsonRecord = { ...existingSecretRefs };
 
   const persistSecret = async (
     rawValue: string | null | undefined,
-    key: 'merchant_id' | 'api_key'
+    key: 'merchant_id' | 'api_key' | 'billpay_username' | 'billpay_auth_token'
   ) => {
     const value = typeof rawValue === 'string' ? rawValue.trim() : '';
     if (!value) return;
@@ -309,6 +322,8 @@ export const upsertExpressPayConfig = async (input: UpsertExpressPayConfigInput)
 
   await persistSecret(input.merchant_id, 'merchant_id');
   await persistSecret(input.api_key, 'api_key');
+  await persistSecret(input.billpay_username, 'billpay_username');
+  await persistSecret(input.billpay_auth_token, 'billpay_auth_token');
 
   const payload: Record<string, unknown> = {
     provider: EXPRESSPAY_PROVIDER,
@@ -383,14 +398,17 @@ export const testExpressPayConfig = async ({
   mode,
   scope,
   communityId,
+  target,
 }: {
   mode?: string | null;
   scope?: string | null;
   communityId?: string | null;
+  target?: ExpressPayTestTarget | null;
 }) => {
   const normalizedMode = normalizeMode(mode);
   const normalizedScope = normalizeScope(scope);
   const resolvedCommunityId = normalizedScope === 'community' ? communityId || null : null;
+  const normalizedTarget: ExpressPayTestTarget = target === 'billpay' ? 'billpay' : 'checkout';
 
   const row = await getConfigRow({
     mode: normalizedMode,
@@ -400,6 +418,16 @@ export const testExpressPayConfig = async ({
 
   if (!row) {
     throw new Error('No ExpressPay configuration found for selected scope/mode. Save settings first.');
+  }
+
+  if (normalizedTarget === 'billpay') {
+    const result = await testExpressPayBillPayConfig({
+      mode: normalizedMode,
+      scope: normalizedScope,
+      communityId: resolvedCommunityId,
+    });
+    await updateTestStatus(row.id, result.passed ? 'passed' : 'failed', result.message);
+    return result;
   }
 
   const publicConfig = asObject(row.public_config);

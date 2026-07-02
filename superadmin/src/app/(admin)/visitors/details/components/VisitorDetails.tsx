@@ -6,39 +6,10 @@ import IconifyIcon from '@/components/wrappers/IconifyIcon'
 import Image from 'next/image'
 import QRCode from 'qrcode'
 import { toast } from 'react-hot-toast'
+import type { VisitorPassRecord } from '@/hooks/useVisitorPasses'
 
 interface VisitorDetailsProps {
-  visitor: {
-    id: string
-    visitor_name: string
-    visitor_phone?: string | null
-    visitor_type?: string | null
-    purpose?: string | null
-    status: string | null
-    checked_in_at?: string | null
-    checked_out_at?: string | null
-    from_date?: string | null
-    to_date?: string | null
-    visit_date?: string | null
-    created_at?: string | null
-    updated_at?: string | null
-    unit_label?: string
-    community_name?: string
-    agency_name?: string
-    entry_code?: string | null
-    qr_code_data?: string | null
-    created_by_display?: string
-    approved_by_display?: string
-    checked_in_by_display?: string
-    checked_out_by_display?: string
-    created_by_profile?: {
-      full_name?: string
-      first_name?: string
-      last_name?: string
-      email?: string
-      phone?: string
-    }
-  }
+  visitor: VisitorPassRecord
   onApprove?: () => Promise<void>
   onDeny?: () => Promise<void>
   onCheckIn?: () => Promise<void>
@@ -216,11 +187,11 @@ const VisitorDetails = ({
         light: '#FFFFFF',
       },
     })
-      .then((dataUrl) => {
+      .then((dataUrl: string) => {
         if (!active) return
         setQrCodeDataUrl(dataUrl)
       })
-      .catch((error) => {
+      .catch((error: Error) => {
         if (!active) return
         setQrCodeDataUrl(null)
         setQrCodeError(error?.message || 'Failed to render QR code')

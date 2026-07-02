@@ -23,6 +23,7 @@ import {
   saveAdminSmsSettings,
   saveAdminSmtpSettings,
   testAdminIntegrationSetting,
+  testAdminPaymentGatewaySettings,
   testAdminPushSettings,
   testAdminSmsSettings,
   testAdminSmtpSettings,
@@ -147,8 +148,8 @@ export async function updateIntegrationSettings(req: Request, res: Response, nex
 
 export async function testIntegrationSettings(req: Request, res: Response, next: NextFunction) {
   try {
-    const { service, value } = req.body || {};
-    const result = await testAdminIntegrationSetting(service, value);
+    const { service, value, settings } = req.body || {};
+    const result = await testAdminIntegrationSetting(service, value, settings || {});
     res.json(result);
   } catch (error) {
     next(error);
@@ -222,6 +223,16 @@ export async function updatePaymentGatewaySettings(req: Request, res: Response, 
   try {
     const settings = await saveAdminPaymentGatewaySettings(req.body || {}, req.user?.id ?? null);
     res.json({ settings });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function testPaymentGatewaySettings(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { gateway, settings } = req.body || {};
+    const result = await testAdminPaymentGatewaySettings(gateway, settings || {});
+    res.json(result);
   } catch (error) {
     next(error);
   }

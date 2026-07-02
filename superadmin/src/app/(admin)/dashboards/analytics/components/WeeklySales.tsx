@@ -5,9 +5,9 @@ import properties7 from "@/assets/images/properties/p-7.jpg";
 import properties8 from "@/assets/images/properties/p-8.jpg";
 import properties9 from "@/assets/images/properties/p-9.jpg";
 import Image from "next/image";
+import Link from "next/link";
 import ReactApexChart from "react-apexcharts";
 import {
-  Button,
   Card,
   CardBody,
   CardFooter,
@@ -17,62 +17,15 @@ import {
   CarouselItem,
   Col,
 } from "react-bootstrap";
-import { useListPayments } from "@/hooks/usePayments";
 import { currency } from "@/context/constants";
-import { useMemo } from "react";
+import { usePaymentTrend } from "@/hooks/usePaymentAnalyticsSummary";
 import { ApexOptions } from "apexcharts";
 
 const WeeklySales = () => {
-  const { data: payments = [] } = useListPayments();
+  const { currentMonthCollected, isLoading, trend } = usePaymentTrend("week");
 
-  // Calculate weekly collections data
-  const weeklyData = useMemo(() => {
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
+  const weeklyChartData = trend.map((point) => point.collected / 1000);
 
-    // Get current month payments
-    const currentMonthPayments = payments.filter((payment: any) => {
-      if (!payment.payment_date && !payment.due_date) return false;
-      const paymentDate = new Date(payment.payment_date || payment.due_date);
-      return paymentDate.getMonth() === currentMonth && 
-             paymentDate.getFullYear() === currentYear &&
-             payment.status === 'completed';
-    });
-
-    // Calculate total monthly collections
-    const totalMonthlyCollections = currentMonthPayments.reduce(
-      (sum: number, payment: any) => sum + Number(payment.amount || 0), 
-      0
-    );
-
-    // Generate weekly data for chart (last 7 days)
-    const weeklyChartData = [];
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      
-      const dayPayments = payments.filter((payment: any) => {
-        if (!payment.payment_date && !payment.due_date) return false;
-        const paymentDate = new Date(payment.payment_date || payment.due_date);
-        return paymentDate.toDateString() === date.toDateString() && 
-               payment.status === 'completed';
-      });
-      
-      const dayTotal = dayPayments.reduce((sum: number, payment: any) => 
-        sum + Number(payment.amount || 0), 0
-      );
-      
-      weeklyChartData.push(dayTotal / 1000); // Convert to thousands for chart
-    }
-
-    return {
-      totalMonthlyCollections,
-      weeklyChartData
-    };
-  }, [payments]);
-
-  // Chart options
   const salesOptions: ApexOptions = {
     chart: {
       height: 120,
@@ -106,7 +59,7 @@ const WeeklySales = () => {
     series: [
       {
         name: "Collections",
-        data: weeklyData.weeklyChartData,
+        data: weeklyChartData,
       },
     ],
     legend: {
@@ -153,6 +106,12 @@ const WeeklySales = () => {
           <CardTitle as={"h4"}>Weekly Collections</CardTitle>
         </CardHeader>
         <CardBody>
+          {isLoading ? (
+            <div className="placeholder-glow">
+              <div className="placeholder rounded" style={{ height: "200px" }}></div>
+            </div>
+          ) : (
+            <>
           <Carousel
             indicators={false}
             id="carouselExampleCaptions"
@@ -212,16 +171,18 @@ const WeeklySales = () => {
             type="bar"
             className="apex-charts mt-4"
           />
+            </>
+          )}
         </CardBody>
         <CardFooter className="border-top d-flex align-items-center justify-content-between">
           <p className="text-muted fw-medium fs-15 mb-0">
             <span className="text-dark me-1">Total Monthly Collections : </span>
-            {currency}{(weeklyData.totalMonthlyCollections / 1000).toFixed(1)}K
+            {currency}{(currentMonthCollected / 1000).toFixed(1)}K
           </p>
           <div>
-            <Button variant="primary" size="sm">
-              View More
-            </Button>
+            <Link href="/payments" className="btn btn-primary btn-sm">
+              View Payments
+            </Link>
           </div>
         </CardFooter>
       </Card>

@@ -1,44 +1,57 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Row, Col, Card, Button, Badge, Nav, Spinner } from 'react-bootstrap';
+import { Row, Col, Card, Button, Nav, Spinner } from 'react-bootstrap';
+
 import PageTitle from '@/components/PageTitle';
 import IconifyIcon from '@/components/wrappers/IconifyIcon';
-// Components
+import ExpressPayCatalogSyncNotice from '../components/ExpressPayCatalogSyncNotice';
 import ProviderManagementTable from './components/ProviderManagementTable';
 import AirtimeTransactionsTable from './components/AirtimeTransactionsTable';
 import AirtimeMetricCard from './components/AirtimeMetricCard';
 import AirtimeProviderPerformance from './components/AirtimeProviderPerformance';
 import AirtimeSuccessRateChart from './components/AirtimeSuccessRateChart';
-import AddProviderModal from './components/AddProviderModal';
-// Hook
+import { useAdminPersonalHubCatalog } from '@/hooks/useAdminPersonalHubCatalog';
 import { useAirtimeService } from '@/hooks/useAirtimeService';
 
 const AirtimeServicesPage = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'providers' | 'transactions'>('overview');
-  const [showAddProviderModal, setShowAddProviderModal] = useState(false);
-  const [editProvider, setEditProvider] = useState(null);
+  const [syncFeedback, setSyncFeedback] = useState<{ variant: 'success' | 'danger'; message: string } | null>(null);
+  const { metrics, loading, error, refetch } = useAirtimeService();
+  const { providers: catalogProviders, syncCatalog, isSyncing } = useAdminPersonalHubCatalog({
+    serviceType: 'airtime',
+  });
 
-  // Fetch metrics from database
-  const { metrics, loading, error } = useAirtimeService();
-
-  // Format number with commas
   const formatNumber = (num: number) => num.toLocaleString();
-  // Format currency
-  const formatCurrency = (num: number) => `₦${num.toLocaleString()}`;
+  const formatCurrency = (num: number) => `GH₵${num.toLocaleString()}`;
+
+  const handleSyncCatalog = async () => {
+    try {
+      const result = await syncCatalog();
+      await refetch();
+      setSyncFeedback({
+        variant: 'success',
+        message: `ExpressPay airtime catalog synced successfully. Imported ${result.data.imported_count} provider records.`,
+      });
+    } catch (syncError) {
+      setSyncFeedback({
+        variant: 'danger',
+        message: syncError instanceof Error ? syncError.message : 'Failed to sync ExpressPay airtime catalog.',
+      });
+    }
+  };
 
   return (
     <>
       <PageTitle title="Airtime Services" subName="Management Dashboard" />
 
-      {/* Top navigation tabs */}
       <Card className="mb-3">
         <Card.Body className="p-0">
           <Nav
             variant="tabs"
             className="nav-bordered"
             activeKey={activeTab}
-            onSelect={(k) => setActiveTab(k as any)}
+            onSelect={(k) => setActiveTab(k as 'overview' | 'providers' | 'transactions')}
           >
             <Nav.Item>
               <Nav.Link eventKey="overview">
@@ -59,9 +72,17 @@ const AirtimeServicesPage = () => {
         </Card.Body>
       </Card>
 
+      <ExpressPayCatalogSyncNotice
+        providers={catalogProviders}
+        isSyncing={isSyncing}
+        onSync={handleSyncCatalog}
+        feedback={syncFeedback}
+        description="Airtime providers in this workspace are sourced from the cached ExpressPay Bill Payments catalog. Manual provider creation is disabled so the user app, backend, and admin surfaces stay on one provider contract."
+        secondaryNote="Use catalog sync after ExpressPay enables, disables, or changes supported airtime services for your merchant profile."
+      />
+
       {activeTab === 'overview' && (
         <>
-          {/* Key metrics */}
           {loading ? (
             <div className="text-center py-4"><Spinner animation="border" /></div>
           ) : error ? (
@@ -107,7 +128,6 @@ const AirtimeServicesPage = () => {
             </Row>
           )}
 
-          {/* Charts and analytics */}
           <Row>
             <Col xl={8}>
               <AirtimeProviderPerformance />
@@ -117,7 +137,6 @@ const AirtimeServicesPage = () => {
             </Col>
           </Row>
 
-          {/* Recent transactions preview */}
           <Card>
             <Card.Header className="d-flex align-items-center">
               <Card.Title className="mb-0">Recent Transactions</Card.Title>
@@ -140,18 +159,6 @@ const AirtimeServicesPage = () => {
         <Card>
           <Card.Header className="d-flex align-items-center">
             <Card.Title className="mb-0">Network Providers</Card.Title>
-            <Button
-              variant="primary"
-              size="sm"
-              className="ms-auto"
-              onClick={() => {
-                setEditProvider(null);
-                setShowAddProviderModal(true);
-              }}
-            >
-              <IconifyIcon icon="ri:add-line" className="me-1" />
-              Add Provider
-            </Button>
           </Card.Header>
           <Card.Body>
             <ProviderManagementTable />
@@ -169,28 +176,8 @@ const AirtimeServicesPage = () => {
           </Card.Body>
         </Card>
       )}
-
-      {/* Add/Edit Provider Modal */}
-      <AddProviderModal
-        show={showAddProviderModal}
-        onHide={() => setShowAddProviderModal(false)}
-        onSave={handleSaveProvider}
-        editProvider={editProvider}
-      />
     </>
   );
-
-  // Handler for saving provider data
-  function handleSaveProvider(providerData: any) {
-    // In a real application, this would call an API to save the provider
-    console.log('Saving provider data:', providerData);
-
-    // For now, just show a success message
-    alert(editProvider
-      ? `Provider ${providerData.name} updated successfully!`
-      : `Provider ${providerData.name} added successfully!`
-    );
-  }
 };
 
 export default AirtimeServicesPage;

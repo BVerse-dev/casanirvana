@@ -26,7 +26,6 @@ import {
   type AnalyticsFilters,
   type ChannelPerformance,
 } from '@/hooks/useNotificationAnalytics'
-import { useNotificationRealtime } from '@/hooks/useNotificationRealtime'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement, PointElement, LineElement)
 
@@ -85,12 +84,6 @@ const NotificationAnalyticsView = () => {
   const { data: channelPerformance = [], isLoading: channelLoading } = useChannelPerformance(filters)
   const { data: topCampaignsResponse, isLoading: campaignsLoading } = useTopPerformingCampaigns(filters, campaignPage, campaignPageSize)
   const { data: trendsData = [], isLoading: trendsLoading } = usePerformanceTrends(filters)
-
-  useNotificationRealtime({
-    channelName: 'superadmin-notification-analytics',
-    tables: ['notification_campaigns'],
-    queryKeys: [['notification-analytics'], ['channel-performance'], ['top-campaigns'], ['performance-trends']],
-  })
 
   const analyticsData = analytics ?? {
     totalCampaigns: 0,

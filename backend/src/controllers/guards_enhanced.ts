@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { createHttpError } from '../lib/httpError';
 import { supabase } from '../lib/supabase';
 
 // Guard CRUD operations with all fields support
@@ -179,10 +180,7 @@ export async function getGuard(req: Request, res: Response, next: NextFunction) 
     if (error) throw error;
     
     if (!data) {
-      return res.status(404).json({
-        success: false,
-        message: 'Guard not found'
-      });
+      return next(createHttpError(404, 'GUARD_NOT_FOUND', 'Guard not found'));
     }
     
     res.json({
@@ -230,10 +228,7 @@ export async function updateGuard(req: Request, res: Response, next: NextFunctio
     if (error) throw error;
     
     if (!data) {
-      return res.status(404).json({
-        success: false,
-        message: 'Guard not found'
-      });
+      return next(createHttpError(404, 'GUARD_NOT_FOUND', 'Guard not found'));
     }
     
     // Also update corresponding user record if exists
@@ -311,10 +306,7 @@ export async function searchGuardsByPhone(req: Request, res: Response, next: Nex
     const { phone } = req.query;
     
     if (!phone) {
-      return res.status(400).json({
-        success: false,
-        message: 'Phone number is required'
-      });
+      return next(createHttpError(400, 'PHONE_REQUIRED', 'Phone number is required'));
     }
     
     const { data, error } = await supabase

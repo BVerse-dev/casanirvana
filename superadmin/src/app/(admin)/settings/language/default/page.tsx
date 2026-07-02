@@ -51,7 +51,7 @@ const defaultLanguageSettings: DefaultLanguageFormData = {
 
 const DefaultLanguagePage = () => {
   const [showAlert, setShowAlert] = useState<{ type: 'success' | 'danger'; message: string } | null>(null);
-  const { data: settingsData } = useSettingsCategory('localization', 'default_language');
+  const { data: settingsData, isLoading, error } = useSettingsCategory('localization', 'default_language');
   const updateSettings = useBulkUpdateSettings();
 
   const { control, handleSubmit, reset, formState: { isDirty, isSubmitting } } = useForm<DefaultLanguageFormData>({
@@ -69,6 +69,8 @@ const DefaultLanguagePage = () => {
       ...settingsData,
     });
   }, [settingsData, reset]);
+
+  const hasStoredSettings = Boolean(settingsData && Object.keys(settingsData).length > 0);
 
   const onSubmit = async (data: DefaultLanguageFormData) => {
     try {
@@ -147,6 +149,22 @@ const DefaultLanguagePage = () => {
     { value: 'Asia/Kolkata', label: 'UTC+05:30 (South Asia)' },
   ];
 
+  if (error && !settingsData) {
+    return (
+      <>
+        <PageTitle title="Default Language Settings" subName="Language" />
+        <Card>
+          <CardBody>
+            <Alert variant="danger" className="mb-0">
+              <IconifyIcon icon="material-symbols:error" className="me-2" />
+              Failed to load default language settings. Fix the backend connection and reload this page before making changes.
+            </Alert>
+          </CardBody>
+        </Card>
+      </>
+    );
+  }
+
   return (
     <>
       <PageTitle title="Default Language Settings" subName="Language" />
@@ -160,6 +178,23 @@ const DefaultLanguagePage = () => {
         </Alert>
       )}
 
+      {!isLoading && !hasStoredSettings && (
+        <Alert variant="info" className="mb-4">
+          <IconifyIcon icon="material-symbols:info" className="me-2" />
+          No saved language settings were found yet. You are editing the platform defaults for first-time setup.
+        </Alert>
+      )}
+
+      {isLoading ? (
+        <Card>
+          <CardBody className="text-center py-5">
+            <div className="spinner-border text-primary" role="status">
+              <span className="visually-hidden">Loading...</span>
+            </div>
+            <p className="mt-3 text-muted mb-0">Loading default language settings...</p>
+          </CardBody>
+        </Card>
+      ) : (
       <Form onSubmit={handleSubmit(onSubmit)}>
         <Row>
           <Col xl={12}>
@@ -322,6 +357,7 @@ const DefaultLanguagePage = () => {
           </Col>
         </Row>
       </Form>
+      )}
     </>
   );
 };

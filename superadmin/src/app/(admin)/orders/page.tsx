@@ -139,7 +139,7 @@ const MaintenanceRequestsPage = () => {
                             </div>
                           </td>
                           <td>
-                            {new Date(request.created_at).toLocaleDateString()}
+                            {request.created_at ? new Date(request.created_at).toLocaleDateString() : "N/A"}
                           </td>
                           <td>{request.request_type}</td>
                           <td>
@@ -164,7 +164,7 @@ const MaintenanceRequestsPage = () => {
                               {request.status}
                             </span>
                           </td>
-                          <td>{request.description.substring(0, 50)}...</td>
+                          <td>{request.description ? `${request.description.substring(0, 50)}...` : "No description"}</td>
                           <td>
                             {request.estimated_cost
                               ? `$${request.estimated_cost}`

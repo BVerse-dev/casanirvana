@@ -1,179 +1,148 @@
 "use client";
 
-import React, { useState } from 'react';
-import { Card, CardBody, CardHeader, CardTitle, Dropdown } from 'react-bootstrap';
-import IconifyIcon from '@/components/wrappers/IconifyIcon';
+import React, { useMemo, useState } from 'react';
+import { Alert, Card, CardBody, CardHeader, CardTitle, Form, Spinner } from 'react-bootstrap';
 import { ApexOptions } from 'apexcharts';
+
+import { PersonalHubReportsPeriod, usePersonalHubReports } from '@/hooks/usePersonalHubReports';
+import { buildSeriesByBucket } from '@/lib/personalHubCharts';
 import ReactApexChart from '@/components/wrappers/ReactApexChart';
 
+const PERIOD_OPTIONS: Array<{ value: PersonalHubReportsPeriod; label: string }> = [
+  { value: '7', label: 'Last 7 days' },
+  { value: '30', label: 'Last 30 days' },
+  { value: '365', label: 'Last 12 months' },
+];
+
+const COLORS = ['#727cf5', '#0acf97', '#fa5c7c', '#ffbc00'];
+const CHART_LIMIT = 1000;
+
 const AirtimeProviderPerformance = () => {
-  const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>('month');
-  
-  // Sample data - would be fetched from API in production
-  const chartData = {
-    week: {
-      dates: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-      series: [
-        {
-          name: 'MTN',
-          data: [76, 85, 101, 98, 87, 105, 91],
-        },
-        {
-          name: 'Telecel',
-          data: [54, 65, 60, 74, 85, 90, 70],
-        },
-        {
-          name: 'AirtelTigo',
-          data: [35, 41, 36, 26, 45, 48, 52],
-        },
-        {
-          name: 'Orange',
-          data: [25, 31, 32, 33, 41, 44, 29],
-        },
-      ],
-    },
-    month: {
-      dates: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-      series: [
-        {
-          name: 'MTN',
-          data: [644, 675, 735, 703],
-        },
-        {
-          name: 'Telecel',
-          data: [508, 478, 523, 482],
-        },
-        {
-          name: 'AirtelTigo',
-          data: [320, 337, 286, 294],
-        },
-        {
-          name: 'Orange',
-          data: [175, 203, 222, 192],
-        },
-      ],
-    },
-    year: {
-      dates: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-      series: [
-        {
-          name: 'MTN',
-          data: [2844, 2685, 2897, 2756, 2933, 3012, 3245, 3190, 3041, 3214, 3356, 3567],
-        },
-        {
-          name: 'Telecel',
-          data: [2108, 1978, 2123, 2056, 2231, 2345, 2456, 2378, 2290, 2367, 2498, 2534],
-        },
-        {
-          name: 'AirtelTigo',
-          data: [1320, 1287, 1356, 1389, 1456, 1523, 1598, 1623, 1589, 1645, 1701, 1798],
-        },
-        {
-          name: 'Orange',
-          data: [675, 703, 745, 789, 812, 856, 901, 923, 956, 978, 1023, 1078],
-        },
-      ],
-    },
-  };
-  
-  // Chart options
-  const options: ApexOptions = {
+  const [period, setPeriod] = useState<PersonalHubReportsPeriod>('30');
+  const { transactions, loading, error, transactionsTruncated } = usePersonalHubReports({
+    period,
+    serviceTypes: ['airtime'],
+    limit: CHART_LIMIT,
+  });
+
+  const topProviders = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const transaction of transactions) {
+      const label = transaction.provider?.trim() || 'Unassigned';
+      counts.set(label, (counts.get(label) || 0) + 1);
+    }
+
+    return Array.from(counts.entries())
+      .sort((left, right) => right[1] - left[1])
+      .slice(0, 4)
+      .map(([label]) => label);
+  }, [transactions]);
+
+  const chart = useMemo(() => {
+    if (topProviders.length === 0) {
+      return { categories: [] as string[], series: [] as Array<{ name: string; data: number[] }> };
+    }
+
+    const providerSet = new Set(topProviders);
+    return buildSeriesByBucket({
+      transactions,
+      period,
+      groups: topProviders,
+      getGroupKey: (transaction) => {
+        const label = transaction.provider?.trim() || 'Unassigned';
+        return providerSet.has(label) ? label : null;
+      },
+    });
+  }, [period, topProviders, transactions]);
+
+  const options: ApexOptions = useMemo(() => ({
     chart: {
       height: 350,
       type: 'bar',
-      toolbar: {
-        show: false,
-      },
-      zoom: {
-        enabled: false,
-      },
+      toolbar: { show: false },
     },
     plotOptions: {
       bar: {
         horizontal: false,
-        columnWidth: '55%',
-        endingShape: 'rounded',
+        columnWidth: '52%',
+        borderRadius: 4,
       },
     },
-    dataLabels: {
-      enabled: false,
-    },
-    colors: ['#727cf5', '#fa5c7c', '#0acf97', '#ffbc00'],
+    dataLabels: { enabled: false },
+    colors: COLORS,
     stroke: {
       show: true,
       width: 2,
       colors: ['transparent'],
     },
     xaxis: {
-      categories: chartData[timeRange].dates,
+      categories: chart.categories,
     },
     yaxis: {
-      title: {
-        text: 'Transactions',
+      title: { text: 'Transactions' },
+      labels: {
+        formatter: (value: number) => value.toLocaleString('en-GH'),
       },
     },
-    fill: {
-      opacity: 1,
-    },
-    grid: {
-      borderColor: '#f1f3fa',
-      padding: {
-        bottom: 10,
-      },
-    },
+    fill: { opacity: 1 },
+    grid: { borderColor: '#f1f3fa' },
     legend: {
-      offsetY: 7,
       position: 'top',
       horizontalAlign: 'right',
+      offsetY: 6,
     },
     tooltip: {
       y: {
-        formatter: function (val: number) {
-          return val.toLocaleString() + ' transactions';
-        },
+        formatter: (value: number) => `${value.toLocaleString('en-GH')} transactions`,
       },
     },
-  };
-
-  const handleRangeChange = (range: 'week' | 'month' | 'year') => {
-    setTimeRange(range);
-  };
+  }), [chart.categories]);
 
   return (
     <Card className="mb-3">
       <CardHeader className="d-flex align-items-center">
         <div>
           <CardTitle className="mb-0">Provider Performance</CardTitle>
-          <small className="text-muted">Transaction volume by provider</small>
+          <small className="text-muted">Airtime transaction count by provider</small>
         </div>
-        <Dropdown align="end" className="ms-auto">
-          <Dropdown.Toggle variant="light" className="cursor-pointer">
-            {timeRange === 'week' && 'This Week'}
-            {timeRange === 'month' && 'This Month'}
-            {timeRange === 'year' && 'This Year'}
-            <IconifyIcon icon="ri:arrow-down-s-line" className="ms-1" />
-          </Dropdown.Toggle>
-          <Dropdown.Menu>
-            <Dropdown.Item onClick={() => handleRangeChange('week')}>
-              This Week
-            </Dropdown.Item>
-            <Dropdown.Item onClick={() => handleRangeChange('month')}>
-              This Month
-            </Dropdown.Item>
-            <Dropdown.Item onClick={() => handleRangeChange('year')}>
-              This Year
-            </Dropdown.Item>
-          </Dropdown.Menu>
-        </Dropdown>
+        <Form.Select
+          size="sm"
+          value={period}
+          onChange={(event) => setPeriod(event.target.value as PersonalHubReportsPeriod)}
+          className="ms-auto"
+          style={{ maxWidth: 180 }}
+        >
+          {PERIOD_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </Form.Select>
       </CardHeader>
       <CardBody>
-        <ReactApexChart
-          options={options}
-          series={chartData[timeRange].series}
-          type="bar"
-          height={350}
-          className="apex-charts"
-        />
+        {loading && transactions.length === 0 ? (
+          <div className="text-center py-5">
+            <Spinner animation="border" size="sm" className="me-2" />
+            Loading airtime provider trend...
+          </div>
+        ) : error ? (
+          <Alert variant="danger" className="mb-0">{error}</Alert>
+        ) : topProviders.length === 0 ? (
+          <div className="py-5 text-center text-muted">No airtime provider activity is available for the selected period.</div>
+        ) : (
+          <>
+            {transactionsTruncated ? (
+              <div className="text-muted small mb-3">Chart is based on the newest 1,000 airtime transactions returned for this filter.</div>
+            ) : null}
+            <ReactApexChart
+              options={options}
+              series={chart.series}
+              type="bar"
+              height={350}
+              className="apex-charts"
+            />
+          </>
+        )}
       </CardBody>
     </Card>
   );

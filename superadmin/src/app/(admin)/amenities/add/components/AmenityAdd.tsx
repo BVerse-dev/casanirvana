@@ -3,11 +3,10 @@ import ChoicesFormInput from '@/components/from/ChoicesFormInput'
 import SelectFormInput from '@/components/from/SelectFormInput'
 import TextAreaFormInput from '@/components/from/TextAreaFormInput'
 import TextFormInput from '@/components/from/TextFormInput'
-import CheckFormInput from '@/components/from/CheckFormInput'
 import IconifyIcon from '@/components/wrappers/IconifyIcon'
 import { yupResolver } from '@hookform/resolvers/yup'
 import { Button, Card, CardBody, CardHeader, CardTitle, Col, Row, Form, InputGroup, Badge } from 'react-bootstrap'
-import { useForm, Controller, useFieldArray } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import * as yup from 'yup'
 import { useCreateAmenity } from '@/hooks/useAmenities'
 import { useListCommunities } from '@/hooks/useCommunities'
@@ -171,7 +170,10 @@ const AmenityAdd = () => {
     // Management & Contact
     maintenance_schedule: yup.string().required('Please enter maintenance schedule'),
     contact_person: yup.string().required('Please enter contact person name'),
-    contact_number: yup.string().required('Please enter contact number').matches(/^[6-9]\d{9}$/, 'Please enter a valid Indian mobile number'),
+    contact_number: yup
+      .string()
+      .required('Please enter contact number')
+      .matches(/^[+0-9()\-.\s]{7,20}$/, 'Please enter a valid phone number'),
     contact_email: yup.string().email('Please enter a valid email').optional(),
     
     // Features & Accessibility (arrays)
@@ -223,10 +225,27 @@ const AmenityAdd = () => {
     try {
       const availabilityStart = String(data.availability_start || '06:00').slice(0, 5)
       const availabilityEnd = String(data.availability_end || '22:00').slice(0, 5)
+      const advanceBookingHours = Number(data.advance_booking_hours || 0)
+      const advanceBookingDays = advanceBookingHours > 0 ? Math.ceil(advanceBookingHours / 24) : 0
+      const maxBookingDuration = Number(data.max_booking_duration || 2)
       const mergedFeatures = [
         ...(data.accessibility_features?.filter((f: string | undefined) => !!f) || []),
         ...(data.safety_features?.filter((f: string | undefined) => !!f) || []),
       ]
+      const availabilitySchedule = {
+        requires_approval: Boolean(data.requires_approval),
+        auto_approval: Boolean(data.auto_approval),
+        send_notifications: Boolean(data.send_notifications),
+        advance_booking_hours: advanceBookingHours,
+        booking_limit_per_day: Number(data.booking_limit_per_day || 1),
+      }
+      const maintenanceSchedule = {
+        summary: data.maintenance_schedule || '',
+        priority_level: data.priority_level || 'medium',
+        area_sqft: data.area_sqft || null,
+        contact_email: data.contact_email || null,
+        terms_and_conditions: data.terms_and_conditions || null,
+      }
 
       // Canonical payload for hook/service layer.
       const amenityData = {
@@ -237,15 +256,15 @@ const AmenityAdd = () => {
         type: data.is_paid ? 'paid' : 'free',
         location: data.floor_location || '',
         capacity: data.capacity || undefined,
-        status: data.is_active ? 'active' : 'inactive',
+        status: data.status || (data.is_active ? 'active' : 'inactive'),
         operatingHours: {
           open: availabilityStart,
           close: availabilityEnd,
           days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'],
         },
         bookingRequired: true,
-        advanceBookingDays: data.max_advance_booking_days || 0,
-        maxBookingDuration: data.maximum_booking_duration_hours || 2,
+        advanceBookingDays,
+        maxBookingDuration,
         chargesPerHour: data.is_paid ? Number(data.price_per_hour || 0) : 0,
         monthlyCharges: 0,
         securityDeposit: data.security_deposit || 0,
@@ -254,7 +273,7 @@ const AmenityAdd = () => {
         contactPhone: data.contact_number || '',
         maintenanceFrequency: 'weekly',
         lastMaintenance: data.last_maintenance || undefined,
-        rules: [data.rules_and_regulations || data.rules || ''].filter(Boolean),
+        rules: [data.rules_and_regulations || data.rules || '', data.terms_and_conditions || ''].filter(Boolean),
         images: data.images || [],
 
         // Legacy mirror fields to support remaining legacy views.
@@ -262,13 +281,17 @@ const AmenityAdd = () => {
         community_id: data.community_id,
         is_paid: data.is_paid,
         is_active: data.is_active,
+        advance_booking_hours: advanceBookingHours,
         price_per_hour: data.is_paid ? Number(data.price_per_hour || 0) : 0,
         availability_start: availabilityStart,
         availability_end: availabilityEnd,
-        booking_limit_per_day: data.booking_limit_per_day || data.booking_slots_per_day || 1,
+        booking_limit_per_day: Number(data.booking_limit_per_day || data.booking_slots_per_day || 1),
+        max_booking_duration: maxBookingDuration,
         cancellation_policy: data.cancellation_policy,
         rules_and_regulations: data.rules_and_regulations || data.rules,
         contact_number: data.contact_number,
+        availability_schedule: availabilitySchedule,
+        maintenance_schedule: maintenanceSchedule,
       }
       
       await createAmenity.mutateAsync(amenityData)
@@ -470,7 +493,7 @@ const AmenityAdd = () => {
                   <div className="mb-3">
                     <label className="form-label">Price per Hour</label>
                     <InputGroup>
-                      <InputGroup.Text>$</InputGroup.Text>
+                      <InputGroup.Text>GHS</InputGroup.Text>
                       <Controller
                         name="price_per_hour"
                         control={control}
@@ -491,7 +514,7 @@ const AmenityAdd = () => {
                   <div className="mb-3">
                     <label className="form-label">Security Deposit (Optional)</label>
                     <InputGroup>
-                      <InputGroup.Text>$</InputGroup.Text>
+                      <InputGroup.Text>GHS</InputGroup.Text>
                       <Controller
                         name="security_deposit"
                         control={control}
@@ -877,7 +900,7 @@ const AmenityAdd = () => {
                 <TextFormInput 
                   control={control} 
                   name="contact_number" 
-                  placeholder="Enter 10-digit mobile number" 
+                  placeholder="Enter contact phone number"
                   label="Contact Number *"
                 />
               </div>
@@ -935,7 +958,7 @@ const AmenityAdd = () => {
                   <IconifyIcon icon={isPaid ? "solar:card-bold" : "solar:gift-bold"} className="me-1" />
                   {isPaid ? 'Paid Service' : 'Free Service'}
                   {isPaid && watch('price_per_hour') && (
-                    <span className="text-success ms-2">${watch('price_per_hour')}/hour</span>
+                    <span className="text-success ms-2">GHS {watch('price_per_hour')}/hour</span>
                   )}
                 </div>
               </Col>

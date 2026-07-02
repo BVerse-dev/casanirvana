@@ -24,6 +24,7 @@ const ComplaintTrendChart = () => {
 
   const trendData = last7Days.map(date => {
     const dayComplaints = complaints.filter(complaint => {
+      if (!complaint.created_at) return false;
       const complaintDate = new Date(complaint.created_at);
       return complaintDate.toDateString() === date.toDateString();
     });

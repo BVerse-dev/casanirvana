@@ -1,19 +1,18 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
-import type { Database } from '@/lib/database.types';
 
-// Define temporary types until database.types.ts is regenerated
+import { useAdminApi } from './useAdminApi';
+
 type PreferenceCategory = {
   id: string;
   name: string;
   description: string | null;
   icon: string | null;
-  is_active: boolean;
+  is_active: boolean | null;
   order: number | null;
-  created_at: string;
-  updated_at: string;
+  created_at: string | null;
+  updated_at: string | null;
 };
 
 type PreferenceSetting = {
@@ -26,37 +25,13 @@ type PreferenceSetting = {
   default_value: any;
   options: any[] | null;
   validation: any | null;
-  is_user_editable: boolean;
-  is_system_setting: boolean;
-  created_at: string;
-  updated_at: string;
+  is_user_editable: boolean | null;
+  is_system_setting: boolean | null;
+  created_at: string | null;
+  updated_at: string | null;
   affected_users?: number;
 };
 
-type UserPreferenceValue = {
-  id: string;
-  user_id: string;
-  preference_id: string;
-  value: any;
-  created_at: string;
-  updated_at: string;
-};
-
-// Type for view data
-type PreferenceSettingWithStats = PreferenceSetting & {
-  affected_users: number;
-};
-
-type UserWithPreferenceStats = {
-  id: string;
-  email: string;
-  user_name: string;
-  user_role: string;
-  customizations: number;
-  last_updated: string;
-};
-
-// Parameter types for filtering and sorting
 interface ListPreferenceCategoriesParams {
   isActive?: boolean;
   sortBy?: 'name' | 'order' | 'created_at';
@@ -75,519 +50,197 @@ interface ListPreferenceSettingsParams {
   pageSize?: number;
 }
 
-interface ListUserPreferenceValuesParams {
-  userId?: string;
-  preferenceId?: string;
-}
+const buildQuery = (params: Record<string, unknown>) => {
+  const searchParams = new URLSearchParams();
 
-// ------ PREFERENCE CATEGORIES HOOKS ------
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '') return;
+    searchParams.set(key, String(value));
+  });
 
-// List preference categories with filtering
+  return searchParams.toString();
+};
+
 export const useListPreferenceCategories = (params: ListPreferenceCategoriesParams = {}) => {
+  const { fetchAdmin, hasToken } = useAdminApi();
+
   return useQuery({
     queryKey: ['preference-categories', params],
+    enabled: hasToken,
     queryFn: async () => {
-      let query = supabase
-        .from('preference_categories')
-        .select('*');
+      const response = await fetchAdmin<{ data?: PreferenceCategory[] }>('/admin/settings/preference-categories');
+      let categories = response.data || [];
 
-      // Apply filters
       if (params.isActive !== undefined) {
-        query = query.eq('is_active', params.isActive);
+        categories = categories.filter((category) => Boolean(category.is_active) === params.isActive);
       }
 
-      // Apply sorting
       const sortBy = params.sortBy || 'order';
       const sortOrder = params.sortOrder || 'asc';
-      query = query.order(sortBy, { ascending: sortOrder === 'asc' });
+      categories = [...categories].sort((left, right) => {
+        const leftValue = (left as any)[sortBy];
+        const rightValue = (right as any)[sortBy];
+        if (leftValue === rightValue) return 0;
+        if (leftValue === undefined || leftValue === null) return 1;
+        if (rightValue === undefined || rightValue === null) return -1;
+        const comparison = leftValue < rightValue ? -1 : 1;
+        return sortOrder === 'asc' ? comparison : comparison * -1;
+      });
 
-      const { data, error } = await query;
-      
-      if (error) throw error;
-      return data || [];
+      return categories;
     },
   });
 };
 
-// Get a single preference category
-export const useGetPreferenceCategory = (id: string) => {
-  return useQuery({
-    queryKey: ['preference-category', id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('preference_categories')
-        .select('*')
-        .eq('id', id)
-        .single();
-      
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!id,
-  });
-};
-
-// Create a preference category
-export const useCreatePreferenceCategory = () => {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async (categoryData: Omit<PreferenceCategory, 'id' | 'created_at' | 'updated_at'>) => {
-      const { data, error } = await supabase
-        .from('preference_categories')
-        .insert(categoryData)
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['preference-categories'] });
-    },
-  });
-};
-
-// Update a preference category
-export const useUpdatePreferenceCategory = () => {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<PreferenceCategory> & { id: string }) => {
-      const { data, error } = await supabase
-        .from('preference_categories')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['preference-categories'] });
-      queryClient.invalidateQueries({ queryKey: ['preference-category', variables.id] });
-    },
-  });
-};
-
-// Delete a preference category
-export const useDeletePreferenceCategory = () => {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('preference_categories')
-        .delete()
-        .eq('id', id);
-      
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['preference-categories'] });
-    },
-  });
-};
-
-// ------ PREFERENCE SETTINGS HOOKS ------
-
-// List preference settings with filtering and stats
 export const useListPreferenceSettings = (params: ListPreferenceSettingsParams = {}) => {
+  const { fetchAdmin, hasToken } = useAdminApi();
+
   return useQuery({
     queryKey: ['preference-settings', params],
+    enabled: hasToken,
     queryFn: async () => {
-      let query = supabase
-        .from('preference_settings_with_stats')
-        .select('*', { count: 'exact' });
+      const query = buildQuery(params as Record<string, unknown>);
+      const response = await fetchAdmin<{
+        data?: PreferenceSetting[];
+        count?: number;
+        page?: number;
+        pageSize?: number;
+        totalPages?: number;
+      }>(`/admin/settings/preference-settings${query ? `?${query}` : ''}`);
 
-      // Apply filters
-      if (params.search) {
-        query = query.or(`name.ilike.%${params.search}%,key.ilike.%${params.search}%,description.ilike.%${params.search}%`);
-      }
-      
-      if (params.categoryId) {
-        query = query.eq('category_id', params.categoryId);
-      }
-      
-      if (params.type) {
-        query = query.eq('type', params.type);
-      }
-      
-      if (params.isUserEditable !== undefined) {
-        query = query.eq('is_user_editable', params.isUserEditable);
-      }
-      
-      if (params.isSystemSetting !== undefined) {
-        query = query.eq('is_system_setting', params.isSystemSetting);
-      }
-
-      // Apply sorting
-      const sortBy = params.sortBy || 'created_at';
-      const sortOrder = params.sortOrder || 'desc';
-      query = query.order(sortBy, { ascending: sortOrder === 'asc' });
-
-      // Apply pagination
-      if (params.page !== undefined && params.pageSize !== undefined) {
-        const from = (params.page - 1) * params.pageSize;
-        const to = from + params.pageSize - 1;
-        query = query.range(from, to);
-      }
-
-      const { data, error, count } = await query;
-      
-      if (error) throw error;
-      
       return {
-        data: data || [],
-        count: count || 0,
-        page: params.page || 1,
-        pageSize: params.pageSize || 10,
-        totalPages: Math.ceil((count || 0) / (params.pageSize || 10))
+        data: response.data || [],
+        count: response.count || 0,
+        page: response.page || 1,
+        pageSize: response.pageSize || 10,
+        totalPages: response.totalPages || 0,
       };
     },
   });
 };
 
-// Get a single preference setting with stats
-export const useGetPreferenceSetting = (id: string) => {
-  return useQuery({
-    queryKey: ['preference-setting', id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('preference_settings_with_stats')
-        .select('*')
-        .eq('id', id)
-        .single();
-      
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!id,
-  });
-};
-
-// Create a preference setting
 export const useCreatePreferenceSetting = () => {
+  const { fetchAdmin } = useAdminApi();
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: async (settingData: Omit<PreferenceSetting, 'id' | 'created_at' | 'updated_at' | 'affected_users'>) => {
-      const { data, error } = await supabase
-        .from('preference_settings')
-        .insert(settingData)
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return data;
+    mutationFn: async (
+      settingData: Omit<PreferenceSetting, 'id' | 'created_at' | 'updated_at' | 'affected_users'>
+    ) => {
+      const response = await fetchAdmin<{ data: PreferenceSetting }>('/admin/settings/preference-settings', {
+        method: 'POST',
+        body: JSON.stringify(settingData),
+      });
+      return response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['preference-settings'] });
+      queryClient.invalidateQueries({ queryKey: ['preference-settings-stats'] });
     },
   });
 };
 
-// Update a preference setting
 export const useUpdatePreferenceSetting = () => {
+  const { fetchAdmin } = useAdminApi();
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<PreferenceSetting> & { id: string }) => {
-      // Filter out affected_users which is not a column in the base table
-      const { affected_users, ...validUpdates } = updates as any;
-      
-      const { data, error } = await supabase
-        .from('preference_settings')
-        .update(validUpdates)
-        .eq('id', id)
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return data;
+      const response = await fetchAdmin<{ data: PreferenceSetting }>(`/admin/settings/preference-settings/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(updates),
+      });
+      return response.data;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['preference-settings'] });
       queryClient.invalidateQueries({ queryKey: ['preference-setting', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['preference-settings-stats'] });
     },
   });
 };
 
-// Delete a preference setting
 export const useDeletePreferenceSetting = () => {
+  const { fetchAdmin } = useAdminApi();
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('preference_settings')
-        .delete()
-        .eq('id', id);
-      
-      if (error) throw error;
+      await fetchAdmin(`/admin/settings/preference-settings/${id}`, {
+        method: 'DELETE',
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['preference-settings'] });
+      queryClient.invalidateQueries({ queryKey: ['preference-settings-stats'] });
     },
   });
 };
 
-// ------ USER PREFERENCE VALUES HOOKS ------
-
-// List user preference values with filtering
-export const useListUserPreferenceValues = (params: ListUserPreferenceValuesParams = {}) => {
-  return useQuery({
-    queryKey: ['user-preference-values', params],
-    queryFn: async () => {
-      let query = supabase
-        .from('user_preference_values')
-        .select(`
-          *,
-          preference_settings!inner(
-            id,
-            key,
-            name,
-            description,
-            type,
-            default_value,
-            options,
-            category_id
-          )
-        `);
-
-      // Apply filters
-      if (params.userId) {
-        query = query.eq('user_id', params.userId);
-      }
-      
-      if (params.preferenceId) {
-        query = query.eq('preference_id', params.preferenceId);
-      }
-
-      const { data, error } = await query;
-      
-      if (error) throw error;
-      return data || [];
-    },
-  });
-};
-
-// Get a single user preference value
-export const useGetUserPreferenceValue = (userId: string, preferenceId: string) => {
-  return useQuery({
-    queryKey: ['user-preference-value', userId, preferenceId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('user_preference_values')
-        .select(`
-          *,
-          preference_settings!inner(
-            id,
-            key,
-            name,
-            description,
-            type,
-            default_value,
-            options
-          )
-        `)
-        .eq('user_id', userId)
-        .eq('preference_id', preferenceId)
-        .single();
-      
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!(userId && preferenceId),
-  });
-};
-
-// Create or update a user preference value
-export const useSetUserPreferenceValue = () => {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async ({ 
-      userId, 
-      preferenceId, 
-      value 
-    }: { 
-      userId: string; 
-      preferenceId: string; 
-      value: any 
-    }) => {
-      // Convert value to JSONB if it's not already
-      const jsonValue = typeof value === 'object' 
-        ? value 
-        : JSON.parse(JSON.stringify(value));
-
-      const { data, error } = await supabase
-        .from('user_preference_values')
-        .upsert({
-          user_id: userId,
-          preference_id: preferenceId,
-          value: jsonValue
-        }, {
-          onConflict: 'user_id,preference_id',
-        })
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['user-preference-values', { userId: variables.userId }] });
-      queryClient.invalidateQueries({ queryKey: ['user-preference-value', variables.userId, variables.preferenceId] });
-    },
-  });
-};
-
-// Delete a user preference value
-export const useDeleteUserPreferenceValue = () => {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async ({ userId, preferenceId }: { userId: string; preferenceId: string }) => {
-      const { error } = await supabase
-        .from('user_preference_values')
-        .delete()
-        .eq('user_id', userId)
-        .eq('preference_id', preferenceId);
-      
-      if (error) throw error;
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['user-preference-values', { userId: variables.userId }] });
-    },
-  });
-};
-
-// ------ STATISTICS HOOKS ------
-
-// Get preference setting statistics
 export const usePreferenceSettingsStats = () => {
+  const { fetchAdmin, hasToken } = useAdminApi();
+
   return useQuery({
     queryKey: ['preference-settings-stats'],
+    enabled: hasToken,
     queryFn: async () => {
-      // Get categories for categorization
-      const { data: categories, error: categoriesError } = await supabase
-        .from('preference_categories')
-        .select('id, name');
-      
-      if (categoriesError) throw categoriesError;
-
-      // Get all settings with stats
-      const { data: settings, error: settingsError } = await supabase
-        .from('preference_settings_with_stats')
-        .select('*');
-      
-      if (settingsError) throw settingsError;
-      
-      const categoriesMap = Object.fromEntries(
-        (categories || []).map(cat => [cat.id, cat.name])
-      );
-      
-      const stats = {
-        total: settings?.length || 0,
-        userEditable: settings?.filter(s => s.is_user_editable).length || 0,
-        systemSettings: settings?.filter(s => s.is_system_setting).length || 0,
-        byCategory: Object.fromEntries(
-          (categories || []).map(cat => [
-            cat.id, 
-            settings?.filter(s => s.category_id === cat.id).length || 0
-          ])
-        ),
-        categoriesMap, // Add category names for display
-        byType: {} as Record<string, number>
-      };
-
-      // Count by type
-      settings?.forEach(setting => {
-        if (!stats.byType[setting.type]) {
-          stats.byType[setting.type] = 0;
-        }
-        stats.byType[setting.type]++;
-      });
-
-      return stats;
+      const response = await fetchAdmin<{ data: any }>('/admin/settings/preference-settings/stats');
+      return response.data;
     },
   });
 };
 
-// Get users with preference customizations
-export const useUsersWithPreferenceStats = () => {
-  return useQuery({
-    queryKey: ['users-preference-stats'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('users_with_preference_stats')
-        .select('*');
-      
-      if (error) throw error;
-      return data as UserWithPreferenceStats[] || [];
-    },
-  });
-};
-
-// ------ HELPER FUNCTIONS ------
-
-// Convert a database preference setting to the UI format
 export const mapPreferenceSettingToUI = (setting: PreferenceSetting): any => {
+  const normalizedOptions = Array.isArray(setting.options)
+    ? setting.options.map((option: any) => {
+        if (option && typeof option === 'object' && 'value' in option && 'label' in option) {
+          return option;
+        }
+
+        return {
+          value: option,
+          label: String(option),
+        };
+      })
+    : [];
+
   return {
     id: setting.id,
     categoryId: setting.category_id,
     key: setting.key,
     name: setting.name,
-    description: setting.description,
+    description: setting.description || '',
     type: setting.type,
     defaultValue: setting.default_value,
-    options: setting.options,
-    isUserEditable: setting.is_user_editable,
-    isSystemSetting: setting.is_system_setting,
+    options: normalizedOptions,
+    validation: setting.validation || {},
+    isUserEditable: Boolean(setting.is_user_editable),
+    isSystemSetting: Boolean(setting.is_system_setting),
     affectedUsers: setting.affected_users || 0,
     createdDate: setting.created_at?.split('T')[0] || '',
-    updatedDate: setting.updated_at?.split('T')[0] || ''
+    updatedDate: setting.updated_at?.split('T')[0] || '',
   };
 };
 
-// Convert a database preference category to the UI format
-export const mapPreferenceCategoryToUI = (category: PreferenceCategory): any => {
-  return {
-    id: category.id,
-    name: category.name,
-    description: category.description,
-    icon: category.icon,
-    isActive: category.is_active,
-    order: category.order
-  };
-};
+export const mapPreferenceCategoryToUI = (category: PreferenceCategory): any => ({
+  id: category.id,
+  name: category.name,
+  description: category.description || '',
+  icon: category.icon || '',
+  isActive: Boolean(category.is_active),
+  order: category.order || 0,
+});
 
-// Convert UI format to database format for preference settings
-export const mapUIToPreferenceSetting = (uiSetting: any): Partial<PreferenceSetting> => {
-  return {
-    id: uiSetting.id,
-    category_id: uiSetting.categoryId,
-    key: uiSetting.key,
-    name: uiSetting.name,
-    description: uiSetting.description,
-    type: uiSetting.type,
-    default_value: uiSetting.defaultValue,
-    options: uiSetting.options,
-    is_user_editable: uiSetting.isUserEditable,
-    is_system_setting: uiSetting.isSystemSetting
-  };
-};
-
-// Convert UI format to database format for preference categories
-export const mapUIToPreferenceCategory = (uiCategory: any): Partial<PreferenceCategory> => {
-  return {
-    id: uiCategory.id,
-    name: uiCategory.name,
-    description: uiCategory.description,
-    icon: uiCategory.icon,
-    is_active: uiCategory.isActive,
-    order: uiCategory.order
-  };
-};
+export const mapUIToPreferenceSetting = (uiSetting: any): Partial<PreferenceSetting> => ({
+  id: uiSetting.id,
+  category_id: uiSetting.categoryId,
+  key: uiSetting.key,
+  name: uiSetting.name,
+  description: uiSetting.description,
+  type: uiSetting.type,
+  default_value: uiSetting.defaultValue,
+  options: uiSetting.options,
+  validation: uiSetting.validation,
+  is_user_editable: uiSetting.isUserEditable,
+  is_system_setting: uiSetting.isSystemSetting,
+});

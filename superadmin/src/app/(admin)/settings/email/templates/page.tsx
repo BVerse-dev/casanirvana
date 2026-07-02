@@ -79,7 +79,10 @@ const EmailTemplatesPage = () => {
       },
       onError: (error: any) => {
         console.error('Error updating email templates:', error);
-        setShowAlert({ type: 'danger', message: 'Failed to update email templates. Please try again.' });
+        setShowAlert({
+          type: 'danger',
+          message: error?.message || 'Failed to update email templates. Please try again.',
+        });
         setTimeout(() => setShowAlert(null), 5000);
       }
     });
@@ -130,6 +133,12 @@ const EmailTemplatesPage = () => {
           {showAlert.message}
         </Alert>
       )}
+
+      <Alert variant="info">
+        <IconifyIcon icon="ri:information-line" className="me-2" />
+        This page controls the content of automated email templates only. SMTP transport is configured on the SMTP
+        page, and delivery rules are controlled on Email Notifications.
+      </Alert>
 
       <form onSubmit={handleSubmit(onSubmit)}>
         <Row>

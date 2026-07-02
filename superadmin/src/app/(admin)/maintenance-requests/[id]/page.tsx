@@ -177,7 +177,7 @@ const MaintenanceRequestDetailsPage = () => {
     iconClass: string;
   }>;
 
-  const handleStatusUpdate = async (newStatus: string) => {
+  const handleStatusUpdate = async (newStatus: "pending" | "in_progress" | "completed" | "cancelled") => {
     if (!request || request.status === newStatus) return;
 
     setFeedback(null);
@@ -185,15 +185,6 @@ const MaintenanceRequestDetailsPage = () => {
     try {
       await updateMaintenanceRequest.mutateAsync({
         status: newStatus,
-        updated_at: new Date().toISOString(),
-        ...(newStatus === "completed" && {
-          resolved_at: new Date().toISOString(),
-          completed_at: new Date().toISOString(),
-        }),
-        ...(newStatus !== "completed" && {
-          resolved_at: null,
-          completed_at: null,
-        }),
       });
       setFeedback({
         variant: "success",
@@ -564,7 +555,7 @@ const MaintenanceRequestDetailsPage = () => {
                     return avatarImage ? (
                       <Image
                         src={avatarImage}
-                        alt={request.requester_profile.full_name || "User"}
+                        alt={request.requester_profile?.full_name || "User"}
                         width={50}
                         height={50}
                         className="avatar-md rounded-circle"

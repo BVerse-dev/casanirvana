@@ -1,13 +1,14 @@
 import "react-native-gesture-handler";
 import 'react-native-reanimated';
 import { useFonts } from "expo-font";
+import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import {
   createStackNavigator,
   TransitionPresets,
 } from "@react-navigation/stack";
 import { withTranslation } from "react-i18next";
-import { NavigationContainer } from "@react-navigation/native";
+import { NavigationContainer, createNavigationContainerRef } from "@react-navigation/native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AppQueryClientProvider } from "./components/QueryClientProvider";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -91,8 +92,11 @@ import OpenSourceLicensesScreen from "./screens/openSourceLicensesScreen";
 import PinSetupScreen from "./screens/pinSetupScreen";
 import LockScreen from "./screens/lockScreen";
 import ModuleGuardScreen from "./components/ModuleGuardScreen";
+import MonitoringErrorBoundary from "./components/MonitoringErrorBoundary";
+import { initializeMonitoring, setMonitoringRouteName } from "./services/monitoringService";
 
 const Stack = createStackNavigator();
+const navigationRef = createNavigationContainerRef();
 
 const withModuleGuard = (screenName, ScreenComponent) => {
   const GuardedScreen = (props) => (
@@ -125,7 +129,11 @@ const GuardedMarketplaceHomeScreen = withModuleGuard("marketplaceHomeScreen", Ma
 
 const MainNavigation = () => {
   return (
-    <NavigationContainer>
+    <NavigationContainer
+      ref={navigationRef}
+      onReady={() => setMonitoringRouteName(navigationRef.getCurrentRoute()?.name)}
+      onStateChange={() => setMonitoringRouteName(navigationRef.getCurrentRoute()?.name)}
+    >
       <AppLockProvider>
         <NotificationProvider>
           <NotificationNavigationHandler>
@@ -524,6 +532,10 @@ export default function App() {
     "Inter-Medium": require("./assets/fonts/Inter-Medium.ttf"),
   });
 
+  useEffect(() => {
+    initializeMonitoring();
+  }, []);
+
   if (!loaded) {
     return null;
   }
@@ -533,7 +545,9 @@ export default function App() {
       <SafeAreaProvider>
         <AppQueryClientProvider>
           <AuthProvider>
-            <ReloadAppOnLanguageChange />
+            <MonitoringErrorBoundary>
+              <ReloadAppOnLanguageChange />
+            </MonitoringErrorBoundary>
           </AuthProvider>
         </AppQueryClientProvider>
       </SafeAreaProvider>

@@ -126,7 +126,11 @@ const stripEmptyValues = (value: unknown): unknown => {
   return value === null ? undefined : value
 }
 
-const AgencyAdd = () => {
+type AgencyAddProps = {
+  formId?: string
+}
+
+const AgencyAdd = ({ formId = 'agency-directory-form' }: AgencyAddProps) => {
   const router = useRouter()
   const createAgencyDirectory = useCreateAgencyDirectory()
 
@@ -136,7 +140,7 @@ const AgencyAdd = () => {
     reset,
     formState: { errors },
   } = useForm<CreateAgencyData>({
-    resolver: yupResolver(agencySchema),
+    resolver: yupResolver(agencySchema) as any,
     defaultValues: {
       is_active: true,
       agency_type: 'RESIDENTIAL',
@@ -190,7 +194,7 @@ const AgencyAdd = () => {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)}>
+    <form id={formId} onSubmit={handleSubmit(onSubmit)}>
       <Card className="mb-4">
         <CardHeader>
           <CardTitle as={'h4'}>

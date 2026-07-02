@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { useAdminApi } from './useAdminApi';
 
 // Types matching the UI interface and database schema
 export interface AgencyProfile {
@@ -134,16 +135,14 @@ const transformToDB = (data: CreateAgencyProfileData | UpdateAgencyProfileData) 
 
 // Hook to get all agency profiles
 export const useAgencyProfiles = () => {
+  const { fetchAdmin, hasToken } = useAdminApi();
+
   return useQuery({
     queryKey: ['agencyProfiles'],
+    enabled: hasToken,
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from('agency_profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data?.map(transformFromDB) || [];
+      const response = await fetchAdmin<{ data?: any[] }>('/admin/agencies/profiles');
+      return (response.data || []).map(transformFromDB);
     },
   });
 };
@@ -317,4 +316,4 @@ export const useAgencyStatistics = () => {
       };
     },
   });
-}; 
+};
