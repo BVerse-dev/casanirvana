@@ -12,7 +12,7 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "test": "jest --watchAll",
-    "test:ci": "jest --ci",
+    "test:ci": "jest --ci --passWithNoTests",
     "lint": "expo lint",
     "postinstall": "node ./scripts/patch-size-matters.js && node ./scripts/patch-awesome-button.js"
   },

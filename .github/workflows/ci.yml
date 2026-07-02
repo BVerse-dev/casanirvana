@@ -42,6 +42,11 @@ jobs:
     env:
       NEXT_PUBLIC_API_URL: http://localhost:8080
       NEXT_PUBLIC_ADMIN_SIGNUP_DISABLED: "true"
+      NEXTAUTH_SECRET: ci-placeholder-nextauth-secret
+      NEXTAUTH_URL: http://localhost:3000
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
+      SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-service-role-key
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
