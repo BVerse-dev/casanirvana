@@ -1,0 +1,5 @@
+-- Remote migration history marker: 20250725064642 promote_more_residents_to_committee_and_members
+--
+-- This version is already recorded as applied in the live Casa Nirvana Supabase project.
+-- The pre-baseline schema state is captured by 20260206_baseline_schema.sql; this file is intentionally no-op.
+-- Keep this marker so local migration history remains aligned with the remote project before launch freeze.

@@ -1,0 +1,5 @@
+-- Remote migration history marker: 20250712012843 extend_messages_for_chat_fixed
+--
+-- This version is already recorded as applied in the live Casa Nirvana Supabase project.
+-- The pre-baseline schema state is captured by 20260206_baseline_schema.sql; this file is intentionally no-op.
+-- Keep this marker so local migration history remains aligned with the remote project before launch freeze.

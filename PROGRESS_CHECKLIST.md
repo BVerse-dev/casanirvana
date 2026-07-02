@@ -224,6 +224,7 @@ Date: 2026-02-06
 - [x] Applied `20260523121500_phase47_advisor_safe_followups.sql`: added service-role policies to already RLS-locked/no-policy tables and removed direct anonymous execute grants from security-definer functions.
 - [x] Applied `20260523123000_phase48_advisor_function_grant_tightening.sql`: removed inherited `PUBLIC` execute grants from security-definer functions and explicitly preserved `authenticated`/`service_role` execution.
 - [x] Supabase Advisor rerun after Phase 48 has zero `ERROR` findings. Remaining warnings are not safe blind fixes before release freeze: authenticated security-definer RPC grants, GraphQL exposure, broad/duplicated RLS policy shape, auth RLS initplan performance rewrites, auth MFA/leaked-password settings, Supabase Postgres version upgrade, and unused-index review after real traffic.
+- [x] Applied `20260702120000_phase49_scope_broad_directory_rls.sql` to remove broad authenticated read policies from `communities`, `units`, and `guards`, add membership/guard-aware community access helpers, and verify scoped SQL smoke (`guard` and resident/user-with-membership each see one community and scoped units/guards; superadmin retains full scope).
 - [x] Fixed amenity post-payment RLS violation path by updating only `payment_status` (not booking `status`) for user-driven amenity payment completion.
 
 ## Phase 15 - Book Amenities Hardening

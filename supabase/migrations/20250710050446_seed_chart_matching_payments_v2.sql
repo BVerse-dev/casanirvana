@@ -1,0 +1,5 @@
+-- Remote migration history marker: 20250710050446 seed_chart_matching_payments_v2
+--
+-- This version is already recorded as applied in the live Casa Nirvana Supabase project.
+-- The pre-baseline schema state is captured by 20260206_baseline_schema.sql; this file is intentionally no-op.
+-- Keep this marker so local migration history remains aligned with the remote project before launch freeze.
