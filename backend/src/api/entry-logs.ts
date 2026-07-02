@@ -5,8 +5,11 @@ type EntryLog = Database['public']['Tables']['entry_logs']['Row'];
 type EntryLogInsert = Database['public']['Tables']['entry_logs']['Insert'];
 type EntryLogUpdate = Database['public']['Tables']['entry_logs']['Update'];
 
+type ApiError = Error | { message?: string; code?: string; details?: string; hint?: string } | null;
+type ApiResult<T> = Promise<{ data: T | null; error: ApiError }>;
+
 // Get all entry logs
-export const getEntryLogs = async (): Promise<{ data: EntryLog[] | null; error: any }> => {
+export const getEntryLogs = async (): ApiResult<EntryLog[]> => {
   const { data, error } = await supabase
     .from('entry_logs')
     .select('*')
@@ -16,7 +19,7 @@ export const getEntryLogs = async (): Promise<{ data: EntryLog[] | null; error: 
 };
 
 // Get entry logs for a specific visitor pass
-export const getEntryLogsByPass = async (passId: string): Promise<{ data: EntryLog[] | null; error: any }> => {
+export const getEntryLogsByPass = async (passId: string): ApiResult<EntryLog[]> => {
   const { data, error } = await supabase
     .from('entry_logs')
     .select('*')
@@ -27,7 +30,7 @@ export const getEntryLogsByPass = async (passId: string): Promise<{ data: EntryL
 };
 
 // Create a new entry log
-export const createEntryLog = async (log: EntryLogInsert): Promise<{ data: EntryLog | null; error: any }> => {
+export const createEntryLog = async (log: EntryLogInsert): ApiResult<EntryLog> => {
   const { data: userData, error: userError } = await supabase.auth.getUser();
   if (userError) return { data: null, error: userError };
   
@@ -41,7 +44,7 @@ export const createEntryLog = async (log: EntryLogInsert): Promise<{ data: Entry
 };
 
 // Update an entry log (e.g., to add exit time)
-export const updateEntryLog = async (id: string, updates: EntryLogUpdate): Promise<{ data: EntryLog | null; error: any }> => {
+export const updateEntryLog = async (id: string, updates: EntryLogUpdate): ApiResult<EntryLog> => {
   const { data, error } = await supabase
     .from('entry_logs')
     .update(updates)
@@ -53,7 +56,7 @@ export const updateEntryLog = async (id: string, updates: EntryLogUpdate): Promi
 };
 
 // Record visitor exit
-export const recordExit = async (id: string, notes?: string): Promise<{ data: EntryLog | null; error: any }> => {
+export const recordExit = async (id: string, notes?: string): ApiResult<EntryLog> => {
   const { data, error } = await supabase
     .from('entry_logs')
     .update({ 

@@ -172,7 +172,7 @@ const ResidentData = ({ residents, isLoading, error, searchTerm, statusFilter, t
                 </p>
                 {searchTerm && (
                   <p className="text-muted">
-                    Try adjusting your search term: <strong>"{searchTerm}"</strong>
+                    Try adjusting your search term: <strong>&ldquo;{searchTerm}&rdquo;</strong>
                   </p>
                 )}
                 {statusFilter !== 'all' && (

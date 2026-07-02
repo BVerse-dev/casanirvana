@@ -355,7 +355,7 @@ const AddServiceModal: React.FC<AddServiceModalProps> = ({
                       />
                     </InputGroup>
                     <Form.Text className="text-muted">
-                      Provide a URL to the service provider's logo image
+                      Provide a URL to the service provider&apos;s logo image
                     </Form.Text>
                   </Form.Group>
                 </Col>

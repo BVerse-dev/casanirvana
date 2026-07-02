@@ -355,7 +355,7 @@ const TransactionApprovalModal: React.FC<TransactionApprovalModalProps> = ({
                         placeholder="Enter new daily limit (USD)"
                       />
                       <Form.Text className="text-muted">
-                        This will override the customer's current transaction limits
+                        This will override the customer&apos;s current transaction limits
                       </Form.Text>
                     </div>
                   )}

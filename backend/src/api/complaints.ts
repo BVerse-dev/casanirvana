@@ -5,8 +5,12 @@ type Complaint = Database['public']['Tables']['complaints']['Row'];
 type ComplaintInsert = Database['public']['Tables']['complaints']['Insert'];
 type ComplaintUpdate = Database['public']['Tables']['complaints']['Update'];
 
+type ApiError = Error | { message?: string; code?: string; details?: string; hint?: string } | null;
+type ApiResult<T> = Promise<{ data: T | null; error: ApiError }>;
+type ComplaintWithUnit = Complaint & { units: Record<string, unknown> | null };
+
 // Get all complaints for a unit
-export const getComplaintsByUnit = async (unitId: string): Promise<{ data: Complaint[] | null; error: any }> => {
+export const getComplaintsByUnit = async (unitId: string): ApiResult<Complaint[]> => {
   const { data, error } = await supabase
     .from('complaints')
     .select('*')
@@ -17,7 +21,7 @@ export const getComplaintsByUnit = async (unitId: string): Promise<{ data: Compl
 };
 
 // Get all complaints for a society (admin view)
-export const getComplaintsBySociety = async (societyId: string): Promise<{ data: any[] | null; error: any }> => {
+export const getComplaintsBySociety = async (societyId: string): ApiResult<ComplaintWithUnit[]> => {
   const { data, error } = await supabase
     .from('complaints')
     .select(`
@@ -32,11 +36,11 @@ export const getComplaintsBySociety = async (societyId: string): Promise<{ data:
     .eq('units.society_id', societyId)
     .order('created_at', { ascending: false });
   
-  return { data, error };
+  return { data: data as ComplaintWithUnit[] | null, error };
 };
 
 // Get a specific complaint by ID
-export const getComplaintById = async (id: string): Promise<{ data: Complaint | null; error: any }> => {
+export const getComplaintById = async (id: string): ApiResult<Complaint> => {
   const { data, error } = await supabase
     .from('complaints')
     .select('*')
@@ -47,7 +51,7 @@ export const getComplaintById = async (id: string): Promise<{ data: Complaint | 
 };
 
 // Create a new complaint
-export const createComplaint = async (complaint: ComplaintInsert): Promise<{ data: Complaint | null; error: any }> => {
+export const createComplaint = async (complaint: ComplaintInsert): ApiResult<Complaint> => {
   const { data: userData, error: userError } = await supabase.auth.getUser();
   if (userError) return { data: null, error: userError };
   
@@ -61,7 +65,7 @@ export const createComplaint = async (complaint: ComplaintInsert): Promise<{ dat
 };
 
 // Update a complaint
-export const updateComplaint = async (id: string, updates: ComplaintUpdate): Promise<{ data: Complaint | null; error: any }> => {
+export const updateComplaint = async (id: string, updates: ComplaintUpdate): ApiResult<Complaint> => {
   const { data, error } = await supabase
     .from('complaints')
     .update(updates)
@@ -76,7 +80,7 @@ export const updateComplaint = async (id: string, updates: ComplaintUpdate): Pro
 export const updateComplaintStatus = async (
   id: string, 
   status: 'pending' | 'in_progress' | 'completed' | 'cancelled'
-): Promise<{ data: Complaint | null; error: any }> => {
+): ApiResult<Complaint> => {
   const { data: userData, error: userError } = await supabase.auth.getUser();
   if (userError) return { data: null, error: userError };
   
@@ -96,7 +100,7 @@ export const updateComplaintStatus = async (
 };
 
 // Delete a complaint
-export const deleteComplaint = async (id: string): Promise<{ error: any }> => {
+export const deleteComplaint = async (id: string): Promise<{ error: ApiError }> => {
   const { error } = await supabase
     .from('complaints')
     .delete()

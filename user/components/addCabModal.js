@@ -281,7 +281,6 @@ const AddCabModal = (props) => {
                           },
                           pinCodeTextStyle: { ...Fonts.Medium20black },
                           focusedPinCodeContainerStyle: {
-                            borderWidth: 0,
                             borderRadius: 10,
                             backgroundColor: Colors.white,
                             borderColor: Colors.primary,

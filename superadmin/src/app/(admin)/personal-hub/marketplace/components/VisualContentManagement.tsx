@@ -625,7 +625,7 @@ const VisualContentManagement = () => {
 
               <div className="alert alert-info">
                 <IconifyIcon icon="ri:information-line" className="me-1" />
-                Manage the "Try Something New" section and other featured promotional areas.
+                Manage the Try Something New section and other featured promotional areas.
               </div>
 
               <div className="table-responsive">
@@ -831,7 +831,7 @@ const VisualContentManagement = () => {
 
               <div className="alert alert-info">
                 <IconifyIcon icon="ri:information-line" className="me-1" />
-                Manage product sections like "Fresh Foods", "Home & Living", and other special display areas.
+                Manage product sections like Fresh Foods, Home & Living, and other special display areas.
               </div>
 
               <div className="table-responsive">

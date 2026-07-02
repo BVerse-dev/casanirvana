@@ -561,7 +561,7 @@ const AddFeaturedSectionModal: React.FC<AddFeaturedSectionModalProps> = ({
                   placeholder="Enter user permissions in JSON array format"
                 />
                 <Form.Text className="text-muted">
-                  Define which user types can access this feature (e.g., ["all"], ["premium"], ["new_users"])
+                  Define which user types can access this feature (for example, all, premium, new_users).
                 </Form.Text>
               </Form.Group>
             </Col>
