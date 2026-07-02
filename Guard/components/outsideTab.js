@@ -4,7 +4,7 @@ import { Colors, Default, Fonts } from "../constants/styles";
 import { useTranslation } from "react-i18next";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import { ms } from "react-native-size-matters/extend";
-import { useVisitorPasses } from "../hooks/guards/useVisitorPasses";
+import { useVisitorPasses } from "../hooks/useVisitorPasses";
 
 const WaitingTab = ({ navigation }) => {
   const { t, i18n } = useTranslation();

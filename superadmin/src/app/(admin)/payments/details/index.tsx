@@ -14,6 +14,7 @@ const PaymentDetailsPage = () => {
   // Get payment ID from the query parameters
   const searchParams = useSearchParams();
   const paymentId = searchParams.get("id");
+  const { data: payment, isLoading, error } = useGetPayment(paymentId ?? "");
 
   // If no payment ID is provided, show an error message
   if (!paymentId) {
@@ -27,8 +28,6 @@ const PaymentDetailsPage = () => {
     );
   }
 
-  // Fetch payment data
-  const { data: payment, isLoading, error } = useGetPayment(paymentId);
 
   // Show loading state
   if (isLoading) {

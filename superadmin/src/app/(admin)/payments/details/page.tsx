@@ -21,6 +21,7 @@ const PaymentDetailsPage = () => {
   const searchParams = useSearchParams();
   const paymentId = searchParams.get("id");
   const queryClient = useQueryClient();
+  const { data: payment, isLoading, error } = useGetPayment(paymentId ?? "");
 
   // Debug function to clear cache
   const clearCache = () => {
@@ -40,8 +41,6 @@ const PaymentDetailsPage = () => {
     );
   }
 
-  // Fetch payment data
-  const { data: payment, isLoading, error } = useGetPayment(paymentId);
 
   // Show loading state
   if (isLoading) {
