@@ -39,6 +39,10 @@ const sharedLaunchReplacements = [
   ["(0 items)", "Resident access"],
   ["Your cart is empty", "Marketplace availability follows community configuration"],
   ["Browse Shop", "Explore products"],
+  ["Products & services are important. They might sell dairy, meat, maybe even eco-friendly manure compost. Including a CSA program…", "Connected tools help residents, guards and facility teams coordinate daily community life with clearer status and accountability."],
+  ["Products & services are important. They might sell dairy, meat, maybe even eco-friendly manure compost. Including a CSA program&#8230;", "Connected tools help residents, guards and facility teams coordinate daily community life with clearer status and accountability."],
+  ["/about-company/", "/about-us/"],
+  ["https://themeforest.net/user/bravis-themes/portfolio", "/"],
   ["/blog-standard/", "/pricing-plans/"],
   ["/our-team/", "/about-us/"],
   ["/team-details/", "/about-us/"],
@@ -53,6 +57,30 @@ const sharedLaunchReplacements = [
   ["/send-money/", "/get-started/"],
   ["/shop/", "/marketplace/"],
 ];
+
+// These replacements intentionally run after the original route transforms. They
+// make the content pass idempotent when an earlier run has already replaced a
+// fragment inside a larger Saliver sentence.
+const finalRouteReplacements = {
+  "/": [
+    ["Use a comprehensive stock screener tools suite with a connected operations and key takeaways to elevate your stock screening experience to a new level.", "Manage visitors, requests, notices and community activity through connected, role-aware workflows."],
+  ],
+  "/security-guards/": [
+    ["One central hub for your assets and team", "Faster, accountable gate operations for every shift"],
+  ],
+  "/facility-managers/": [
+    ["Effortless email & marketing automation", "Coordinate every community operation from one workspace"],
+  ],
+  "/marketplace/": [
+    ["One central hub for your assets and team", "Discover trusted services for everyday community life"],
+  ],
+  "/pricing-plans/": [
+    ["Evolving powerful concepts into tangible & relatable", "Pricing shaped around your community"],
+  ],
+  "/faqs/": [
+    ["General & Business Strategy", "Platform and rollout"],
+  ],
+};
 
 const routeTransforms = {
   "/": {
@@ -917,6 +945,15 @@ for (const [route, transform] of Object.entries(routeTransforms)) {
     output = output.replaceAll(from, to);
     replacementCount += occurrences;
   }
+
+  for (const [from, to] of finalRouteReplacements[route] || []) {
+    const occurrences = output.split(from).length - 1;
+    if (!occurrences) continue;
+    output = output.replaceAll(from, to);
+    replacementCount += occurrences;
+  }
+
+  output = output.replace(/\/wp-login\.php\?action=logout(?:&amp;|&)_[^"']+/gi, "/contact-us/");
 
   output = applySeo(output, route);
   output = applyAccessibilityAndPerformance(output);
