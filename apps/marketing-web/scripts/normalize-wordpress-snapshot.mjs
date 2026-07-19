@@ -85,6 +85,12 @@ function normalizeDocument(source) {
       '<style id="casa-static-form-position">.pxl-contact-form-1{position:relative!important}</style></head>',
     );
   }
+  if (!output.includes('id="casa-empty-form-response"')) {
+    output = output.replace(
+      /<\/head>/i,
+      '<style id="casa-empty-form-response">.wpcf7-response-output:empty{display:none!important;border:0!important;margin:0!important;padding:0!important}</style></head>',
+    );
+  }
   return output;
 }
 
