@@ -73,6 +73,12 @@ function normalizeDocument(source) {
   if (!output.includes('href="/icon.svg"')) {
     output = output.replace(/<\/head>/i, '<link rel="icon" href="/icon.svg" type="image/svg+xml"></head>');
   }
+  if (!output.includes('id="casa-static-form-compat"')) {
+    output = output.replace(
+      /<\/head>/i,
+      '<style id="casa-static-form-compat">fieldset.hidden-fields-container,.akismet-fields-container{display:none!important;border:0!important;margin:0!important;padding:0!important}</style></head>',
+    );
+  }
   return output;
 }
 

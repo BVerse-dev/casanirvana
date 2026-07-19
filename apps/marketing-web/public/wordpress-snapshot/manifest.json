@@ -7,750 +7,750 @@
       "source": "http://localhost:8882/",
       "output": "/wordpress-snapshot/pages/index.html",
       "title": "Home - Casa Nirvana",
-      "bytes": 528710,
-      "sha256": "38ab3ea6038de796b0ef3660fe8a908670013922a435c701409241c7ec6f70d9"
+      "bytes": 528894,
+      "sha256": "7bf9bebeb8f04751265427ac0767faf1e2c547c8f4a2360c28fa8b0a21df7ca1"
     },
     "/about-us/": {
       "source": "http://localhost:8882/about-us/",
       "output": "/wordpress-snapshot/pages/about-us/index.html",
       "title": "About Us - Casa Nirvana",
-      "bytes": 475350,
-      "sha256": "0e3d6039ef855e40e33a43fad7fcd0ddabb42dc97fad0db8185dc761087da30b"
+      "bytes": 475534,
+      "sha256": "2e57088ee9b039bd53ac0324d7a51e1e255f03d664910dc3f28e2c87e96de6ce"
     },
     "/adaptive-grazing-promotes-soil-vitality/": {
       "source": "http://localhost:8882/adaptive-grazing-promotes-soil-vitality/",
       "output": "/wordpress-snapshot/pages/adaptive-grazing-promotes-soil-vitality/index.html",
       "title": "Adaptive grazing promotes soil vitality - Casa Nirvana",
-      "bytes": 308266,
-      "sha256": "41468298ac07f2dff8235fef2446d005181959d94e45d9e2e2a332ff3886bfd6"
+      "bytes": 308450,
+      "sha256": "39324f49f3a837ee335cbe12ebe40ec0a6699611616850c3f732e40943434909"
     },
     "/author/admin/": {
       "source": "http://localhost:8882/author/admin/",
       "output": "/wordpress-snapshot/pages/author/admin/index.html",
       "title": "admin, Author at Casa Nirvana",
-      "bytes": 284420,
-      "sha256": "735e5278b5b4f93067edee950fd20f137b40bc209b0075a7496112feaa680ae7"
+      "bytes": 284604,
+      "sha256": "8e59dde9d3352d961594fb605bc995e9a2b4ecec0ae35b9d75a551c4f6d8dcdc"
     },
     "/author/admin/page/2/": {
       "source": "http://localhost:8882/author/admin/page/2/",
       "output": "/wordpress-snapshot/pages/author/admin/page/2/index.html",
       "title": "admin, Author at Casa Nirvana - Page 2 of 2",
-      "bytes": 283586,
-      "sha256": "a8c2781f6b1c6fd4203f0e890aff6e44956ec58d579da74ee56c03f2b7fc6d53"
+      "bytes": 283770,
+      "sha256": "642f93d6b1ed0e5d9b11b31e5cda63c480f3fe473e3483023fd5a99486004f0f"
     },
     "/blog-standard/": {
       "source": "http://localhost:8882/blog-standard/",
       "output": "/wordpress-snapshot/pages/blog-standard/index.html",
       "title": "Blog Standard - Casa Nirvana",
-      "bytes": 282639,
-      "sha256": "47ce675cee571522b27e2a5d46aa131f31d74be9996553d9d58109c245ed0770"
+      "bytes": 282823,
+      "sha256": "8342c74652f9899da822b8124342b48173601cc97e50ac45ff7bf3b5c6b3f05a"
     },
     "/blog-standard/page/2/": {
       "source": "http://localhost:8882/blog-standard/page/2/",
       "output": "/wordpress-snapshot/pages/blog-standard/page/2/index.html",
       "title": "Blog Standard - Page 2 of 2 - Casa Nirvana",
-      "bytes": 281853,
-      "sha256": "915f2faf5f4d1f15593a4da0147a246a12177d3bd5af5952357957085a17cbad"
+      "bytes": 282037,
+      "sha256": "5fb5b6b194ab52c0e9f88c08239719a1cccb4de2979748c387d209d906c41271"
     },
     "/career/": {
       "source": "http://localhost:8882/career/",
       "output": "/wordpress-snapshot/pages/career/index.html",
       "title": "Career Archive - Casa Nirvana",
-      "bytes": 271674,
-      "sha256": "6756bc96f316192b61c678cc2b7e6e41ae215d74bfc13a6b403ed1d864ba0598"
+      "bytes": 271858,
+      "sha256": "8091b944e0c114d69e72a9d7ec8ef0044a635f1b8582e860ec4a070c3431b6d8"
     },
     "/career/senior-ui-ux-designer/": {
       "source": "http://localhost:8882/career/senior-ui-ux-designer/",
       "output": "/wordpress-snapshot/pages/career/senior-ui-ux-designer/index.html",
       "title": "Senior UI &amp; UX Designer - Casa Nirvana",
-      "bytes": 290824,
-      "sha256": "f0a73c735750c13b8609c3d22a02a1d8f834da5b63bf6b637d81958ae52643ea"
+      "bytes": 291008,
+      "sha256": "941229825f0f61b8bf025396484918dc3c77962a0b415c9f9092d7dfb93885b3"
     },
     "/careers/": {
       "source": "http://localhost:8882/careers/",
       "output": "/wordpress-snapshot/pages/careers/index.html",
       "title": "Careers - Casa Nirvana",
-      "bytes": 291756,
-      "sha256": "f18dd776ffff519786fb0af4dcb0829439fc9f580d85465c84806916bee6aeff"
+      "bytes": 291940,
+      "sha256": "137790f207135c4137377769fcb82ee41d5a0e3972c7c28e89f8fcf68677838c"
     },
     "/category/application/": {
       "source": "http://localhost:8882/category/application/",
       "output": "/wordpress-snapshot/pages/category/application/index.html",
       "title": "application Archives - Casa Nirvana",
-      "bytes": 277990,
-      "sha256": "6083ee58d9faaa18177232f3d5cb88eae3c380ab2e91a5cd7f3c4ecb6159ad78"
+      "bytes": 278174,
+      "sha256": "629428cc7a5c842bc5f58c31e6a6650fa17eb1e0b2969a3d60d20850a25541a9"
     },
     "/category/saas/": {
       "source": "http://localhost:8882/category/saas/",
       "output": "/wordpress-snapshot/pages/category/saas/index.html",
       "title": "saas Archives - Casa Nirvana",
-      "bytes": 283328,
-      "sha256": "68debcbdad393ab56a821d7fd6173b34896d1bfb4535a5c2e959005745b199b4"
+      "bytes": 283512,
+      "sha256": "55e7a78d50d09daaafa756b746431b83face4fbc459daafa78a5a0865461da82"
     },
     "/category/saas/page/2/": {
       "source": "http://localhost:8882/category/saas/page/2/",
       "output": "/wordpress-snapshot/pages/category/saas/page/2/index.html",
       "title": "saas Archives - Page 2 of 2 - Casa Nirvana",
-      "bytes": 279884,
-      "sha256": "1e11f309f8cc18eaaa9bc05c7e55fa4203c3b9ca6b9f42821d01b7cc9299f5f9"
+      "bytes": 280068,
+      "sha256": "8bf9213f10a5f39604d6e3fcbb969478edae4a575917e15d4d19d5bf3422bee7"
     },
     "/category/software/": {
       "source": "http://localhost:8882/category/software/",
       "output": "/wordpress-snapshot/pages/category/software/index.html",
       "title": "software Archives - Casa Nirvana",
-      "bytes": 283417,
-      "sha256": "b9fd682388459dae9e8a5b8dde189ab85187fa688202bcbfde9c822a36928bf4"
+      "bytes": 283601,
+      "sha256": "80c29d394439eeab4e7f6639a18e58b19b79d6ea4b13a827c00843adaeeb50e8"
     },
     "/category/software/page/2/": {
       "source": "http://localhost:8882/category/software/page/2/",
       "output": "/wordpress-snapshot/pages/category/software/page/2/index.html",
       "title": "software Archives - Page 2 of 2 - Casa Nirvana",
-      "bytes": 279977,
-      "sha256": "df42d36ec6b22bda952dde72c18de23a0151f97f9f99d84f86d19c883d88a1d4"
+      "bytes": 280161,
+      "sha256": "81856c20745f30f58868347b83214ea4df8ab2286cb8503180b389548f19f3a8"
     },
     "/category/trending/": {
       "source": "http://localhost:8882/category/trending/",
       "output": "/wordpress-snapshot/pages/category/trending/index.html",
       "title": "trending Archives - Casa Nirvana",
-      "bytes": 278139,
-      "sha256": "f3c11df7da9490d4756b9de91df1b5ce659f1f05fb2c30367493626c4cf90f85"
+      "bytes": 278323,
+      "sha256": "7ab4638c22a68da094341e0355bee249b16222ce952366ebc00518385e28d3f2"
     },
     "/contact-us/": {
       "source": "http://localhost:8882/contact-us/",
       "output": "/wordpress-snapshot/pages/contact-us/index.html",
       "title": "Contact Us - Casa Nirvana",
-      "bytes": 286838,
-      "sha256": "aa6aa84e8a2c9795f597489651c1026e1db71c2c5c5ebd33d5085aaf49cf6921"
+      "bytes": 287022,
+      "sha256": "f3fbde399631f31e5578c73fc388ffb674a3e687448b64631399be32cd00e925"
     },
     "/core-features/": {
       "source": "http://localhost:8882/core-features/",
       "output": "/wordpress-snapshot/pages/core-features/index.html",
       "title": "Core Features - Casa Nirvana",
-      "bytes": 462132,
-      "sha256": "4ab98c1e262e56e183007c5a502f738572ba2bea9368a3a625ae9a05c608db61"
+      "bytes": 462316,
+      "sha256": "f61bef123eb7704bcc9f46969ba86904e926de17f313e7af0eee022e638b5074"
     },
     "/facility-managers/": {
       "source": "http://localhost:8882/facility-managers/",
       "output": "/wordpress-snapshot/pages/facility-managers/index.html",
       "title": "Facility Managers - Casa Nirvana",
-      "bytes": 508010,
-      "sha256": "efca2471d91b14fa2a788e211ce527674510acab5942c0f73b265274d01d0047"
+      "bytes": 508194,
+      "sha256": "9e32486f0d9c027296b812d46253f4d1c186bab19cd009b8b0d65187964bc358"
     },
     "/faqs/": {
       "source": "http://localhost:8882/faqs/",
       "output": "/wordpress-snapshot/pages/faqs/index.html",
       "title": "FAQs - Casa Nirvana",
-      "bytes": 317650,
-      "sha256": "1d6d768acbe673e67afc55de35b5a4273f67e5a05a3c09eaef22a4324abf9b26"
+      "bytes": 317834,
+      "sha256": "99af7f1a337474ee72612b2c8f94043b9e05fcee154d29864f4234e1a9f8d893"
     },
     "/holistic-grazing-strengthens-biodiversity/": {
       "source": "http://localhost:8882/holistic-grazing-strengthens-biodiversity/",
       "output": "/wordpress-snapshot/pages/holistic-grazing-strengthens-biodiversity/index.html",
       "title": "Holistic grazing strengthens biodiversity - Casa Nirvana",
-      "bytes": 308322,
-      "sha256": "9c7c8537a3d75f8a5b26993661c9d42544d78b5470e057c948d1222a974eaf69"
+      "bytes": 308506,
+      "sha256": "24c58eefd9a24c2f7ccbbbcbd3089c6eb924d6f38f905396f53b6b33e237c9fd"
     },
     "/managed-grazing-enhances-biodiversity/": {
       "source": "http://localhost:8882/managed-grazing-enhances-biodiversity/",
       "output": "/wordpress-snapshot/pages/managed-grazing-enhances-biodiversity/index.html",
       "title": "Managed grazing enhances biodiversity. - Casa Nirvana",
-      "bytes": 308185,
-      "sha256": "1cc78a0c296ff0711ca9b078e1e94b1106000b39222b765fdf36fccdf229e5fd"
+      "bytes": 308369,
+      "sha256": "48fcb4bc1b602a0173230ea57f32523e746d55ca6911011907732a02b4884284"
     },
     "/marketplace/": {
       "source": "http://localhost:8882/marketplace/",
       "output": "/wordpress-snapshot/pages/marketplace/index.html",
       "title": "Marketplace - Casa Nirvana",
-      "bytes": 489480,
-      "sha256": "05a8720d21963a3f4b1f7044d0e09f438bc533aeb6d097881c49a1c867dd155f"
+      "bytes": 489664,
+      "sha256": "d4ef0dc5abc80b34e0548d80e5386166ddbba035711dda9a00dd35b06b01fed0"
     },
     "/our-products/": {
       "source": "http://localhost:8882/our-products/",
       "output": "/wordpress-snapshot/pages/our-products/index.html",
       "title": "Our Products - Casa Nirvana",
-      "bytes": 371822,
-      "sha256": "38e1b818f47135221835e4847b49ec3233fbd140a4ef0ed88f56ea0701c6f1ba"
+      "bytes": 372006,
+      "sha256": "578a4b59acd46e2ac45e820f5ae8d8c3239946b33502f042f348fd8c8337813b"
     },
     "/our-team/": {
       "source": "http://localhost:8882/our-team/",
       "output": "/wordpress-snapshot/pages/our-team/index.html",
       "title": "Our Team - Casa Nirvana",
-      "bytes": 307396,
-      "sha256": "271ee81be21a1908cc567a9a60af19d2252bce0402672f40e48627b2e0a042ef"
+      "bytes": 307580,
+      "sha256": "abba20c02193a99a0bdbbbf9e66b746201980e839a1a516cb32a4508082b5512"
     },
     "/planned-grazing-boosts-native-species/": {
       "source": "http://localhost:8882/planned-grazing-boosts-native-species/",
       "output": "/wordpress-snapshot/pages/planned-grazing-boosts-native-species/index.html",
       "title": "Planned grazing boosts native species - Casa Nirvana",
-      "bytes": 308221,
-      "sha256": "53eff35579a625ce190bcbbde82535d78a29b4d9b6ff65f70e076ec3e270a6e2"
+      "bytes": 308405,
+      "sha256": "f7d5ac6d08e0648cb69afd92a015341a2258e3655bc3f9464a6e69407daeb003"
     },
     "/portfolio/": {
       "source": "http://localhost:8882/portfolio/",
       "output": "/wordpress-snapshot/pages/portfolio/index.html",
       "title": "Portfolio Archive - Casa Nirvana",
-      "bytes": 278289,
-      "sha256": "d55676298c0098792059882d17fed4ba74a4a407400414182804df221104fdba"
+      "bytes": 278473,
+      "sha256": "eb0d04594ef57d1d777e1ac175ec65c961c1b34ab2cacc642b3f5fdbaf2b4381"
     },
     "/portfolio/accelerating-engagement-through-smart-content/": {
       "source": "http://localhost:8882/portfolio/accelerating-engagement-through-smart-content/",
       "output": "/wordpress-snapshot/pages/portfolio/accelerating-engagement-through-smart-content/index.html",
       "title": "Accelerating Engagement Through Smart Content - Casa Nirvana",
-      "bytes": 304203,
-      "sha256": "a4bf0a221e4925fb555c69189c224b069dc61ac6077d623c8e466dd20c3895e1"
+      "bytes": 304387,
+      "sha256": "b1c22e262f278112bc518f0666634d766180312577f73b244eda1872e5bbf890"
     },
     "/portfolio/building-trust-with-consistent-brand-messaging/": {
       "source": "http://localhost:8882/portfolio/building-trust-with-consistent-brand-messaging/",
       "output": "/wordpress-snapshot/pages/portfolio/building-trust-with-consistent-brand-messaging/index.html",
       "title": "Building Trust with Consistent Brand Messaging - Casa Nirvana",
-      "bytes": 304298,
-      "sha256": "a1e524c8363b8fc2b8ef0e6767f22aff1a248a2043acf9ea8a023043108ac5df"
+      "bytes": 304482,
+      "sha256": "851eb8df5290fff2f4e8bc23fb774272ff16244d7f37370463280419d0e83799"
     },
     "/portfolio/crafting-human-centric-digital-experiences/": {
       "source": "http://localhost:8882/portfolio/crafting-human-centric-digital-experiences/",
       "output": "/wordpress-snapshot/pages/portfolio/crafting-human-centric-digital-experiences/index.html",
       "title": "Crafting Human-Centric Digital Experiences - Casa Nirvana",
-      "bytes": 304160,
-      "sha256": "2da09687b513bdfa319799a6d596c094e5fa8ec4fdd1fd1a568f68bc38fe3310"
+      "bytes": 304344,
+      "sha256": "a8559aa0b48feef9693b2c068237cca0a0edcffa8e36426611cb70dadf8db166"
     },
     "/portfolio/design-systems-that-scale-with-your-vision/": {
       "source": "http://localhost:8882/portfolio/design-systems-that-scale-with-your-vision/",
       "output": "/wordpress-snapshot/pages/portfolio/design-systems-that-scale-with-your-vision/index.html",
       "title": "Design Systems that Scale with Your Vision - Casa Nirvana",
-      "bytes": 304160,
-      "sha256": "efb15508cb8820ab3a7ff79744bbb79130754066f2258cb12d9825ce56e474fa"
+      "bytes": 304344,
+      "sha256": "faa7bfeb69f916b874f795ddbfb3d27a489c02482b52165686f60b7dca897e46"
     },
     "/portfolio/elevating-brands-through-immersive-ux-design/": {
       "source": "http://localhost:8882/portfolio/elevating-brands-through-immersive-ux-design/",
       "output": "/wordpress-snapshot/pages/portfolio/elevating-brands-through-immersive-ux-design/index.html",
       "title": "Elevating Brands Through Immersive UX Design - Casa Nirvana",
-      "bytes": 304163,
-      "sha256": "0295f0c467b10ea24132f25bd5bc5190acbc182ab06ae83043b66de3e6d6afbf"
+      "bytes": 304347,
+      "sha256": "15d13a3bf79a00079a72629fa140f463713c01880dcf9e216064df2b629582da"
     },
     "/portfolio/empowering-retail-with-scalable-e-commerce-solutions/": {
       "source": "http://localhost:8882/portfolio/empowering-retail-with-scalable-e-commerce-solutions/",
       "output": "/wordpress-snapshot/pages/portfolio/empowering-retail-with-scalable-e-commerce-solutions/index.html",
       "title": "Empowering Retail with Scalable E-commerce Solutions - Casa Nirvana",
-      "bytes": 304333,
-      "sha256": "b888c9d4955112cacacc5ad3fea28db17bbe8573067174c0ee81f3b2bc322a95"
+      "bytes": 304517,
+      "sha256": "8e79d5c7490f1b19cd2ed5c38b14140501e9123c7f6317ac20899943fa156ef6"
     },
     "/portfolio/for-farm-industry/": {
       "source": "http://localhost:8882/portfolio/for-farm-industry/",
       "output": "/wordpress-snapshot/pages/portfolio/for-farm-industry/index.html",
       "title": "For farm industry - Casa Nirvana",
-      "bytes": 303908,
-      "sha256": "5c01944be0d59d2729593f3e329122542fe4ac6605b209fc86242b7351d353cc"
+      "bytes": 304092,
+      "sha256": "144051cced058e020c1adbeda83a9b89251fa0bb1189832d41165c78a206d81e"
     },
     "/portfolio/for-small-business/": {
       "source": "http://localhost:8882/portfolio/for-small-business/",
       "output": "/wordpress-snapshot/pages/portfolio/for-small-business/index.html",
       "title": "For small business - Casa Nirvana",
-      "bytes": 302424,
-      "sha256": "ad8f9612ad469c98b2538a3baf4cd16b02575f3ef9f471f192e547175ce5722c"
+      "bytes": 302608,
+      "sha256": "30a6e6c8cf4f642ccc44655bf618efbaa302a377e051f58a3c7f344b2adab0c7"
     },
     "/portfolio/for-small-shop/": {
       "source": "http://localhost:8882/portfolio/for-small-shop/",
       "output": "/wordpress-snapshot/pages/portfolio/for-small-shop/index.html",
       "title": "For small shop - Casa Nirvana",
-      "bytes": 303811,
-      "sha256": "eb27d429b1008a00db9d2f7f59a1ebd34b6f227c33bf26b1d95e0b73408d8798"
+      "bytes": 303995,
+      "sha256": "80710359e17d1c89ba8353eaff3a9331c6dc149bb2ae1edd7485dd8cbd908bc3"
     },
     "/portfolio/for-startup-agency/": {
       "source": "http://localhost:8882/portfolio/for-startup-agency/",
       "output": "/wordpress-snapshot/pages/portfolio/for-startup-agency/index.html",
       "title": "For startup agency - Casa Nirvana",
-      "bytes": 303636,
-      "sha256": "d64df82c06a59b717d2708235985ae325a350a088040a7fdef3e013c580c1f07"
+      "bytes": 303820,
+      "sha256": "afb8266891eeffd520cdc401cd61a1e83d5333aed098b2f85369a9bacf9ee920"
     },
     "/portfolio/from-concept-to-click-a-journey-in-ui-ux/": {
       "source": "http://localhost:8882/portfolio/from-concept-to-click-a-journey-in-ui-ux/",
       "output": "/wordpress-snapshot/pages/portfolio/from-concept-to-click-a-journey-in-ui-ux/index.html",
       "title": "From Concept to Click: A Journey in UI/UX - Casa Nirvana",
-      "bytes": 304164,
-      "sha256": "566b41dad723c72c04abf08742d011feaf58f24f7bce34565267ac290c56679e"
+      "bytes": 304348,
+      "sha256": "55f735d4c51897d153108be35eecee59297e34db6740f16f327f16b1d6d41dc3"
     },
     "/portfolio/innovative-platforms-for-meaningful-interactions/": {
       "source": "http://localhost:8882/portfolio/innovative-platforms-for-meaningful-interactions/",
       "output": "/wordpress-snapshot/pages/portfolio/innovative-platforms-for-meaningful-interactions/index.html",
       "title": "Innovative Platforms for Meaningful Interactions - Casa Nirvana",
-      "bytes": 304315,
-      "sha256": "0fa6b7c4837d300f0a74981dd26feda6e64309dc93706a2970a282d9f53f6179"
+      "bytes": 304499,
+      "sha256": "a5b77801f1a5bfa015fd29f1e623b03341929eff170e4336a572d9dac788fb6b"
     },
     "/portfolio/page/2/": {
       "source": "http://localhost:8882/portfolio/page/2/",
       "output": "/wordpress-snapshot/pages/portfolio/page/2/index.html",
       "title": "Portfolio Archive - Page 2 of 4 - Casa Nirvana",
-      "bytes": 278170,
-      "sha256": "a30dc68d8f0774465a1f0801f8cea9e9d3409dc25f06ddca1343e07d8bc562c8"
+      "bytes": 278354,
+      "sha256": "c3ba3a177372ea934b3fd5fce2d69914fb3debc86ecb11cc3987a75bcbdc185c"
     },
     "/portfolio/page/3/": {
       "source": "http://localhost:8882/portfolio/page/3/",
       "output": "/wordpress-snapshot/pages/portfolio/page/3/index.html",
       "title": "Portfolio Archive - Page 3 of 4 - Casa Nirvana",
-      "bytes": 277290,
-      "sha256": "3a00aa5cd7c5a53cd6c9ed469179b300f6803aa6ec0e5e2e2b086ad91253992d"
+      "bytes": 277474,
+      "sha256": "5bf0d1775782c2bd516be2395befdf1a0e0528ffdb9344bf46a04f90ff815094"
     },
     "/portfolio/page/4/": {
       "source": "http://localhost:8882/portfolio/page/4/?static-capture=1",
       "output": "/wordpress-snapshot/pages/portfolio/page/4/index.html",
       "title": "Portfolio Archive - Page 4 of 4 - Casa Nirvana",
-      "bytes": 273576,
-      "sha256": "fb1215cd5d35d371163170f119b2c5955d85f75275ea29df61cea116a29d9cab"
+      "bytes": 273760,
+      "sha256": "3250201ac4474187236b5faa24e32591972b85c8f360fae466e208da3cb5f431"
     },
     "/portfolio/revamping-identity-with-visual-precision/": {
       "source": "http://localhost:8882/portfolio/revamping-identity-with-visual-precision/",
       "output": "/wordpress-snapshot/pages/portfolio/revamping-identity-with-visual-precision/index.html",
       "title": "Revamping Identity with Visual Precision - Casa Nirvana",
-      "bytes": 303871,
-      "sha256": "5beda9f0d7f8239b51b2bbe69824c4d86c6832dd4350661eed3e615b80fdd210"
+      "bytes": 304055,
+      "sha256": "d4108037aa07de65232e0922d09c0b7239e504585f3890eb8bbd62f2027ecea9"
     },
     "/portfolio/seamless-digital-transformation-for-global-outreach/": {
       "source": "http://localhost:8882/portfolio/seamless-digital-transformation-for-global-outreach/",
       "output": "/wordpress-snapshot/pages/portfolio/seamless-digital-transformation-for-global-outreach/index.html",
       "title": "Seamless Digital Transformation for Global Outreach - Casa Nirvana",
-      "bytes": 304042,
-      "sha256": "8bb54fab3d08fc480265aed5b8ed7a8580bf8a9a6ab61dd72a8f8769fb4671b9"
+      "bytes": 304226,
+      "sha256": "c07301f2c3c5ca4e296af27c13b9e8425806383535efe9e08195cc82889bd0c6"
     },
     "/portfolio/strategic-growth-via-data-driven-campaigns/": {
       "source": "http://localhost:8882/portfolio/strategic-growth-via-data-driven-campaigns/",
       "output": "/wordpress-snapshot/pages/portfolio/strategic-growth-via-data-driven-campaigns/index.html",
       "title": "Strategic Growth via Data-Driven Campaigns - Casa Nirvana",
-      "bytes": 304153,
-      "sha256": "c3dcaf8073db3766c013b98d465663975e176a311eb32771b3171d0bdd0d2ec3"
+      "bytes": 304337,
+      "sha256": "1e48f95735c8cf0646175a3f777801a12f5e82bd3420c9637c8f744312670fab"
     },
     "/portfolio/turning-insight-into-impact-with-agile-strategy/": {
       "source": "http://localhost:8882/portfolio/turning-insight-into-impact-with-agile-strategy/",
       "output": "/wordpress-snapshot/pages/portfolio/turning-insight-into-impact-with-agile-strategy/index.html",
       "title": "Turning Insight into Impact with Agile Strategy - Casa Nirvana",
-      "bytes": 303213,
-      "sha256": "f1c7e5f2cd52ab2f74d21f7e37cbd04cf38c553c0d288b46852da9cc65c9749f"
+      "bytes": 303397,
+      "sha256": "8076f7c6a4a92c4b82efcd33081132bbf56e5607029f31a87eb8c31f4b317907"
     },
     "/pricing-plans/": {
       "source": "http://localhost:8882/pricing-plans/",
       "output": "/wordpress-snapshot/pages/pricing-plans/index.html",
       "title": "Pricing Plans - Casa Nirvana",
-      "bytes": 437092,
-      "sha256": "526fcc840c9b780c1a4f038405522a3b94b5d93e548a56ffb6255f24fedd46ef"
+      "bytes": 437276,
+      "sha256": "82873e273b6db646c17aa861381c02583cf5167285824d0cce04fe6de8f8278c"
     },
     "/product-tag/branding/": {
       "source": "http://localhost:8882/product-tag/branding/",
       "output": "/wordpress-snapshot/pages/product-tag/branding/index.html",
       "title": "branding Archives - Casa Nirvana",
-      "bytes": 302450,
-      "sha256": "cab1e69e6dd5c5c23ad7ce41cd94389375a001781b70e5268c4e18835ed26662"
+      "bytes": 302634,
+      "sha256": "9ec2a0e14c302986499d7dad1b7bcccf2fdcad794eaebc6da2eb06e325ec9283"
     },
     "/product-tag/branding/page/1/": {
       "source": "http://localhost:8882/product-tag/branding/page/1/?static-capture=1",
       "output": "/wordpress-snapshot/pages/product-tag/branding/page/1/index.html",
       "title": "branding Archives - Casa Nirvana",
-      "bytes": 302505,
-      "sha256": "27d4a93174885a63cc325b6a1057477dbe15a4b241ab77b7d6657b602ad41614"
+      "bytes": 302689,
+      "sha256": "4391bf404a0f86a54b58b9563119db8b7b8275ea85ca636269514ea2c1cd8216"
     },
     "/product-tag/branding/page/2/": {
       "source": "http://localhost:8882/product-tag/branding/page/2/",
       "output": "/wordpress-snapshot/pages/product-tag/branding/page/2/index.html",
       "title": "branding Archives - Page 2 of 2 - Casa Nirvana",
-      "bytes": 286217,
-      "sha256": "c73e41ca9d4daddb223783cb97845aee22fec456ff01b9615a20a3a6d9b556ee"
+      "bytes": 286401,
+      "sha256": "bea85c2a819c85cdddd2149a56a774497c98698078fe52e68f6f6d2eb6819611"
     },
     "/product-tag/cloth/": {
       "source": "http://localhost:8882/product-tag/cloth/",
       "output": "/wordpress-snapshot/pages/product-tag/cloth/index.html",
       "title": "cloth Archives - Casa Nirvana",
-      "bytes": 302360,
-      "sha256": "e3ebfdf0cc1cd29b8b280ee18de3f30d7c65e0b1b2194a509ffe853a2b361b6f"
+      "bytes": 302544,
+      "sha256": "bc677c8d729bf83d125535a066d1f91e6e703c6c6286ea9771387fdb776ab222"
     },
     "/product-tag/cloth/page/1/": {
       "source": "http://localhost:8882/product-tag/cloth/page/1/?static-capture=1",
       "output": "/wordpress-snapshot/pages/product-tag/cloth/page/1/index.html",
       "title": "cloth Archives - Casa Nirvana",
-      "bytes": 302416,
-      "sha256": "5f4996c2d6852fd36d8e2fc48535ac622b300ccf6c0af74eeb227f5531eee7ae"
+      "bytes": 302600,
+      "sha256": "933b4504293a6bb8f34ffcb120ed83e4f58dbd5ed51fc53288a0400a37c07c31"
     },
     "/product-tag/cloth/page/2/": {
       "source": "http://localhost:8882/product-tag/cloth/page/2/",
       "output": "/wordpress-snapshot/pages/product-tag/cloth/page/2/index.html",
       "title": "cloth Archives - Page 2 of 2 - Casa Nirvana",
-      "bytes": 286139,
-      "sha256": "e153ee18430009da58f4c2e51012a88f1975ce347e5f3b8518e9212d5543a5a6"
+      "bytes": 286323,
+      "sha256": "1b626940851bb5bb5f82a8195abf8d753d8e4e6e31e86692248e188755392531"
     },
     "/product-tag/color/": {
       "source": "http://localhost:8882/product-tag/color/",
       "output": "/wordpress-snapshot/pages/product-tag/color/index.html",
       "title": "color Archives - Casa Nirvana",
-      "bytes": 302359,
-      "sha256": "dd776c9b7450987a4b338028985935db795675a0497873f0a28d899854721a3c"
+      "bytes": 302543,
+      "sha256": "468a6300f20febfeaa02a413afba978c1dd46cb75671aab655aa2ff809f1c1d6"
     },
     "/product-tag/color/page/1/": {
       "source": "http://localhost:8882/product-tag/color/page/1/?static-capture=1",
       "output": "/wordpress-snapshot/pages/product-tag/color/page/1/index.html",
       "title": "color Archives - Casa Nirvana",
-      "bytes": 302416,
-      "sha256": "bebf101321eba104a94e12d293b02717656ccbcb10482414fe5f82e7faec2821"
+      "bytes": 302600,
+      "sha256": "67c9d7bb80a13f09c8908ec3e48197be8e87795c4edbb3bd3d9827ab35793af4"
     },
     "/product-tag/color/page/2/": {
       "source": "http://localhost:8882/product-tag/color/page/2/",
       "output": "/wordpress-snapshot/pages/product-tag/color/page/2/index.html",
       "title": "color Archives - Page 2 of 2 - Casa Nirvana",
-      "bytes": 286138,
-      "sha256": "149d7d4c2665393a791e5967554535ac28c283d0ac0b002510d1ebecefa45aec"
+      "bytes": 286322,
+      "sha256": "31afe12647b14eb2ceee8f3f6fc7d014c0829e33bc75d69cde4593a1dc506654"
     },
     "/product-tag/dark-cloth/": {
       "source": "http://localhost:8882/product-tag/dark-cloth/",
       "output": "/wordpress-snapshot/pages/product-tag/dark-cloth/index.html",
       "title": "dark cloth Archives - Casa Nirvana",
-      "bytes": 302509,
-      "sha256": "fadc9cdff958a25ce072965f59f2fc83ea81c819f385476de2eefcce932a9086"
+      "bytes": 302693,
+      "sha256": "b0061fc677ab22ee54c4e4eaf757d01e45838ec5d0a2ae0ad9f9fc48010cca34"
     },
     "/product-tag/dark-cloth/page/1/": {
       "source": "http://localhost:8882/product-tag/dark-cloth/page/1/?static-capture=1",
       "output": "/wordpress-snapshot/pages/product-tag/dark-cloth/page/1/index.html",
       "title": "dark cloth Archives - Casa Nirvana",
-      "bytes": 302566,
-      "sha256": "de12a83ea1fef99f6f1e8679e93e39ab3c61d2d44713f7403a174ed352d04a72"
+      "bytes": 302750,
+      "sha256": "4b9a94f5c44549c534cdce10997bf8a412f54def0b69eabbda8f2f787461e89f"
     },
     "/product-tag/dark-cloth/page/2/": {
       "source": "http://localhost:8882/product-tag/dark-cloth/page/2/",
       "output": "/wordpress-snapshot/pages/product-tag/dark-cloth/page/2/index.html",
       "title": "dark cloth Archives - Page 2 of 2 - Casa Nirvana",
-      "bytes": 286269,
-      "sha256": "99cb3f7fde519525a6e84d6c0a60e5dd745fa91d1580b33781752d213458623c"
+      "bytes": 286453,
+      "sha256": "c7cd309e717960f06072e0e92cf7df049266125c29884c3e45f5cea86129b89b"
     },
     "/product-tag/digital/": {
       "source": "http://localhost:8882/product-tag/digital/",
       "output": "/wordpress-snapshot/pages/product-tag/digital/index.html",
       "title": "digital Archives - Casa Nirvana",
-      "bytes": 302419,
-      "sha256": "1b13fd8372ca08957c0338e393d4757b24b9756971efd346efa1ceef76524eb8"
+      "bytes": 302603,
+      "sha256": "da9067958e7c9c23c54253becced82eecb8a0d6a9ee81db14fa57c5d37185ec8"
     },
     "/product-tag/digital/page/1/": {
       "source": "http://localhost:8882/product-tag/digital/page/1/?static-capture=1",
       "output": "/wordpress-snapshot/pages/product-tag/digital/page/1/index.html",
       "title": "digital Archives - Casa Nirvana",
-      "bytes": 302476,
-      "sha256": "eacfc204144659097fa1420aba9ff780cd3fa7435e6884c040b025632a3015c1"
+      "bytes": 302660,
+      "sha256": "b92f9b8f5719e6f42a0bb240057a17878eec10340a49265d2fd81d29fb17718e"
     },
     "/product-tag/digital/page/2/": {
       "source": "http://localhost:8882/product-tag/digital/page/2/",
       "output": "/wordpress-snapshot/pages/product-tag/digital/page/2/index.html",
       "title": "digital Archives - Page 2 of 2 - Casa Nirvana",
-      "bytes": 286190,
-      "sha256": "8e3b5a111c5f45faaa5d1b8f43baa6a26107b9723223978962736fe7ba9b52c1"
+      "bytes": 286374,
+      "sha256": "c8d4afd7e11ba552ad91e230d2564c40e76d50f79ae9c4f9285f5ec95738a234"
     },
     "/product-tag/mobile/": {
       "source": "http://localhost:8882/product-tag/mobile/",
       "output": "/wordpress-snapshot/pages/product-tag/mobile/index.html",
       "title": "mobile Archives - Casa Nirvana",
-      "bytes": 302390,
-      "sha256": "b722b89f3a5b8088b56fd8de5a9b083a5bc81f3a2b06f8d76db5d67520418218"
+      "bytes": 302574,
+      "sha256": "0c1d0e5b4728acf475de840c6905ed2783179178c7ad7821bec468531ba8f4bd"
     },
     "/product-tag/mobile/page/1/": {
       "source": "http://localhost:8882/product-tag/mobile/page/1/?static-capture=1",
       "output": "/wordpress-snapshot/pages/product-tag/mobile/page/1/index.html",
       "title": "mobile Archives - Casa Nirvana",
-      "bytes": 302445,
-      "sha256": "73ddaa936c6089df031c613dc4b91059ded9a6928c6f8120d3e16ab079411136"
+      "bytes": 302629,
+      "sha256": "aaa15228ecfd0a968751c585af6a1872c7495311d7ee33e6ed0d332692fb2d68"
     },
     "/product-tag/mobile/page/2/": {
       "source": "http://localhost:8882/product-tag/mobile/page/2/",
       "output": "/wordpress-snapshot/pages/product-tag/mobile/page/2/index.html",
       "title": "mobile Archives - Page 2 of 2 - Casa Nirvana",
-      "bytes": 286164,
-      "sha256": "eb56e7243dc1eb8da06d1d8bbac5767f9f626f4be0fa108b141205edc3eb4551"
+      "bytes": 286348,
+      "sha256": "19885f38a59dbcf6983c927dace292f3e7d9a247f8101444a1b916c364b5d92b"
     },
     "/product-tag/print/": {
       "source": "http://localhost:8882/product-tag/print/",
       "output": "/wordpress-snapshot/pages/product-tag/print/index.html",
       "title": "print Archives - Casa Nirvana",
-      "bytes": 302360,
-      "sha256": "27abc8c6f669da1ba69d51503ebd444e58eed90c6ab4a1048a1b4592c9efee6d"
+      "bytes": 302544,
+      "sha256": "1f23ec9fc9611ef1d3523b903ab93f2767ccb19ce8582a061f15f781c8fb34c6"
     },
     "/product-tag/print/page/1/": {
       "source": "http://localhost:8882/product-tag/print/page/1/?static-capture=1",
       "output": "/wordpress-snapshot/pages/product-tag/print/page/1/index.html",
       "title": "print Archives - Casa Nirvana",
-      "bytes": 302415,
-      "sha256": "bd40753c553c1ad4bcf855f790dccd1e5b7f234e69809eae0989e4a04398a88d"
+      "bytes": 302599,
+      "sha256": "90dcd6de144399a02eacda667a666fc7d798fcae4891e3a59bc4ace90293f6e0"
     },
     "/product-tag/print/page/2/": {
       "source": "http://localhost:8882/product-tag/print/page/2/",
       "output": "/wordpress-snapshot/pages/product-tag/print/page/2/index.html",
       "title": "print Archives - Page 2 of 2 - Casa Nirvana",
-      "bytes": 286139,
-      "sha256": "a5d374167a6d81b2f8635020726696b95e84252ed6b7cd35bea6483dd145dda2"
+      "bytes": 286323,
+      "sha256": "151236a77e6730d1c7bb9773ef39ca6dd28807820bb20b88167b95e22223019d"
     },
     "/product/biostellar-swag-t-shirt/": {
       "source": "http://localhost:8882/product/biostellar-swag-t-shirt/",
       "output": "/wordpress-snapshot/pages/product/biostellar-swag-t-shirt/index.html",
       "title": "BioStellar Swag T-Shirt - Casa Nirvana",
-      "bytes": 293620,
-      "sha256": "e3e586e9061f3d9e652e494a1f11963274146891ca847ecf79fc44835259e065"
+      "bytes": 293804,
+      "sha256": "dc36b3bed19c443b3968a4df4d049f32aa6dd710f003044269f810b36571afac"
     },
     "/product/cosmic-earth-flex-tee/": {
       "source": "http://localhost:8882/product/cosmic-earth-flex-tee/",
       "output": "/wordpress-snapshot/pages/product/cosmic-earth-flex-tee/index.html",
       "title": "Cosmic Earth Flex Tee - Casa Nirvana",
-      "bytes": 293776,
-      "sha256": "59cbe2947d0f213ad9866ce9ba4fbee7aa908bf531791dd94aca5dfac9fd7eda"
+      "bytes": 293960,
+      "sha256": "129a1bb454ad1d3189a0c1c146f981d82c90cba4f8242a01ece99e92d99f92cb"
     },
     "/product/cosmic-reboot-shirt/": {
       "source": "http://localhost:8882/product/cosmic-reboot-shirt/",
       "output": "/wordpress-snapshot/pages/product/cosmic-reboot-shirt/index.html",
       "title": "Cosmic Reboot Shirt - Casa Nirvana",
-      "bytes": 293512,
-      "sha256": "0d1bd12c29230de14a39f83b4427d396384fa6aa6e1f843900a5eeed06fb8868"
+      "bytes": 293696,
+      "sha256": "3a60e73a93cdabe5bfc69b58e3f1d6cf91a66e9b72fa8d04f4a6393ecd484dd3"
     },
     "/product/ecostellar-hustle-shirt/": {
       "source": "http://localhost:8882/product/ecostellar-hustle-shirt/",
       "output": "/wordpress-snapshot/pages/product/ecostellar-hustle-shirt/index.html",
       "title": "EcoStellar Hustle Shirt - Casa Nirvana",
-      "bytes": 293865,
-      "sha256": "b2aabec7477c23cbcc5aec43d9d36cb6e58068ab52e34ea65dc100c90e2b04a9"
+      "bytes": 294049,
+      "sha256": "1658da030740a2f830493405b901f0aba7e9681896211def5a263bb0f39f8794"
     },
     "/product/ecowarp-style-t-shirt/": {
       "source": "http://localhost:8882/product/ecowarp-style-t-shirt/",
       "output": "/wordpress-snapshot/pages/product/ecowarp-style-t-shirt/index.html",
       "title": "EcoWarp Style T-Shirt - Casa Nirvana",
-      "bytes": 293835,
-      "sha256": "63933a93b0e4a192ffd0731ad9f50718ccf8f28982f8382f6bfe01177ee5f9e1"
+      "bytes": 294019,
+      "sha256": "09b2ee0074aabe6b586432a8f2303c0675be49cce3107c1ff96ab14f5816368b"
     },
     "/product/future-nature-flow-tee/": {
       "source": "http://localhost:8882/product/future-nature-flow-tee/",
       "output": "/wordpress-snapshot/pages/product/future-nature-flow-tee/index.html",
       "title": "Future Nature Flow Tee - Casa Nirvana",
-      "bytes": 293872,
-      "sha256": "c7884966f129d76cc2f6b2bb46174e271622f39aa92f094ce16266dba86b2c05"
+      "bytes": 294056,
+      "sha256": "b7434d6ba2b196c38b167faf9113c639c01c27d006a3f1383b142a15b8c612ce"
     },
     "/product/galactic-green-hype-tee/": {
       "source": "http://localhost:8882/product/galactic-green-hype-tee/",
       "output": "/wordpress-snapshot/pages/product/galactic-green-hype-tee/index.html",
       "title": "Galactic Green Hype Tee - Casa Nirvana",
-      "bytes": 293902,
-      "sha256": "e5d3d4d72f1557eb12f13ce65108e4bafa3560df4e60292ebf9b1ad3746d8fad"
+      "bytes": 294086,
+      "sha256": "7cc1ef433913699b9d80bbf1511180ee76df3de850f5112bf7c4aa316328b80d"
     },
     "/product/organic-galaxy-flex-tee/": {
       "source": "http://localhost:8882/product/organic-galaxy-flex-tee/",
       "output": "/wordpress-snapshot/pages/product/organic-galaxy-flex-tee/index.html",
       "title": "Organic Galaxy Flex Tee - Casa Nirvana",
-      "bytes": 293646,
-      "sha256": "8783f9521f989736de6124ab4846a83047d67f5b427058e2729bdd1d417b9524"
+      "bytes": 293830,
+      "sha256": "6dfedec4734fd10d9d1707879ce7f707fba347db086cf4edc38356a18ac17a43"
     },
     "/product/solar-karma-street-tee/": {
       "source": "http://localhost:8882/product/solar-karma-street-tee/",
       "output": "/wordpress-snapshot/pages/product/solar-karma-street-tee/index.html",
       "title": "Solar Karma Street Tee - Casa Nirvana",
-      "bytes": 293641,
-      "sha256": "76e1bcf1609abbe4611562737d4863e2e12261b6414d8e61f8d2f6f3947592d4"
+      "bytes": 293825,
+      "sha256": "9a1ee17266d59971044de9df39b880a3b38b07c8be69c00287ed638e37ef9d6b"
     },
     "/product/solar-powered-drip-shirt/": {
       "source": "http://localhost:8882/product/solar-powered-drip-shirt/",
       "output": "/wordpress-snapshot/pages/product/solar-powered-drip-shirt/index.html",
       "title": "Solar Powered Drip Shirt - Casa Nirvana",
-      "bytes": 295341,
-      "sha256": "3aa0a081bf513f55426e137a4bcbdd6f1d34c21279b6aab27493a0966f52a57c"
+      "bytes": 295525,
+      "sha256": "4c50fa00ebcb665effa443e9e16ceda0a1879818c2a277dbedd68dfd23b7b0ca"
     },
     "/product/sustainable-nova-tee/": {
       "source": "http://localhost:8882/product/sustainable-nova-tee/",
       "output": "/wordpress-snapshot/pages/product/sustainable-nova-tee/index.html",
       "title": "Sustainable Nova Tee - Casa Nirvana",
-      "bytes": 293766,
-      "sha256": "d659567b0337afd1f9f0a4d6533e41c76e4b38e332fa339388d2d0ef4d4110af"
+      "bytes": 293950,
+      "sha256": "98b53910a2d8b0b5c991ece2b1b8d103fdd6e37c11583a0569b0b99704e2e6f5"
     },
     "/product/terra-orbit-swag-tee/": {
       "source": "http://localhost:8882/product/terra-orbit-swag-tee/",
       "output": "/wordpress-snapshot/pages/product/terra-orbit-swag-tee/index.html",
       "title": "Terra Orbit Swag Tee - Casa Nirvana",
-      "bytes": 293558,
-      "sha256": "1accd0e32fa54be858a31dc50e89ba89ec6657f7b4dfd7a7aaf3acdfb0f55bd9"
+      "bytes": 293742,
+      "sha256": "72eee1850a373012efca96d4ab04558308a735b989596ca92cd1a958afe8ca5b"
     },
     "/regenerative-grazing-boosts-soil-health-rapidly/": {
       "source": "http://localhost:8882/regenerative-grazing-boosts-soil-health-rapidly/",
       "output": "/wordpress-snapshot/pages/regenerative-grazing-boosts-soil-health-rapidly/index.html",
       "title": "Regenerative grazing boosts soil health rapidly. - Casa Nirvana",
-      "bytes": 307656,
-      "sha256": "77d5396b08bdcd256e9841719c8aa9bec66b8fa629dc39ce744bbb35b93d008e"
+      "bytes": 307840,
+      "sha256": "9daa2f835c1ff41cb418d5a3148a8a52a1b318ad6aeab633b4bab2fad6f528cc"
     },
     "/regenerative-grazing-enriches-ecosystems/": {
       "source": "http://localhost:8882/regenerative-grazing-enriches-ecosystems/",
       "output": "/wordpress-snapshot/pages/regenerative-grazing-enriches-ecosystems/index.html",
       "title": "Regenerative grazing enriches ecosystems - Casa Nirvana",
-      "bytes": 307962,
-      "sha256": "8b9b7fa11f7d9461b59d405ab66c2d0e4c23ae3a3274c4cd04384a0fb2ab8812"
+      "bytes": 308146,
+      "sha256": "fd99c0c9cfb0469df1b2faa4d8ce50d1d4e9ce35924342e785a995cc5fbc1278"
     },
     "/residents/": {
       "source": "http://localhost:8882/residents/",
       "output": "/wordpress-snapshot/pages/residents/index.html",
       "title": "Residents - Casa Nirvana",
-      "bytes": 489123,
-      "sha256": "34e16bff77b1d5895f14d6a41bb4fe2e359a0a5546134cec94cd6081d8717b28"
+      "bytes": 489307,
+      "sha256": "85920f84bb7b8f2043fa58aaa7fd232488ed936df41c841ab35d46a44868e4e2"
     },
     "/rotational-grazing-improves-water-retention/": {
       "source": "http://localhost:8882/rotational-grazing-improves-water-retention/",
       "output": "/wordpress-snapshot/pages/rotational-grazing-improves-water-retention/index.html",
       "title": "Rotational grazing improves water retention. - Casa Nirvana",
-      "bytes": 308325,
-      "sha256": "98a53bb9b29a04d3630b05674471026b733e727eaf2d45f8390157ceed173c8b"
+      "bytes": 308509,
+      "sha256": "aea5a4df6a9f79d604bf205159c56c200f9a9a84604297d8cde00b7c51a47001"
     },
     "/rotational-grazing-supports-ecosystem-health/": {
       "source": "http://localhost:8882/rotational-grazing-supports-ecosystem-health/",
       "output": "/wordpress-snapshot/pages/rotational-grazing-supports-ecosystem-health/index.html",
       "title": "Rotational grazing supports ecosystem health - Casa Nirvana",
-      "bytes": 308391,
-      "sha256": "d48ef92244dfb1ca8159c860b29990266b754658ea2b66b6d3dfcb4c26d508d8"
+      "bytes": 308575,
+      "sha256": "8ff5de36470e26658c68f62a44c7ed939266a436ebc595f51644bec95c432a69"
     },
     "/security-guards/": {
       "source": "http://localhost:8882/security-guards/",
       "output": "/wordpress-snapshot/pages/security-guards/index.html",
       "title": "Security Guards - Casa Nirvana",
-      "bytes": 489283,
-      "sha256": "74f76ec01d0874295dd5ba301c4fbe79dcf736c4e17676cdba33a60fb0197f7d"
+      "bytes": 489467,
+      "sha256": "6ecf970c2341e970cb1ec17e325b05bc39b808d711fa3f46465795d296d90bf8"
     },
     "/service/": {
       "source": "http://localhost:8882/service/",
       "output": "/wordpress-snapshot/pages/service/index.html",
       "title": "Services Archive - Casa Nirvana",
-      "bytes": 275078,
-      "sha256": "679fa592755f67be21f9f8fc8bd87363703ade6bb33f7bb2e19060e627b4d6ee"
+      "bytes": 275262,
+      "sha256": "85318860c079128bf00599fdc2ae026c15cf14dc70e3c3831468f2abff03c454"
     },
     "/service/ai-for-email/": {
       "source": "http://localhost:8882/service/ai-for-email/",
       "output": "/wordpress-snapshot/pages/service/ai-for-email/index.html",
       "title": "AI for email - Casa Nirvana",
-      "bytes": 340017,
-      "sha256": "839c259dca7be63c3bdccb7a6050d300aa14f3a12aea28e3f677c776d75cb211"
+      "bytes": 340201,
+      "sha256": "bd44d6971355f3a0d1f3ff9cfd36ec06c1403ea9c7f0b717a64b7d5fbdb5ae4e"
     },
     "/service/business-consultancy/": {
       "source": "http://localhost:8882/service/business-consultancy/",
       "output": "/wordpress-snapshot/pages/service/business-consultancy/index.html",
       "title": "Business Consultancy - Casa Nirvana",
-      "bytes": 340167,
-      "sha256": "0a18593a51d69484d2a5dca409e58322b89a9bcdb20f386a0fe081a3288b92ca"
+      "bytes": 340351,
+      "sha256": "d913f0fdef0d81938dd7dcb4a0f29f4d303cfaef760e4998783f764938558f3d"
     },
     "/service/content-writing/": {
       "source": "http://localhost:8882/service/content-writing/",
       "output": "/wordpress-snapshot/pages/service/content-writing/index.html",
       "title": "Content Writing - Casa Nirvana",
-      "bytes": 340078,
-      "sha256": "c0d9ef3933d519e968a58df569d868546aee575d21c317be7fcec45e5db17c10"
+      "bytes": 340262,
+      "sha256": "90a5740f9d556c5ecfb33806170e6aa9a6fe63c196c1515da01c145736a0166a"
     },
     "/service/digital-marketing/": {
       "source": "http://localhost:8882/service/digital-marketing/",
       "output": "/wordpress-snapshot/pages/service/digital-marketing/index.html",
       "title": "Digital Marketing - Casa Nirvana",
-      "bytes": 339242,
-      "sha256": "04836984076c43c54c8d0605dd7c1c9a35a8decfb171c674947c660f004d4a37"
+      "bytes": 339426,
+      "sha256": "b2261d4a8287107f4e51749ecb14519c88a0b35b3e2e659f4e2d1dc9059420fa"
     },
     "/service/marketing-automation/": {
       "source": "http://localhost:8882/service/marketing-automation/",
       "output": "/wordpress-snapshot/pages/service/marketing-automation/index.html",
       "title": "Marketing automation - Casa Nirvana",
-      "bytes": 340161,
-      "sha256": "31c3a7880fcf044ed3cb41ca2e34374409a20751549918552e5cd93bd12dc733"
+      "bytes": 340345,
+      "sha256": "d9982a9bc5bee35a03a8f63edc79ab0eceacd75b0f2f9de68297ebcfe95e134b"
     },
     "/service/page/2/": {
       "source": "http://localhost:8882/service/page/2/",
       "output": "/wordpress-snapshot/pages/service/page/2/index.html",
       "title": "Services Archive - Page 2 of 2 - Casa Nirvana",
-      "bytes": 274568,
-      "sha256": "b7fcadba54a3c3805043bacbcea5455bd8df5f5f829557f862a55b06f74e6ab8"
+      "bytes": 274752,
+      "sha256": "d891080f444d911e0c07aab08135deaf594514c817da3239d89a3bee39a7589b"
     },
     "/service/signup-forms/": {
       "source": "http://localhost:8882/service/signup-forms/",
       "output": "/wordpress-snapshot/pages/service/signup-forms/index.html",
       "title": "Signup forms - Casa Nirvana",
-      "bytes": 338792,
-      "sha256": "2f17ad900725e50f672f5d86904798fd26063b69883e05352d510e622414ea39"
+      "bytes": 338976,
+      "sha256": "d8fcf6da7e5022b03e64330c48fca85982b900a379d5b00fa09ad54f958bdbb1"
     },
     "/service/social-media-marketing/": {
       "source": "http://localhost:8882/service/social-media-marketing/",
       "output": "/wordpress-snapshot/pages/service/social-media-marketing/index.html",
       "title": "Social Media Marketing - Casa Nirvana",
-      "bytes": 340203,
-      "sha256": "f8aa475ded92ad0ceeb5d65df64b2b2e6d4022eec3987e1e2a242a53bb696c2e"
+      "bytes": 340387,
+      "sha256": "6b537305a15f86f6be93cdaa64e1ce448641034ce1657396b1d93dfb744bbec0"
     },
     "/service/ui-ux-design/": {
       "source": "http://localhost:8882/service/ui-ux-design/",
       "output": "/wordpress-snapshot/pages/service/ui-ux-design/index.html",
       "title": "UI &amp; UX Design - Casa Nirvana",
-      "bytes": 340069,
-      "sha256": "9402f2b1b8af15a603aca34df19f3b3155f38e349cdee1f3889b8881746e44dd"
+      "bytes": 340253,
+      "sha256": "004c498091440a96a56f7c781375d0ac5d6be6b370b5cf76355eec79c4d72165"
     },
     "/service/website-development/": {
       "source": "http://localhost:8882/service/website-development/",
       "output": "/wordpress-snapshot/pages/service/website-development/index.html",
       "title": "Website Development - Casa Nirvana",
-      "bytes": 340154,
-      "sha256": "222074400ea652b5f896b61b5ed006a8c9bbf2dfe1361817277074372a423aba"
+      "bytes": 340338,
+      "sha256": "97da6fc14d89e355a1dc8d209ebd28a4baa5970f7afbae36cfde9d654d874579"
     },
     "/shop/": {
       "source": "http://localhost:8882/shop/",
       "output": "/wordpress-snapshot/pages/shop/index.html",
       "title": "Shop - Casa Nirvana",
-      "bytes": 298393,
-      "sha256": "8894b3e93f64b0f84a746e55e1d0d224dbd7c18a73afd9e5c39a86f0d9172b8d"
+      "bytes": 298577,
+      "sha256": "a4b2dbbdbc01fc9a9cf781e54cc451c2d2a6cf62d3efd7172dc929cf8afd0278"
     },
     "/shop/page/1/": {
       "source": "http://localhost:8882/shop/page/1/?static-capture=1",
       "output": "/wordpress-snapshot/pages/shop/page/1/index.html",
       "title": "Shop - Casa Nirvana",
-      "bytes": 298449,
-      "sha256": "93c85537e1f4f104ea33aff4d497c2eda365b4f1844e516c32ac62ddc52020c7"
+      "bytes": 298633,
+      "sha256": "493a7f849bafd99968a4a00678bc05847d1c3ff3338c9bbccb1db0b910278bca"
     },
     "/shop/page/2/": {
       "source": "http://localhost:8882/shop/page/2/",
       "output": "/wordpress-snapshot/pages/shop/page/2/index.html",
       "title": "Shop - Page 2 of 2 - Casa Nirvana",
-      "bytes": 281709,
-      "sha256": "ac46bb28381187ac29d049e990b0ff6dee24190d054b924122192a612c2f6c34"
+      "bytes": 281893,
+      "sha256": "84daa67f4476c0d3e4caab7994790e44780a3e887d6fd0e9ab43c5f61015f57c"
     },
     "/sustainable-grazing-restores-habitats/": {
       "source": "http://localhost:8882/sustainable-grazing-restores-habitats/",
       "output": "/wordpress-snapshot/pages/sustainable-grazing-restores-habitats/index.html",
       "title": "Sustainable grazing restores habitats - Casa Nirvana",
-      "bytes": 308206,
-      "sha256": "cc6eb73c94611d52377b4a3697902dcc85a7dc8139a720c5cfab313bbcd864a9"
+      "bytes": 308390,
+      "sha256": "06d1c975b055cd5a27583797e6bc8441aded205b63264c8083504259dfc8badb"
     },
     "/tag/business/": {
       "source": "http://localhost:8882/tag/business/",
       "output": "/wordpress-snapshot/pages/tag/business/index.html",
       "title": "business Archives - Casa Nirvana",
-      "bytes": 278073,
-      "sha256": "d9a567c2b590edcbc7a337a9024967b41274aa0cb6992c358ad422f14c38720f"
+      "bytes": 278257,
+      "sha256": "00b394cd1dae26f5af9d0bd378ad9aac841f14db3b93a2f36d13d7571b6c4502"
     },
     "/tag/design/": {
       "source": "http://localhost:8882/tag/design/",
       "output": "/wordpress-snapshot/pages/tag/design/index.html",
       "title": "design Archives - Casa Nirvana",
-      "bytes": 278035,
-      "sha256": "18d2ce0200bfd5b94b1b6e98ce5ebeec31af6873c637b0dcf8d6c74c97ce27c0"
+      "bytes": 278219,
+      "sha256": "d5aad7dbf621293504a0c51d691b906603c3c139b235ec76421639201a3284d4"
     },
     "/tag/next-gen-ai/": {
       "source": "http://localhost:8882/tag/next-gen-ai/",
       "output": "/wordpress-snapshot/pages/tag/next-gen-ai/index.html",
       "title": "next-gen ai Archives - Casa Nirvana",
-      "bytes": 283402,
-      "sha256": "3468a848cdc897b4de884b3148ecbe6febaf5a1a46d2c870f0e89744cd791795"
+      "bytes": 283586,
+      "sha256": "a903b7700e4a5e3046ea9356c1a105de4b35f4e53188bfb6eac8fa676437cb5c"
     },
     "/tag/next-gen-ai/page/2/": {
       "source": "http://localhost:8882/tag/next-gen-ai/page/2/",
       "output": "/wordpress-snapshot/pages/tag/next-gen-ai/page/2/index.html",
       "title": "next-gen ai Archives - Page 2 of 2 - Casa Nirvana",
-      "bytes": 282558,
-      "sha256": "a941b40da5a3fb6aeaea66379d413636b9cad64cad8bbababcc2645151c6acb7"
+      "bytes": 282742,
+      "sha256": "d5aea2289e0ca14d28962bbb271bab88540457e7a8f393659208419dbd9812b9"
     },
     "/tag/wp/": {
       "source": "http://localhost:8882/tag/wp/",
       "output": "/wordpress-snapshot/pages/tag/wp/index.html",
       "title": "wp Archives - Casa Nirvana",
-      "bytes": 277960,
-      "sha256": "c45af91fbdcd59e894bbc43c59ef8b66c8a7d647489a9d04f6373189df653d5c"
+      "bytes": 278144,
+      "sha256": "164f38cb7d0c90db580c1bfaa0d9be809e7678885f167f0fe1905350ed83cb43"
     },
     "/team-details/": {
       "source": "http://localhost:8882/team-details/",
       "output": "/wordpress-snapshot/pages/team-details/index.html",
       "title": "Team Details - Casa Nirvana",
-      "bytes": 276057,
-      "sha256": "76e67301c3630a8cf48c8e86aadd29b1d8f996ccb8ea2378cd0c4c4441052cb6"
+      "bytes": 276241,
+      "sha256": "83f2056d5c72ea89568cd1dbef23820aaae1e3cb9a502eb31ec16acf9ef3cb63"
     }
   },
   "assets": {
@@ -3941,7 +3941,7 @@
     },
     "assets": {}
   },
-  "normalizedAt": "2026-07-19T20:42:11.779Z",
+  "normalizedAt": "2026-07-19T20:54:47.807Z",
   "normalization": {
     "studioOriginsRemoved": true,
     "captureQueryRemoved": true,

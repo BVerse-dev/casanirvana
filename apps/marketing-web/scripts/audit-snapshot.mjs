@@ -32,6 +32,7 @@ for (const route of approvedRoutes) {
     ["no WordPress editor runtime", !/\/wp-includes\/js\/dist\//i.test(source)],
     ["no plugin admin runtime", !/(?:woocommerce\/assets\/js|contact-form-7\/includes\/swv|elementor\/assets\/js\/(?:common|web-cli|dev-tools|app-loader))/i.test(source)],
     ["native forms runtime", /src=["']\/assets\/casa-native-forms\.js/i.test(source)],
+    ["static form compatibility", /id=["']casa-static-form-compat["']/i.test(source)],
     ["owned favicon", /rel=["']icon["'][^>]*href=["']\/icon\.svg["']/i.test(source)],
     ["stable decorative assets", !/\/wp-content\/uploads\/2025\/(?:03\/(?:bg-ss1-h3\.webp|Vector\.png|pattern-h3\.webp|bg-qr-h3\.png|Pattern_bg\.png)|04\/bg-last-7\.webp|05\/pattern1221\.png)/i.test(source)],
     ["no legacy upload paths", !/\/wp-content\/uploads\//i.test(source)],
