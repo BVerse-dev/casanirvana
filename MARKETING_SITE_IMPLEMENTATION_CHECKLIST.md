@@ -370,3 +370,12 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Added a non-visual accessible name, button role, keyboard focus, Enter/Space activation, and synchronized `aria-expanded` to the mirrored mobile menu control.
 - [x] Production keyboard evidence for commit `7e4f1d6e`: `false -> true -> false`, menu body state `closed -> open -> closed`, zero console errors.
 - [ ] Vercel environment audit confirms all five release variables are Production-only. Preview needs approved secret isolation/protection before values are added.
+
+## 2026-07-19 - About Us Manual Content Review
+
+- [x] Audited the rendered About page before editing and identified three distinct WordPress capability panels carrying duplicated copy.
+- [x] Manually edited only that capability section in the captured About HTML; no batch content transformer was used.
+- [x] Assigned distinct Resident Experience, Security Operations and Facility Management copy to the three existing panels.
+- [x] Preserved the original panel containers, illustrations, icons, animation hooks, order and responsive styling.
+- [ ] Owner visual and editorial approval of this About section remains open.
+- [ ] Audit the next visible About section before making further edits.

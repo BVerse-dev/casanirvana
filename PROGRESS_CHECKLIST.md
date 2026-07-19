@@ -1302,5 +1302,14 @@ Date: 2026-02-06
 
 - [x] Routed approved footer destinations and removed stale WordPress navigation targets.
 - [x] Verified pointer and keyboard mobile-navigation behavior in production with synchronized accessibility state.
+
+## 2026-07-19 - Phase 50 About Us Manual Content Review
+
+- [x] Stopped route-wide scripted content editing for the editorial refinement pass.
+- [x] Audited and manually corrected only the duplicated three-panel capability section on `/about-us/`.
+- [x] Preserved the mirrored WordPress structure and visual behavior while giving each panel a distinct product purpose.
+- [ ] Owner approval of the revised section remains open.
+- [ ] Continue through the About page one visible section at a time before moving to another route.
+
 - [ ] Social profile destinations remain blocked on approved URLs.
 - [ ] Preview environment parity remains blocked on the decision to use isolated preview API keys or protected reuse of production keys.
