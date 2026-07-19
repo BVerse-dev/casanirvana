@@ -832,6 +832,31 @@ function escapeHtml(value) {
   return value.replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 }
 
+const placeholderRouteByLabel = new Map([
+  ["privacy policy", "/privacy-policy/"],
+  ["terms & conditions", "/terms-of-service/"],
+  ["terms and conditions", "/terms-of-service/"],
+  ["plan your rollout", "/contact-us/"],
+  ["core features", "/core-features/"],
+  ["contact", "/contact-us/"],
+  ["products", "/our-products/"],
+  ["faqs", "/faqs/"],
+]);
+
+function replaceApprovedPlaceholderLinks(source) {
+  return source.replace(/<a\b([^>]*?)href=(["'])#\2([^>]*)>([\s\S]*?)<\/a>/gi, (tag, before, quote, after, contents) => {
+    const label = contents
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&amp;|&#038;/gi, "&")
+      .replace(/&nbsp;|&#160;/gi, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .toLowerCase();
+    const route = placeholderRouteByLabel.get(label);
+    return route ? `<a${before}href=${quote}${route}${quote}${after}>${contents}</a>` : tag;
+  });
+}
+
 function applySeo(source, route) {
   const seo = snapshotSeo[route];
   if (!seo) throw new Error(`SEO metadata is missing for approved snapshot route: ${route}`);
@@ -959,6 +984,7 @@ for (const [route, transform] of Object.entries(routeTransforms)) {
   }
 
   output = output.replace(/\/wp-login\.php\?action=logout(?:(?:&amp;|&#038;|&)_[^"']+)/gi, "/contact-us/");
+  output = replaceApprovedPlaceholderLinks(output);
 
   output = applySeo(output, route);
   output = applyAccessibilityAndPerformance(output);
