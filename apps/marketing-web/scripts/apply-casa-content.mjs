@@ -916,6 +916,18 @@ function applyAccessibilityAndPerformance(source) {
     "</style>",
     "<!-- casa-accessibility:end -->",
   ].join("");
+  const supportScript = [
+    '<script id="casa-mobile-nav-accessibility">',
+    'document.addEventListener("DOMContentLoaded",function(){',
+    'document.querySelectorAll("#pxl-nav-mobile .pxl-nav-mobile-button").forEach(function(button){',
+    'var sync=function(){button.setAttribute("aria-expanded",document.body.classList.contains("body-overflow")?"true":"false");};',
+    'button.addEventListener("click",function(){setTimeout(sync,0);});',
+    'button.addEventListener("keydown",function(event){if(event.key==="Enter"||event.key===" "){event.preventDefault();button.click();}});',
+    'sync();',
+    '});',
+    '});',
+    '</script>',
+  ].join("");
 
   let output = source
     .replace(/<!-- casa-accessibility:start -->[\s\S]*?<!-- casa-accessibility:end -->/gi, "")
@@ -942,12 +954,22 @@ function applyAccessibilityAndPerformance(source) {
     .replace(/<a\b([^>]*\btarget=["']_blank["'][^>]*)>/gi, (tag, attributes) => {
       if (/\brel=/i.test(attributes)) return tag;
       return `<a${attributes} rel="noopener noreferrer">`;
+    })
+    .replace(/<div\b([^>]*\bclass=["'][^"']*\bpxl-nav-mobile-button\b[^"']*["'][^>]*)>/gi, (tag, attributes) => {
+      let next = attributes;
+      if (!/\brole=/i.test(next)) next += ' role="button"';
+      if (!/\btabindex=/i.test(next)) next += ' tabindex="0"';
+      if (!/\baria-label=/i.test(next)) next += ' aria-label="Toggle navigation"';
+      if (!/\baria-expanded=/i.test(next)) next += ' aria-expanded="false"';
+      return `<div${next}>`;
     });
 
   output = output.replace(/<\/head>/i, `${supportStyles}</head>`);
   if (!/class=["'][^"']*casa-skip-link/i.test(output)) {
     output = output.replace(/<body\b([^>]*)>/i, '<body$1><a class="casa-skip-link" href="#main-content">Skip to main content</a><span id="main-content" tabindex="-1"></span>');
   }
+  output = output.replace(/<script\b[^>]*id=["']casa-mobile-nav-accessibility["'][^>]*>[\s\S]*?<\/script>/gi, "");
+  output = output.replace(/<\/body>/i, `${supportScript}</body>`);
   return output;
 }
 
