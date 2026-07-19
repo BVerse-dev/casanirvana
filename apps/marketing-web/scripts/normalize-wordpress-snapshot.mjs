@@ -18,9 +18,23 @@ const studioOrigins = [
   "https%3A%2F%2Flocalhost%3A8882",
 ];
 
+const publicAssetAliases = [
+  ["/wp-content/uploads/2025/03/bg-ss1-h3.webp", "/assets/legacy/bg-ss1-h3.webp"],
+  ["/wp-content/uploads/2025/03/Vector.png", "/assets/legacy/vector.png"],
+  ["/wp-content/uploads/2025/03/pattern-h3.webp", "/assets/legacy/pattern-h3.webp"],
+  ["/wp-content/uploads/2025/03/bg-qr-h3.png", "/assets/legacy/bg-qr-h3.png"],
+  ["/wp-content/uploads/2025/03/Pattern_bg.png", "/assets/legacy/pattern-bg.png"],
+  ["/wp-content/uploads/2025/04/bg-last-7.webp", "/assets/legacy/bg-last-7.webp"],
+  ["/wp-content/uploads/2025/05/pattern1221.png", "/assets/legacy/pattern1221.png"],
+];
+
 function normalizeDocument(source) {
   let output = source;
   for (const origin of studioOrigins) output = output.replaceAll(origin, "");
+  for (const [sourcePath, publicPath] of publicAssetAliases) {
+    output = output.replaceAll(sourcePath, publicPath);
+    output = output.replaceAll(sourcePath.replaceAll("/", "\\/"), publicPath.replaceAll("/", "\\/"));
+  }
   output = output
     .replaceAll("?static-capture=1", "")
     .replaceAll("&static-capture=1", "");
@@ -46,6 +60,9 @@ function normalizeDocument(source) {
       /<\/body>/i,
       '<script id="casa-native-forms-js" src="/assets/casa-native-forms.js" defer></script></body>',
     );
+  }
+  if (!output.includes('href="/icon.svg"')) {
+    output = output.replace(/<\/head>/i, '<link rel="icon" href="/icon.svg" type="image/svg+xml"></head>');
   }
   return output;
 }
