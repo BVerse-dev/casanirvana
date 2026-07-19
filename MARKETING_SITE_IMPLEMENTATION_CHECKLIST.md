@@ -57,8 +57,8 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Reuse secured backend SMTP configuration and normalized API errors.
 - [x] Add API-key enforcement, request validation, payload limits, rate limiting, honeypots and duplicate-submit guards.
 - [x] Add accessible pending, success and failure states.
-- [ ] Verify onboarding creation against the deployed backend and admin review workspace.
-- [ ] Verify contact delivery against production SMTP and recipient configuration.
+- [x] Verify onboarding creation against the deployed backend and admin review workspace. Evidence: production request returned HTTP 201 and created synthetic acceptance row `d93641bd-48b3-4d38-8ddb-8ed305ec8c36`.
+- [ ] Verify contact delivery against production SMTP and recipient configuration. The production API key is accepted; SMTP delivery remains the blocker.
 
 ## SEO, accessibility and quality
 
@@ -72,8 +72,8 @@ Visual authority: local WordPress reference under `wordpress/`
 ## Deployment and cutover
 
 - [x] Add additive marketing CI job definition and Vercel project configuration.
-- [ ] Create/link the dedicated Vercel project rooted at `apps/marketing-web`.
-- [ ] Configure preview and production environment variables.
+- [x] Create/link the dedicated Vercel project rooted at `apps/marketing-web`.
+- [~] Configure preview and production environment variables. Production is complete; Preview is missing the five release-required variables and fails before build.
 - [ ] Record preview URL and complete six-viewport parity review.
 - [ ] Record WordPress last-known-good export and rollback owner.
 - [ ] Approve domain redirects, DNS cutover and post-deploy monitoring window.
@@ -89,6 +89,8 @@ Visual authority: local WordPress reference under `wordpress/`
 - [ ] Step 6: begin physical monorepo moves only after launch stability is approved.
 
 ## Session log
+
+- 2026-07-19: Production stabilization continued on the canonical `casanirvana.app` deployment. Pinned marketing to Vercel-supported Node `22.x`; aligned `outputFileTracingRoot` and `turbopack.root` to the monorepo root; production build and deployment passed without the prior root mismatch. Restored exact WordPress hero form geometry, hid only empty legacy Contact Form 7 response containers, confirmed zero-pixel CTA/input offset and zero fresh console errors in the Codex browser. Onboarding remains verified. The marketing contact API key now reaches the SMTP path, but delivery remains open pending working SMTP credentials. Preview builds remain blocked by missing Preview-scoped release variables, and the Vercel dashboard runtime still needs to be changed from `20.x` to `22.x`.
 
 - 2026-07-19: Corrected stale tracking state by marking dependency/build evidence complete, replacing the obsolete WordPress-onboarding war-room label with the active Next.js proxy flow, and adding the ordered Phase 50/51 execution sequence. A fresh Codex in-app browser profile and fresh tab still reject `http://localhost:3001/` with `ERR_BLOCKED_BY_CLIENT`; homepage parity evidence remains blocked until Codex can access localhost or external WordPress and Next.js preview URLs are available.
 

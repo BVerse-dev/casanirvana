@@ -108,7 +108,7 @@ Marketing website acceptance must cover all approved routes at 1440x900, 1280x80
 
 - Manual evidence tracker: `MARKETING_SITE_MANUAL_ACCEPTANCE_CHECKLIST.md`.
 - Deployment environment validator: `npm --prefix apps/marketing-web run verify:release-env`.
-- Current state: implementation/build gates pass; manual 11-route/six-viewport evidence, canonical domain, SMTP, legal approval, deployed preview verification, DNS and rollback signoff remain P0 open items.
+- Current state: implementation/build gates, canonical production domain, production hosting topology, route/runtime smoke checks and onboarding delivery pass. Manual six-viewport signoff, SMTP delivery, legal approval, Preview environment configuration and rollback signoff remain P0 open items.
 
 ### 2026-07-19 - Domain Decision
 
@@ -121,9 +121,9 @@ Marketing website acceptance must cover all approved routes at 1440x900, 1280x80
 - [x] Local application layout established under `apps/` without dependency hoisting or feature changes.
 - [x] Root production build passed for API, superadmin, and marketing applications.
 - [x] Published the monorepo transition to remote `main` at `66f6aa02` before changing any hosting root.
-- [ ] Create/link the marketing Vercel project with Root Directory `apps/marketing-web` and domain `casanirvana.app`.
-- [ ] Change the existing superadmin Vercel Root Directory to `apps/superadmin` and retain `admin.casanirvana.app`.
-- [ ] Change the Render API Root Directory to `apps/api` only in the coordinated deployment window.
+- [x] Marketing Vercel project is linked to the monorepo with Root Directory `apps/marketing-web`; `casanirvana.app` is the canonical production domain.
+- [x] Superadmin remains safely deployed from the dedicated `casanirvana-superadmin` split repository with a blank Root Directory and `admin.casanirvana.app`.
+- [x] Render API remains safely deployed from the dedicated `casanirvana-backend` split repository with a blank Root Directory; `/health` passes externally.
 - [ ] Update resident and guard EAS working roots to `apps/resident-mobile` and `apps/guard-mobile`.
 - [ ] Confirm environment variables independently in each hosting project; do not copy server-only secrets into `NEXT_PUBLIC_*` variables.
 - [ ] Run deployment smoke checks before removing the previous hosting-root rollback configuration.
@@ -135,5 +135,9 @@ Marketing website acceptance must cover all approved routes at 1440x900, 1280x80
 - [x] Confirmed Render API source/root: dedicated `casanirvana-backend` split repository with blank Root Directory.
 - [x] Render API build, start, and external `/health` smoke check passed on split commit `37f878a9c2932fc062eb1d6da09b598f9a20697c`.
 - [x] Marketing snapshot dependency audit and production build passed after removing non-public WordPress runtime.
-- [ ] Confirm the deployed marketing runtime has no P0 failed assets, missing Elementor chunks, or form-script failures.
+- [x] Confirmed the deployed marketing runtime has no P0 failed assets, missing Elementor chunks, or form-script failures. Fresh Codex-browser production loads report zero console errors; CTA/input parity is exact and empty legacy response containers are hidden.
+- [x] Confirmed Vercel production builds on Node `22.x`; Next.js output tracing and Turbopack share the monorepo root without the prior root-mismatch warning.
+- [ ] Change the marketing Vercel Project Settings runtime from stale `20.x` to `22.x` so the dashboard matches the enforced package runtime.
+- [ ] Configure the five required marketing variables for Preview deployments; Production is configured, but branch Preview builds currently fail the release-environment gate.
+- [ ] Complete SMTP credentials/delivery acceptance. `MARKETING_CONTACT_API_KEY` now passes into the mail-delivery path, but SMTP delivery remains unresolved.
 - [ ] Resolve or explicitly defer missing production `SENTRY_DSN` with owner and acceptance evidence.
