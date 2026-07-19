@@ -1287,7 +1287,7 @@ Date: 2026-02-06
 - [x] Retained independent application lockfiles; no package-manager migration, dependency hoisting, dependency upgrade, database migration, or feature refactor was included.
 - [x] Root `npm run build` passed for `apps/api`, `apps/superadmin`, and `apps/marketing-web`.
 - [x] Marketing production preview restarted from `apps/marketing-web` on `http://localhost:3001`.
-- [ ] Commit and publish the transition so the remote repository and Vercel directory selector can see `apps/marketing-web` and `apps/superadmin`.
+- [x] Committed and published the transition as `66f6aa02`; remote `main` was fast-forwarded to the same commit so Vercel can see `apps/marketing-web` and `apps/superadmin`.
 - [ ] Change hosting roots only after publication: marketing Vercel `apps/marketing-web`, superadmin Vercel `apps/superadmin`, Render API `apps/api`, resident EAS `apps/resident-mobile`, and guard EAS `apps/guard-mobile`.
 - [ ] Keep the previous production root settings as the rollback boundary until each moved application passes deployment smoke checks.
 - Note: the superadmin build reported only non-blocking optional `sharp` and outdated Browserslist data warnings; dependency cleanup remains a post-transition polish item.

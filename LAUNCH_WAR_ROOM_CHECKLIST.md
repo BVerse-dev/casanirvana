@@ -120,7 +120,7 @@ Marketing website acceptance must cover all approved routes at 1440x900, 1280x80
 
 - [x] Local application layout established under `apps/` without dependency hoisting or feature changes.
 - [x] Root production build passed for API, superadmin, and marketing applications.
-- [ ] Publish the monorepo transition to the remote repository before changing any hosting root.
+- [x] Published the monorepo transition to remote `main` at `66f6aa02` before changing any hosting root.
 - [ ] Create/link the marketing Vercel project with Root Directory `apps/marketing-web` and domain `casanirvana.app`.
 - [ ] Change the existing superadmin Vercel Root Directory to `apps/superadmin` and retain `admin.casanirvana.app`.
 - [ ] Change the Render API Root Directory to `apps/api` only in the coordinated deployment window.

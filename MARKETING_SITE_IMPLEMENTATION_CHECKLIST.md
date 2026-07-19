@@ -325,12 +325,12 @@ Visual authority: local WordPress reference under `wordpress/`
 
 ## Session record - 2026-07-19 - Monorepo deployment readiness
 
-- Status: local mechanical transition complete; remote publication pending.
+- Status: mechanical transition complete and published to remote `main` at `66f6aa02`.
 - Marketing source and independent lockfile remain at `apps/marketing-web`.
 - Production build passed through the root orchestration command.
 - Production preview is available at `http://localhost:3001` from the final application root.
 - Vercel project root: `apps/marketing-web`.
 - Production domain: `https://casanirvana.app`.
 - Superadmin companion domain: `https://admin.casanirvana.app`.
-- Release blocker: commit and publish the repository transition before creating or linking the marketing Vercel project, because Vercel cannot select a directory absent from the remote branch.
+- Release gate completed: the repository transition is on remote `main`; the marketing Vercel project can now be created or linked with Root Directory `apps/marketing-web`.
 - Rollback: preserve the WordPress reference/export and do not cut over the public domain until all marketing P0 gates pass.
