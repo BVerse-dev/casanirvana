@@ -1298,3 +1298,9 @@ Date: 2026-02-06
 - [x] Preserved the WordPress-derived hero layout while removing the empty response bar and remaining encoded Saliver/demo copy.
 - [x] Pushed production cleanup commits `f9b94666` and `6a4bbd82` to the launch branch and `main`.
 - [ ] Phase 50 remains open for legal approval, SMTP delivery evidence, Preview environment parity, final route-by-route visual signoff, and rollback evidence.
+## 2026-07-19 - Phase 50 navigation hardening
+
+- [x] Routed approved footer destinations and removed stale WordPress navigation targets.
+- [x] Verified pointer and keyboard mobile-navigation behavior in production with synchronized accessibility state.
+- [ ] Social profile destinations remain blocked on approved URLs.
+- [ ] Preview environment parity remains blocked on the decision to use isolated preview API keys or protected reuse of production keys.

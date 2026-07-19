@@ -362,3 +362,11 @@ Visual authority: local WordPress reference under `wordpress/`
 - [ ] SMTP credentials and a successful production contact-delivery receipt remain required.
 - [ ] Preview-scoped Vercel environment variables remain incomplete; Preview builds continue to fail the intentional release-environment gate.
 - [ ] Change the Vercel project dashboard Node.js setting from `20.x` to `22.x`; `package.json` already enforces Node `22.x` for builds.
+## 2026-07-19 - Footer routing and mobile navigation accessibility
+
+- [x] Replaced recognized `href="#"` footer placeholders with approved Privacy, Terms, Contact, Core Features, Products, FAQs, and rollout routes while preserving the mirrored anchor markup.
+- [x] Left four icon-only social placeholders unchanged because no approved Casa Nirvana profile URLs are available.
+- [x] Verified mobile navigation opens by pointer and exposes Home, About Us, Products, Core Features, Pricing, Contact Us, and FAQs.
+- [x] Added a non-visual accessible name, button role, keyboard focus, Enter/Space activation, and synchronized `aria-expanded` to the mirrored mobile menu control.
+- [x] Production keyboard evidence for commit `7e4f1d6e`: `false -> true -> false`, menu body state `closed -> open -> closed`, zero console errors.
+- [ ] Vercel environment audit confirms all five release variables are Production-only. Preview needs approved secret isolation/protection before values are added.
