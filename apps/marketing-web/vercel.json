@@ -1,0 +1,5 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "npm run verify:release-env && npm run audit:snapshot && npm run build",
+  "installCommand": "npm ci"
+}

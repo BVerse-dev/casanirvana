@@ -14,8 +14,8 @@ Status: Ready for execution on current `main`
   - `MANUAL_RUNTIME_QA_PACK.md`
   - `PRODUCTION_RELEASE_GATES.md`
   - `USER_GUARD_LAUNCH_SIGNOFF_LOG.md`
-  - `user/SCREEN_WIRING_CHECKLIST.md`
-  - `Guard/SCREEN_WIRING_CHECKLIST.md`
+  - `apps/resident-mobile/SCREEN_WIRING_CHECKLIST.md`
+  - `apps/guard-mobile/SCREEN_WIRING_CHECKLIST.md`
 - This file is the detailed execution aid for the user and Guard portions of runtime signoff.
 - `MANUAL_RUNTIME_QA_PACK.md` remains the top-level runtime backlog tracker.
 - `USER_GUARD_LAUNCH_SIGNOFF_LOG.md` is the execution record for actual run results.
@@ -24,7 +24,7 @@ Status: Ready for execution on current `main`
 - User app runtime signoff
 - Guard app runtime signoff
 - User <-> Guard cross-app operational flows
-- Required superadmin observations only where needed to verify the user/Guard flow end to end
+- Required superadmin observations only where needed to verify the apps/resident-mobile/Guard flow end to end
 
 Out of scope for this document:
 - WordPress public-site work

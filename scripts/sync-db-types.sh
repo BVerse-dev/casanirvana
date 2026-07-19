@@ -9,13 +9,13 @@ if [ ! -f "$SRC_FILE" ]; then
   exit 1
 fi
 
-cp "$SRC_FILE" "$ROOT_DIR/superadmin/src/lib/database.types.ts"
-cp "$SRC_FILE" "$ROOT_DIR/backend/src/lib/database.types.ts"
-cp "$SRC_FILE" "$ROOT_DIR/user/types/database.types.ts"
-cp "$SRC_FILE" "$ROOT_DIR/Guard/database.types.ts"
+cp "$SRC_FILE" "$ROOT_DIR/apps/superadmin/src/lib/database.types.ts"
+cp "$SRC_FILE" "$ROOT_DIR/apps/api/src/lib/database.types.ts"
+cp "$SRC_FILE" "$ROOT_DIR/apps/resident-mobile/types/database.types.ts"
+cp "$SRC_FILE" "$ROOT_DIR/apps/guard-mobile/database.types.ts"
 
-rm -f "$ROOT_DIR/superadmin/src/database.types.ts"
-rm -f "$ROOT_DIR/superadmin/src/types/database.types.ts"
-rm -f "$ROOT_DIR/user/database.types.ts"
+rm -f "$ROOT_DIR/apps/superadmin/src/database.types.ts"
+rm -f "$ROOT_DIR/apps/superadmin/src/types/database.types.ts"
+rm -f "$ROOT_DIR/apps/resident-mobile/database.types.ts"
 
-echo "Synced database types to superadmin, backend, user, and Guard."
+echo "Synced database types to apps/superadmin, apps/api, apps/resident-mobile, and apps/guard-mobile."

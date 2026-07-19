@@ -21,9 +21,9 @@ Date: 2026-02-06
 - Drift audits are run after each production change window.
 
 ## Backend (Express API)
-- Build: `npm ci && npm run build` in `backend/`.
-- Test: `npm run test` in `backend/`.
-- Env vars must match `backend/.env.example`.
+- Build: `npm ci && npm run build` in `apps/api/`.
+- Test: `npm run test` in `apps/api/`.
+- Env vars must match `apps/api/.env.example`.
 - Service role key is only present in backend runtime, never in clients.
 - CORS origins restricted to deployed frontend domains.
 - Rate limiting enabled and tuned for production traffic.
@@ -31,9 +31,9 @@ Date: 2026-02-06
 - Log output shipped to centralized logging.
 
 ## Superadmin (Next.js)
-- Build: `npm ci && npm run build` in `superadmin/`.
+- Build: `npm ci && npm run build` in `apps/superadmin/`.
 - Test: `npm run build:check` or `npm run lint` before deployment.
-- Env vars must match `superadmin/.env.example`.
+- Env vars must match `apps/superadmin/.env.example`.
 - `NEXTAUTH_SECRET` set and stored in secrets manager.
 - `NEXTAUTH_URL` set to the production domain.
 - `NEXT_PUBLIC_ADMIN_SIGNUP_DISABLED=true` enforced in prod.
@@ -41,7 +41,18 @@ Date: 2026-02-06
 - Verify no service role key is exposed to client code.
 
 ## User App (Expo)
-- Env vars must match `user/.env.example`.
+
+## Marketing Web (Next.js 16)
+- Build and acceptance checks: `npm ci && npm run check && npm run build` in `apps/marketing-web/`.
+- Deploy from a dedicated Vercel project rooted at `apps/marketing-web` using Node.js 20.9 or newer.
+- Configure preview and production values for `NEXT_PUBLIC_SITE_URL`, `BACKEND_API_URL`, `ONBOARDING_REQUEST_API_KEY`, and `MARKETING_CONTACT_API_KEY`.
+- Keep onboarding and contact keys server-only; never configure them with a `NEXT_PUBLIC_` prefix.
+- Record parity, forms, SEO, deployment, cutover, and rollback evidence in `MARKETING_SITE_IMPLEMENTATION_CHECKLIST.md`.
+- Preserve the last-known-good WordPress URL/export until production stability is approved.
+- Verify all approved routes, navigation, forms, metadata, 404 behavior, mobile layout, backend delivery, analytics, and domain redirects before cutover.
+
+## User App (Expo)
+- Env vars must match `apps/resident-mobile/.env.example`.
 - `API_BASE_URL` points to the production backend.
 - `EXPO_PUBLIC_SUPABASE_*` uses production anon keys only.
 - Build in CI with `eas build` or equivalent and signed credentials.
@@ -49,7 +60,7 @@ Date: 2026-02-06
 - Crash reporting enabled for release builds.
 
 ## Guard App (Expo)
-- Env vars must match `Guard/.env.example`.
+- Env vars must match `apps/guard-mobile/.env.example`.
 - `API_BASE_URL` points to the production backend.
 - `EXPO_PUBLIC_SUPABASE_*` uses production anon keys only.
 - Build in CI with `eas build` or equivalent and signed credentials.
@@ -63,10 +74,10 @@ Date: 2026-02-06
 - Post-deploy monitoring window with on-call owner.
 
 ## Temporary Test Deploy (Vercel)
-- Create separate Vercel projects for `superadmin` and any web UI you want to test.
+- Create separate Vercel projects for `superadmin` and `apps/marketing-web`.
 - Use Vercel Preview for dev/staging and Production for the temporary test release.
-- Store env vars in Vercel Project Settings (never in repo) for `superadmin` using `superadmin/.env.example`.
-- Store env vars in Vercel Project Settings (never in repo) for `backend` using `backend/.env.example` if you host it on Vercel.
+- Store env vars in Vercel Project Settings (never in repo) for `superadmin` using `apps/superadmin/.env.example`.
+- Store env vars in Vercel Project Settings (never in repo) for `backend` using `apps/api/.env.example` if you host it on Vercel.
 - Set `NEXTAUTH_URL` to the Vercel production domain for the test run.
 - Use the Supabase session pooler if your CI runner is IPv4-only.
 - If deploying the Express backend on Vercel, confirm it runs as serverless/edge.

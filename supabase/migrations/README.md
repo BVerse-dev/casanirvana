@@ -32,5 +32,5 @@ You can also apply a migration manually in the Supabase Dashboard SQL editor.
 
 ## Personal Hub Migrations
 
-The Personal Hub migrations previously lived in `superadmin/supabase/migrations`.
+The Personal Hub migrations previously lived in `apps/superadmin/supabase/migrations`.
 They now live here alongside all other migrations.

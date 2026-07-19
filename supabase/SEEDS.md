@@ -8,13 +8,13 @@ This document tracks seed sources and the plan to consolidate them.
   - `supabase/migrations/20250203000002_seed_module_settings.sql`
 
 - App-level seed scripts (dev-only):
-  - `backend/seedUserAndUnit.js`
-  - `backend/seedMaintenanceRequests.js`
-  - `user/scripts/seed-test-users.js`
-  - `user/scripts/seedNotificationData.js`
-  - `user/scripts/seedMaintenanceData.js`
-  - `user/scripts/supabaseNotificationSeeder.js`
-  - `user/scripts/seedMemberData.js`
+  - `apps/api/seedUserAndUnit.js`
+  - `apps/api/seedMaintenanceRequests.js`
+  - `apps/resident-mobile/scripts/seed-test-users.js`
+  - `apps/resident-mobile/scripts/seedNotificationData.js`
+  - `apps/resident-mobile/scripts/seedMaintenanceData.js`
+  - `apps/resident-mobile/scripts/supabaseNotificationSeeder.js`
+  - `apps/resident-mobile/scripts/seedMemberData.js`
 
 ## Plan (Recommended)
 

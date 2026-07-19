@@ -12,14 +12,14 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: backend
+        working-directory: apps/api
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: backend/package-lock.json
+          cache-dependency-path: apps/api/package-lock.json
       - name: Install dependencies
         run: |
           if [ -f package-lock.json ]; then
@@ -38,7 +38,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: superadmin
+        working-directory: apps/superadmin
     env:
       NEXT_PUBLIC_API_URL: http://localhost:8080
       NEXT_PUBLIC_ADMIN_SIGNUP_DISABLED: "true"
@@ -53,7 +53,7 @@ jobs:
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: superadmin/package-lock.json
+          cache-dependency-path: apps/superadmin/package-lock.json
       - name: Install dependencies
         run: |
           if [ -f package-lock.json ]; then
@@ -72,14 +72,14 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: user
+        working-directory: apps/resident-mobile
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: user/package-lock.json
+          cache-dependency-path: apps/resident-mobile/package-lock.json
       - name: Install dependencies
         run: |
           if [ -f package-lock.json ]; then
@@ -98,14 +98,14 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: Guard
+        working-directory: apps/guard-mobile
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: Guard/package-lock.json
+          cache-dependency-path: apps/guard-mobile/package-lock.json
       - name: Install dependencies
         run: |
           if [ -f package-lock.json ]; then
@@ -119,3 +119,31 @@ jobs:
         run: npm run test:ci --if-present
       - name: Build
         run: npm run build --if-present
+
+  marketing-web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/marketing-web
+    env:
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      BACKEND_API_URL: http://localhost:8080
+      ONBOARDING_REQUEST_API_KEY: ci-placeholder-onboarding-key
+      MARKETING_CONTACT_API_KEY: ci-placeholder-contact-key
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.9.0
+          cache: npm
+          cache-dependency-path: apps/marketing-web/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Type-check
+        run: npm run typecheck
+      - name: Test
+        run: npm run test
+      - name: Build
+        run: npm run build

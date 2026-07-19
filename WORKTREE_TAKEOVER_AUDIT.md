@@ -55,16 +55,16 @@ Summary:
 - It also replaces the older fake/local user call behavior with DB-driven call-state handling in the user app.
 
 Primary touched surfaces:
-- `user/hooks/useMessages.js`
-- `user/hooks/useCalls.ts`
-- `user/screens/callScreen.js`
-- `user/screens/messageScreen.js`
-- `Guard/hooks/useMessages.js`
-- `Guard/screens/messageScreen.js`
-- `superadmin/src/hooks/useMessages.ts`
-- `superadmin/src/hooks/useGroups.ts`
-- `superadmin/src/app/(admin)/messages/components/ChatArea.tsx`
-- `superadmin/src/app/(admin)/messages/components/GroupChatArea.tsx`
+- `apps/resident-mobile/hooks/useMessages.js`
+- `apps/resident-mobile/hooks/useCalls.ts`
+- `apps/resident-mobile/screens/callScreen.js`
+- `apps/resident-mobile/screens/messageScreen.js`
+- `apps/guard-mobile/hooks/useMessages.js`
+- `apps/guard-mobile/screens/messageScreen.js`
+- `apps/superadmin/src/hooks/useMessages.ts`
+- `apps/superadmin/src/hooks/useGroups.ts`
+- `apps/superadmin/src/app/(admin)/messages/components/ChatArea.tsx`
+- `apps/superadmin/src/app/(admin)/messages/components/GroupChatArea.tsx`
 - `supabase/migrations/20260307221500_phase19_chat_attachment_privacy_alignment.sql`
 
 Classification:
@@ -93,19 +93,19 @@ Summary:
 - This commit introduces deterministic avatar rendering, storage-backed directory avatar uploads, and QR payload regeneration/normalization for profile directory entities.
 
 Primary touched surfaces:
-- `user/components/AppAvatar.js`
-- `user/components/IncomingCallNavigationHandler.js`
-- `user/components/addFamilyMemberModal.js`
-- `user/components/editDailyHelpModal.js`
-- `user/components/editFamilyMemberModal.js`
-- `user/components/editFrequentEntryModal.js`
-- `user/components/editVehicleModal.js`
-- `user/components/entryDetailModal.js`
-- `user/components/myVehiclesModal.js`
-- `user/screens/editProfileScreen.js`
-- `user/screens/profileScreen.js`
-- `user/utils/directoryAvatarStorage.js`
-- `user/utils/directoryEntryQr.js`
+- `apps/resident-mobile/components/AppAvatar.js`
+- `apps/resident-mobile/components/IncomingCallNavigationHandler.js`
+- `apps/resident-mobile/components/addFamilyMemberModal.js`
+- `apps/resident-mobile/components/editDailyHelpModal.js`
+- `apps/resident-mobile/components/editFamilyMemberModal.js`
+- `apps/resident-mobile/components/editFrequentEntryModal.js`
+- `apps/resident-mobile/components/editVehicleModal.js`
+- `apps/resident-mobile/components/entryDetailModal.js`
+- `apps/resident-mobile/components/myVehiclesModal.js`
+- `apps/resident-mobile/screens/editProfileScreen.js`
+- `apps/resident-mobile/screens/profileScreen.js`
+- `apps/resident-mobile/utils/directoryAvatarStorage.js`
+- `apps/resident-mobile/utils/directoryEntryQr.js`
 
 Classification:
 - `Keep and port`:
@@ -116,8 +116,8 @@ Classification:
   - `AppAvatar.js`, because it introduces new DiceBear dependencies and should be reviewed for production footprint before adoption
   - `IncomingCallNavigationHandler.js`, because it needs to be integrated against the final chosen user-call lifecycle implementation rather than blindly lifted
 - `Docs only`:
-  - `user/SCREEN_WIRING_CHECKLIST.md`
-  - `user/SCHEMA_ALIGNMENT_GAPS.md`
+  - `apps/resident-mobile/SCREEN_WIRING_CHECKLIST.md`
+  - `apps/resident-mobile/SCHEMA_ALIGNMENT_GAPS.md`
 
 Reasoning:
 - The underlying direction is good and still missing on `main`.
@@ -133,11 +133,11 @@ Summary:
 - This commit hardens Guard resident-directory freshness and search-history scoping and proposes a community-membership integrity migration.
 
 Primary touched surfaces:
-- `Guard/components/residentsTab.js`
-- `Guard/hooks/useCommunityDirectoryMembers.js`
-- `Guard/screens/searchScreen.js`
-- `Guard/services/residentSearchHistoryService.js`
-- `user/hooks/useCommunityMembers.ts`
+- `apps/guard-mobile/components/residentsTab.js`
+- `apps/guard-mobile/hooks/useCommunityDirectoryMembers.js`
+- `apps/guard-mobile/screens/searchScreen.js`
+- `apps/guard-mobile/services/residentSearchHistoryService.js`
+- `apps/resident-mobile/hooks/useCommunityMembers.ts`
 - `supabase/migrations/20260307220000_phase35_community_directory_membership_integrity.sql`
 
 Classification:
@@ -148,10 +148,10 @@ Classification:
   - i18n cleanups for resident directory/search copy
 - `Rewrite on current main`:
   - the SQL migration `20260307220000_phase35_community_directory_membership_integrity.sql`
-  - any shared `user/hooks/useCommunityMembers.ts` invalidation adjustments after checking current subscription behavior on `main`
+  - any shared `apps/resident-mobile/hooks/useCommunityMembers.ts` invalidation adjustments after checking current subscription behavior on `main`
 - `Docs only`:
-  - `Guard/SCREEN_WIRING_CHECKLIST.md`
-  - `Guard/SCHEMA_ALIGNMENT_GAPS.md`
+  - `apps/guard-mobile/SCREEN_WIRING_CHECKLIST.md`
+  - `apps/guard-mobile/SCHEMA_ALIGNMENT_GAPS.md`
 
 Reasoning:
 - The app-level Guard changes are production-relevant and still absent on `main`.

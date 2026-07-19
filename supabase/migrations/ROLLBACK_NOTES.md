@@ -3,7 +3,7 @@
 These notes cover the active post-baseline migration set in `/Users/andromeda/casanirvana/supabase/migrations`.
 
 Use this file together with:
-- `/Users/andromeda/casanirvana/superadmin/PRODUCTION_TENANT_RLS_REMEDIATION_CHECKLIST.md`
+- `/Users/andromeda/casanirvana/apps/superadmin/PRODUCTION_TENANT_RLS_REMEDIATION_CHECKLIST.md`
 - `/Users/andromeda/casanirvana/supabase/audit/phase11_tenant_scope_verification.sql`
 - the direct live verification queries already recorded in the progress trackers
 
@@ -37,7 +37,7 @@ Use for migrations that add columns, indexes, triggers, functions, buckets, or h
 Procedure:
 1. Confirm no later migration depends on the added object.
 2. Drop added triggers, indexes, constraints, functions, and columns in reverse dependency order.
-3. Revert the corresponding backend/frontend contract before re-enabling writes.
+3. Revert the corresponding apps/api/frontend contract before re-enabling writes.
 4. Rerun the affected verification queries and build/test the dependent apps.
 
 ### Playbook D: Structural contract / domain rebuild rollback

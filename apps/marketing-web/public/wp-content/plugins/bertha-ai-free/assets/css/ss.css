@@ -1,0 +1,3309 @@
+/* 
+Bertha CSS Guide:
+- Animations
+- Font 
+- Menu Icon
+- Scroll Bar
+- Activate Icon
+- Sidebar Wrapper
+- Sidebar Header
+- Buttons
+- Action Icons  
+- Templates 
+- Ideas
+- Forms & Fields
+- Mobile 
+- Inner Pages Header
+- Global Settings Screen
+-- Global Settings Progress bar
+- Backend Bertha Screen
+- Initial Wizard 
+- License Verification Screen 
+- Search
+- Modal
+- Ask Me Anything
+- Everywhere
+- Visibility
+- Notice
+- Draft 
+- Bertha Evil
+- Atarim Integration
+- Want More
+- Redo
+- User's Roles Selection
+- Loading Animation
+- Bertha Art
+- Bertha Chat
+- Video Training
+- Bertha Audio
+*/
+ 
+/* Fonts */
+@font-face {
+  font-family: 'Domine';
+  src: url(../fonts/Domine-Bold.ttf)  format('truetype'); 
+  font-weight: 700;
+} 
+@font-face {
+  font-family: 'Domine';
+  src: url(../fonts/Domine-Medium.ttf)  format('truetype'); 
+  font-weight: 500;
+} 
+@font-face {
+  font-family: 'Domine';
+  src: url(../fonts/Domine-Regular.ttf)  format('truetype'); 
+  font-weight: 400;
+} 
+@font-face {
+  font-family: 'Domine';
+  src: url(../fonts/Domine-SemiBold.ttf)  format('truetype'); 
+  font-weight: 600;
+} 
+/**
+ * ----------------------------------------
+ * Animation fade-in
+ * ----------------------------------------
+ */
+@-webkit-keyframes berfadeIn {
+  0% {opacity: 0;}
+  100% {opacity: 1;}
+  }
+  @keyframes berfadeIn {
+  0% {opacity: 0;}
+  100% {opacity: 1;}
+  } 
+/**
+ * ----------------------------------------
+ * Animation fade-in-top
+ * ----------------------------------------
+ */
+
+@-webkit-keyframes berfade-in-top {
+    0% {
+        -webkit-transform: translateY(-50px);
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+    100% {
+        -webkit-transform: translateY(0);
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+@keyframes berfade-in-top {
+    0% {
+        -webkit-transform: translateY(-50px);
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+    100% {
+        -webkit-transform: translateY(0);
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Font Import 
+@import url('https://fonts.googleapis.com/css2?family=Domine:wght@700&display=swap');
+*/
+/* Menu Icon */
+li#toplevel_page_bertha-ai-setting img {
+    width: 20px;
+    margin-top: -3px;
+}
+
+/* Scroll Bar */
+.ber-offcanvas-body::-webkit-scrollbar {
+  width: 7px;
+}
+.ber-offcanvas-body::-webkit-scrollbar-thumb {
+  background: rgb(51 9 134 / 50%);
+  border-radius: 50px;
+}
+.ber-offcanvas-body::-webkit-scrollbar-track {
+  background: white;
+}
+
+/* Activate Icon */
+div#bertha_canvas *, .ber-bertha-reply-data * {
+    box-sizing: border-box;
+    font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif !important;
+    font-size: 14px;
+    line-height: 1.2;
+}
+.bertha {
+    width: 30px!important;
+    height: 30px!important;
+    right: 5px;
+    position: absolute !important;
+    margin-top: -40px !important;
+    background-image: url(../images/Bertha_icon_purple.svg)! important;
+    background-size: 80%;
+    background-repeat: no-repeat;
+    background-position: center;
+    z-index: 2147483646;
+    cursor: pointer;
+    text-decoration: none;
+    font-style: normal !important;
+}
+.bertha:before {
+    content: "";
+    display: block;
+    background-image: url(../images/bertha_spinner.svg);
+    background-position: center;
+    z-index: 2147483647;
+    background-repeat: no-repeat;
+    background-size: contain;
+    width: 52px;
+    height: 52px;
+    margin-top: -13px;
+    margin-left: -11px;
+    opacity: 0; 
+    text-decoration: none;
+    font-style: none;
+     -webkit-transition: all 0.3s ease-out;
+    -moz-transition: all 0.3s ease-out;
+    -ms-transition: all 0.3s ease-out;
+    -o-transition: all 0.3s ease-out;
+    transition: all 0.3s ease-out;
+}
+.bertha:hover:before {
+    content: "";
+    opacity: 1;
+}
+
+.bertha-license-container { max-width: 400px; }
+.elementor-bertha {
+    width: 36px!important;
+    height: 36px!important;
+    right: 5px;
+    bottom: 0;
+    position: absolute;
+    background-image: url(../images/Bertha_icon_purple.svg);
+    background-size: 70%;
+    background-repeat: no-repeat;
+    background-position: center;
+    z-index: 10000;
+    background-color: #fff;
+    border-radius: 50%;
+    border: 2px solid #ebe8ff;
+    cursor: pointer;
+    -webkit-transition: all 0.1s ease-out;
+    -moz-transition: all 0.1s ease-out;
+    -ms-transition: all 0.1s ease-out;
+    -o-transition: all 0.1s ease-out;
+    transition: all 0.1s ease-out;
+}
+.elementor-bertha:hover {
+    box-shadow: 0em 0em 1em 0em rgb(0 0 0 / 20%);
+    background-size: 78%;
+}
+a.bertha.bertha-dashboard-launcher {
+    top: 18vh !important;
+    background-color: #fff;
+    position: fixed !important;
+    right: 0 !important;
+    left: auto !important;
+    background-size: 70%;
+    padding: 25px;
+    border-radius: 10px 0 0 10px;
+    border: 2px solid #ebe8ff;
+    border-right: none;
+    box-sizing: border-box;
+    -webkit-transition: all 0.2s ease-out;
+    -moz-transition: all 0.2s ease-out;
+    -ms-transition: all 0.2s ease-out;
+    -o-transition: all 0.2s ease-out;
+    transition: all 0.2s ease-out;
+}
+a.bertha.bertha-dashboard-launcher:before {
+    margin-left: -25px;
+    margin-top: -25px;
+}
+a.bertha.bertha-dashboard-launcher:hover {
+    box-shadow: 0em 0em 3em 0em rgb(75 60 177 / 20%);
+    background-size: 74%;
+}
+
+.ber_title {
+    font-family: 'Domine', serif;
+    font-weight: 700;
+    margin-top: 0;
+    font-size: 36px;
+    line-height: 1em;
+}
+/* Animations */
+.input_details#template_selection {
+}
+.input_details#template_description {
+  right:-450px;
+}
+.input_details#generated_ideas {
+  right:-450px;
+}
+.input_details#company_details {
+  right:-450px;
+}
+
+/* Sidebar Wrapper */
+.ber-offcanvas-end {
+    top: 0;
+    right: 0;
+    width: 600px;
+    border-left: 1px solid rgba(0, 0, 0, 0.2);
+    transform: translateX(100%);
+}
+.ber-offcanvas {
+    position: fixed;
+    bottom: 0;
+    z-index: 1045;
+    display: flex;
+    flex-direction: column;
+    max-width: 100%;
+    visibility: hidden;
+    background-color: #fff;
+    background-clip: padding-box;
+    outline: 0;
+    transition: transform 0.3s ease-in-out;
+}
+@media (prefers-reduced-motion: reduce) {
+    .ber-offcanvas {
+        transition: none;
+    }
+}
+.bertha-ai a, #bertha_backend_canvas a {
+    text-decoration: none !important;
+}
+.input_details {
+    position: absolute;
+    width: calc(100% - 40px);
+    margin-top: 13px;
+    -webkit-animation: berfade-in-top 0.5s cubic-bezier(0.390, 0.575, 0.565, 1.000) both;
+    animation: berfade-in-top 0.5s cubic-bezier(0.390, 0.575, 0.565, 1.000) both !important;
+    transform: none !important;
+}
+.ber-offcanvas.show {
+  box-shadow: 0 0 1em 0 rgb(0 0 0 / 10%);
+  border-color: #edeaff;
+  overflow: hidden;
+  z-index: 2147483646;
+  font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif;
+    -webkit-transition: all 0.3s ease-out;
+    -moz-transition: all 0.3s ease-out;
+    -ms-transition: all 0.3s ease-out;
+    -o-transition: all 0.3s ease-out;
+    transition: all 0.3s ease-out;
+}
+.ber-sidenav {
+  height: 100%;
+  width: 0;
+  position: fixed;
+  z-index: 10000;
+  top: 0;
+  left: 0;
+  background-color: #111;
+  overflow-x: hidden;
+  transition: 0.5s;
+  padding-top: 60px;
+}
+.ber-sidenav a {
+  padding: 8px 8px 8px 32px;
+  text-decoration: none;
+  font-size: 25px;
+  color: #818181;
+  display: block;
+  transition: 0.3s;
+}
+.ber-sidenav a:hover {
+  color: #f1f1f1;
+}
+.ber-sidenav .closebtn {
+  position: absolute;
+  top: 0;
+  right: 25px;
+  font-size: 36px;
+  margin-left: 50px;
+}
+.ber_button.monthly_upgrade {
+    width: 405px !important;
+    margin-top: 20px;
+    border-radius: 50px !important;
+    font-size: 20px;
+}
+.ber_monthly_upgrade p {
+    font-weight: 700;
+    margin-left: 76px;
+    font-size: 14px;
+}
+.ber_alt_text_upgrade p {
+    font-weight: 700;
+    font-size: 14px;
+}
+.ber_monthly_upgrade span {
+    margin-left: 25px;
+}
+.ber_form_group.ber_monthly_upgrade a:link {
+    text-decoration: none;
+}
+.ber-offcanvas #main {
+  transition: margin-left .5s;
+  padding: 16px;
+}
+.wa_template {
+    border-style: solid;
+    padding: 15px;
+}
+.wa-selected-template {
+  color : red;
+}
+.ber-offcanvas-body {
+    position: relative;
+    overflow: hidden;
+    overflow-y: scroll !important;
+}
+
+/* Sidebar Header */
+.ber-offcanvas-header.bertha-header {
+    background: linear-gradient( 
+-45deg
+ , #491D7D 0%, #0F011A 100%);
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    align-content: stretch;
+    align-items: center;
+    padding: 0 10px;
+}
+.bertha-header img.ber_close_icon {
+    position: absolute;
+    right: 5px;
+    filter: brightness(0%) invert(100%);
+    cursor: pointer;
+}
+.bertha_logo_container {
+    padding: 7px 0;
+}
+img.bertha_logo {
+    width: 120px;
+}
+button.ber-btn-close.ber-text-reset {
+    float: right;
+    margin-top: 0px;
+    filter: invert(1);
+    background-color: transparent !important;
+}
+.ber_metrix_bar {
+    position: relative;
+    margin-top: 20px;
+}
+.bertha_sidebar_heading {
+    position: relative;
+    z-index: 1000;
+    margin-right: 25px;
+    -webkit-transition: .5s ease-in-out;
+    -moz-transition: .5s ease-in-out;
+    -o-transition: .5s ease-in-out;
+    transition: .5s ease-in-out;
+}
+
+.bertha-ai .ber-offcanvas-title {
+    font-size: 22px !important;
+    margin-top: 15px !important;
+    font-weight: 700 !important;
+    color: #333 !important;
+    padding: 0 !important;
+    font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif !important;
+}
+.ber_icons_wrap {
+    position: absolute;
+    z-index: 10000;
+    margin-top: -8px;
+}
+.ber_icon {
+    border: 2px solid #edeaff !important;
+    border-radius: 5px !important;
+    height: 36px;
+    width: 36px !important;
+    background-color: #fff !important;
+    color: rgb(138 45 226) !important;
+    cursor: pointer !important;
+    position: relative;
+    padding: 0 !important;
+    text-align: center !important;
+    vertical-align: top !important;
+}
+.ber_icon.expanded {
+    background-color: #edeaff;
+}
+.ber_icon.ber-sidebar_expension:after {
+    content: "Expand Sidebar";
+    position: absolute;
+    font-size: 12px;
+    left: -15px;
+    color: #fff;
+    width: 75px;
+    background-color: #1a161f;
+    padding: 5px 10px;
+    bottom: -5px;
+    border-radius: 5px;
+    -webkit-transition: .5s ease-in-out;
+    -moz-transition: .5s ease-in-out;
+    -o-transition: .5s ease-in-out;
+    transition: .5s ease-in-out;
+    opacity: 0;
+    z-index: -100;
+}
+.ber_icon.ber-sidebar_expension.expanded:after {
+    content: "Shrink Sidebar";
+    position: absolute;
+    font-size: 12px;
+    left: 5px;
+    color: #fff;
+    width: 105px;
+    background-color: #1a161f;
+    padding: 5px 10px;
+    bottom: -5px;
+    border-radius: 5px;
+    -webkit-transition: .5s ease-in-out;
+    -moz-transition: .5s ease-in-out;
+    -o-transition: .5s ease-in-out;
+    transition: .5s ease-in-out;
+    opacity: 0;
+    z-index: -100;
+}
+.ber_icon.bertha-back:after {
+    content: "Previous Step";
+    position: absolute;
+    font-size: 12px;
+    left: 5px;
+    color: #fff;
+    width: 105px;
+    background-color: #1a161f;
+    padding: 5px 10px;
+    bottom: -5px;
+    border-radius: 5px;
+    -webkit-transition: .5s ease-in-out;
+    -moz-transition: .5s ease-in-out;
+    -o-transition: .5s ease-in-out;
+    transition: .5s ease-in-out;
+    opacity: 0;
+    z-index: -100;
+}
+.ber_icon.ber-sidebar_expension:hover:after, .ber_icon.ber-sidebar_expension.expanded:hover:after, .ber_icon.bertha-back:hover:after {
+    opacity: 1;
+    bottom: -30px;
+    z-index: 10;
+}
+li.ber-nav-item {
+    margin-bottom: -1px;
+    display: flex;
+}
+.ber-nav-tabs {
+    list-style: none;
+    display: flex;
+    margin: 0 !important;
+}
+#bertha_backend_canvas .ber-nav-tabs {
+    z-index: 1000;
+}
+#bertha_backend_canvas .ber-form-control {
+    font-size: 14px !important;
+}
+#bertha_backend_canvas .ber-nav-tabs .ber-nav-link {
+    cursor: pointer;
+    border-width: 2px !important;
+    color: rgb(138 45 226) !important;
+    margin-left: 5px !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    padding: 7px !important;
+    background-color: transparent !important;
+}
+#bertha_canvas .ber-nav-tabs .ber-nav-link {
+    cursor: pointer;
+    color: #edeaff !important;
+    margin-left: 5px !important;
+    font-size: 14px !important;
+    padding: 7px !important;
+    font-weight: 400 !important;
+    height: 36px !important;
+    line-height: 1.4 !important;
+    text-transform: capitalize !important;
+    border: 2px solid #edeaff !important;
+    border-bottom: none !important;
+    border-radius: 5px 5px 0 0 !important;
+    margin-bottom: -8px !important;
+    background-color: #170626;
+    letter-spacing: inherit !important;
+    -webkit-transition: all 0.2s ease-out;
+    -moz-transition: all 0.2s ease-out;
+    -ms-transition: all 0.2s ease-out;
+    -o-transition: all 0.2s ease-out;
+    transition: all 0.2s ease-out;
+}
+.ber-nav-tabs .ber-nav-link.ber-active, .ber-nav-tabs .ber-nav-item.show .ber-nav-link {
+    background-color: #5F308B !important;
+}
+.ber-nav-tabs .ber-nav-link:hover, .ber-nav-tabs .ber-nav-link:focus {
+    background-color: #5F308B !important;
+}
+
+.ber-btn-close.berthaclose {
+    position: absolute;
+    right: 10px;
+    cursor: pointer;
+    z-index: 1;
+    top: 0;
+}
+.bertha_sidebar_heading .ber-progress, .ber_metrix_bar .ber-progress {
+    border-radius: 50px;
+    -webkit-transition: all 0.3s ease-out;
+    -moz-transition: all 0.3s ease-out;
+    -ms-transition: all 0.3s ease-out;
+    -o-transition: all 0.3s ease-out;
+    transition: all 0.3s ease-out;
+    width: 150px;
+    height: 20px;
+    margin-left: auto;
+    position: relative;
+}
+.bertha_sidebar_heading .ber-progress:hover {
+    width: 160px;
+    height: 22px;
+    margin-bottom: -1px;
+    margin-right: -5px;
+    margin-top: -1px;
+}
+.ber_metrix_bar .ber-progress-bar {
+    border-radius: 100px 0 0 100px;
+}
+.bertha_sidebar_heading {
+    position: relative;
+    -webkit-transition: .5s ease-in-out;
+    -moz-transition: .5s ease-in-out;
+    -o-transition: .5s ease-in-out;
+    transition: .5s ease-in-out; 
+}
+.bertha_sidebar_heading .ber_metrix_bar .ber-progress:after {
+    content: "Remaining Words Per Month";
+    position: absolute;
+    font-size: 8px;
+    color: #333;
+    background-color: #49FB84;
+    padding: 5px 10px 7px 10px;
+    font-weight: 700 !important;
+    width: 100%;
+    text-align: center;
+    border-radius: 5px;
+    -webkit-transition: .5s ease-in-out;
+    -moz-transition: .5s ease-in-out;
+    -o-transition: .5s ease-in-out;
+    transition: .5s ease-in-out;
+    opacity: 0;
+    box-sizing: border-box;
+}
+.bertha_sidebar_heading .ber_metrix_bar .ber-progress:hover:after {
+    display: block;
+    top: auto;
+    z-index: 10;
+    opacity: 1;
+    font-size: 10px;
+    padding: 4px 10px 5px 10px;
+}
+.bertha_sidebar_heading .ber-progress-bar::after, .ber_metrix_bar .ber-progress-bar::after {
+    color: #210a39 !important;
+    width: 100%;
+    left: 0 !important;
+    text-align: center;
+    font-weight: 600;
+}
+.ber_metrix_bar a.ber_btn {
+    font-size: 14px !important;
+}
+/* Buttons */
+
+.ber_half {
+    display: inline-block !important;
+    width: 48%;
+}
+div#more_idea_generate {
+    margin-right: 2%;
+}
+.ber_half button {
+    width: 100%;
+}
+.bertha_primary_btn, .ber-btn-primary {
+    background: #8e2de2;
+  color: #fff !important;
+    background: -webkit-linear-gradient(to left, #8e2de2, #4a00e0);
+    background: linear-gradient(to left, #8e2de2, #4a00e0);
+    padding: 10px !important;
+    border: none !important;
+    font-size: 14px !important;
+    border-radius: 5px;
+    cursor: pointer;
+    border-bottom: 3px solid #330986!important;
+    -webkit-transition: all 0.3s ease-out;
+    -moz-transition: all 0.3s ease-out;
+    -ms-transition: all 0.3s ease-out;
+    -o-transition: all 0.3s ease-out;
+    transition: all 0.3s ease-out;
+}
+.bertha_primary_btn:hover, .ber-btn-primary:hover {
+    background: linear-gradient(to left, #7123b5, #3803a5);
+    background: linear-gradient(to left, #7123b5, #3803a5);
+    border: none !important;
+    border-bottom: 3px solid #330986!important;
+}
+.bertha_sec_btn {
+    border: 2px solid #333 !important;
+    padding: 10px !important;
+    font-size: 14px !important;
+}
+.bertha_sec_btn:hover, .bertha_back_btn:hover {
+    background-color: #edeaff;
+}
+.bertha_link_btn {
+  text-decoration: underline !important;
+}
+.bertha_back_btn {
+    color: #86829e !important;
+    padding: 0 !important;
+    margin-left: -5px;
+    margin-right: 5px;
+    line-height: 1 !important;
+    margin-top: -3px;
+}
+
+div#samsa a {
+    background: #8e2de2;
+    color: #fff !important;
+    background: -webkit-linear-gradient(to left, #8e2de2, #4a00e0);
+    background: linear-gradient(to left, #8e2de2, #4a00e0);
+    padding: 10px 30px !important;
+    border: none !important;
+    border-bottom: 3px solid #330986!important;
+    border-radius: 10px;
+    text-align: center;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    -webkit-transition: all 0.3s ease-out;
+    -moz-transition: all 0.3s ease-out;
+    -ms-transition: all 0.3s ease-out;
+    -o-transition: all 0.3s ease-out;
+    transition: all 0.3s ease-out;
+}
+
+a.bertha_premium_upgrade {
+    padding: 8px 15px;
+    vertical-align: top;
+    background: -webkit-linear-gradient(to left, #8e2de2, #4a00e0);
+    background: linear-gradient(to left, #8e2de2, #4a00e0);
+    border: none !important;
+    border-bottom: 3px solid #330986!important;
+    border-radius: 3px;
+    color: #fff;
+    text-transform: capitalize;
+    display: block;
+    max-width: 125px;
+    margin-top: 10px;
+} 
+.ber_notice a.bertha_premium_upgrade {
+    max-width: none;
+}
+.ber_notice p {
+    text-align: center;
+}
+.ber_chat_page .ber_notice {
+    max-width: 500px;
+}
+
+/* Action Icons */
+.ber-action-icon-wrap {
+    position: absolute;
+    right: 5px;
+    top: 10px;
+    z-index: 99;
+}
+.ber-action-icon {
+    position: relative;
+    cursor: pointer;
+    display: inline-block;
+    margin-right: 3px;
+    vertical-align: top;
+    -webkit-animation: berfade-in-top 0.5s cubic-bezier(0.390, 0.575, 0.565, 1.000) both;
+    animation: berfade-in-top 0.5s cubic-bezier(0.390, 0.575, 0.565, 1.000) both !important;
+    width: 20px;
+}
+.ber-action-icon img {
+    width: 20px;
+}
+.ber-action-icon button {
+    background: transparent;
+    height: 36px;
+    color: #9a84c3;
+    width: 20px;
+    border: none !important;
+    cursor: pointer;
+    padding: 0 !important;
+    -moz-transform: scale(0.8);
+    -webkit-transform: scale(0.8);
+    -o-transform: scale(0.8);
+    -ms-transform: scale(0.8);
+    transform: scale(0.8);
+}
+button.bertha_idea_copy {
+    top: -2px;
+    position: relative;
+}
+button.bertha_idea_favourite.favourate_added {
+    color: #f02849;
+}
+
+.ber-action-icon button i {
+    margin: auto;
+}
+.ber-action-icon span {
+    visibility: hidden;
+    text-align: center;
+    position: absolute;
+    z-index: 1;
+    top: 30px;
+    left: 50%;
+    margin-left: -75px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    text-transform: capitalize;
+    font-size: 12px !important;
+    color: #fff;
+    width: 105px;
+    background-color: #372547;
+    padding: 5px 10px;
+    border-radius: 5px;
+    -webkit-transition: .5s ease-in-out;
+    -moz-transition: .5s ease-in-out;
+    -o-transition: .5s ease-in-out;
+    transition: .5s ease-in-out;
+}
+.ber-action-icon:hover span {
+  visibility: visible;
+  opacity: 1;
+}
+.ber-ask-action-icon-wrap .bertha-copied-text {
+    width: 100% !important;
+    left: 0 !important;
+    top: 0 !important;
+    margin: 0 !important;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px !important;
+    background-color: #372547 !important;
+    cursor: pointer;
+    font-weight: 700;
+}
+
+/* Templates & Ideas*/
+.ber_inner_title {
+    font-weight: 700;
+    font-size: 16px !important;
+    color: #372547 !important;
+    display: flex;
+    align-items: center;
+}
+.ber_inner_p {
+    margin-top: 5px;
+    margin-bottom: 15px;
+    font-size: 14px;
+    opacity: 0.7;
+}
+.ber_inner_title span {
+    color: rgb(51 9 134 / 50%);
+    position: relative;
+    margin-top: 3px;
+}
+.bertha_template, .bertha_idea, .bertha_template_suggesion, .bertha_draft, .bertha_quickwins_template, .bertha_image_generate_template, .bertha_chat_template {
+    color: #333!important;
+    text-align: left!important;
+    padding: 15px!important;
+    border: 2px solid #ebe8ffe6!important;
+    border-radius: 10px!important;
+    overflow: hidden;
+    position: relative;
+    -webkit-animation: berfade-in-top 0.5s cubic-bezier(0.390, 0.575, 0.565, 1.000) both;
+    animation: berfade-in-top 0.5s cubic-bezier(0.390, 0.575, 0.565, 1.000) both !important;
+}
+span.bertha_power {
+    background: linear-gradient(to left, #8e2de2, #4a00e0);
+    position: absolute;
+    right: 0;
+    top: 0;
+    padding: 3px 10px;
+    border-radius: 0 0 0 10px;
+    color: #fff;
+    font-weight: 500;
+    font-size: 75%;
+}
+.bertha_template, .bertha_quickwins_template, .bertha_image_generate_template, .bertha_chat_template {
+  font-weight: 700!important;
+}
+.bertha_template:hover, .bertha_template_suggesion:hover, .bertha_quickwins_template:hover, .bertha_image_generate_template:hover {
+  background-color: #ebe8ffe6!important;
+}
+.bertha_idea:hover, .bertha_draft:hover {
+    box-shadow: 0em 0em 3em 0em rgb(75 60 177 / 20%);
+}
+.bertha_idea_number {
+    display: table;
+    background-color: #edeaff;
+    padding: 3px 10px 3px 3px;
+    border-radius: 0 0 15px 0;
+    font-size: 70%;
+    font-weight: 500;
+    margin-top: -15px;
+    margin-left: -15px;
+    color: #333!important;
+    margin-bottom: 10px;
+    box-sizing: border-box;
+    min-height: 24px;
+}
+.ber-btn-check:active+.bertha_template,.ber-btn-check:checked+.bertha_template,.bertha_template.ber-active,.bertha_template.dropdown-toggle.show,.bertha_template:active, .ber-btn-check:active+.bertha_idea,.ber-btn-check:checked+.bertha_idea,.bertha_idea.ber-active,.bertha_idea.dropdown-toggle.show,.bertha_idea:active {
+  color: #fff!important;
+  background-color: transparent;
+  background: linear-gradient(-45deg,#491D7D 0%,#0F011A 100%);
+  border: none!important;
+  border-bottom: 3px solid #330986!important;
+  box-shadow: none!important;
+  margin-bottom: 1px;
+}
+span.bertha_template_icon {
+    margin-right: 5px;
+    font-size: 150%;
+    font-weight: 100;
+    margin-top: -10px;
+    display: inline-block;
+}
+span.ber_setting_icons {
+    font-weight:    100;
+}
+span.bertha_template_desc {
+    display: block;
+    opacity: .9;
+}
+span.bertha_template_desc {
+    font-weight: 400!important;
+    font-size: 14px;
+}
+.bertha_template_suggesion {
+    font-weight: 700!important;
+    /*margin-top: -20px;*/
+    margin-bottom: 15px;
+}
+.bertha_idea_body pre, .bertha_draft_body pre {
+    white-space: pre-wrap;
+    margin: 0 !important;
+    font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif !important;
+    background-color: transparent !important;
+    padding: 0 !important;
+    font-size: 14px;
+    opacity: 0.9;
+}
+a.ber_suggest_link {
+    padding-top: 20px !important;
+    display: block;
+}
+/* Forms & Fields */
+.ber_history_filter {
+    width: 100%;
+    padding: 10px !important;
+    margin-bottom: 15px;
+    font-weight: 700;
+    background-color: #fff !important;
+    z-index: 100;
+    position: relative;
+    height: auto !important;
+    color: #333 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+}
+label.ber-form-label {
+    font-weight: 500;
+    margin-bottom: 5px;
+    display: block;
+    font-size: 14px;
+}
+div#template_description textarea {
+    min-height: 250px;
+}
+.bertha_char_count {
+    position: absolute;
+    right: 5px !important;
+    top: 2px !important;
+    font-weight: 600;
+    color: rgb(51 9 134 / 40%);
+    font-size: 13px;     
+    margin: 0;
+}
+.ber_form_group, .ber_form_group, .ber-mb-3  { 
+position:relative;
+}
+
+/* Go PRO */
+a.bertha_upgrade {
+    padding: 10px 1rem;
+    width: 100%;
+    display: block;
+    font-size: 16px;
+    background-color: #11081A;
+    color: #fff !important;
+    text-decoration: none;
+    z-index: 1000;
+    position: relative;
+    min-height: 60px;
+    box-sizing: border-box;
+}
+span.bertha_go_pro {
+    display: inline-block;
+    height: 100%;
+    padding: 8px 15px;
+    vertical-align: top;
+    background: -webkit-linear-gradient(to left, #8e2de2, #4a00e0);
+    background: linear-gradient(to left, #8e2de2, #4a00e0);
+    border: none !important;
+    border-bottom: 3px solid #330986!important;
+    border-radius: 3px;
+    float: left;
+}
+span.bertha_go_pro_text {
+    display: inline-block;
+    width: calc(100% - 150px);
+    text-align: left;
+    padding-left: 15px;
+    line-height: 1.3;
+    font-size: 14px;
+    opacity: .8;
+}
+img.bertha_hi {
+    z-index: 0;
+    position: absolute;
+    bottom: -100px;
+    left: 0px;
+    width: 120px;
+    -moz-transform: rotate(45deg);
+    -webkit-transform: rotate(45deg);
+    -o-transform: rotate(45deg);
+    -ms-transform: rotate(45deg);
+    transform: rotate(45deg);
+    -webkit-transition: all 0.3s ease-out;
+    -moz-transition: all 0.3s ease-out;
+    -ms-transition: all 0.3s ease-out;
+    -o-transition: all 0.3s ease-out;
+    transition: all 0.3s ease-out;
+}
+.ber-offcanvas-footer:hover img.bertha_hi {
+    bottom: 0;
+    -moz-transform: rotate(0deg);
+    -webkit-transform: rotate(0deg);
+    -o-transform: rotate(0deg);
+    -ms-transform: rotate(0deg);
+    transform: rotate(0deg);
+}
+.ber-offcanvas-footer:before {
+    content: "";
+    -webkit-box-shadow: 0 0 10px 10px #ffffff;
+    box-shadow: 0 20px 0 5px #ffffff;
+    display: block;
+    height: 25px;
+    width: 40px;
+    position: absolute;
+    left: 30px;
+    border-radius: 50%;
+    -webkit-transition: all 0.3s ease-out;
+    -moz-transition: all 0.3s ease-out;
+    -ms-transition: all 0.3s ease-out;
+    -o-transition: all 0.3s ease-out;
+    transition: all 0.3s ease-out;
+}
+.ber-offcanvas-footer:hover:before {
+    content: "";
+    -webkit-box-shadow: 0 0 10px 10px #ffffff;
+    box-shadow: 0 -20px 30px 30px #ffffff;
+}
+.ber_form a.bertha {
+    display: none !important;
+}
+
+/* Mobile */
+@media screen and (max-height: 450px) {
+  .ber-sidenav {padding-top: 15px;}
+  .ber-sidenav a {font-size: 18px;}
+}
+
+.ber_full_header {
+    z-index: 1000;
+    position: relative;
+}
+
+/* Turn off scrollbar when body element has the loading class 
+.ber-offcanvas-body.loading{
+    overflow: scroll;
+}*/
+
+.generated-align {
+  right: 20px !important ;
+}
+.ber-modal-backdrop.show {
+    display: none;
+}
+.et-fb-modal .ber-offcanvas-end {
+    right: -500px !important;
+}
+.elementor-panel #elementor-panel-page-menu {
+    padding: 25px 15px;
+    width: 500px !important;
+}
+/* Inner Pages Header */
+.ber_page_header {
+    box-shadow: 0 0 1em 0 rgb(0 0 0 / 10%);
+    padding: 0 20px;
+    margin-left: -20px;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    align-content: stretch;
+    align-items: stretch;
+    min-height: 60px;
+    position: relative;
+}
+.ber_logo_head, .ber_menu_head {
+    order: 0;
+    flex: 0 1 auto;
+    align-self: center;
+}
+.ber_title_head {
+    order: 0;
+    flex: 1 1 auto;
+    align-self: center;
+    padding-left: 15px;
+}
+.ber_logo_head img {
+    width: 45px;
+}
+.ber_title_head .ber_title {
+    font-size: 26px;
+}
+.ber_menu_head a {
+    color: rgb(138 45 226) !important;
+    font-weight: 500;
+    padding: 10px;
+    text-decoration: none;
+    font-size: 14px;
+}
+.ber_menu_head a.ber_current_page {
+    background-color: #edeaff;
+    border-radius: 10px;
+}
+@media screen and (max-width: 735px) {
+    .ber_menu_head {
+        display: none !important;
+    }
+}
+/* Global Settings Screen */
+.bertha-ai_page_bertha-ai-content-setting div#wpcontent, .bertha-ai_page_bertha-ai-license-setting div#wpcontent, .bertha-ai_page_bertha-ai-art-setting div#wpcontent, .bertha-ai_page_bertha-ai-chat-setting div#wpcontent, .bertha-ai_page_bertha-ai-audio-setting div#wpcontent {
+    background-color: #fff;
+    min-height: calc(100vh - 32px);
+}
+.bertha-ai_page_bertha-ai-content-setting div#wpcontent div#wpbody-content, .bertha-ai_page_bertha-ai-license-setting div#wpcontent div#wpbody-content, .bertha-ai_page_bertha-ai-art-setting div#wpcontent div#wpbody-content, .bertha-ai_page_bertha-ai-chat-setting div#wpcontent div#wpbody-content, .bertha-ai_page_bertha-ai-audio-setting div#wpcontent div#wpbody-content {
+    padding-bottom: 0;
+}
+.bertha-ai_page_bertha-ai-content-setting ul#adminmenu a.wp-has-current-submenu:after, .bertha-ai_page_bertha-ai-license-setting ul#adminmenu a.wp-has-current-submenu:after, .bertha-ai_page_bertha-ai-art-setting ul#adminmenu a.wp-has-current-submenu:after, .bertha-ai_page_bertha-ai-chat-setting ul#adminmenu a.wp-has-current-submenu:after, .toplevel_page_bertha-ai-setting ul#adminmenu>li.current>a.current:after, .toplevel_page_bertha-ai-audio-setting ul#adminmenu>li.current>a.current:after {
+    border-right-color: #ffffff;
+}
+.toplevel_page_bertha-ai-setting div#wpcontent a.bertha, .toplevel_page_bertha-ai-art-setting div#wpcontent a.bertha, .bertha-ai_page_bertha-ai-chat-setting div#wpcontent a.bertha, .bertha-ai_page_bertha-ai-audio-setting div#wpcontent a.bertha {
+    display: none !important;
+}
+.ber_page_wrap, .ber_art_wrap {
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+}
+.ber_page_info {
+    padding: 15px;
+    border: 2px solid #ebe8ff;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    font-size: 14px;
+    width: 600px;
+    max-width: 100%;
+}
+.ber_art_info {
+    padding: 15px;
+    border: 2px solid #ebe8ff;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    font-size: 14px;
+    max-width: 100%;
+}
+.ber_settings_form {
+    display: inline-block;
+    width: 70%;
+    vertical-align: top;
+    margin-right: 4%;
+}
+.ber_settings_sidebar {
+    display: inline-block;
+    width: 24%;
+    vertical-align: top;
+    margin-top: 15px;
+}
+
+h1.ber_title {
+    font-size: 3em;
+    line-height: 1em;
+    margin-bottom: 10px;
+}
+h2.ber_title {
+    font-size: 1.7em !important;
+}
+.ber_nicebox {
+    padding: 15px;
+    border: 2px solid #ebe8ff;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    -webkit-transition: all 0.3s ease-out;
+    -moz-transition: all 0.3s ease-out;
+    -ms-transition: all 0.3s ease-out;
+    -o-transition: all 0.3s ease-out;
+    transition: all 0.3s ease-out;
+}
+.ber_nicebox:hover {
+    box-shadow: 0em 0em 3em 0em rgb(75 60 177 / 20%);
+}
+.ber_nicebox .ber_title {
+    font-size: 18px;
+}
+.ber_nicebox p {
+    font-size: 14px;
+}
+.ber_nicebox.ber_metrix .ber-progress {
+    height: 36px;
+    border-radius: 50px;
+    margin-bottom: 15px;
+    font-weight: 500;
+    width: 100%;
+}
+.ber_nicebox.ber_metrix .ber_metrix_bar:after {
+    content: "Remaining Words Per Month";
+    position: absolute;
+    font-size: 12px;
+    right: 90px;
+    color: #fff;
+    background-color: #1a161f;
+    padding: 10px;
+    padding: 5px 10px;
+    bottom: -5px;
+    border-radius: 5px;
+    -webkit-transition: .5s ease-in-out;
+    -moz-transition: .5s ease-in-out;
+    -o-transition: .5s ease-in-out;
+    transition: .5s ease-in-out;
+    opacity: 0;
+}
+.ber_nicebox.ber_metrix .ber_metrix_bar.ber-img:after {
+    content: "Remaining Images Per Month";
+    position: absolute;
+    font-size: 12px;
+    right: 90px;
+    color: #fff;
+    background-color: #1a161f;
+    padding: 10px;
+    padding: 5px 10px;
+    bottom: -5px;
+    border-radius: 5px;
+    -webkit-transition: .5s ease-in-out;
+    -moz-transition: .5s ease-in-out;
+    -o-transition: .5s ease-in-out;
+    transition: .5s ease-in-out;
+    opacity: 0;
+}
+.ber_nicebox.ber_metrix .ber_metrix_bar:hover:after {
+    display: block;
+    bottom: -20px;
+    top: auto;
+    z-index: 10;
+    opacity: 1;
+}
+a.ber_btn, .ber_button {
+    background: #8e2de2;
+    color: #fff !important;
+    background: -webkit-linear-gradient(to left, #8e2de2, #4a00e0);
+    background: linear-gradient(to left, #8e2de2, #4a00e0);
+    padding: 10px 20px !important;
+    border: none !important;
+    border-bottom: 3px solid #330986!important;
+    border-radius: 10px;
+    display: block;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1.5;
+    text-decoration: none;
+    cursor: pointer;
+    -webkit-transition: all 0.3s ease-out;
+    -moz-transition: all 0.3s ease-out;
+    -ms-transition: all 0.3s ease-out;
+    -o-transition: all 0.3s ease-out;
+    transition: all 0.3s ease-out;
+}
+a.ber_btn:hover, .ber_button:hover {
+    background: linear-gradient(to left, #7123b5, #3803a5);
+    background: linear-gradient(to left, #7123b5, #3803a5);
+    border: none !important;
+    border-bottom: 3px solid #330986!important;
+}
+.ber_form {
+    width: 600px;
+    max-width: 100%;
+}
+label.ber_label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 5px;
+    margin-top: 15px;
+    font-size: 14px;
+}
+.ber_field {
+    display: block;
+    width: 100%;
+    padding: 7px 15px !important;
+    border: 1px solid #ced4da !important;
+}
+span.ber_required {
+    color: #ce1b44;
+}
+span.ber-tooltip-element {
+    width: 14px;
+    display: inline-block;
+    height: 14px;
+    text-align: center;
+    color: #fff;
+    background-color: #363d4d;
+    border-radius: 50%;
+    margin-left: 5px;
+    font-size: 10px;
+    line-height: 1.2;
+    position: absolute;
+}
+button.bersavechanges, .bertha_generat_settings {
+    margin-top: 15px;
+    width: 100%;
+}
+
+/* Global Settings Progress bar */
+.ber_metrix_ui {
+    margin-bottom: 15px;
+}
+.ber_progress {
+    position: relative;
+    text-align: center;
+    width: 100%;
+}
+.ber_barOverflow {
+    position: relative;
+    overflow: hidden;
+    width: 130px;
+    height: 65px;
+    margin: auto;
+    margin-bottom: -15px;
+}
+.ber_bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    box-sizing: border-box;
+    border: 15px solid #eee;
+    border-bottom-color: #8E2DE2;
+    border-right-color: #8E2DE2;
+}
+.ber_progress span {
+    font-family: 'Domine', serif;
+    font-weight: 800;
+    font-size: 125%;
+}
+
+/* Backend Bertha Screen */
+.bertha-ai_page_bertha-ai-backend-bertha ul#adminmenu a.wp-has-current-submenu:after {
+    border-right-color: #ffffff;
+}
+.bertha-ai_page_bertha-ai-backend-bertha div#wpcontent {
+    background-color: #fff;
+    min-height: calc(100vh - 32px);
+}
+.bertha-ai_page_bertha-ai-backend-bertha #wpbody-content, .bertha-ai_page_bertha-ai-backend-bertha .ber_page_wrap {
+    padding-bottom: 0 !important;
+}
+.bertha-ai_page_bertha-ai-backend-bertha .ber_page_wrap {
+    padding-top: 35px !important;
+}
+.bertha-ai_page_bertha-ai-backend-bertha .notice, .ber_full_side .ber_metrix_bar {
+    display: none !important;
+}
+.ber_full_side {
+    width: 33%;
+    display: inline-block;
+    vertical-align: top;
+    min-width: 405px;
+}
+.ber_full_side .ber-tab-content {
+    font-size: 14px;
+}
+.ber_full_side select {
+    width: 100%;
+    max-width: 100%;
+    display: block;
+    padding: 5px 10px;
+}
+.ber_full_side .ber_icons_wrap {
+    margin-top: -5px;
+}
+.ber_full_side .ber-nav-tabs {
+    justify-content: flex-end;
+}
+.ber_full_side .input_details {
+    width: 100%;
+    position: relative;
+    left: 0;
+}
+.ber_full_side .ber-offcanvas-title {
+    font-size: 22px !important;
+    margin-top: 15px !important;
+    font-weight: 700 !important;
+    color: #333 !important;
+    padding: 0 !important;
+}
+.ber_full_side .ber-tab-pane {
+    width: 100%;
+    position: relative;
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 25px;
+}
+.ber_full_content {
+    flex-grow: 1;
+    display: inline-block;
+    vertical-align: top;
+    box-sizing: border-box;
+    margin-top: -10px;
+    padding-left: 40px;
+}
+.ber_full_content form {
+    max-width: 750px;
+    width: 100%;
+    margin: auto;
+}
+.bertha_backend_buttons {
+    display: flex;
+    justify-content: space-between;
+}
+
+button.wa-generate-long-form.hide {
+    display:none;
+}
+.ber_full_content .ber_icon {
+    height: 47px;
+    width: 47px !important;
+    margin: 0 10px;
+}
+.ber_full_content input, .ber_full_content textarea {
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+button[name="bertha_backend_body_save"] {
+    margin: 0 15px;
+}
+
+.ber_full_content input {
+    padding: 5px 10px;
+    font-size: 200%;
+    font-weight: 700;
+    border-bottom: 2px solid #ebe8ff !important;
+    border-radius: 0 !important;
+    width: 100%;
+    font-family: 'Domine', serif;
+}
+.ber_full_content textarea {
+    min-height: calc(100vh - 370px);
+    font-size: 125%;
+}
+.ber_full_content .wp-editor-container, .ber_full_content div.mce-panel {
+    border: none;
+    box-shadow: none !important;
+    background: transparent !important;
+}
+.ber_full_content div.mce-panel {
+    background: transparent;
+    border-right: none;
+    box-shadow: none !important;
+}
+.ber_full_content .mce-top-part::before {
+    box-shadow: none !important;
+}
+.ber_full_content div.mce-toolbar-grp {
+    border-bottom: 2px solid #ebe8ff !important;
+}
+iframe#bertha_backend_body_ifr {
+    height: calc(100vh - 330px) !important;
+}
+body.wp-autoresize  {
+    font-size: 20px !important;
+    color: #2c3338 !important;
+}
+@media only screen and (max-width: 800px) {
+    .bertha-ai_page_bertha-ai-backend-bertha .ber_page_wrap {
+        flex-direction: column-reverse;
+    }
+    .ber_full_content {
+        padding: 0 0 25px 0;
+    }
+    .ber_full_side {
+        width: 100%;
+        min-width: 0;
+    }
+}
+/* Initial Wizard */
+.ber_wizard_wrap {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 2147483647;
+    background-color: #fff;
+    width: 100%;
+    height: 100vh;
+    overflow-y: auto;
+  text-align: center;
+}
+.tooltip{
+  z-index: 21474836477 !important;
+}
+.ber_wizard_page {
+    width: 600px;
+    margin: auto;
+    margin-top: 45px;
+    padding: 25px;
+    padding-top: 45px;
+    border: 2px solid #ebe8ff;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    box-shadow: 0em 0em 3em 0em rgb(75 60 177 / 20%);
+    overflow: hidden;
+    position: relative;
+    -webkit-animation: berfade-in-top 0.5s cubic-bezier(0.390, 0.575, 0.565, 1.000) both;
+    animation: berfade-in-top 0.5s cubic-bezier(0.390, 0.575, 0.565, 1.000) both !important;
+}
+.ber_wizard_page p {
+    font-size: 14px;
+}
+.ber_wizard_page iframe {
+    border-radius: 5px;
+    overflow: hidden;
+    max-width: 100%;
+}
+.ber_wizard_wrap .ber_form {
+    margin: auto;
+  text-align: left;
+}
+img.ber_wizard_hi {
+    width: 200px;
+    position: absolute;
+    bottom: -36px;
+    right: -30px;
+    opacity: 0.8;
+    -moz-transform: rotate(-15deg);
+    -webkit-transform: rotate(-15deg);
+    -o-transform: rotate(-15deg);
+    -ms-transform: rotate(-15deg);
+    transform: rotate(-10deg);
+}
+div#ber_page2 .ber_form_group {
+    -webkit-animation-name: berfadeIn;
+    animation-name: berfadeIn;
+    -webkit-animation-duration: 0.5s;
+    animation-duration: 0.5s;
+    -webkit-animation-fill-mode: both;
+    animation-fill-mode: both;
+}
+.ber_wizard_wrap label.ber_label, .ber_register_notice_title {
+    font-family: 'Domine', serif;
+    font-weight: 700;
+    font-size: 16px;
+}
+.ber_wizard_wrap label.ber_label div {
+    display: inline-block;
+}
+.ber_radio input {
+    display: none !important;
+}
+.ber_wizard_wrap .ber_radio label {
+    padding: 15px;
+    border: 2px solid #ebe8ff;
+    border-radius: 10px;
+    width: 100%;
+    cursor: pointer;
+    font-size: 16px;
+    -webkit-transition: all 0.3s ease-out;
+    -moz-transition: all 0.3s ease-out;
+    -ms-transition: all 0.3s ease-out;
+    -o-transition: all 0.3s ease-out;
+    transition: all 0.3s ease-out;
+    max-width: 100% !important;
+    display: block;
+    font-weight: 500;
+    margin-bottom: 10px;
+    box-sizing: border-box;
+}
+.ber_radio label:hover {
+    background-color: #ebe9ff;
+}
+.ber_radio input:checked + label {
+    background-color: #8E2DE2;
+    color: #fff;
+}
+.ber_radio input:checked + label:after {
+    color: #53FB84;
+    float: right;
+    font-size: 27px;
+    margin-bottom: -10px;
+    margin-top: -10px;
+    content: "\f15e";
+    font-family: dashicons;
+    border: 3px solid;
+    height: 32px;
+    width: 32px;
+    border-radius: 50%;
+    line-height: 1.2;
+    text-align: center;
+}
+img.bertha_working {
+    width: 250px;
+    opacity: 0.8;
+}
+div#ber_page1 .ber_form_group.ber_brand {
+    width: 48%;
+    display: inline-block;
+}
+div#ber_page1 .ber_form_group.ber_brand:first-child {
+    margin-right: 15px;
+}
+.ber_register_notice {
+    border: 2px solid #ebe8ff;
+    margin-top: 15px;
+    text-align: left;
+    padding: 15px;
+    padding-bottom: 0;
+    border-radius: 10px;
+}
+img.bertha_gif {
+    max-width: 100%;
+    border-radius: 5px;
+}
+/* License Verification Screen */
+.bertha-ai_page_bertha-ai-license, .bertha-ai_page_bertha-ai-general-setting {
+    background-color: #fff;
+}
+.bertha-ai_page_bertha-ai-license ul#adminmenu a.wp-has-current-submenu:after, .bertha-ai_page_bertha-ai-license ul#adminmenu>li.current>a.current:after {
+    border-right-color: #ffffff;
+}
+input.button-secondary.bertha_deactivate_button {
+    background-color: #FDB1B1;
+    color: #333;
+    padding: 15px !important;
+    border: none !important;
+    border-bottom: 3px solid #d41513!important;
+    border-radius: 10px;
+    display: block;
+    text-align: center;
+    font-size: 115%;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    line-height: initial;
+    width: 100%;
+    -webkit-transition: all 0.3s ease-out;
+    -moz-transition: all 0.3s ease-out;
+    -ms-transition: all 0.3s ease-out;
+    -o-transition: all 0.3s ease-out;
+    transition: all 0.3s ease-out;
+}
+input.button-secondary.bertha_deactivate_button:hover {
+    background-color: #f57f7f;
+    border: none !important;
+    border-bottom: 3px solid #a01413!important;
+    color: #333;
+}
+span.bertha_active {
+    font-weight: 700;
+    font-size: 125%;
+}
+span.bertha_active:before {
+    color: #0aaf3a;
+    position: relative;
+    font-size: 27px;
+    content: "\f15e";
+    font-family: dashicons;
+    border: 3px solid;
+    height: 32px;
+    width: 32px;
+    border-radius: 50%;
+    line-height: 1;
+    margin-right: 5px;
+    bottom: -7px;
+}
+
+/* Search */
+.ber_search {
+    position: relative;
+}
+img.ber_search_icon {
+    position: absolute;
+    z-index: 1000;
+    top: 10px;
+    left: 8px;
+    opacity: 0.5;
+}
+.ber_search #bertha_template_filter {
+    font-weight: 400;
+    position: relative;
+    padding-left: 35px !important;
+    border: 2px solid #ebe8ffe6!important;
+    border-radius: 10px !important;
+    height: 44px !important; 
+}
+
+.ber_search_template {
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 2px solid #edeaff;
+    margin-bottom: 15px;
+    background-color: #fff;
+    z-index: 1000;
+    position: relative;
+    padding: 0 10px;
+}
+input.ber_search_tag {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 0 15px 0;
+    margin: 0 !important;
+    margin-bottom: -2px !important;
+    font-size: 14px;
+    color: #5F308B !important;
+    cursor: pointer !important;
+    border-bottom: 2px solid transparent !important;
+    -webkit-transition: all 0.2s ease-out;
+    -moz-transition: all 0.2s ease-out;
+    -ms-transition: all 0.2s ease-out;
+    -o-transition: all 0.2s ease-out;
+    transition: all 0.2s ease-out;
+    border-radius: 0 !important;
+    flex-basis: fit-content;
+}
+input.ber_search_tag:hover, input.ber_search_tag.active {
+    border-color: #5F308B !important;
+    background-color: transparent !important;
+}
+
+/* Modal */
+.ber_modal {
+    background-color: rgb(255 255 255 / 80%);
+    z-index: 2147483647 !important;
+}
+.ber_modal .ber-modal-dialog {
+    width: 600px !important;
+    max-width: 94%;
+}
+.ber_modal .ber-modal-content {
+    box-shadow: 0 0 1em 0 rgb(0 0 0 / 10%);
+    border-color: #edeaff;
+    border-width: 2px;
+    animation: berfade-in-top 0.5s cubic-bezier(0.390, 0.575, 0.565, 1.000) both !important;
+}
+
+.ber_modal .ber_inner_title {
+    font-size: 22px;
+    margin-bottom: 15px;
+    display: block;
+    line-height: 1.2;
+}
+.ber_modal .ber-modal-footer {
+    border: none;
+    padding-top: 0;
+}
+.ber_modal .bertha_close_modal, .ber_modal .ber_report_submit {
+    width: 100%;
+}
+.bertha_sec_ber-btn {
+    border: 2px solid #edeaff;
+    padding: 10px !important;
+}
+.bertha_sec_ber-btn:hover {
+    background-color: #edeaff;
+}
+.ber-report-close, .ber-token-covered-btn-close {
+    color: #CC3366 !important;
+    border: none !important;
+    background-color: transparent !important;
+    font-size: 30px;
+    line-height: 1;
+    position: absolute;
+    right: 0;
+    top: 0;
+    cursor: pointer;
+}
+.ber-report-primary-title, .ber-token-primary-title {
+    font-size: 22px;
+    margin-bottom: 15px;
+    display: block;
+    line-height: 1.2;
+    font-weight: 700;
+    color: #333;
+}
+textarea#ber_report_body {
+    width: 100%;
+}
+div#ber_idea_report_modal .ber_inner_title {
+    font-size: 150%;
+}
+
+/* Everywhere */
+.ber_everywhere input {
+    width: 48%;
+    display: inline-block;
+    position: absolute;
+    left: 0;
+    height: 45px;
+    background: #fff;
+    z-index: 100;
+    border: 2px solid #ebe8ff;
+    box-shadow: none;
+    border-radius: 10px;
+}
+.ber_everywhere input:last-child {
+    left: 52%;
+}
+.ber_everywhere label {
+    width: 46%;
+    display: inline-block;
+    margin-right: 2%;
+    height: 45px;
+    position: relative;
+    z-index: 100;
+    padding: 10px;
+    box-sizing: border-box;
+    padding-left: 35px;
+}
+.ber_everywhere label.ber_label {
+    display: block;
+    height: auto;
+    margin-bottom: 10px;
+    padding: 0;
+}
+.ber_everywhere input:checked:before {
+    color: #198754;
+    content: "\f147";
+    font-family: dashicons;
+    width: calc(100% + 4px);
+    border-radius: 10px;
+    height: 45px;
+    text-align: left;
+    padding: 10px;
+    box-sizing: border-box;
+    margin: 0;
+    position: relative;
+    background-color: #ebe8ff !important;
+    font-size: 36px;
+    line-height: 0.7;
+    padding-left: 0;
+    top: -2px;
+    left: -2px;
+}
+.ber_everywhere input:after {
+    content: "Everywhere";
+    top: 16px;
+    position: absolute;
+    left: 35px;
+    font-weight: 600;
+}
+.ber_everywhere input:last-child:after {
+    content: "Not Everywhere";
+}
+
+.ber_alt_text input {
+    width: 48%;
+    display: inline-block;
+    position: absolute;
+    left: 0;
+    height: 45px;
+    background: #fff;
+    z-index: 100;
+    border: 2px solid #ebe8ff;
+    box-shadow: none;
+    border-radius: 10px;
+}
+.ber_alt_text input:last-child {
+    left: 52%;
+}
+.ber_alt_text label {
+    width: 46%;
+    display: inline-block;
+    margin-right: 2%;
+    height: 45px;
+    position: relative;
+    z-index: 100;
+    padding: 10px;
+    box-sizing: border-box;
+    padding-left: 35px;
+}
+.ber_alt_text label.ber_label {
+    display: block;
+    height: auto;
+    margin-bottom: 10px;
+    padding: 0;
+}
+.ber_alt_text input:checked:before {
+    color: #198754;
+    content: "\f147";
+    font-family: dashicons;
+    width: calc(100% + 4px);
+    border-radius: 10px;
+    height: 45px;
+    text-align: left;
+    padding: 10px;
+    box-sizing: border-box;
+    margin: 0;
+    position: relative;
+    background-color: #ebe8ff !important;
+    font-size: 36px;
+    line-height: 0.7;
+    padding-left: 0;
+    top: -2px;
+    left: -2px;
+}
+.ber_alt_text input:after {
+    content: "Yes";
+    top: 16px;
+    position: absolute;
+    left: 35px;
+    font-weight: 600;
+}
+.ber_alt_text input:last-child:after {
+    content: "No";
+}
+/* Ask Me Anything */
+.ber-offcanvas-body .ber-modal-header { 
+    padding: 0 !important;
+    border-bottom: 2px solid #edeaff !important;
+    align-items: flex-start !important;
+}
+
+.ber-offcanvas-body .ber_modal .ber-modal-dialog.ber-ask {
+    width: 800px !important;
+}
+.ber-offcanvas-body .ber-ask .ber-modal-header {
+    padding-bottom: 0;
+    align-items: flex-start;
+}
+.ber-offcanvas-body .ber-ask .bertha.ber-ask-bertha {
+    display: none;
+}
+.ber-offcanvas-body button.ber-quickwins-btn-close.ber-quickwins-close {
+    border: none;
+    background-color: transparent;
+    color: #f02849;
+    font-size: 24px;
+    cursor: pointer;
+}
+.ber-offcanvas-body .ber-ask .ber_big_title {
+    font-size: 16px !important;
+    font-weight: 700 !important;
+    color: #372547 !important;
+}
+.ber-offcanvas-body .ber_inner_title_ask {
+    font-size: 14px !important;
+    display: inline-block;
+    margin-right: 5px;
+}
+.ber-offcanvas-body .ber-ama-body {
+    display: flex;
+    padding: 0;
+    flex-direction: column;
+}
+.ber-offcanvas-body textarea#ber_quickwins_body {
+    width: 100%;
+    padding: 20px;
+    border: none !important;
+    box-shadow: none !important;
+    font-size: 14px;
+    min-height: calc(100vh - 245px);
+    border-radius: 10px;
+    margin-top: 10px;
+    -webkit-transition: all 0.2s ease-out;
+    -moz-transition: all 0.2s ease-out;
+    -ms-transition: all 0.2s ease-out;
+    -o-transition: all 0.2s ease-out;
+    transition: all 0.2s ease-out;
+}
+.ber-offcanvas-body textarea#ber_quickwins_body:focus-visible {
+    box-shadow: 0em 0em 3em 0em rgb(75 60 177 / 20%) !important;
+    outline: none;
+}
+.ber-offcanvas-body .ber-content-settings-data {
+    padding-top: 10px;
+}
+.ber-offcanvas-body .ber_quickwins {
+    margin-top: 5px;
+    border-color: #edeaff !important;
+    padding: 3px 5px !important;
+    background-color: #edeaff;
+    border-radius: 50px !important;
+    font-size: 12px !important;
+    margin-right: 5px;
+    height: auto !important;
+    -webkit-transition: all 0.2s ease-out;
+    -moz-transition: all 0.2s ease-out;
+    -ms-transition: all 0.2s ease-out;
+    -o-transition: all 0.2s ease-out;
+    transition: all 0.2s ease-out;
+}
+.ber-offcanvas-body .ber-ask .ber-modal-footer {
+    justify-content: space-between;
+    align-items: flex-start;
+    overflow: hidden;
+    position: relative;
+    padding-left: 110px;
+}
+.ber-offcanvas-body .ber-ask-animation {
+    width: calc(100% - 320px);
+    margin-top: 10px !important;
+    margin-bottom: 0 !important;
+}
+
+.ber-offcanvas-body img.ber_animation_bertha {
+    width: 130px;
+    box-shadow: none;
+    position: absolute;
+    left: -10px;
+    top: -5px;
+}
+
+.ber-offcanvas-body div#bertha_display_effect {
+    display: inline;
+    font-size: 16px;
+    font-family: 'Domine', serif;
+    color: #9a84c3;
+}
+.ber-offcanvas-body .ber-ask-animation span.typed-cursor {
+    font-size: 16px;
+}
+.ber-offcanvas-body .ber-ask-submit {
+    display: flex;
+    margin: 0;
+}
+.ber-offcanvas-body .ber-ask-submit button {
+    padding: 0 40px !important;
+    height: 44px;
+}
+.ber-offcanvas-body .ber_quickwins_reset {
+    margin-right: 10px;
+}
+
+
+#ber_quickwins_modal .ber_modal .ber-modal-dialog.ber-ask {
+    width: 800px !important;
+}
+#ber_quickwins_modal .ber-ask .ber-modal-header {
+    padding-bottom: 0;
+    align-items: flex-start;
+}
+#ber_quickwins_modal .ber-ask .bertha.ber-ask-bertha {
+    display: none;
+}
+#ber_quickwins_modal button.ber-quickwins-btn-close.ber-quickwins-close {
+    border: none;
+    background-color: transparent;
+    color: #f02849;
+    font-size: 24px;
+    cursor: pointer;
+}
+#ber_quickwins_modal .ber-ask .ber_big_title {
+    font-size: 22px !important;
+    font-weight: 700 !important;
+    color: #333 !important;
+}
+#ber_quickwins_modal .ber_inner_title_ask {
+    font-weight: 700;
+    font-size: 16px;
+    color: #333 !important;
+}
+#ber_quickwins_modal .ber-ama-body {
+    display: grid;
+    grid-template-columns: 1.5fr 0.5fr;
+    gap: 0px 20px;
+}
+#ber_quickwins_modal textarea#ber_quickwins_body {
+    width: 100%;
+    padding: 20px;
+    border: none !important;
+    box-shadow: none !important;
+    font-size: 16px;
+    height: 300px;
+}
+#ber_quickwins_modal .ber_quickwins {
+    width: 100%;
+    margin-top: 10px;
+    border-color: #edeaff !important;
+}
+#ber_quickwins_modal .ber-ask .ber-modal-footer {
+    justify-content: space-between;
+    align-items: flex-start;
+    overflow: hidden;
+    position: relative;
+    padding-left: 110px;
+}
+#ber_quickwins_modal .ber-ask-animation {
+    width: calc(100% - 320px);
+    margin-top: 10px !important;
+    margin-bottom: 0 !important;
+}
+
+#ber_quickwins_modal img.ber_animation_bertha {
+    width: 130px;
+    box-shadow: none;
+    position: absolute;
+    left: -10px;
+    top: -5px;
+}
+
+#ber_quickwins_modal div#bertha_display_effect {
+    display: inline;
+    font-size: 16px;
+    font-family: 'Domine', serif;
+    color: #9a84c3;
+}
+#ber_quickwins_modal .ber-ask-animation span.typed-cursor {
+    font-size: 16px;
+}
+#ber_quickwins_modal .ber-ask-submit button {
+    padding: 0 40px !important;
+    height: 44px;
+}
+#ber_quickwins_modal .ber_quickwins_reset {
+    margin-right: 10px;
+}
+/* Visibility */
+.ber_frontend_backend input {
+    width: 48%;
+    display: inline-block;
+    position: absolute;
+    left: 0;
+    height: 45px;
+    background: #fff;
+    z-index: 100;
+    border: 2px solid #ebe8ff;
+    box-shadow: none;
+    border-radius: 10px;
+}
+.ber_frontend_backend input:last-child {
+    left: 52%;
+}
+.ber_frontend_backend label {
+    width: 46%;
+    display: inline-block;
+    margin-right: 2%;
+    height: 45px;
+    position: relative;
+    z-index: 100;
+    padding: 10px;
+    box-sizing: border-box;
+    padding-left: 35px;
+}
+.ber_frontend_backend label.ber_label {
+    display: block;
+    height: auto;
+    margin-bottom: 10px;
+    padding: 0;
+}
+.ber_frontend_backend input:checked:before {
+    color: #198754;
+    content: "\f147";
+    font-family: dashicons;
+    width: calc(100% + 4px);
+    border-radius: 10px;
+    height: 45px;
+    text-align: left;
+    padding: 10px;
+    box-sizing: border-box;
+    margin: 0;
+    position: relative;
+    background-color: #ebe8ff !important;
+    font-size: 36px;
+    line-height: 0.7;
+    padding-left: 0;
+    top: -2px;
+    left: -2px;
+}
+.ber_frontend_backend input:after {
+    content: "Frontend";
+    top: 20px;
+    position: absolute;
+    left: 35px;
+    font-weight: 600;
+}
+.ber_frontend_backend input:last-child:after {
+    content: "Backend";
+}
+
+/* Notice */
+.ber-notice-content {
+    background-color: #3ED696;
+    color: #3c434a !important;
+    padding: 10px 20px 10px 45px;
+    border-radius: 10px;
+    position: fixed;
+    display: flex;
+    top: 65px;
+    left: 20px;
+    width: 300px;
+    box-shadow: 0 0 1em 0 rgb(0 0 0 / 10%);
+    z-index: 100000;
+    font-size: 14px;
+    font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif;
+}
+.ber-notice-content:before {
+content: "\f14c";
+font-family: dashicons;
+margin-left: -35px;
+font-size: 150%;
+margin-right: 10px;
+}
+.bertha_draft_format_notice {
+    background-color: #CC3366;
+    position: fixed;
+    padding: 10px 25px;
+    color: #fff;
+    border-radius: 10px;
+    top: 50px;
+    right: 25px;
+    width: 300px;
+}
+.ber_notice {
+    border: 2px solid #edeaff !important;
+    border-radius: 5px;
+    padding: 10px;
+}
+
+/* Draft */
+.bertha_draft_body {
+    height: 100px;
+    line-height: 20px;
+    overflow: hidden;
+}
+span.bertha_draft_number {
+    font-weight: 700;
+    margin-bottom: 10px;
+    display: block;
+    font-size: 115%;
+    margin-top: -3px;
+    max-width: calc(100% - 50px);
+    line-height: 1;
+}
+.bertha_draft_body p {
+    margin: 0;
+}
+
+/* Bertha Evil */
+.ber_evil {
+    color: #fff !important;
+    background-color: #111 !important;
+}
+.ber_evil:hover {
+    background-color: #3c000b !important;
+}
+/* Atarim Integration */
+.ber-atarim-head {
+    background: #edeaff !important;
+}
+.ber-atarim-head .berthaclose {
+    filter: invert(0) !important;
+}
+
+/* Want More */
+.bertha-ai_page_bertha-ai-want-more {
+    background-color: #fff;
+}
+.bertha-ai_page_bertha-ai-want-more ul#adminmenu a.wp-has-current-submenu:after {
+    border-right-color: #ffffff;
+}
+
+.ber_nicebox.ber_unlock {
+    position: fixed;
+    width: 20%;
+}
+.ber_more_feature {
+    padding: 35px;
+}
+.ber_more_feature_inner_left {
+    display: inline-block;
+    width: 32%;
+    margin-right: 3%;
+    vertical-align: top;
+}
+.ber_more_feature_inner_right {
+    display: inline-block;
+    width: 64%;
+    vertical-align: top;
+}
+.ber_more_feature_inner_right iframe, img.ber_longform_gif {
+    width: 100%;
+    border-radius: 5px;
+    box-shadow: 0em 0em 3em 0em rgb(75 60 177 / 20%);
+}
+.ber_img_more {
+    width: 100%;    
+}
+
+.ber_bullet {
+    font-size: 115%;
+    margin-bottom: 15px;
+}
+.ber_bullet span {
+    color: #53FB84;
+    margin-right: 15px;
+    float: left;
+    font-size: 175%;
+    margin-top: -3px;
+    margin-bottom: 20px;
+}
+.ber_bullet_desc {
+    display: inline-block;
+    width: calc(100% - 35px);
+}
+.ber_did_it {
+    background-color: #53fb84;
+    padding: 10px 20px;
+    margin-top: 10px;
+    font-size: 125%;
+    font-weight: 500;
+    border-radius: 5px;
+    line-height: 1.3;
+}
+
+/* Redo */
+.ber-i-redo {
+ box-sizing: border-box;
+ position: relative;
+ display: block;
+ transform: scale(var(--ggs,1));
+ width: 14px;
+ height: 14px;
+ border: 2px solid;
+ border-right-color: transparent;
+ border-radius: 100px;
+ margin: auto;
+}
+
+.ber-i-redo::before {
+ content: "";
+ display: block;
+ box-sizing: border-box;
+ position: absolute;
+ width: 6px;
+ height: 6px;
+ border-top: 2px solid;
+ border-right: 2px solid;
+ top: -3px;
+ right: -1px;
+ transform: rotate(68deg)
+} 
+
+/* User's Roles Selection */
+.ber_select_users #berselect_users {
+    height: 125px;
+    padding: 10px;
+    border-radius: 5px;
+    background: #fff;
+    width: 100%;
+    box-shadow: none;
+    display: block;
+    max-width: 100%;
+    margin-top: 10px;
+    margin-bottom: 15px;
+    border-color: rgba(0, 0, 0, .2);
+}
+
+.ber_user_role_info .ber_btn, .ber_user_quickwins_info .ber_btn {
+    margin-top: 10px;
+}
+.ber-disabled-click {
+    pointer-events: none;
+}
+.quickwins_container {
+    margin-top: 15px;
+}
+.ber-loading-expand {
+    height: calc(100% - 60px);
+}
+select.ber_field { 
+    max-width:none !important; 
+}
+.clear_transient { width: 440px !important; }
+
+/* Loading Animation */
+ 
+.ber-loader {
+    display: inline-block;
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    left: 0;
+    top: 35%;
+    right: 0;
+    margin-left: auto;
+    margin-right: auto;
+}
+.ber-loader div {
+    position: absolute;
+    border: 4px solid #fff;
+    opacity: 1;
+    border-radius: 50%;
+    background: #7123b5;
+    animation: ber-loader 1s cubic-bezier(0, 0.2, 0.8, 1) infinite;
+}
+.ber-loader div:nth-child(2) {
+    animation-delay: -0.5s;
+}
+@keyframes ber-loader {
+    0% {
+        top: 36px;
+        left: 36px;
+        width: 0;
+        height: 0;
+        opacity: 0;
+    }
+    4.9% {
+        top: 36px;
+        left: 36px;
+        width: 0;
+        height: 0;
+        opacity: 0;
+    }
+    5% {
+        top: 36px;
+        left: 36px;
+        width: 0;
+        height: 0;
+        opacity: 1;
+    }
+    100% {
+        top: 0px;
+        left: 0px;
+        width: 72px;
+        height: 72px;
+        opacity: 0;
+    }
+}
+.ber-overlay-container {width: 100%;
+    height: 100%;
+    max-height:100vh;
+    position: absolute;
+    background-color: rgba(255,255,255,0.5);
+    z-index: 9999;
+    display: none;
+    top: 0;
+    left: 0;
+}
+
+/* Bertha Art */
+
+#image .ber-image-promps-ideas {
+    flex-grow: 1;
+}
+#image .ber-image-promps-ideas-wrapper, #image .ber-first-promps-ideas-wrapper, #image .ber-text-promps-ideas-wrapper {
+    height: calc(100% - 4px);
+    width: 100%;
+    justify-content: center;
+}
+#image .ber_grid_img_parent {
+    margin-top: 15px;
+}
+#image .ber_grid_img_item {
+    position: relative;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 15px;
+    line-height: 0 !important;
+}
+#image .ber_grid_img_item img {
+    width: 100%;
+}
+.ber-art-display-imgs .bertha_art_image_options {
+    width:  60% !important;
+    left: calc(100% - 350px) !important;
+}
+
+.ber_art_wrap {
+    display: block;
+}
+.ber_art_page_form {
+    max-width: 300px;
+}
+.ber_art_title {
+    font-size: 22px;
+    margin-top: 25px;
+    font-weight: 700;
+    color: #333;
+}
+.bertha-art-search-body {
+    display: flex;
+    margin-bottom: 15px;
+    align-items: center;
+    position: relative;
+}
+.ber_art_page_wrap, .ber_art_head {
+    max-width: 100%;
+    width: 850px;
+    margin: auto;
+}
+.ber-art-main-container {
+    margin: auto;
+}
+.ber-art-options {
+    margin-top: 10%;
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    justify-content: center;
+}
+.ber-art-search, .ber-art-create {
+    border: 2px solid #ebe8ff;
+    border-radius: 10px;
+    max-width: 100%;
+    width: 300px;
+    min-height: 300px;
+    display: flex;
+    align-items: center;
+    cursor:pointer;
+    -webkit-transition: all 0.3s ease-in;
+    -moz-transition: all 0.3s ease-in;
+    -ms-transition: all 0.3s ease-in;
+    -o-transition: all 0.3s ease-in;
+    transition: all 0.3s ease-in;
+}
+.ber-art-search:hover, .ber-art-create:hover {
+    box-shadow: 0 0 1em 0 rgb(0 0 0 / 10%);
+}
+.ber-art-options p {
+    font-size: 14px;
+}
+.ber-art-wrap {
+    padding: 25px;
+    text-align: center;
+}
+.ber-art-search img, .ber-art-create img {
+    width: 75px;
+    opacity: 0.3;
+    margin: auto;
+    margin-bottom: 15px;
+    height: auto;
+    vertical-align: middle;
+    -webkit-transition: all 0.3s ease-in;
+    -moz-transition: all 0.3s ease-in;
+    -ms-transition: all 0.3s ease-in;
+    -o-transition: all 0.3s ease-in;
+    transition: all 0.3s ease-in;
+}
+.ber-art-search:hover img, .ber-art-create:hover img {
+    width: 90px;
+}
+.ber_grid_first_parent.ber-border {
+    border: 0;
+}
+
+.bertha_art_icon {
+    width: 25px;
+}
+
+.bertha_img_prompt {
+    color: #333!important;
+    text-align: left!important;
+    padding: 15px!important;
+    border: 2px solid #ebe8ffe6!important;
+    border-radius: 10px!important;
+    overflow: hidden;
+    position: relative;
+    -webkit-animation: berfade-in-top 0.5s cubic-bezier(0.390, 0.575, 0.565, 1.000) both;
+    animation: berfade-in-top 0.5s cubic-bezier(0.390, 0.575, 0.565, 1.000) both !important;
+}
+label.ber-btn.bertha_img_prompt:hover {
+    box-shadow: 0em 0em 3em 0em rgb(75 60 177 / 20%);
+}
+#ber_image_generate_modal.ber_modal .ber-modal-dialog {
+    width: 1000px !important;
+    max-width: 94%;
+}
+.ber_art_body {
+    display: flex;
+    justify-content: space-between;
+    gap: 25px;
+}
+
+.ber_art_form {
+    display: flex;
+    flex-direction: column;
+}
+textarea#ber_image_generate_body {
+    height: 76px;
+}
+.ber_image_sub_style {
+    animation: berfade-in-top 0.5s cubic-bezier(0.390, 0.575, 0.565, 1.000) both !important;
+}
+.ber_art_page_wrap .ber-image-promps-ideas {
+    flex-grow: 1;
+}
+.ber_art_page_wrap .ber-image-promps-ideas-wrapper, .ber_art_page_wrap .ber-first-promps-ideas-wrapper, .ber_art_page_wrap .ber-text-promps-ideas-wrapper {
+    height: calc(100% - 4px);
+    width: 100%;
+    justify-content: center;
+}
+#ber_image_generate_modal .ber_grid_img_parent {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 20px 20px;
+}
+#ber_image_generate_modal .ber_grid_img_item {
+    position: relative;
+    border-radius: 10px;
+    height: calc(100% - 4px);
+    min-height: 250px;
+}
+#ber_image_generate_modal .ber_grid_img_item img {
+    width: 100%;
+    /*min-height: 250px;*/
+}
+#ber_image_generate_modal .ber-single-col .bertha_art_image_options {
+    left: calc(100% - 150px) !important;
+    width: 60% !important;
+}
+#ber_image_generate_modal .ber_grid_img_parent.ber-single-col img {
+    border-radius: 10px !important;
+}
+#ber_image_generate_modal .ber-overlay-container {
+    position: fixed;
+}
+.bertha_art_image_options {
+    position: absolute;
+    top: 15px;
+    left: calc(100% - 35px);
+    height: auto;
+    width: 100%;
+    border: 2px solid #ebe8ff;
+    border-radius: 10px;
+    cursor: initial;
+    display: none;
+    padding: 15px;
+    z-index: 1000;
+    gap: 15px;
+    box-sizing: border-box;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+    box-shadow: 0 0 1em 0 rgb(0 0 0 / 20%);
+    opacity: 0;
+    background-color: rgb(255 255 255);
+    -webkit-transition: all 0.3s ease-out;
+    -moz-transition: all 0.3s ease-out;
+    -ms-transition: all 0.3s ease-out;
+    -o-transition: all 0.3s ease-out;
+    transition: all 0.3s ease-out;
+}
+.bertha_art_image_options .ber_close_icon {
+    width: 20px !important;
+    filter: invert(100%);
+    cursor: pointer;
+}
+.ber_grid_img_item .bertha_art_image_options:hover {
+    opacity: 1;
+}
+
+#ber_image_generate_modal.ber_modal .ber-modal-footer { padding-right: 0px;}
+
+
+#ber_image_prompt_option_generate {
+    background: transparent;
+    background-color: transparent;
+    border: 2px solid #333 !important;
+    color: #333 !important;
+    font-size: 14px !important;
+    padding: 10px 20px !important;
+    display: flex;
+    margin: 10px 0 0 auto;
+    transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+#ber_image_prompt_option_generate:hover {
+    background-color: #edeaff;
+}
+.ber_art_body .ber_inner_title {
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 5px;
+    margin-top: 15px;
+}
+
+
+.ber_button ber_image_generate_submit {
+    margin-right: 0px !important;
+}
+
+.ber_art_size_icon {
+    width: 20px !important;
+}
+.bertha_art_size_options {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+}
+
+.bertha_art_size_options button {
+    background-color: transparent;
+    border-radius: 0px;
+    padding: 10px;
+    line-height: 1.5;
+    border: 1px solid #ced4da !important;
+    width: 100%;
+    font-size: 14px;
+    border-right: 0 !important;
+    cursor: pointer;
+    display: flex;
+    gap: 5px;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+.bertha_art_size_options button:hover {
+    background-color: #edeaff;
+}
+.ber_image_size.selected{
+    background: linear-gradient(to left, #8e2de2, #4a00e0);
+    color: #fff;
+}
+.ber_image_size.selected img {
+    filter: invert(100%);
+}
+.bertha_art_size_options button.portrait {
+    border-top-right-radius: 3px;
+    border-bottom-right-radius: 3px;
+    border-right: 1px solid #ced4da !important;
+}
+.bertha_art_size_options button.square {
+    border-top-left-radius: 3px;
+    border-bottom-left-radius: 3px;
+}
+
+.ber_grid_first_parent {
+    height: 100%;
+    border: 2px solid #edeaff;
+    border-radius: 10px;
+    display: flex;
+    padding: 25px;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+.ber-img-icon-container img {
+    width: 100px;
+}
+.ber-image-promps-ideas p {
+    font-size: 14px;
+    margin-top: 0;
+}
+.ber-image-promps-ideas .ber-img-title p {
+    margin: 0;
+}
+#ber_image_generate_modal .ber-report-primary-title {
+    margin-bottom: 0px !important;
+}
+.ber_img_load_container {
+    display: none;
+}
+.ber_load_img.ber-loaded {
+    cursor: not-allowed;
+}
+#ber_image_generate_modal .ber_grid_img_parent.ber-single-col {
+    grid-template-columns: 1fr !important;
+}
+button.ber-report-btn-close.ber-image-close {
+    border: none;
+    background-color: transparent;
+    color: #f02849;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+#ber_image_generate_modal .ber-modal-footer > * {
+    margin: 0;
+}
+@media only screen and (max-width: 700px) {
+    .ber_grid_img_parent {
+        grid-template-columns: 1fr;
+    }
+}
+@media only screen and (max-width: 600px) {
+    .ber_art_body {
+        display: block !important;
+    }
+    .ber_art_form, .ber-image-promps-ideas {
+        display: block;
+        width: 100%;
+        min-width: 100%;
+    }
+}
+
+.ber-img-progress {
+  width: 300px;
+  height: 30px;
+  border-radius: 5px;
+  margin: 30% auto;
+  border: 1px solid #edeaff;
+  overflow: hidden;
+  position: relative;
+}
+
+.ber-img-progress span {
+  height: 100%;
+  display: block;
+  width: 0;
+  color: rgb(255, 251, 251);
+  line-height: 30px;
+  position: absolute;
+  text-align: end;
+  padding-right: 5px;
+}
+
+.ber-img-progress.ber-progress span {
+  background: linear-gradient(to left, #8e2de2, #4a00e0);
+}
+
+#image .ber_image_generate_submit, #image .ber_image_search_view {
+    width: 100%;
+}
+
+/* Bertha Chat */
+.ber_chat_page {
+    max-width: 100%;
+    width: 850px;
+    margin: auto;
+}
+.ber_chat_top, .ber_img_top, .ber_search_top, .ber_audio_top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 15px;
+}
+.ber_chat_top .ber_page_info, .ber_audio_top .ber_page_info {
+    width: 800px;
+}
+.ber-side-chat-head {
+    display: flex;
+    align-items: stretch;
+    justify-content: space-between;
+}
+.ber_chat_reset_modal {
+    width: auto;
+    padding: 0 25px !important;
+    height: 45px;
+    margin-top: 5px;
+}
+.ber_chat_reset, .ber_img_swap, .ber_search_swap {
+    margin-bottom: 15px;
+    min-width: 150px;
+}
+.ber_audio_reset {
+    margin-bottom: 35px;
+    min-width: 150px;
+}
+#audio .ber_audio_reset {
+    margin-bottom: 15px;
+}
+.ber_chat_form {
+    display: inline-block;
+    vertical-align: top;
+    margin-right: 4%;
+}
+#ber_chat_modal {
+    background-color: #f9f8ff;
+    background-image: url(../images/ber_chat_background.svg);
+    border: 2px solid #ebe8ff;
+    padding: 10px;
+    box-sizing: border-box;
+    border-radius: 10px;
+}
+.ber_form_group.ber-chat-body {
+    height: calc(100vh - 350px);
+    overflow-y: auto;
+    margin-bottom: 15px;
+    padding-right: 10px;
+}
+.ber_form_group.ber-audio-body {
+    margin-bottom: 15px;
+    padding-right: 10px;
+}
+#ber_chat_modal .ber-chat-body {
+    margin-bottom: 60px;
+    box-sizing: border-box;
+}
+.ber-chat-field {
+    position: relative;
+}
+#ber_chat_modal textarea#ber_chat_body {
+    position: absolute;
+    bottom: 2px;
+    padding-right: 100px !important;
+}
+#ber_chat_modal .ber_chat_generate {
+    width: auto;
+    margin-top: -2px;
+}
+#ber_chat_body {
+    width: 100%;
+    padding: 7px 135px 7px 10px !important;
+    border-radius: 5px !important;
+    border: 1px solid #EDEAFF !important;
+    font-size: 14px !important;
+}
+
+.ber-user-reply-inner {
+    border: 1px solid #ebe8ffe6!important;
+    background-color: #fff;
+    border-radius: 10px !important;
+    margin-bottom: 10px;
+    padding: 10px 15px;
+}
+
+.ber-bertha-reply-inner {
+    background: #fff !important;
+    color: #000;
+    border: 1px solid #ebe8ffe6!important;
+    border-radius: 10px!important;
+    margin-bottom: 10px;
+    padding: 10px 15px;
+}
+
+.ber-user-reply, .ber-bertha-reply {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    margin-bottom: 10px;
+    font-size: 14px;
+    line-height: 1.5;
+}
+.ber-user-reply img {
+    border-radius: 50%;
+}
+.ber-user-reply img, .ber-bertha-reply img {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+}
+.ber-chat-submit {
+    float: right;
+    margin-top: -50px;
+    margin-right: 7px;
+}
+.bertha_chat_buttons button {
+    width: 120px;
+}
+.ber-bertha-reply-data pre {
+    white-space: -moz-pre-wrap; /* Mozilla, supported since 1999 */
+    white-space: -pre-wrap; /* Opera */
+    white-space: -o-pre-wrap; /* Opera */
+    white-space: pre-wrap; /* CSS3 - Text module (Candidate Recommendation) http://www.w3.org/TR/css3-text/#white-space */
+    word-wrap: break-word; /* IE 5.5+ */
+}
+@media screen and (max-width: 1115px) {
+    .ber_form_group.ber-chat-body, .ber_form_group.ber-audio-body {
+        height: calc(100vh - 370px);
+    }
+}
+@media screen and (max-width: 600px) {
+    .ber_form_group.ber-chat-body, .ber_form_group.ber-audio-body {
+        height: calc(100vh - 300px);
+    }
+    p.ber_p_desc.ber_page_info {
+    display: none;
+    }
+    .ber_chat_top, .ber_audio_top {
+        justify-content: flex-end;
+        align-items: flex-end;
+    }
+}
+/* Video Training */
+.bertha-template-description-video {
+    padding: 0 !important;
+    height: auto !important;
+}
+
+.bertha-template-video-container {
+    padding: 15px!important;
+    border: 2px solid #ebe8ffe6!important;
+    border-radius: 10px!important;
+    cursor: pointer;
+}
+.ber-mb-3.bertha-template-video-container:hover {
+    background-color: #ebe8ffe6!important;
+}
+#bertha_canvas .ber-offcanvas-title .ber-mb-3 {
+    width: calc(100% - 50px);
+    margin-left: 50px;
+}
+#bertha_canvas .ber-offcanvas-title .ber-d-grid.gap-2 {
+    margin-top: -23px;
+}
+.ber-modal-body iframe {
+    border-radius: 10px;
+    border: none;
+    max-width: 100%;
+
+}
+
+/* bertha search Images */
+p.ber_p_desc {
+    font-size: 14px;
+}
+.ber_art_search_body {
+    justify-content: space-between;
+    gap: 25px;
+    min-height: 85vh;
+}
+.ber_art_search_body .ber_art_page_form {
+    max-width: 100%;
+}
+input.ber_field.ber-art-search-field {
+    padding: 15px 105px 15px 20px !important;
+    border-radius: 5px !important;
+    border: 1px solid #EDEAFF !important;
+    font-size: 14px !important;
+}
+input.ber_button.ber-art-search-submit {
+    height: auto;
+    position: absolute;
+    right: 10px;
+}
+.bertha-ai_page_bertha-ai-art-setting div#wpfooter {
+    display: none;
+}
+.bertha_art_image_options.ber-display {
+    opacity: 1;
+    display: flex;
+}
+.ber-close-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.bertha_art_image_options .ber_close_icon {
+    width: 20px;
+    filter: invert(100%);
+    cursor: pointer;
+}
+.ber-art-searched-images:after {
+  content: '';
+  display: block;
+  clear: both;
+}
+
+.ber-searched-images-col {
+    width: calc(33% - 15px);
+    margin: 7.5px;
+    padding: 0;
+    cursor: pointer;
+    box-sizing: border-box;
+
+}
+.ber-searched-images-col:hover {
+}
+.ber-searched-images-col:hover img {
+    box-shadow: 0 0 1em 0 rgb(0 0 0 / 20%);
+}
+.ber-searched-images-col {
+  float: left;
+}
+.ber-searched-images-inner {
+    position: relative;
+}
+
+.ber-searched-images-col img {
+    display: block;
+    width: 100%;
+    border-radius: 10px;
+    -webkit-transition: all 0.3s ease-in;
+    -moz-transition: all 0.3s ease-in;
+    -ms-transition: all 0.3s ease-in;
+    -o-transition: all 0.3s ease-in;
+    transition: all 0.3s ease-in;
+}
+
+#ber-more-container {
+    display: block;
+    position: relative;
+    z-index: 1;
+    -webkit-user-select: none;
+    user-select: none;
+}
+div#ber-more-container {
+    cursor: pointer;
+    color: #edeaff !important;
+    margin-left: 5px !important;
+    font-size: 14px !important;
+    padding: 7px !important;
+    font-weight: 400 !important;
+    height: 36px;
+    line-height: 1.4;
+    text-transform: capitalize !important;
+    border: 2px solid #edeaff !important;
+    border-bottom: none !important;
+    border-radius: 5px 5px 0 0 !important;
+    margin-bottom: -8px !important;
+    background-color: #170626 !important;
+    letter-spacing: inherit !important;
+    -webkit-transition: all 0.2s ease-out;
+    -moz-transition: all 0.2s ease-out;
+    -ms-transition: all 0.2s ease-out;
+    -o-transition: all 0.2s ease-out;
+    transition: all 0.2s ease-out;
+}
+div#ber-more-container:hover {
+    background-color: #5F308B !important;
+}
+
+#ber-more-container a {
+    text-decoration: none;
+    color: #232323;
+    transition: color 0.3s ease;
+}
+#ber-more-container a:hover {
+    color: tomato;
+}
+#ber-more-container input {
+    display: block;
+    width: 45px;
+    height: 40px;
+    position: absolute;
+    top: -1px;
+    left: -1px;
+    cursor: pointer;
+    opacity: 0;
+    -webkit-touch-callout: none;
+}
+
+#ber-more-container span {
+    display: block;
+    width: 33px;
+    height: 4px;
+    margin-bottom: 5px;
+    background: #cdcdcd;
+    border-radius: 3px;
+    z-index: 1;
+    transform-origin: 4px 0px;
+    transition: transform 0.5s cubic-bezier(0.77,0.2,0.05,1.0),
+    background 0.5s cubic-bezier(0.77,0.2,0.05,1.0),
+    opacity 0.55s ease;
+}
+#ber-more-container span:first-child {
+    transform-origin: 0% 0%;
+}
+#ber-more-container span:nth-last-child(2) {
+    transform-origin: 0% 100%;
+}
+#ber-more-container input:checked ~ span {
+    opacity: 1;
+    transform: rotate(45deg) translate(-2px, -1px);
+    background: #232323;
+}
+#ber-more-container input:checked ~ span:nth-last-child(3) {
+    opacity: 0;
+    transform: rotate(0deg) scale(0.2, 0.2);
+}
+#ber-more-container input:checked ~ span:nth-last-child(2) {
+    transform: rotate(-45deg) translate(0, -1px);
+}
+#berMenu {
+    position: absolute;
+    right: 0px;
+    padding: 0px;
+    background: #fff;
+    top: 25px;
+    list-style-type: none;
+    display: none;
+    -webkit-font-smoothing: antialiased;
+    transform-origin: 0% 0%;
+    transform: translate(-100%, 0);
+    transition: transform 0.5s cubic-bezier(0.77,0.2,0.05,1.0);
+    box-shadow: 0 0 1em 0 rgb(0 0 0 / 10%);
+    border-radius: 5px;
+    cursor: pointer;
+    overflow: hidden;
+}
+#berMenu li {
+    padding: 10px 25px 10px 15px;
+    font-size: 14px;
+    color: #372547 !important;
+    -webkit-transition: all 0.2s ease-out;
+    -moz-transition: all 0.2s ease-out;
+    -ms-transition: all 0.2s ease-out;
+    -o-transition: all 0.2s ease-out;
+    transition: all 0.2s ease-out;
+}
+#berMenu li:hover {
+    background-color: #EDEAFF;
+}
+
+#ber-more-container input:checked ~ ul {
+    transform: none;
+    display: block;
+}
+
+table.wp-list-table .column-bthai-product-header, table.wp-list-table .column-bthai-download-header {
+    width: 30%!important;
+}
+.ber-edit-desc-container .ber-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    clear: both;
+    margin: 0;
+    padding: 0.5em 0 1em;
+}
+.ber-edit-desc-container .ber-actions .ber-desc-update {
+    margin-right: 10px;
+}
+
+/* Bertha Audio */
+.ber-audio-field {
+    max-width: 100%;
+    width:  850px;
+    height: 150px;
+    margin-top: 15px;
+    position: absolute;
+    border: 2px solid #000;
+    background-image: url(../images/ber-upload.svg)! important;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 64px 64px;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+    filter: alpha(opacity=50);
+    -khtml-opacity: 0.5;
+    -moz-opacity: 0.5;
+    opacity: 0.5;
+    text-align: center;
+}
+
+#audio .ber-audio-field {
+    width: 560px;
+}
+
+.ber-audio-field input {
+    width: 400%;
+    height: 80%;
+    margin-left: -300%;
+    border: none;
+    cursor: pointer;
+}
+
+.ber-audio-field input:focus {
+    outline: none;
+}
+
+button.ber-btn.ber-btn-primary.ber_audio_generate {
+    margin: 175px;
+    margin-left: 390px;
+}
+
+#audio button.ber-btn.ber-btn-primary.ber_audio_generate {
+    margin-left: 250px;
+}
+
+.ber-audio-body {
+    margin-top: -150px;
+}
+
+.ber-audio-language, .ber-audio-body-container {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 15px;
+    margin-top: 15px;
+}
+.ber-audio-body-container .ber-action-icon span {
+    margin-left: -100px;
+}
+.ber-audio-body-container .ber-action-icon-wrap {
+    top: -15px;
+}
+#ber_audio_modal .ber-overlay-container {
+    max-height: 100% !important;
+}
+#ber_chat_modal .ber-bertha-reply-data {
+    background: #fff !important;
+    color: #000;
+    border: 1px solid #ebe8ffe6!important;
+    border-radius: 10px!important;
+    margin-bottom: 10px;
+    padding: 10px 15px;
+}
+#ber_chat_modal .bertha-copied-container.ber-action-icon {
+    left: 90% !important;
+}
+
+.bulk-alt-progress {
+    position: relative;
+    background-color: #e0e0e0;  /* Grey background for progress container */
+    border-radius: 5px;
+    padding: 10px;
+    width: 100%;
+    font-size: 14px;
+    line-height: 20px;
+    margin-top: 10px;
+    overflow: hidden; /* Ensure inner progress bar does not overflow */
+}
+
+/* Inner progress bar */
+.bulk-alt-progress .progress-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 0;  /* This will be updated dynamically */
+    background-color: #76c7c0;  /* Progress color */
+    border-radius: 5px;
+    z-index: 1;  /* Ensure it is above the background */
+    transition: width 0.3s ease-in-out;  /* Smooth transition */
+}
+
+/* Ensure text is not hidden by progress bar */
+.bulk-alt-progress span {
+    position: relative;  /* Position relative to keep text above progress bar */
+    z-index: 2;  /* Ensure text is above the progress bar */
+}

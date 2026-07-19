@@ -12,7 +12,7 @@ Rationale:
 - It aligns with current architecture where business entities (service booking, amenity booking, personal hub purchase) already create internal payment records.
 
 ## Non-Negotiable Security Rules
-1. Never store raw PAN, CVV, card PIN, or full card expiry in app/backend/database.
+1. Never store raw PAN, CVV, card PIN, or full card expiry in app/apps/api/database.
 2. Gateway credentials must not be stored as plaintext in `app_settings.value`.
 3. Gateway secrets must be stored in Supabase Vault and referenced by non-secret config rows.
 4. All payment completion must be server-verified (callback or verify endpoint), never client-only success flags.

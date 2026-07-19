@@ -1,0 +1,36 @@
+{
+  "name": "@casa-nirvana/marketing-web",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "scripts": {
+    "capture:wordpress": "node ./scripts/capture-wordpress-static.mjs",
+    "prepare:snapshot": "node ./scripts/normalize-wordpress-snapshot.mjs",
+    "apply:content": "node ./scripts/apply-casa-content.mjs",
+    "audit:snapshot": "node ./scripts/audit-snapshot.mjs",
+    "verify:release-env": "node ./scripts/verify-release-env.mjs",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "check": "npm run lint && npm run typecheck && npm run test && npm run build"
+  },
+  "dependencies": {
+    "next": "16.2.10",
+    "react": "19.2.0",
+    "react-dom": "19.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "eslint": "^9.25.0",
+    "eslint-config-next": "16.2.10",
+    "typescript": "^5.8.0",
+    "vitest": "^3.1.0"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "source": "wordpress/sql/studio-backup-db-export-2026-07-15-13-56-31.sql",
+  "visualAuthority": [
+    "Rendered approved WordPress route",
+    "Elementor page/header/footer data",
+    "Saliver and Bravis widget markup",
+    "Generated responsive CSS",
+    "Child-theme overrides and local media"
+  ],
+  "sharedLayouts": { "headerId": 1318, "footerId": 2323 },
+  "breakpoints": [1440, 1280, 1024, 768, 390, 360],
+  "fonts": ["GT Walsheim Pro Light", "GT Walsheim Pro Regular", "GT Walsheim Pro Medium", "GT Walsheim Pro Bold"],
+  "routes": [
+    { "next": "/", "wordpressId": 1323, "wordpressSlug": "home-03", "status": "implemented_parity_pending" },
+    { "next": "/about-us", "wordpressId": 4039, "wordpressSlug": "about-us", "status": "implemented_parity_pending" },
+    { "next": "/core-features", "wordpressId": 4168, "wordpressSlug": "core-features", "status": "implemented_parity_pending" },
+    { "next": "/pricing-plans", "wordpressId": 4180, "wordpressSlug": "pricing-plans", "status": "implemented_parity_pending" },
+    { "next": "/faqs", "wordpressId": 4212, "wordpressSlug": "faqs", "status": "implemented_parity_pending" },
+    { "next": "/contact-us", "wordpressId": 4639, "wordpressSlug": "contact-us", "status": "implemented_parity_pending" },
+    { "next": "/our-products", "wordpressId": 4826, "wordpressSlug": "our-products", "status": "implemented_parity_pending" },
+    { "next": "/residents", "wordpressId": 7455, "wordpressSlug": "residents", "status": "implemented_parity_pending" },
+    { "next": "/security-guards", "wordpressId": 7457, "wordpressSlug": "security-guards", "status": "implemented_parity_pending" },
+    { "next": "/facility-managers", "wordpressId": 7459, "wordpressSlug": "facility-managers", "status": "implemented_parity_pending" },
+    { "next": "/marketplace", "wordpressId": 7461, "wordpressSlug": "marketplace", "status": "implemented_parity_pending" },
+    { "next": "/privacy-policy", "wordpressId": null, "wordpressSlug": "privacy-policy", "status": "implemented_content_approval_pending" },
+    { "next": "/terms-of-service", "wordpressId": null, "wordpressSlug": "terms-of-service", "status": "implemented_content_approval_pending" }
+  ],
+  "requiredAssets": ["logo-dark.png", "logo-light.png", "bg-ss1-h21.webp", "bg-ft-l-h2.png", "img-build03-h21.png", "img-phone-h3-1.webp", "img-tab-5-h212.webp"],
+  "parityState": "No route is accepted until six-viewport comparison evidence is recorded."
+}

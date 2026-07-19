@@ -35,7 +35,7 @@ Status: Ready for coordinated execution
   - route/screen
   - exact actor/account used
   - expected vs actual
-  - backend/API error payload if available
+  - apps/api/API error payload if available
 - Do not mark the global runtime QA backlog complete until every pending section below is signed off.
 
 ## Execution Matrix

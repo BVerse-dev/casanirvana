@@ -7,15 +7,15 @@ Last updated: February 21, 2026
 1. Read `/Users/andromeda/casanirvana/PRODUCTION_READINESS_PLAYBOOK.md`.
 2. Read `/Users/andromeda/casanirvana/PROGRESS_CHECKLIST.md` to see current phase and open items.
 3. Read:
-- `/Users/andromeda/casanirvana/user/SCREEN_WIRING_CHECKLIST.md`
-- `/Users/andromeda/casanirvana/user/SCHEMA_ALIGNMENT_GAPS.md`
+- `/Users/andromeda/casanirvana/apps/resident-mobile/SCREEN_WIRING_CHECKLIST.md`
+- `/Users/andromeda/casanirvana/apps/resident-mobile/SCHEMA_ALIGNMENT_GAPS.md`
 - `/Users/andromeda/casanirvana/EXPRESSPAY_INTEGRATION_BLUEPRINT.md` (payment gateway architecture + API contract)
 
 ## Repo Areas
 
-- User app: `/Users/andromeda/casanirvana/user`
-- Superadmin: `/Users/andromeda/casanirvana/superadmin`
-- Guard app: `/Users/andromeda/casanirvana/Guard`
+- User app: `/Users/andromeda/casanirvana/apps/resident-mobile`
+- Superadmin: `/Users/andromeda/casanirvana/apps/superadmin`
+- Guard app: `/Users/andromeda/casanirvana/apps/guard-mobile`
 - Supabase migrations: `/Users/andromeda/casanirvana/supabase/migrations`
 
 ## Environment + Access
@@ -40,7 +40,7 @@ Last updated: February 21, 2026
 - No placeholder/fake success logic in production flows.
 - No permissive RLS on tenant data.
 - Data fixes must be reversible (backup table + verification).
-- Keep user/superadmin contracts aligned for shared modules.
+- Keep apps/resident-mobile/superadmin contracts aligned for shared modules.
 - Guard communication routing rule: resident/guard chat + call flows are in-app (auditable).
 - Visitor/guest/cab/delivery/service phone numbers are direct dial (`tel:`).
 - Only approved direct-call shortcuts are emergency contacts + `Call Admin` / `Call Secretary` in Guard settings.
@@ -48,9 +48,9 @@ Last updated: February 21, 2026
 ## Validation Commands (Typical)
 
 - Superadmin lint:
-  - `npm --prefix /Users/andromeda/casanirvana/superadmin run lint`
+  - `npm --prefix /Users/andromeda/casanirvana/apps/superadmin run lint`
 - User app lint:
-  - `npm --prefix /Users/andromeda/casanirvana/user run lint`
+  - `npm --prefix /Users/andromeda/casanirvana/apps/resident-mobile run lint`
 
 Use targeted file linting when possible during active remediation.
 

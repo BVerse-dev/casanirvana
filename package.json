@@ -1,0 +1,25 @@
+{
+  "name": "casa-nirvana-platform",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "build": "npm run build:backend && npm run build:superadmin && npm run build:marketing",
+    "build:backend": "npm --prefix apps/api run build",
+    "build:superadmin": "npm --prefix apps/superadmin run build",
+    "build:marketing": "npm --prefix apps/marketing-web run build",
+    "check": "npm run check:backend && npm run check:superadmin && npm run check:user && npm run check:guard && npm run check:marketing",
+    "check:backend": "npm --prefix apps/api run lint && npm --prefix apps/api run test && npm --prefix apps/api run build",
+    "check:superadmin": "npm --prefix apps/superadmin run build:check",
+    "check:user": "npm --prefix apps/resident-mobile run lint && npm --prefix apps/resident-mobile run test:ci",
+    "check:guard": "npm --prefix apps/guard-mobile run lint && npm --prefix apps/guard-mobile run test:ci",
+    "check:marketing": "npm --prefix apps/marketing-web run check",
+    "dev:backend": "npm --prefix apps/api run dev",
+    "dev:superadmin": "npm --prefix apps/superadmin run dev",
+    "dev:user": "npm --prefix apps/resident-mobile run start",
+    "dev:guard": "npm --prefix apps/guard-mobile run start:dev",
+    "dev:marketing": "npm --prefix apps/marketing-web run dev -- --port 3001"
+  },
+  "engines": {
+    "node": ">=20.9.0"
+  }
+}

@@ -18,16 +18,16 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - prefix: backend
+          - prefix: apps/api
             repo: casanirvana-backend
             ssh_secret: SPLIT_SYNC_KEY_BACKEND
-          - prefix: superadmin
+          - prefix: apps/superadmin
             repo: casanirvana-superadmin
             ssh_secret: SPLIT_SYNC_KEY_SUPERADMIN
-          - prefix: user
+          - prefix: apps/resident-mobile
             repo: casanirvana-user-app
             ssh_secret: SPLIT_SYNC_KEY_USER
-          - prefix: Guard
+          - prefix: apps/guard-mobile
             repo: casanirvana-guard-app
             ssh_secret: SPLIT_SYNC_KEY_GUARD
           - prefix: supabase

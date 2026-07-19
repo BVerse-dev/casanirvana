@@ -1,0 +1,12 @@
+# Keep the local WordPress runtime available without committing generated or
+# environment-specific files. The custom child theme is the source of truth.
+*
+!.gitignore
+!README.md
+!wp-content/
+wp-content/*
+!wp-content/themes/
+wp-content/themes/*
+!wp-content/themes/saliver-child/
+!wp-content/themes/saliver-child/**
+

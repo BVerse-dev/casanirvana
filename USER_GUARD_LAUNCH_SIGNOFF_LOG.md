@@ -18,8 +18,8 @@ Status: Ready for runtime execution
 - Environment: Current `main` runtime signoff preparation
 - Backend commit: `f87c026`
 - Superadmin commit: `f87c026`
-- User app commit/build: `f87c026` (`user/package.json` runtime entry: `expo start --clear`)
-- Guard app commit/build: `f87c026` (`Guard/package.json` runtime entry: `expo start`)
+- User app commit/build: `f87c026` (`apps/resident-mobile/package.json` runtime entry: `expo start --clear`)
+- Guard app commit/build: `f87c026` (`apps/guard-mobile/package.json` runtime entry: `expo start`)
 - Supabase project ref: `pswnlowvmdgeifhxilao`
 - Tester: Pending runtime executor
 - Date: 2026-03-26

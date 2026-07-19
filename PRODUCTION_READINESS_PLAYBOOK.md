@@ -5,12 +5,15 @@ Last updated: February 21, 2026
 ## Purpose
 
 This document defines the engineering process we use to prepare the Casa Nirvana platform for production across:
-- User app (`/Users/andromeda/casanirvana/user`)
-- Superadmin dashboard (`/Users/andromeda/casanirvana/superadmin`)
-- Guard app (`/Users/andromeda/casanirvana/Guard`)
+- User app (`/Users/andromeda/casanirvana/apps/resident-mobile`)
+- Superadmin dashboard (`/Users/andromeda/casanirvana/apps/superadmin`)
+- Guard app (`/Users/andromeda/casanirvana/apps/guard-mobile`)
 - Supabase backend (`/Users/andromeda/casanirvana/supabase`)
+- Marketing website (`/Users/andromeda/casanirvana/apps/marketing-web`)
 
 The goal is consistent delivery quality, predictable changes, and safe collaboration for current and future developers.
+
+The marketing website is a P0 launch surface. Its route parity, public forms, SEO, deployment, domain cutover, and rollback evidence are governed by `MARKETING_SITE_IMPLEMENTATION_CHECKLIST.md` and `docs/MARKETING_SITE_PARITY_CONTRACT.md`. Existing application paths remain unchanged until the post-launch monorepo transition described in `docs/MONOREPO_TRANSITION_PLAN.md`.
 
 ## Operating Principles
 
@@ -146,8 +149,8 @@ Each slice follows the same lifecycle.
 ## Required Tracking Artifacts
 
 - `/Users/andromeda/casanirvana/PROGRESS_CHECKLIST.md`
-- `/Users/andromeda/casanirvana/user/SCREEN_WIRING_CHECKLIST.md`
-- `/Users/andromeda/casanirvana/user/SCHEMA_ALIGNMENT_GAPS.md`
+- `/Users/andromeda/casanirvana/apps/resident-mobile/SCREEN_WIRING_CHECKLIST.md`
+- `/Users/andromeda/casanirvana/apps/resident-mobile/SCHEMA_ALIGNMENT_GAPS.md`
 - Slice-specific contract docs when needed (example: visitors lifecycle contract)
 
 ## Definition of Done (Per Module)

@@ -2,7 +2,7 @@
 
 Date opened: 2026-03-22
 Owner: Platform Engineering
-Purpose: Port still-useful user/guard worktree changes onto current `main` without merging stale branches directly.
+Purpose: Port still-useful apps/resident-mobile/guard worktree changes onto current `main` without merging stale branches directly.
 
 ## Rules
 
@@ -59,13 +59,13 @@ Purpose: Port still-useful user/guard worktree changes onto current `main` witho
   - QR data uses the current persisted profile shape
   - no stale local-only avatar/QR assumptions remain on the active user directory surface
 - Completion record:
-  - added current-main helpers: `user/components/AppAvatar.js`, `user/utils/directoryAvatarStorage.js`, `user/utils/directoryEntryQr.js`
+  - added current-main helpers: `apps/resident-mobile/components/AppAvatar.js`, `apps/resident-mobile/utils/directoryAvatarStorage.js`, `apps/resident-mobile/utils/directoryEntryQr.js`
   - user profile and directory create/edit/detail surfaces now upload truthful avatar URLs instead of persisting raw local image URIs
   - directory QR payload generation/regeneration is centralized across family members, daily help, vehicles, and frequent entries
   - removed stale vehicle `plate_number` assumptions from active user edit/detail/profile flows to match the live `vehicles` table contract
   - no SQL migration was required; current schema already supports the ported behavior
   - local verification: targeted `npx eslint` passed on all touched user files, `git diff --check` passed
-  - residual app-wide lint boundary unchanged: `npm run lint` still fails on pre-existing unrelated files `user/app/_layout.tsx`, `user/components/addCabModal.js`, and `user/components/serviceModal_broken.js`
+  - residual app-wide lint boundary unchanged: `npm run lint` still fails on pre-existing unrelated files `apps/resident-mobile/app/_layout.tsx`, `apps/resident-mobile/components/addCabModal.js`, and `apps/resident-mobile/components/serviceModal_broken.js`
 
 ### Slice 3 - Guard Resident Directory Integrity and Recent Search Hygiene
 
@@ -83,7 +83,7 @@ Purpose: Port still-useful user/guard worktree changes onto current `main` witho
   - disabled resident-directory access fails closed
   - any required migration is applied live and recorded
 - Completion record:
-  - ported current-main app changes from stale guard commit `bf81330`: Guard resident directory/search now use translation-backed resident labels and empty/error states, recent resident search history is scoped by both auth user and guard community, and Guard/user directory subscriptions now invalidate on `units` changes
+  - ported current-main app changes from stale guard commit `bf81330`: Guard resident directory/search now use translation-backed resident labels and empty/error states, recent resident search history is scoped by both auth user and guard community, and apps/guard-mobile/user directory subscriptions now invalidate on `units` changes
   - fresh parity migration applied and recorded: `supabase/migrations/20260322153000_phase43_community_directory_membership_integrity_parity.sql`
   - live verification after Phase 43: migration history row present, preserved `p35_validate_community_membership_profile_scope` and `p35_sync_profile_directory_membership` functions/triggers present, new `datafix_phase43_*` backup tables present, and live drift counts remain `0` for drifted active memberships, missing same-community memberships, and inactive same-community memberships
   - local verification: `npx eslint hooks/useCommunityMembers.ts` passed in `user`, `git diff --check` passed
