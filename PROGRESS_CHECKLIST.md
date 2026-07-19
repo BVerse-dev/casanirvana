@@ -1291,3 +1291,10 @@ Date: 2026-02-06
 - [ ] Change hosting roots only after publication: marketing Vercel `apps/marketing-web`, superadmin Vercel `apps/superadmin`, Render API `apps/api`, resident EAS `apps/resident-mobile`, and guard EAS `apps/guard-mobile`.
 - [ ] Keep the previous production root settings as the rollback boundary until each moved application passes deployment smoke checks.
 - Note: the superadmin build reported only non-blocking optional `sharp` and outdated Browserslist data warnings; dependency cleanup remains a post-transition polish item.
+## 2026-07-19 - Phase 50 production route acceptance
+
+- [x] Completed a 72-state production route matrix for the 12 approved marketing routes at the six required viewport sizes.
+- [x] Confirmed no horizontal overflow, broken images, or browser console errors in the matrix.
+- [x] Preserved the WordPress-derived hero layout while removing the empty response bar and remaining encoded Saliver/demo copy.
+- [x] Pushed production cleanup commits `f9b94666` and `6a4bbd82` to the launch branch and `main`.
+- [ ] Phase 50 remains open for legal approval, SMTP delivery evidence, Preview environment parity, final route-by-route visual signoff, and rollback evidence.

@@ -349,3 +349,16 @@ Visual authority: local WordPress reference under `wordpress/`
 - [ ] Deploy this runtime-hardening change and repeat production console/network checks before closing the marketing P0 gate.
 - [ ] Add Privacy and Terms routes to the approved sitemap after legal copy is approved.
 - [ ] Configure `SENTRY_DSN` or explicitly accept deferred backend error telemetry before release freeze.
+## 2026-07-19 - Production route acceptance and encoded-content cleanup
+
+- [x] Ran the 12 approved public routes across all six required viewports (72 rendered states): `1440x900`, `1280x800`, `1024x768`, `768x1024`, `390x844`, and `360x800`.
+- [x] Confirmed zero horizontal overflow, zero broken images, and zero browser console errors across the route matrix.
+- [x] Confirmed homepage hero form geometry at every viewport: CTA and email field retain matching `54px` heights and zero top/bottom offset.
+- [x] Confirmed the empty legacy Contact Form 7 response element remains hidden and no longer renders the erroneous green bar.
+- [x] Removed remaining rendered Saliver/demo copy found in the homepage, Facility Managers, Pricing, FAQs, and shared footer without changing Elementor structure or CSS.
+- [x] Removed stale WordPress logout URLs, the duplicate `/about-company/` link, and the ThemeForest footer destination from approved snapshots.
+- [x] Production deployment for commit `6a4bbd82` is Ready and aliased to `casanirvana.app` and `www.casanirvana.app`.
+- [ ] Legal approval is still required before removing `Draft` from Privacy Policy and Terms of Service.
+- [ ] SMTP credentials and a successful production contact-delivery receipt remain required.
+- [ ] Preview-scoped Vercel environment variables remain incomplete; Preview builds continue to fail the intentional release-environment gate.
+- [ ] Change the Vercel project dashboard Node.js setting from `20.x` to `22.x`; `package.json` already enforces Node `22.x` for builds.
