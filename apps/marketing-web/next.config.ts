@@ -11,6 +11,8 @@ const snapshotManifest = JSON.parse(
   readFileSync(new URL("./public/wordpress-snapshot/manifest.json", import.meta.url), "utf8"),
 ) as SnapshotManifest;
 
+const monorepoRoot = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
+
 const approvedSnapshotRoutes = new Set([
   "/",
   "/about-us/",
@@ -45,8 +47,9 @@ const legacyArticleSlugs = [
 ];
 
 const nextConfig: NextConfig = {
+  outputFileTracingRoot: monorepoRoot,
   turbopack: {
-    root: dirname(fileURLToPath(import.meta.url)),
+    root: monorepoRoot,
   },
   poweredByHeader: false,
   reactStrictMode: true,
