@@ -41,6 +41,7 @@ const sharedLaunchReplacements = [
   ["Browse Shop", "Explore products"],
   ["Products & services are important. They might sell dairy, meat, maybe even eco-friendly manure compost. Including a CSA program…", "Connected tools help residents, guards and facility teams coordinate daily community life with clearer status and accountability."],
   ["Products & services are important. They might sell dairy, meat, maybe even eco-friendly manure compost. Including a CSA program&#8230;", "Connected tools help residents, guards and facility teams coordinate daily community life with clearer status and accountability."],
+  ["Products &amp; services are important. They might sell dairy, meat, maybe even eco-friendly manure compost. Including a CSA program&#8230;", "Connected tools help residents, guards and facility teams coordinate daily community life with clearer status and accountability."],
   ["/about-company/", "/about-us/"],
   ["https://themeforest.net/user/bravis-themes/portfolio", "/"],
   ["/blog-standard/", "/pricing-plans/"],
@@ -64,21 +65,25 @@ const sharedLaunchReplacements = [
 const finalRouteReplacements = {
   "/": [
     ["Use a comprehensive stock screener tools suite with a connected operations and key takeaways to elevate your stock screening experience to a new level.", "Manage visitors, requests, notices and community activity through connected, role-aware workflows."],
+    ["Use a comprehensive stock screener tools suite with a\u00a0connected operations\u00a0and\u00a0key takeaways\u00a0to elevate your stock screening experience to a new level.", "Manage visitors, requests, notices and community activity through connected, role-aware workflows."],
   ],
   "/security-guards/": [
     ["One central hub for your assets and team", "Faster, accountable gate operations for every shift"],
   ],
   "/facility-managers/": [
     ["Effortless email & marketing automation", "Coordinate every community operation from one workspace"],
+    ["Effortless email &#038; marketing automation", "Coordinate every community operation from one workspace"],
   ],
   "/marketplace/": [
     ["One central hub for your assets and team", "Discover trusted services for everyday community life"],
   ],
   "/pricing-plans/": [
     ["Evolving powerful concepts into tangible & relatable", "Pricing shaped around your community"],
+    ["Evolving powerful concepts into tangible &#038; relatable", "Pricing shaped around your community"],
   ],
   "/faqs/": [
     ["General & Business Strategy", "Platform and rollout"],
+    ["General &#038; Business Strategy", "Platform and rollout"],
   ],
 };
 
@@ -953,7 +958,7 @@ for (const [route, transform] of Object.entries(routeTransforms)) {
     replacementCount += occurrences;
   }
 
-  output = output.replace(/\/wp-login\.php\?action=logout(?:&amp;|&)_[^"']+/gi, "/contact-us/");
+  output = output.replace(/\/wp-login\.php\?action=logout(?:(?:&amp;|&#038;|&)_[^"']+)/gi, "/contact-us/");
 
   output = applySeo(output, route);
   output = applyAccessibilityAndPerformance(output);
