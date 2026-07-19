@@ -28,6 +28,9 @@ for (const route of approvedRoutes) {
     ["no missing iframe title", !/<iframe\b(?![^>]*\btitle=)[^>]*>/i.test(source)],
     ["no WordPress control endpoint", !/(?:\/wp-admin\/|\/wp-json\/|xmlrpc\.php)/i.test(source)],
     ["no Studio origin", !/localhost:8882/i.test(source)],
+    ["no WordPress editor runtime", !/\/wp-includes\/js\/dist\//i.test(source)],
+    ["no plugin admin runtime", !/(?:woocommerce\/assets\/js|contact-form-7\/includes\/swv|elementor\/assets\/js\/(?:common|web-cli|dev-tools|app-loader))/i.test(source)],
+    ["native forms runtime", /src=["']\/assets\/casa-native-forms\.js/i.test(source)],
   ];
   for (const [label, passed] of checks) if (!passed) failures.push(`${route}: ${label}`);
 }

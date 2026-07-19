@@ -127,3 +127,13 @@ Marketing website acceptance must cover all approved routes at 1440x900, 1280x80
 - [ ] Update resident and guard EAS working roots to `apps/resident-mobile` and `apps/guard-mobile`.
 - [ ] Confirm environment variables independently in each hosting project; do not copy server-only secrets into `NEXT_PUBLIC_*` variables.
 - [ ] Run deployment smoke checks before removing the previous hosting-root rollback configuration.
+
+## 2026-07-19 - Production stabilization evidence
+
+- [x] Confirmed marketing Vercel source/root: monorepo `apps/marketing-web`.
+- [x] Confirmed superadmin Vercel source/root: dedicated `casanirvana-superadmin` split repository with blank Root Directory.
+- [x] Confirmed Render API source/root: dedicated `casanirvana-backend` split repository with blank Root Directory.
+- [x] Render API build, start, and external `/health` smoke check passed on split commit `37f878a9c2932fc062eb1d6da09b598f9a20697c`.
+- [x] Marketing snapshot dependency audit and production build passed after removing non-public WordPress runtime.
+- [ ] Confirm the deployed marketing runtime has no P0 failed assets, missing Elementor chunks, or form-script failures.
+- [ ] Resolve or explicitly defer missing production `SENTRY_DSN` with owner and acceptance evidence.

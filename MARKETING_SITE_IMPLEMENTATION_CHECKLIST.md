@@ -334,3 +334,16 @@ Visual authority: local WordPress reference under `wordpress/`
 - Superadmin companion domain: `https://admin.casanirvana.app`.
 - Release gate completed: the repository transition is on remote `main`; the marketing Vercel project can now be created or linked with Root Directory `apps/marketing-web`.
 - Rollback: preserve the WordPress reference/export and do not cut over the public domain until all marketing P0 gates pass.
+
+## Session record - 2026-07-19 - Production hosting and asset-runtime hardening
+
+- Hosting topology confirmed: marketing deploys directly from monorepo root `apps/marketing-web`; superadmin and API deploy from synchronized split repositories with blank hosting roots.
+- Render API split commit `37f878a9c2932fc062eb1d6da09b598f9a20697c` built successfully with `npm ci && npm run build`, reported zero dependency vulnerabilities, started successfully, and returned external `/health` status `200`.
+- Superadmin split commit `9deeb1f64426979e175d3859d8276fffacdae6e2` is represented by the current Ready production deployment. A failed unpromoted candidate exposed the split-repository topology; the Vercel root was restored to blank and production was not replaced.
+- Marketing status and metadata audit passed for 12 indexed routes; `www.casanirvana.app` redirects to `casanirvana.app` with `308`.
+- Browser audit found the captured homepage loading 141 scripts, including WordPress editor/admin, WooCommerce, and Contact Form 7 runtime. The resulting request burst triggered Vercel Security Checkpoint responses and genuine missing-global/chunk errors.
+- Snapshot normalization now removes non-public WordPress runtime, retains the required visual frontend runtime, and includes the two Elementor lazy chunks required by the approved pages.
+- Evidence: snapshot audit passed for all 11 approved mirrored routes and the Next.js production build passed.
+- [ ] Deploy this runtime-hardening change and repeat production console/network checks before closing the marketing P0 gate.
+- [ ] Add Privacy and Terms routes to the approved sitemap after legal copy is approved.
+- [ ] Configure `SENTRY_DSN` or explicitly accept deferred backend error telemetry before release freeze.
