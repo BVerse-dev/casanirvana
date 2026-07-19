@@ -1,5 +1,4 @@
 import Image from "next/image";
-import Link from "next/link";
 
 import { navigation, productLinks } from "@/content/site";
 
@@ -14,18 +13,18 @@ export function SiteFooter() {
         </div>
         <div>
           <h3>Essential</h3>
-          {navigation.slice(1).map((item) => <Link key={item.href} href={item.href}>{item.label}</Link>)}
+          {navigation.slice(1).map((item) => <a key={item.href} href={item.href}>{item.label}</a>)}
         </div>
         <div>
           <h3>Products</h3>
-          {productLinks.map((item) => <Link key={item.href} href={item.href}>{item.label}</Link>)}
+          {productLinks.map((item) => <a key={item.href} href={item.href}>{item.label}</a>)}
         </div>
         <div>
           <h3>Resources</h3>
-          <Link href="/core-features">Core Features</Link>
-          <Link href="/privacy-policy">Privacy Policy</Link>
-          <Link href="/terms-of-service">Terms of Service</Link>
-          <Link href="/contact-us">Support</Link>
+          <a href="/core-features">Core Features</a>
+          <a href="/privacy-policy">Privacy Policy</a>
+          <a href="/terms-of-service">Terms of Service</a>
+          <a href="/contact-us">Support</a>
         </div>
       </div>
 

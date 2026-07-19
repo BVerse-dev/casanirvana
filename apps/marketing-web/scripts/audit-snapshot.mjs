@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 import path from "node:path";
 
 const appRoot = path.resolve(import.meta.dirname, "..");
@@ -18,6 +18,7 @@ for (const route of approvedRoutes) {
     ["single title", (source.match(/<title\b/gi) || []).length === 1],
     ["single description", (source.match(/<meta\b[^>]*name=["']description["']/gi) || []).length === 1],
     ["single canonical", (source.match(/<link\b[^>]*rel=["']canonical["']/gi) || []).length === 1],
+    ["single h1", (source.match(/<h1\b/gi) || []).length === 1],
     ["language", /<html\b[^>]*\blang=["']en["']/i.test(source)],
     ["scroll behavior declaration", /<html\b[^>]*\bdata-scroll-behavior=["']smooth["']/i.test(source)],
     ["skip link", /class=["'][^"']*casa-skip-link/i.test(source)],
@@ -33,8 +34,17 @@ for (const route of approvedRoutes) {
     ["native forms runtime", /src=["']\/assets\/casa-native-forms\.js/i.test(source)],
     ["owned favicon", /rel=["']icon["'][^>]*href=["']\/icon\.svg["']/i.test(source)],
     ["stable decorative assets", !/\/wp-content\/uploads\/2025\/(?:03\/(?:bg-ss1-h3\.webp|Vector\.png|pattern-h3\.webp|bg-qr-h3\.png|Pattern_bg\.png)|04\/bg-last-7\.webp|05\/pattern1221\.png)/i.test(source)],
+    ["no legacy upload paths", !/\/wp-content\/uploads\//i.test(source)],
   ];
   for (const [label, passed] of checks) if (!passed) failures.push(`${route}: ${label}`);
+  const ownedUploads = new Set([...source.matchAll(/\/assets\/uploads\/[^\s"'()\\<>?]+/gi)].map((match) => match[0]));
+  for (const pathname of ownedUploads) {
+    try {
+      await access(path.join(publicRoot, decodeURIComponent(pathname.replace(/^\/+/, ""))));
+    } catch {
+      failures.push(`${route}: missing owned upload ${pathname}`);
+    }
+  }
 }
 
 if (failures.length) {

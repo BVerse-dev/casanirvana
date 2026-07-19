@@ -7,7 +7,8 @@
   },
   "scripts": {
     "capture:wordpress": "node ./scripts/capture-wordpress-static.mjs",
-    "prepare:snapshot": "node ./scripts/normalize-wordpress-snapshot.mjs",
+    "mirror:inline-assets": "node ./scripts/mirror-inline-assets.mjs",
+    "prepare:snapshot": "npm run mirror:inline-assets && node ./scripts/normalize-wordpress-snapshot.mjs",
     "apply:content": "node ./scripts/apply-casa-content.mjs",
     "audit:snapshot": "node ./scripts/audit-snapshot.mjs",
     "verify:release-env": "node ./scripts/verify-release-env.mjs",

@@ -36,6 +36,9 @@ function normalizeDocument(source) {
     output = output.replaceAll(sourcePath.replaceAll("/", "\\/"), publicPath.replaceAll("/", "\\/"));
   }
   output = output
+    .replaceAll("/wp-content/uploads/", "/assets/uploads/")
+    .replaceAll("\\/wp-content\\/uploads\\/", "\\/assets\\/uploads\\/");
+  output = output
     .replaceAll("?static-capture=1", "")
     .replaceAll("&static-capture=1", "");
 
@@ -46,6 +49,12 @@ function normalizeDocument(source) {
   );
   output = output.replace(/<link\b[^>]*>/gi, (tag) => (shouldRemoveLink(tag) ? "" : tag));
   output = output.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, (tag) => (shouldRemoveScript(tag) ? "" : tag));
+  if (!/<h1\b/i.test(output)) {
+    output = output.replace(
+      /<(h[2-6])\b([^>]*)>([\s\S]*?)<\/\1>/i,
+      (_tag, _level, attributes, content) => `<h1${attributes}>${content}</h1>`,
+    );
+  }
   output = output
     .replaceAll("/wp-admin/admin-ajax.php", "/api/wordpress-disabled")
     .replaceAll("\\/wp-admin\\/admin-ajax.php", "\\/api\\/wordpress-disabled")
