@@ -108,7 +108,7 @@
     setPending(form, true);
     setState(form, "submitting", "Sending your message...");
     try {
-      var response = await fetch("/api/contact", {
+      var response = await fetch("/api/contact/", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(payload),

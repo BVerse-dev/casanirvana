@@ -20,7 +20,7 @@ export function ContactForm() {
     setStatus({ kind: "pending", message: "Sending your message…" });
 
     try {
-      const response = await fetch("/api/contact", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(result.payload) });
+      const response = await fetch("/api/contact/", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(result.payload) });
       const data = await response.json().catch(() => null) as { message?: string } | null;
       if (!response.ok) throw new Error(data?.message || "We could not send your message. Please try again.");
       form.reset();
