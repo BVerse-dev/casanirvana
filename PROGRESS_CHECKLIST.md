@@ -1393,5 +1393,13 @@ Date: 2026-02-06
 - [ ] Owner visual and editorial approval remains open.
 - [ ] Continue with the Products selector as a separate scope.
 
+## 2026-07-21 - Phase 50 Our Products Role Selector
+
+- [x] Audited the Products role selector and removed all four inherited demo destinations.
+- [x] Connected each selector item to its matching Casa Nirvana product route and improved hover-image accessibility text.
+- [x] Preserved the mirrored list, image and transition structure.
+- [ ] Owner interaction and visual approval remains open.
+- [ ] Continue with the Products carousel as a separate scope.
+
 - [ ] Social profile destinations remain blocked on approved URLs.
 - [ ] Preview environment parity remains blocked on the decision to use isolated preview API keys or protected reuse of production keys.

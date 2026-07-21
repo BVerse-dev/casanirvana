@@ -471,3 +471,11 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Preserved the original Elementor heading, button, animation and `/contact-us/` destination.
 - [ ] Owner visual and editorial approval of this CTA remains open.
 - [ ] Audit the product-selector section before making further edits.
+
+## 2026-07-21 - Our Products Role Selector
+
+- [x] Audited the four-item interactive selector and its paired hover images independently.
+- [x] Replaced inherited Saliver service and career URLs with `/residents/`, `/security-guards/`, `/facility-managers/` and `/marketplace/`.
+- [x] Replaced generic image alt text with role-specific descriptions while preserving the original hover interactions and image assets.
+- [ ] Owner interaction and visual approval of the selector remains open.
+- [ ] Audit the product carousel before making further edits.
