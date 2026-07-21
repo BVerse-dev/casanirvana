@@ -506,3 +506,13 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Preserved every accordion item, target ID, icon, class and interaction hook.
 - [ ] Owner copy and interaction approval of the FAQ remains open.
 - [ ] Audit the following Products contact section before making further edits.
+
+## 2026-07-21 - Our Products Contact Section
+
+- [x] Audited the Products contact heading, supporting copy, fields, enquiry options and submit control independently.
+- [x] Retained the existing form fields and reason options because they align with the server-mediated contact contract.
+- [x] Replaced generic transformation and project wording with community-rollout language and normalized the submit label.
+- [x] Preserved the Contact Form 7-derived classes, field names, icons and layout consumed by the static form bridge.
+- [ ] SMTP-backed production delivery evidence remains required before the contact gate can pass.
+- [ ] Owner copy, form-state and visual approval remains open.
+- [ ] Audit the Products footer before making further edits.
