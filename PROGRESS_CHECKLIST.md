@@ -1319,5 +1319,13 @@ Date: 2026-02-06
 - [ ] Owner approval of the revised section remains open.
 - [ ] Continue the About route one visible section at a time.
 
+## 2026-07-21 - Phase 50 About Us Configured Services Section
+
+- [x] Audited and manually refined the configured-services section without using the batch transformer.
+- [x] Qualified service availability against enabled community modules and the live provider catalog.
+- [x] Preserved the mirrored section structure and retained the existing contact-route CTA destination.
+- [ ] Owner approval of the revised section remains open.
+- [ ] Continue the About route one visible section at a time.
+
 - [ ] Social profile destinations remain blocked on approved URLs.
 - [ ] Preview environment parity remains blocked on the decision to use isolated preview API keys or protected reuse of production keys.

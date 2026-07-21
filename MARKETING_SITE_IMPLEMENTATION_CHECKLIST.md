@@ -388,3 +388,12 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Manually edited only the six text nodes in this section; its image, icons, layout, spacing and animation markup remain unchanged.
 - [ ] Owner visual and editorial approval of this section remains open.
 - [ ] Audit the next visible About section before making further edits.
+
+## 2026-07-21 - About Us Configured Services Section
+
+- [x] Audited the configured-services section independently, including its `/contact-us/` CTA destination.
+- [x] Removed universal claims about fees, utilities, insurance, stored funds, receipts, airtime and data.
+- [x] Replaced them with provider-catalog and community-configuration-qualified wording.
+- [x] Manually edited only the subtitle, heading, paragraph and CTA label; artwork, layout, destination and animation markup remain unchanged.
+- [ ] Owner visual and editorial approval of this section remains open.
+- [ ] Audit the next visible About section before making further edits.
