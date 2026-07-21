@@ -1353,5 +1353,13 @@ Date: 2026-02-06
 - [ ] Owner approval of the revised section remains open.
 - [ ] Continue the About route one visible section at a time.
 
+## 2026-07-21 - Phase 50 About Us Rollout Benefits Section
+
+- [x] Audited and manually refined the final three-column About content block.
+- [x] Removed unsupported discount and universal-connectivity claims.
+- [x] Added implementation-backed rollout, role-context and operational-progress wording without changing the mirrored layout.
+- [ ] Owner approval of the revised section remains open.
+- [ ] Audit shared footer content and links before closing the About editorial pass.
+
 - [ ] Social profile destinations remain blocked on approved URLs.
 - [ ] Preview environment parity remains blocked on the decision to use isolated preview API keys or protected reuse of production keys.

@@ -427,3 +427,12 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Manually edited only three text nodes; the existing button, destination, background, layout and animation remain unchanged.
 - [ ] Owner visual and editorial approval of this section remains open.
 - [ ] Audit the next visible About section before making further edits.
+
+## 2026-07-21 - About Us Rollout Benefits Section
+
+- [x] Audited the final three-column About content block independently.
+- [x] Removed the unsupported usage-based discount claim and broad everyone/everything promise.
+- [x] Reframed the columns around rollout planning, connected role context and accountable operational progress.
+- [x] Manually edited only the six text nodes; column layout, typography, hover behavior and responsive stacking remain unchanged.
+- [ ] Owner visual and editorial approval of this section remains open.
+- [ ] Complete the shared About footer/link audit separately before marking the route editorially complete.
