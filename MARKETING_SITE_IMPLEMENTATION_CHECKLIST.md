@@ -525,4 +525,12 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Hid unconfigured social and language controls while preserving their widget and grid containers.
 - [x] Manually edited only the Products snapshot footer; no cross-route content command was used.
 - [ ] Owner visual and link approval of the Products footer remains open.
+- [x] Removed the inherited placeholder telephone URI from the Products contact details and replaced it with the valid Contact-page destination.
 - [ ] The Products route editorial pass is complete pending owner approval and SMTP-backed form evidence.
+
+## 2026-07-21 - Our Products Contact Identity Closeout
+
+- [x] Revisited the contact identity block after the footer audit exposed a placeholder `tel:12345678900` destination.
+- [x] Replaced the fake telephone destination with `/contact-us/` and retained the original two-line layout.
+- [x] Kept the visible email address unchanged because no replacement mailbox has been approved.
+- [ ] Owner link approval and SMTP-backed form evidence remain open.
