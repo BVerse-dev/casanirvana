@@ -1549,3 +1549,6 @@ Date: 2026-02-06
 - [x] Recorded the implementation evidence in `MARKETING_SITE_IMPLEMENTATION_CHECKLIST.md`.
 - [ ] Include this section in the consolidated Residents owner verification pass.
 - [ ] Continue with the Residents contact section independently.
+
+- [x] Completed the CTA image-label closeout and confirmed no separate Residents contact-form section exists.
+- [ ] Continue directly with the Residents footer audit.

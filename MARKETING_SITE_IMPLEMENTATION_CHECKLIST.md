@@ -643,3 +643,7 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Replaced the dead `#` documentation control with `Plan your rollout` linked to `/contact-us/`.
 - [ ] Include this section in the consolidated Residents owner verification pass.
 - [ ] Continue with the Residents contact section independently.
+
+- [x] Added the missing accessibility label to the CTA's full-width resident-app image during route closeout.
+- [x] Confirmed the route proceeds from this CTA directly to the footer; there is no separate Residents contact-form section.
+- [ ] Include the complete CTA in the consolidated Residents owner verification pass.
