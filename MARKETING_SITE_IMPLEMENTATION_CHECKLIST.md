@@ -606,3 +606,12 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Preserved all three text copies, decorative image nodes, wrappers and animation hooks.
 - [ ] Owner motion, copy and visual approval remains open.
 - [ ] Audit the following Residents section before making further edits.
+
+## 2026-07-21 - Residents Product Carousel
+
+- [x] Audited all six image-only carousel slides, image labels and overlay destinations independently.
+- [x] Replaced inherited Saliver portfolio case-study URLs with Residents, Security Guards, Facility Managers, Marketplace, Core Features and About routes.
+- [x] Replaced filename-based image labels with destination-specific Casa Nirvana descriptions.
+- [x] Preserved carousel autoplay, loop, responsive slide counts, spacing, images and overlay controls.
+- [ ] Owner carousel interaction and visual approval remains open.
+- [ ] Audit the following Residents overview section before making further edits.

@@ -1516,3 +1516,12 @@ Date: 2026-02-06
 - [x] Recorded the implementation evidence in `MARKETING_SITE_IMPLEMENTATION_CHECKLIST.md`.
 - [ ] Owner motion, copy and visual approval remains open.
 - [ ] Continue with the next Residents section independently.
+
+## 2026-07-21 - Phase 50 Residents Product Carousel
+
+- [x] Removed all six inherited portfolio destinations from the Residents image carousel.
+- [x] Connected every slide to a valid Casa Nirvana route and improved image accessibility labels.
+- [x] Preserved the exact carousel behavior and visual structure.
+- [x] Recorded the implementation evidence in `MARKETING_SITE_IMPLEMENTATION_CHECKLIST.md`.
+- [ ] Owner carousel interaction and visual approval remains open.
+- [ ] Continue with the Residents overview section independently.
