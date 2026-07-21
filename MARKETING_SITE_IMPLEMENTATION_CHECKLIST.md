@@ -534,3 +534,11 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Replaced the fake telephone destination with `/contact-us/` and retained the original two-line layout.
 - [x] Kept the visible email address unchanged because no replacement mailbox has been approved.
 - [ ] Owner link approval and SMTP-backed form evidence remain open.
+## 2026-07-21 - Residents Opening Capability Grid
+
+- [x] Began the `/residents/` editorial pass with an independent audit of the opening heading and four capability cards.
+- [x] Replaced inherited e-commerce and monetization language with configured marketplace and service workflows.
+- [x] Differentiated the repeated fourth-card description, normalized real-time wording and added meaningful content-image labels.
+- [x] Preserved the four-card Elementor hierarchy, decorative highlights, image assets and reveal animations.
+- [ ] Owner visual and editorial approval of the opening grid remains open.
+- [ ] Audit the following Residents marquee before making further edits.

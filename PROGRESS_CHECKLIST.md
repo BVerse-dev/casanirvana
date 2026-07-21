@@ -1452,3 +1452,11 @@ Date: 2026-02-06
 
 - [ ] Social profile destinations remain blocked on approved URLs.
 - [ ] Preview environment parity remains blocked on the decision to use isolated preview API keys or protected reuse of production keys.
+## 2026-07-21 - Phase 50 Residents Opening Capability Grid
+
+- [x] Started the Residents route with a bounded audit of its opening heading and capability grid.
+- [x] Removed inherited monetization framing, differentiated repeated content and improved image accessibility labels.
+- [x] Preserved the exact WordPress-derived structure and animations.
+- [x] Recorded the implementation evidence in `MARKETING_SITE_IMPLEMENTATION_CHECKLIST.md`.
+- [ ] Owner visual and editorial approval remains open.
+- [ ] Continue with the Residents marquee as a separate scope.
