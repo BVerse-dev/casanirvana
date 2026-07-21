@@ -1508,3 +1508,11 @@ Date: 2026-02-06
 - [x] Recorded the implementation evidence in `MARKETING_SITE_IMPLEMENTATION_CHECKLIST.md`.
 - [ ] Owner visual and editorial approval remains open.
 - [ ] Continue with the lower Residents marquee as a separate scope.
+
+## 2026-07-21 - Phase 50 Residents Lower Marquee
+
+- [x] Removed the remaining inherited AI customer-service language from the lower Residents marquee.
+- [x] Preserved the exact three-node loop structure and animation behavior.
+- [x] Recorded the implementation evidence in `MARKETING_SITE_IMPLEMENTATION_CHECKLIST.md`.
+- [ ] Owner motion, copy and visual approval remains open.
+- [ ] Continue with the next Residents section independently.

@@ -598,3 +598,11 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Preserved all three columns, icon widgets, image assets and staggered reveal timing.
 - [ ] Owner visual and editorial approval of this section remains open.
 - [ ] Audit the lower Residents marquee before making further edits.
+
+## 2026-07-21 - Residents Lower Marquee
+
+- [x] Audited the lower Residents marquee independently and confirmed its three text nodes form one continuous loop.
+- [x] Replaced the remaining inherited AI customer-service claim with resident-app, community-access and everyday-operations positioning.
+- [x] Preserved all three text copies, decorative image nodes, wrappers and animation hooks.
+- [ ] Owner motion, copy and visual approval remains open.
+- [ ] Audit the following Residents section before making further edits.
