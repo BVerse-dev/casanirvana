@@ -588,3 +588,13 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Preserved the section columns, icons, classes and reveal animations.
 - [ ] Owner visual and editorial approval of this summary remains open.
 - [ ] Audit the following Residents benefits section before making further edits.
+
+## 2026-07-21 - Residents Benefits Section
+
+- [x] Audited the benefits heading, six benefit points, central imagery and rollout link independently.
+- [x] Replaced the malformed `most experienced thing` heading with resident-task positioning.
+- [x] Differentiated repeated benefit statements across role access, search, status, visitor workflows, navigation and ownership.
+- [x] Added meaningful labels to the two central images and removed a stale WordPress link-error marker.
+- [x] Preserved all three columns, icon widgets, image assets and staggered reveal timing.
+- [ ] Owner visual and editorial approval of this section remains open.
+- [ ] Audit the lower Residents marquee before making further edits.
