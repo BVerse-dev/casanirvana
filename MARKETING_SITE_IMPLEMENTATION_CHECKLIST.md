@@ -625,3 +625,13 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Preserved the original columns, image layering, icon cards and animation hooks.
 - [ ] Include this section in the consolidated Residents owner verification pass.
 - [ ] Continue with the Residents download section independently.
+
+## 2026-07-21 - Residents Download Panel
+
+- [x] Audited the download label, revenue-strategy heading and QR asset independently.
+- [x] Removed the unsupported scan/download implication because no approved store destination or verified QR target is available.
+- [x] Replaced inherited revenue language with resident-experience rollout positioning.
+- [x] Hid the unverified QR while preserving its image container and section geometry.
+- [ ] Approved App Store and Google Play destinations remain a future release input.
+- [ ] Include this section in the consolidated Residents owner verification pass.
+- [ ] Continue with the following Residents rollout CTA independently.

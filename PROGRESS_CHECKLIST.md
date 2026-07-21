@@ -1533,3 +1533,11 @@ Date: 2026-02-06
 - [x] Recorded the implementation evidence in `MARKETING_SITE_IMPLEMENTATION_CHECKLIST.md`.
 - [ ] Include this section in the consolidated Residents owner verification pass.
 - [ ] Continue with the Residents download section independently.
+
+## 2026-07-21 - Phase 50 Residents Download Panel
+
+- [x] Removed an unverified QR download claim and unrelated revenue-strategy wording from the Residents page.
+- [x] Preserved the exact panel geometry while hiding the unsupported QR asset.
+- [x] Recorded the implementation evidence and future store-link dependency.
+- [ ] Include this section in the consolidated Residents owner verification pass.
+- [ ] Continue with the following Residents rollout CTA independently.
