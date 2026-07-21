@@ -717,3 +717,12 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Added distinct accessibility labels to both repeated visual assets while preserving the source images and responsive structure.
 - [ ] Include these panels in the consolidated Security Guards owner verification pass.
 - [ ] Continue with the connected-workflows tab section independently.
+
+## 2026-07-21 - Security Guards Connected-Workflows Tabs
+
+- [x] Audited the section heading, supporting paragraph, three tab labels and three tab screenshots independently.
+- [x] Removed inherited SaaS collaboration language and unsupported automation-builder, assignment, trigger and API-integration claims.
+- [x] Retained the accurate Community-scoped Records, Focused Mobile Workflows, and Clear Status and Ownership tabs.
+- [x] Added distinct screenshot labels while preserving all tab targets, active states, decorative highlights and animation hooks.
+- [ ] Include this section in the consolidated Security Guards owner verification pass.
+- [ ] Continue with the post-tab profile summary independently.

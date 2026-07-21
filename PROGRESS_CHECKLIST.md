@@ -1616,3 +1616,12 @@ Date: 2026-02-06
 - [x] Added distinct image labels and recorded evidence in `MARKETING_SITE_IMPLEMENTATION_CHECKLIST.md`.
 - [ ] Include this section in the consolidated Security Guards owner verification pass.
 - [ ] Continue with the connected-workflows tabs independently.
+
+## 2026-07-21 - Phase 50 Security Guards Connected-Workflows Tabs
+
+- [x] Removed generic SaaS and unsupported automation claims from the guard tabs section.
+- [x] Retained the three accurate guard tab labels and added distinct screenshot accessibility labels.
+- [x] Preserved tab IDs, interactions, active states, imagery and animation hooks.
+- [x] Recorded implementation evidence in `MARKETING_SITE_IMPLEMENTATION_CHECKLIST.md`.
+- [ ] Include this section in the consolidated Security Guards owner verification pass.
+- [ ] Continue with the post-tab profile summary independently.
