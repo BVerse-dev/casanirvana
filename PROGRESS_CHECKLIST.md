@@ -1336,5 +1336,14 @@ Date: 2026-02-06
 - [ ] Owner approval of the revised section remains open.
 - [ ] Continue the About route one visible section at a time.
 
+## 2026-07-21 - Phase 50 About Us Product Principles Section
+
+- [x] Audited and manually refined all four Product Principles tab states.
+- [x] Removed fabricated testimonial presentation, unrelated logo controls and stock customer portraits.
+- [x] Added four implementation-backed principles with meaningful tab labels while preserving the mirrored component behavior.
+- [x] Avoided the batch transformer and kept the change isolated to this section.
+- [ ] Owner approval of the revised content and tab behavior remains open.
+- [ ] Continue the About route one visible section at a time.
+
 - [ ] Social profile destinations remain blocked on approved URLs.
 - [ ] Preview environment parity remains blocked on the decision to use isolated preview API keys or protected reuse of production keys.

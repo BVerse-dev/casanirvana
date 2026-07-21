@@ -407,3 +407,14 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Manually edited only this section; no route-wide content transformer was run.
 - [ ] Owner visual and editorial approval of this section remains open.
 - [ ] Audit the next visible About section before making further edits.
+
+## 2026-07-21 - About Us Product Principles Section
+
+- [x] Audited the four tab panels, review-card widgets, stock portraits and inherited Logoipsum controls before editing.
+- [x] Removed the unsupported customer-testimonial framing and converted each panel into a distinct product principle.
+- [x] Added separate Resident Clarity, Guard-Ready Speed, Accountable Management and Community-Scoped Access content.
+- [x] Hid the unrelated stock portraits and Logoipsum SVGs while preserving their containers and the original tab/card interactions.
+- [x] Added visible `Residents`, `Security`, `Management` and `Access` labels to the existing tab controls.
+- [x] Manually edited only this section; no route-wide content transformer was run.
+- [ ] Owner visual, tab-interaction and editorial approval of this section remains open.
+- [ ] Audit the next visible About section before making further edits.

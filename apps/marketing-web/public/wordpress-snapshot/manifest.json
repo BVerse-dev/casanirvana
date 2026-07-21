@@ -14,8 +14,8 @@
       "source": "http://localhost:8882/about-us/",
       "output": "/wordpress-snapshot/pages/about-us/index.html",
       "title": "About Us - Casa Nirvana",
-      "bytes": 476034,
-      "sha256": "3e233725757f890f48b529d02effe6adaa1d5fb3ddb62e667b3b7216c4fcf3e0"
+      "bytes": 476842,
+      "sha256": "26d98611ac60b185bbfe0ddb0422578a23af8940c6a920c63a4d9a77855a780b"
     },
     "/adaptive-grazing-promotes-soil-vitality/": {
       "source": "http://localhost:8882/adaptive-grazing-promotes-soil-vitality/",
