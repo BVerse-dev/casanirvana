@@ -579,3 +579,12 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Preserved all tab target IDs, active-state classes, animation hooks and image assets.
 - [ ] Owner tab interaction, copy and visual approval remains open.
 - [ ] Audit the following Residents section before making further edits.
+
+## 2026-07-21 - Residents Profile Summary
+
+- [x] Audited the Personal Hub, visitor-pass verification and connected-experience summary immediately following the tabs.
+- [x] Replaced the mismatched catalog-policy description with resident profile activity context.
+- [x] Removed the empty self-reloading link from the summary count and hid inherited stock portraits while retaining their layout footprint.
+- [x] Preserved the section columns, icons, classes and reveal animations.
+- [ ] Owner visual and editorial approval of this summary remains open.
+- [ ] Audit the following Residents benefits section before making further edits.
