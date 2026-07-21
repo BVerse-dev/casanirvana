@@ -1560,3 +1560,11 @@ Date: 2026-02-06
 - [x] Recorded route evidence in `MARKETING_SITE_IMPLEMENTATION_CHECKLIST.md`.
 - [ ] Owner consolidated visual, interaction and copy approval remains open.
 - [ ] Store destinations remain pending before resident download controls can be enabled.
+
+## 2026-07-21 - Phase 50 Security Guards Opening Capability Grid
+
+- [x] Started the Security Guards route with a bounded audit of its opening heading and capability grid.
+- [x] Removed inherited hub, asset, e-commerce and duplicated-card language without altering the mirrored design.
+- [x] Added accurate image labels and recorded implementation evidence in `MARKETING_SITE_IMPLEMENTATION_CHECKLIST.md`.
+- [ ] Include this section in the consolidated Security Guards owner verification pass.
+- [ ] Continue with the first Security Guards marquee independently.

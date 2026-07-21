@@ -656,3 +656,12 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Completed all known Residents sections using isolated audits, builds and commits.
 - [ ] Owner consolidated visual, interaction and copy verification of `/residents/` remains open.
 - [ ] App Store and Google Play destinations remain pending before download controls can be enabled.
+
+## 2026-07-21 - Security Guards Opening Capability Grid
+
+- [x] Began the `/security-guards/` editorial pass with an independent audit of the opening heading and four capability cards.
+- [x] Replaced inherited hub, asset and e-commerce language with assigned guard, visitor verification, operational decision and handover positioning.
+- [x] Differentiated the repeated fourth card and added meaningful accessibility labels to all four content images.
+- [x] Preserved the four-card Elementor hierarchy, decorative highlights, image assets and reveal animations.
+- [ ] Include this section in the consolidated Security Guards owner verification pass.
+- [ ] Continue with the first Security Guards marquee independently.
