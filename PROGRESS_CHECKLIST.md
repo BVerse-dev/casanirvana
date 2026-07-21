@@ -1385,5 +1385,13 @@ Date: 2026-02-06
 - [ ] Owner visual and editorial approval remains open.
 - [ ] Continue with the next Products section independently.
 
+## 2026-07-21 - Phase 50 Our Products Role CTA
+
+- [x] Reviewed and corrected the post-capabilities Products CTA without changing its visual structure or animation.
+- [x] Replaced generic language with accurate role-experience positioning and normalized button capitalization.
+- [x] Recorded the implementation evidence in `MARKETING_SITE_IMPLEMENTATION_CHECKLIST.md`.
+- [ ] Owner visual and editorial approval remains open.
+- [ ] Continue with the Products selector as a separate scope.
+
 - [ ] Social profile destinations remain blocked on approved URLs.
 - [ ] Preview environment parity remains blocked on the decision to use isolated preview API keys or protected reuse of production keys.

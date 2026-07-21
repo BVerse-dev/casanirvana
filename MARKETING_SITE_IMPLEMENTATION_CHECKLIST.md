@@ -463,3 +463,11 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Preserved the original Elementor panel hierarchy, classes, styling hooks and responsive behavior.
 - [ ] Owner visual and editorial approval of the four panels remains open.
 - [ ] Audit the next Products section before making further edits.
+
+## 2026-07-21 - Our Products Role CTA
+
+- [x] Audited the CTA immediately following the four capability panels as an independent scope.
+- [x] Replaced the generic `Redefine Community living.` heading with role-specific platform positioning.
+- [x] Preserved the original Elementor heading, button, animation and `/contact-us/` destination.
+- [ ] Owner visual and editorial approval of this CTA remains open.
+- [ ] Audit the product-selector section before making further edits.
