@@ -1476,3 +1476,11 @@ Date: 2026-02-06
 - [x] Connected the rollout CTA to the valid Contact route and recorded the implementation evidence.
 - [ ] Owner visual, copy and interaction approval remains open.
 - [ ] Continue with the next Residents section independently.
+
+## 2026-07-21 - Phase 50 Residents Workflow Panels
+
+- [x] Audited the four resident workflow panels and retained implementation-backed content.
+- [x] Made only targeted copy and accessibility corrections while preserving the mirrored two-row layout.
+- [x] Recorded the implementation evidence in `MARKETING_SITE_IMPLEMENTATION_CHECKLIST.md`.
+- [ ] Owner visual and editorial approval remains open.
+- [ ] Continue with the Residents connected-workflows tabs as a separate scope.

@@ -560,3 +560,12 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Added meaningful labels to non-decorative content images without changing assets or animation hooks.
 - [ ] Owner visual, copy and interaction approval of this section remains open.
 - [ ] Audit the following Residents section before making further edits.
+
+## 2026-07-21 - Residents Workflow Panels
+
+- [x] Audited the two-row, four-panel resident workflow section independently.
+- [x] Retained the supported payments, complaints, community information, and notices content because it matches implemented resident workflows.
+- [x] Normalized the complaints label, removed vague operational-history wording and added distinct accessibility labels to each screenshot instance.
+- [x] Preserved the original two-column structure, duplicated visual assets, icon boxes and responsive behavior.
+- [ ] Owner visual and editorial approval of these panels remains open.
+- [ ] Audit the following Residents connected-workflows tab section before making further edits.
