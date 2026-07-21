@@ -436,3 +436,13 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Manually edited only the six text nodes; column layout, typography, hover behavior and responsive stacking remain unchanged.
 - [ ] Owner visual and editorial approval of this section remains open.
 - [ ] Complete the shared About footer/link audit separately before marking the route editorially complete.
+
+## 2026-07-21 - About Us Footer and Link Audit
+
+- [x] Audited all 32 footer anchors, headings and visible text values on the About snapshot.
+- [x] Replaced the stale payment-platform positioning sentence.
+- [x] Corrected duplicated About, public 404, unsupported Careers and dead contact/onboarding destinations with valid product routes.
+- [x] Hid four unconfigured social links and the nonfunctional language selector while preserving their layout containers.
+- [x] Manually edited only the About snapshot footer; no cross-route or batch content command was used.
+- [ ] Owner visual and link approval of the About footer remains open.
+- [ ] Apply the same audit manually when each remaining route reaches its footer review; do not assume copied snapshots remain aligned.

@@ -1361,5 +1361,13 @@ Date: 2026-02-06
 - [ ] Owner approval of the revised section remains open.
 - [ ] Audit shared footer content and links before closing the About editorial pass.
 
+## 2026-07-21 - Phase 50 About Us Footer and Link Audit
+
+- [x] Audited the About footer independently and corrected stale positioning, duplicate links and dead destinations.
+- [x] Hid unavailable social and language controls without removing their mirrored layout containers.
+- [x] Kept the change route-specific and avoided a cross-route batch replacement.
+- [ ] Owner visual and link approval remains open.
+- [ ] About page-specific editorial work is complete pending owner approval; continue to the next route section by section.
+
 - [ ] Social profile destinations remain blocked on approved URLs.
 - [ ] Preview environment parity remains blocked on the decision to use isolated preview API keys or protected reuse of production keys.
