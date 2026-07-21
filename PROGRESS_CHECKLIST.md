@@ -1585,3 +1585,11 @@ Date: 2026-02-06
 - [x] Recorded implementation evidence in `MARKETING_SITE_IMPLEMENTATION_CHECKLIST.md`.
 - [ ] Include this section in the consolidated Security Guards owner verification pass.
 - [ ] Continue with the Security Guards workflow panels independently.
+
+## 2026-07-21 - Phase 50 Residents QR and Footer Brand Row Correction
+
+- [x] Restored the Residents QR visual to match the equivalent homepage treatment.
+- [x] Shortened footer positioning to prevent the brand row from being crowded.
+- [x] Restored visible social glyphs without enabling dead or unapproved destinations.
+- [x] Recorded implementation evidence in `MARKETING_SITE_IMPLEMENTATION_CHECKLIST.md`.
+- [ ] Owner visual approval remains open.

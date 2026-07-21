@@ -683,3 +683,12 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Preserved the four-card structure, icons, image assets, CTA and animation hooks.
 - [ ] Include this section in the consolidated Security Guards owner verification pass.
 - [ ] Continue with the Security Guards workflow panels independently.
+
+## 2026-07-21 - Residents QR and Footer Brand Row Correction
+
+- [x] Confirmed the Residents experience heading already matches the approved concise wording.
+- [x] Restored the shared Casa Nirvana QR asset used by the homepage and role-experience panels.
+- [x] Replaced the long footer positioning sentence with the compact `Community life, connected.` line.
+- [x] Restored the four social glyphs as visible, non-navigating placeholders; approved profile URLs remain required before links are enabled.
+- [x] Preserved the WordPress-derived QR panel, footer columns, logo placement and icon geometry.
+- [ ] Owner visual approval of the corrected Residents QR and footer brand row remains open.
