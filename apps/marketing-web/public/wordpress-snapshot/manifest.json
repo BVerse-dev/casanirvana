@@ -581,8 +581,8 @@
       "source": "http://localhost:8882/residents/",
       "output": "/wordpress-snapshot/pages/residents/index.html",
       "title": "Residents - Casa Nirvana",
-      "bytes": 491651,
-      "sha256": "0608c973b7df5e99f6faad52c6185a7af651e07e0a4825348c52eb8878ec1b70"
+      "bytes": 491746,
+      "sha256": "b286846f542ee4b6b20532b051e9f749cda014b48135a8bfc177222b12a15f08"
     },
     "/rotational-grazing-improves-water-retention/": {
       "source": "http://localhost:8882/rotational-grazing-improves-water-retention/",

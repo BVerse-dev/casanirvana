@@ -701,3 +701,10 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Added a meaningful logo label and retained the compact footer copy and visible social placeholders.
 - [ ] Owner visual approval of the complete Residents footer brand row remains open.
 - [ ] Apply this verified compact footer pattern during each remaining route-specific footer pass; do not change the homepage footer.
+
+## 2026-07-21 - Footer Logo Size Standard
+
+- [x] Measured the approved homepage footer wordmark at `132 × 32px` in the live Codex browser.
+- [x] Constrained the Residents footer logo to the same width, height, containment and left alignment so the complete wordmark remains visible.
+- [x] Recorded `132 × 32px` as the required footer-logo size for every remaining route; the homepage remains unchanged.
+- [ ] Owner visual approval of the corrected Residents wordmark remains open after deployment.

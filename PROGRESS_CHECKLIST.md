@@ -1601,3 +1601,10 @@ Date: 2026-02-06
 - [x] Preserved the compact copy, social-icon geometry and footer navigation layout.
 - [x] Recorded implementation evidence in `MARKETING_SITE_IMPLEMENTATION_CHECKLIST.md`.
 - [ ] Use this verified treatment for remaining route footers while leaving the homepage unchanged.
+
+## 2026-07-21 - Phase 50 Footer Logo Size Standard
+
+- [x] Matched the Residents footer wordmark to the homepage's live `132 × 32px` dimensions.
+- [x] Prevented oversized rendering from clipping the complete Casa Nirvana logo to its icon.
+- [x] Recorded this exact size for all remaining route footer passes without changing the homepage.
+- [ ] Owner visual approval remains open after deployment.
