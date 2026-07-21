@@ -496,3 +496,13 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Preserved the original marquee wrappers, classes, timing hooks and duplicate-node structure.
 - [ ] Owner motion, copy and visual approval of the marquee remains open.
 - [ ] Audit the following Products content section before making further edits.
+
+## 2026-07-21 - Our Products FAQ
+
+- [x] Audited all ten FAQ questions and answers across the four accordion groups.
+- [x] Replaced inherited agency categories with Platform & Rollout, Experience & Payments, Roles & Integrations, and Features & Configuration.
+- [x] Removed absolute efficiency claims and unsupported telecom, insurance and custom-integration claims.
+- [x] Corrected malformed About wording and qualified configuration and integration availability against rollout scope.
+- [x] Preserved every accordion item, target ID, icon, class and interaction hook.
+- [ ] Owner copy and interaction approval of the FAQ remains open.
+- [ ] Audit the following Products contact section before making further edits.
