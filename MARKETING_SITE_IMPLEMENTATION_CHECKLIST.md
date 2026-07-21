@@ -647,3 +647,12 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Added the missing accessibility label to the CTA's full-width resident-app image during route closeout.
 - [x] Confirmed the route proceeds from this CTA directly to the footer; there is no separate Residents contact-form section.
 - [ ] Include the complete CTA in the consolidated Residents owner verification pass.
+## 2026-07-21 - Residents Footer and Route Closeout
+
+- [x] Audited the Residents footer positioning, navigation groups, utility links, legal links, social controls and language widgets.
+- [x] Replaced stale payment-platform positioning, duplicate About, public 404, unsupported Careers and dead `#` destinations.
+- [x] Reorganized Product overview around Residents, Security Guards, Facility Managers, Marketplace and Core Features.
+- [x] Hid unconfigured social profiles and both fake language controls while preserving their widget footprints.
+- [x] Completed all known Residents sections using isolated audits, builds and commits.
+- [ ] Owner consolidated visual, interaction and copy verification of `/residents/` remains open.
+- [ ] App Store and Google Play destinations remain pending before download controls can be enabled.
