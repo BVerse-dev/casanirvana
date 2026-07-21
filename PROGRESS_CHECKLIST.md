@@ -1576,3 +1576,12 @@ Date: 2026-02-06
 - [x] Recorded implementation evidence in `MARKETING_SITE_IMPLEMENTATION_CHECKLIST.md`.
 - [ ] Include this section in the consolidated Security Guards owner verification pass.
 - [ ] Continue with the Security Guards Core Features grid independently.
+
+## 2026-07-21 - Phase 50 Security Guards Core Features Grid
+
+- [x] Removed inherited multi-cloud, browser, commerce, location and third-party integration claims from the guard feature grid.
+- [x] Differentiated all four cards around visitor verification, entry activity, assigned access and guard workflow status.
+- [x] Preserved the exact grid, image assets, icon footprints, rollout CTA and animation hooks.
+- [x] Recorded implementation evidence in `MARKETING_SITE_IMPLEMENTATION_CHECKLIST.md`.
+- [ ] Include this section in the consolidated Security Guards owner verification pass.
+- [ ] Continue with the Security Guards workflow panels independently.

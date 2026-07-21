@@ -673,3 +673,13 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Preserved every decorative image node, wrapper and animation hook.
 - [ ] Include this section in the consolidated Security Guards owner verification pass.
 - [ ] Continue with the Security Guards Core Features grid independently.
+
+## 2026-07-21 - Security Guards Core Features Grid
+
+- [x] Audited the four Core Features cards, their sample data, status row, imagery and rollout CTA independently.
+- [x] Removed inherited multi-cloud, browser, commerce, city and third-party integration claims.
+- [x] Replaced repeated Entry status headings and demo values with visitor, entry, assigned-access and guard-status content.
+- [x] Hid obsolete integration glyphs while preserving their layout footprint and added meaningful labels to content images.
+- [x] Preserved the four-card structure, icons, image assets, CTA and animation hooks.
+- [ ] Include this section in the consolidated Security Guards owner verification pass.
+- [ ] Continue with the Security Guards workflow panels independently.
