@@ -1568,3 +1568,11 @@ Date: 2026-02-06
 - [x] Added accurate image labels and recorded implementation evidence in `MARKETING_SITE_IMPLEMENTATION_CHECKLIST.md`.
 - [ ] Include this section in the consolidated Security Guards owner verification pass.
 - [ ] Continue with the first Security Guards marquee independently.
+
+## 2026-07-21 - Phase 50 Security Guards Opening Marquee
+
+- [x] Corrected only the first Security Guards marquee and retained its three-node animation loop.
+- [x] Removed unsupported AI customer-service language without changing layout or motion.
+- [x] Recorded implementation evidence in `MARKETING_SITE_IMPLEMENTATION_CHECKLIST.md`.
+- [ ] Include this section in the consolidated Security Guards owner verification pass.
+- [ ] Continue with the Security Guards Core Features grid independently.

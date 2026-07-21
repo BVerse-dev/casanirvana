@@ -665,3 +665,11 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Preserved the four-card Elementor hierarchy, decorative highlights, image assets and reveal animations.
 - [ ] Include this section in the consolidated Security Guards owner verification pass.
 - [ ] Continue with the first Security Guards marquee independently.
+
+## 2026-07-21 - Security Guards Opening Marquee
+
+- [x] Audited the first Security Guards marquee independently and retained the three copies required by its continuous loop.
+- [x] Replaced unsupported AI customer-service wording with gate verification, incident reporting and shift-handover positioning.
+- [x] Preserved every decorative image node, wrapper and animation hook.
+- [ ] Include this section in the consolidated Security Guards owner verification pass.
+- [ ] Continue with the Security Guards Core Features grid independently.
