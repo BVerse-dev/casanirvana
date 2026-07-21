@@ -752,3 +752,12 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Preserved the exact wrappers, decorative image nodes and animation behavior.
 - [ ] Include this section in the consolidated Security Guards owner verification pass.
 - [ ] Continue with the Security Guards product carousel independently.
+
+## 2026-07-21 - Security Guards Product Carousel
+
+- [x] Audited all six image-only slides, overlay controls, destinations and image labels independently.
+- [x] Replaced all inherited portfolio case-study URLs with Residents, Security Guards, Facility Managers, Marketplace, Core Features and About routes.
+- [x] Updated both destinations per slide and replaced filename-based labels with route-specific Casa Nirvana descriptions.
+- [x] Preserved carousel autoplay, loop, responsive slide counts, spacing, imagery and overlays.
+- [ ] Include this section in the consolidated Security Guards owner verification pass.
+- [ ] Continue with the Security Guards overview section independently.

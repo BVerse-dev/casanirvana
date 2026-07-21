@@ -1650,3 +1650,12 @@ Date: 2026-02-06
 - [x] Recorded implementation evidence in `MARKETING_SITE_IMPLEMENTATION_CHECKLIST.md`.
 - [ ] Include this section in the consolidated Security Guards owner verification pass.
 - [ ] Continue with the product carousel independently.
+
+## 2026-07-21 - Phase 50 Security Guards Product Carousel
+
+- [x] Removed all six inherited portfolio destinations from the guard carousel.
+- [x] Connected each slide and overlay to a valid Casa Nirvana route and improved image labels.
+- [x] Preserved carousel autoplay, looping, responsive counts, spacing and visual structure.
+- [x] Recorded implementation evidence in `MARKETING_SITE_IMPLEMENTATION_CHECKLIST.md`.
+- [ ] Include this section in the consolidated Security Guards owner verification pass.
+- [ ] Continue with the overview section independently.
