@@ -542,3 +542,11 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Preserved the four-card Elementor hierarchy, decorative highlights, image assets and reveal animations.
 - [ ] Owner visual and editorial approval of the opening grid remains open.
 - [ ] Audit the following Residents marquee before making further edits.
+
+## 2026-07-21 - Residents Opening Marquee
+
+- [x] Audited the first Residents marquee independently and confirmed its three text copies are required for the continuous loop.
+- [x] Replaced unsupported AI customer-service positioning with visitor access, community updates and everyday requests.
+- [x] Preserved all three copies, decorative image nodes, wrappers and animation hooks.
+- [ ] Owner motion, copy and visual approval of this marquee remains open.
+- [ ] Audit the following Residents content section before making further edits; the separate lower marquee remains untouched.

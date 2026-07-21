@@ -1460,3 +1460,11 @@ Date: 2026-02-06
 - [x] Recorded the implementation evidence in `MARKETING_SITE_IMPLEMENTATION_CHECKLIST.md`.
 - [ ] Owner visual and editorial approval remains open.
 - [ ] Continue with the Residents marquee as a separate scope.
+
+## 2026-07-21 - Phase 50 Residents Opening Marquee
+
+- [x] Corrected only the first Residents marquee and retained the three-node loop structure.
+- [x] Removed unsupported AI customer-service language without changing motion or layout.
+- [x] Recorded the implementation evidence in `MARKETING_SITE_IMPLEMENTATION_CHECKLIST.md`.
+- [ ] Owner motion, copy and visual approval remains open.
+- [ ] Continue with the next Residents content section independently.
