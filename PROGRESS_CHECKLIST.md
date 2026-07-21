@@ -1541,3 +1541,11 @@ Date: 2026-02-06
 - [x] Recorded the implementation evidence and future store-link dependency.
 - [ ] Include this section in the consolidated Residents owner verification pass.
 - [ ] Continue with the following Residents rollout CTA independently.
+
+## 2026-07-21 - Phase 50 Residents Rollout CTA
+
+- [x] Replaced the dead Residents documentation control with a valid rollout CTA.
+- [x] Preserved the original CTA layout, styling and reveal animation.
+- [x] Recorded the implementation evidence in `MARKETING_SITE_IMPLEMENTATION_CHECKLIST.md`.
+- [ ] Include this section in the consolidated Residents owner verification pass.
+- [ ] Continue with the Residents contact section independently.

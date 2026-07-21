@@ -635,3 +635,11 @@ Visual authority: local WordPress reference under `wordpress/`
 - [ ] Approved App Store and Google Play destinations remain a future release input.
 - [ ] Include this section in the consolidated Residents owner verification pass.
 - [ ] Continue with the following Residents rollout CTA independently.
+
+## 2026-07-21 - Residents Rollout CTA
+
+- [x] Audited the post-download rollout CTA independently.
+- [x] Retained the accurate resident-tools heading and original CTA styling.
+- [x] Replaced the dead `#` documentation control with `Plan your rollout` linked to `/contact-us/`.
+- [ ] Include this section in the consolidated Residents owner verification pass.
+- [ ] Continue with the Residents contact section independently.
