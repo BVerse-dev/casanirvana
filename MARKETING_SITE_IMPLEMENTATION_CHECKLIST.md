@@ -455,3 +455,11 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Manually edited only the introduction heading and paragraph; later metrics, carousel, selectors, FAQs, form and footer remain separate audit scopes.
 - [ ] Owner visual and editorial approval of this section remains open.
 - [ ] Audit the next Products section before making further edits.
+
+## 2026-07-21 - Our Products Capability Panels
+
+- [x] Audited the four capability panels directly in the approved WordPress-derived `/our-products/` markup.
+- [x] Replaced vague metric-like language and the `Maintenace` typo with accurate resident, service, security and facility-management workflow labels.
+- [x] Preserved the original Elementor panel hierarchy, classes, styling hooks and responsive behavior.
+- [ ] Owner visual and editorial approval of the four panels remains open.
+- [ ] Audit the next Products section before making further edits.

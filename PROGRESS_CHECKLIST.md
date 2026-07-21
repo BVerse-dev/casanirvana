@@ -1377,5 +1377,13 @@ Date: 2026-02-06
 - [ ] Owner approval of the revised introduction remains open.
 - [ ] Continue through Products one visible section at a time.
 
+## 2026-07-21 - Phase 50 Our Products Capability Panels
+
+- [x] Reviewed and corrected the four `/our-products/` capability panels as an isolated editorial scope.
+- [x] Removed vague metric framing, corrected the maintenance typo and retained the exact WordPress-derived layout structure.
+- [x] Recorded the implementation evidence in `MARKETING_SITE_IMPLEMENTATION_CHECKLIST.md`.
+- [ ] Owner visual and editorial approval remains open.
+- [ ] Continue with the next Products section independently.
+
 - [ ] Social profile destinations remain blocked on approved URLs.
 - [ ] Preview environment parity remains blocked on the decision to use isolated preview API keys or protected reuse of production keys.
