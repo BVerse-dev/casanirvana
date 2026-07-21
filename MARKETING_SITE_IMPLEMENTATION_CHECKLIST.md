@@ -418,3 +418,12 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Manually edited only this section; no route-wide content transformer was run.
 - [ ] Owner visual, tab-interaction and editorial approval of this section remains open.
 - [ ] Audit the next visible About section before making further edits.
+
+## 2026-07-21 - About Us Demo CTA Section
+
+- [x] Audited the CTA heading, supporting paragraph, button label and `/contact-us/` destination independently.
+- [x] Removed generic join-now, universal safety and easy-payment promises.
+- [x] Reframed the CTA around reviewing community structure, role workflows, enabled modules, onboarding needs and desired operational outcomes.
+- [x] Manually edited only three text nodes; the existing button, destination, background, layout and animation remain unchanged.
+- [ ] Owner visual and editorial approval of this section remains open.
+- [ ] Audit the next visible About section before making further edits.
