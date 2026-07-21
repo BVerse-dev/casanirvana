@@ -569,3 +569,13 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Preserved the original two-column structure, duplicated visual assets, icon boxes and responsive behavior.
 - [ ] Owner visual and editorial approval of these panels remains open.
 - [ ] Audit the following Residents connected-workflows tab section before making further edits.
+
+## 2026-07-21 - Residents Connected-Workflows Tabs
+
+- [x] Audited the heading, supporting paragraph, three tab labels and three tab images independently.
+- [x] Removed generic SaaS framing and unsupported drag-and-drop builder, automated-assignment, conditional-trigger and API-integration claims.
+- [x] Replaced them with community-scoped records, focused resident actions and visible workflow status positioning.
+- [x] Retained the three accurate tab labels and added a distinct accessibility label to each tab image.
+- [x] Preserved all tab target IDs, active-state classes, animation hooks and image assets.
+- [ ] Owner tab interaction, copy and visual approval remains open.
+- [ ] Audit the following Residents section before making further edits.

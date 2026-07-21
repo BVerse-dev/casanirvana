@@ -1484,3 +1484,11 @@ Date: 2026-02-06
 - [x] Recorded the implementation evidence in `MARKETING_SITE_IMPLEMENTATION_CHECKLIST.md`.
 - [ ] Owner visual and editorial approval remains open.
 - [ ] Continue with the Residents connected-workflows tabs as a separate scope.
+
+## 2026-07-21 - Phase 50 Residents Connected-Workflows Tabs
+
+- [x] Removed inherited SaaS and unsupported automation claims from the Residents tabs section.
+- [x] Preserved the exact tab interactions and visual structure while adding image accessibility labels.
+- [x] Recorded the implementation evidence in `MARKETING_SITE_IMPLEMENTATION_CHECKLIST.md`.
+- [ ] Owner interaction, copy and visual approval remains open.
+- [ ] Continue with the next Residents section independently.
