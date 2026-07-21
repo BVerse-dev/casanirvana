@@ -602,8 +602,8 @@
       "source": "http://localhost:8882/security-guards/",
       "output": "/wordpress-snapshot/pages/security-guards/index.html",
       "title": "Security Guards - Casa Nirvana",
-      "bytes": 491095,
-      "sha256": "aa9a71f71ecc8cfe60d3d759aa2e8b1f2e8fd90c636059add145c9a5a4f8d127"
+      "bytes": 491186,
+      "sha256": "28b8258f22b93003626fc161dc20fc350b07c1fb77198b1098954f315953b9f4"
     },
     "/service/": {
       "source": "http://localhost:8882/service/",

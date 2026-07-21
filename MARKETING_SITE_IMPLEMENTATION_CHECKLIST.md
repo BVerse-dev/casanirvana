@@ -726,3 +726,12 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Added distinct screenshot labels while preserving all tab targets, active states, decorative highlights and animation hooks.
 - [ ] Include this section in the consolidated Security Guards owner verification pass.
 - [ ] Continue with the post-tab profile summary independently.
+
+## 2026-07-21 - Security Guards Profile Summary
+
+- [x] Audited the two profile-summary cards, connected-experience count, inherited portraits and link behavior independently.
+- [x] Replaced the mismatched Resident Directory heading with Assigned Guard Tools while retaining the accurate visitor-pass card.
+- [x] Removed the empty self-link from the count and explicitly hid inherited stock portraits while preserving their footprint.
+- [x] Preserved the section columns, icons, copy and reveal animations.
+- [ ] Include this section in the consolidated Security Guards owner verification pass.
+- [ ] Continue with the Security Guards benefits section independently.
