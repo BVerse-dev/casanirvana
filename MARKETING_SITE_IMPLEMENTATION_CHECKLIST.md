@@ -446,3 +446,12 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Manually edited only the About snapshot footer; no cross-route or batch content command was used.
 - [ ] Owner visual and link approval of the About footer remains open.
 - [ ] Apply the same audit manually when each remaining route reaches its footer review; do not assume copied snapshots remain aligned.
+
+## 2026-07-21 - Our Products Introduction Section
+
+- [x] Began the `/our-products/` editorial pass with an independent audit of the opening heading and paragraph.
+- [x] Removed generic smart-solution, under-one-roof and mission-critical claims.
+- [x] Replaced them with role-specific, shared-community-context and configurable-module wording grounded in the implemented product.
+- [x] Manually edited only the introduction heading and paragraph; later metrics, carousel, selectors, FAQs, form and footer remain separate audit scopes.
+- [ ] Owner visual and editorial approval of this section remains open.
+- [ ] Audit the next Products section before making further edits.
