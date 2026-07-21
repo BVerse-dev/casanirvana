@@ -479,3 +479,12 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Replaced generic image alt text with role-specific descriptions while preserving the original hover interactions and image assets.
 - [ ] Owner interaction and visual approval of the selector remains open.
 - [ ] Audit the product carousel before making further edits.
+
+## 2026-07-21 - Our Products Capability Carousel
+
+- [x] Audited all six carousel cards, image labels, destinations and the trailing CTA independently.
+- [x] Replaced the repeated resident description with capability-specific copy for residents, guards, facility managers, marketplace, communication and platform context.
+- [x] Aligned the About card title with its destination and replaced inherited filename-based image labels.
+- [x] Replaced the dead `#` CTA with a valid `/core-features/` destination while preserving the carousel settings and markup.
+- [ ] Owner interaction, copy and visual approval of the carousel remains open.
+- [ ] Audit the following marquee section before making further edits.

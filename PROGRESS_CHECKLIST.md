@@ -1401,5 +1401,13 @@ Date: 2026-02-06
 - [ ] Owner interaction and visual approval remains open.
 - [ ] Continue with the Products carousel as a separate scope.
 
+## 2026-07-21 - Phase 50 Our Products Capability Carousel
+
+- [x] Audited and differentiated all six Products carousel cards without changing carousel behavior or layout.
+- [x] Corrected image accessibility labels, aligned the About card and replaced the dead trailing CTA.
+- [x] Recorded the implementation evidence in `MARKETING_SITE_IMPLEMENTATION_CHECKLIST.md`.
+- [ ] Owner interaction, copy and visual approval remains open.
+- [ ] Continue with the Products marquee as a separate scope.
+
 - [ ] Social profile destinations remain blocked on approved URLs.
 - [ ] Preview environment parity remains blocked on the decision to use isolated preview API keys or protected reuse of production keys.
