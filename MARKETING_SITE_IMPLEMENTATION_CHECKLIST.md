@@ -692,3 +692,12 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Restored the four social glyphs as visible, non-navigating placeholders; approved profile URLs remain required before links are enabled.
 - [x] Preserved the WordPress-derived QR panel, footer columns, logo placement and icon geometry.
 - [ ] Owner visual approval of the corrected Residents QR and footer brand row remains open.
+
+## 2026-07-21 - Residents Footer Logo Restoration
+
+- [x] Compared the live Residents and homepage footer DOM in the Codex browser.
+- [x] Confirmed the Residents export was missing the homepage's logo widget rather than merely hiding it through overflow.
+- [x] Restored the same `pxl_logo` widget, Casa Nirvana logo asset and column position used by the approved homepage footer.
+- [x] Added a meaningful logo label and retained the compact footer copy and visible social placeholders.
+- [ ] Owner visual approval of the complete Residents footer brand row remains open.
+- [ ] Apply this verified compact footer pattern during each remaining route-specific footer pass; do not change the homepage footer.

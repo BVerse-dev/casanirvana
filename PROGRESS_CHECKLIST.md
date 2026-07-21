@@ -1593,3 +1593,11 @@ Date: 2026-02-06
 - [x] Restored visible social glyphs without enabling dead or unapproved destinations.
 - [x] Recorded implementation evidence in `MARKETING_SITE_IMPLEMENTATION_CHECKLIST.md`.
 - [ ] Owner visual approval remains open.
+
+## 2026-07-21 - Phase 50 Residents Footer Logo Restoration
+
+- [x] Confirmed through live DOM comparison that the Residents footer lacked the homepage logo widget.
+- [x] Restored the approved homepage logo structure and asset in the matching Residents footer column.
+- [x] Preserved the compact copy, social-icon geometry and footer navigation layout.
+- [x] Recorded implementation evidence in `MARKETING_SITE_IMPLEMENTATION_CHECKLIST.md`.
+- [ ] Use this verified treatment for remaining route footers while leaving the homepage unchanged.
