@@ -1642,3 +1642,11 @@ Date: 2026-02-06
 - [x] Recorded implementation evidence in `MARKETING_SITE_IMPLEMENTATION_CHECKLIST.md`.
 - [ ] Include this section in the consolidated Security Guards owner verification pass.
 - [ ] Continue with the lower marquee independently.
+
+## 2026-07-21 - Phase 50 Security Guards Lower Marquee
+
+- [x] Removed the final inherited AI customer-service language from the lower guard marquee.
+- [x] Preserved its exact three-node loop, decorative imagery and animation behavior.
+- [x] Recorded implementation evidence in `MARKETING_SITE_IMPLEMENTATION_CHECKLIST.md`.
+- [ ] Include this section in the consolidated Security Guards owner verification pass.
+- [ ] Continue with the product carousel independently.

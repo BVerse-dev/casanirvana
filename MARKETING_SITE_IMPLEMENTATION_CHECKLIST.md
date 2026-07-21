@@ -744,3 +744,11 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Preserved the three-column layout, icon widgets, image assets and staggered reveal timing.
 - [ ] Include this section in the consolidated Security Guards owner verification pass.
 - [ ] Continue with the lower Security Guards marquee independently.
+
+## 2026-07-21 - Security Guards Lower Marquee
+
+- [x] Audited the separate lower marquee and retained all three nodes required by its continuous animation.
+- [x] Replaced the remaining inherited AI customer-service phrase with guard-app, gate-access and operational-handover positioning.
+- [x] Preserved the exact wrappers, decorative image nodes and animation behavior.
+- [ ] Include this section in the consolidated Security Guards owner verification pass.
+- [ ] Continue with the Security Guards product carousel independently.
