@@ -1468,3 +1468,11 @@ Date: 2026-02-06
 - [x] Recorded the implementation evidence in `MARKETING_SITE_IMPLEMENTATION_CHECKLIST.md`.
 - [ ] Owner motion, copy and visual approval remains open.
 - [ ] Continue with the next Residents content section independently.
+
+## 2026-07-21 - Phase 50 Residents Core Features Grid
+
+- [x] Corrected inherited demo data and unsupported integration claims across the Residents Core Features grid.
+- [x] Preserved the exact four-card structure, image assets, animation hooks and visual footprint.
+- [x] Connected the rollout CTA to the valid Contact route and recorded the implementation evidence.
+- [ ] Owner visual, copy and interaction approval remains open.
+- [ ] Continue with the next Residents section independently.

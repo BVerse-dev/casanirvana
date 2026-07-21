@@ -550,3 +550,13 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Preserved all three copies, decorative image nodes, wrappers and animation hooks.
 - [ ] Owner motion, copy and visual approval of this marquee remains open.
 - [ ] Audit the following Residents content section before making further edits; the separate lower marquee remains untouched.
+
+## 2026-07-21 - Residents Core Features Grid
+
+- [x] Audited the four-card Core Features section and its rollout CTA independently.
+- [x] Replaced inherited search, commerce and location samples in Amenity Booking with community amenity and status examples.
+- [x] Removed unsupported Jira, Google, Slack, Zoom and AI positioning from Visible Status while preserving icon footprints and card geometry.
+- [x] Replaced automatic incident-channel claims with resident workflow status copy and corrected the rollout CTA destination.
+- [x] Added meaningful labels to non-decorative content images without changing assets or animation hooks.
+- [ ] Owner visual, copy and interaction approval of this section remains open.
+- [ ] Audit the following Residents section before making further edits.
