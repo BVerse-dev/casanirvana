@@ -1434,5 +1434,14 @@ Date: 2026-02-06
 - [ ] SMTP-backed delivery evidence and owner form-state approval remain open.
 - [ ] Continue with the Products footer as a separate scope.
 
+## 2026-07-21 - Phase 50 Our Products Footer and Link Audit
+
+- [x] Audited the Products footer independently and corrected stale positioning, duplicate links and dead destinations.
+- [x] Hid unavailable social and language controls without removing their mirrored layout containers.
+- [x] Reorganized product navigation around valid Casa Nirvana routes and retained legal destinations.
+- [x] Recorded the implementation evidence in `MARKETING_SITE_IMPLEMENTATION_CHECKLIST.md`.
+- [ ] Owner visual and link approval remains open.
+- [ ] Products page-specific editorial work is complete pending owner approval and SMTP-backed contact delivery evidence.
+
 - [ ] Social profile destinations remain blocked on approved URLs.
 - [ ] Preview environment parity remains blocked on the decision to use isolated preview API keys or protected reuse of production keys.

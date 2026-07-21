@@ -516,3 +516,13 @@ Visual authority: local WordPress reference under `wordpress/`
 - [ ] SMTP-backed production delivery evidence remains required before the contact gate can pass.
 - [ ] Owner copy, form-state and visual approval remains open.
 - [ ] Audit the Products footer before making further edits.
+
+## 2026-07-21 - Our Products Footer and Link Audit
+
+- [x] Audited the Products footer positioning, navigation groups, social controls, utility links, legal links and language control independently.
+- [x] Replaced stale payment-platform positioning and the duplicated About, public 404, unsupported Careers and dead `#` destinations.
+- [x] Reorganized Product overview links around the four role experiences and Core Features.
+- [x] Hid unconfigured social and language controls while preserving their widget and grid containers.
+- [x] Manually edited only the Products snapshot footer; no cross-route content command was used.
+- [ ] Owner visual and link approval of the Products footer remains open.
+- [ ] The Products route editorial pass is complete pending owner approval and SMTP-backed form evidence.
