@@ -397,3 +397,13 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Manually edited only the subtitle, heading, paragraph and CTA label; artwork, layout, destination and animation markup remain unchanged.
 - [ ] Owner visual and editorial approval of this section remains open.
 - [ ] Audit the next visible About section before making further edits.
+
+## 2026-07-21 - About Us Security Section
+
+- [x] Audited all four security cards and their associated badge assets before editing.
+- [x] Removed unsupported ISO 27001, ISO 27701 and SOC 2 certification claims plus the overbroad live-monitoring claim.
+- [x] Replaced them with role-aware access, community-boundary, scoped-visibility and accountable-record wording grounded in the implemented platform.
+- [x] Hid the four inherited certification/security badge images while preserving their widget dimensions so the original card geometry does not collapse.
+- [x] Manually edited only this section; no route-wide content transformer was run.
+- [ ] Owner visual and editorial approval of this section remains open.
+- [ ] Audit the next visible About section before making further edits.

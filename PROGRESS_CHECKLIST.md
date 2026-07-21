@@ -1327,5 +1327,14 @@ Date: 2026-02-06
 - [ ] Owner approval of the revised section remains open.
 - [ ] Continue the About route one visible section at a time.
 
+## 2026-07-21 - Phase 50 About Us Security Section
+
+- [x] Audited and manually refined the four-card security section.
+- [x] Removed unsupported ISO and SOC 2 claims and prevented inherited certification badges from remaining visible.
+- [x] Replaced the claims with implementation-backed access, data-boundary, visibility and operational-record language.
+- [x] Preserved the card containers, spacing and animations without using the batch transformer.
+- [ ] Owner approval of the revised section remains open.
+- [ ] Continue the About route one visible section at a time.
+
 - [ ] Social profile destinations remain blocked on approved URLs.
 - [ ] Preview environment parity remains blocked on the decision to use isolated preview API keys or protected reuse of production keys.
