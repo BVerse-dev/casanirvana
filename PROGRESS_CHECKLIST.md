@@ -1311,5 +1311,13 @@ Date: 2026-02-06
 - [ ] Owner approval of the revised section remains open.
 - [ ] Continue through the About page one visible section at a time before moving to another route.
 
+## 2026-07-21 - Phase 50 About Us Role Summary Section
+
+- [x] Audited and manually refined the second reviewed About content section without using the batch transformer.
+- [x] Removed unsupported adoption and partnership wording.
+- [x] Clarified the separate resident, security-guard and facility-management responsibilities while preserving the mirrored UI.
+- [ ] Owner approval of the revised section remains open.
+- [ ] Continue the About route one visible section at a time.
+
 - [ ] Social profile destinations remain blocked on approved URLs.
 - [ ] Preview environment parity remains blocked on the decision to use isolated preview API keys or protected reuse of production keys.

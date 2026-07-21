@@ -379,3 +379,12 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Preserved the original panel containers, illustrations, icons, animation hooks, order and responsive styling.
 - [ ] Owner visual and editorial approval of this About section remains open.
 - [ ] Audit the next visible About section before making further edits.
+
+## 2026-07-21 - About Us Role Summary Section
+
+- [x] Audited the role-summary section independently before editing it.
+- [x] Removed unsupported customer-adoption and partner-delivery claims.
+- [x] Replaced abstract repeated benefits with distinct resident, guard and facility-team responsibilities backed by the implemented product.
+- [x] Manually edited only the six text nodes in this section; its image, icons, layout, spacing and animation markup remain unchanged.
+- [ ] Owner visual and editorial approval of this section remains open.
+- [ ] Audit the next visible About section before making further edits.
