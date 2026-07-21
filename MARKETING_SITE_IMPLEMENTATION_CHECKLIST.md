@@ -708,3 +708,12 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Constrained the Residents footer logo to the same width, height, containment and left alignment so the complete wordmark remains visible.
 - [x] Recorded `132 × 32px` as the required footer-logo size for every remaining route; the homepage remains unchanged.
 - [ ] Owner visual approval of the corrected Residents wordmark remains open after deployment.
+
+## 2026-07-21 - Security Guards Workflow Panels
+
+- [x] Audited the four panels across the mirrored two-row workflow layout.
+- [x] Differentiated Resident Directory, Visitor and Entry Controls, Incident Reporting, and Notifications and Shift Handover.
+- [x] Corrected the paused description-order defect before publishing so every panel maps to its intended guard workflow.
+- [x] Added distinct accessibility labels to both repeated visual assets while preserving the source images and responsive structure.
+- [ ] Include these panels in the consolidated Security Guards owner verification pass.
+- [ ] Continue with the connected-workflows tab section independently.

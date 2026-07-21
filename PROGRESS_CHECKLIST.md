@@ -1608,3 +1608,11 @@ Date: 2026-02-06
 - [x] Prevented oversized rendering from clipping the complete Casa Nirvana logo to its icon.
 - [x] Recorded this exact size for all remaining route footer passes without changing the homepage.
 - [ ] Owner visual approval remains open after deployment.
+
+## 2026-07-21 - Phase 50 Security Guards Workflow Panels
+
+- [x] Differentiated all four guard workflow panels without changing the mirrored two-row layout.
+- [x] Corrected the description mapping before release so each heading has its intended operational copy.
+- [x] Added distinct image labels and recorded evidence in `MARKETING_SITE_IMPLEMENTATION_CHECKLIST.md`.
+- [ ] Include this section in the consolidated Security Guards owner verification pass.
+- [ ] Continue with the connected-workflows tabs independently.
