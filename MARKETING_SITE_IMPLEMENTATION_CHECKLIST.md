@@ -488,3 +488,11 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Replaced the dead `#` CTA with a valid `/core-features/` destination while preserving the carousel settings and markup.
 - [ ] Owner interaction, copy and visual approval of the carousel remains open.
 - [ ] Audit the following marquee section before making further edits.
+
+## 2026-07-21 - Our Products Marquee
+
+- [x] Audited the animated marquee independently and confirmed its duplicate text nodes are required for the continuous loop.
+- [x] Replaced generic smart-solutions wording with concise connected-community positioning in both animation copies.
+- [x] Preserved the original marquee wrappers, classes, timing hooks and duplicate-node structure.
+- [ ] Owner motion, copy and visual approval of the marquee remains open.
+- [ ] Audit the following Products content section before making further edits.

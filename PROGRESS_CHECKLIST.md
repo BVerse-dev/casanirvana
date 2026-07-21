@@ -1409,5 +1409,13 @@ Date: 2026-02-06
 - [ ] Owner interaction, copy and visual approval remains open.
 - [ ] Continue with the Products marquee as a separate scope.
 
+## 2026-07-21 - Phase 50 Our Products Marquee
+
+- [x] Replaced the generic Products marquee phrase without removing the duplicate node required by its loop animation.
+- [x] Preserved the exact WordPress-derived marquee structure and behavior.
+- [x] Recorded the implementation evidence in `MARKETING_SITE_IMPLEMENTATION_CHECKLIST.md`.
+- [ ] Owner motion, copy and visual approval remains open.
+- [ ] Continue with the next Products content section independently.
+
 - [ ] Social profile destinations remain blocked on approved URLs.
 - [ ] Preview environment parity remains blocked on the decision to use isolated preview API keys or protected reuse of production keys.

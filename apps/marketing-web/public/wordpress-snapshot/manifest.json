@@ -168,8 +168,8 @@
       "source": "http://localhost:8882/our-products/",
       "output": "/wordpress-snapshot/pages/our-products/index.html",
       "title": "Our Products - Casa Nirvana",
-      "bytes": 373234,
-      "sha256": "47737840a0d7414c5b3c0b1bd4bf7ab315415611dbebca9a4f7b58c961b0c23f"
+      "bytes": 373238,
+      "sha256": "8ff2bce96775d84a0fe28cd0481b99c510fae8228475b1b00933060afc7def41"
     },
     "/our-team/": {
       "source": "http://localhost:8882/our-team/",
