@@ -615,3 +615,13 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Preserved carousel autoplay, loop, responsive slide counts, spacing, images and overlay controls.
 - [ ] Owner carousel interaction and visual approval remains open.
 - [ ] Audit the following Residents overview section before making further edits.
+
+## 2026-07-21 - Residents Overview Section
+
+- [x] Audited the two-column overview, supporting cards, imagery and demo CTA independently.
+- [x] Removed unsupported automation-builder, assignment, trigger and API-integration claims.
+- [x] Replaced repeated generic card descriptions with notices/communication and community-scope explanations.
+- [x] Added meaningful image labels and connected the dead demo CTA to `/contact-us/`.
+- [x] Preserved the original columns, image layering, icon cards and animation hooks.
+- [ ] Include this section in the consolidated Residents owner verification pass.
+- [ ] Continue with the Residents download section independently.

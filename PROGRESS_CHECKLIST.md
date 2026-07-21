@@ -1525,3 +1525,11 @@ Date: 2026-02-06
 - [x] Recorded the implementation evidence in `MARKETING_SITE_IMPLEMENTATION_CHECKLIST.md`.
 - [ ] Owner carousel interaction and visual approval remains open.
 - [ ] Continue with the Residents overview section independently.
+
+## 2026-07-21 - Phase 50 Residents Overview Section
+
+- [x] Removed unsupported automation claims and repeated generic copy from the Residents overview.
+- [x] Corrected image labels and the dead demo CTA without changing visual structure.
+- [x] Recorded the implementation evidence in `MARKETING_SITE_IMPLEMENTATION_CHECKLIST.md`.
+- [ ] Include this section in the consolidated Residents owner verification pass.
+- [ ] Continue with the Residents download section independently.
