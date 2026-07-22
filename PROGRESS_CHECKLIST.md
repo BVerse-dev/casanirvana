@@ -1659,3 +1659,39 @@ Date: 2026-02-06
 - [x] Recorded implementation evidence in `MARKETING_SITE_IMPLEMENTATION_CHECKLIST.md`.
 - [ ] Include this section in the consolidated Security Guards owner verification pass.
 - [ ] Continue with the overview section independently.
+
+## 2026-07-21 - Phase 50 Security Guards Overview Section
+
+- [x] Removed unsupported automation claims and duplicated generic copy from the guard overview.
+- [x] Corrected image labels and the dead demo CTA without changing visual structure.
+- [x] Recorded implementation evidence in `MARKETING_SITE_IMPLEMENTATION_CHECKLIST.md`.
+- [ ] Include this section in the consolidated Security Guards owner verification pass.
+- [ ] Continue with the Guard experience QR panel independently.
+
+## 2026-07-21 - Phase 50 Security Guards Experience QR Panel
+
+- [x] Removed inherited download and revenue-strategy wording from the guard experience panel.
+- [x] Retained the approved visible QR treatment and added a guard-specific label.
+- [x] Preserved the panel layout, decorative highlights and geometry.
+- [x] Recorded implementation evidence in `MARKETING_SITE_IMPLEMENTATION_CHECKLIST.md`.
+- [ ] Include this panel in the consolidated Security Guards owner verification pass.
+- [ ] Continue with the rollout CTA independently.
+
+## 2026-07-21 - Phase 50 Security Guards Rollout CTA
+
+- [x] Replaced the dead documentation control with a valid guard rollout CTA.
+- [x] Added the missing guard-experience image label.
+- [x] Preserved the original layout, styling and reveal animation.
+- [x] Recorded implementation evidence in `MARKETING_SITE_IMPLEMENTATION_CHECKLIST.md`.
+- [ ] Include this CTA in the consolidated Security Guards owner verification pass.
+- [ ] Continue with the footer and route closeout.
+
+## 2026-07-22 - Phase 50 Security Guards Footer and Route Closeout
+
+- [x] Added the homepage-sized Casa Nirvana footer wordmark and compact positioning copy.
+- [x] Restored visible social glyphs without enabling unapproved destinations and hid fake language controls.
+- [x] Removed inherited, unsupported and dead footer destinations and mapped every navigation label to its intended Casa Nirvana route.
+- [x] Completed the Security Guards page-specific editorial implementation pass.
+- [x] Recorded route evidence in `MARKETING_SITE_IMPLEMENTATION_CHECKLIST.md`.
+- [ ] Owner consolidated visual, interaction and copy approval remains open.
+- [ ] Continue with the Facility Managers route after Security Guards verification.

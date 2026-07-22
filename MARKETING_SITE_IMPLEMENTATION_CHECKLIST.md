@@ -761,3 +761,48 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Preserved carousel autoplay, loop, responsive slide counts, spacing, imagery and overlays.
 - [ ] Include this section in the consolidated Security Guards owner verification pass.
 - [ ] Continue with the Security Guards overview section independently.
+
+## 2026-07-21 - Security Guards Overview Section
+
+- [x] Audited the layered overview, supporting cards, imagery and demo CTA independently.
+- [x] Removed unsupported automation-builder, assignment, trigger and API-integration claims.
+- [x] Differentiated notification and community-scope descriptions, labeled all content images and connected the demo CTA to Contact.
+- [x] Preserved the original columns, image layering, icon cards and animation hooks.
+- [ ] Include this section in the consolidated Security Guards owner verification pass.
+- [ ] Continue with the Guard experience QR panel independently.
+
+## 2026-07-21 - Security Guards Experience QR Panel
+
+- [x] Audited the panel label, highlighted heading, shared QR asset and live dimensions independently.
+- [x] Replaced the inherited scan/download claim and revenue-strategy wording with concise Guard experience rollout copy.
+- [x] Retained the visible `158 × 158px` QR treatment used across the approved marketing design and added an accessibility label.
+- [x] Preserved the highlighted heading nodes, QR container and section geometry.
+- [ ] Include this panel in the consolidated Security Guards owner verification pass.
+- [ ] Continue with the Security Guards rollout CTA independently.
+
+## 2026-07-21 - Security Guards Rollout CTA
+
+- [x] Audited the accurate guard-tools heading, CTA destination, control label and full-width image independently.
+- [x] Replaced the dead documentation control with `Plan your rollout` linked to `/contact-us/`.
+- [x] Added a guard-experience label to the CTA image while preserving its asset and reveal treatment.
+- [x] Preserved the original CTA layout, styling and animation.
+- [ ] Include this CTA in the consolidated Security Guards owner verification pass.
+- [ ] Continue with the Security Guards footer and route closeout.
+
+## 2026-07-22 - Security Guards Footer and Route Closeout
+
+- [x] Audited the footer positioning, logo, navigation groups, utility links, legal links, social controls and language widgets.
+- [x] Added the complete Casa Nirvana wordmark at the approved homepage footer size of `132 × 32px`.
+- [x] Replaced the long demo positioning statement with `Community life, connected.` and retained visible, non-navigating social glyphs.
+- [x] Removed the duplicate About destination, public 404, unsupported Careers links, dead utility destinations and stale WordPress link-error markers.
+- [x] Reorganized Product Overview around Residents, Security Guards, Facility Managers, Marketplace and Core Features.
+- [x] Corrected every footer destination by matching its visible label to its own anchor and hid both fake language controls without removing their layout footprints.
+- [x] Completed all known Security Guards sections through isolated audits and direct section edits.
+- [ ] Owner consolidated visual, interaction and copy verification of `/security-guards/` remains open.
+
+## 2026-07-22 - Security Guards Route Session Summary
+
+- [x] Completed the overview, Guard experience QR panel, rollout CTA and standardized footer closeout.
+- [x] Preserved the approved WordPress-derived layouts, decorative elements, images and animation hooks throughout the closeout.
+- [x] Kept the shared QR asset visible and matched the footer wordmark to the homepage dimensions.
+- [ ] Continue with `/facility-managers/` after owner verification of the completed Security Guards route.
