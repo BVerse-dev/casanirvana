@@ -15,3 +15,22 @@ Copyright (c) 2025 Bravis-Themes. All rights reserved.
 This theme is licensed under the GPL-2.0+ license.
 Tags: Blog, E-Commerce, Portfolio, Grid Layout, One Column, Two Columns, Three Columns, Four Columns, Left Sidebar, Right Sidebar, Custom Background, Custom Colors, Custom Header, Custom Logo, custom-menu, Editor Style, Featured Image Header, Featured Images, flexible-header, Footer Widgets, Full Width Template, microformats, Post Formats, Sticky Post, Theme Options, threaded-comments, translation-ready, Block Editor Styles, Wide Blocks
 */
+
+/* Keep the approved desktop header on one row before the mobile breakpoint. */
+@media screen and (min-width: 1201px) and (max-width: 1350px) {
+  .elementor-1318 .elementor-element.elementor-element-ce660e8 > .elementor-widget-container,
+  .elementor-6463 .elementor-element.elementor-element-cc16be2 > .elementor-widget-container {
+    margin-right: 36px;
+  }
+
+  .elementor-1318 .elementor-element.elementor-element-daa6743 .pxl-nav-menu .pxl-menu-primary > li,
+  .elementor-6463 .elementor-element.elementor-element-0c0e2c5 .pxl-nav-menu .pxl-menu-primary > li {
+    margin-right: 8px;
+    margin-left: 8px;
+  }
+
+  .elementor-1318 .elementor-element.elementor-element-cd85ef2,
+  .elementor-6463 .elementor-element.elementor-element-3515dd3 {
+    display: none;
+  }
+}
