@@ -5,7 +5,6 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 
 import "./globals.css";
-import "./mirrored-header.css";
 
 const walsheim = localFont({
   variable: "--font-walsheim",
@@ -56,6 +55,19 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
 
   return (
     <html lang="en" className={`${walsheim.variable} ${jakarta.variable}`} data-scroll-behavior="smooth">
+      <head>
+        <link rel="stylesheet" href="/wp-content/plugins/bravis-addons/assets/css/main.css?ver=1.0.0" />
+        <link rel="stylesheet" href="/wp-content/plugins/bravis-addons/assets/libs/font-awesome-pro/css/all.min.css?ver=5.15.4-pro" />
+        <link rel="stylesheet" href="/wp-content/plugins/elementor/assets/lib/eicons/css/elementor-icons.min.css?ver=5.44.0" />
+        <link rel="stylesheet" href="/assets/uploads/elementor/css/custom-frontend.min.css?ver=1784455171" />
+        <link rel="stylesheet" href="/wp-content/themes/saliver/assets/fonts/flaticon/css/flaticon.css?ver=1.0.0" />
+        <link rel="stylesheet" href="/wp-content/themes/saliver/assets/css/caseicon.css?ver=1.0.0" />
+        <link rel="stylesheet" href="/wp-content/themes/saliver/assets/css/grid.css?ver=1.0.0" />
+        <link rel="stylesheet" href="/wp-content/themes/saliver/assets/css/style.css?ver=1518199841" />
+        <link rel="stylesheet" href="/wp-content/themes/saliver/style.css?ver=1.0.0" />
+        <link rel="stylesheet" href="/wp-content/themes/saliver-child/style.css?ver=7.0.2" />
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap" />
+      </head>
       <body>
         <a className="pxl-skip-link" href="#main-content">Skip to content</a>
         <SiteHeader />
