@@ -806,3 +806,14 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Preserved the approved WordPress-derived layouts, decorative elements, images and animation hooks throughout the closeout.
 - [x] Kept the shared QR asset visible and matched the footer wordmark to the homepage dimensions.
 - [ ] Continue with `/facility-managers/` after owner verification of the completed Security Guards route.
+
+### 2026-07-22 - Facility Managers route editorial completion
+
+- Status: Implementation complete; pending owner visual verification.
+- Completed the audited Facility Managers route section by section without changing the WordPress-derived hierarchy, classes, animation hooks, or responsive structure.
+- Replaced inherited Saliver/demo language across the capability grid, operational workflows, tabs, benefits, marquee, overview, QR panel, and final CTA with supported Casa Nirvana facility-management copy.
+- Replaced dead portfolio/demo destinations with valid Casa Nirvana routes and added meaningful media labels where the exported content required them.
+- Standardized the non-homepage footer with the 132 x 32 Casa Nirvana wordmark, compact copy, non-navigating social glyphs, hidden placeholder language controls, and valid product/legal navigation.
+- Preserved the visible QR treatment and the original Elementor layout/animation behavior.
+- Acceptance evidence: `npm run build` passed in `apps/marketing-web` on Next.js 16.2.10; 22 static pages generated successfully.
+- Remaining evidence: owner desktop/mobile visual signoff and approved QR destination confirmation.

@@ -1695,3 +1695,12 @@ Date: 2026-02-06
 - [x] Recorded route evidence in `MARKETING_SITE_IMPLEMENTATION_CHECKLIST.md`.
 - [ ] Owner consolidated visual, interaction and copy approval remains open.
 - [ ] Continue with the Facility Managers route after Security Guards verification.
+
+### 2026-07-22 - Phase 50 Facility Managers route
+
+- [x] Completed the Facility Managers route content and navigation pass section by section while preserving the WordPress-derived visual structure.
+- [x] Applied the standard non-homepage footer treatment and retained the shared QR panel.
+- [x] Replaced inherited demo/portfolio links with valid Casa Nirvana destinations.
+- [x] Passed the marketing production build on Next.js 16.2.10 with all 22 static pages generated.
+- [ ] Owner visual parity signoff at desktop and mobile viewports.
+- [ ] Confirm the final approved QR destination before launch freeze.
