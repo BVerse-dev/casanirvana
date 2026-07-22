@@ -875,6 +875,7 @@ Visual authority: local WordPress reference under `wordpress/`
 - Release evidence: transform syntax passed; snapshot audit passed all 11 configured routes; four marketing validation tests passed; the Next.js 16.2.10 build generated all 24 marketing routes; and the Superadmin build generated all 237 routes successfully under Node 22.
 - Blocker: resident app public download/deep-link URL must be confirmed before the download action can be enabled.
 - Blocker: applicant acknowledgement and internal notification email remain deferred until SMTP configuration and approved legal copy are available.
+- Cache correction: versioned the WordPress compatibility form script across all 11 approved snapshots and the normalization source so immutable browser caching cannot retain stale CTA or Contact behavior.
 
 ### 2026-07-22 - Core Features how-it-works refinement
 

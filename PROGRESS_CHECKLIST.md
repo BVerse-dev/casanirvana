@@ -1830,5 +1830,6 @@ Date: 2026-02-06
 - [x] Added audience-route sitemap entries and form-validation coverage.
 - [ ] Confirm the production resident app download/deep-link URL.
 - [ ] Configure SMTP and add applicant/internal onboarding notifications.
+- [x] Versioned the native WordPress form compatibility asset across all approved routes to invalidate stale immutable browser caches.
 - [x] Passed four marketing tests, transform syntax, the 11-route snapshot audit, the 24-route marketing build and the 237-route Superadmin build under Node 22.
 - [ ] Verify the deployed gateway, resident flow, manager form and Contact separation.
