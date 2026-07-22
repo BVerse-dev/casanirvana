@@ -144,6 +144,11 @@
   white-space: nowrap;
 }
 
+#pxl-header-elementor.casa-mirrored-header .casa-header-outline-action,
+#pxl-header-elementor.casa-mirrored-header .casa-header-rollout-action {
+  padding: 0;
+}
+
 #pxl-header-elementor.casa-mirrored-header .casa-header-outline-action {
   margin-right: 10px;
 }
