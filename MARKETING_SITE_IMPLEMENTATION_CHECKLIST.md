@@ -866,3 +866,15 @@ Visual authority: local WordPress reference under `wordpress/`
 
 - Reworked the opening how-it-works content into a non-repetitive sequence: configure the community, invite authorized members and use role-focused tools.
 - Updated both the committed snapshot and regeneration mapping while preserving the original card and accordion layout and animation behavior.
+
+### 2026-07-22 - FAQs route editorial completion
+
+- Status: Implementation complete; pending owner visual verification.
+- Audited every FAQ group, answer, contact block and footer while preserving the WordPress-derived accordion, form, responsive and animation structure.
+- Replaced inherited agency category labels with product-specific access, capability and operations groupings.
+- Refined integration and operational-status answers to reflect configured availability and community-scoped access without unsupported guarantees.
+- Corrected direct contact links to `hello@casanirvana.app` and removed the fake telephone destination.
+- Applied the standard non-homepage footer with the owned 132 x 32 wordmark, compact copy, non-navigating social glyphs, hidden placeholder language controls and valid navigation.
+- Synchronized regeneration mappings for category entities, revised answers and contact destinations.
+- Release evidence: transform syntax passed; snapshot audit passed all 11 approved routes; Next.js 16.2.10 production build generated all 22 pages successfully.
+- Remaining evidence: owner desktop/mobile visual signoff and production contact-form delivery after SMTP configuration.

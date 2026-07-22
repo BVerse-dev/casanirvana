@@ -1751,3 +1751,14 @@ Date: 2026-02-06
 
 - [x] Replaced repetitive how-it-works copy with a distinct configuration, invitation and role-focused workflow sequence.
 - [x] Kept the WordPress-derived structure unchanged and synchronized the capture transform.
+
+### 2026-07-22 - Phase 50 FAQs route
+
+- [x] Audited and completed all FAQ groups without changing the WordPress-derived accordion layout.
+- [x] Replaced inherited agency category labels with Casa Nirvana access, capability and operations groupings.
+- [x] Refined integration and operational-status answers to match configured product behavior.
+- [x] Corrected the direct email destination and removed the fake telephone link.
+- [x] Applied the standard non-homepage footer treatment and synchronized regeneration mappings.
+- [x] Passed transform syntax, the 11-route snapshot audit and the 22-page production build.
+- [ ] Owner visual parity signoff at desktop and mobile viewports.
+- [ ] Verify production contact-form delivery after SMTP configuration is available.
