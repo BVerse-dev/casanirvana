@@ -1049,3 +1049,11 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Verified the mobile footer logo remains 132x32 and placeholder language controls remain hidden/off-canvas.
 - [x] Confirmed the route produces no browser warnings or errors.
 - [ ] Replace the correctly sized Saliver artwork with the approved Casa Nirvana wordmark and obtain owner visual signoff.
+
+## 2026-07-22 - Marketplace responsive parity checkpoint
+
+- [x] Audited `/marketplace/` at 1440x900, 1280x800, 1024x768, 768x1024, 390x844 and 360x800.
+- [x] Confirmed zero horizontal overflow, zero broken loaded images, correct desktop/mobile header switching, footer presence and no repeated section headings.
+- [x] Confirmed the previously reported repeated Order status content is absent; valid Cart references remain differentiated by fulfilment, cart and authenticated-account context.
+- [x] Verified the marketplace QR renders at 158x158, the mobile footer logo remains 132x32 and the browser console is clean.
+- [ ] Replace the correctly sized Saliver artwork with the approved Casa Nirvana wordmark and obtain owner visual signoff.
