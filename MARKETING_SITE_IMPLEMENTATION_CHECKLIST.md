@@ -989,3 +989,14 @@ Visual authority: local WordPress reference under `wordpress/`
 - [ ] Add and verify applicant/internal email delivery after SMTP details are supplied; SMTP is intentionally deferred and does not block the current visual pass.
 - [ ] Record owner visual signoff for the three onboarding routes after the approved brand asset is installed.
 - Evidence commits: `0251c0ac`, `45d6c865`.
+
+## 2026-07-22 - Homepage responsive and snapshot cache checkpoint
+
+- [x] Audited the homepage at 1440x900, 1280x800, 1024x768, 768x1024, 390x844 and 360x800.
+- [x] Confirmed zero horizontal overflow, no broken loaded images, an intact footer, responsive hero-form sizing and the intended desktop/mobile header switch at every required width.
+- [x] Updated only the 11 approved snapshot routes from the stale child-theme cache key `7.0.2` to `7.0.3`; excluded WordPress archive/demo routes remain untouched.
+- [x] Corrected unsafe non-idempotent transform mappings that could mutate Marketplace labels, the Residents headline and Pricing content/embedded JavaScript on repeated runs.
+- [x] Confirmed a second content-transform run applies zero replacements across zero routes.
+- [x] Production evidence at 1280x800: `7.0.3` loaded, 66px primary header, hidden placeholder language control, zero horizontal overflow and zero broken images.
+- [ ] Replace the Saliver logo artwork with the approved Casa Nirvana wordmark before final homepage parity signoff.
+- Evidence commit: `083c69e2`.

@@ -1863,3 +1863,13 @@ Date: 2026-02-06
 - [ ] Configure the approved resident app destination.
 - [ ] Configure and verify onboarding/contact delivery when SMTP details are provided; this remains intentionally deferred.
 - [ ] Complete owner parity signoff for the onboarding route group after the open dependencies above are resolved.
+
+### 2026-07-22 - Phase 50 homepage responsive parity checkpoint
+
+- [x] Audited the homepage at all six required desktop, tablet and mobile viewports.
+- [x] Confirmed zero overflow, zero broken loaded images, responsive hero-form sizing, footer presence and correct desktop/mobile header switching.
+- [x] Versioned the child-theme stylesheet across only the 11 approved snapshots so the 1201-1350px header correction cannot be hidden by the old browser cache key.
+- [x] Removed unsafe broad transform mappings and confirmed the approved-route transform is idempotent on a second run.
+- [x] Verified the live homepage at 1280x800 with a 66px one-row header, hidden placeholder language control and no horizontal overflow.
+- [ ] Approved Casa Nirvana wordmark installation and owner visual signoff remain open.
+- Evidence commit: `083c69e2`.
