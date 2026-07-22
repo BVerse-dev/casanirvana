@@ -1075,3 +1075,11 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Confirmed repeated Casa Nirvana card headings are intentional shared brand labels for distinct Resident experience, Guard operations and Facility oversight content.
 - [x] Verified mobile accordion opening exposes visible answer content and the footer logo remains 132x32.
 - [ ] Replace the correctly sized Saliver artwork with the approved Casa Nirvana wordmark and obtain owner visual signoff.
+
+## 2026-07-22 - FAQs responsive parity checkpoint
+
+- [x] Audited `/faqs/` at 1440x900, 1280x800, 1024x768, 768x1024, 390x844 and 360x800.
+- [x] Confirmed zero horizontal overflow, zero broken loaded images, correct desktop/mobile header switching, footer presence, no repeated section headings and a clean browser console.
+- [x] Verified all six capability cards use local icons with descriptive alt text and distinct Visitor, Resident, Security, Facility, Marketplace and Community Operations copy.
+- [x] Verified the ten-item FAQ accordion opens with visible answer content on mobile and the footer logo remains 132x32.
+- [ ] Verify production contact-form delivery when SMTP details are supplied; replace the Saliver artwork and obtain owner visual signoff.
