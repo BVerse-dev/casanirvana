@@ -1040,3 +1040,12 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Confirmed guard rollout actions resolve to valid Contact, Pricing and Get Started destinations and the mobile footer logo remains 132x32.
 - [ ] Replace the correctly sized Saliver artwork with the approved Casa Nirvana wordmark and obtain owner visual signoff.
 - Evidence commit: `51f1b0f4`.
+
+## 2026-07-22 - Facility Managers responsive parity checkpoint
+
+- [x] Audited `/facility-managers/` at 1440x900, 1280x800, 1024x768, 768x1024, 390x844 and 360x800.
+- [x] Confirmed zero horizontal overflow, zero broken loaded images, correct desktop/mobile header switching, footer presence, no repeated section headings and no repeated Order status labels.
+- [x] Verified the management-experience QR lazy-loads and renders at 158x158.
+- [x] Verified the mobile footer logo remains 132x32 and placeholder language controls remain hidden/off-canvas.
+- [x] Confirmed the route produces no browser warnings or errors.
+- [ ] Replace the correctly sized Saliver artwork with the approved Casa Nirvana wordmark and obtain owner visual signoff.

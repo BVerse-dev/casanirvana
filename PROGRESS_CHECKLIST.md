@@ -1907,3 +1907,10 @@ Date: 2026-02-06
 - [x] Verified five heading-animation targets, valid rollout links, a clean browser console and the 132x32 mobile footer logo.
 - [ ] Approved Casa Nirvana wordmark installation and owner visual signoff remain open.
 - Evidence commit: `51f1b0f4`.
+
+### 2026-07-22 - Phase 50 Facility Managers responsive parity checkpoint
+
+- [x] Audited Facility Managers at all six required desktop, tablet and mobile viewports.
+- [x] Confirmed zero overflow, zero broken loaded images, no repeated headings or Order status labels, footer presence and correct header switching.
+- [x] Verified the 158x158 management QR, 132x32 mobile footer logo, hidden language placeholders and a clean browser console.
+- [ ] Approved Casa Nirvana wordmark installation and owner visual signoff remain open.
