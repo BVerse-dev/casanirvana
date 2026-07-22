@@ -65,7 +65,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <link rel="stylesheet" href="/wp-content/themes/saliver/assets/css/grid.css?ver=1.0.0" />
         <link rel="stylesheet" href="/wp-content/themes/saliver/assets/css/style.css?ver=1518199841" />
         <link rel="stylesheet" href="/wp-content/themes/saliver/style.css?ver=1.0.0" />
-        <link rel="stylesheet" href="/wp-content/themes/saliver-child/style.css?ver=7.0.2" />
+        <link rel="stylesheet" href="/wp-content/themes/saliver-child/style.css?ver=7.0.3" />
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap" />
       </head>
       <body>
