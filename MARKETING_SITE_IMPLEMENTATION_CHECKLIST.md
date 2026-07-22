@@ -948,3 +948,12 @@ Visual authority: local WordPress reference under `wordpress/`
 - Release evidence: transform syntax passed; snapshot audit passed all 11 configured routes; Next.js 16.2.10 production build generated all 22 pages successfully under Node 22.
 - Production evidence: commit `ce789406` was observed live at `casanirvana.app`; the corrected homepage, Products, Core Features, FAQs and Contact routes have no audited stale destinations, dead named links or broken loaded images.
 - Remaining evidence: owner desktop/mobile visual signoff.
+
+## 2026-07-22 - WordPress header parity correction
+
+- [x] Replaced the onboarding-only custom header with the WordPress-derived dual header structure: black primary header, independently animated white sticky pill, and Saliver mobile navigation pattern.
+- [x] Preserved the source 100px activation threshold, 0.6s cubic-bezier transition, 1300px shell, 40px radius, source logos, menu hierarchy, CTA styling, and sticky shadow.
+- [x] Live production evidence on `/get-started/community/`: sticky state activates while scrolled, reverses at `scrollY: 0`, and produces zero horizontal overflow.
+- [x] Verification evidence: snapshot audit passed for 11 routes; 4 form tests passed; Next.js production build generated 24 routes.
+- [ ] Mobile viewport visual parity remains part of the systematic route-by-route viewport signoff.
+- Commits: `3376a89d`, `2e7e3797`.

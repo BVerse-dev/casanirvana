@@ -1835,3 +1835,9 @@ Date: 2026-02-06
 - [x] Verified the deployed gateway, both resident tab flows, manager form/email handoff, Contact separation and role-aware production CTA destinations through the Codex browser.
 - [x] Aligned the onboarding header navigation and conversion actions with the mirrored site header and added reduced-motion-safe onboarding animations.
 - [x] Verified the deployed desktop header geometry, exact menu order, dual actions, zero horizontal overflow and live onboarding animation states through the Codex browser.
+
+### 2026-07-22 - Phase 50 header parity checkpoint
+
+- Replaced the standalone Next.js onboarding navigation approximation with the copied WordPress/Saliver primary, sticky-pill, and mobile header patterns.
+- Production verification confirmed reversible sticky behavior, source geometry, and no horizontal overflow.
+- Marketing snapshot audit, tests, and production build passed; mobile viewport signoff remains open under the Phase 50 parity gate.
