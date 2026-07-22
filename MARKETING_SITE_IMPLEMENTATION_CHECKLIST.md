@@ -1020,3 +1020,13 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Confirmed the route produces no browser warnings or errors after the shared Saliver animation cleanup.
 - [x] Verified the ten-item product FAQ interaction on mobile: the selected item enters its active state and exposes visible answer content.
 - [ ] Replace the Saliver logo artwork and obtain owner visual signoff.
+
+## 2026-07-22 - Residents responsive parity checkpoint
+
+- [x] Audited `/residents/` at 1440x900, 1280x800, 1024x768, 768x1024, 390x844 and 360x800.
+- [x] Confirmed zero horizontal overflow, zero broken loaded images, correct desktop/mobile header switching, footer presence, no repeated section headings and no browser warnings/errors.
+- [x] Confirmed the resident-experience QR lazy-loads and renders at its native 158x158 dimensions.
+- [x] Compared the mobile footer against the approved homepage footer and corrected the non-home logo from 330x80 to 132x32 without changing homepage markup.
+- [x] Verified the live 360x800 route with a 158x158 QR, 132x32 footer logo, zero overflow and a clean console.
+- [ ] Replace the correctly sized Saliver artwork with the approved Casa Nirvana wordmark and obtain owner visual signoff.
+- Evidence commit: `6f0ddf24`.

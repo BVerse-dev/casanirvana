@@ -1890,3 +1890,11 @@ Date: 2026-02-06
 - [x] Confirmed zero overflow, zero broken loaded images, no repeated section headings, footer presence and correct header switching.
 - [x] Verified a clean browser console and functional mobile product-FAQ expansion.
 - [ ] Approved Casa Nirvana wordmark installation and owner visual signoff remain open.
+
+### 2026-07-22 - Phase 50 Residents responsive parity checkpoint
+
+- [x] Audited Residents at all six required desktop, tablet and mobile viewports.
+- [x] Confirmed zero overflow, zero broken loaded images, no repeated section headings, footer presence, correct header switching and a clean browser console.
+- [x] Verified the resident QR at 158x158 and normalized non-home footer logo dimensions to the homepage-approved 132x32 size.
+- [ ] Approved Casa Nirvana wordmark installation and owner visual signoff remain open.
+- Evidence commit: `6f0ddf24`.
