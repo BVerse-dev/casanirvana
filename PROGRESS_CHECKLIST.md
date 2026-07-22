@@ -1960,3 +1960,15 @@ Date: 2026-02-06
 - [x] Removed the shared React footer's base and responsive size conflicts and verified the production logo container at 132x32.
 - [ ] Final legal approval, approved Casa Nirvana wordmark installation and owner visual signoff remain open.
 - Evidence commits: `07f5ac2c`, `44709aa3`.
+
+### 2026-07-22 - Phase 50 Terms of Service responsive parity checkpoint
+
+- [x] Audited Terms of Service at all six required desktop, tablet and mobile viewports.
+- [x] Confirmed zero overflow, zero broken loaded images, footer presence and no fresh production browser warnings or errors.
+- [x] Verified 15 distinct implementation-aligned sections, no repeated headings, visible draft status, `noindex, nofollow` metadata and the 132x32 shared footer.
+- [ ] Final legal approval, approved Casa Nirvana wordmark installation and owner visual signoff remain open.
+
+### 2026-07-22 - Phase 50 required-route responsive sequence complete
+
+- [x] Completed the six-viewport production sequence for every approved marketing route, all role-aware onboarding routes, Contact Us, Privacy Policy and Terms of Service.
+- [ ] SMTP delivery, legal/commercial approval, Preview environment configuration, approved brand artwork and owner visual signoff remain release gates.

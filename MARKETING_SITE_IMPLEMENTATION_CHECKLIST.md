@@ -1106,3 +1106,17 @@ Visual authority: local WordPress reference under `wordpress/`
 - [ ] Obtain legal approval for the contracting entity, processor/subprocessor disclosures, international-transfer safeguards, retention schedule and final data-rights procedure.
 - [ ] Replace the correctly sized Saliver artwork with the approved Casa Nirvana wordmark and obtain owner visual signoff.
 - Evidence commits: `07f5ac2c`, `44709aa3`.
+
+## 2026-07-22 - Terms of Service responsive parity checkpoint
+
+- [x] Audited `/terms-of-service/` at 1440x900, 1280x800, 1024x768, 768x1024, 390x844 and 360x800.
+- [x] Confirmed zero horizontal overflow, zero broken loaded images, footer presence and no fresh production browser warnings or errors.
+- [x] Verified the route remains visibly labeled `Terms of Service (Draft)`, contains 15 distinct implementation-aligned sections with no repeated headings and emits `noindex, nofollow` until legal approval.
+- [x] Verified the corrected shared footer remains 132x32 at every required viewport.
+- [ ] Obtain legal approval for the contracting entity, user eligibility, governing law, fees, refunds, liability, indemnity, suspension, termination and dispute provisions.
+- [ ] Replace the correctly sized Saliver artwork with the approved Casa Nirvana wordmark and obtain owner visual signoff.
+
+## 2026-07-22 - Required-route responsive audit sequence complete
+
+- [x] Completed systematic six-viewport production checks for all approved marketing, onboarding, Contact, Privacy and Terms routes.
+- [x] Preserved SMTP delivery, approved brand artwork, owner visual signoff, Preview environment configuration and legal/commercial approval as explicit open gates rather than treating them as completed.
