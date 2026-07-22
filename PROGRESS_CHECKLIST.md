@@ -1768,3 +1768,14 @@ Date: 2026-02-06
 - [x] Repointed all six broken remote icon URLs to existing local SVG assets.
 - [x] Added distinct content for every capability card and corrected the Facility Management label.
 - [x] Synchronized occurrence-aware card copy and asset mappings for future extraction.
+
+### 2026-07-22 - Phase 50 Contact Us route
+
+- [x] Audited and completed the Contact Us route without changing its WordPress-derived layout or form styling.
+- [x] Corrected the direct email destination and removed the fake telephone link.
+- [x] Replaced the inherited London map with an accessible Accra, Ghana embed.
+- [x] Made the message prompt community-specific and retained the approved enquiry categories.
+- [x] Applied the standard non-homepage footer treatment and synchronized regeneration mappings.
+- [x] Passed transform syntax, the 11-route snapshot audit and the 22-page production build.
+- [ ] Owner visual parity signoff at desktop and mobile viewports.
+- [ ] Verify production contact-form delivery after SMTP configuration is available.

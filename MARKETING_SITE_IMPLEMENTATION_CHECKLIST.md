@@ -884,3 +884,15 @@ Visual authority: local WordPress reference under `wordpress/`
 - Restored all six capability-card icons by replacing unavailable remote Saliver URLs with the existing mirrored SVG assets.
 - Replaced repeated card descriptions with distinct visitor, resident, guard, facility, marketplace and community-operations content.
 - Added descriptive icon alternative text and synchronized occurrence-aware regeneration mappings.
+
+### 2026-07-22 - Contact Us route editorial completion
+
+- Status: Implementation complete; pending owner visual verification and SMTP delivery evidence.
+- Audited the form, direct-contact details, location embed and footer while preserving the WordPress-derived layout, responsive styling and form presentation.
+- Retained the product-demo, community-onboarding, partnership and general-enquiry flow and made the message prompt community-specific.
+- Corrected direct contact links to `hello@casanirvana.app` and removed the fake telephone destination.
+- Replaced the inherited London Eye map with an Accra, Ghana embed and accurate accessibility labels.
+- Applied the standard non-homepage footer with the owned 132 x 32 wordmark, compact copy, non-navigating social glyphs, hidden placeholder language controls and valid navigation.
+- Synchronized the contact, map and form-copy regeneration mappings.
+- Release evidence: transform syntax passed; snapshot audit passed all 11 approved routes; Next.js 16.2.10 production build generated all 22 pages successfully.
+- Remaining evidence: owner desktop/mobile visual signoff and production contact-form delivery after SMTP configuration.
