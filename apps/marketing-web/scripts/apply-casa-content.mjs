@@ -7,6 +7,8 @@ const publicRoot = path.join(appRoot, "public");
 const manifestPath = path.join(publicRoot, "wordpress-snapshot", "manifest.json");
 const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
 const canonicalSiteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://casanirvana.app").replace(/\/$/, "");
+const childThemeStylesheetV2 = "/wp-content/themes/saliver-child/style.css?ver=7.0.2";
+const childThemeStylesheetV3 = "/wp-content/themes/saliver-child/style.css?ver=7.0.3";
 
 const snapshotSeo = {
   "/": { title: "Connected Community Operations", description: "Casa Nirvana connects residents, security guards and facility managers through visitor, request, communication and community operations workflows." },
@@ -26,7 +28,6 @@ const sharedLaunchReplacements = [
   ["Send Money", "Get Started"],
   ["Log Out", "Book a Demo"],
   ["Blog", "Pricing"],
-  ["essential", "Casa Nirvana"],
   ["refund policy", "privacy policy"],
   ["Our team", "About us"],
   ["Documentation", "Product overview"],
@@ -35,7 +36,6 @@ const sharedLaunchReplacements = [
   ["API", "Contact"],
   ["Templates", "Products"],
   ["Public Roadmap", "FAQs"],
-  ["Cart", "Marketplace"],
   ["(0 items)", "Resident access"],
   ["Your cart is empty", "Marketplace availability follows community configuration"],
   ["Browse Shop", "Explore products"],
@@ -615,7 +615,6 @@ const routeTransforms = {
       ["$29/month", "Contact-led"],
       ["$56/month", "Scoped quote"],
       ["Custom", "By agreement"],
-      ["$", ""],
       ["User Accounts", "Community coverage"],
       ["Up to 5 users", "Single-community scope"],
       ["Up to 20 users", "Expanded module scope"],
@@ -631,7 +630,6 @@ const routeTransforms = {
       ["Project & Task Management", "Guided onboarding"],
       ["Business Analytics & Insights", "Staged rollout"],
       ["Real-Time AI Insights", "Portfolio rollout plan"],
-      ["Support", "Support model"],
       ["Email", "Agreed channel"],
       ["Phone", "Agreed coverage"],
       ["Priority", "Agreed service level"],
@@ -1087,7 +1085,7 @@ for (const [route, transform] of Object.entries(routeTransforms)) {
 
   const filePath = path.join(publicRoot, page.output.replace(/^\/+/, ""));
   const source = await readFile(filePath, "utf8");
-  let output = source;
+  let output = source.replaceAll(childThemeStylesheetV2, childThemeStylesheetV3);
 
   for (const [from, to] of transform.replacements) {
     const occurrences = output.split(from).length - 1;
@@ -1122,17 +1120,22 @@ for (const [route, transform] of Object.entries(routeTransforms)) {
     replacementCount += occurrences;
   }
 
+  if (route === "/pricing-plans/") {
+    output = output.replace(/(<span class="pxl-heading--text">\s*)Support(\s*<\/span>)/g, "$1Support model$2");
+  }
+
   output = output.replace(/\/wp-login\.php\?action=logout(?:(?:&amp;|&#038;|&)_[^"']+)/gi, "/contact-us/");
   output = replaceApprovedPlaceholderLinks(output);
 
   output = applySeo(output, route);
   output = applyAccessibilityAndPerformance(output);
 
-  if (output === source) continue;
-  await writeFile(filePath, output);
+  if (output !== source) {
+    await writeFile(filePath, output);
+    changedRoutes += 1;
+  }
   page.bytes = Buffer.byteLength(output);
   page.sha256 = createHash("sha256").update(output).digest("hex");
-  changedRoutes += 1;
 }
 
 manifest.contentAppliedAt = new Date().toISOString();
