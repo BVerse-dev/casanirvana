@@ -917,3 +917,15 @@ Visual authority: local WordPress reference under `wordpress/`
 - Recorded official Bank of Ghana context for provider and consumer-recourse review: [Payment Systems and Services Act context](https://www.bog.gov.gh/notice/licensing-and-authorisation-of-payment-service-providers/), [approved providers](https://www.bog.gov.gh/news/list-of-approved-electronic-money-issuers-and-payment-service-providers/) and [consumer recourse guidance](https://www.bog.gov.gh/wp-content/uploads/2020/03/RECOURSE-MECHANISMS-FINAL-20-Feb-2017.pdf).
 - Release evidence: snapshot audit passed all 11 approved routes; Next.js 16.2.10 production build generated all 22 pages successfully.
 - Remaining evidence: counsel approval, confirmed contracting entity and eligibility, executed commercial schedules, cancellation and refund policy, provider terms, consumer recourse path, liability allocation, governing law, dispute process and owner visual signoff.
+
+### 2026-07-22 - Approved-route production release audit
+
+- Status: Content and build corrections complete; pending production deployment confirmation and owner viewport signoff.
+- Audited all 13 approved production routes for page identity, stale external/demo references, placeholder links, loaded-image failures, form presence and browser warnings/errors.
+- Confirmed every route has the expected title and H1, no loaded-image failures and no captured browser warnings or errors.
+- Replaced the homepage's inherited `404` footer destination with Contact, corrected the remaining Products email to `hello@casanirvana.app`, and connected the Core Features, FAQs and Contact footer links to valid routes.
+- Converted the Core Features `One` step marker from an empty anchor to a semantic non-interactive span without changing its class or layout styling.
+- Synchronized the corrections in the capture transform so later WordPress snapshot regeneration cannot restore the defects.
+- Preserved local Saliver compatibility assets because they are required by the approved mirrored visual system and are not remote theme dependencies.
+- Release evidence: transform syntax passed; snapshot audit passed all 11 configured routes; Next.js 16.2.10 production build generated all 22 pages successfully under Node 22.
+- Remaining evidence: production deployment confirmation and owner desktop/mobile visual signoff.
