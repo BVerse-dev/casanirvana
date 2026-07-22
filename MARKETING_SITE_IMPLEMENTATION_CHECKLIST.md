@@ -836,3 +836,16 @@ Visual authority: local WordPress reference under `wordpress/`
 - Added occurrence-aware Marketplace transform mappings so repeated WordPress widgets produce distinct titles and descriptions instead of three `Order status` cards and duplicated administration cards.
 - Replaced inherited demo vendor/location labels with marketplace-specific terms in the committed snapshot and transform source of truth.
 - Release evidence: transform syntax check passed; snapshot audit passed all 11 approved routes; Next.js production build generated all 22 pages successfully.
+
+### 2026-07-22 - Pricing Plans route editorial completion
+
+- Status: Implementation complete; pending owner visual verification.
+- Audited both pricing scope templates and the comparison table before editing; preserved the WordPress-derived card, tab, table and responsive structure.
+- Removed malformed numeric fragments, dollar signs and unsupported fixed-price claims. Pricing now remains explicitly contact-led through `Contact-led`, `Scoped quote` and `By agreement` labels.
+- Replaced placeholder AI descriptions with distinct single-community, expanded-operations and multi-community rollout descriptions based on enabled modules, onboarding and agreed support.
+- Routed all pricing-card actions to `/contact-us/` with truthful `Discuss your scope` states.
+- Repaired corrupted comparison rows and replaced irrelevant project-management/analytics labels with configured payment visibility, onboarding, staged rollout, portfolio planning and support-model rows.
+- Updated the pricing content transform to prevent overlapping numeric replacements and preserve distinct descriptions after future snapshot regeneration.
+- Applied the standard non-homepage footer with the owned 132 x 32 wordmark, compact copy, valid navigation, non-navigating social glyphs and hidden placeholder language controls.
+- Release evidence: transform syntax passed; snapshot audit passed all 11 approved routes; Next.js production build generated all 22 pages successfully.
+- Remaining evidence: owner desktop/mobile visual signoff and final commercial wording approval.

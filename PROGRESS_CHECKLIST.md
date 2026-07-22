@@ -1723,3 +1723,15 @@ Date: 2026-02-06
 - [x] Replaced remaining inherited vendor/location labels with marketplace workflow terms.
 - [x] Passed transform syntax, the 11-route snapshot audit and the 22-page production build.
 - [ ] Confirm the new production deployment displays the corrected Marketplace content on `casanirvana.app`.
+
+### 2026-07-22 - Phase 50 Pricing Plans route
+
+- [x] Completed the Pricing Plans route section by section while preserving the WordPress-derived layout.
+- [x] Removed malformed and unsupported numeric pricing in favor of contact-led commercial labels.
+- [x] Added distinct rollout-scope descriptions and direct contact actions across both pricing templates.
+- [x] Repaired corrupted comparison-table rows and removed irrelevant demo terminology.
+- [x] Updated the pricing transform to prevent future overlapping price replacements.
+- [x] Applied the standard non-homepage footer treatment.
+- [x] Passed transform syntax, the 11-route snapshot audit and the 22-page production build.
+- [ ] Owner visual parity signoff at desktop and mobile viewports.
+- [ ] Approve final commercial scope wording before launch freeze.
