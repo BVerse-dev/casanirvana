@@ -1735,3 +1735,14 @@ Date: 2026-02-06
 - [x] Passed transform syntax, the 11-route snapshot audit and the 22-page production build.
 - [ ] Owner visual parity signoff at desktop and mobile viewports.
 - [ ] Approve final commercial scope wording before launch freeze.
+
+### 2026-07-22 - Phase 50 Core Features route
+
+- [x] Completed the Core Features route section by section while preserving the WordPress-derived visual structure.
+- [x] Removed inherited AI, SaaS, no-code automation, Slack, deployment and revenue-strategy claims.
+- [x] Differentiated repeated product, workflow, lifecycle and rollout components with supported Casa Nirvana content.
+- [x] Corrected integration and access-control language and completed the route FAQ content.
+- [x] Added occurrence-aware transforms to preserve distinct repeated-component copy after future extraction.
+- [x] Applied the standard non-homepage footer treatment.
+- [x] Passed transform syntax, the 11-route snapshot audit and the 22-page production build.
+- [ ] Owner visual parity signoff at desktop and mobile viewports.

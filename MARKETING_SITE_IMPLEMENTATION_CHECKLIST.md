@@ -849,3 +849,15 @@ Visual authority: local WordPress reference under `wordpress/`
 - Applied the standard non-homepage footer with the owned 132 x 32 wordmark, compact copy, valid navigation, non-navigating social glyphs and hidden placeholder language controls.
 - Release evidence: transform syntax passed; snapshot audit passed all 11 approved routes; Next.js production build generated all 22 pages successfully.
 - Remaining evidence: owner desktop/mobile visual signoff and final commercial wording approval.
+
+### 2026-07-22 - Core Features route editorial completion
+
+- Status: Implementation complete; pending owner visual verification.
+- Audited and revised the Core Features route section by section while preserving its WordPress-derived hierarchy, Elementor classes, assets, animations and responsive behavior.
+- Replaced inherited AI, SaaS, automation, Slack, deployment and revenue-strategy claims with implemented Casa Nirvana resident, guard, facility, marketplace, payment and community-scoped workflows.
+- Differentiated repeated tab panels, lifecycle accordions, product-principle cards and rollout steps so each component communicates a distinct supported capability.
+- Corrected integration language to reflect configured live availability and expanded the FAQ with truthful module and access-control answers.
+- Updated occurrence-aware capture transforms so future WordPress extraction does not collapse repeated widgets back into duplicate content.
+- Applied the standard non-homepage footer with the owned 132 x 32 wordmark, compact copy, non-navigating social glyphs, hidden placeholder language controls and valid navigation.
+- Release evidence: transform syntax passed; snapshot audit passed all 11 approved routes; Next.js 16.2.10 production build generated all 22 pages successfully.
+- Remaining evidence: owner desktop/mobile visual signoff.
