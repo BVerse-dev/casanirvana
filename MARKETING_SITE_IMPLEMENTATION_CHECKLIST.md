@@ -876,6 +876,7 @@ Visual authority: local WordPress reference under `wordpress/`
 - Blocker: resident app public download/deep-link URL must be confirmed before the download action can be enabled.
 - Blocker: applicant acknowledgement and internal notification email remain deferred until SMTP configuration and approved legal copy are available.
 - Cache correction: versioned the WordPress compatibility form script across all 11 approved snapshots and the normalization source so immutable browser caching cannot retain stale CTA or Contact behavior.
+- Production evidence: `casa-native-forms.js?v=20260722-onboarding` is live; Contact remains an enquiry form; generic, resident and manager Get Started actions resolve to their intended onboarding routes; and Book a Demo remains routed to Contact.
 
 ### 2026-07-22 - Core Features how-it-works refinement
 
