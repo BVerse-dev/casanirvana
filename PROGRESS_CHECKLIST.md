@@ -1852,3 +1852,14 @@ Date: 2026-02-06
 
 - Corrected wrapper clipping so the approved primary header is visible before the sticky transformation.
 - Production verified the top and scrolled states independently with zero horizontal overflow.
+
+### 2026-07-22 - Phase 50 onboarding viewport parity checkpoint
+
+- [x] Audited all three onboarding routes at the six required desktop, tablet and mobile viewports.
+- [x] Confirmed responsive stacking, zero horizontal overflow, mobile navigation behavior, resident tab states and accessible community-form validation.
+- [x] Added and deployed the 1201-1350px compatibility rule needed to keep the approved desktop header on one row.
+- [ ] Reconfirm the 1280px header in a fresh Codex browser document; the existing controlled document retained the previous `7.0.2` stylesheet while the production server now returns `7.0.3`.
+- [ ] Replace the visually incorrect Saliver logo artwork with the approved Casa Nirvana wordmark; previous "Casa Nirvana wordmark" completion labels were inaccurate and must not be treated as launch evidence.
+- [ ] Configure the approved resident app destination.
+- [ ] Configure and verify onboarding/contact delivery when SMTP details are provided; this remains intentionally deferred.
+- [ ] Complete owner parity signoff for the onboarding route group after the open dependencies above are resolved.

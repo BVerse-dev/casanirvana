@@ -864,7 +864,7 @@ Visual authority: local WordPress reference under `wordpress/`
 
 ### 2026-07-22 - Role-aware Get Started and onboarding separation
 
-- Status: Implementation and validation complete; pending deployment and owner flow verification.
+- Status: Implementation, deployment and functional verification complete; final brand, destination, delivery and owner parity gates remain open.
 - Replaced the direct manager form at `/get-started/` with a resident-versus-community-team gateway and explicit guard provisioning guidance.
 - Added `/get-started/residents/` with truthful new-user, existing-user, community search, unit selection, manual request and manager approval guidance based on the resident app implementation.
 - Moved the manager request form to `/get-started/community/` and grouped role, identity, community and rollout qualification fields.
@@ -973,3 +973,19 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Preserved horizontal gutter containment and restored the original Saliver header body-state initialization.
 - [x] Production evidence: primary menu visible at `scrollY: 0`; sticky menu hidden at top and visible after scrolling; both menus retain 66px line height and zero horizontal overflow.
 - Commits: `a12d7331`, `0cafb31b`, `03245257`.
+
+## 2026-07-22 - Onboarding six-viewport parity checkpoint
+
+- [x] Audited `/get-started/`, `/get-started/residents/` and `/get-started/community/` at 1440x900, 1280x800, 1024x768, 768x1024, 390x844 and 360x800.
+- [x] Confirmed zero horizontal overflow at every audited viewport and the intended desktop-to-mobile header switch between 1280px and 1024px.
+- [x] Confirmed the gateway cards, resident tabs and four-step guidance, and community form fieldsets stack without clipping at tablet and mobile widths.
+- [x] Verified the 390px mobile menu open/close behavior, backdrop, body scroll lock and accessible expanded state.
+- [x] Verified both resident onboarding tab states and their distinct guidance.
+- [x] Verified empty community-form submission remains client-side, exposes inline accessible errors for every required field and consent, and transmits no data.
+- [x] Added and deployed a narrow desktop compatibility rule for 1201-1350px so the approved primary and sticky headers remain on one row without changing the mobile breakpoint.
+- [x] Fresh production responses reference `saliver-child/style.css?ver=7.0.3`, containing the narrow-header rule; the already-open Codex browser document retained `7.0.2`, so fresh-document visual confirmation at 1280px remains open.
+- [ ] Replace the current Saliver artwork used by header/footer logo assets with an approved Casa Nirvana wordmark. Earlier tracker references to an "owned Casa Nirvana wordmark" describe the intended placement and size, not the artwork currently rendered.
+- [ ] Confirm and configure the public resident app download/deep-link destination.
+- [ ] Add and verify applicant/internal email delivery after SMTP details are supplied; SMTP is intentionally deferred and does not block the current visual pass.
+- [ ] Record owner visual signoff for the three onboarding routes after the brand asset and 1280px fresh-document check are complete.
+- Evidence commits: `0251c0ac`, `45d6c865`.
