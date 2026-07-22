@@ -6,10 +6,11 @@ import { SiteHeaderBehavior } from "@/components/SiteHeaderBehavior";
 const snapshotPath = join(process.cwd(), "public", "wordpress-snapshot", "pages", "index.html");
 const snapshot = readFileSync(snapshotPath, "utf8");
 const approvedHeader = snapshot.match(/<header id="pxl-header-elementor"[\s\S]*?<\/header>/)?.[0];
+const approvedElementorKitCss = snapshot.match(/^\.elementor-kit-7[^\n]+$/m)?.[0];
 const approvedMainHeaderCss = snapshot.match(/^\.elementor-1318[^\n]+$/m)?.[0];
 
-if (!approvedHeader || !approvedMainHeaderCss) {
-  throw new Error("The approved WordPress header or its Elementor template CSS could not be extracted from the homepage snapshot.");
+if (!approvedHeader || !approvedElementorKitCss || !approvedMainHeaderCss) {
+  throw new Error("The approved WordPress header or its Elementor CSS could not be extracted from the homepage snapshot.");
 }
 
 function replaceWidgetHref(html: string, widgetId: string, href: string) {
@@ -28,7 +29,7 @@ export function SiteHeader() {
   return (
     <>
       <SiteHeaderBehavior />
-      <style id="elementor-post-1318" dangerouslySetInnerHTML={{ __html: approvedMainHeaderCss! }} />
+      <style id="elementor-post-1318" dangerouslySetInnerHTML={{ __html: `${approvedElementorKitCss!}\n${approvedMainHeaderCss!}` }} />
       <div id="pxl-wapper" className="pxl-wapper casa-wordpress-header-host" dangerouslySetInnerHTML={{ __html: onboardingHeader }} />
     </>
   );
