@@ -920,7 +920,7 @@ Visual authority: local WordPress reference under `wordpress/`
 
 ### 2026-07-22 - Approved-route production release audit
 
-- Status: Content and build corrections complete; pending production deployment confirmation and owner viewport signoff.
+- Status: Content, build and production deployment corrections complete; pending owner viewport signoff.
 - Audited all 13 approved production routes for page identity, stale external/demo references, placeholder links, loaded-image failures, form presence and browser warnings/errors.
 - Confirmed every route has the expected title and H1, no loaded-image failures and no captured browser warnings or errors.
 - Replaced the homepage's inherited `404` footer destination with Contact, corrected the remaining Products email to `hello@casanirvana.app`, and connected the Core Features, FAQs and Contact footer links to valid routes.
@@ -928,4 +928,5 @@ Visual authority: local WordPress reference under `wordpress/`
 - Synchronized the corrections in the capture transform so later WordPress snapshot regeneration cannot restore the defects.
 - Preserved local Saliver compatibility assets because they are required by the approved mirrored visual system and are not remote theme dependencies.
 - Release evidence: transform syntax passed; snapshot audit passed all 11 configured routes; Next.js 16.2.10 production build generated all 22 pages successfully under Node 22.
-- Remaining evidence: production deployment confirmation and owner desktop/mobile visual signoff.
+- Production evidence: commit `ce789406` was observed live at `casanirvana.app`; the corrected homepage, Products, Core Features, FAQs and Contact routes have no audited stale destinations, dead named links or broken loaded images.
+- Remaining evidence: owner desktop/mobile visual signoff.

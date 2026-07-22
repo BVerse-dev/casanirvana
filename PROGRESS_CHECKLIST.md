@@ -1817,5 +1817,5 @@ Date: 2026-02-06
 - [x] Changed the non-interactive Core Features `One` marker from an empty anchor to a semantic span while retaining its visual class.
 - [x] Synchronized all corrections in the WordPress capture transform.
 - [x] Passed transform syntax, the 11-route snapshot audit and the 22-page production build under Node 22.
-- [ ] Confirm the corrected deployment on the production domain.
+- [x] Confirmed commit `ce789406` corrections on the production domain through the Codex browser.
 - [ ] Owner visual parity signoff at desktop and mobile viewports.
