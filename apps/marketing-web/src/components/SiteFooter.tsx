@@ -7,7 +7,7 @@ export function SiteFooter() {
     <footer id="pxl-footer-elementor" className="pxl-footer pxl-footer-show">
       <div className="pxl-container pxl-footer__main">
         <div className="pxl-footer__brand">
-          <Image src="/assets/logo-dark.png" width={528} height={128} alt="Casa Nirvana" />
+          <Image src="/assets/logo-dark.png" width={132} height={32} alt="Casa Nirvana" />
           <p>The connected operating system for safer, simpler and better-run residential communities.</p>
           <a className="pxl-footer__contact" href="mailto:hello@casanirvana.app">hello@casanirvana.app</a>
         </div>
