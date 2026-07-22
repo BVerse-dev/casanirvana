@@ -1833,3 +1833,4 @@ Date: 2026-02-06
 - [x] Versioned the native WordPress form compatibility asset across all approved routes to invalidate stale immutable browser caches.
 - [x] Passed four marketing tests, transform syntax, the 11-route snapshot audit, the 24-route marketing build and the 237-route Superadmin build under Node 22.
 - [x] Verified the deployed gateway, both resident tab flows, manager form/email handoff, Contact separation and role-aware production CTA destinations through the Codex browser.
+- [x] Aligned the onboarding header navigation and conversion actions with the mirrored site header and added reduced-motion-safe onboarding animations.

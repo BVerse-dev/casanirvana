@@ -23,22 +23,22 @@ export function ResidentOnboardingGuide({ appUrl }: { appUrl: string }) {
 
   return (
     <main>
-      <section className="pxl-page-hero pxl-page-hero--compact">
+      <section className="pxl-page-hero pxl-page-hero--compact pxl-onboarding-hero">
         <div className="pxl-container">
-          <p className="pxl-kicker">Resident onboarding</p>
-          <h1>Join the community you call home.</h1>
-          <p className="pxl-page-hero__lead">Use the Casa Nirvana resident app to create your account or connect an existing account to another community.</p>
+          <p className="pxl-kicker pxl-reveal">Resident onboarding</p>
+          <h1 className="pxl-reveal pxl-reveal--delay-1">Join the community you call home.</h1>
+          <p className="pxl-page-hero__lead pxl-reveal pxl-reveal--delay-2">Use the Casa Nirvana resident app to create your account or connect an existing account to another community.</p>
         </div>
       </section>
       <section className="pxl-section pxl-resident-start">
         <div className="pxl-container">
-          <div className="pxl-resident-start__tabs" role="tablist" aria-label="Resident onboarding status">
+          <div className="pxl-resident-start__tabs pxl-onboarding-rise" role="tablist" aria-label="Resident onboarding status">
             <button type="button" role="tab" aria-selected={flow === "new"} className={flow === "new" ? "is-active" : ""} onClick={() => setFlow("new")}>I&apos;m a new user</button>
             <button type="button" role="tab" aria-selected={flow === "existing"} className={flow === "existing" ? "is-active" : ""} onClick={() => setFlow("existing")}>I already have an account</button>
           </div>
-          <div className="pxl-resident-start__steps" role="tabpanel">
+          <div className="pxl-resident-start__steps" role="tabpanel" key={flow}>
             {flows[flow].map(([title, body], index) => (
-              <article key={title}>
+              <article key={title} style={{ "--pxl-step-index": index } as React.CSSProperties}>
                 <span>{String(index + 1).padStart(2, "0")}</span>
                 <div><h2>{title}</h2><p>{body}</p></div>
               </article>

@@ -17,22 +17,22 @@ export default async function GetStartedPage({ searchParams }: { searchParams: P
       <section className="pxl-page-hero pxl-start-gateway-hero">
         <div className="pxl-page-hero__shape" aria-hidden="true" />
         <div className="pxl-container">
-          <p className="pxl-kicker">Start with Casa Nirvana</p>
-          <h1>Choose the path that fits your role.</h1>
-          <p className="pxl-page-hero__lead">Residents join an existing community in the mobile app. Community teams request a guided rollout here.</p>
+          <p className="pxl-kicker pxl-reveal">Start with Casa Nirvana</p>
+          <h1 className="pxl-reveal pxl-reveal--delay-1">Choose the path that fits your role.</h1>
+          <p className="pxl-page-hero__lead pxl-reveal pxl-reveal--delay-2">Residents join an existing community in the mobile app. Community teams request a guided rollout here.</p>
         </div>
       </section>
       <section className="pxl-section pxl-start-gateway">
         <div className="pxl-container">
           <div className="pxl-start-gateway__grid">
-            <article className="pxl-start-card pxl-start-card--resident">
+            <article className="pxl-start-card pxl-start-card--resident pxl-onboarding-rise">
               <span className="pxl-start-card__number">01</span>
               <p className="pxl-kicker">Residents</p>
               <h2>I live in a community.</h2>
               <p>Create an account, join an existing community or add another community through the Casa Nirvana resident app.</p>
               <Link className="pxl-button pxl-button--dark" href="/get-started/residents/">Join your community <span aria-hidden="true">↗</span></Link>
             </article>
-            <article className="pxl-start-card pxl-start-card--manager">
+            <article className="pxl-start-card pxl-start-card--manager pxl-onboarding-rise pxl-onboarding-rise--delay-1">
               <span className="pxl-start-card__number">02</span>
               <p className="pxl-kicker">Community teams</p>
               <h2>I manage communities.</h2>
@@ -40,7 +40,7 @@ export default async function GetStartedPage({ searchParams }: { searchParams: P
               <Link className="pxl-button pxl-button--dark" href={managerHref}>Set up your community <span aria-hidden="true">↗</span></Link>
             </article>
           </div>
-          <aside className="pxl-start-security-note">
+          <aside className="pxl-start-security-note pxl-onboarding-rise pxl-onboarding-rise--delay-2">
             <strong>Do you work in community security?</strong>
             <p>Guard accounts are created or invited by an authorized community manager. Contact your manager if you need access.</p>
             <Link href="/security-guards/">See the guard experience</Link>

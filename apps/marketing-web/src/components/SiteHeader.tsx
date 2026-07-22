@@ -64,9 +64,12 @@ export function SiteHeader() {
             );
           })}
         </nav>
-        <a className="pxl-button pxl-button--header" href="/get-started" onClick={closeMenu}>
-          Get Started <span className="pxl-header-button__icon" aria-hidden="true">↗</span>
-        </a>
+        <div className="pxl-header-actions">
+          <a className="pxl-header-demo" href="/contact-us/?reason=Book%20a%20demo" onClick={closeMenu}>Book a Demo</a>
+          <a className="pxl-button pxl-button--header" href="/our-products/" onClick={closeMenu}>
+            Explore the Apps <span className="pxl-header-button__icon" aria-hidden="true">↗</span>
+          </a>
+        </div>
       </div>
     </header>
   );

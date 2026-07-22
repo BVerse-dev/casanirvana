@@ -15,16 +15,16 @@ export default async function CommunityOnboardingPage({ searchParams }: { search
 
   return (
     <main>
-      <section className="pxl-page-hero pxl-page-hero--compact">
+      <section className="pxl-page-hero pxl-page-hero--compact pxl-onboarding-hero">
         <div className="pxl-container">
-          <p className="pxl-kicker">Community onboarding</p>
-          <h1>Let&apos;s prepare your community for Casa Nirvana.</h1>
-          <p className="pxl-page-hero__lead">Share the operational context we need to review scope, access and rollout requirements.</p>
+          <p className="pxl-kicker pxl-reveal">Community onboarding</p>
+          <h1 className="pxl-reveal pxl-reveal--delay-1">Let&apos;s prepare your community for Casa Nirvana.</h1>
+          <p className="pxl-page-hero__lead pxl-reveal pxl-reveal--delay-2">Share the operational context we need to review scope, access and rollout requirements.</p>
         </div>
       </section>
       <section className="pxl-section pxl-onboarding-page">
         <div className="pxl-container pxl-onboarding-page__grid">
-          <div>
+          <div className="pxl-onboarding-rise">
             <Link className="pxl-start-back" href="/get-started/">← Choose another path</Link>
             <p className="pxl-kicker">What happens next</p>
             <h2>A controlled rollout shaped around your community.</h2>
@@ -34,7 +34,7 @@ export default async function CommunityOnboardingPage({ searchParams }: { search
               <li><span>03</span>We coordinate setup, invitations, training and launch readiness.</li>
             </ol>
           </div>
-          <OnboardingForm initialEmail={email} />
+          <div className="pxl-onboarding-rise pxl-onboarding-rise--delay-1"><OnboardingForm initialEmail={email} /></div>
         </div>
       </section>
     </main>

@@ -21,9 +21,10 @@ export const navigation = [
   { label: "Home", href: "/" },
   { label: "About Us", href: "/about-us" },
   { label: "Products", href: "/our-products" },
+  { label: "Core Features", href: "/core-features" },
   { label: "Pricing", href: "/pricing-plans" },
+  { label: "Contact Us", href: "/contact-us" },
   { label: "FAQs", href: "/faqs" },
-  { label: "Contact", href: "/contact-us" },
 ] as const;
 
 export const productLinks = [
