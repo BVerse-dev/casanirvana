@@ -1012,3 +1012,11 @@ Visual authority: local WordPress reference under `wordpress/`
 - [ ] Configure the five required marketing variables for Vercel Preview; production succeeds, but the working-branch preview correctly fails release-environment validation while those variables are absent.
 - [ ] Replace the Saliver logo artwork and obtain owner visual signoff.
 - Evidence commit: `94063de5`.
+
+## 2026-07-22 - Our Products responsive parity checkpoint
+
+- [x] Audited `/our-products/` at 1440x900, 1280x800, 1024x768, 768x1024, 390x844 and 360x800.
+- [x] Confirmed zero horizontal overflow, zero broken loaded images, correct desktop/mobile header switching, footer presence and no repeated section headings at every required viewport.
+- [x] Confirmed the route produces no browser warnings or errors after the shared Saliver animation cleanup.
+- [x] Verified the ten-item product FAQ interaction on mobile: the selected item enters its active state and exposes visible answer content.
+- [ ] Replace the Saliver logo artwork and obtain owner visual signoff.
