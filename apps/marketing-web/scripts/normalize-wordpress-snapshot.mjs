@@ -67,7 +67,7 @@ function normalizeDocument(source) {
   if (!output.includes('id="casa-native-forms-js"')) {
     output = output.replace(
       /<\/body>/i,
-      '<script id="casa-native-forms-js" src="/assets/casa-native-forms.js?v=20260722-onboarding" defer></script></body>',
+      '<script id="casa-native-forms-js" src="/assets/casa-native-forms.js?v=20260722-contact" defer></script></body>',
     );
   }
   if (!output.includes('href="/icon.svg"')) {
