@@ -828,3 +828,11 @@ Visual authority: local WordPress reference under `wordpress/`
 - Standardized the non-homepage footer with the 132 x 32 Casa Nirvana wordmark, compact copy, non-navigating social glyphs, hidden placeholder language controls and valid product/legal navigation.
 - Acceptance evidence: `npm run build` passed in `apps/marketing-web` on Next.js 16.2.10; 22 static pages generated successfully.
 - Remaining evidence: owner desktop/mobile visual signoff and approved marketplace QR destination confirmation.
+
+### 2026-07-22 - Marketplace deployment correction
+
+- Corrected the non-homepage footer logo path from a missing WebP asset to the existing WordPress wordmark at `/assets/uploads/2025/02/logo-dark.png` on Facility Managers and Marketplace.
+- Confirmed the missing asset caused `audit:snapshot` to fail, preventing Vercel from promoting the previous Marketplace commit and leaving the prior production deployment active.
+- Added occurrence-aware Marketplace transform mappings so repeated WordPress widgets produce distinct titles and descriptions instead of three `Order status` cards and duplicated administration cards.
+- Replaced inherited demo vendor/location labels with marketplace-specific terms in the committed snapshot and transform source of truth.
+- Release evidence: transform syntax check passed; snapshot audit passed all 11 approved routes; Next.js production build generated all 22 pages successfully.

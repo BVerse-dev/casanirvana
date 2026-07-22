@@ -491,6 +491,17 @@ const routeTransforms = {
     ],
   },
   "/marketplace/": {
+    sequentialReplacements: [
+      ["Intelligent Insights", ["Cart and fulfilment", "Authenticated access", "Order visibility"]],
+      ["API Playground", ["Marketplace administration", "Order oversight"]],
+      ["Customizable Dashboards", ["Catalog configuration", "Marketplace policies"]],
+      ["Automatically jump into a dedicated Slack channel and we’ll provide all relevant tools and responders in one place.", [
+        "Authorized administrators manage marketplace categories, listings, vendors, orders and review visibility through scoped workflows.",
+        "Manage configured categories, product listings, vendor records and visibility through authorized workflows.",
+        "Review recorded orders, payment status and fulfilment information within the permitted community scope.",
+        "Keep availability, fulfilment and payment options aligned with configured marketplace data and community policy.",
+      ]],
+    ],
     replacements: [
       ["Start for free", "Plan your rollout"],
       ["Build your pixel-perfect app", "Trusted discovery within the community experience"],
@@ -506,13 +517,19 @@ const routeTransforms = {
       ["pricing plan", "plan your rollout"],
       ["Smart Automation", "Product discovery"],
       ["The only multi-cloud on-call\n\tsolutions, period", "Browse categories, search listings and review configured product details."],
-      ["Intelligent Insights", "Order status"],
       ["All in one kind of alerts from one place", "Place supported orders and follow their recorded status through the resident experience."],
       ["Secure authentication with multi factor verification", "Authenticated resident access with community and account scope"],
       ["Auto spin up incident Slack\n\tchannels, Zoom, Jira tickets", "Keep cart, address, order and tracking activity connected to the authenticated resident."],
-      ["API Playground", "Marketplace administration"],
-      ["Automatically jump into a dedicated Slack channel and we’ll provide all relevant tools and responders in one place.", "Authorized administrators manage marketplace categories, listings, vendors, orders and review visibility through scoped workflows."],
-      ["Customizable Dashboards", "Configured catalog and fulfilment"],
+      ["Google", "Product listings"],
+      ["London", "Categories"],
+      ["Bing", "Search"],
+      ["Dhaka", "Cart"],
+      ["Opera", "Delivery"],
+      ["Japan", "Pickup"],
+      ["Woocommerce", "Orders"],
+      ["New York", "Order status"],
+      ["Shopify", "Addresses"],
+      ["Hanoi", "Fulfilment"],
       ["ready to to integrate", "connected by design"],
       ["Saliver saas &\n\tsoftware built for\n\tcollaboration", "Casa Nirvana marketplace tools built for community-specific discovery"],
       ["Automation & workflow features include a drag & drop builder, automated task assignments, conditional with good triggers, and api integrations.", "Marketplace products, carts, addresses and orders remain connected to authenticated resident and administrative records."],
@@ -989,6 +1006,18 @@ for (const [route, transform] of Object.entries(routeTransforms)) {
     if (!occurrences) continue;
     output = output.replaceAll(from, to);
     replacementCount += occurrences;
+  }
+
+  for (const [from, replacements] of transform.sequentialReplacements || []) {
+    const occurrences = output.split(from).length - 1;
+    if (!occurrences) continue;
+    if (occurrences !== replacements.length) {
+      throw new Error(`Sequential replacement mismatch for ${route}: expected ${replacements.length} occurrence(s) of "${from}", found ${occurrences}`);
+    }
+    for (const replacement of replacements) {
+      output = output.replace(from, replacement);
+      replacementCount += 1;
+    }
   }
 
   for (const [from, to] of sharedLaunchReplacements) {

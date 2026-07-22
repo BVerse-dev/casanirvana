@@ -1714,3 +1714,12 @@ Date: 2026-02-06
 - [x] Passed the marketing production build on Next.js 16.2.10 with all 22 static pages generated.
 - [ ] Owner visual parity signoff at desktop and mobile viewports.
 - [ ] Confirm the final approved marketplace QR destination before launch freeze.
+
+### 2026-07-22 - Phase 50 Marketplace deployment correction
+
+- [x] Identified the failed Vercel promotion as a missing mirrored footer-logo asset caught by `audit:snapshot`.
+- [x] Corrected Facility Managers and Marketplace footer wordmark paths to an existing owned asset.
+- [x] Added occurrence-aware Marketplace content transforms for distinct feature and administration cards.
+- [x] Replaced remaining inherited vendor/location labels with marketplace workflow terms.
+- [x] Passed transform syntax, the 11-route snapshot audit and the 22-page production build.
+- [ ] Confirm the new production deployment displays the corrected Marketplace content on `casanirvana.app`.
