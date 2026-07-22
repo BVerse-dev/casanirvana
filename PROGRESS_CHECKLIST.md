@@ -1793,3 +1793,17 @@ Date: 2026-02-06
 - [ ] Approve the processor list, transfer safeguards and category-specific retention schedule.
 - [ ] Record Ghana DPC registration and compliance evidence.
 - [ ] Owner visual parity signoff at desktop and mobile viewports.
+
+### 2026-07-22 - Phase 50 Terms of Service route
+
+- [x] Replaced the short placeholder with implementation-aligned terms covering the current product and user roles.
+- [x] Added account, community-administration, visitor/security, acceptable-use, marketplace, payment, fee, content, availability and suspension provisions.
+- [x] Distinguished provider-returned payment status from seller or provider fulfilment.
+- [x] Corrected the legal contact address to the `.app` domain.
+- [x] Recorded official Bank of Ghana provider and consumer-recourse references.
+- [x] Passed the 11-route snapshot audit and 22-page production build.
+- [ ] Obtain legal approval for production publication.
+- [ ] Confirm the contracting entity, eligibility, governing law, venue and dispute process.
+- [ ] Approve commercial schedules, cancellation, refund, liability and termination provisions.
+- [ ] Confirm configured payment-provider terms, approved status and consumer-recourse path.
+- [ ] Owner visual parity signoff at desktop and mobile viewports.

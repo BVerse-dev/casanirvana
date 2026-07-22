@@ -906,3 +906,14 @@ Visual authority: local WordPress reference under `wordpress/`
 - Grounded the compliance checklist in Ghana's Data Protection Act, 2012 (Act 843) and official Data Protection Commission guidance on transparency, data-subject rights, safeguards, retention and controller registration: [DPC organisations guidance](https://dataprotection.org.gh/for-organisations/), [DPC individual rights](https://dataprotection.org.gh/for-individuals/) and [Act 843](https://dataprotection.org.gh/wp-content/uploads/2025/05/Data-Protection-Act-2012-Act-843.pdf).
 - Release evidence: snapshot audit passed all 11 approved routes; Next.js 16.2.10 production build generated all 22 pages successfully.
 - Remaining evidence: counsel approval, confirmed controller/processor roles, approved processor and international-transfer disclosures, category-specific retention schedule, DPC registration/compliance evidence and owner visual signoff.
+
+### 2026-07-22 - Terms of Service implementation draft
+
+- Status: Implementation complete; blocked from final approval pending legal and commercial review.
+- Expanded the placeholder terms to cover scope, authority, accounts, role-based access, community administration, visitor and security records, acceptable use, marketplace activity, payments, fees, user content, availability, suspension, privacy and change notices.
+- Aligned payment language with the implemented hosted-provider model: Casa Nirvana records provider-returned status and does not equate checkout or payment status with seller or provider fulfilment.
+- Kept liability, indemnity, governing law, venue, disputes, refunds and final termination procedures explicitly unresolved rather than publishing invented legal terms.
+- Corrected the legal contact address to `legal@casanirvana.app` and retained the shared `.app` support address.
+- Recorded official Bank of Ghana context for provider and consumer-recourse review: [Payment Systems and Services Act context](https://www.bog.gov.gh/notice/licensing-and-authorisation-of-payment-service-providers/), [approved providers](https://www.bog.gov.gh/news/list-of-approved-electronic-money-issuers-and-payment-service-providers/) and [consumer recourse guidance](https://www.bog.gov.gh/wp-content/uploads/2020/03/RECOURSE-MECHANISMS-FINAL-20-Feb-2017.pdf).
+- Release evidence: snapshot audit passed all 11 approved routes; Next.js 16.2.10 production build generated all 22 pages successfully.
+- Remaining evidence: counsel approval, confirmed contracting entity and eligibility, executed commercial schedules, cancellation and refund policy, provider terms, consumer recourse path, liability allocation, governing law, dispute process and owner visual signoff.
