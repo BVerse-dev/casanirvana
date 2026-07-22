@@ -58,6 +58,7 @@ export function SiteHeaderBehavior() {
       submenuToggle.addEventListener("click", toggleSubmenu);
     }
 
+    document.body.classList.add("pxl-header-sticky");
     syncSticky();
     setMobileMenu(false);
     window.addEventListener("scroll", syncSticky, { passive: true });
@@ -74,7 +75,7 @@ export function SiteHeaderBehavior() {
       backdrop?.removeEventListener("click", closeMobileMenu);
       submenuToggle.removeEventListener("click", toggleSubmenu);
       submenuToggle.remove();
-      document.body.classList.remove("body-overflow");
+      document.body.classList.remove("body-overflow", "pxl-header-sticky");
     };
   }, [pathname]);
 
