@@ -1942,3 +1942,12 @@ Date: 2026-02-06
 - [x] Confirmed zero overflow, zero broken loaded images, no repeated headings, footer presence, correct header switching and a clean browser console.
 - [x] Verified six distinct local capability icons/descriptions, functional mobile FAQ expansion and the 132x32 footer logo.
 - [ ] SMTP delivery verification, approved Casa Nirvana wordmark installation and owner visual signoff remain open.
+
+### 2026-07-22 - Phase 50 Contact Us responsive parity checkpoint
+
+- [x] Audited Contact Us at all six required desktop, tablet and mobile viewports.
+- [x] Confirmed zero overflow, zero broken loaded images, one contact form, one Accra map, footer presence and no fresh production browser warnings or errors.
+- [x] Corrected Contact-versus-email-CTA routing, added accessible field-error relationships and verified Support query preselection without changing the approved WordPress-derived layout.
+- [x] Rotated the adapter cache key and verified the corrected production asset, full client-side validation and 132x32 mobile footer logo.
+- [ ] Successful SMTP delivery, duplicate-submit production behavior, approved Casa Nirvana wordmark installation and owner visual signoff remain open.
+- Evidence commits: `a5fe72b6`, `7ce9b01f`.

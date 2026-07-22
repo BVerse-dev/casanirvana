@@ -1083,3 +1083,16 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Verified all six capability cards use local icons with descriptive alt text and distinct Visitor, Resident, Security, Facility, Marketplace and Community Operations copy.
 - [x] Verified the ten-item FAQ accordion opens with visible answer content on mobile and the footer logo remains 132x32.
 - [ ] Verify production contact-form delivery when SMTP details are supplied; replace the Saliver artwork and obtain owner visual signoff.
+
+## 2026-07-22 - Contact Us responsive parity checkpoint
+
+- [x] Audited `/contact-us/` at 1440x900, 1280x800, 1024x768, 768x1024, 390x844 and 360x800.
+- [x] Confirmed zero horizontal overflow, zero broken loaded images, one contact form, one Accra map, footer presence and no fresh browser warnings or errors at the production checkpoint.
+- [x] Verified the map iframe resolves to Accra, Ghana and the mobile footer logo remains 132x32.
+- [x] Corrected the native form adapter so the Contact form uses full name, email, reason and message validation instead of the compact email-CTA path.
+- [x] Added accessible field-error relationships with `aria-invalid` and `aria-describedby`, while preserving the approved Contact Form 7 markup and visual styling.
+- [x] Verified `?reason=Support` preselects `Support or existing onboarding`; empty submission remains client-side and reports the expected field errors without transmitting data.
+- [x] Rotated the Contact adapter cache key and verified production loads `/assets/casa-native-forms.js?v=20260722-contact`.
+- [ ] Verify successful production email delivery and duplicate-submit behavior when SMTP details are supplied.
+- [ ] Replace the correctly sized Saliver artwork with the approved Casa Nirvana wordmark and obtain owner visual signoff.
+- Evidence commits: `a5fe72b6`, `7ce9b01f`.
