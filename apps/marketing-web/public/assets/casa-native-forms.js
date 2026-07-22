@@ -40,6 +40,7 @@
     form.querySelectorAll(".casa-native-error").forEach(function (error) { error.remove(); });
     form.querySelectorAll("[aria-invalid='true']").forEach(function (field) {
       field.removeAttribute("aria-invalid");
+      field.removeAttribute("aria-describedby");
       field.classList.remove("wpcf7-not-valid");
     });
   }
@@ -53,8 +54,10 @@
       field.setAttribute("aria-invalid", "true");
       field.classList.add("wpcf7-not-valid");
       var error = document.createElement("span");
+      var errorId = "casa-native-error-" + key;
       error.className = "wpcf7-not-valid-tip casa-native-error";
-      error.setAttribute("aria-hidden", "true");
+      error.id = errorId;
+      field.setAttribute("aria-describedby", errorId);
       error.textContent = errors[key];
       field.insertAdjacentElement("afterend", error);
       if (!firstInvalid) firstInvalid = field;
@@ -135,6 +138,19 @@
     var email = valueOf(form, "email").toLowerCase();
     var name = valueOf(form, "name");
     var message = valueOf(form, "message");
+    var isContactForm = Boolean(findField(form, fieldNames.reason) || findField(form, fieldNames.message));
+
+    if (isContactForm) {
+      submitContact(form, {
+        name: name,
+        email: email,
+        phone: valueOf(form, "phone"),
+        reason: valueOf(form, "reason"),
+        message: message,
+        website: valueOf(form, "website"),
+      });
+      return;
+    }
 
     if (!name && !message) {
       clearErrors(form);
@@ -176,6 +192,25 @@
         option.value = "Support or existing onboarding";
       }
     });
+
+    var reason = new URLSearchParams(window.location.search).get("reason");
+    var reasonSelect = document.querySelector("select[name='select-205']");
+    if (reason && reasonSelect) {
+      var normalizedReason = reason.trim().toLowerCase();
+      var reasonAliases = {
+        "book a demo": "Product demo",
+        "product demo": "Product demo",
+        "support": "Support or existing onboarding",
+        "support or existing onboarding": "Support or existing onboarding",
+        "partnership": "Partnership enquiry",
+        "partnership enquiry": "Partnership enquiry",
+      };
+      var selectedReason = reasonAliases[normalizedReason] || reason;
+      if ([].some.call(reasonSelect.options, function (option) { return option.value === selectedReason; })) {
+        reasonSelect.value = selectedReason;
+        reasonSelect.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+    }
   }
 
   document.querySelectorAll("form.wpcf7-form").forEach(function (form) {
