@@ -1096,3 +1096,13 @@ Visual authority: local WordPress reference under `wordpress/`
 - [ ] Verify successful production email delivery and duplicate-submit behavior when SMTP details are supplied.
 - [ ] Replace the correctly sized Saliver artwork with the approved Casa Nirvana wordmark and obtain owner visual signoff.
 - Evidence commits: `a5fe72b6`, `7ce9b01f`.
+
+## 2026-07-22 - Privacy Policy responsive parity checkpoint
+
+- [x] Audited `/privacy-policy/` at 1440x900, 1280x800, 1024x768, 768x1024, 390x844 and 360x800.
+- [x] Confirmed zero horizontal overflow, zero broken loaded images, footer presence and no fresh production browser warnings or errors.
+- [x] Verified the route remains visibly labeled `Privacy Policy (Draft)`, contains 12 implementation-aligned sections and emits `noindex, nofollow` until legal approval.
+- [x] Removed both shared-footer logo size overrides and verified the production React footer now matches the approved 132x32 dimensions.
+- [ ] Obtain legal approval for the contracting entity, processor/subprocessor disclosures, international-transfer safeguards, retention schedule and final data-rights procedure.
+- [ ] Replace the correctly sized Saliver artwork with the approved Casa Nirvana wordmark and obtain owner visual signoff.
+- Evidence commits: `07f5ac2c`, `44709aa3`.
