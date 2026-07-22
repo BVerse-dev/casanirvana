@@ -1057,3 +1057,12 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Confirmed the previously reported repeated Order status content is absent; valid Cart references remain differentiated by fulfilment, cart and authenticated-account context.
 - [x] Verified the marketplace QR renders at 158x158, the mobile footer logo remains 132x32 and the browser console is clean.
 - [ ] Replace the correctly sized Saliver artwork with the approved Casa Nirvana wordmark and obtain owner visual signoff.
+
+## 2026-07-22 - Pricing Plans responsive parity checkpoint
+
+- [x] Audited `/pricing-plans/` at 1440x900, 1280x800, 1024x768, 768x1024, 390x844 and 360x800.
+- [x] Confirmed zero horizontal overflow, zero broken loaded images, correct desktop/mobile header switching, footer presence and no repeated section headings.
+- [x] Verified one Support model label, no duplicated `model` suffix, no numeric currency remnants and distinct Essential, Complete and Portfolio rollout scopes.
+- [x] Confirmed contact-led commercial labels and rollout actions resolve to valid Contact/Get Started destinations.
+- [x] Verified the mobile footer logo remains 132x32 and the browser console is clean.
+- [ ] Obtain owner visual signoff and final commercial wording approval; approved Casa Nirvana wordmark installation remains open.
