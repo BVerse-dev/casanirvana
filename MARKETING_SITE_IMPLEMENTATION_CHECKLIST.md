@@ -1000,3 +1000,15 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Production evidence at 1280x800: `7.0.3` loaded, 66px primary header, hidden placeholder language control, zero horizontal overflow and zero broken images.
 - [ ] Replace the Saliver logo artwork with the approved Casa Nirvana wordmark before final homepage parity signoff.
 - Evidence commit: `083c69e2`.
+
+## 2026-07-22 - About Us responsive parity checkpoint
+
+- [x] Audited `/about-us/` at 1440x900, 1280x800, 1024x768, 768x1024, 390x844 and 360x800.
+- [x] Confirmed zero horizontal overflow, zero broken loaded images, correct desktop/mobile header switching, footer presence and no repeated section headings at every required viewport.
+- [x] Removed unused Three.js and hover-effect bundles from approved routes after confirming none contains a corresponding distortion target.
+- [x] Guarded the optional tabs-slip GSAP animation when its required style-2 panel structure is absent and stopped warning for an intentionally absent optional parallax parent.
+- [x] Confirmed the transform remains idempotent after the asset cleanup.
+- [x] Production evidence on `/about-us/` at 1280x800: zero warnings/errors, zero overflow, zero broken images and no Three.js/hover-effect script elements.
+- [ ] Configure the five required marketing variables for Vercel Preview; production succeeds, but the working-branch preview correctly fails release-environment validation while those variables are absent.
+- [ ] Replace the Saliver logo artwork and obtain owner visual signoff.
+- Evidence commit: `94063de5`.

@@ -1873,3 +1873,13 @@ Date: 2026-02-06
 - [x] Verified the live homepage at 1280x800 with a 66px one-row header, hidden placeholder language control and no horizontal overflow.
 - [ ] Approved Casa Nirvana wordmark installation and owner visual signoff remain open.
 - Evidence commit: `083c69e2`.
+
+### 2026-07-22 - Phase 50 About Us responsive parity checkpoint
+
+- [x] Audited About Us at all six required desktop, tablet and mobile viewports.
+- [x] Confirmed zero overflow, zero broken loaded images, no repeated section headings, footer presence and correct header switching.
+- [x] Removed unused Three.js/hover-effect loads and guarded optional Saliver animation targets without changing valid route animations.
+- [x] Verified the production route reports no browser warnings or errors after deployment.
+- [ ] Add the required marketing environment variables to Vercel Preview; production deployment is successful, while branch Preview remains blocked by intentional release-environment validation.
+- [ ] Approved Casa Nirvana wordmark installation and owner visual signoff remain open.
+- Evidence commit: `94063de5`.
