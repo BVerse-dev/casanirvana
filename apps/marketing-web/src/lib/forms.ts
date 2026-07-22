@@ -21,6 +21,8 @@ export type OnboardingPayload = {
   city?: string;
   address?: string;
   referral_code?: string;
+  accepted_terms: boolean;
+  metadata: Record<string, unknown>;
   website?: string;
 };
 
@@ -48,6 +50,9 @@ export function validateContactPayload(value: unknown) {
 export function validateOnboardingPayload(value: unknown) {
   const input = value && typeof value === "object" ? value as Record<string, unknown> : {};
   const requestedRole = clean(input.requested_role, 40);
+  const acceptedTerms = input.accepted_terms === true || input.accepted_terms === "true" || input.accepted_terms === "on";
+  const modules = (Array.isArray(input.modules) ? input.modules : []).map((item) => clean(item, 80)).filter(Boolean).slice(0, 10);
+  const suppliedMetadata = input.metadata && typeof input.metadata === "object" ? input.metadata as Record<string, unknown> : {};
   const payload: OnboardingPayload = {
     requested_role: requestedRole === "agency_manager" ? "agency_manager" : "facility_manager",
     first_name: clean(input.first_name, 80),
@@ -60,6 +65,16 @@ export function validateOnboardingPayload(value: unknown) {
     city: clean(input.city, 80) || undefined,
     address: clean(input.address, 300) || undefined,
     referral_code: clean(input.referral_code, 80) || undefined,
+    accepted_terms: acceptedTerms,
+    metadata: Object.keys(suppliedMetadata).length > 0 ? suppliedMetadata : {
+      community_count: clean(input.community_count, 40) || undefined,
+      unit_count: clean(input.unit_count, 40) || undefined,
+      modules,
+      target_timeline: clean(input.target_timeline, 80) || undefined,
+      referral_source: clean(input.referral_source, 100) || undefined,
+      notes: clean(input.notes, 1_500) || undefined,
+      consent: { accepted: acceptedTerms, recorded_at: new Date().toISOString(), policy_paths: ["/privacy-policy/", "/terms-of-service/"] },
+    },
     website: clean(input.website, 200) || undefined,
   };
   const errors: Record<string, string> = {};
@@ -67,6 +82,13 @@ export function validateOnboardingPayload(value: unknown) {
   if (payload.first_name.length < 2) errors.first_name = "Enter your first name.";
   if (payload.last_name.length < 2) errors.last_name = "Enter your last name.";
   if (!emailPattern.test(payload.email)) errors.email = "Enter a valid email address.";
+  if (!payload.phone) errors.phone = "Enter a phone number.";
+  if (!payload.organization_name) errors.organization_name = "Enter your organization name.";
+  if (!payload.community_name) errors.community_name = "Enter the community name.";
+  if (!payload.country) errors.country = "Enter the country.";
+  if (!payload.city) errors.city = "Enter the city.";
+  if (!payload.address) errors.address = "Enter the community address.";
+  if (!acceptedTerms) errors.accepted_terms = "Confirm the privacy and terms acknowledgement.";
   return { payload, errors, valid: Object.keys(errors).length === 0 };
 }
 

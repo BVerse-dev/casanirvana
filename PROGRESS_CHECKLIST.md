@@ -1819,3 +1819,16 @@ Date: 2026-02-06
 - [x] Passed transform syntax, the 11-route snapshot audit and the 22-page production build under Node 22.
 - [x] Confirmed commit `ce789406` corrections on the production domain through the Codex browser.
 - [ ] Owner visual parity signoff at desktop and mobile viewports.
+
+### 2026-07-22 - Phase 50 role-aware onboarding flow
+
+- [x] Replaced the generic Get Started form entry with a resident and community-team gateway.
+- [x] Added resident new-user and existing-user onboarding guidance aligned with the implemented mobile join-request workflow.
+- [x] Moved and expanded the manager form under `/get-started/community/` without introducing a database migration.
+- [x] Added rollout metadata, explicit acknowledgement, request reference handling and Superadmin review visibility.
+- [x] Kept Contact and onboarding APIs separate and corrected conversion destinations by CTA intent.
+- [x] Added audience-route sitemap entries and form-validation coverage.
+- [ ] Confirm the production resident app download/deep-link URL.
+- [ ] Configure SMTP and add applicant/internal onboarding notifications.
+- [x] Passed four marketing tests, transform syntax, the 11-route snapshot audit, the 24-route marketing build and the 237-route Superadmin build under Node 22.
+- [ ] Verify the deployed gateway, resident flow, manager form and Contact separation.

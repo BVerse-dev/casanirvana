@@ -180,7 +180,7 @@ export function HomePage() {
             <div className="pxl-integration-list">
               {integrations.map(([title, body], index) => <div key={title}><span>{String(index + 1).padStart(2, "0")}</span><div><h3>{title}</h3><p>{body}</p></div></div>)}
             </div>
-            <Link className="pxl-button" href="/get-started">Book a demo <ArrowIcon /></Link>
+            <Link className="pxl-button" href="/contact-us/?reason=Book%20a%20demo">Book a demo <ArrowIcon /></Link>
           </div>
           <div className="pxl-home-integrations__visual">
             <Image src="/assets/imgoverone.png" width={848} height={480} alt="Casa Nirvana integrations overview" />

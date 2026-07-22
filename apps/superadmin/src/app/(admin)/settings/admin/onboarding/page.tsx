@@ -26,6 +26,13 @@ type OnboardingRequest = {
   source?: string | null;
   review_notes?: string | null;
   invited_user_id?: string | null;
+  metadata?: Record<string, unknown> | null;
+};
+
+const metadataValue = (request: OnboardingRequest, key: string) => {
+  const value = request.metadata?.[key];
+  if (Array.isArray(value)) return value.join(', ') || '—';
+  return typeof value === 'string' && value.trim() ? value : '—';
 };
 
 const roleLabel = (role: string) => {
@@ -380,6 +387,18 @@ const OnboardingRequestsPage = () => {
               </div>
               <div className="text-muted">{selectedRequest.email}</div>
               <div className="text-muted">{roleLabel(selectedRequest.requested_role)}</div>
+              <hr />
+              <dl className="row mb-0 small">
+                <dt className="col-5">Organization</dt><dd className="col-7">{selectedRequest.organization_name || '—'}</dd>
+                <dt className="col-5">Community</dt><dd className="col-7">{selectedRequest.community_name || '—'}</dd>
+                <dt className="col-5">Location</dt><dd className="col-7">{[selectedRequest.address, selectedRequest.city, selectedRequest.country].filter(Boolean).join(', ') || '—'}</dd>
+                <dt className="col-5">Communities managed</dt><dd className="col-7">{metadataValue(selectedRequest, 'community_count')}</dd>
+                <dt className="col-5">Approximate units</dt><dd className="col-7">{metadataValue(selectedRequest, 'unit_count')}</dd>
+                <dt className="col-5">Modules</dt><dd className="col-7">{metadataValue(selectedRequest, 'modules')}</dd>
+                <dt className="col-5">Timeline</dt><dd className="col-7">{metadataValue(selectedRequest, 'target_timeline')}</dd>
+                <dt className="col-5">Source</dt><dd className="col-7">{metadataValue(selectedRequest, 'referral_source')}</dd>
+                <dt className="col-5">Additional context</dt><dd className="col-7">{metadataValue(selectedRequest, 'notes')}</dd>
+              </dl>
             </div>
           )}
           <Form.Group>

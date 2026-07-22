@@ -862,6 +862,20 @@ Visual authority: local WordPress reference under `wordpress/`
 - Release evidence: transform syntax passed; snapshot audit passed all 11 approved routes; Next.js 16.2.10 production build generated all 22 pages successfully.
 - Remaining evidence: owner desktop/mobile visual signoff.
 
+### 2026-07-22 - Role-aware Get Started and onboarding separation
+
+- Status: Implementation and validation complete; pending deployment and owner flow verification.
+- Replaced the direct manager form at `/get-started/` with a resident-versus-community-team gateway and explicit guard provisioning guidance.
+- Added `/get-started/residents/` with truthful new-user, existing-user, community search, unit selection, manual request and manager approval guidance based on the resident app implementation.
+- Moved the manager request form to `/get-started/community/` and grouped role, identity, community and rollout qualification fields.
+- Preserved the existing onboarding database schema by storing optional qualification data in the supported metadata record and exposed that context in the Superadmin review modal.
+- Added explicit privacy/terms acknowledgement, duplicate-submit protection, request references and server-side metadata normalization.
+- Kept Contact on its independent contact API and normalized Get Started versus Book a Demo destinations in the WordPress compatibility layer.
+- Added validation coverage and sitemap entries for both audience-specific routes.
+- Release evidence: transform syntax passed; snapshot audit passed all 11 configured routes; four marketing validation tests passed; the Next.js 16.2.10 build generated all 24 marketing routes; and the Superadmin build generated all 237 routes successfully under Node 22.
+- Blocker: resident app public download/deep-link URL must be confirmed before the download action can be enabled.
+- Blocker: applicant acknowledgement and internal notification email remain deferred until SMTP configuration and approved legal copy are available.
+
 ### 2026-07-22 - Core Features how-it-works refinement
 
 - Reworked the opening how-it-works content into a non-repetitive sequence: configure the community, invite authorized members and use role-focused tools.

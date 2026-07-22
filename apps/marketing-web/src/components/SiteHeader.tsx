@@ -65,7 +65,7 @@ export function SiteHeader() {
           })}
         </nav>
         <a className="pxl-button pxl-button--header" href="/get-started" onClick={closeMenu}>
-          Book a demo <span className="pxl-header-button__icon" aria-hidden="true">↗</span>
+          Get Started <span className="pxl-header-button__icon" aria-hidden="true">↗</span>
         </a>
       </div>
     </header>

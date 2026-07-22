@@ -15,6 +15,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ["/faqs/", "monthly", 0.7],
     ["/contact-us/", "monthly", 0.7],
     ["/get-started/", "monthly", 0.7],
+    ["/get-started/residents/", "monthly", 0.7],
+    ["/get-started/community/", "monthly", 0.8],
   ] as const;
   return routes.map(([route, changeFrequency, priority]) => ({ url: `${baseUrl}${route}`, changeFrequency, priority }));
 }

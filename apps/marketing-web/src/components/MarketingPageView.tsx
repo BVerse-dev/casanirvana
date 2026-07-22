@@ -13,7 +13,7 @@ export function MarketingPageView({ page }: { page: MarketingPage }) {
           <p className="pxl-kicker pxl-reveal">{page.eyebrow}</p>
           <h1 className="pxl-reveal pxl-reveal--delay-1">{page.heroTitle}</h1>
           <p className="pxl-page-hero__lead pxl-reveal pxl-reveal--delay-2">{page.heroBody}</p>
-          <Link className="pxl-button pxl-reveal pxl-reveal--delay-3" href="/get-started">Book a demo <ArrowIcon /></Link>
+          <Link className="pxl-button pxl-reveal pxl-reveal--delay-3" href="/contact-us/?reason=Book%20a%20demo">Book a demo <ArrowIcon /></Link>
         </div>
       </section>
       {page.sections.map((section, index) => (

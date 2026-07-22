@@ -11,15 +11,16 @@ export async function POST(request: Request) {
   const result = validateOnboardingPayload(await request.json().catch(() => null));
   if (result.payload.website) return NextResponse.json({ message: "Thank you." }, { status: 201 });
   if (!result.valid) return NextResponse.json({ message: "Please correct the highlighted fields.", errors: result.errors }, { status: 400 });
-  const payload = { ...result.payload };
-  delete payload.website;
+  const { website, accepted_terms: acceptedTerms, ...payload } = result.payload;
+  void website;
+  void acceptedTerms;
 
   let response: Response;
   try {
     response = await fetch(`${backendUrl.replace(/\/$/, "")}/onboarding/requests`, {
       method: "POST",
       headers: { "content-type": "application/json", "x-onboarding-api-key": apiKey },
-      body: JSON.stringify({ ...payload, source: "marketing_web", metadata: { website_version: "nextjs" } }),
+      body: JSON.stringify({ ...payload, source: "marketing_web", metadata: { ...payload.metadata, website_version: "nextjs", source_page: "/get-started/community/" } }),
       cache: "no-store",
     });
   } catch {
@@ -27,5 +28,5 @@ export async function POST(request: Request) {
   }
   const data = await response.json().catch(() => null);
   if (!response.ok) return NextResponse.json({ message: publicBackendError(data, "Onboarding is temporarily unavailable.") }, { status: response.status });
-  return NextResponse.json({ message: "Request received." }, { status: 201 });
+  return NextResponse.json({ message: "Request received.", requestId: typeof data?.id === "string" ? data.id : undefined }, { status: 201 });
 }

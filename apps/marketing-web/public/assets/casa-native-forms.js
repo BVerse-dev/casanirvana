@@ -158,9 +158,30 @@
     });
   }
 
+  function normalizeConversionLinks() {
+    var path = window.location.pathname;
+    document.querySelectorAll("a[href]").forEach(function (link) {
+      var text = (link.textContent || "").trim().replace(/\s+/g, " ").toLowerCase();
+      if (/^get started(?: today)?$/.test(text)) {
+        if (path === "/residents/") link.setAttribute("href", "/get-started/residents/");
+        else if (path === "/facility-managers/" || path === "/pricing-plans/") link.setAttribute("href", "/get-started/community/");
+        else link.setAttribute("href", "/get-started/");
+      }
+      if (/^book a demo$/.test(text)) link.setAttribute("href", "/contact-us/?reason=Book%20a%20demo");
+    });
+
+    document.querySelectorAll("select[name='select-205'] option").forEach(function (option) {
+      if ((option.textContent || "").trim() === "Community onboarding") {
+        option.textContent = "Support or existing onboarding";
+        option.value = "Support or existing onboarding";
+      }
+    });
+  }
+
   document.querySelectorAll("form.wpcf7-form").forEach(function (form) {
     form.setAttribute("novalidate", "novalidate");
     form.addEventListener("submit", handleSubmit);
     responseElement(form);
   });
+  normalizeConversionLinks();
 })();
