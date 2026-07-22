@@ -31,7 +31,7 @@ export function SiteHeader() {
     <>
       <SiteHeaderBehavior />
       <style id="elementor-post-1318" dangerouslySetInnerHTML={{ __html: `${approvedThemeVariables!}\n${approvedElementorKitCss!}\n${approvedMainHeaderCss!}` }} />
-      <div className="casa-wordpress-header-host" style={{ display: "contents" }} dangerouslySetInnerHTML={{ __html: onboardingHeader }} />
+      <div className="casa-wordpress-header-host" style={{ overflowX: "clip" }} dangerouslySetInnerHTML={{ __html: onboardingHeader }} />
     </>
   );
 }
