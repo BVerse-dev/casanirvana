@@ -1066,3 +1066,12 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Confirmed contact-led commercial labels and rollout actions resolve to valid Contact/Get Started destinations.
 - [x] Verified the mobile footer logo remains 132x32 and the browser console is clean.
 - [ ] Obtain owner visual signoff and final commercial wording approval; approved Casa Nirvana wordmark installation remains open.
+
+## 2026-07-22 - Core Features responsive parity checkpoint
+
+- [x] Audited `/core-features/` at 1440x900, 1280x800, 1024x768, 768x1024, 390x844 and 360x800.
+- [x] Confirmed zero horizontal overflow, zero broken loaded images, correct desktop/mobile header switching, footer presence and a clean browser console.
+- [x] Verified the how-it-works sequence remains distinct: facility configuration, authorized-member invitation and role-focused tools.
+- [x] Confirmed repeated Casa Nirvana card headings are intentional shared brand labels for distinct Resident experience, Guard operations and Facility oversight content.
+- [x] Verified mobile accordion opening exposes visible answer content and the footer logo remains 132x32.
+- [ ] Replace the correctly sized Saliver artwork with the approved Casa Nirvana wordmark and obtain owner visual signoff.
