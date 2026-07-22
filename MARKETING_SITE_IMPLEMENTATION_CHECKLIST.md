@@ -983,9 +983,9 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Verified both resident onboarding tab states and their distinct guidance.
 - [x] Verified empty community-form submission remains client-side, exposes inline accessible errors for every required field and consent, and transmits no data.
 - [x] Added and deployed a narrow desktop compatibility rule for 1201-1350px so the approved primary and sticky headers remain on one row without changing the mobile breakpoint.
-- [x] Fresh production responses reference `saliver-child/style.css?ver=7.0.3`, containing the narrow-header rule; the already-open Codex browser document retained `7.0.2`, so fresh-document visual confirmation at 1280px remains open.
+- [x] Fresh production responses and a fresh Codex browser document reference `saliver-child/style.css?ver=7.0.3`; at 1280px the language control is hidden, the primary header is 66px high and horizontal overflow is zero.
 - [ ] Replace the current Saliver artwork used by header/footer logo assets with an approved Casa Nirvana wordmark. Earlier tracker references to an "owned Casa Nirvana wordmark" describe the intended placement and size, not the artwork currently rendered.
 - [ ] Confirm and configure the public resident app download/deep-link destination.
 - [ ] Add and verify applicant/internal email delivery after SMTP details are supplied; SMTP is intentionally deferred and does not block the current visual pass.
-- [ ] Record owner visual signoff for the three onboarding routes after the brand asset and 1280px fresh-document check are complete.
+- [ ] Record owner visual signoff for the three onboarding routes after the approved brand asset is installed.
 - Evidence commits: `0251c0ac`, `45d6c865`.

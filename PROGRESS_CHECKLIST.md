@@ -1858,7 +1858,7 @@ Date: 2026-02-06
 - [x] Audited all three onboarding routes at the six required desktop, tablet and mobile viewports.
 - [x] Confirmed responsive stacking, zero horizontal overflow, mobile navigation behavior, resident tab states and accessible community-form validation.
 - [x] Added and deployed the 1201-1350px compatibility rule needed to keep the approved desktop header on one row.
-- [ ] Reconfirm the 1280px header in a fresh Codex browser document; the existing controlled document retained the previous `7.0.2` stylesheet while the production server now returns `7.0.3`.
+- [x] Confirmed the `7.0.3` narrow-header correction in a fresh Codex browser document at 1280px: 66px primary header, hidden language control and zero horizontal overflow.
 - [ ] Replace the visually incorrect Saliver logo artwork with the approved Casa Nirvana wordmark; previous "Casa Nirvana wordmark" completion labels were inaccurate and must not be treated as launch evidence.
 - [ ] Configure the approved resident app destination.
 - [ ] Configure and verify onboarding/contact delivery when SMTP details are provided; this remains intentionally deferred.
