@@ -788,17 +788,40 @@ const routeTransforms = {
     ],
   },
   "/faqs/": {
+    sequentialReplacements: [
+      [
+        "Automatically jump into a dedicated Slack channel and we’ll provide.",
+        [
+          "Pre-register visitors and give guards QR or entry-code verification workflows.",
+          "Access visitor passes, requests, amenities, notices, messaging and community updates from one resident experience.",
+          "Verify visitors, record incidents and follow checkpoint activity from the guard workflow.",
+          "Connect resident, guard and facility workflows through shared community-scoped records.",
+        ],
+      ],
+      [
+        "From welcome series to abandoned carts, automate marketing campaigns to reach targets faster.",
+        [
+          "Manage community records, requests, amenities, notices and operational activity from one workspace.",
+          "Browse configured products, manage a cart and follow supported order status within the community.",
+        ],
+      ],
+    ],
     replacements: [
       ["Start for free", "Plan your rollout"],
       ["Digital Marketing", "Visitor Management"],
-      ["Automatically jump into a dedicated Slack channel and we’ll provide.", "Pre-register visitors and give guards QR or entry-code verification workflows."],
       ["Read More", "Explore feature"],
       ["Website Development", "Resident Experience"],
       ["Social Media Marketing", "Security Operations"],
       ["UI & UX Design", "Facility Management"],
-      ["From welcome series to abandoned carts, automate marketing campaigns to reach targets faster.", "Connect community, unit, resident, guard, request, amenity and visitor records in one administrative workspace."],
+      ["UI &#038; UX Design", "Facility Management"],
       ["Content Writing", "Marketplace"],
       ["Business Consultancy", "Community Operations"],
+      ["https://saliver.bravisthemes.com/assets/uploads/2025/04/038-marketing.svg", "/assets/uploads/2025/04/038-marketing.svg"],
+      ["https://saliver.bravisthemes.com/assets/uploads/2025/03/005-rating-stars.svg", "/assets/uploads/2025/03/005-rating-stars.svg"],
+      ["https://saliver.bravisthemes.com/assets/uploads/2025/04/030-rocket-ship.svg", "/assets/uploads/2025/04/030-rocket-ship.svg"],
+      ["https://saliver.bravisthemes.com/assets/uploads/2025/03/040-idea.svg", "/assets/uploads/2025/03/040-idea.svg"],
+      ["https://saliver.bravisthemes.com/assets/uploads/2025/03/010-meta.svg", "/assets/uploads/2025/03/010-meta.svg"],
+      ["https://saliver.bravisthemes.com/assets/uploads/2025/04/015-idea-1.svg", "/assets/uploads/2025/04/015-idea-1.svg"],
       ["universal question", "common questions"],
       ["Get every single answer", "Clear answers about Casa Nirvana"],
       ["General & Business Strategy", "Platform and rollout"],

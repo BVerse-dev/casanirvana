@@ -878,3 +878,9 @@ Visual authority: local WordPress reference under `wordpress/`
 - Synchronized regeneration mappings for category entities, revised answers and contact destinations.
 - Release evidence: transform syntax passed; snapshot audit passed all 11 approved routes; Next.js 16.2.10 production build generated all 22 pages successfully.
 - Remaining evidence: owner desktop/mobile visual signoff and production contact-form delivery after SMTP configuration.
+
+### 2026-07-22 - FAQs capability-carousel correction
+
+- Restored all six capability-card icons by replacing unavailable remote Saliver URLs with the existing mirrored SVG assets.
+- Replaced repeated card descriptions with distinct visitor, resident, guard, facility, marketplace and community-operations content.
+- Added descriptive icon alternative text and synchronized occurrence-aware regeneration mappings.
