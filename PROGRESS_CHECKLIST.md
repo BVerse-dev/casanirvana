@@ -1746,3 +1746,8 @@ Date: 2026-02-06
 - [x] Applied the standard non-homepage footer treatment.
 - [x] Passed transform syntax, the 11-route snapshot audit and the 22-page production build.
 - [ ] Owner visual parity signoff at desktop and mobile viewports.
+
+### 2026-07-22 - Phase 50 Core Features content refinement
+
+- [x] Replaced repetitive how-it-works copy with a distinct configuration, invitation and role-focused workflow sequence.
+- [x] Kept the WordPress-derived structure unchanged and synchronized the capture transform.
