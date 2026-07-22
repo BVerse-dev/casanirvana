@@ -1269,8 +1269,6 @@
         } else {
             console.warn('Element .bg-parallax .bg-image not found!');
         }
-    } else {
-        console.warn('Parent element not found!');
     }
 
 

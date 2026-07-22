@@ -1036,7 +1036,7 @@ function applyAccessibilityAndPerformance(source) {
     .replace(/<!-- casa-accessibility:start -->[\s\S]*?<!-- casa-accessibility:end -->/gi, "")
     .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, (tag) => {
       const value = tag.toLowerCase();
-      return ["wp-emoji", "wp-embed", "comment-reply", "wc-cart-fragments", "wc-add-to-cart", "wc-order-attribution", "sourcebuster"].some((marker) => value.includes(marker)) ? "" : tag;
+      return ["wp-emoji", "wp-embed", "comment-reply", "wc-cart-fragments", "wc-add-to-cart", "wc-order-attribution", "sourcebuster", 'id="threejs-js"', 'id="hover-umd-js"'].some((marker) => value.includes(marker)) ? "" : tag;
     })
     .replace(/<html\b([^>]*)>/i, (tag, attributes) => {
       let next = attributes;

@@ -484,6 +484,8 @@
         const $currentPage = $paginationFraction.find(".current-page");
         const $totalPages = $paginationFraction.find(".total-pages");
 
+        if (!$panelsSection.length || !$panelsContainer.length || !$panels.length) return;
+
         $currentPage.text(formatNumber(1));
         $totalPages.text(formatNumber($panels.length));
 
