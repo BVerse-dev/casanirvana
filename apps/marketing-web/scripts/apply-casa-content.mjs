@@ -1068,6 +1068,23 @@ function applyAccessibilityAndPerformance(source) {
       return `<div${next}>`;
     });
 
+  output = output
+    .replace(/\/saliver\/elements\/assets\/js\/elementor\.js\?ver=1\.0\.0/gi, "/saliver/elements/assets/js/elementor.js?ver=1.0.1")
+    .replace(/\/saliver\/assets\/js\/theme\.js\?ver=1\.0\.0/gi, "/saliver/assets/js/theme.js?ver=1.0.1");
+
+  const orderedSaliverScriptIds = ["gsap-js", "pxl-scroll-trigger-js", "saliver-elementor-js"];
+  const orderedSaliverScripts = [];
+  for (const scriptId of orderedSaliverScriptIds) {
+    const scriptPattern = new RegExp(`<script\\b[^>]*id=["']${scriptId}["'][^>]*><\\/script>\\s*`, "i");
+    const scriptTag = output.match(scriptPattern)?.[0]?.trim();
+    if (!scriptTag) continue;
+    orderedSaliverScripts.push(scriptTag);
+    output = output.replace(scriptPattern, "");
+  }
+  if (orderedSaliverScripts.length) {
+    output = output.replace(/(<script\b[^>]*id=["']pxl-main-js["'][^>]*>)/i, `${orderedSaliverScripts.join("\n")}\n$1`);
+  }
+
   output = output.replace(/<\/head>/i, `${supportStyles}</head>`);
   if (!/class=["'][^"']*casa-skip-link/i.test(output)) {
     output = output.replace(/<body\b([^>]*)>/i, '<body$1><a class="casa-skip-link" href="#main-content">Skip to main content</a><span id="main-content" tabindex="-1"></span>');

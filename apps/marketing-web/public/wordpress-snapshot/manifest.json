@@ -7,15 +7,15 @@
       "source": "http://localhost:8882/",
       "output": "/wordpress-snapshot/pages/index.html",
       "title": "Home - Casa Nirvana",
-      "bytes": 529452,
-      "sha256": "dc8d13bb1e6fce0b35455920eee07cfca002356a6f8b746657634a458a124e95"
+      "bytes": 529450,
+      "sha256": "e3a4fa60878da5ac96fe0e34c52e0c79024d5c7d9109082dfa76b362a9a66f38"
     },
     "/about-us/": {
       "source": "http://localhost:8882/about-us/",
       "output": "/wordpress-snapshot/pages/about-us/index.html",
       "title": "About Us - Casa Nirvana",
-      "bytes": 476989,
-      "sha256": "5fcf9e0af76f2db0ff769eea6578ac1a54a3ee00efb5049009fe5fede1ebdde5"
+      "bytes": 476987,
+      "sha256": "e354a9dfeb48b02a8fce329a4467b9f46cc2098737186240cd69c600a8a39f42"
     },
     "/adaptive-grazing-promotes-soil-vitality/": {
       "source": "http://localhost:8882/adaptive-grazing-promotes-soil-vitality/",
@@ -119,29 +119,29 @@
       "source": "http://localhost:8882/contact-us/",
       "output": "/wordpress-snapshot/pages/contact-us/index.html",
       "title": "Contact Us - Casa Nirvana",
-      "bytes": 288197,
-      "sha256": "84ecb865dcc8628ec39dfc1ffc7bdf8f0de8cd4b82d00c4a465630d3bd42aaa9"
+      "bytes": 288195,
+      "sha256": "b242b5f4d7ec4af847b2b9c40cbb9ad93d5abf70fc4ec75346c599be003a28d0"
     },
     "/core-features/": {
       "source": "http://localhost:8882/core-features/",
       "output": "/wordpress-snapshot/pages/core-features/index.html",
       "title": "Core Features - Casa Nirvana",
-      "bytes": 463526,
-      "sha256": "3518bd227cedc8801fb6ba1f604bc88ac146110ef33950ad5b45b5211eb399ea"
+      "bytes": 463524,
+      "sha256": "0b4fdd2075b27a0669d297883f93950931bc4e04103fab4ff4c38cbca26a4acc"
     },
     "/facility-managers/": {
       "source": "http://localhost:8882/facility-managers/",
       "output": "/wordpress-snapshot/pages/facility-managers/index.html",
       "title": "Facility Managers - Casa Nirvana",
-      "bytes": 509854,
-      "sha256": "e1a4d14b06ce3ef80ee9dfd68aeeb660f4312be0a93c66d2fbc2a0791dfaa0f2"
+      "bytes": 509852,
+      "sha256": "71f2ac91ad966d106cc8404317536dcb1f360f0e15304c0479f33112465eccc8"
     },
     "/faqs/": {
       "source": "http://localhost:8882/faqs/",
       "output": "/wordpress-snapshot/pages/faqs/index.html",
       "title": "FAQs - Casa Nirvana",
-      "bytes": 318911,
-      "sha256": "dee13a0ed17bc06ec1773d4e74804c3a41ab9634960e2aaba2eddd7192e0973a"
+      "bytes": 318909,
+      "sha256": "3b44b98b5713aa307140f0f054e9bfe5205d978c4603bed5282c45795af32f04"
     },
     "/holistic-grazing-strengthens-biodiversity/": {
       "source": "http://localhost:8882/holistic-grazing-strengthens-biodiversity/",
@@ -161,15 +161,15 @@
       "source": "http://localhost:8882/marketplace/",
       "output": "/wordpress-snapshot/pages/marketplace/index.html",
       "title": "Marketplace - Casa Nirvana",
-      "bytes": 491493,
-      "sha256": "65979a138c796ba51e3b589cc07f42b05d93c587dd2491333071800cc172f67f"
+      "bytes": 491491,
+      "sha256": "3c2d53c0c48f40c6c3fc2a24108de2e99f54ed80abcce658dd4bf3a2607756bc"
     },
     "/our-products/": {
       "source": "http://localhost:8882/our-products/",
       "output": "/wordpress-snapshot/pages/our-products/index.html",
       "title": "Our Products - Casa Nirvana",
-      "bytes": 373559,
-      "sha256": "abb744029ca8304db3314d6caa666ef15d577d8d61d33c15decebc3079373e8e"
+      "bytes": 373557,
+      "sha256": "aea7c73aa8841b2827462c9c76fad078482121cd7bdec5bed2434096cc8baa6a"
     },
     "/our-team/": {
       "source": "http://localhost:8882/our-team/",
@@ -329,8 +329,8 @@
       "source": "http://localhost:8882/pricing-plans/",
       "output": "/wordpress-snapshot/pages/pricing-plans/index.html",
       "title": "Pricing Plans - Casa Nirvana",
-      "bytes": 438618,
-      "sha256": "be91c1935b22c42e3a246e6d9f0ec556db6133f4add31d7a12cb58aa4f22ec9d"
+      "bytes": 438616,
+      "sha256": "750cffdb832d357d93b46b924bc036d9c13e42808f0dcc9a55aff39ff609e9ba"
     },
     "/product-tag/branding/": {
       "source": "http://localhost:8882/product-tag/branding/",
@@ -581,8 +581,8 @@
       "source": "http://localhost:8882/residents/",
       "output": "/wordpress-snapshot/pages/residents/index.html",
       "title": "Residents - Casa Nirvana",
-      "bytes": 491649,
-      "sha256": "c24fce3fa7e2c0c695a2a78f06c106158577c7fdcb5d5d20b0319d0791c6d7c7"
+      "bytes": 491647,
+      "sha256": "8a3035597455467ea30182d4339847bcdab46303095807128c9d00db8cfa5d08"
     },
     "/rotational-grazing-improves-water-retention/": {
       "source": "http://localhost:8882/rotational-grazing-improves-water-retention/",
@@ -602,8 +602,8 @@
       "source": "http://localhost:8882/security-guards/",
       "output": "/wordpress-snapshot/pages/security-guards/index.html",
       "title": "Security Guards - Casa Nirvana",
-      "bytes": 491644,
-      "sha256": "1fc21643574dab67cf2499ce567dd673b9485acb514161efef1364269d6d79b2"
+      "bytes": 491642,
+      "sha256": "10dc3133525bdbf4a576307671a90ea5ca06c920dae241957db7a44f97f3b949"
     },
     "/service/": {
       "source": "http://localhost:8882/service/",
@@ -3950,7 +3950,7 @@
     "wordpressDiscoveryRemoved": true,
     "wordpressControlEndpointsDisabled": true
   },
-  "contentAppliedAt": "2026-07-22T14:44:36.964Z",
+  "contentAppliedAt": "2026-07-22T14:51:36.570Z",
   "contentTransform": {
     "source": "MARKETING_SITE_PRODUCT_CLAIMS_MATRIX.md",
     "routes": [
