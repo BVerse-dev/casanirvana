@@ -1,0 +1,444 @@
+/* Exact Casa Nirvana WordPress/Saliver header behavior, isolated to Next-owned routes. */
+#pxl-header-elementor.casa-mirrored-header {
+  min-height: 0 !important;
+  position: relative;
+  z-index: 1001;
+}
+
+#pxl-header-elementor.casa-mirrored-header .pxl-header-elementor-main {
+  position: absolute;
+  inset: 0 0 auto;
+  width: 100%;
+  z-index: 999;
+}
+
+#pxl-header-elementor.casa-mirrored-header .casa-header-container {
+  width: calc(100% - 30px);
+  max-width: 1300px;
+  margin: 30px auto 0;
+  display: flex;
+  align-items: center;
+  font-family: var(--font-walsheim), sans-serif;
+}
+
+#pxl-header-elementor.casa-mirrored-header .casa-header-main-shell {
+  min-height: 72px;
+  padding: 0 10px 0 20px;
+  border-radius: 40px;
+  background: #000;
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.1);
+}
+
+#pxl-header-elementor.casa-mirrored-header .pxl-logo {
+  flex: 0 0 auto;
+  line-height: 0;
+}
+
+#pxl-header-elementor.casa-mirrored-header .pxl-logo img {
+  display: block;
+  width: auto;
+  max-height: 32px;
+}
+
+#pxl-header-elementor.casa-mirrored-header .casa-header-main-logo {
+  margin-right: 85px;
+}
+
+#pxl-header-elementor.casa-mirrored-header .pxl-nav-menu {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+#pxl-header-elementor.casa-mirrored-header .pxl-menu-primary,
+#pxl-header-elementor.casa-mirrored-header .pxl-menu-primary li {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+#pxl-header-elementor.casa-mirrored-header .pxl-nav-menu > .pxl-menu-primary {
+  display: flex;
+  align-items: center;
+}
+
+#pxl-header-elementor.casa-mirrored-header .pxl-nav-menu > .pxl-menu-primary > li {
+  position: relative;
+  margin: 0 15px;
+}
+
+#pxl-header-elementor.casa-mirrored-header .pxl-nav-menu > .pxl-menu-primary > li > a {
+  display: block;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 72px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+#pxl-header-elementor.casa-mirrored-header .pxl-menu-item-text {
+  display: inline-flex;
+  align-items: center;
+}
+
+#pxl-header-elementor.casa-mirrored-header .pxl-arrow-arrow::before {
+  content: "⌄";
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 11px;
+  font-style: normal;
+  transition: transform 300ms linear;
+}
+
+#pxl-header-elementor.casa-mirrored-header .menu-item-has-children:hover > a .pxl-arrow-arrow::before,
+#pxl-header-elementor.casa-mirrored-header .menu-item-has-children:focus-within > a .pxl-arrow-arrow::before {
+  transform: rotate(180deg);
+}
+
+#pxl-header-elementor.casa-mirrored-header .pxl-nav-menu .sub-menu {
+  position: absolute;
+  top: calc(100% - 4px);
+  left: -24px;
+  width: 225px;
+  padding: 16px 0;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.12);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(12px);
+  transition: opacity 300ms ease, transform 300ms ease, visibility 300ms ease;
+}
+
+#pxl-header-elementor.casa-mirrored-header .pxl-nav-menu .menu-item-has-children:hover > .sub-menu,
+#pxl-header-elementor.casa-mirrored-header .pxl-nav-menu .menu-item-has-children:focus-within > .sub-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+#pxl-header-elementor.casa-mirrored-header .pxl-nav-menu .sub-menu a {
+  display: block;
+  padding: 9px 24px;
+  color: #000;
+  font-size: 14px;
+  line-height: 1.4;
+  text-decoration: none;
+}
+
+#pxl-header-elementor.casa-mirrored-header .pxl-nav-menu a:hover,
+#pxl-header-elementor.casa-mirrored-header .pxl-nav-menu a:focus-visible,
+#pxl-header-elementor.casa-mirrored-header .pxl-nav-menu .current-menu-item > a {
+  color: #9fe870;
+}
+
+#pxl-header-elementor.casa-mirrored-header .casa-header-outline-action .btn,
+#pxl-header-elementor.casa-mirrored-header .casa-header-rollout-action .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 40px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+#pxl-header-elementor.casa-mirrored-header .casa-header-outline-action {
+  margin-right: 10px;
+}
+
+#pxl-header-elementor.casa-mirrored-header .casa-header-outline-action .btn {
+  min-height: 42px;
+  padding: 0 20px;
+  color: #fff;
+  border: 1px solid #3f3f3f;
+  background: transparent;
+}
+
+#pxl-header-elementor.casa-mirrored-header .casa-header-outline-action .pxl--btn-icon {
+  margin-left: 9px;
+}
+
+#pxl-header-elementor.casa-mirrored-header .casa-header-outline-action .btn:hover,
+#pxl-header-elementor.casa-mirrored-header .casa-header-outline-action .btn:focus-visible {
+  color: #000;
+  background: #9fe870;
+}
+
+#pxl-header-elementor.casa-mirrored-header .casa-header-primary-action a {
+  display: inline-flex;
+  align-items: center;
+  gap: 20px;
+  min-height: 42px;
+  padding: 0 10px 0 26px;
+  border-radius: 40px;
+  color: #000;
+  background: #9fe870;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+#pxl-header-elementor.casa-mirrored-header .casa-header-primary-action .pxl--btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #fff;
+}
+
+#pxl-header-elementor.casa-mirrored-header .pxl-header-elementor-sticky {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 999;
+  visibility: hidden;
+  transform: translateY(-120%);
+  transition: 0.6s cubic-bezier(0.24, 0.74, 0.58, 1);
+}
+
+#pxl-header-elementor.casa-mirrored-header .pxl-header-elementor-sticky.pxl-header-fixed {
+  visibility: visible;
+  transform: translateY(0);
+}
+
+#pxl-header-elementor.casa-mirrored-header .casa-header-sticky-shell {
+  min-height: 66px;
+  padding: 0 6px 0 15px;
+  border-radius: 40px;
+  background: #fff;
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.1);
+}
+
+#pxl-header-elementor.casa-mirrored-header .casa-header-sticky-logo {
+  margin-right: 85px;
+}
+
+#pxl-header-elementor.casa-mirrored-header .pxl-header-elementor-sticky .pxl-nav-menu > .pxl-menu-primary > li > a {
+  color: #000;
+  line-height: 66px;
+}
+
+#pxl-header-elementor.casa-mirrored-header .pxl-header-elementor-sticky .pxl-nav-menu a:hover,
+#pxl-header-elementor.casa-mirrored-header .pxl-header-elementor-sticky .pxl-nav-menu a:focus-visible,
+#pxl-header-elementor.casa-mirrored-header .pxl-header-elementor-sticky .pxl-nav-menu .current-menu-item > a {
+  color: #67ad3f;
+}
+
+#pxl-header-elementor.casa-mirrored-header .casa-header-demo-action {
+  margin-right: 5px;
+}
+
+#pxl-header-elementor.casa-mirrored-header .casa-header-demo-action a {
+  color: #000;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 54px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+#pxl-header-elementor.casa-mirrored-header .casa-header-rollout-action .btn {
+  min-height: 54px;
+  padding: 0 25px;
+  color: #000;
+  background: #9fe870;
+}
+
+#pxl-header-elementor.casa-mirrored-header .casa-header-rollout-action .btn:hover,
+#pxl-header-elementor.casa-mirrored-header .casa-header-rollout-action .btn:focus-visible {
+  color: #fff;
+  background: #000;
+}
+
+#pxl-header-elementor.casa-mirrored-header #pxl-header-mobile {
+  display: none;
+}
+
+@media (max-width: 1200px) {
+  #pxl-header-elementor.casa-mirrored-header .pxl-header-elementor-main,
+  #pxl-header-elementor.casa-mirrored-header .pxl-header-elementor-sticky {
+    display: none;
+  }
+
+  #pxl-header-elementor.casa-mirrored-header #pxl-header-mobile {
+    display: block;
+    position: absolute;
+    inset: 0 0 auto;
+    z-index: 999;
+  }
+
+  #pxl-header-elementor.casa-mirrored-header #pxl-header-mobile.pxl-header-mobile-fixed {
+    position: fixed;
+    animation: PXL_Header_SlideDown 0.95s ease forwards;
+  }
+
+  #pxl-header-elementor.casa-mirrored-header .pxl-header-main {
+    padding: 18px 24px;
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  }
+
+  #pxl-header-elementor.casa-mirrored-header .pxl-header-mobile-default {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  #pxl-header-elementor.casa-mirrored-header .pxl-header-branding img,
+  #pxl-header-elementor.casa-mirrored-header .pxl-logo-mobile img {
+    display: block;
+    width: auto;
+    max-height: 32px;
+  }
+
+  #pxl-header-elementor.casa-mirrored-header .pxl-nav-mobile-button {
+    appearance: none;
+    width: 30px;
+    height: 21px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    position: relative;
+  }
+
+  #pxl-header-elementor.casa-mirrored-header .pxl-nav-mobile-button .pxl-icon-line {
+    position: absolute;
+    right: 0;
+    height: 3px;
+    border-radius: 3px;
+    background: #000;
+  }
+
+  #pxl-header-elementor.casa-mirrored-header .pxl-nav-mobile-button .pxl-icon-line1 { top: 0; width: 22px; }
+  #pxl-header-elementor.casa-mirrored-header .pxl-nav-mobile-button .pxl-icon-line2 { top: 9px; width: 30px; }
+  #pxl-header-elementor.casa-mirrored-header .pxl-nav-mobile-button .pxl-icon-line3 { bottom: 0; width: 16px; }
+
+  #pxl-header-elementor.casa-mirrored-header .pxl-header-menu {
+    position: fixed;
+    top: 0;
+    right: 0;
+    z-index: 1002;
+    width: min(420px, 90vw);
+    height: 100vh;
+    padding: 34px;
+    overflow-y: auto;
+    background: #fff;
+    visibility: hidden;
+    transform: translateX(100%);
+    transition: 0.4s cubic-bezier(0.24, 0.74, 0.58, 1);
+  }
+
+  #pxl-header-elementor.casa-mirrored-header .pxl-header-menu.active {
+    visibility: visible;
+    transform: translateX(0);
+  }
+
+  #pxl-header-elementor.casa-mirrored-header .pxl-menu-close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 38px;
+    height: 38px;
+    border: 0;
+    border-radius: 50%;
+    background: #f2f2f2;
+    cursor: pointer;
+  }
+
+  #pxl-header-elementor.casa-mirrored-header .pxl-menu-close::before,
+  #pxl-header-elementor.casa-mirrored-header .pxl-menu-close::after {
+    content: "";
+    position: absolute;
+    top: 18px;
+    left: 10px;
+    width: 18px;
+    height: 2px;
+    background: #000;
+    transform: rotate(45deg);
+  }
+
+  #pxl-header-elementor.casa-mirrored-header .pxl-menu-close::after { transform: rotate(-45deg); }
+  #pxl-header-elementor.casa-mirrored-header .pxl-logo-mobile { margin: 46px 0 30px; }
+  #pxl-header-elementor.casa-mirrored-header .pxl-header-nav > .pxl-menu-primary { display: block; }
+
+  #pxl-header-elementor.casa-mirrored-header .pxl-header-nav > .pxl-menu-primary > li {
+    border-bottom: 1px solid #ececec;
+  }
+
+  #pxl-header-elementor.casa-mirrored-header .casa-mobile-menu-row {
+    display: flex;
+    align-items: center;
+  }
+
+  #pxl-header-elementor.casa-mirrored-header .casa-mobile-menu-row > a {
+    flex: 1;
+    padding: 15px 0;
+    color: #000;
+    font-size: 17px;
+    font-weight: 500;
+    text-decoration: none;
+  }
+
+  #pxl-header-elementor.casa-mirrored-header .pxl-menu-toggle {
+    width: 36px;
+    height: 36px;
+    border: 0;
+    border-radius: 50%;
+    background: #f2f2f2;
+    font-size: 20px;
+  }
+
+  #pxl-header-elementor.casa-mirrored-header .pxl-header-nav .sub-menu {
+    display: none;
+    padding: 0 0 12px 18px;
+  }
+
+  #pxl-header-elementor.casa-mirrored-header .pxl-header-nav .sub-menu.active { display: block; }
+  #pxl-header-elementor.casa-mirrored-header .pxl-header-nav .sub-menu a { display: block; padding: 8px 0; color: #555; text-decoration: none; }
+
+  #pxl-header-elementor.casa-mirrored-header .casa-mobile-header-cta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 52px;
+    margin-top: 28px;
+    border-radius: 30px;
+    color: #000;
+    background: #9fe870;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  #pxl-header-elementor.casa-mirrored-header .pxl-header-menu-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1001;
+    display: block;
+    border: 0;
+    background: rgba(0, 0, 0, 0.45);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+  }
+
+  #pxl-header-elementor.casa-mirrored-header .pxl-header-menu-backdrop.active { opacity: 1; visibility: visible; }
+}
+
+@keyframes PXL_Header_SlideDown {
+  from { transform: translateY(-100%); }
+  to { transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #pxl-header-elementor.casa-mirrored-header .pxl-header-elementor-sticky,
+  #pxl-header-elementor.casa-mirrored-header .pxl-header-menu,
+  #pxl-header-elementor.casa-mirrored-header #pxl-header-mobile.pxl-header-mobile-fixed {
+    animation: none;
+    transition: none;
+  }
+}

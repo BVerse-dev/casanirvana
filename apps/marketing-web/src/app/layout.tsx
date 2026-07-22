@@ -5,6 +5,7 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 
 import "./globals.css";
+import "./mirrored-header.css";
 
 const walsheim = localFont({
   variable: "--font-walsheim",
