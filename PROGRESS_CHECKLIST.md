@@ -1841,3 +1841,9 @@ Date: 2026-02-06
 - Replaced the standalone Next.js onboarding navigation approximation with the copied WordPress/Saliver primary, sticky-pill, and mobile header patterns.
 - Production verification confirmed reversible sticky behavior, source geometry, and no horizontal overflow.
 - Marketing snapshot audit, tests, and production build passed; mobile viewport signoff remains open under the Phase 50 parity gate.
+
+### 2026-07-22 - Phase 50 canonical header correction
+
+- Replaced the reduced React/CSS header transcription with runtime extraction of the approved homepage snapshot header and its exact Elementor/Saliver dependencies.
+- Same-viewport production comparison confirmed desktop primary/sticky header parity and zero overflow.
+- Mobile visual parity remains open under the existing Phase 50 route signoff gate.

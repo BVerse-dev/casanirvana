@@ -957,3 +957,12 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Verification evidence: snapshot audit passed for 11 routes; 4 form tests passed; Next.js production build generated 24 routes.
 - [ ] Mobile viewport visual parity remains part of the systematic route-by-route viewport signoff.
 - Commits: `3376a89d`, `2e7e3797`.
+
+## 2026-07-22 - Exact approved header source reuse
+
+- [x] Superseded the manually transcribed onboarding header with the literal header extracted from the immutable approved homepage snapshot.
+- [x] Reused the original Elementor template 1318 CSS, Elementor Kit CSS, Saliver theme variables, theme/plugin stylesheets, desktop primary header, sticky header and mobile markup.
+- [x] Limited intentional changes to four CTA destinations and client-side wiring for sticky/mobile behavior.
+- [x] Production comparison at 1375x938 confirmed matching menu typography, shell geometry, CTA dimensions/colors/radii, the original sticky transition and zero horizontal overflow.
+- [ ] Mobile viewport visual parity remains open for systematic route signoff.
+- Commits: `80d424ae`, `748779f7`, `c9571282`, `c4a47662`.
