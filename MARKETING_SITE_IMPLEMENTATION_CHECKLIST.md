@@ -1030,3 +1030,13 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Verified the live 360x800 route with a 158x158 QR, 132x32 footer logo, zero overflow and a clean console.
 - [ ] Replace the correctly sized Saliver artwork with the approved Casa Nirvana wordmark and obtain owner visual signoff.
 - Evidence commit: `6f0ddf24`.
+
+## 2026-07-22 - Security Guards responsive parity checkpoint
+
+- [x] Audited `/security-guards/` at 1440x900, 1280x800, 1024x768, 768x1024, 390x844 and 360x800.
+- [x] Confirmed zero horizontal overflow, zero broken loaded images, correct desktop/mobile header switching, footer presence and no repeated section headings at every required viewport.
+- [x] Corrected the approved snapshot dependency order to GSAP, ScrollTrigger, Saliver Elementor and theme.js, then versioned the two modified Saliver scripts to invalidate stale browser caches.
+- [x] Verified all five heading-animation targets initialize without browser warnings or errors.
+- [x] Confirmed guard rollout actions resolve to valid Contact, Pricing and Get Started destinations and the mobile footer logo remains 132x32.
+- [ ] Replace the correctly sized Saliver artwork with the approved Casa Nirvana wordmark and obtain owner visual signoff.
+- Evidence commit: `51f1b0f4`.
