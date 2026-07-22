@@ -33,7 +33,7 @@ export default async function MarketingRoute({ params }: PageProps) {
   if (page) return <MarketingPageView page={page} />;
   if (slug === "faqs") return <FaqPage />;
   if (slug === "contact-us") return <ContactPage />;
-  if (slug === "privacy-policy") return <LegalPage title="Privacy Policy (Draft)" intro="A launch draft describing how Casa Nirvana handles information. This page remains subject to legal approval before release." sections={privacySections} />;
+  if (slug === "privacy-policy") return <LegalPage title="Privacy Policy (Draft)" intro="This implementation-aligned notice explains how Casa Nirvana handles personal data across its website and community products. Legal approval is required before release." sections={privacySections} />;
   if (slug === "terms-of-service") return <LegalPage title="Terms of Service (Draft)" intro="Draft terms for Casa Nirvana websites, applications and services. Legal approval is required before release." sections={termsSections} />;
   notFound();
 }
@@ -43,7 +43,7 @@ function FaqPage() {
 }
 
 function ContactPage() {
-  return <main><section className="pxl-page-hero"><div className="pxl-page-hero__shape" aria-hidden="true" /><div className="pxl-container"><p className="pxl-kicker">Let&apos;s talk</p><h1>Tell us what your community needs next.</h1><p className="pxl-page-hero__lead">For demos, partnerships and general enquiries, send a message to the Casa Nirvana team.</p></div></section><section className="pxl-section pxl-contact-page"><div className="pxl-container pxl-contact-page__grid"><div><p className="pxl-kicker">Start a conversation</p><h2>Hi, how are you doing today?</h2><p>Share a few details and we will connect you with the right person.</p><div className="pxl-contact-card"><strong>Prefer email?</strong><a href="mailto:hello@casanirvana.com">hello@casanirvana.com</a><span>Accra, Ghana</span></div></div><ContactForm /></div></section></main>;
+  return <main><section className="pxl-page-hero"><div className="pxl-page-hero__shape" aria-hidden="true" /><div className="pxl-container"><p className="pxl-kicker">Let&apos;s talk</p><h1>Tell us what your community needs next.</h1><p className="pxl-page-hero__lead">For demos, partnerships and general enquiries, send a message to the Casa Nirvana team.</p></div></section><section className="pxl-section pxl-contact-page"><div className="pxl-container pxl-contact-page__grid"><div><p className="pxl-kicker">Start a conversation</p><h2>Hi, how are you doing today?</h2><p>Share a few details and we will connect you with the right person.</p><div className="pxl-contact-card"><strong>Prefer email?</strong><a href="mailto:hello@casanirvana.app">hello@casanirvana.app</a><span>Accra, Ghana</span></div></div><ContactForm /></div></section></main>;
 }
 
 function LegalPage({ title, intro, sections }: { title: string; intro: string; sections: ReadonlyArray<readonly [string, string]> }) {
@@ -51,12 +51,18 @@ function LegalPage({ title, intro, sections }: { title: string; intro: string; s
 }
 
 const privacySections = [
-  ["Review status", "This draft is an implementation-aligned working document, not final legal approval. It must be reviewed for applicable jurisdictions, processors, retention periods, user rights and contact details before launch."],
-  ["Information we collect", "We collect information supplied through public forms and information required to provide authenticated community services. Product data access is governed by role and community scope."],
-  ["How information is used", "Information is used to operate, secure and improve Casa Nirvana, respond to enquiries, support community workflows and meet legal or contractual obligations."],
-  ["Data sharing", "We do not sell personal information. Data is shared only with authorized community participants, service providers or authorities where required to deliver services or comply with law."],
-  ["Security and retention", "We use access controls, audit records and operational safeguards appropriate to the information processed. Retention follows service, legal and security requirements."],
-  ["Your choices", "You may request access, correction or deletion where applicable by contacting privacy@casanirvana.com."],
+  ["Review status and scope", "Last updated 22 July 2026. This working notice covers the Casa Nirvana website, resident and guard applications, facility-management tools and related services. It reflects the current implementation but remains subject to legal approval, processor review and confirmation of the final retention schedule before launch."],
+  ["Who is responsible for your data", "Casa Nirvana determines how information submitted through its public website and direct support channels is handled. For community-service records, the relevant community or organization may determine the purpose of processing while Casa Nirvana processes information to provide the platform. Contractual roles and responsibilities must be confirmed during onboarding."],
+  ["Information we collect", "Depending on your role and enabled modules, information may include identity and contact details; community, unit, membership and role records; visitor and access activity; requests, complaints, incidents and emergency records; amenity bookings; notices and messages; marketplace, order and payment-status records; files you choose to attach; and support or onboarding communications."],
+  ["Website and technical information", "Public forms collect the details you submit, such as your name, email address, phone number, organization, enquiry reason and message. The service may also process device, browser, network, authentication, diagnostic and audit information needed to deliver, secure and troubleshoot the platform."],
+  ["How information is used", "Information is used to authenticate users, enforce role and community access, operate enabled workflows, communicate service and security updates, respond to enquiries, provide support, prevent misuse, maintain auditability, improve reliability and meet applicable legal or contractual obligations."],
+  ["How information is shared", "Casa Nirvana does not sell personal data. Information may be shared with authorized community participants according to their role, with contracted providers supporting hosting, database, authentication, communications, email, payments or digital services, and with professional advisers or public authorities where permitted or required by law."],
+  ["International processing", "Some contracted technology providers may process information outside Ghana. Before launch, Casa Nirvana must confirm the locations and safeguards used for these transfers and document the applicable contractual and legal protections."],
+  ["Retention", "Information is retained only for as long as necessary for the purpose collected, the active service relationship, security and audit needs, dispute resolution and legal obligations. The final category-specific retention schedule and deletion process must be approved before launch."],
+  ["Security", "Casa Nirvana uses authenticated access, role and community scoping, database access controls, audit records and operational safeguards designed to protect personal data. No service can guarantee absolute security, and suspected incidents should be reported promptly to privacy@casanirvana.app."],
+  ["Your rights and choices", "Subject to applicable law, you may request information about processing, access to your personal data, correction of inaccurate data, objection to certain processing, or deletion or restriction where available. Requests can be sent to privacy@casanirvana.app. You may also raise a concern with Ghana's Data Protection Commission."],
+  ["Children's information", "Casa Nirvana is not intended for children to create independent accounts. A community or authorized adult may provide limited household or visitor information involving a child where required for community operations; the responsible community must ensure it has an appropriate lawful basis and applies suitable safeguards."],
+  ["Changes and contact", "Material updates will be posted on this page with a revised date. Privacy questions and rights requests should be sent to privacy@casanirvana.app. General product enquiries can be sent to hello@casanirvana.app."],
 ] as const;
 
 const termsSections = [

@@ -1779,3 +1779,17 @@ Date: 2026-02-06
 - [x] Passed transform syntax, the 11-route snapshot audit and the 22-page production build.
 - [ ] Owner visual parity signoff at desktop and mobile viewports.
 - [ ] Verify production contact-form delivery after SMTP configuration is available.
+
+### 2026-07-22 - Phase 50 Privacy Policy route
+
+- [x] Replaced the short placeholder with an implementation-aligned privacy notice draft.
+- [x] Covered website, authentication, community workflows, visitor/access activity, requests, communications, marketplace, payment-status, technical and support data categories.
+- [x] Added purpose, sharing, international-processing, retention, security, rights and children's-information sections.
+- [x] Corrected privacy and general contact addresses to the `.app` domain.
+- [x] Recorded official Ghana Data Protection Commission and Act 843 references.
+- [x] Passed the 11-route snapshot audit and 22-page production build.
+- [ ] Obtain legal approval for production publication.
+- [ ] Confirm Casa Nirvana and community controller/processor roles contractually.
+- [ ] Approve the processor list, transfer safeguards and category-specific retention schedule.
+- [ ] Record Ghana DPC registration and compliance evidence.
+- [ ] Owner visual parity signoff at desktop and mobile viewports.

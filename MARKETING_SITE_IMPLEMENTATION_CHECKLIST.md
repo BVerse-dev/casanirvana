@@ -896,3 +896,13 @@ Visual authority: local WordPress reference under `wordpress/`
 - Synchronized the contact, map and form-copy regeneration mappings.
 - Release evidence: transform syntax passed; snapshot audit passed all 11 approved routes; Next.js 16.2.10 production build generated all 22 pages successfully.
 - Remaining evidence: owner desktop/mobile visual signoff and production contact-form delivery after SMTP configuration.
+
+### 2026-07-22 - Privacy Policy implementation draft
+
+- Status: Implementation complete; blocked from final approval pending legal and compliance review.
+- Expanded the placeholder policy into an implementation-aligned notice covering scope, controller and processor roles, product and website data categories, purposes, sharing, international processing, retention, safeguards, data-subject rights, children's information and contact details.
+- Corrected privacy and general contact addresses to the `casanirvana.app` domain in the legal page, fallback contact page and shared Next.js footer.
+- Kept the draft label and explicit legal-review language so the page cannot be mistaken for approved launch copy.
+- Grounded the compliance checklist in Ghana's Data Protection Act, 2012 (Act 843) and official Data Protection Commission guidance on transparency, data-subject rights, safeguards, retention and controller registration: [DPC organisations guidance](https://dataprotection.org.gh/for-organisations/), [DPC individual rights](https://dataprotection.org.gh/for-individuals/) and [Act 843](https://dataprotection.org.gh/wp-content/uploads/2025/05/Data-Protection-Act-2012-Act-843.pdf).
+- Release evidence: snapshot audit passed all 11 approved routes; Next.js 16.2.10 production build generated all 22 pages successfully.
+- Remaining evidence: counsel approval, confirmed controller/processor roles, approved processor and international-transfer disclosures, category-specific retention schedule, DPC registration/compliance evidence and owner visual signoff.
