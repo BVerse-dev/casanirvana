@@ -1015,6 +1015,7 @@ function applyAccessibilityAndPerformance(source) {
     ".casa-skip-link:focus{transform:translateY(0)}",
     "a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:3px solid #70d33f!important;outline-offset:3px!important}",
     "#main-content{scroll-margin-top:96px}",
+    "footer img[alt=\"Casa Nirvana\"]{width:132px!important;height:32px!important;object-fit:contain}",
     "@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto!important}*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}",
     "</style>",
     "<!-- casa-accessibility:end -->",
