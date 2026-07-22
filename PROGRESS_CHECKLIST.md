@@ -1847,3 +1847,8 @@ Date: 2026-02-06
 - Replaced the reduced React/CSS header transcription with runtime extraction of the approved homepage snapshot header and its exact Elementor/Saliver dependencies.
 - Same-viewport production comparison confirmed desktop primary/sticky header parity and zero overflow.
 - Mobile visual parity remains open under the existing Phase 50 route signoff gate.
+
+### 2026-07-22 - Phase 50 primary-header visibility correction
+
+- Corrected wrapper clipping so the approved primary header is visible before the sticky transformation.
+- Production verified the top and scrolled states independently with zero horizontal overflow.

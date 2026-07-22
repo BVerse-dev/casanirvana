@@ -966,3 +966,10 @@ Visual authority: local WordPress reference under `wordpress/`
 - [x] Production comparison at 1375x938 confirmed matching menu typography, shell geometry, CTA dimensions/colors/radii, the original sticky transition and zero horizontal overflow.
 - [ ] Mobile viewport visual parity remains open for systematic route signoff.
 - Commits: `80d424ae`, `748779f7`, `c9571282`, `c4a47662`.
+
+## 2026-07-22 - Primary header clipping correction
+
+- [x] Removed the zero-height Saliver wrapper that clipped the absolute primary header while leaving the fixed sticky header visible.
+- [x] Preserved horizontal gutter containment and restored the original Saliver header body-state initialization.
+- [x] Production evidence: primary menu visible at `scrollY: 0`; sticky menu hidden at top and visible after scrolling; both menus retain 66px line height and zero horizontal overflow.
+- Commits: `a12d7331`, `0cafb31b`, `03245257`.
