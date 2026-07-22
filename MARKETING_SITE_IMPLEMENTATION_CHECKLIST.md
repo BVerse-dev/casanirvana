@@ -878,6 +878,7 @@ Visual authority: local WordPress reference under `wordpress/`
 - Cache correction: versioned the WordPress compatibility form script across all 11 approved snapshots and the normalization source so immutable browser caching cannot retain stale CTA or Contact behavior.
 - Production evidence: `casa-native-forms.js?v=20260722-onboarding` is live; Contact remains an enquiry form; generic, resident and manager Get Started actions resolve to their intended onboarding routes; and Book a Demo remains routed to Contact.
 - Header and motion alignment: synchronized the shared Next.js header with the mirrored menu order, labels, Products dropdown and dual conversion actions; added staggered onboarding entrance, resident tab-panel, card, arrow and ambient hero motion with reduced-motion support.
+- Production header evidence: at 1375px the shared header renders the mirrored 1300×66 shell, exact navigation order and dual actions without horizontal overflow; live computed styles confirm hero, content, form-shell and fieldset animation sequences.
 
 ### 2026-07-22 - Core Features how-it-works refinement
 
