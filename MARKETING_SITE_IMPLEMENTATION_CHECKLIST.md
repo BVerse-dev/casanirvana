@@ -817,3 +817,14 @@ Visual authority: local WordPress reference under `wordpress/`
 - Preserved the visible QR treatment and the original Elementor layout/animation behavior.
 - Acceptance evidence: `npm run build` passed in `apps/marketing-web` on Next.js 16.2.10; 22 static pages generated successfully.
 - Remaining evidence: owner desktop/mobile visual signoff and approved QR destination confirmation.
+
+### 2026-07-22 - Marketplace route editorial completion
+
+- Status: Implementation complete; pending owner visual verification.
+- Completed the Marketplace route section by section without changing the WordPress-derived hierarchy, Elementor identifiers, animation hooks, assets, or responsive structure.
+- Replaced inherited SaaS, payment-platform, collaboration and third-party integration language across the opening journey, feature grid, administrative workflows, tabs, benefits, marquees, overview, QR panel and rollout CTA.
+- Differentiated product discovery, cart and fulfilment, authenticated access, order visibility, catalog configuration, order oversight and marketplace policy content using supported Casa Nirvana workflows.
+- Replaced dead portfolio/demo destinations with valid Casa Nirvana routes and added meaningful labels to key marketplace media.
+- Standardized the non-homepage footer with the 132 x 32 Casa Nirvana wordmark, compact copy, non-navigating social glyphs, hidden placeholder language controls and valid product/legal navigation.
+- Acceptance evidence: `npm run build` passed in `apps/marketing-web` on Next.js 16.2.10; 22 static pages generated successfully.
+- Remaining evidence: owner desktop/mobile visual signoff and approved marketplace QR destination confirmation.
