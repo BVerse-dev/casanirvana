@@ -2078,6 +2078,12 @@ Date: 2026-02-06
 - [x] Established visual preservation as the default for the remaining directory consolidation slices.
 - [ ] Record build and authenticated production evidence after deployment.
 
+### 2026-07-23 - Phase 52 Guards visual-parity correction
+
+- [x] Restored the pre-consolidation Guard overview, statistics and detailed grid-card presentation.
+- [x] Retained the canonical `/guards?view=grid|list` route, shared toggle, scoped data and canonical actions.
+- [ ] Point Render at the monorepo `apps/api` root and record authenticated production evidence against the matching backend revision.
+
 ### 2026-07-23 - Phase 52 Units unified directory slice
 
 - [x] Added canonical `/units` grid-default directory using the shared accessible view controls.

@@ -375,6 +375,13 @@
 - Kept `/communities?view=grid|list`, canonical details links and the shared persisted view preference without introducing a replacement visual design.
 - Delivery rule clarified: directory consolidation may change menu destinations, routing and shared state only; existing resource presentation remains unchanged unless separately approved.
 
+### 2026-07-23 - Guards visual-parity correction
+
+- Status: Implementation complete; build and production evidence pending.
+- Restored the approved Guard directory overview, statistics composition and detailed grid cards while retaining canonical Guard routes and the shared grid/list toggle.
+- Preserved live scoped Guard records and assignment status; no backend, database, global style or list-view change was introduced.
+- Deployment dependency: the Render service must use the monorepo `apps/api` root so the deployed frontend and backend contracts remain synchronized.
+
 ### 2026-07-23 - Units unified directory vertical slice
 
 - Status: Implementation complete; automated evidence passed.
