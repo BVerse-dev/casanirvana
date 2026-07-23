@@ -395,6 +395,13 @@
 - Route inventory: temporarily 250 while canonical routes and legacy compatibility redirects coexist.
 - Acceptance evidence: 5/5 Units directory contracts, 3/3 route contracts against 245 unique routes with zero unresolved sidebar destinations, Superadmin `build:check`, and standalone 240-page production build passed on 2026-07-23.
 
+### 2026-07-23 - Units visual-parity correction
+
+- Status: Implementation complete; build and production evidence pending.
+- Restored the approved grid filter panel, image-backed Unit cards, statistics row and full-width image list from the pre-consolidation implementation.
+- Retained `/units?view=grid|list`, canonical details/edit routes, live backend data and the shared persisted toggle.
+- Removed the unsupported bookmark action, corrected currency to GH₵ and aligned full-directory reads with the backend maximum of 200 without changing the approved layout.
+
 ### 2026-07-23 - Community Join Requests vertical slice
 
 - Status: Implementation complete; automated evidence passed.

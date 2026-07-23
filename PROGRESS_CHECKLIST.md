@@ -2099,6 +2099,13 @@ Date: 2026-02-06
 - [x] Recorded passing automated evidence: 5 Units contracts, 3 route contracts, Superadmin `build:check`, and standalone 240-page production build.
 - [ ] Record production browser verification after deployment.
 
+### 2026-07-23 - Phase 52 Units visual-parity correction
+
+- [x] Restored the pre-consolidation Unit filter panel, image grid, statistics and full-width image list.
+- [x] Added the shared URL-backed grid/list toggle to both approved presentations.
+- [x] Kept canonical Unit create/details/edit routes, removed unsupported bookmark behavior and corrected currency to GH₵.
+- [ ] Record authenticated production evidence after deployment.
+
 ### 2026-07-23 - Phase 52 Community Join Requests slice
 
 - [x] Moved Join Request search, status filtering and pagination to the scoped backend contract.

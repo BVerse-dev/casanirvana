@@ -35,7 +35,7 @@ const UnitsFilter = ({ onFilterChange, onReset }: UnitsFilterProps) => {
   const communities = communitiesData?.data || [];
   
   const [filters, setFilters] = useState<UnitsFilterState>({
-    rentRange: [5000, 50000],
+    rentRange: [0, 100000],
   });
 
   const handleFilterChange = (key: keyof UnitsFilterState, value: any) => {
@@ -54,7 +54,7 @@ const UnitsFilter = ({ onFilterChange, onReset }: UnitsFilterProps) => {
 
   const handleReset = () => {
     const resetFilters: UnitsFilterState = {
-      rentRange: [5000, 50000],
+      rentRange: [0, 100000],
     };
     setFilters(resetFilters);
     onReset();
@@ -126,9 +126,9 @@ const UnitsFilter = ({ onFilterChange, onReset }: UnitsFilterProps) => {
               </Col>
             </Row>
             <div className="mt-3">
-              <label className="form-label">Rent Range ($)</label>
+              <label className="form-label">Rent Range (GH₵)</label>
               <Nouislider
-                range={{ min: 5000, max: 100000 }}
+                range={{ min: 0, max: 100000 }}
                 start={filters.rentRange}
                 connect
                 onSlide={handleSliderChange}
@@ -139,8 +139,8 @@ const UnitsFilter = ({ onFilterChange, onReset }: UnitsFilterProps) => {
                 }}
               />
               <div className="d-flex justify-content-between mt-2">
-                <span className="text-muted">${filters.rentRange[0]}</span>
-                <span className="text-muted">${filters.rentRange[1]}</span>
+                <span className="text-muted">GH₵ {filters.rentRange[0]}</span>
+                <span className="text-muted">GH₵ {filters.rentRange[1]}</span>
               </div>
             </div>
             <Row className="mt-3">

@@ -25,7 +25,12 @@ import {
   ModalTitle,
 } from "react-bootstrap";
 
-const UnitsList = () => {
+interface UnitsListProps {
+  viewMode: "grid" | "list";
+  onViewModeChange: (view: "grid" | "list") => void;
+}
+
+const UnitsList = ({ viewMode, onViewModeChange }: UnitsListProps) => {
   const searchParams = useSearchParams();
   const communityId = searchParams.get('communityId');
 
@@ -232,7 +237,13 @@ const UnitsList = () => {
                   Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalCount)} of {totalCount} units
                 </small>
               </div>
-              <Dropdown>
+              <div className="d-flex align-items-center gap-2">
+                <div className="btn-group" role="group" aria-label="Directory view">
+                  <Button variant={viewMode === "grid" ? "primary" : "outline-primary"} size="sm" onClick={() => onViewModeChange("grid")} aria-label="Grid view" aria-pressed={viewMode === "grid"}><IconifyIcon icon="ri:grid-line" /></Button>
+                  <Button variant={viewMode === "list" ? "primary" : "outline-primary"} size="sm" onClick={() => onViewModeChange("list")} aria-label="List view" aria-pressed={viewMode === "list"}><IconifyIcon icon="ri:list-check" /></Button>
+                </div>
+                <Link href="/units/add" className="btn btn-sm btn-primary"><IconifyIcon icon="ri:add-line" className="me-1" />Add Unit</Link>
+                <Dropdown>
                 <DropdownToggle
                   as={"a"}
                   className="btn btn-sm btn-outline-light rounded content-none icons-center"
@@ -261,7 +272,8 @@ const UnitsList = () => {
                     Import Data
                   </DropdownItem>
                 </DropdownMenu>
-              </Dropdown>
+                </Dropdown>
+              </div>
             </CardHeader>
             <div className="table-responsive">
               <table className="table align-middle text-nowrap table-hover table-centered mb-0">
@@ -328,7 +340,7 @@ const UnitsList = () => {
                             </div>
                             <div>
                               <Link
-                                href={`/property/details?id=${unit.id}`}
+                                href={`/units/${unit.id}`}
                                 className="text-dark fw-medium fs-15"
                               >
                                 Unit {unit.unit_number}
@@ -355,10 +367,10 @@ const UnitsList = () => {
                           </p>
                         </td>
                         <td>{unit.communities?.name || "N/A"}</td>
-                        <td>${unit.rent_amount || "N/A"}</td>
+                        <td>GH₵ {unit.rent_amount?.toLocaleString() || "N/A"}</td>
                         <td>
                           <div className="d-flex gap-2">
-                            <Link href={`/property/details?id=${unit.id}`}>
+                            <Link href={`/units/${unit.id}`}>
                               <Button variant="light" size="sm" title="View Details">
                                 <IconifyIcon
                                   icon="solar:eye-broken"
@@ -366,17 +378,9 @@ const UnitsList = () => {
                                 />
                               </Button>
                             </Link>
-                            <Button
-                              variant="soft-primary"
-                              size="sm"
-                              title="Unit edit flow is not wired yet"
-                              disabled
-                            >
-                              <IconifyIcon
-                                icon="solar:pen-2-broken"
-                                className="align-middle fs-18"
-                              />
-                            </Button>
+                            <Link href={`/units/${unit.id}/edit`}>
+                              <Button variant="soft-primary" size="sm" title="Edit Unit"><IconifyIcon icon="solar:pen-2-broken" className="align-middle fs-18" /></Button>
+                            </Link>
                             <Button
                               variant="soft-danger"
                               size="sm"

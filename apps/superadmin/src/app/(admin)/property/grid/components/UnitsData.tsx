@@ -12,6 +12,8 @@ type Unit = UnitRecord;
 
 interface UnitsDataProps {
   filters: UnitsFilterState;
+  viewMode: "grid" | "list";
+  onViewModeChange: (view: "grid" | "list") => void;
 }
 
 const UnitsCard = ({ unit }: { unit: Unit }) => {
@@ -53,16 +55,6 @@ const UnitsCard = ({ unit }: { unit: Unit }) => {
           width={400}
           height={250}
         />
-        <span className="position-absolute top-0 start-0 p-1">
-          <button
-            type="button"
-            className="btn bg-warning-subtle avatar-sm d-inline-flex align-items-center justify-content-center fs-20 rounded text-warning"
-          >
-            <span>
-              <IconifyIcon icon="solar:bookmark-broken" />
-            </span>
-          </button>
-        </span>
         <span className="position-absolute top-0 end-0 p-1">
           <span
             className={`badge bg-${getStatusVariant(unit.status || "")} text-white fs-13`}
@@ -83,7 +75,7 @@ const UnitsCard = ({ unit }: { unit: Unit }) => {
           </div>
           <div>
             <Link
-              href={`/property/details?id=${unit.id}`}
+              href={`/units/${unit.id}`}
               className="text-dark fw-medium fs-16"
             >
               Unit {unit.unit_number || unit.number}
@@ -146,12 +138,12 @@ const UnitsCard = ({ unit }: { unit: Unit }) => {
           <p className="fw-medium text-success fs-16 mb-0">Available</p>
         ) : (
           <p className="fw-medium text-dark fs-16 mb-0">
-            ${unit.rent_amount || "N/A"}/month
+            GH₵ {unit.rent_amount?.toLocaleString() || "N/A"}/month
           </p>
         )}
         <div>
           <Link
-            href={`/property/details?id=${unit.id}`}
+            href={`/units/${unit.id}`}
             className="link-primary fw-medium"
           >
             View Details{" "}
@@ -163,13 +155,13 @@ const UnitsCard = ({ unit }: { unit: Unit }) => {
   );
 };
 
-const UnitsData = ({ filters }: UnitsDataProps) => {
+const UnitsData = ({ filters, viewMode, onViewModeChange }: UnitsDataProps) => {
   const [sortBy, setSortBy] = useState("newest");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 9;
   const { data: unitsResponse, isLoading, error } = useListUnits({
     communityId: filters.communityId,
-    pageSize: 1000,
+    pageSize: 200,
   });
   const allUnits = unitsResponse?.data || [];
 
@@ -264,6 +256,14 @@ const UnitsData = ({ filters }: UnitsDataProps) => {
           Showing {filteredUnits.length} of {allUnits.length} units
         </h5>
         <div className="d-flex align-items-center gap-2">
+          <div className="btn-group" role="group" aria-label="Directory view">
+            <button type="button" className={`btn btn-sm ${viewMode === "grid" ? "btn-primary" : "btn-outline-primary"}`} onClick={() => onViewModeChange("grid")} aria-label="Grid view" aria-pressed={viewMode === "grid"}>
+              <IconifyIcon icon="ri:grid-line" />
+            </button>
+            <button type="button" className={`btn btn-sm ${viewMode === "list" ? "btn-primary" : "btn-outline-primary"}`} onClick={() => onViewModeChange("list")} aria-label="List view" aria-pressed={viewMode === "list"}>
+              <IconifyIcon icon="ri:list-check" />
+            </button>
+          </div>
           <span className="text-muted">Sort by:</span>
           <select
             className="form-select form-select-sm"

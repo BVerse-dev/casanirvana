@@ -45,9 +45,9 @@ const UnitStatCard = ({
 };
 
 const UnitsStat = () => {
-  const { data: unitsResponse, isLoading } = useListUnits();
+  const { data: unitsResponse, isLoading } = useListUnits({ pageSize: 200 });
   const units = unitsResponse?.data || [];
-  const { data: communitiesData } = useListCommunities();
+  const { data: communitiesData } = useListCommunities({ pageSize: 200 });
   const communities = communitiesData?.data || [];
 
   if (isLoading) {
