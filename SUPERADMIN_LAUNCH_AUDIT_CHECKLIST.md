@@ -368,6 +368,13 @@
 - Corrections: removed duplicate sidebar destinations, template location filters, fake property-image fallbacks, query-string details links, duplicated requests and the nonfunctional grid-local view toggle.
 - Acceptance evidence: 4/4 Communities directory contracts, 3/3 route contracts against 242 unique routes with zero unresolved sidebar destinations, Superadmin `build:check`, and standalone 238-page production build passed on 2026-07-23.
 
+### 2026-07-23 - Communities visual-parity correction
+
+- Status: Implementation complete; build evidence pending for this correction.
+- Restored the approved image-backed Community cards, statistics row, filter sidebar, spacing and card actions that existed before route consolidation.
+- Kept `/communities?view=grid|list`, canonical details links and the shared persisted view preference without introducing a replacement visual design.
+- Delivery rule clarified: directory consolidation may change menu destinations, routing and shared state only; existing resource presentation remains unchanged unless separately approved.
+
 ### 2026-07-23 - Units unified directory vertical slice
 
 - Status: Implementation complete; automated evidence passed.

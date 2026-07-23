@@ -2071,6 +2071,13 @@ Date: 2026-02-06
 - [x] Recorded passing automated evidence: 4 Communities contracts, 3 route contracts, Superadmin `build:check`, and standalone 238-page production build.
 - [ ] Record production browser verification after deployment.
 
+### 2026-07-23 - Phase 52 Communities visual-parity correction
+
+- [x] Restored the pre-consolidation Community statistics, filter sidebar, image-backed cards, spacing and actions.
+- [x] Retained canonical `/communities` routing and the persisted `?view=grid|list` toggle without replacing the approved UI.
+- [x] Established visual preservation as the default for the remaining directory consolidation slices.
+- [ ] Record build and authenticated production evidence after deployment.
+
 ### 2026-07-23 - Phase 52 Units unified directory slice
 
 - [x] Added canonical `/units` grid-default directory using the shared accessible view controls.

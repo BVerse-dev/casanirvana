@@ -18,6 +18,8 @@ type Community = CommunityRecord;
 
 interface CommunitiesGridProps {
   filters: CommunityFilters;
+  viewMode: "grid" | "list";
+  onViewModeChange: (view: "grid" | "list") => void;
 }
 
 const CommunityCard = ({ 
@@ -62,7 +64,7 @@ const CommunityCard = ({
         <div className="d-flex align-items-start justify-content-between mb-2">
           <div className="flex-grow-1">
             <h5 className="card-title mb-1">
-              <Link href={`/communities/details?id=${community.id}`} className="text-decoration-none">
+              <Link href={`/communities/${community.id}`} className="text-decoration-none">
                 {community.name}
               </Link>
             </h5>
@@ -102,7 +104,7 @@ const CommunityCard = ({
       
       <CardFooter className="bg-transparent">
         <div className="d-flex gap-2">
-          <Link href={`/communities/details?id=${community.id}`} className="btn btn-outline-primary btn-sm flex-fill">
+          <Link href={`/communities/${community.id}`} className="btn btn-outline-primary btn-sm flex-fill">
             <IconifyIcon icon="ri:eye-line" className="me-1" />
             View
           </Link>
@@ -123,9 +125,8 @@ const CommunityCard = ({
   );
 };
 
-const CommunitiesGrid = ({ filters }: CommunitiesGridProps) => {
+const CommunitiesGrid = ({ filters, viewMode, onViewModeChange }: CommunitiesGridProps) => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 9; // Show 9 communities per page
   
@@ -234,14 +235,18 @@ const CommunitiesGrid = ({ filters }: CommunitiesGridProps) => {
                 <Button
                   variant={viewMode === "grid" ? "primary" : "outline-primary"}
                   size="sm"
-                  onClick={() => setViewMode("grid")}
+                  onClick={() => onViewModeChange("grid")}
+                  aria-label="Grid view"
+                  aria-pressed={viewMode === "grid"}
                 >
                   <IconifyIcon icon="ri:grid-line" />
                 </Button>
                 <Button
                   variant={viewMode === "list" ? "primary" : "outline-primary"}
                   size="sm"
-                  onClick={() => setViewMode("list")}
+                  onClick={() => onViewModeChange("list")}
+                  aria-label="List view"
+                  aria-pressed={viewMode === "list"}
                 >
                   <IconifyIcon icon="ri:list-check" />
                 </Button>
