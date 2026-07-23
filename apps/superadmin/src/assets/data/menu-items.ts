@@ -67,21 +67,15 @@ export const MENU_ITEMS: MenuItemType[] = [
     icon: "ri:community-line",
     children: [
       {
-        key: "property-grid",
-        label: "Units Grid",
-        url: "/property/grid",
-        parentKey: "property",
-      },
-      {
-        key: "property-list",
-        label: "Units List",
-        url: "/property/list",
+        key: "units-directory",
+        label: "Units",
+        url: "/units",
         parentKey: "property",
       },
       {
         key: "add-property",
         label: "Add Unit",
-        url: "/property/add",
+        url: "/units/add",
         parentKey: "property",
       },
     ],

@@ -123,7 +123,7 @@ const UnitAddForm = () => {
       toast.success("Unit created successfully!");
       reset();
       router.push(
-        unitData.community_id ? `/property/list?communityId=${unitData.community_id}` : "/property/list"
+        unitData.community_id ? `/units?communityId=${unitData.community_id}` : "/units"
       );
     } catch (error) {
       console.error("Error creating unit:", error);

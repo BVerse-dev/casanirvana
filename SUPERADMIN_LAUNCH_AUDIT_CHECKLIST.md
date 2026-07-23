@@ -2,7 +2,7 @@
 
 ## Operating rules
 
-- Baseline: 241 filesystem routes discovered on 23 July 2026; active inventory is temporarily 242 while the canonical Communities route and both compatibility redirects coexist.
+- Baseline: 241 filesystem routes discovered on 23 July 2026; active inventory is temporarily 245 while canonical Communities and Units routes coexist with compatibility redirects.
 - The machine-readable source is `SUPERADMIN_ROUTE_MANIFEST.json`.
 - Work in sidebar order and one vertical slice at a time.
 - Mark a route complete only after backend/data, authorization, responsive, accessibility, build and production evidence is recorded.
@@ -337,3 +337,14 @@
 - Backend contract: one shared `GET /admin/communities` paginated query supplies both views; no database or API change was introduced.
 - Corrections: removed duplicate sidebar destinations, template location filters, fake property-image fallbacks, query-string details links, duplicated requests and the nonfunctional grid-local view toggle.
 - Acceptance evidence: 4/4 Communities directory contracts, 3/3 route contracts against 242 unique routes with zero unresolved sidebar destinations, Superadmin `build:check`, and standalone 238-page production build passed on 2026-07-23.
+
+### 2026-07-23 - Units unified directory vertical slice
+
+- Status: Implementation complete; automated evidence passed.
+- Canonical routes: `/units?view=grid|list`, `/units/add`, and `/units/{id}`.
+- Legacy compatibility: `/property/grid`, `/property/list`, `/property/add`, and `/property/details?id=...` permanently redirect while preserving relevant state and identifiers.
+- Backend contract: one shared `GET /admin/units` paginated query supplies both views; `GET /admin/units/{id}` supplies scoped details.
+- Corrections: removed duplicate sidebar destinations, fake unit imagery/bookmarks, dollar formatting, disabled edit controls, external map embedding, duplicated requests and query-string detail navigation.
+- Deliberate boundary: unit editing remains open until its complete validated update contract is implemented; no speculative partial form was shipped.
+- Route inventory: temporarily 245 while canonical routes and legacy compatibility redirects coexist.
+- Acceptance evidence: 5/5 Units directory contracts, 3/3 route contracts against 245 unique routes with zero unresolved sidebar destinations, Superadmin `build:check`, and standalone 240-page production build passed on 2026-07-23.
