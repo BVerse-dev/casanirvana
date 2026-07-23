@@ -2016,3 +2016,9 @@ Date: 2026-02-06
 - [x] Preserved backend authorization and tenant scope as the security authority.
 - [ ] Extend the route-policy map as each later menu group receives an explicit backend capability contract.
 - [ ] Record production browser evidence before closing the Application Shell group.
+### 2026-07-23 - Phase 52 Casa Nirvana Analytics Dashboard Slice
+
+- [x] Traced every rendered metric and chart to backend-owned scoped records.
+- [x] Removed unsupported template imagery, map behavior, internal QA actions, and misleading comparison labels.
+- [x] Added truthful loading, failure, empty, currency, period, and navigation states.
+- [ ] Record authenticated production desktop/mobile evidence before final route signoff.

@@ -17,7 +17,7 @@ import { useAdminAnalyticsDashboard } from "@/hooks/useAdminAnalyticsDashboard";
 import { ApexOptions } from "apexcharts";
 
 const SocialSourceCard = () => {
-  const { data: dashboard, isLoading } = useAdminAnalyticsDashboard();
+  const { data: dashboard, isLoading, isError } = useAdminAnalyticsDashboard();
 
   if (isLoading) {
     return (
@@ -34,6 +34,14 @@ const SocialSourceCard = () => {
             </div>
           </CardBody>
         </Card>
+      </Col>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Col xl={3} lg={6}>
+        <Card className="h-100"><CardBody className="text-center text-muted py-5">Visitor activity is unavailable right now.</CardBody></Card>
       </Col>
     );
   }
@@ -106,7 +114,7 @@ const SocialSourceCard = () => {
     stroke: {
       lineCap: "round",
     },
-    labels: ["Visitor Activity"],
+    labels: ["Pass ratio"],
   };
 
   return (
@@ -117,7 +125,7 @@ const SocialSourceCard = () => {
             <CardTitle as={"h4"} className="mb-1">
               Visitor Activity
             </CardTitle>
-            <p className="fs-13 mb-0">Approved visitor passes active this week</p>
+            <p className="fs-13 mb-0">Approved passes per 100 active residents</p>
           </div>
           <span className="badge bg-light text-dark">This Week</span>
         </CardHeader>
@@ -137,7 +145,7 @@ const SocialSourceCard = () => {
         <CardFooter className="border-top d-flex align-items-center justify-content-between">
           <h5 className="mb-0">Open visitor workspace</h5>
           <div>
-            <Link href="/visitors/list-view" className="btn btn-primary btn-sm">
+            <Link href="/visitors/grid-view" className="btn btn-primary btn-sm">
               View Visitors
             </Link>
           </div>

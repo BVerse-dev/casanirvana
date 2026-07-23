@@ -1,135 +1,65 @@
 "use client";
 
-import WorldVectorMap from "@/components/VectorMap/WorldMap";
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
-import {
-  Card,
-  CardBody,
-  CardHeader,
-  CardTitle,
-  Col,
-  Dropdown,
-  DropdownItem,
-  DropdownMenu,
-  DropdownToggle,
-  Row,
-} from "react-bootstrap";
 import { useAdminAnalyticsDashboard } from "@/hooks/useAdminAnalyticsDashboard";
+import Link from "next/link";
+import { Card, CardBody, CardFooter, CardHeader, CardTitle, Col, ProgressBar } from "react-bootstrap";
 
 const SalesLocation = () => {
-  const { data: dashboard } = useAdminAnalyticsDashboard();
-  const distributionData = dashboard?.communityDistribution || [];
-
-  const salesLocationOptions = {
-    map: "world",
-    zoomOnScroll: true,
-    zoomButtons: false,
-    markersSelectable: false,
-    markers: [],
-    markerStyle: {
-      initial: {
-        fill: "#7f56da",
-      },
-      selected: {
-        fill: "#1bb394",
-      },
-    },
-    regionStyle: {
-      initial: {
-        fill: "rgba(169,183,197, 0.3)",
-        fillOpacity: 1,
-      },
-    },
-  };
+  const { data: dashboard, isLoading, isError } = useAdminAnalyticsDashboard();
+  const distribution = dashboard?.communityDistribution || [];
 
   return (
     <Col xl={6} lg={6}>
-      <Card>
-        <CardHeader className="d-flex justify-content-between align-items-center pb-1">
+      <Card className="h-100">
+        <CardHeader className="d-flex justify-content-between align-items-start pb-1">
           <div>
-            <CardTitle as={"h4"}>Resident Distribution</CardTitle>
+            <CardTitle as="h4" className="mb-1">Resident Distribution</CardTitle>
+            <p className="fs-13 mb-0">Active resident records by authorized community scope</p>
           </div>
-          <Dropdown>
-            <DropdownToggle
-              as={"a"}
-              className="btn btn-sm btn-outline-light rounded content-none icons-center"
-              data-bs-toggle="dropdown"
-              aria-expanded="false"
-            >
-              Active Communities
-              <IconifyIcon className="ms-1" width={16} height={16} icon="ri:arrow-down-s-line" />
-            </DropdownToggle>
-            <DropdownMenu className="dropdown-menu-end">
-              <DropdownItem>Community coordinates unavailable in the current schema</DropdownItem>
-            </DropdownMenu>
-          </Dropdown>
+          <span className="badge bg-light text-dark">Live scope</span>
         </CardHeader>
         <CardBody>
-          <Row>
-            <Col xl={12}>
-              <div id="most-sales-location" className="mt-3" style={{ height: 322 }}>
-                <WorldVectorMap height="322" width="100%" options={salesLocationOptions} />
-              </div>
-              <p className="text-muted small mt-3 mb-0">
-                Distribution is shown by community below. The checked-in schema does not currently store latitude/longitude for mapped community pins.
-              </p>
-            </Col>
-          </Row>
-          <div className="progress mt-5 overflow-visible" style={{ height: 25 }}>
-            {distributionData.map((community, index) => {
-              const colors = [
-                "bg-primary",
-                "bg-primary bg-opacity-75",
-                "bg-primary bg-opacity-50",
-                "bg-primary bg-opacity-25",
-                "bg-primary bg-opacity-10",
-              ];
-
-              const widthPercentage = Math.max(
-                distributionData.length > 0 ? 100 / distributionData.length : 20,
-                15
-              );
-
-              return (
-                <div
-                  key={community.id}
-                  className={`progress-bar ${colors[index]} position-relative overflow-visible ${
-                    index === 0
-                      ? "rounded-start"
-                      : index === distributionData.length - 1
-                        ? "rounded-end"
-                        : ""
-                  }`}
-                  role="progressbar"
-                  style={{ width: `${widthPercentage}%` }}
-                  aria-valuenow={community.percentage}
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                >
-                  <p
-                    className="progress-value text-start text-dark mb-0 mt-1 fs-14 fw-medium"
-                    style={{ left: "0%", top: "-50px" }}
-                  >
-                    {community.name.substring(0, 15)}
-                    {community.name.length > 15 ? "..." : ""}
-                  </p>
-                  <p
-                    className="progress-value text-start text-light mb-0 mt-1 fs-14 fw-medium"
-                    style={{ left: "0%", top: "-30px" }}
-                  >
-                    |
-                  </p>
-                  <p className="mb-0 text-start ps-1 ps-lg-2 text-white fs-14">
-                    {community.count} residents
-                  </p>
+          {isLoading && (
+            <div className="placeholder-glow" role="status" aria-label="Loading resident distribution">
+              {[75, 58, 42, 30].map((width) => (
+                <div className="mb-4" key={width}>
+                  <span className="placeholder col-5 mb-2" />
+                  <span className="placeholder d-block rounded" style={{ width: `${width}%`, height: 12 }} />
                 </div>
-              );
-            })}
-            {distributionData.length === 0 && (
-              <div className="text-center text-muted py-2">No community resident data available</div>
-            )}
-          </div>
+              ))}
+            </div>
+          )}
+          {isError && <div className="text-center text-muted py-5">Resident distribution is unavailable right now.</div>}
+          {!isLoading && !isError && distribution.length === 0 && (
+            <div className="text-center text-muted py-5">
+              <IconifyIcon icon="solar:buildings-2-broken" className="fs-36 mb-2" />
+              <p className="mb-0">No community resident records are available in your scope.</p>
+            </div>
+          )}
+          {!isLoading && !isError && distribution.map((community) => (
+            <div className="mb-4" key={community.id}>
+              <div className="d-flex justify-content-between gap-3 mb-2">
+                <span className="fw-medium text-dark text-truncate">{community.name}</span>
+                <span className="text-muted text-nowrap">
+                  {community.count.toLocaleString()} resident{community.count === 1 ? "" : "s"} · {community.percentage.toFixed(1)}%
+                </span>
+              </div>
+              <ProgressBar
+                now={community.percentage}
+                min={0}
+                max={100}
+                aria-label={`${community.name}: ${community.percentage.toFixed(1)} percent of scoped residents`}
+                style={{ height: 10 }}
+              />
+            </div>
+          ))}
         </CardBody>
+        <CardFooter className="border-top">
+          <Link href="/communities/grid" className="link-dark fw-medium">
+            Open Communities <IconifyIcon icon="ri:arrow-right-line" />
+          </Link>
+        </CardFooter>
       </Card>
     </Col>
   );

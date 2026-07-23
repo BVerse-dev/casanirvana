@@ -8,7 +8,6 @@ import { usePaymentAnalyticsSummary } from "@/hooks/usePaymentAnalyticsSummary";
 import Image from "next/image";
 import Link from "next/link";
 import {
-  Button,
   Card,
   CardBody,
   CardFooter,
@@ -100,25 +99,9 @@ const BalanceCard = () => {
                   </div>
                 </Col>
               </Row>
-              <Row className="mt-3 g-2">
-                <Col xl={6} lg={6} md={6}>
-                  <Button variant="warning" size="sm" className="w-100" disabled>
-                    Ledger Action Pending
-                  </Button>
-                </Col>
-                <Col xl={6} lg={6} md={6}>
-                  <Button
-                    size="sm"
-                    className="bg-light bg-opacity-25 text-white w-100"
-                    disabled
-                  >
-                    Runtime QA Later
-                  </Button>
-                </Col>
-              </Row>
             </Col>
             <Col xl={5} lg={4} md={4}>
-              <Image src={moneyImg} alt="money" className="img-fluid" />
+              <Image src={moneyImg} alt="Collections overview" className="img-fluid" />
             </Col>
           </Row>
         </CardBody>

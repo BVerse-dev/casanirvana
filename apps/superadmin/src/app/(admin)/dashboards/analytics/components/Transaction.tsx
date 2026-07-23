@@ -5,7 +5,6 @@ import { usePaymentAnalyticsSummary } from "@/hooks/usePaymentAnalyticsSummary";
 import Image from "next/image";
 import Link from "next/link";
 import {
-  Button,
   Card,
   CardBody,
   CardHeader,
@@ -167,7 +166,7 @@ const Transaction = () => {
               </table>
               {recentTransactions.length === 0 && (
                 <div className="text-center py-4">
-                  <p className="text-muted mb-0">No payments found</p>
+                  <p className="text-muted mb-0">No payment records are available in your scope.</p>
                 </div>
               )}
             </div>

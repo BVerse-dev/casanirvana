@@ -1,189 +1,53 @@
 "use client";
-import properties10 from "@/assets/images/properties/p-10.jpg";
-import properties6 from "@/assets/images/properties/p-6.jpg";
-import properties7 from "@/assets/images/properties/p-7.jpg";
-import properties8 from "@/assets/images/properties/p-8.jpg";
-import properties9 from "@/assets/images/properties/p-9.jpg";
-import Image from "next/image";
+
 import Link from "next/link";
 import ReactApexChart from "react-apexcharts";
-import {
-  Card,
-  CardBody,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-  Carousel,
-  CarouselItem,
-  Col,
-} from "react-bootstrap";
+import { Card, CardBody, CardFooter, CardHeader, CardTitle, Col } from "react-bootstrap";
+import type { ApexOptions } from "apexcharts";
 import { currency } from "@/context/constants";
 import { usePaymentTrend } from "@/hooks/usePaymentAnalyticsSummary";
-import { ApexOptions } from "apexcharts";
 
 const WeeklySales = () => {
-  const { currentMonthCollected, isLoading, trend } = usePaymentTrend("week");
+  const { error, isLoading, trend } = usePaymentTrend("week");
+  const weeklyTotal = trend.reduce((sum, point) => sum + point.collected, 0);
 
-  const weeklyChartData = trend.map((point) => point.collected / 1000);
-
-  const salesOptions: ApexOptions = {
-    chart: {
-      height: 120,
-      parentHeightOffset: 0,
-      type: "bar",
-      toolbar: {
-        show: false,
-      },
-    },
-    plotOptions: {
-      bar: {
-        barHeight: "100%",
-        columnWidth: "40%",
-        borderRadius: 4,
-        distributed: true,
-      },
-    },
-    grid: {
-      show: true,
-      padding: {
-        top: -20,
-        bottom: -10,
-        left: 0,
-        right: 0,
-      },
-    },
-    colors: ["#604ae3", "#604ae3", "#604ae3", "#604ae3", "#604ae3", "#604ae3", "#604ae3"],
-    dataLabels: {
-      enabled: false,
-    },
-    series: [
-      {
-        name: "Collections",
-        data: weeklyChartData,
-      },
-    ],
-    legend: {
-      show: false,
-    },
+  const options: ApexOptions = {
+    chart: { height: 260, parentHeightOffset: 0, type: "bar", toolbar: { show: false } },
+    plotOptions: { bar: { columnWidth: "42%", borderRadius: 5, distributed: true } },
+    grid: { borderColor: "#eef2f7", strokeDashArray: 4 },
+    colors: trend.map((point) => (point.collected > 0 ? "#604ae3" : "#dfe5ec")),
+    dataLabels: { enabled: false },
+    series: [{ name: "Collections", data: trend.map((point) => point.collected) }],
+    legend: { show: false },
     xaxis: {
-      categories: ["S", "M", "T", "W", "T", "F", "S"],
-      axisBorder: {
-        show: false,
-      },
-      axisTicks: {
-        show: false,
-      },
+      categories: trend.map((point) => point.label),
+      axisBorder: { show: false },
+      axisTicks: { show: false },
     },
-    yaxis: {
-      labels: {
-        show: true,
-      },
-    },
-    tooltip: {
-      enabled: true,
-      y: {
-        formatter: function (value: number) {
-          return `${currency}${value.toFixed(1)}K`;
-        },
-      },
-    },
-    responsive: [
-      {
-        breakpoint: 1025,
-        options: {
-          chart: {
-            height: 199,
-          },
-        },
-      },
-    ],
+    yaxis: { labels: { formatter: (value) => `${currency}${(value / 1000).toFixed(0)}K` } },
+    tooltip: { y: { formatter: (value) => `${currency}${value.toLocaleString("en-GH", { maximumFractionDigits: 2 })}` } },
   };
 
   return (
     <Col xl={3} lg={6}>
-      <Card>
+      <Card className="h-100">
         <CardHeader>
-          <CardTitle as={"h4"}>Weekly Collections</CardTitle>
+          <CardTitle as="h4" className="mb-1">Weekly Collections</CardTitle>
+          <p className="fs-13 mb-0">Completed payments over the last seven days</p>
         </CardHeader>
         <CardBody>
-          {isLoading ? (
-            <div className="placeholder-glow">
-              <div className="placeholder rounded" style={{ height: "200px" }}></div>
-            </div>
-          ) : (
+          {isLoading && <div className="placeholder rounded w-100" style={{ height: 260 }} role="status" aria-label="Loading weekly collections" />}
+          {error && <div className="text-center text-muted py-5">Weekly collections are unavailable right now.</div>}
+          {!isLoading && !error && (
             <>
-          <Carousel
-            indicators={false}
-            id="carouselExampleCaptions"
-            className=" slide"
-            data-bs-ride="carousel"
-          >
-            <CarouselItem className=" active">
-              <Image
-                src={properties9}
-                width={327}
-                height={200}
-                className="d-block w-100 h-100 rounded"
-                alt="img-6"
-              />
-            </CarouselItem>
-            <CarouselItem className="">
-              <Image
-                src={properties7}
-                width={327}
-                height={200}
-                className="d-block w-100 h-100 rounded"
-                alt="img-7"
-              />
-            </CarouselItem>
-            <CarouselItem className="">
-              <Image
-                src={properties8}
-                width={327}
-                height={200}
-                className="d-block w-100 h-100 rounded"
-                alt="img-5"
-              />
-            </CarouselItem>
-            <CarouselItem className="">
-              <Image
-                src={properties6}
-                width={327}
-                height={200}
-                className="d-block w-100 h-100 rounded"
-                alt="img-"
-              />
-            </CarouselItem>
-            <CarouselItem className="">
-              <Image
-                src={properties10}
-                width={327}
-                height={200}
-                className="d-block w-100 h-100 rounded"
-                alt="img-5"
-              />
-            </CarouselItem>
-          </Carousel>
-          <ReactApexChart
-            options={salesOptions}
-            series={salesOptions.series}
-            height={120}
-            type="bar"
-            className="apex-charts mt-4"
-          />
+              <h3 className="fw-bold mb-0">{currency}{weeklyTotal.toLocaleString("en-GH", { maximumFractionDigits: 2 })}</h3>
+              <p className="text-muted mb-2">Collected this week</p>
+              <ReactApexChart options={options} series={options.series} height={260} type="bar" className="apex-charts" />
             </>
           )}
         </CardBody>
-        <CardFooter className="border-top d-flex align-items-center justify-content-between">
-          <p className="text-muted fw-medium fs-15 mb-0">
-            <span className="text-dark me-1">Total Monthly Collections : </span>
-            {currency}{(currentMonthCollected / 1000).toFixed(1)}K
-          </p>
-          <div>
-            <Link href="/payments" className="btn btn-primary btn-sm">
-              View Payments
-            </Link>
-          </div>
+        <CardFooter className="border-top">
+          <Link href="/payments" className="link-dark fw-medium">Open Payments</Link>
         </CardFooter>
       </Card>
     </Col>

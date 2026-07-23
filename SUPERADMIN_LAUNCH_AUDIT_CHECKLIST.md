@@ -302,3 +302,12 @@
 - Added a fail-closed authorization-service state with explicit retry instead of rendering protected content when capability loading fails.
 - Backend scope and permission middleware remain the security authority; this boundary provides defense-in-depth and consistent administrator UX.
 - Acceptance evidence: route-policy tests 4/4 passed; route-contract tests 3/3 passed; `build:check` passed; standalone production build passed with 237 generated pages.
+## Session Update - 2026-07-23 - Casa Nirvana Analytics Dashboard
+
+- Status: Implementation complete; production browser evidence remains open.
+- Audited every rendered dashboard component against `/admin/dashboard/analytics`, `/admin/payments/transactions`, and `/admin/payments/obligations`.
+- Confirmed community, unit, resident, visitor, payment, and obligation reads are backend-scoped; no random metrics are rendered by the retained components.
+- Removed the template property carousel, unsupported world map, equal-width distribution visualization, internal QA buttons, and misleading outstanding change calculation.
+- Replaced unsupported visuals with scoped resident distribution percentages and real seven-day collection data while preserving the existing cards, charts, spacing, and responsive grid.
+- Corrected period labels, currency context, truthful loading/error/empty states, and active workspace links.
+- Acceptance evidence: dashboard contract tests 3/3 passed; scoped backend dashboard tests 6/6 passed; backend TypeScript build passed; route-contract tests 3/3 passed; Superadmin `build:check` and standalone production build passed with 237 generated pages. Analytics first-load JS decreased from approximately 387 kB to 332 kB.

@@ -176,13 +176,13 @@ const SalesChart = () => {
               data-bs-toggle="dropdown"
               aria-expanded="false"
             >
-              {timeFilter === "week" ? "This Week" : timeFilter === "year" ? "Yearly" : "This Month"}{" "}
+              {timeFilter === "week" ? "Last 7 Days" : timeFilter === "year" ? "Last 3 Years" : "Last 12 Months"}{" "}
               <IconifyIcon className="ms-1" width={16} height={16} icon="ri:arrow-down-s-line" />
             </DropdownToggle>
             <DropdownMenu className="dropdown-menu-end">
-              <DropdownItem onClick={() => setTimeFilter("week")}>Week</DropdownItem>
-              <DropdownItem onClick={() => setTimeFilter("month")}>Months</DropdownItem>
-              <DropdownItem onClick={() => setTimeFilter("year")}>Years</DropdownItem>
+              <DropdownItem onClick={() => setTimeFilter("week")}>Last 7 Days</DropdownItem>
+              <DropdownItem onClick={() => setTimeFilter("month")}>Last 12 Months</DropdownItem>
+              <DropdownItem onClick={() => setTimeFilter("year")}>Last 3 Years</DropdownItem>
             </DropdownMenu>
           </Dropdown>
         </CardHeader>
@@ -212,19 +212,19 @@ const SalesChart = () => {
             <Col md={4} className="border-end">
               <p className="text-muted mb-1">Collected</p>
               <p className="text-dark fs-18 fw-medium d-flex align-items-center justify-content-center gap-2 mb-0">
-                {(chartData.currentCollected / 1000).toFixed(2)}K
+                {currency}{(chartData.currentCollected / 1000).toFixed(2)}K
               </p>
             </Col>
             <Col md={4} className="border-end">
               <p className="text-muted mb-1">Outstanding</p>
               <p className="text-dark fs-18 fw-medium d-flex align-items-center justify-content-center gap-2 mb-0">
-                {(chartData.currentOutstanding / 1000).toFixed(2)}K
+                {currency}{(chartData.currentOutstanding / 1000).toFixed(2)}K
               </p>
             </Col>
             <Col md={4}>
               <p className="text-muted mb-1">Current Month Total</p>
               <p className="text-dark fs-18 fw-medium d-flex align-items-center justify-content-center gap-2 mb-0">
-                {((currentMonthCollected + currentMonthOutstanding) / 1000).toFixed(2)}K
+                {currency}{((currentMonthCollected + currentMonthOutstanding) / 1000).toFixed(2)}K
               </p>
             </Col>
           </Row>

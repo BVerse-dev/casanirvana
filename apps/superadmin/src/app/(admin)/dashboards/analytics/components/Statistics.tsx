@@ -119,8 +119,9 @@ const StatCard = ({ amount, changeLabel, icon, title, variant = "success", serie
 };
 
 const Statistics = () => {
-  const { data: dashboard } = useAdminAnalyticsDashboard();
-  const { obligations, currentMonthOutstanding } = usePaymentAnalyticsSummary();
+  const { data: dashboard, isLoading: dashboardLoading, isError: dashboardError } = useAdminAnalyticsDashboard();
+  const paymentSummary = usePaymentAnalyticsSummary();
+  const { obligations, currentMonthOutstanding } = paymentSummary;
 
   const totalUnitsCount = dashboard?.summary.totalUnits || 0;
   const activeResidentsCount = dashboard?.summary.activeResidents || 0;
@@ -135,16 +136,18 @@ const Statistics = () => {
     bucketDate.setDate(bucketDate.getDate() - (6 - index));
     return obligations
       .filter((obligation) => {
-        const dueDate = new Date(obligation.due_date || obligation.created_at || bucketDate.toISOString());
-        return dueDate <= bucketDate && ["unpaid", "partially_paid", "overdue"].includes(String(obligation.status || "").toLowerCase());
+        const dueDate = new Date(obligation.due_date || obligation.created_at || "");
+        return !Number.isNaN(dueDate.getTime()) &&
+          dueDate.getFullYear() === bucketDate.getFullYear() &&
+          dueDate.getMonth() === bucketDate.getMonth() &&
+          dueDate.getDate() === bucketDate.getDate() &&
+          ["unpaid", "partially_paid", "overdue"].includes(String(obligation.status || "").toLowerCase());
       })
       .reduce((sum, obligation) => sum + Number(obligation.amount || 0), 0);
   });
 
   const occupiedRate = dashboard?.summary.occupiedRate || 0;
   const visitorDelta = dashboard?.visitorActivity.dayOverDayChangePercentage ?? null;
-  const outstandingAmountYesterday = outstandingSeries[outstandingSeries.length - 2] || 0;
-  const outstandingDelta = percentDelta(currentMonthOutstanding, outstandingAmountYesterday);
 
   const statisticData: StatCardProps[] = [
     {
@@ -172,11 +175,17 @@ const Statistics = () => {
       icon: "solar:money-bag-broken",
       title: "Outstanding This Month",
       amount: `${currency}${(currentMonthOutstanding / 1000).toFixed(1)}K`,
-      changeLabel: outstandingDelta === null ? undefined : `${Math.abs(outstandingDelta).toFixed(1)}%`,
-      variant: outstandingDelta !== null && outstandingDelta > 0 ? "danger" : "success",
       series: outstandingSeries,
     },
   ];
+
+  if (dashboardLoading || paymentSummary.isLoading) {
+    return <Row>{Array.from({ length: 4 }, (_, index) => <Col md={6} xl={3} key={index}><Card><CardBody><div className="placeholder-glow py-4"><span className="placeholder col-7" /><span className="placeholder col-5 d-block mt-3" /></div></CardBody></Card></Col>)}</Row>;
+  }
+
+  if (dashboardError || paymentSummary.error) {
+    return <Row><Col><Card><CardBody className="text-center text-muted py-4">Dashboard statistics are unavailable right now.</CardBody></Card></Col></Row>;
+  }
 
   return (
     <Row>
