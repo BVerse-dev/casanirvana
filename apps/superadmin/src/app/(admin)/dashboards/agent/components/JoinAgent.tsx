@@ -100,7 +100,7 @@ const RecentResidents = () => {
               <ResidentAvatar name={resident.full_name || `${resident.first_name} ${resident.last_name}`.trim()} src={resident.avatar_url} />
               <div className="d-block">
                 <span className="text-dark">
-                  <Link href={`/residents/details?id=${resident.id}`} className="text-dark fw-medium fs-15">
+                  <Link href={`/residents/${resident.id}`} className="text-dark fw-medium fs-15">
                     {resident.full_name || `${resident.first_name} ${resident.last_name}`.trim()}
                   </Link>
                 </span>
@@ -117,7 +117,7 @@ const RecentResidents = () => {
         ) : null}
       </CardBody>
       <CardFooter className="border-top">
-        <Link href="/residents/grid-view" className="btn btn-primary w-100">
+        <Link href="/residents" className="btn btn-primary w-100">
           View All Residents
         </Link>
       </CardFooter>

@@ -39,7 +39,7 @@ const ResidentCard = ({ id, full_name, email, phone, avatar_url, units, societie
         <div className="d-flex flex-wrap align-items-center gap-2 border-bottom pb-3">
           <Image src={mappedAvatarUrl} alt="avatar" width={64} height={64} className="avatar-lg rounded-3 border border-light border-3" />
           <div className="d-block flex-grow-1">
-            <Link href={`/residents/details?id=${id}`} className="text-dark fw-medium fs-16">
+            <Link href={`/residents/${id}`} className="text-dark fw-medium fs-16">
               {full_name || 'No Name'}
             </Link>
             <p className="mb-0 text-muted">{email}</p>
@@ -55,11 +55,11 @@ const ResidentCard = ({ id, full_name, email, phone, avatar_url, units, societie
                 <IconifyIcon icon="ri:more-2-fill" />
               </DropdownToggle>
               <DropdownMenu className="dropdown-menu-end">
-                <DropdownItem as={Link} href={`/residents/details?id=${id}`}>
+                <DropdownItem as={Link} href={`/residents/${id}`}>
                   <IconifyIcon icon="solar:eye-broken" className="me-2" />
                   View Details
                 </DropdownItem>
-                <DropdownItem as={Link} href={`/residents/edit?id=${id}`}>
+                <DropdownItem as={Link} href={`/residents/${id}/edit`}>
                   <IconifyIcon icon="solar:pen-2-broken" className="me-2" />
                   Edit
                 </DropdownItem>
@@ -98,7 +98,7 @@ const ResidentCard = ({ id, full_name, email, phone, avatar_url, units, societie
       <CardFooter className="border-top">
         <Row className="g-2">
           <Col lg={6}>
-            <Link href={`/residents/details?id=${id}`} className="btn btn-primary btn-sm w-100">
+            <Link href={`/residents/${id}`} className="btn btn-primary btn-sm w-100">
               <IconifyIcon icon="solar:eye-broken" className="align-middle fs-16" /> View
             </Link>
           </Col>

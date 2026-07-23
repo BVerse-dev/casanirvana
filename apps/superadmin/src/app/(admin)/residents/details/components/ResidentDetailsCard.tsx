@@ -110,7 +110,7 @@ const ResidentDetailsCard = ({ resident }: ResidentDetailsCardProps) => {
             <Button variant="outline-secondary" disabled title="Start resident chats from the Messages & Chats module.">
               Message
             </Button>
-            <Link href={`/residents/edit?id=${resident.id}`} className="btn btn-primary">
+            <Link href={`/residents/${resident.id}/edit`} className="btn btn-primary">
               Edit Profile
             </Link>
           </div>

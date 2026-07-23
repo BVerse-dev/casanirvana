@@ -65,7 +65,7 @@ const TopResidents = () => {
           <div className="bg-light bg-opacity-25 p-3 rounded text-start">
             <div className="d-flex align-items-center justify-content-between">
               <div className="flex-grow-1">
-                <Link href={`/residents/details?id=${featuredResident.id}`} className="text-white fw-medium fs-16">
+                <Link href={`/residents/${featuredResident.id}`} className="text-white fw-medium fs-16">
                   {residentName}
                 </Link>
                 <p className="mb-0 text-white-50">
@@ -83,7 +83,7 @@ const TopResidents = () => {
                 </div>
               </div>
               <div>
-                <Link href={`/residents/details?id=${featuredResident.id}`}>
+                <Link href={`/residents/${featuredResident.id}`}>
                   <div className="avatar-sm flex-shrink-0">
                     <span className="avatar-title bg-white bg-opacity-25 text-white fs-4 rounded-circle">
                       <IconifyIcon icon="ri:arrow-right-line" />

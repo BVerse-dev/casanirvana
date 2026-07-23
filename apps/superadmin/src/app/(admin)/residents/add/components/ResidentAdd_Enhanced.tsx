@@ -150,14 +150,14 @@ const ResidentAddEnhanced = ({
         await updateResident.mutateAsync(data)
         toast.success('Resident updated successfully!')
         onSuccess?.()
-        router.push(`/residents/details?id=${residentId}`)
+        router.push(`/residents/${residentId}`)
         return
       }
 
-      await createResident.mutateAsync(data)
+      const createdResident = await createResident.mutateAsync(data)
       toast.success('Resident created successfully!')
       reset()
-      router.push('/residents/list-view')
+      router.push(`/residents/${createdResident.id}`)
     } catch (error) {
       console.error(`Error ${isEditMode ? 'updating' : 'creating'} resident:`, error)
       toast.error(error instanceof Error ? error.message : isEditMode ? 'Error updating resident' : 'Error creating resident')
@@ -175,7 +175,7 @@ const ResidentAddEnhanced = ({
   const filteredUnits = selectedCommunity ? units.filter(unit => unit.community_id === selectedCommunity) : units
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)}>
+    <form id="resident-form" onSubmit={handleSubmit(onSubmit)}>
       <Card>
         <CardHeader>
           <CardTitle as={'h4'}>Resident Information</CardTitle>

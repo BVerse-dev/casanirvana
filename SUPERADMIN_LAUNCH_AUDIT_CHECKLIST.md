@@ -2,7 +2,7 @@
 
 ## Operating rules
 
-- Baseline: 241 filesystem routes discovered on 23 July 2026; active inventory is temporarily 247 while canonical Communities, Units and Residents routes coexist with compatibility redirects.
+- Baseline: 241 filesystem routes discovered on 23 July 2026; active inventory is temporarily 249 while canonical Communities, Units and Residents lifecycle routes coexist with compatibility redirects.
 - The machine-readable source is `SUPERADMIN_ROUTE_MANIFEST.json`.
 - Work in sidebar order and one vertical slice at a time.
 - Mark a route complete only after backend/data, authorization, responsive, accessibility, build and production evidence is recorded.
@@ -15,7 +15,7 @@
 - [ ] Application shell and authentication/authorization boundary.
 - [ ] Dashboards.
 - [x] Community Management implementation and automated contract gates complete; authenticated production browser evidence remains tracked per route.
-- [ ] People (Residents canonical directory implementation and automated gates complete; lifecycle and production browser evidence remain open).
+- [ ] People (Residents canonical directory and lifecycle implementation complete; authenticated production browser evidence remains open).
 - [ ] Operations.
 - [ ] Communication.
 - [ ] Personal Hub.
@@ -346,7 +346,7 @@
 - Backend contract: one shared `GET /admin/units` paginated query supplies both views; `GET /admin/units/{id}` supplies scoped details.
 - Corrections: removed duplicate sidebar destinations, fake unit imagery/bookmarks, dollar formatting, disabled edit controls, external map embedding, duplicated requests and query-string detail navigation.
 - Deliberate boundary: unit editing remains open until its complete validated update contract is implemented; no speculative partial form was shipped.
-- Route inventory: temporarily 247 while canonical routes and legacy compatibility redirects coexist.
+- Route inventory: temporarily 249 while canonical routes and legacy compatibility redirects coexist.
 - Acceptance evidence: 5/5 Units directory contracts, 3/3 route contracts against 245 unique routes with zero unresolved sidebar destinations, Superadmin `build:check`, and standalone 240-page production build passed on 2026-07-23.
 
 ### 2026-07-23 - Community Join Requests vertical slice

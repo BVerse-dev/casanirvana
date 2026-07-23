@@ -37,12 +37,12 @@ const ResidentDirectoryList = ({ residents, isLoading, error }: { residents: Res
             <tbody>
               {residents.map((resident) => (
                 <tr key={resident.id}>
-                  <td><div className="d-flex align-items-center gap-2"><Image src={mapAvatarUrl(resident.avatar_url) || avatars.dummyAvatar} alt="" width={40} height={40} className="rounded-circle" /><div><Link href={`/residents/details?id=${resident.id}`} className="fw-medium text-dark">{resident.full_name || "Unnamed resident"}</Link><small className="d-block text-muted">{resident.email}</small></div></div></td>
+                  <td><div className="d-flex align-items-center gap-2"><Image src={mapAvatarUrl(resident.avatar_url) || avatars.dummyAvatar} alt="" width={40} height={40} className="rounded-circle" /><div><Link href={`/residents/${resident.id}`} className="fw-medium text-dark">{resident.full_name || "Unnamed resident"}</Link><small className="d-block text-muted">{resident.email}</small></div></div></td>
                   <td>{resident.unit_number || "Not assigned"}</td>
                   <td>{resident.communities?.name || "Not assigned"}</td>
                   <td>{resident.phone || "Not recorded"}</td>
                   <td><span className={`badge bg-${statusVariant(resident.status)}-subtle text-${statusVariant(resident.status)}`}>{resident.status.replaceAll("_", " ")}</span></td>
-                  <td><div className="d-flex justify-content-end gap-2"><Link href={`/residents/details?id=${resident.id}`} className="btn btn-sm btn-light" aria-label={`View ${resident.full_name}`}><IconifyIcon icon="solar:eye-broken" /></Link><Link href={`/residents/edit?id=${resident.id}`} className="btn btn-sm btn-soft-primary" aria-label={`Edit ${resident.full_name}`}><IconifyIcon icon="solar:pen-2-broken" /></Link><Button size="sm" variant="soft-danger" aria-label={`Delete ${resident.full_name}`} disabled={deleteResident.isPending} onClick={() => handleDelete(resident)}><IconifyIcon icon="solar:trash-bin-minimalistic-2-broken" /></Button></div></td>
+                  <td><div className="d-flex justify-content-end gap-2"><Link href={`/residents/${resident.id}`} className="btn btn-sm btn-light" aria-label={`View ${resident.full_name}`}><IconifyIcon icon="solar:eye-broken" /></Link><Link href={`/residents/${resident.id}/edit`} className="btn btn-sm btn-soft-primary" aria-label={`Edit ${resident.full_name}`}><IconifyIcon icon="solar:pen-2-broken" /></Link><Button size="sm" variant="soft-danger" aria-label={`Delete ${resident.full_name}`} disabled={deleteResident.isPending} onClick={() => handleDelete(resident)}><IconifyIcon icon="solar:trash-bin-minimalistic-2-broken" /></Button></div></td>
                 </tr>
               ))}
             </tbody>

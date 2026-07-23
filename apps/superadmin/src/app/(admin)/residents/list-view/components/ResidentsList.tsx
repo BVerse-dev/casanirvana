@@ -255,7 +255,7 @@ const ResidentsList = ({
                                 )}
                               </div>
                               <div>
-                                <Link href={`/residents/details?id=${resident.id}`} className="text-dark fw-medium fs-15">
+                                <Link href={`/residents/${resident.id}`} className="text-dark fw-medium fs-15">
                                   {resident.full_name || 'No Name'}
                                 </Link>
                                 <div className="text-muted fs-13">
@@ -290,12 +290,12 @@ const ResidentsList = ({
                           </td>
                           <td>
                             <div className="d-flex gap-2">
-                              <Link href={`/residents/details?id=${resident.id}`}>
+                              <Link href={`/residents/${resident.id}`}>
                                 <Button variant="light" size="sm" title="View Details">
                                   <IconifyIcon icon="solar:eye-broken" className="align-middle fs-18" />
                                 </Button>
                               </Link>
-                              <Link href={`/residents/edit?id=${resident.id}`}>
+                              <Link href={`/residents/${resident.id}/edit`}>
                                 <Button variant="soft-primary" size="sm" title="Edit Resident">
                                   <IconifyIcon icon="solar:pen-2-broken" className="align-middle fs-18" />
                                 </Button>

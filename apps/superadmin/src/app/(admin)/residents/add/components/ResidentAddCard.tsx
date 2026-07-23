@@ -1,7 +1,6 @@
 import avatar2 from '@/assets/images/users/avatar-2.jpg'
 import IconifyIcon from '@/components/wrappers/IconifyIcon'
 import Image from 'next/image'
-import Link from 'next/link'
 import { Button, Card, CardBody, CardFooter, Col, Row } from 'react-bootstrap'
 import { mapAvatarUrl } from '@/utils/avatarMapper'
 import { CreateResidentData } from '@/hooks/useResidents'
@@ -80,29 +79,6 @@ const ResidentAddCard = ({
             )}
           </div>
           
-          <h5 className="my-3">Quick Actions:</h5>
-          <ul className="list-inline d-flex gap-1 mb-0 align-items-center">
-            <li className="list-inline-item">
-              <Link href="#" className="btn btn-soft-primary avatar-sm d-flex align-items-center justify-content-center">
-                <IconifyIcon width={20} height={20} icon="ri:phone-fill" />
-              </Link>
-            </li>
-            <li className="list-inline-item">
-              <Button variant="soft-info" className="avatar-sm d-flex align-items-center justify-content-center">
-                <IconifyIcon width={20} height={20} icon="ri:mail-line" />
-              </Button>
-            </li>
-            <li className="list-inline-item">
-              <Button variant="soft-success" className="avatar-sm d-flex align-items-center justify-content-center">
-                <IconifyIcon width={20} height={20} icon="ri:whatsapp-line" />
-              </Button>
-            </li>
-            <li className="list-inline-item">
-              <Button variant="soft-warning" className="avatar-sm d-flex align-items-center justify-content-center">
-                <IconifyIcon width={20} height={20} icon="ri:user-line" />
-              </Button>
-            </li>
-          </ul>
         </CardBody>
         <CardFooter className="bg-light-subtle">
           <Row className="g-2">

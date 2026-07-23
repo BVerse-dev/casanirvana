@@ -1,5 +1,4 @@
 'use client'
-import FileUpload from '@/components/FileUpload'
 import PageTitle from '@/components/PageTitle'
 import { Col, Row } from 'react-bootstrap'
 import ResidentAdd from './components/ResidentAdd_Enhanced'
@@ -26,13 +25,7 @@ const ResidentAddPage = () => {
     setFormData(data)
   }
 
-  const handleAddResident = () => {
-    // Trigger form submission by dispatching a submit event
-    const form = document.querySelector('form')
-    if (form) {
-      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
-    }
-  }
+  const handleAddResident = () => (document.getElementById('resident-form') as HTMLFormElement | null)?.requestSubmit()
 
   const handleCancel = () => {
     router.back()
@@ -50,7 +43,6 @@ const ResidentAddPage = () => {
           submittingLabel="Adding..."
         />
         <Col xl={9} lg={8}>
-          <FileUpload title="Add Resident Photo" />
           <ResidentAdd onFormChange={handleFormChange} onSubmittingChange={setIsSubmitting} />
         </Col>
       </Row>
