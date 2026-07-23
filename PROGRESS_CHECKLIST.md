@@ -1978,7 +1978,7 @@ Date: 2026-02-06
 - Detailed tracker: `SUPERADMIN_LAUNCH_AUDIT_CHECKLIST.md`.
 - Machine-readable route inventory: `SUPERADMIN_ROUTE_MANIFEST.json`.
 - [x] Confirmed the active Superadmin root is `apps/superadmin` and active root scripts, CI paths, split-repository prefixes and database-type synchronization use the monorepo structure.
-- [x] Established the 23 July 2026 baseline at 241 filesystem routes; the previous 237-route count is superseded. The active compatibility inventory is temporarily 245 after adding canonical Communities and Units routes alongside legacy redirects.
+- [x] Established the 23 July 2026 baseline at 241 filesystem routes; the previous 237-route count is superseded. The active compatibility inventory is temporarily 246 after adding canonical Communities and Units lifecycle routes alongside legacy redirects.
 - [x] Added repeatable route-manifest generation and route-contract tests before changing navigation.
 - [x] Passed all three route-contract tests, strict `build:check` and the environment-gated production build for the Phase 52 foundation slice.
 - [ ] Track the optional `sharp` recommendation and stale Browserslist data under the later dependency-security slice.
@@ -2058,7 +2058,8 @@ Date: 2026-02-06
 - [x] Added canonical unit creation and backend-owned scoped detail routes.
 - [x] Redirected legacy property grid/list/add/detail routes and reduced the sidebar to one Units entry.
 - [x] Removed fake property media, bookmarks, unsupported map embedding and incorrect dollar labels.
-- [ ] Implement canonical `/units/{id}/edit` only after validating the complete unit update contract.
+- [x] Implement canonical `/units/{id}/edit` after validating the complete unit create/update contract, including scoped backend authorization, removal of the unsupported `ownership_type` API requirement, and canonical post-save routing. Automated evidence: `unit-lifecycle-contract.test.mjs`, route-contract tests, backend Community Management tests, Superadmin `build:check` and production build (2026-07-23).
+- [ ] Record authenticated production browser evidence for the canonical Unit create/details/edit lifecycle.
 - [x] Recorded passing automated evidence: 5 Units contracts, 3 route contracts, Superadmin `build:check`, and standalone 240-page production build.
 - [ ] Record production browser verification after deployment.
 

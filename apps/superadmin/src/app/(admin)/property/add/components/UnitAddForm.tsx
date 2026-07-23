@@ -1,12 +1,11 @@
 "use client";
-import FileUpload from "@/components/FileUpload";
-import { Col, Row } from "react-bootstrap";
+import { Alert, Col, Row, Spinner } from "react-bootstrap";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "react-hot-toast";
 import * as yup from "yup";
-import { useCreateUnit } from "@/hooks/useUnits";
+import { useCreateUnit, useGetUnit, useUpdateUnit } from "@/hooks/useUnits";
 import { useListCommunities } from '@/hooks/useCommunities';
 import UnitAddCard from "./UnitAddCard";
 import {
@@ -21,13 +20,16 @@ import TextFormInput from "@/components/from/TextFormInput";
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
 import { useEffect } from "react";
 
-const UnitAddForm = () => {
+const UnitAddForm = ({ unitId }: { unitId?: string }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const preselectedCommunityId = searchParams.get("communityId");
   const { data: communitiesData } = useListCommunities();
   const communities = communitiesData?.data || [];
+  const isEditing = Boolean(unitId);
+  const unitQuery = useGetUnit(unitId || "");
   const createUnitMutation = useCreateUnit();
+  const updateUnitMutation = useUpdateUnit(unitId || "");
 
   const unitSchema = yup.object({
     unit_number: yup.string().required("Please enter unit number"),
@@ -76,10 +78,40 @@ const UnitAddForm = () => {
   });
 
   useEffect(() => {
-    if (preselectedCommunityId) {
+    if (!isEditing && preselectedCommunityId) {
       setValue("community_id", preselectedCommunityId);
     }
-  }, [preselectedCommunityId, setValue]);
+  }, [isEditing, preselectedCommunityId, setValue]);
+
+  useEffect(() => {
+    const unit = unitQuery.data;
+    if (!isEditing || !unit) return;
+
+    const amenities = Array.isArray(unit.amenities) ? unit.amenities : [];
+    reset({
+      unit_number: unit.unit_number || unit.number || "",
+      unit_name: unit.unit_name || "",
+      community_id: unit.community_id || "",
+      type: unit.type || "",
+      area: unit.area ?? unit.floor_area ?? undefined,
+      floor: unit.floor ?? 0,
+      status: unit.status || "vacant",
+      rent_amount: unit.rent_amount ?? undefined,
+      deposit_amount: unit.deposit_amount ?? undefined,
+      balconies: unit.balconies ?? undefined,
+      bedrooms: unit.bedrooms ?? undefined,
+      bathrooms: unit.bathrooms ?? unit.bathroom_count ?? undefined,
+      description: unit.description || "",
+      parking: amenities.includes("parking"),
+      gym: amenities.includes("gym"),
+      swimming_pool: amenities.includes("swimming_pool"),
+      garden: amenities.includes("garden"),
+      security: amenities.includes("security"),
+      elevator: amenities.includes("elevator"),
+      power_backup: amenities.includes("power_backup"),
+      wifi: amenities.includes("wifi"),
+    });
+  }, [isEditing, reset, unitQuery.data]);
 
   const watchedValues = watch();
 
@@ -118,24 +150,36 @@ const UnitAddForm = () => {
         amenities: amenities,
       };
 
-      await createUnitMutation.mutateAsync(unitData);
-      
-      toast.success("Unit created successfully!");
-      reset();
-      router.push(
-        unitData.community_id ? `/units?communityId=${unitData.community_id}` : "/units"
-      );
+      if (isEditing && unitId) {
+        await updateUnitMutation.mutateAsync(unitData);
+        toast.success("Unit updated successfully!");
+        router.push(`/units/${unitId}`);
+      } else {
+        const created = await createUnitMutation.mutateAsync(unitData) as { id?: string };
+        toast.success("Unit created successfully!");
+        reset();
+        router.push(created?.id ? `/units/${created.id}` : "/units");
+      }
     } catch (error) {
       console.error("Error creating unit:", error);
-      toast.error("Failed to create unit. Please try again.");
+      toast.error(`Failed to ${isEditing ? "update" : "create"} unit. Please try again.`);
     }
   };
+
+  if (isEditing && unitQuery.isLoading) {
+    return <div className="text-center py-5"><Spinner animation="border" variant="primary" /><p className="mt-3">Loading unit...</p></div>;
+  }
+
+  if (isEditing && (unitQuery.isError || !unitQuery.data)) {
+    return <Alert variant="danger">The requested unit could not be loaded or is outside your authorized scope.</Alert>;
+  }
+
+  const isSaving = createUnitMutation.isPending || updateUnitMutation.isPending;
 
   return (
     <Row>
       <UnitAddCard formData={watchedValues} />
       <Col xl={9} lg={8}>
-        <FileUpload title="Add Unit Photos" />
         <form onSubmit={handleSubmit(onSubmit)}>
           <Card>
             <CardHeader>
@@ -235,11 +279,11 @@ const UnitAddForm = () => {
                 </Col>
                 <Col lg={6}>
                   <label htmlFor="rent-amount" className="form-label">
-                    Monthly Rent ($)
+                    Monthly Rent (GH₵)
                   </label>
                   <div className="input-group mb-3">
                     <span className="input-group-text fs-20 px-2 py-0">
-                      <IconifyIcon icon="ri:money-dollar-circle-line" />
+                      GH₵
                     </span>
                     <input
                       type="number"
@@ -252,11 +296,11 @@ const UnitAddForm = () => {
                 </Col>
                 <Col lg={6}>
                   <label htmlFor="deposit-amount" className="form-label">
-                    Security Deposit ($)
+                    Security Deposit (GH₵)
                   </label>
                   <div className="input-group mb-3">
                     <span className="input-group-text fs-20 px-2 py-0">
-                      <IconifyIcon icon="ri:money-dollar-circle-line" />
+                      GH₵
                     </span>
                     <input
                       type="number"
@@ -459,11 +503,11 @@ const UnitAddForm = () => {
               variant="success"
               type="submit"
               className="me-1"
-              disabled={createUnitMutation.isPending}
+              disabled={isSaving}
             >
-              {createUnitMutation.isPending ? "Creating..." : "Add Unit"}
+              {isSaving ? "Saving..." : isEditing ? "Save Changes" : "Add Unit"}
             </Button>
-            <Button variant="secondary" type="button" onClick={() => reset()}>
+            <Button variant="secondary" type="button" onClick={() => router.push(isEditing && unitId ? `/units/${unitId}` : "/units")}>
               Cancel
             </Button>
           </div>

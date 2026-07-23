@@ -138,7 +138,7 @@ export async function listUnits(req: Request, res: Response, next: NextFunction)
     let query = supabase
       .from('units')
       .select(
-        'id, community_id, number, block, floor, status, type, unit_name, unit_number, area, area_sqft, floor_area, bedrooms, bathrooms, bathroom_count, rent_amount, deposit_amount, description, amenities, owner_id, tenant_id, maintenance_amount, created_at, updated_at',
+        'id, community_id, number, block, floor, status, type, unit_name, unit_number, area, area_sqft, floor_area, bedrooms, bathrooms, bathroom_count, balconies, rent_amount, deposit_amount, description, amenities, owner_id, tenant_id, maintenance_amount, created_at, updated_at',
         { count: 'exact' }
       )
       .order('created_at', { ascending: false });
@@ -199,7 +199,7 @@ export async function getUnit(req: Request, res: Response, next: NextFunction) {
     const { data, error } = await supabase
       .from('units')
       .select(
-        'id, community_id, number, block, floor, status, type, unit_name, unit_number, area, area_sqft, floor_area, bedrooms, bathrooms, bathroom_count, rent_amount, deposit_amount, description, amenities, owner_id, tenant_id, maintenance_amount, created_at, updated_at'
+        'id, community_id, number, block, floor, status, type, unit_name, unit_number, area, area_sqft, floor_area, bedrooms, bathrooms, bathroom_count, balconies, rent_amount, deposit_amount, description, amenities, owner_id, tenant_id, maintenance_amount, created_at, updated_at'
       )
       .eq('id', id)
       .maybeSingle();

@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-07-23T16:50:04.386Z",
+  "generatedAt": "2026-07-23T16:54:02.922Z",
   "applicationRoot": "apps/superadmin",
   "baselineRouteCount": 245,
   "summary": {
-    "filesystemRoutes": 245,
+    "filesystemRoutes": 246,
     "menuDestinations": 91,
     "unresolvedMenuDestinations": 0,
     "internalLiteralLinks": 164,
@@ -48,7 +48,7 @@
       "settings": 65,
       "tables": 2,
       "transactions": 1,
-      "units": 3,
+      "units": 4,
       "visitors": 4,
       "widgets": 1
     }
@@ -4155,6 +4155,21 @@
     {
       "route": "/units/:id",
       "file": "apps/superadmin/src/app/(admin)/units/[id]/page.tsx",
+      "area": "units",
+      "menuReferenced": false,
+      "internalReferenceCount": 0,
+      "disposition": "product_audit",
+      "plannedCanonical": null,
+      "backendDependency": "TBD during page audit",
+      "databaseDependency": "TBD during page audit",
+      "roleCoverage": "platform, agency-scoped, community-scoped",
+      "status": "not_started",
+      "blockers": [],
+      "evidence": []
+    },
+    {
+      "route": "/units/:id/edit",
+      "file": "apps/superadmin/src/app/(admin)/units/[id]/edit/page.tsx",
       "area": "units",
       "menuReferenced": false,
       "internalReferenceCount": 0,
