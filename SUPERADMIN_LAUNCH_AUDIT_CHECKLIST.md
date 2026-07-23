@@ -419,3 +419,24 @@
 - Corrections: removed backward client redirect, unsupported photo upload, fabricated resident estimate, dollar labels, retired list navigation and silent edit-load failure; added scoped agency selection, canonical save/cancel routing, management payload fields and truthful details.
 - Data boundary: details show backend-owned community, agency, unit-stat, occupancy, amenity and financial records only.
 - Acceptance evidence: 3/3 Community lifecycle contracts, 7/7 focused backend community tests, 3/3 route contracts, Superadmin `build:check`, and standalone 240-page production build passed on 2026-07-23.
+
+## Phase 52 Visual-Parity Recovery Track
+
+- Rule: preserve canonical routes, live backend/database contracts, authorization, and unified grid/list state while restoring the approved pre-Phase 52 presentation. Demo values must not return; missing live values use truthful empty states.
+- [x] Communities directory presentation restored without changing its canonical directory contract.
+- [x] Units directory presentation restored without changing its canonical directory contract.
+- [x] Guards directory presentation restored without changing its canonical directory contract.
+- [x] Unit details presentation restored: image-led overview, owner card, specification strip, amenities, actions, and location panel now consume the existing live Unit record.
+- [ ] Restore and sign off Unit create/edit presentation.
+- [ ] Restore and sign off Community details/create/edit presentation.
+- [ ] Restore and sign off Join Requests presentation.
+- [ ] Restore and sign off Residents directory/details/create/edit presentation.
+- [ ] Restore and sign off Guards details presentation.
+- [ ] Restore and sign off Agencies directory/details/create/edit presentation.
+- [ ] Restore and sign off Casa Nirvana, Residents, and Guards dashboard presentation.
+- [ ] Record authenticated production browser evidence for every restored slice.
+
+### 2026-07-23 - Unit details visual-parity recovery
+
+- Restored the approved pre-consolidation Unit overview composition while retaining /units/{id}, /units/{id}/edit, backend-owned data, scoped authorization, and truthful missing-data states.
+- No database schema, API contract, directory view-state, or mutation behavior changed in this slice.

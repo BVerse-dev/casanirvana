@@ -2126,3 +2126,12 @@ Date: 2026-02-06
 - [x] Added explicit edit loading and scope/error states.
 - [x] Recorded passing automated evidence: 3 Community lifecycle contracts, 7 backend community tests, 3 route contracts, Superadmin `build:check`, and standalone 240-page production build.
 - [ ] Record production browser verification after deployment.
+
+### 2026-07-23 - Phase 52 visual-parity recovery track
+
+- [x] Established a visual-only recovery rule: restore approved demo-era composition without restoring fabricated records or undoing canonical routes, authorization, grid/list consolidation, and database work.
+- [x] Restored the canonical Unit details page composition using the live Unit/Community/Owner response.
+- [ ] Complete Unit create/edit visual restoration.
+- [ ] Complete Community lifecycle and Join Requests visual restoration.
+- [ ] Complete Residents, Guards, and Agencies visual restoration.
+- [ ] Complete dashboard visual restoration and production signoff.
