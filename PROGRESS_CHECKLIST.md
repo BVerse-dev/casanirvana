@@ -1972,3 +1972,32 @@ Date: 2026-02-06
 
 - [x] Completed the six-viewport production sequence for every approved marketing route, all role-aware onboarding routes, Contact Us, Privacy Policy and Terms of Service.
 - [ ] SMTP delivery, legal/commercial approval, Preview environment configuration, approved brand artwork and owner visual signoff remain release gates.
+
+## Phase 52 - Superadmin Launch Audit and Information Architecture
+
+- Detailed tracker: `SUPERADMIN_LAUNCH_AUDIT_CHECKLIST.md`.
+- Machine-readable route inventory: `SUPERADMIN_ROUTE_MANIFEST.json`.
+- [x] Confirmed the active Superadmin root is `apps/superadmin` and active root scripts, CI paths, split-repository prefixes and database-type synchronization use the monorepo structure.
+- [x] Established the 23 July 2026 baseline at 241 filesystem routes; the previous 237-route count is superseded.
+- [x] Added repeatable route-manifest generation and route-contract tests before changing navigation.
+- [x] Passed all three route-contract tests, strict `build:check` and the environment-gated production build for the Phase 52 foundation slice.
+- [ ] Track the optional `sharp` recommendation and stale Browserslist data under the later dependency-security slice.
+- [ ] Complete Application Shell, Dashboards, Community Management, People, Operations, Communication, Personal Hub, Notifications/Notices, Settings and inherited-route slices in strict order.
+- [ ] Consolidate Communities, Units, Residents, Guards, Agencies and Visitors into canonical grid-default directories with URL state and remembered preference.
+- [ ] Retire or redirect inherited/demo routes only after each route receives an explicit disposition and compatibility check.
+
+## Phase 53 - Backend and Database Release Hardening
+
+- [ ] Audit each retained Superadmin page against its backend endpoint, authorization scope and database dependencies during Phase 52.
+- [ ] Complete final RLS, orphan, foreign-key, exposed-view, archive-table, index, function, storage-policy and migration-history checks.
+- [ ] Rerun Supabase Security and Performance Advisors after deliberate schema or policy changes.
+
+## Phase 54 - Resident Mobile Launch Audit
+
+- [ ] Begin screen-level launch audit after relevant backend contracts are stable.
+- [ ] Track navigation, authentication, deep links, offline behavior, permissions, notifications, payments and visitor workflows in the existing mobile signoff checklist.
+
+## Phase 55 - Guard Mobile Launch Audit
+
+- [ ] Begin screen-level launch audit after relevant backend contracts are stable.
+- [ ] Track authentication, camera/QR permissions, visitor operations, resident directory scope, emergency workflows, notifications and release configuration.

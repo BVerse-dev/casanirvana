@@ -141,3 +141,16 @@ Marketing website acceptance must cover all approved routes at 1440x900, 1280x80
 - [ ] Configure the five required marketing variables for Preview deployments; Production is configured, but branch Preview builds currently fail the release-environment gate.
 - [ ] Complete SMTP credentials/delivery acceptance. `MARKETING_CONTACT_API_KEY` now passes into the mail-delivery path, but SMTP delivery remains unresolved.
 - [ ] Resolve or explicitly defer missing production `SENTRY_DSN` with owner and acceptance evidence.
+
+## 2026-07-23 - P0 Superadmin launch-audit gate
+
+- Tracker: `SUPERADMIN_LAUNCH_AUDIT_CHECKLIST.md`.
+- Route manifest: `SUPERADMIN_ROUTE_MANIFEST.json`.
+- [x] Established a repeatable baseline for all 241 current Superadmin filesystem routes and sidebar destinations.
+- [x] Phase 52 foundation route-contract tests, strict type/build check and production build passed on 23 July 2026.
+- [ ] Every route has an explicit product, redirect or retirement disposition with evidence.
+- [ ] Canonical Communities, Units, Residents, Guards, Agencies and Visitors directories pass grid/list, filter, pagination, role-scope and deep-link acceptance.
+- [ ] Platform, agency-scoped and community-scoped administrators pass direct-route authorization checks.
+- [ ] All retained pages pass backend/data truthfulness, empty/error/loading, responsive, accessibility and production browser checks.
+- [ ] All legacy routes preserve valid identifiers and filters through tested redirects during the rollback window.
+- [ ] Superadmin route-contract tests, `build:check`, production build and authenticated production smoke checks are green before GO.

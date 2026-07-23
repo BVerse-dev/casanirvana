@@ -17,7 +17,9 @@
     "dev:superadmin": "npm --prefix apps/superadmin run dev",
     "dev:user": "npm --prefix apps/resident-mobile run start",
     "dev:guard": "npm --prefix apps/guard-mobile run start:dev",
-    "dev:marketing": "npm --prefix apps/marketing-web run dev -- --port 3001"
+    "dev:marketing": "npm --prefix apps/marketing-web run dev -- --port 3001",
+    "audit:superadmin-routes": "npm --prefix apps/superadmin run audit:routes",
+    "test:superadmin-routes": "npm --prefix apps/superadmin run test:route-contract"
   },
   "engines": {
     "node": ">=20.9.0"
