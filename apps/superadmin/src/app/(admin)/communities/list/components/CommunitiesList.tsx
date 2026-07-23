@@ -36,7 +36,12 @@ import Image from "next/image";
 
 type Community = CommunityRecord;
 
-const CommunitiesList = () => {
+interface CommunitiesListProps {
+  viewMode: "grid" | "list";
+  onViewModeChange: (view: "grid" | "list") => void;
+}
+
+const CommunitiesList = ({ viewMode, onViewModeChange }: CommunitiesListProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("name");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
@@ -45,8 +50,8 @@ const CommunitiesList = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8; // Items per page
 
-  const { data: communitiesData = { data: [], count: 0, page: 1, pageSize: 1000, totalPages: 1 }, isLoading, error } =
-    useListCommunities({ page: 1, pageSize: 1000 });
+  const { data: communitiesData = { data: [], count: 0, page: 1, pageSize: 200, totalPages: 1 }, isLoading, error } =
+    useListCommunities({ page: 1, pageSize: 200 });
   const communities = communitiesData?.data || [];
   const deleteCommunityMutation = useDeleteCommunity();
 
@@ -163,6 +168,24 @@ const CommunitiesList = () => {
               <CardTitle as={'h4'} className="mb-0">All Communities</CardTitle>
             </div>
             <div className="d-flex gap-2">
+              <div className="btn-group" role="group" aria-label="Directory view">
+                <Button
+                  variant={viewMode === "grid" ? "primary" : "outline-primary"}
+                  onClick={() => onViewModeChange("grid")}
+                  aria-label="Grid view"
+                  aria-pressed={viewMode === "grid"}
+                >
+                  <IconifyIcon icon="ri:grid-line" />
+                </Button>
+                <Button
+                  variant={viewMode === "list" ? "primary" : "outline-primary"}
+                  onClick={() => onViewModeChange("list")}
+                  aria-label="List view"
+                  aria-pressed={viewMode === "list"}
+                >
+                  <IconifyIcon icon="ri:list-check" />
+                </Button>
+              </div>
               <InputGroup style={{ width: "300px" }}>
                 <FormControl
                   type="text"
@@ -257,7 +280,7 @@ const CommunitiesList = () => {
                                 />
                               </div>
                               <div>
-                                <Link href={`/communities/details?id=${community.id}`} className="text-dark fw-medium fs-15 text-decoration-none">
+                                <Link href={`/communities/${community.id}`} className="text-dark fw-medium fs-15 text-decoration-none">
                                   {community.name}
                                 </Link>
                                 <div className="text-muted small">
@@ -302,7 +325,7 @@ const CommunitiesList = () => {
                           </td>
                           <td>
                             <div className="d-flex gap-2">
-                              <Link href={`/communities/details?id=${community.id}`}>
+                              <Link href={`/communities/${community.id}`}>
                                 <Button variant="light" size="sm">
                                   <IconifyIcon icon="solar:eye-broken" className="align-middle fs-18" />
                                 </Button>

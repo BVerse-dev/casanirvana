@@ -2077,6 +2077,7 @@ Date: 2026-02-06
 - [x] Retained canonical `/communities` routing and the persisted `?view=grid|list` toggle without replacing the approved UI.
 - [x] Established visual preservation as the default for the remaining directory consolidation slices.
 - [x] Aligned legacy Community summary/grid request limits with the backend maximum of 200 after authenticated production requests confirmed validation failures above that limit.
+- [x] Restored the full-width Community list table and removed the grid-only filter sidebar from list mode while retaining the shared URL-backed toggle.
 - [ ] Record build and authenticated production evidence after deployment.
 
 ### 2026-07-23 - Phase 52 Guards visual-parity correction

@@ -6,7 +6,7 @@ import IconifyIcon from "@/components/wrappers/IconifyIcon";
 import { useListCommunities } from "@/hooks/useCommunities";
 
 const CommunitiesStat = () => {
-  const { data: communitiesData, isLoading } = useListCommunities({ pageSize: 9999 });
+  const { data: communitiesData, isLoading } = useListCommunities({ pageSize: 200 });
   const communities = communitiesData?.data || [];
   const statCards = useMemo(() => {
     const totalCommunities = communitiesData?.count || communities.length;

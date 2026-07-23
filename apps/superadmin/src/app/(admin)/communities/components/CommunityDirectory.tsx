@@ -6,6 +6,8 @@ import { useDirectoryView } from "@/hooks/useDirectoryView";
 import CommunitiesFilter, { type CommunityFilters } from "../grid/components/CommunitiesFilter";
 import CommunitiesGrid from "../grid/components/CommunitiesGrid";
 import CommunitiesStat from "../grid/components/CommunitiesStat";
+import CommunitiesList from "../list/components/CommunitiesList";
+import ListCommunitiesStat from "../list/components/CommunitiesStat";
 
 const defaultFilters: CommunityFilters = {
   location: "",
@@ -31,19 +33,28 @@ const CommunityDirectory = () => {
 
   return (
     <>
-      <CommunitiesStat filters={appliedFilters} />
-      <Row>
-        <CommunitiesFilter
-          onFiltersChange={setFilters}
-          onApplyFilters={() => setAppliedFilters(filters)}
-          onResetFilters={resetFilters}
-        />
-        <CommunitiesGrid
-          filters={appliedFilters}
-          viewMode={view}
-          onViewModeChange={setView}
-        />
-      </Row>
+      {view === "grid" ? (
+        <>
+          <CommunitiesStat filters={appliedFilters} />
+          <Row>
+            <CommunitiesFilter
+              onFiltersChange={setFilters}
+              onApplyFilters={() => setAppliedFilters(filters)}
+              onResetFilters={resetFilters}
+            />
+            <CommunitiesGrid
+              filters={appliedFilters}
+              viewMode={view}
+              onViewModeChange={setView}
+            />
+          </Row>
+        </>
+      ) : (
+        <>
+          <ListCommunitiesStat />
+          <CommunitiesList viewMode={view} onViewModeChange={setView} />
+        </>
+      )}
     </>
   );
 };
