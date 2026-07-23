@@ -14,11 +14,11 @@ interface ResidentDataProps {
   isLoading: boolean
   error: Error | null
   searchTerm: string
-  statusFilter: 'all' | 'active' | 'inactive'
+  statusFilter: string
   totalCount: number
 }
 
-const ResidentCard = ({ id, full_name, email, phone, avatar_url, units, societies, is_active, unit_number }: Resident) => {
+const ResidentCard = ({ id, full_name, email, phone, avatar_url, units, societies, status, unit_number }: Resident) => {
   const deleteResidentMutation = useDeleteResident()
   const mappedAvatarUrl = mapAvatarUrl(avatar_url) || avatars.dummyAvatar
 
@@ -89,8 +89,8 @@ const ResidentCard = ({ id, full_name, email, phone, avatar_url, units, societie
             <span className="text-muted">Phone:</span> {phone || 'No Phone'}
           </p>
           <div className="mt-3">
-            <span className={`badge bg-${is_active ? 'success' : 'danger'}-subtle text-${is_active ? 'success' : 'danger'} py-1 px-2 fs-13`}>
-              {is_active ? 'Active' : 'Inactive'}
+            <span className={`badge bg-${status === 'active' ? 'success' : status === 'pending' ? 'warning' : status === 'suspended' ? 'secondary' : 'danger'}-subtle text-${status === 'active' ? 'success' : status === 'pending' ? 'warning' : status === 'suspended' ? 'secondary' : 'danger'} py-1 px-2 fs-13 text-capitalize`}>
+              {status}
             </span>
           </div>
         </div>

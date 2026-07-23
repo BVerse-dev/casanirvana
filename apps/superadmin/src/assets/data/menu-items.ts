@@ -91,15 +91,9 @@ export const MENU_ITEMS: MenuItemType[] = [
     icon: "ri:group-line",
     children: [
       {
-        key: "residents-list-view",
-        label: "List View",
-        url: "/residents/list-view",
-        parentKey: "residents",
-      },
-      {
-        key: "residents-grid-view",
-        label: "Grid View",
-        url: "/residents/grid-view",
+        key: "residents-directory",
+        label: "All Residents",
+        url: "/residents",
         parentKey: "residents",
       },
       {

@@ -7,7 +7,7 @@ const Page = () => (
     scopeLabel="Identity & Access"
     reason="User lists and profile operations belong in the operational resident and people modules. Settings only keeps default access behavior and policy controls."
     destinationLabel="Open Residents Module"
-    destinationUrl="/residents/list-view"
+    destinationUrl="/residents"
     secondaryLabel="Open User Defaults"
     secondaryUrl="/settings/users/preferences"
   />
