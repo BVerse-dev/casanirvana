@@ -69,7 +69,7 @@ const GuardAdd = ({ formId = 'guard-provisioning-form' }: GuardAddProps) => {
         salary: typeof data.salary === 'number' ? data.salary : undefined,
       })
       toast.success('Guard invite sent and assignment created successfully.')
-      router.push('/guards/manage?tab=profiles')
+      router.push('/guards')
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to create guard account.'
       toast.error(message)
@@ -260,7 +260,7 @@ const GuardAdd = ({ formId = 'guard-provisioning-form' }: GuardAddProps) => {
             </Col>
           </Row>
           <div className="text-end">
-            <Button type="button" variant="outline-secondary" className="me-2" onClick={() => router.push('/guards/manage?tab=profiles')}>
+            <Button type="button" variant="outline-secondary" className="me-2" onClick={() => router.push('/guards')}>
               Cancel
             </Button>
             <Button type="submit" variant="primary" disabled={createGuardProfile.isPending}>

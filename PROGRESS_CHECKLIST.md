@@ -1978,7 +1978,7 @@ Date: 2026-02-06
 - Detailed tracker: `SUPERADMIN_LAUNCH_AUDIT_CHECKLIST.md`.
 - Machine-readable route inventory: `SUPERADMIN_ROUTE_MANIFEST.json`.
 - [x] Confirmed the active Superadmin root is `apps/superadmin` and active root scripts, CI paths, split-repository prefixes and database-type synchronization use the monorepo structure.
-- [x] Established the 23 July 2026 baseline at 241 filesystem routes; the previous 237-route count is superseded. The active compatibility inventory is temporarily 250 after adding canonical Communities, Units, Residents and Guards routes alongside legacy redirects.
+- [x] Established the 23 July 2026 baseline at 241 filesystem routes; the previous 237-route count is superseded. The active compatibility inventory is temporarily 251 after adding canonical Communities, Units, Residents and Guards routes alongside legacy redirects.
 - [x] Added repeatable route-manifest generation and route-contract tests before changing navigation.
 - [x] Passed all three route-contract tests, strict `build:check` and the environment-gated production build for the Phase 52 foundation slice.
 - [ ] Track the optional `sharp` recommendation and stale Browserslist data under the later dependency-security slice.
@@ -1988,7 +1988,9 @@ Date: 2026-02-06
 - [x] Normalized Resident create/details/edit to `/residents/add`, `/residents/{id}` and `/residents/{id}/edit`; removed unwired upload/dead actions and retained legacy query-string redirects (2026-07-23).
 - [ ] Record authenticated production browser evidence for the Resident directory and create/details/edit lifecycle.
 - [x] Consolidated Guards at `/guards?view=grid|list` with grid default, remembered preference, normalized backend pagination/search/status state, one sidebar directory entry, preserved `/guards/manage`, and compatibility redirects for both legacy view routes (2026-07-23).
-- [ ] Normalize the Guard details lifecycle and record authenticated production browser evidence for the directory and management deep links.
+- [x] Normalized Guard details to `/guards/{id}`, retained an intentional legacy query-string redirect, and kept assignment changes in the authorized `/guards/manage` workspace (2026-07-23).
+- [ ] Add `/guards/{id}/edit` only after a scoped backend Guard profile update contract exists; no cosmetic or client-only edit route is permitted.
+- [ ] Record authenticated production browser evidence for the Guard directory, canonical details and management deep links.
 - [ ] Retire or redirect inherited/demo routes only after each route receives an explicit disposition and compatibility check.
 
 ## Phase 53 - Backend and Database Release Hardening
@@ -2043,6 +2045,15 @@ Date: 2026-02-06
 - [x] Added truthful loading, empty and backend-failure states to the audited dashboard panels.
 - [x] Recorded passing automated evidence: 3 guard contracts, 3 route contracts, 6 backend dashboard tests, backend build, Superadmin `build:check`, and standalone 237-page production build.
 - [ ] Record production browser verification after deployment.
+
+### 2026-07-23 - Phase 52 Guard details lifecycle slice
+
+- [x] Added canonical `/guards/{id}` details backed by the existing scoped Guard operations snapshot.
+- [x] Converted `/guards/details?id=...` to an intentional permanent redirect and normalized directory/provisioning navigation.
+- [x] Preserved `/guards/manage` as the supported assignment and operations workspace.
+- [x] Confirmed the backend exposes create, list and delete profile contracts but no authorized Guard profile update contract; `/guards/{id}/edit` remains deliberately unshipped.
+- [x] Recorded passing automated evidence: 9 Guard lifecycle/directory/route contracts, scoped mounted backend test, API build, Superadmin `build:check`, and standalone 242-page production build.
+- [ ] Record authenticated production browser evidence after deployment.
 
 ### 2026-07-23 - Phase 52 Communities unified directory slice
 

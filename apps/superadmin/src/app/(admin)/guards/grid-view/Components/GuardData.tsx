@@ -29,7 +29,7 @@ const GuardCard = ({ id, full_name, email, phone, avatar_url, societies, is_acti
   const handleActionClick = (action: string) => {
     switch (action) {
       case 'view':
-        window.open(`/guards/details?id=${id}`, '_blank')
+        window.open(`/guards/${id}`, '_blank')
         break
       case 'manage':
         window.open(`/guards/manage?tab=assignments&guardId=${id}`, '_blank')
@@ -68,7 +68,7 @@ const GuardCard = ({ id, full_name, email, phone, avatar_url, societies, is_acti
             </div>
           )}
           <div className="d-block flex-grow-1">
-            <Link href={`/guards/details?id=${id}`} className="text-dark fw-medium fs-16">
+            <Link href={`/guards/${id}`} className="text-dark fw-medium fs-16">
               {full_name || 'No Name'}
             </Link>
             <p className="mb-0 text-muted">{email || 'No Email'}</p>

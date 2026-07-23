@@ -274,6 +274,16 @@
 
 ## Session history
 
+### 2026-07-23 - Guard details lifecycle vertical slice
+
+- Status: Implementation complete; automated evidence passed.
+- Canonical route: `/guards/{id}` with legacy `/guards/details?id=...` permanently redirected.
+- Backend contracts: scoped Guard profile, assignment, schedule, equipment, performance and training reads through the shared authenticated backend client.
+- Navigation: Guard cards, tables, legacy views and provisioning return to canonical Guard routes; assignment changes remain in `/guards/manage`.
+- Deliberate boundary: no `/guards/{id}/edit` route is shipped because the backend currently has no scoped Guard profile update endpoint.
+- Route inventory: temporarily 251 while canonical routes and legacy compatibility redirects coexist.
+- Acceptance evidence: 9/9 Guard lifecycle, Guard directory and route contracts passed; the scoped mounted Guard profile test passed; API TypeScript build, Superadmin `build:check`, and the standalone 242-page production build passed on 2026-07-23.
+
 ### 2026-07-23 - Phase 52 foundation
 
 - [x] Confirmed the active monorepo application root is `apps/superadmin`.

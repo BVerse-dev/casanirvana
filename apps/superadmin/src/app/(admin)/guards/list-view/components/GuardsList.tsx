@@ -260,7 +260,7 @@ const GuardsList = ({
                                 )}
                               </div>
                               <div>
-                                <Link href={`/guards/details?id=${guard.id}`} className="text-dark fw-medium fs-15">
+                                <Link href={`/guards/${guard.id}`} className="text-dark fw-medium fs-15">
                                   {guard.full_name || 'No Name'}
                                 </Link>
                                 <div className="text-muted fs-13">
@@ -303,7 +303,7 @@ const GuardsList = ({
                           </td>
                           <td>
                             <div className="d-flex gap-2">
-                              <Link href={`/guards/details?id=${guard.id}`}>
+                              <Link href={`/guards/${guard.id}`}>
                                 <Button variant="light" size="sm" title="View Details">
                                   <IconifyIcon icon="solar:eye-broken" className="align-middle fs-18" />
                                 </Button>
