@@ -1,6 +1,5 @@
 "use client";
 import React from "react";
-import FileUpload from "@/components/FileUpload";
 import TextAreaFormInput from "@/components/from/TextAreaFormInput";
 import TextFormInput from "@/components/from/TextFormInput";
 import SelectFormInput from "@/components/from/SelectFormInput";
@@ -16,12 +15,15 @@ import {
   Row,
   Form,
   FormCheck,
+  Alert,
+  Spinner,
 } from "react-bootstrap";
 import { useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
 import * as yup from "yup";
 import CommunityAddCard from "./CommunityAddCard";
 import { useCreateCommunity, useGetCommunity, useUpdateCommunity } from "@/hooks/useCommunities";
+import { useListAgenciesDirectory } from "@/hooks/useAgencyDirectory";
 
 interface CommunityFormData {
   // Basic Information
@@ -59,6 +61,7 @@ interface CommunityFormData {
   account_number?: string;
   ifsc_code?: string;
   account_holder_name?: string;
+  agency_id?: string;
 }
 
 type CommunityAddFormProps = {
@@ -82,19 +85,18 @@ type LegacyCommunityFormSeed = {
 const CommunityAddForm = ({ editMode = false, communityId }: CommunityAddFormProps) => {
   const router = useRouter();
   const createCommunityMutation = useCreateCommunity();
-  const { data: existingCommunity } = useGetCommunity(communityId || "");
+  const { data: existingCommunity, isLoading: communityLoading, isError: communityError } = useGetCommunity(communityId || "");
   const updateCommunityMutation = useUpdateCommunity(communityId || "");
+  const agenciesQuery = useListAgenciesDirectory();
 
   // Available options for dropdowns
   const communityTypes = [
-    { value: 'residential-complex', label: 'Residential Complex' },
+    { value: 'apartment-complex', label: 'Apartment Complex' },
     { value: 'gated-community', label: 'Gated Community' },
+    { value: 'residential-estate', label: 'Residential Estate' },
+    { value: 'mixed-use', label: 'Mixed Use Community' },
     { value: 'high-rise-apartments', label: 'High-Rise Apartments' },
     { value: 'villa-community', label: 'Villa Community' },
-    { value: 'residential-tower', label: 'Residential Tower' },
-    { value: 'it-hub-apartments', label: 'IT Hub Apartments' },
-    { value: 'coastal-residences', label: 'Coastal Residences' },
-    { value: 'heritage-villas', label: 'Heritage Villas' },
   ];
 
   const statusOptions = [
@@ -154,6 +156,7 @@ const CommunityAddForm = ({ editMode = false, communityId }: CommunityAddFormPro
     account_number: yup.string().optional(),
     ifsc_code: yup.string().optional(),
     account_holder_name: yup.string().optional(),
+    agency_id: yup.string().optional(),
   });
 
   const { handleSubmit, control, reset, watch, setValue, getValues } = useForm<CommunityFormData>({
@@ -167,11 +170,12 @@ const CommunityAddForm = ({ editMode = false, communityId }: CommunityAddFormPro
       security_deposit: 0,
       parking_slots: 0,
       status: 'active',
-      society_type: 'residential-complex',
+      society_type: 'apartment-complex',
       management_name: '',
       management_email: '',
       management_phone: '',
       management_role: '',
+      agency_id: '',
     },
   });
 
@@ -194,7 +198,7 @@ const CommunityAddForm = ({ editMode = false, communityId }: CommunityAddFormPro
         email: existingCommunity.email || "",
         website: existingCommunity.website || "",
         description: existingCommunity.description || "",
-        society_type: existingCommunity.society_type || "residential-complex",
+        society_type: existingCommunity.society_type || "apartment-complex",
         status: (existingCommunity.status as any) || 'active',
         total_units: Number(existingCommunity.total_units) || 1,
         total_floors: Number(existingCommunity.total_floors) || 1,
@@ -211,6 +215,7 @@ const CommunityAddForm = ({ editMode = false, communityId }: CommunityAddFormPro
         account_number: legacySeed.bank_details?.account_number || "",
         ifsc_code: legacySeed.bank_details?.ifsc_code || "",
         account_holder_name: legacySeed.bank_details?.account_holder_name || "",
+        agency_id: existingCommunity.agency_id || "",
       });
     } catch (err) {
       console.error('Failed to prefill community form:', err);
@@ -239,6 +244,11 @@ const CommunityAddForm = ({ editMode = false, communityId }: CommunityAddFormPro
         maintenance_charge: data.maintenance_charge,
         security_deposit: data.security_deposit,
         parking_slots: data.parking_slots,
+        management_name: data.management_name || null,
+        management_email: data.management_email || null,
+        management_phone: data.management_phone || null,
+        management_role: data.management_role || null,
+        agency_id: data.agency_id || null,
         bank_details: data.bank_name ? {
           bank_name: data.bank_name,
           account_number: data.account_number,
@@ -250,12 +260,13 @@ const CommunityAddForm = ({ editMode = false, communityId }: CommunityAddFormPro
       if (editMode && communityId) {
         await updateCommunityMutation.mutateAsync(communityData as any);
         toast.success("Community updated successfully!");
-        router.push(`/communities/list`);
+        router.push(`/communities/${communityId}`);
       } else {
-        await createCommunityMutation.mutateAsync(communityData as any);
+        const createdCommunity = await createCommunityMutation.mutateAsync(communityData as any) as any;
         toast.success("Community created successfully!");
         reset();
-        router.push("/communities/list");
+        const createdId = createdCommunity?.id || createdCommunity?.data?.id;
+        router.push(createdId ? `/communities/${createdId}` : "/communities");
       }
     } catch (error) {
       console.error(editMode ? "Error updating community:" : "Error creating community:", error);
@@ -263,11 +274,18 @@ const CommunityAddForm = ({ editMode = false, communityId }: CommunityAddFormPro
     }
   };
 
+  if (editMode && communityLoading) {
+    return <Card><CardBody className="text-center py-5"><Spinner animation="border" variant="primary" /><p className="mt-3 mb-0">Loading community...</p></CardBody></Card>;
+  }
+
+  if (editMode && communityError) {
+    return <Alert variant="danger">The community could not be loaded or is outside your authorized scope.</Alert>;
+  }
+
   return (
     <Row>
       <CommunityAddCard formData={watchedValues} />
       <Col xl={9} lg={8}>
-        <FileUpload title={editMode ? "Community Photos" : "Add Community Photos"} />
         <form onSubmit={handleSubmit(onSubmit)}>
         {/* Basic Information */}
         <Card className="mb-3">
@@ -295,6 +313,18 @@ const CommunityAddForm = ({ editMode = false, communityId }: CommunityAddFormPro
                     options={communityTypes}
                     placeholder="Select community type"
                   />
+                </div>
+              </Col>
+              <Col lg={6}>
+                <div className="mb-3">
+                  <SelectFormInput
+                    control={control}
+                    name="agency_id"
+                    label="Managing Agency"
+                    options={[{ value: '', label: 'Platform managed / No agency' }, ...(agenciesQuery.data || []).map((agency) => ({ value: agency.id, label: agency.name }))]}
+                    placeholder="Select managing agency"
+                  />
+                  {agenciesQuery.isError && <small className="text-danger">Authorized agencies could not be loaded.</small>}
                 </div>
               </Col>
               <Col lg={12}>
@@ -477,7 +507,7 @@ const CommunityAddForm = ({ editMode = false, communityId }: CommunityAddFormPro
                     name="maintenance_charge"
                     type="number"
                     placeholder="Monthly Maintenance Charge"
-                    label="Monthly Maintenance Charge ($)"
+                    label="Monthly Maintenance Charge (GH₵)"
                   />
                 </div>
               </Col>
@@ -488,7 +518,7 @@ const CommunityAddForm = ({ editMode = false, communityId }: CommunityAddFormPro
                     name="security_deposit"
                     type="number"
                     placeholder="Security Deposit"
-                    label="Security Deposit ($)"
+                    label="Security Deposit (GH₵)"
                   />
                 </div>
               </Col>
@@ -568,8 +598,8 @@ const CommunityAddForm = ({ editMode = false, communityId }: CommunityAddFormPro
               <Button 
                 variant="danger" 
                 className="w-100"
-                onClick={() => router.push("/communities/list")}
-                disabled={createCommunityMutation.isPending}
+                onClick={() => router.push(editMode && communityId ? `/communities/${communityId}` : "/communities")}
+                disabled={createCommunityMutation.isPending || updateCommunityMutation.isPending}
               >
                 Cancel
               </Button>

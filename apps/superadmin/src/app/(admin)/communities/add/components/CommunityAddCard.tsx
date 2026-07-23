@@ -97,17 +97,6 @@ const CommunityAddCard = ({ formData }: CommunityAddCardProps) => {
               <span className="badge bg-light-subtle text-muted border fs-12">
                 <span className="fs-16">
                   <IconifyIcon
-                    icon="solar:users-group-rounded-bold-duotone"
-                    className="align-middle"
-                  />
-                </span>
-                &nbsp;{((formData?.total_units || 0) * 3)} Residents
-              </span>
-            </Col>
-            <Col lg={6} xs={6}>
-              <span className="badge bg-light-subtle text-muted border fs-12">
-                <span className="fs-16">
-                  <IconifyIcon
                     icon="solar:double-alt-arrow-up-broken"
                     className="align-middle"
                   />
@@ -133,7 +122,7 @@ const CommunityAddCard = ({ formData }: CommunityAddCardProps) => {
             <Col lg={12}>
               <div className="text-center">
                 <small className="text-muted">
-                  {formData?.maintenance_charge ? `$${formData.maintenance_charge}/month` : 'No maintenance charge set'}
+                  {formData?.maintenance_charge ? `GH₵ ${formData.maintenance_charge}/month` : 'No maintenance charge set'}
                   {formData?.parking_slots ? ` • ${formData.parking_slots} Parking Slots` : ''}
                   {formData?.total_blocks ? ` • ${formData.total_blocks} Blocks` : ''}
                 </small>

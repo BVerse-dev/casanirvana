@@ -2071,3 +2071,14 @@ Date: 2026-02-06
 - [x] Added truthful loading, empty, failure and mutation-pending states.
 - [x] Recorded passing automated evidence: 3 Join Request contracts, 7 backend community tests, 3 route contracts, Superadmin `build:check`, and standalone 240-page production build.
 - [ ] Record production browser verification after deployment.
+
+### 2026-07-23 - Phase 52 Community lifecycle slice
+
+- [x] Replaced the canonical detail route's backward redirect with a backend-owned scoped Community details page.
+- [x] Converted legacy query-string details to a permanent canonical redirect.
+- [x] Added authorized agency selection and preserved validated management fields in create/update payloads.
+- [x] Normalized create, update and cancel navigation to canonical Community routes.
+- [x] Removed unsupported photo upload, fabricated resident estimate and incorrect dollar labels.
+- [x] Added explicit edit loading and scope/error states.
+- [x] Recorded passing automated evidence: 3 Community lifecycle contracts, 7 backend community tests, 3 route contracts, Superadmin `build:check`, and standalone 240-page production build.
+- [ ] Record production browser verification after deployment.

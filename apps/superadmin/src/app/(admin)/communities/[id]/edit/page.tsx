@@ -1,24 +1,14 @@
-'use client';
-
-import { useParams } from 'next/navigation';
 import PageTitle from "@/components/PageTitle";
+import type { Metadata } from "next";
 import CommunityAddForm from "../../add/components/CommunityAddForm";
-import { useGetCommunity } from "@/hooks/useCommunities";
 
-const CommunityEditPage = () => {
-  const params = useParams();
-  const communityId = params.id as string;
-  const { data: community } = useGetCommunity(communityId);
+export const metadata: Metadata = { title: "Edit Community | Casa Nirvana Admin" };
 
-  return (
-    <>
-      <PageTitle 
-        title={community?.name ? `Edit ${community.name}` : "Edit Community"}
-        subName="Casa Nirvana" 
-      />
-      <CommunityAddForm editMode={true} communityId={communityId} />
-    </>
-  );
-};
+const CommunityEditPage = ({ params }: { params: { id: string } }) => (
+  <>
+    <PageTitle title="Edit Community" subName="Communities" />
+    <CommunityAddForm editMode communityId={params.id} />
+  </>
+);
 
 export default CommunityEditPage;

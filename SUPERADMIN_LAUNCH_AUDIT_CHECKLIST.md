@@ -357,3 +357,12 @@
 - Data behavior: backend-owned search, status filtering, pagination, community/unit/profile enrichment, reviewer stamping and scope enforcement.
 - Corrections: removed the 1,000-row client-side filtering workaround, local pagination/count drift, completed-request actions and ambiguous rejection handling; added URL state, required rejection notes, review history and explicit failure/empty states.
 - Acceptance evidence: 3/3 Join Request UI contracts, 7/7 focused backend community tests, 3/3 route contracts, Superadmin `build:check`, and standalone 240-page production build passed on 2026-07-23.
+
+### 2026-07-23 - Community create/details/edit lifecycle slice
+
+- Status: Implementation complete; automated evidence passed.
+- Canonical routes: `/communities/add`, `/communities/{id}`, and `/communities/{id}/edit`; legacy `/communities/details?id=...` permanently redirects.
+- Backend contracts: scoped `GET/POST/PUT /admin/communities` lifecycle through the shared authenticated client, plus backend-owned agency directory choices.
+- Corrections: removed backward client redirect, unsupported photo upload, fabricated resident estimate, dollar labels, retired list navigation and silent edit-load failure; added scoped agency selection, canonical save/cancel routing, management payload fields and truthful details.
+- Data boundary: details show backend-owned community, agency, unit-stat, occupancy, amenity and financial records only.
+- Acceptance evidence: 3/3 Community lifecycle contracts, 7/7 focused backend community tests, 3/3 route contracts, Superadmin `build:check`, and standalone 240-page production build passed on 2026-07-23.
