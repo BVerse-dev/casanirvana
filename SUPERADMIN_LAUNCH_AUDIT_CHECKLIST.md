@@ -311,3 +311,11 @@
 - Replaced unsupported visuals with scoped resident distribution percentages and real seven-day collection data while preserving the existing cards, charts, spacing, and responsive grid.
 - Corrected period labels, currency context, truthful loading/error/empty states, and active workspace links.
 - Acceptance evidence: dashboard contract tests 3/3 passed; scoped backend dashboard tests 6/6 passed; backend TypeScript build passed; route-contract tests 3/3 passed; Superadmin `build:check` and standalone production build passed with 237 generated pages. Analytics first-load JS decreased from approximately 387 kB to 332 kB.
+## Session Update - 2026-07-23 - Residents Dashboard
+
+- Status: Implementation complete for `/dashboards/agent`; canonical route rename and production browser evidence remain open.
+- Reconciled the inherited route naming and confirmed `/dashboards/agent` is the Residents dashboard backed by `/admin/dashboard/residents`.
+- Verified registration, occupancy, maintenance, satisfaction, engagement, response-time, community-distribution, and roster formulas against scoped backend records.
+- Removed stock-person avatar substitution, unsupported “Featured” and “Goals” implications, and ambiguous revenue/obligation labels.
+- Added initials-based resident fallbacks, roster API failure states, capped accessible collection progress, and grid-default workspace links.
+- Acceptance evidence: Residents dashboard contract tests 3/3 passed; scoped backend dashboard tests 6/6 passed; backend TypeScript build passed; route-contract tests 3/3 passed; Superadmin `build:check` and standalone production build passed with 237 generated pages.

@@ -156,7 +156,7 @@ const ResidentRevenue = () => {
       <Col lg={6}>
         <Card>
           <CardHeader>
-            <CardTitle as={"h4"}>Resident Revenue</CardTitle>
+            <CardTitle as={"h4"}>Resident Collections</CardTitle>
           </CardHeader>
           <CardBody>
             <div className="placeholder-glow">
@@ -175,7 +175,7 @@ const ResidentRevenue = () => {
       <Col lg={6}>
         <Card>
           <CardHeader>
-            <CardTitle as={"h4"}>Resident Revenue</CardTitle>
+            <CardTitle as={"h4"}>Resident Collections</CardTitle>
           </CardHeader>
           <CardBody className="text-center text-muted py-5">Revenue data is unavailable right now.</CardBody>
         </Card>
@@ -187,7 +187,7 @@ const ResidentRevenue = () => {
     <Col lg={6}>
       <Card>
         <CardHeader className="d-flex justify-content-between align-items-center border-0">
-          <CardTitle as={"h4"}>Resident Revenue</CardTitle>
+          <CardTitle as={"h4"}>Resident Collections</CardTitle>
           <Dropdown>
             <DropdownToggle
               as={"a"}
@@ -239,7 +239,7 @@ const ResidentRevenue = () => {
             </div>
           </div>
           <div className="p-3 rounded bg-light-subtle border border-light mt-4">
-            <h5>Revenue Sources</h5>
+            <h5>Collection Sources</h5>
             <Row className="my-3 g-lg-0 g-2">
               {revenueData.map((item, idx) => (
                 <Col lg={3} xs={4} key={idx}>

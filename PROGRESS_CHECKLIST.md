@@ -2022,3 +2022,10 @@ Date: 2026-02-06
 - [x] Removed unsupported template imagery, map behavior, internal QA actions, and misleading comparison labels.
 - [x] Added truthful loading, failure, empty, currency, period, and navigation states.
 - [ ] Record authenticated production desktop/mobile evidence before final route signoff.
+### 2026-07-23 - Phase 52 Residents Dashboard Slice
+
+- [x] Confirmed `/dashboards/agent` as the current Residents dashboard and traced every section to `/admin/dashboard/residents` or backend payment records.
+- [x] Removed stock identity imagery, unsupported ranking/goal language, and misleading collection labels.
+- [x] Added truthful roster errors, initials fallbacks, accessible progress, and grid-default links.
+- [ ] Normalize the legacy `/dashboards/agent` route during the later canonical route transition.
+- [ ] Record authenticated production desktop/mobile evidence before final route signoff.

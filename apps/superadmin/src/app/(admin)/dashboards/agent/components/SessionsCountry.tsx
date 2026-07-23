@@ -202,7 +202,7 @@ const ResidentsBySociety = () => {
                     </div>
                   ))}
                   <div className="mt-2 pt-1 text-center">
-                    <Link href="/communities/list" className="link-primary icons-center">
+                    <Link href="/communities/grid" className="link-primary icons-center">
                       View Communities&nbsp;
                       <IconifyIcon icon="ri:arrow-right-line" />
                     </Link>

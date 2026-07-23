@@ -16,7 +16,7 @@ export const metadata: Metadata = { title: "Resident Dashboard" };
 const AgentPage = () => {
   return (
     <>
-      <PageTitle title="Resident Dashboard" subName="Management" />
+      <PageTitle title="Residents Dashboard" subName="Operations" />
       <Row>
         <Statistics />
       </Row>

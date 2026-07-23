@@ -84,7 +84,7 @@ const ResidentPayments = () => {
     const totalDue = dueObligations.reduce((sum, obligation) => sum + Number(obligation.amount || 0), 0);
     const totalCollected = collectedPayments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
     const totalOutstanding = openObligations.reduce((sum, obligation) => sum + Number(obligation.amount || 0), 0);
-    const collectionRate = totalDue > 0 ? Math.round((totalCollected / totalDue) * 100) : 0;
+    const collectionRate = totalDue > 0 ? Math.min(Math.round((totalCollected / totalDue) * 100), 100) : 0;
 
     const residentsWithPendingPayments = Array.from(
       pendingPayments.reduce<Map<string, { id: string; name: string; amount: number }>>((acc, payment) => {
@@ -167,7 +167,7 @@ const ResidentPayments = () => {
         <CardBody>
           <div className="d-flex align-items-center justify-content-between">
             <div>
-              <p className="text-muted fs-14 mb-2">Open Obligations Due</p>
+              <p className="text-muted fs-14 mb-2">Total Obligations Due</p>
               <h3 className="text-dark fw-bold mb-1">
                 {currency}
                 {(paymentMetrics.totalDue / 1000).toFixed(1)}K
@@ -185,6 +185,7 @@ const ResidentPayments = () => {
             variant="success"
             className="mt-3"
             role="progressbar"
+            aria-label={`${paymentMetrics.collectionRate}% of obligations collected`}
           ></ProgressBar>
 
           <div className="d-flex align-items-center justify-content-between mt-3">

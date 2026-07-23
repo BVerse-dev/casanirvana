@@ -2,10 +2,8 @@
 
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
 import clsx from "clsx";
-import Image from "next/image";
 import Link from "next/link";
 import {
-  Button,
   Card,
   CardBody,
   CardFooter,
@@ -18,9 +16,10 @@ import {
 } from "react-bootstrap";
 import { useResidentDashboardRoster } from "@/hooks/useResidentDashboard";
 import { useMemo, useState } from "react";
+import ResidentAvatar from "./ResidentAvatar";
 
 const RecentResidents = () => {
-  const { data: residentRoster, isLoading } = useResidentDashboardRoster();
+  const { data: residentRoster, error, isLoading } = useResidentDashboardRoster();
   const [residentFilter, setResidentFilter] = useState<"new" | "active">("new");
 
   const filteredResidents = useMemo(() => {
@@ -62,6 +61,10 @@ const RecentResidents = () => {
     );
   }
 
+  if (error) {
+    return <Card><CardHeader><CardTitle as="h4">Recent Residents</CardTitle></CardHeader><CardBody className="text-center text-muted py-5">The resident roster is unavailable right now.</CardBody></Card>;
+  }
+
   return (
     <Card>
       <CardHeader className="d-flex justify-content-between align-items-center border-0">
@@ -73,7 +76,7 @@ const RecentResidents = () => {
         </div>
         <Dropdown>
           <DropdownToggle as={"a"} className="rounded arrow-none" data-bs-toggle="dropdown" aria-expanded="false">
-            <IconifyIcon icon="ri:edit-box-line" className="fs-20 text-dark" />
+            <IconifyIcon icon="ri:filter-3-line" className="fs-20 text-dark" />
           </DropdownToggle>
           <DropdownMenu className="dropdown-menu-end">
             <DropdownItem onClick={() => setResidentFilter("new")}>Newest Residents</DropdownItem>
@@ -94,15 +97,7 @@ const RecentResidents = () => {
             key={resident.id}
           >
             <div className="d-flex align-items-center gap-2">
-              <div className="avatar">
-                <Image
-                  src={resident.avatar_url || "/images/users/avatar-1.jpg"}
-                  alt="resident-avatar"
-                  className="img-fluid rounded-circle"
-                  width={40}
-                  height={40}
-                />
-              </div>
+              <ResidentAvatar name={resident.full_name || `${resident.first_name} ${resident.last_name}`.trim()} src={resident.avatar_url} />
               <div className="d-block">
                 <span className="text-dark">
                   <Link href={`/residents/details?id=${resident.id}`} className="text-dark fw-medium fs-15">
@@ -122,7 +117,7 @@ const RecentResidents = () => {
         ) : null}
       </CardBody>
       <CardFooter className="border-top">
-        <Link href="/residents/list-view" className="btn btn-primary w-100">
+        <Link href="/residents/grid-view" className="btn btn-primary w-100">
           View All Residents
         </Link>
       </CardFooter>

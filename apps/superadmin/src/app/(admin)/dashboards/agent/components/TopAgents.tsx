@@ -1,20 +1,19 @@
 "use client";
 
-import avatar2 from "@/assets/images/users/avatar-2.jpg";
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
-import Image from "next/image";
 import Link from "next/link";
 import { Card, CardBody, CardHeader, CardTitle } from "react-bootstrap";
 import { useResidentDashboardRoster } from "@/hooks/useResidentDashboard";
+import ResidentAvatar from "./ResidentAvatar";
 
 const TopResidents = () => {
-  const { data: residentRoster, isLoading } = useResidentDashboardRoster();
+  const { data: residentRoster, error, isLoading } = useResidentDashboardRoster();
 
   if (isLoading) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle as={"h4"}>Featured Resident</CardTitle>
+          <CardTitle as={"h4"}>Latest Active Resident</CardTitle>
         </CardHeader>
         <CardBody>
           <div className="placeholder-glow">
@@ -25,13 +24,17 @@ const TopResidents = () => {
     );
   }
 
+  if (error) {
+    return <Card><CardHeader><CardTitle as="h4">Latest Active Resident</CardTitle></CardHeader><CardBody className="text-center text-muted py-5">Resident details are unavailable right now.</CardBody></Card>;
+  }
+
   const featuredResident = residentRoster?.featuredResident || null;
 
   if (!featuredResident) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle as={"h4"}>Featured Resident</CardTitle>
+          <CardTitle as={"h4"}>Latest Active Resident</CardTitle>
         </CardHeader>
         <CardBody>
           <div className="text-center py-4">
@@ -50,18 +53,14 @@ const TopResidents = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle as={"h4"}>Featured Resident</CardTitle>
+        <CardTitle as={"h4"}>Latest Active Resident</CardTitle>
       </CardHeader>
       <CardBody>
         <div className="bg-primary position-relative rounded p-3 overflow-hidden z-1 text-center">
           <div className="d-flex align-items-center justify-content-center mb-3">
-            <Image
-              src={featuredResident.avatar_url || avatar2}
-              alt="resident-avatar"
-              className="rounded-circle border border-light border-3"
-              width={80}
-              height={80}
-            />
+            <span className="border border-light border-3 rounded-circle d-inline-flex">
+              <ResidentAvatar name={residentName} src={featuredResident.avatar_url} size={80} />
+            </span>
           </div>
           <div className="bg-light bg-opacity-25 p-3 rounded text-start">
             <div className="d-flex align-items-center justify-content-between">

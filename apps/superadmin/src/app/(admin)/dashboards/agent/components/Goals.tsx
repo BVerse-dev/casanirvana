@@ -109,7 +109,7 @@ const ResidentSatisfaction = () => {
     return (
       <Card>
         <CardHeader className="d-flex align-items-center justify-content-between pb-0">
-          <CardTitle as={"h4"}>Satisfaction Goals</CardTitle>
+          <CardTitle as={"h4"}>Resident Satisfaction</CardTitle>
         </CardHeader>
         <CardBody className="pt-0">
           <div className="placeholder-glow">
@@ -124,7 +124,7 @@ const ResidentSatisfaction = () => {
     return (
       <Card>
         <CardHeader className="pb-0">
-          <CardTitle as={"h4"}>Satisfaction Goals</CardTitle>
+          <CardTitle as={"h4"}>Resident Satisfaction</CardTitle>
         </CardHeader>
         <CardBody className="text-center text-muted py-5">
           Satisfaction metrics are unavailable right now.
@@ -136,7 +136,7 @@ const ResidentSatisfaction = () => {
   return (
     <Card>
       <CardHeader className="d-flex align-items-center justify-content-between pb-0">
-        <CardTitle as={"h4"}>Satisfaction Goals</CardTitle>
+        <CardTitle as={"h4"}>Resident Satisfaction</CardTitle>
         <span className="text-muted fs-13">Resident feedback</span>
       </CardHeader>
       <CardBody className="pt-0">
@@ -147,7 +147,7 @@ const ResidentSatisfaction = () => {
           type="radialBar"
           className="apex-charts mb-4"
         />
-        <h5>Satisfaction Metrics</h5>
+        <h5>Satisfaction Snapshot</h5>
         {!chartData.hasSatisfactionData ? (
           <p className="text-muted mb-0 mt-3">No scored resident feedback has been recorded yet.</p>
         ) : null}
