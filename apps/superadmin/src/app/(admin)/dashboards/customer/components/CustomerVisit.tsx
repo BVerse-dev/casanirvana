@@ -10,8 +10,8 @@ import { ApexOptions } from "apexcharts";
 
 const GuardVisits = () => {
   const [timeFilter, setTimeFilter] = useState<"latest" | "month" | "all">("month");
-  const { data: shiftTrends, isLoading: trendsLoading } = useGuardShiftTrends();
-  const { data: guardSummary, isLoading: summaryLoading } = useGuardSummary();
+  const { data: shiftTrends, isLoading: trendsLoading, isError: trendsError } = useGuardShiftTrends();
+  const { data: guardSummary, isLoading: summaryLoading, isError: summaryError } = useGuardSummary();
 
   const isLoading = trendsLoading || summaryLoading;
 
@@ -121,6 +121,14 @@ const GuardVisits = () => {
             </div>
           </CardBody>
         </Card>
+      </Col>
+    );
+  }
+
+  if (trendsError || summaryError) {
+    return (
+      <Col xl={4} lg={6}>
+        <Card><CardHeader><CardTitle>Guard Duty Hours</CardTitle></CardHeader><CardBody className="text-center text-danger py-5">Guard shift activity could not be loaded.</CardBody></Card>
       </Col>
     );
   }

@@ -1,152 +1,59 @@
 "use client";
 
-import Image from "next/image";
-import { Card, CardBody, Col, ProgressBar, Row } from "react-bootstrap";
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
 import { useGuardDashboardSnapshot } from "@/hooks/useGuardDashboard";
-import { mapSocietyToPropertyImage } from "@/utils/propertyImageMapper";
-
-interface GuardLocationData {
-  location: string;
-  totalGuards: number;
-  activeGuards: number;
-  detail: string;
-  progress: number;
-  image: any;
-  avgSalary: number;
-}
-
-const GuardLocationCard = ({ activeGuards, avgSalary, detail, image, location, progress, totalGuards }: GuardLocationData) => {
-  return (
-    <Card>
-      <CardBody>
-        <div className="d-flex align-items-center gap-3">
-          <div className="rounded-3 bg-light avatar d-flex align-items-center justify-content-center">
-            <Image src={image} alt="location" className="avatar-sm rounded" width={40} height={40} />
-          </div>
-          <div>
-            <h4 className="text-dark fw-semibold mb-1">{location}</h4>
-            <p className="mb-0 fw-medium">
-              <span className="text-dark fw-semibold">GH₵ {avgSalary.toLocaleString()} </span> Average Salary
-            </p>
-          </div>
-        </div>
-        <div className="d-flex align-items-end justify-content-between mt-3">
-          <p className="mb-0 fw-medium fs-15">Active Guards</p>
-          <div className="text-end">
-            <p className="mb-1 fw-semibold text-dark">Coverage</p>
-            <h4 className="text-primary mb-0 fw-semibold">{detail}</h4>
-          </div>
-        </div>
-        <ProgressBar
-          style={{ height: 10 }}
-          now={progress}
-          animated
-          striped
-          variant="bg-primary"
-          className="mt-3 my-2 bg-opacity-75"
-          role="progressbar"
-        />
-        <div className="d-flex align-items-center justify-content-between">
-          <h4 className="text-dark fw-bold mb-0">{activeGuards}</h4>
-          <div>
-            <p className="mb-0">Required : {totalGuards}</p>
-          </div>
-        </div>
-      </CardBody>
-    </Card>
-  );
-};
+import { Card, CardBody, Col, ProgressBar, Row } from "react-bootstrap";
 
 const GuardCountry = () => {
-  const { data: dashboard, isLoading } = useGuardDashboardSnapshot();
-  const guardSummary = dashboard?.summary;
-  const locationData: GuardLocationData[] = (dashboard?.locationCards || []).map((item) => ({
-    ...item,
-    image: mapSocietyToPropertyImage(item.location),
-  }));
+  const { data: dashboard, isLoading, isError } = useGuardDashboardSnapshot();
+  const cards = dashboard?.locationCards || [];
 
   if (isLoading) {
     return (
-      <Row>
-        {[1, 2, 3, 4].map((i) => (
-          <Col md={6} xl={6} key={i}>
-            <Card>
-              <CardBody>
-                <div className="placeholder-glow">
-                  <span className="placeholder col-6"></span>
-                  <span className="placeholder col-4"></span>
-                  <span className="placeholder col-8"></span>
-                  <span className="placeholder col-12" style={{ height: "10px" }}></span>
-                  <span className="placeholder col-4"></span>
-                </div>
-              </CardBody>
-            </Card>
+      <Row className="g-3 mb-4">
+        {[1, 2, 3, 4].map((item) => (
+          <Col md={6} key={item}>
+            <Card><CardBody className="placeholder-glow"><span className="placeholder col-7" /><span className="placeholder col-10 mt-3" /></CardBody></Card>
           </Col>
         ))}
       </Row>
     );
   }
 
-  if (locationData.length === 0) {
-    const summaryCards: GuardLocationData[] = [
-      {
-        location: "Active Guards",
-        totalGuards: guardSummary?.totalGuards || 0,
-        activeGuards: guardSummary?.activeGuards || 0,
-        detail:
-          (guardSummary?.totalGuards || 0) > 0
-            ? `${Math.round(((guardSummary?.activeGuards || 0) / (guardSummary?.totalGuards || 1)) * 100)}% active`
-            : "No guard roster",
-        progress:
-          (guardSummary?.totalGuards || 0) > 0
-            ? Math.round(((guardSummary?.activeGuards || 0) / (guardSummary?.totalGuards || 1)) * 100)
-            : 0,
-        image: mapSocietyToPropertyImage("Active Guards"),
-        avgSalary: 0,
-      },
-      {
-        location: "On Duty",
-        totalGuards: guardSummary?.activeGuards || 0,
-        activeGuards: guardSummary?.onDutyGuards || 0,
-        detail: `${guardSummary?.availableGuards || 0} available`,
-        progress:
-          (guardSummary?.activeGuards || 0) > 0
-            ? Math.round(((guardSummary?.onDutyGuards || 0) / (guardSummary?.activeGuards || 1)) * 100)
-            : 0,
-        image: mapSocietyToPropertyImage("On Duty"),
-        avgSalary: 0,
-      },
-      {
-        location: "Training",
-        totalGuards: guardSummary?.activeGuards || 0,
-        activeGuards: guardSummary?.trainingRequired || 0,
-        detail: `${guardSummary?.expiredCertifications || 0} expired certs`,
-        progress:
-          (guardSummary?.activeGuards || 0) > 0
-            ? Math.round(((guardSummary?.trainingRequired || 0) / (guardSummary?.activeGuards || 1)) * 100)
-            : 0,
-        image: mapSocietyToPropertyImage("Training"),
-        avgSalary: 0,
-      },
-    ];
+  if (isError) {
+    return <Card className="mb-4"><CardBody className="text-center text-danger py-4">Guard staffing data could not be loaded.</CardBody></Card>;
+  }
 
-    return (
-      <Row>
-        {summaryCards.map((item, idx) => (
-          <Col md={6} xl={6} key={idx}>
-            <GuardLocationCard {...item} />
-          </Col>
-        ))}
-      </Row>
-    );
+  if (cards.length === 0) {
+    return <Card className="mb-4"><CardBody className="text-center text-muted py-4">No community guard staffing records are available.</CardBody></Card>;
   }
 
   return (
-    <Row>
-      {locationData.map((item, idx) => (
-        <Col md={6} xl={6} key={idx}>
-          <GuardLocationCard {...item} />
+    <Row className="g-3 mb-4">
+      {cards.map((location) => (
+        <Col md={6} key={location.id}>
+          <Card className="h-100">
+            <CardBody>
+              <div className="d-flex align-items-start justify-content-between gap-3 mb-3">
+                <div>
+                  <p className="text-muted mb-1">Community staffing</p>
+                  <h5 className="mb-0">{location.location}</h5>
+                </div>
+                <span className="avatar-sm rounded bg-primary-subtle text-primary flex-centered">
+                  <IconifyIcon icon="solar:shield-user-broken" width={22} height={22} />
+                </span>
+              </div>
+              <div className="d-flex justify-content-between mb-2">
+                <span>{location.activeGuards} assigned</span>
+                <span className="text-muted">{location.totalGuards} required</span>
+              </div>
+              <ProgressBar now={location.progress} variant={location.progress >= 100 ? "success" : "primary"} className="mb-3" />
+              <div className="d-flex justify-content-between align-items-center">
+                <span className={location.progress >= 100 ? "text-success" : "text-warning"}>{location.detail}</span>
+                <span className="text-muted">Avg. salary: GH₵ {location.avgSalary.toLocaleString()}</span>
+              </div>
+            </CardBody>
+          </Card>
         </Col>
       ))}
     </Row>

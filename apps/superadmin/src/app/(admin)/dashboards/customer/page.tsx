@@ -15,13 +15,10 @@ const GuardsPage = () => {
   return (
     <>
       <PageTitle title="Guards Dashboard" subName="Analytics" />
-      <Row>
-        <Col xl={8} lg={12}>
-          <GuardCountry />
-          <Row>
-            <Col lg={6}></Col>
-          </Row>
-        </Col>
+        <Row>
+          <Col xl={8} lg={12}>
+            <GuardCountry />
+          </Col>
         <TopGuardProfile />
       </Row>
       <Row>

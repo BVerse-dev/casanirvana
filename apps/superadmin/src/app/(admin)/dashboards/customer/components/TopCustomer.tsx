@@ -1,16 +1,15 @@
 "use client";
 
-import avatar2 from "@/assets/images/users/avatar-2.jpg";
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
 import { useGuardDashboardSnapshot, useGuardSummary } from "@/hooks/useGuardDashboard";
-import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Button, Card, CardBody, CardFooter, CardHeader, CardTitle, Col, Dropdown, DropdownItem, DropdownMenu, DropdownToggle } from "react-bootstrap";
+import GuardAvatar from "./GuardAvatar";
 
 const TopGuards = () => {
   const [sortBy, setSortBy] = useState<"performance" | "attendance" | "experience">("performance");
-  const { data: dashboard, isLoading } = useGuardDashboardSnapshot();
+  const { data: dashboard, isLoading, isError } = useGuardDashboardSnapshot();
   const { data: guardSummary } = useGuardSummary();
   const performances = dashboard?.topGuards || [];
 
@@ -85,7 +84,9 @@ const TopGuards = () => {
           </Dropdown>
         </CardHeader>
         <CardBody key={`top-guards-${sortBy}`}>
-          {topGuards.length === 0 ? (
+          {isError ? (
+            <div className="text-center text-danger py-4">Guard rankings could not be loaded.</div>
+          ) : topGuards.length === 0 ? (
             <div className="text-center py-4">
               <IconifyIcon icon="ri:shield-user-line" className="fs-48 text-muted mb-2" />
               <p className="text-muted">No guard performance data available</p>
@@ -102,13 +103,7 @@ const TopGuards = () => {
                 >
                   <div className="d-flex align-items-center gap-2">
                     <div className="avatar position-relative">
-                      <Image
-                        src={guard.avatar || avatar2}
-                        alt="guard-avatar"
-                        className="img-fluid rounded-circle"
-                        width={40}
-                        height={40}
-                      />
+                      <GuardAvatar name={guard.guardName} src={guard.avatar} />
                       <span
                         className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-dark"
                         style={{ fontSize: "10px" }}
@@ -118,7 +113,7 @@ const TopGuards = () => {
                     </div>
                     <div className="d-block">
                       <span className="text-dark">
-                        <Link href={`/guards/details?id=${guard.guardId}`} className="text-dark fw-medium fs-15">
+                        <Link href="/guards/grid-view" className="text-dark fw-medium fs-15">
                           {guard.guardName}
                         </Link>
                       </span>
@@ -143,7 +138,7 @@ const TopGuards = () => {
           )}
         </CardBody>
         <CardFooter className="border-top">
-          <Link href="/guards/list-view" className="btn btn-primary w-100">
+          <Link href="/guards/grid-view" className="btn btn-primary w-100">
             View All Guards
           </Link>
         </CardFooter>

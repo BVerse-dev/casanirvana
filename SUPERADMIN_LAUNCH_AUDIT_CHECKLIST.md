@@ -319,3 +319,12 @@
 - Removed stock-person avatar substitution, unsupported “Featured” and “Goals” implications, and ambiguous revenue/obligation labels.
 - Added initials-based resident fallbacks, roster API failure states, capped accessible collection progress, and grid-default workspace links.
 - Acceptance evidence: Residents dashboard contract tests 3/3 passed; scoped backend dashboard tests 6/6 passed; backend TypeScript build passed; route-contract tests 3/3 passed; Superadmin `build:check` and standalone production build passed with 237 generated pages.
+
+### 2026-07-23 - Guards dashboard vertical slice
+
+- Status: Implementation complete; automated evidence passed.
+- Route: `/dashboards/customer` (legacy route name retained until canonical dashboard routing work).
+- Backend contract: `GET /admin/dashboard/guards` through the shared authenticated backend client.
+- Data evidence: staffing, salary, performance, training, duty-hour and assignment values remain backend-owned and scoped by administrator access.
+- Corrections: removed property/demo imagery, stock guard portraits, unsupported world map, stale detail/list links and dead layout space; added initials fallbacks, community coverage, and explicit error/empty states.
+- Acceptance evidence: 3/3 guard dashboard contracts, 3/3 route contracts, 6/6 backend dashboard tests, backend TypeScript build, Superadmin `build:check`, and the standalone 237-page production build passed on 2026-07-23.

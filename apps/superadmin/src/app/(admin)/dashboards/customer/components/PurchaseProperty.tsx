@@ -1,127 +1,50 @@
 "use client";
 
-import avatar6 from "@/assets/images/users/avatar-6.jpg";
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
 import { useGuardDashboardSnapshot } from "@/hooks/useGuardDashboard";
-import { mapSocietyToPropertyImage } from "@/utils/propertyImageMapper";
-import Image from "next/image";
 import Link from "next/link";
-import { Card, CardBody, CardHeader, CardTitle, Col, Row } from "react-bootstrap";
+import { Card, CardBody, CardHeader, CardTitle, Col } from "react-bootstrap";
+import GuardAvatar from "./GuardAvatar";
 
 const GuardAssignments = () => {
-  const { data: dashboard, isLoading } = useGuardDashboardSnapshot();
-  const recentAssignment = dashboard?.recentAssignment || null;
-  const assignmentImage = mapSocietyToPropertyImage(recentAssignment?.societyName || "Guard Assignment");
-
-  if (isLoading) {
-    return (
-      <Col xl={4} lg={6}>
-        <Card className="overflow-hidden">
-          <CardHeader>
-            <CardTitle as={"h4"}>Recent Guard Assignment</CardTitle>
-          </CardHeader>
-          <CardBody>
-            <div className="placeholder-glow">
-              <div className="placeholder" style={{ height: "200px" }}></div>
-              <div className="placeholder col-8 mt-3"></div>
-              <div className="placeholder col-6"></div>
-            </div>
-          </CardBody>
-        </Card>
-      </Col>
-    );
-  }
-
-  if (!recentAssignment) {
-    return (
-      <Col xl={4} lg={6}>
-        <Card className="overflow-hidden">
-          <CardHeader>
-            <CardTitle as={"h4"}>Recent Guard Assignment</CardTitle>
-          </CardHeader>
-          <CardBody className="text-center text-muted py-5">No guard assignments have been created yet.</CardBody>
-        </Card>
-      </Col>
-    );
-  }
+  const { data: dashboard, isLoading, isError } = useGuardDashboardSnapshot();
+  const assignment = dashboard?.recentAssignment || null;
 
   return (
     <Col xl={4} lg={6}>
-      <Card className="overflow-hidden">
-        <CardHeader>
-          <CardTitle as={"h4"}>Recent Guard Assignment</CardTitle>
-        </CardHeader>
+      <Card className="h-100">
+        <CardHeader><CardTitle as="h4">Recent Guard Assignment</CardTitle></CardHeader>
         <CardBody>
-          <div className="position-relative">
-            <Image src={assignmentImage} alt="assignment-location" className="img-fluid rounded-top" />
-            <span className="position-absolute top-0 end-0 p-1">
-              <span className={`badge ${recentAssignment.status === "active" ? "bg-success" : "bg-warning"} text-white fs-13`}>
-                {recentAssignment.status}
-              </span>
-            </span>
-          </div>
-          <div className="d-flex align-items-center gap-2 mt-3 pt-1 ">
-            <div className="avatar bg-light rounded flex-centered">
-              <IconifyIcon
-                icon="solar:shield-user-bold-duotone"
-                width={24}
-                height={24}
-                className="fs-24 text-primary"
-              />
-            </div>
-            <div>
-              <Link href="/guards/assignments" className="text-dark fw-medium fs-16">
-                {recentAssignment.postLocation || "Assigned location"}
-              </Link>
-              <p className="text-muted mb-0">{recentAssignment.societyName}</p>
-            </div>
-            <div className="ms-auto">
-              <p className="fw-medium text-dark fs-18 mb-0">{recentAssignment.shiftType}</p>
-            </div>
-          </div>
-          <Row className="mt-2 g-2">
-            <Col lg={3} xs={4}>
-              <span className="badge bg-light-subtle text-muted border fs-12">
-                <span className="fs-16">
-                  <IconifyIcon icon="solar:clock-circle-broken" className="align-middle" />
-                </span>
-                &nbsp;{recentAssignment.assignmentType}
-              </span>
-            </Col>
-            <Col lg={3} xs={4}>
-              <span className="badge bg-light-subtle text-muted border fs-12">
-                <span className="fs-16">
-                  <IconifyIcon icon="solar:shield-check-broken" className="align-middle" />
-                </span>
-                &nbsp;{recentAssignment.priority}
-              </span>
-            </Col>
-          </Row>
-          <div className="d-flex align-items-center gap-2 mt-3 pt-2">
-            <div className="avatar">
-              <Image
-                src={recentAssignment?.guardAvatarUrl || avatar6}
-                alt="guard-avatar"
-                className="img-fluid rounded-circle"
-                width={40}
-                height={40}
-              />
-            </div>
-            <div className="d-block">
-              <span className="text-dark">
-                <Link href={`/guards/details?id=${recentAssignment.guardId}`} className="text-dark fw-medium fs-15">
-                  {recentAssignment.guardName}
-                </Link>
-              </span>
-              <p className="mb-0 fs-14 text-muted">{recentAssignment.guardContact || "Contact not available"}</p>
-            </div>
-            <div className="ms-auto">
-              <IconifyIcon
-                icon={recentAssignment.status === "active" ? "ri:checkbox-circle-line" : "ri:time-line"}
-                className={`fs-20 ${recentAssignment.status === "active" ? "text-success" : "text-warning"}`}
-              />
-            </div>
-          </div>
+          {isLoading ? (
+            <div className="placeholder-glow"><div className="placeholder col-12 mb-3" style={{ height: 120 }} /><div className="placeholder col-8" /></div>
+          ) : isError ? (
+            <div className="text-center text-danger py-5">The latest assignment could not be loaded.</div>
+          ) : !assignment ? (
+            <div className="text-center text-muted py-5">No guard assignments have been created yet.</div>
+          ) : (
+            <>
+              <div className="rounded bg-light p-4 mb-4">
+                <div className="d-flex justify-content-between gap-3 mb-3">
+                  <span className="avatar-sm rounded bg-primary-subtle text-primary flex-centered"><IconifyIcon icon="solar:map-point-wave-broken" width={24} /></span>
+                  <span className={`badge align-self-start ${assignment.status === "active" ? "bg-success" : "bg-warning"}`}>{assignment.status}</span>
+                </div>
+                <h5>{assignment.postLocation || "Assigned location"}</h5>
+                <p className="text-muted mb-0">{assignment.societyName}</p>
+              </div>
+              <div className="d-flex align-items-center gap-3 mb-4">
+                <GuardAvatar name={assignment.guardName} src={assignment.guardAvatarUrl} />
+                <div>
+                  <p className="text-dark fw-medium mb-0">{assignment.guardName}</p>
+                  <small className="text-muted">{assignment.guardContact || "Contact not available"}</small>
+                </div>
+              </div>
+              <div className="row g-2 mb-4">
+                <div className="col-6"><div className="border rounded p-2"><small className="text-muted d-block">Shift</small>{assignment.shiftType}</div></div>
+                <div className="col-6"><div className="border rounded p-2"><small className="text-muted d-block">Priority</small>{assignment.priority}</div></div>
+              </div>
+              <Link href="/guards/assignments" className="btn btn-light w-100">View Assignments</Link>
+            </>
+          )}
         </CardBody>
       </Card>
     </Col>
