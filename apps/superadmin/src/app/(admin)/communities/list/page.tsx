@@ -1,18 +1,16 @@
-import PageTitle from "@/components/PageTitle";
-import CommunitiesList from "./components/CommunitiesList";
-import CommunitiesStat from "./components/CommunitiesStat";
-import { Metadata } from "next";
+import { permanentRedirect } from "next/navigation";
 
-export const metadata: Metadata = { title: "Communities List" };
-
-const CommunitiesListPage = () => {
-  return (
-    <>
-      <PageTitle title="Communities List" subName="Casa Nirvana" />
-      <CommunitiesStat />
-      <CommunitiesList />
-    </>
-  );
+type LegacyCommunitiesListProps = {
+  searchParams?: Record<string, string | string[] | undefined>;
 };
 
-export default CommunitiesListPage;
+const LegacyCommunitiesList = ({ searchParams = {} }: LegacyCommunitiesListProps) => {
+  const params = new URLSearchParams({ view: "list" });
+  Object.entries(searchParams).forEach(([key, value]) => {
+    if (key === "view" || value === undefined) return;
+    (Array.isArray(value) ? value : [value]).forEach((item) => params.append(key, item));
+  });
+  permanentRedirect(`/communities?${params.toString()}`);
+};
+
+export default LegacyCommunitiesList;

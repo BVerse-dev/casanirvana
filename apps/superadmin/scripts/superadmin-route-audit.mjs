@@ -186,7 +186,7 @@ export const buildSuperadminRouteAudit = async () => {
   return {
     generatedAt: new Date().toISOString(),
     applicationRoot: "apps/superadmin",
-    baselineRouteCount: 241,
+    baselineRouteCount: 242,
     summary: {
       filesystemRoutes: routeLedger.length,
       menuDestinations: normalizedMenuUrls.length,

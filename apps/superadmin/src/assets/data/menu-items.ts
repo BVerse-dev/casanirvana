@@ -42,15 +42,9 @@ export const MENU_ITEMS: MenuItemType[] = [
     icon: "ri:building-3-line",
     children: [
       {
-        key: "communities-grid",
-        label: "Communities Grid",
-        url: "/communities/grid",
-        parentKey: "communities",
-      },
-      {
-        key: "communities-list",
-        label: "Communities List",
-        url: "/communities/list",
+        key: "communities-directory",
+        label: "Communities",
+        url: "/communities",
         parentKey: "communities",
       },
       {

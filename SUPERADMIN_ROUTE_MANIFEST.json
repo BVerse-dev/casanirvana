@@ -1,14 +1,14 @@
 {
-  "generatedAt": "2026-07-23T15:29:22.826Z",
+  "generatedAt": "2026-07-23T16:22:39.415Z",
   "applicationRoot": "apps/superadmin",
-  "baselineRouteCount": 241,
+  "baselineRouteCount": 242,
   "summary": {
-    "filesystemRoutes": 241,
-    "menuDestinations": 93,
+    "filesystemRoutes": 242,
+    "menuDestinations": 92,
     "unresolvedMenuDestinations": 0,
-    "internalLiteralLinks": 161,
-    "unresolvedInternalLiteralLinks": 3,
-    "emptyLiteralLinks": 101,
+    "internalLiteralLinks": 166,
+    "unresolvedInternalLiteralLinks": 2,
+    "emptyLiteralLinks": 99,
     "countsByArea": {
       "404-error": 1,
       "advanced-ul": 5,
@@ -19,7 +19,7 @@
       "base-ui": 21,
       "charts": 16,
       "coming-soon": 1,
-      "communities": 7,
+      "communities": 8,
       "complaints": 2,
       "customers": 4,
       "dashboards": 3,
@@ -84,10 +84,9 @@
     "/amenities/add",
     "/amenities/bookings",
     "/amenities/list",
+    "/communities",
     "/communities/add",
-    "/communities/grid",
     "/communities/join-requests",
-    "/communities/list",
     "/complaints",
     "/dashboards/agent",
     "/dashboards/analytics",
@@ -179,14 +178,9 @@
       "path": "/amenities"
     },
     {
-      "file": "apps/superadmin/src/components/layout/TopNavigationBar/components/ProfileDropdown.tsx",
-      "value": "/profile",
-      "path": "/profile"
-    },
-    {
-      "file": "apps/superadmin/src/components/layout/TopNavigationBar/components/ProfileDropdown.tsx",
-      "value": "/support/faqs",
-      "path": "/support/faqs"
+      "file": "apps/superadmin/src/components/layout/TopNavigationBar/components/LiveNotifications.tsx",
+      "value": "/societies",
+      "path": "/societies"
     }
   ],
   "emptyLinks": [
@@ -571,19 +565,11 @@
       "value": ""
     },
     {
-      "file": "apps/superadmin/src/components/PageTitle.tsx",
-      "value": ""
-    },
-    {
       "file": "apps/superadmin/src/components/from/DropzoneFormInput.tsx",
       "value": ""
     },
     {
       "file": "apps/superadmin/src/components/from/DropzoneFormInput.tsx",
-      "value": ""
-    },
-    {
-      "file": "apps/superadmin/src/components/layout/Footer.tsx",
       "value": ""
     },
     {
@@ -991,7 +977,7 @@
       "file": "apps/superadmin/src/app/(other)/auth/lock-screen/page.tsx",
       "area": "auth",
       "menuReferenced": false,
-      "internalReferenceCount": 1,
+      "internalReferenceCount": 0,
       "disposition": "product_audit",
       "plannedCanonical": null,
       "backendDependency": "TBD during page audit",
@@ -1021,7 +1007,7 @@
       "file": "apps/superadmin/src/app/(other)/auth/sign-in/page.tsx",
       "area": "auth",
       "menuReferenced": false,
-      "internalReferenceCount": 6,
+      "internalReferenceCount": 5,
       "disposition": "product_audit",
       "plannedCanonical": null,
       "backendDependency": "TBD during page audit",
@@ -1617,6 +1603,21 @@
       "evidence": []
     },
     {
+      "route": "/communities",
+      "file": "apps/superadmin/src/app/(admin)/communities/page.tsx",
+      "area": "communities",
+      "menuReferenced": true,
+      "internalReferenceCount": 0,
+      "disposition": "product_audit",
+      "plannedCanonical": "/communities",
+      "backendDependency": "TBD during page audit",
+      "databaseDependency": "TBD during page audit",
+      "roleCoverage": "platform, agency-scoped, community-scoped",
+      "status": "not_started",
+      "blockers": [],
+      "evidence": []
+    },
+    {
       "route": "/communities/:id",
       "file": "apps/superadmin/src/app/(admin)/communities/[id]/page.tsx",
       "area": "communities",
@@ -1651,7 +1652,7 @@
       "file": "apps/superadmin/src/app/(admin)/communities/add/page.tsx",
       "area": "communities",
       "menuReferenced": true,
-      "internalReferenceCount": 2,
+      "internalReferenceCount": 3,
       "disposition": "product_audit",
       "plannedCanonical": "/communities",
       "backendDependency": "TBD during page audit",
@@ -1680,8 +1681,8 @@
       "route": "/communities/grid",
       "file": "apps/superadmin/src/app/(admin)/communities/grid/page.tsx",
       "area": "communities",
-      "menuReferenced": true,
-      "internalReferenceCount": 1,
+      "menuReferenced": false,
+      "internalReferenceCount": 3,
       "disposition": "legacy_redirect",
       "plannedCanonical": "/communities?view=grid",
       "backendDependency": "TBD during page audit",
@@ -1710,8 +1711,8 @@
       "route": "/communities/list",
       "file": "apps/superadmin/src/app/(admin)/communities/list/page.tsx",
       "area": "communities",
-      "menuReferenced": true,
-      "internalReferenceCount": 5,
+      "menuReferenced": false,
+      "internalReferenceCount": 4,
       "disposition": "legacy_redirect",
       "plannedCanonical": "/communities?view=list",
       "backendDependency": "TBD during page audit",
@@ -1831,7 +1832,7 @@
       "file": "apps/superadmin/src/app/(admin)/dashboards/analytics/page.tsx",
       "area": "dashboards",
       "menuReferenced": true,
-      "internalReferenceCount": 19,
+      "internalReferenceCount": 23,
       "disposition": "product_audit",
       "plannedCanonical": null,
       "backendDependency": "TBD during page audit",
@@ -2116,7 +2117,7 @@
       "file": "apps/superadmin/src/app/(admin)/guards/grid-view/page.tsx",
       "area": "guards",
       "menuReferenced": true,
-      "internalReferenceCount": 1,
+      "internalReferenceCount": 5,
       "disposition": "legacy_redirect",
       "plannedCanonical": "/guards?view=grid",
       "backendDependency": "TBD during page audit",
@@ -2131,7 +2132,7 @@
       "file": "apps/superadmin/src/app/(admin)/guards/list-view/page.tsx",
       "area": "guards",
       "menuReferenced": true,
-      "internalReferenceCount": 3,
+      "internalReferenceCount": 2,
       "disposition": "legacy_redirect",
       "plannedCanonical": "/guards?view=list",
       "backendDependency": "TBD during page audit",
@@ -2596,7 +2597,7 @@
       "file": "apps/superadmin/src/app/(admin)/pages/pricing/page.tsx",
       "area": "pages",
       "menuReferenced": false,
-      "internalReferenceCount": 1,
+      "internalReferenceCount": 0,
       "disposition": "retire",
       "plannedCanonical": null,
       "backendDependency": "TBD during page audit",
@@ -3001,7 +3002,7 @@
       "file": "apps/superadmin/src/app/(admin)/residents/grid-view/page.tsx",
       "area": "residents",
       "menuReferenced": true,
-      "internalReferenceCount": 2,
+      "internalReferenceCount": 3,
       "disposition": "legacy_redirect",
       "plannedCanonical": "/residents?view=grid",
       "backendDependency": "TBD during page audit",
@@ -3016,7 +3017,7 @@
       "file": "apps/superadmin/src/app/(admin)/residents/list-view/page.tsx",
       "area": "residents",
       "menuReferenced": true,
-      "internalReferenceCount": 4,
+      "internalReferenceCount": 3,
       "disposition": "legacy_redirect",
       "plannedCanonical": "/residents?view=list",
       "backendDependency": "TBD during page audit",
@@ -4171,7 +4172,7 @@
       "file": "apps/superadmin/src/app/(admin)/visitors/grid-view/page.tsx",
       "area": "visitors",
       "menuReferenced": true,
-      "internalReferenceCount": 1,
+      "internalReferenceCount": 2,
       "disposition": "legacy_redirect",
       "plannedCanonical": "/visitors?view=grid",
       "backendDependency": "TBD during page audit",
@@ -4186,7 +4187,7 @@
       "file": "apps/superadmin/src/app/(admin)/visitors/list-view/page.tsx",
       "area": "visitors",
       "menuReferenced": true,
-      "internalReferenceCount": 4,
+      "internalReferenceCount": 3,
       "disposition": "legacy_redirect",
       "plannedCanonical": "/visitors?view=list",
       "backendDependency": "TBD during page audit",

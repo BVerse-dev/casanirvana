@@ -1,68 +1,16 @@
-"use client";
-import { useState } from "react";
-import PageTitle from "@/components/PageTitle";
-import CommunitiesGrid from "./components/CommunitiesGrid";
-import CommunitiesStat from "./components/CommunitiesStat";
-import CommunitiesFilter, { type CommunityFilters } from "./components/CommunitiesFilter";
-import { Row } from "react-bootstrap";
-import { Metadata } from "next";
+import { permanentRedirect } from "next/navigation";
 
-// Note: metadata export needs to be in a separate server component file for client components
-// export const metadata: Metadata = { title: "Communities Grid" };
-
-const CommunitiesGridPage = () => {
-  const [filters, setFilters] = useState<CommunityFilters>({
-    location: "",
-    status: "",
-    communityType: "",
-    unitsRange: [10, 500],
-    minOccupancy: null,
-    maxOccupancy: null,
-    minArea: null,
-    maxArea: null,
-    amenities: [],
-  });
-
-  const [appliedFilters, setAppliedFilters] = useState<CommunityFilters>(filters);
-
-  const handleFiltersChange = (newFilters: CommunityFilters) => {
-    setFilters(newFilters);
-  };
-
-  const handleApplyFilters = () => {
-    setAppliedFilters(filters);
-  };
-
-  const handleResetFilters = () => {
-    const resetFilters: CommunityFilters = {
-      location: "",
-      status: "",
-      communityType: "",
-      unitsRange: [10, 500],
-      minOccupancy: null,
-      maxOccupancy: null,
-      minArea: null,
-      maxArea: null,
-      amenities: [],
-    };
-    setFilters(resetFilters);
-    setAppliedFilters(resetFilters);
-  };
-
-  return (
-    <>
-      <PageTitle title="Communities Grid" subName="Casa Nirvana" />
-      <CommunitiesStat filters={appliedFilters} />
-      <Row>
-        <CommunitiesFilter 
-          onFiltersChange={handleFiltersChange}
-          onApplyFilters={handleApplyFilters}
-          onResetFilters={handleResetFilters}
-        />
-        <CommunitiesGrid filters={appliedFilters} />
-      </Row>
-    </>
-  );
+type LegacyCommunitiesGridProps = {
+  searchParams?: Record<string, string | string[] | undefined>;
 };
 
-export default CommunitiesGridPage;
+const LegacyCommunitiesGrid = ({ searchParams = {} }: LegacyCommunitiesGridProps) => {
+  const params = new URLSearchParams({ view: "grid" });
+  Object.entries(searchParams).forEach(([key, value]) => {
+    if (key === "view" || value === undefined) return;
+    (Array.isArray(value) ? value : [value]).forEach((item) => params.append(key, item));
+  });
+  permanentRedirect(`/communities?${params.toString()}`);
+};
+
+export default LegacyCommunitiesGrid;

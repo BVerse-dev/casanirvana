@@ -2,7 +2,7 @@
 
 ## Operating rules
 
-- Baseline: 241 filesystem routes discovered on 23 July 2026.
+- Baseline: 241 filesystem routes discovered on 23 July 2026; active inventory is temporarily 242 while the canonical Communities route and both compatibility redirects coexist.
 - The machine-readable source is `SUPERADMIN_ROUTE_MANIFEST.json`.
 - Work in sidebar order and one vertical slice at a time.
 - Mark a route complete only after backend/data, authorization, responsive, accessibility, build and production evidence is recorded.
@@ -280,7 +280,7 @@
 - [x] Confirmed root scripts, CI cache paths, split-repository prefixes and database-type synchronization use the new monorepo paths.
 - [x] Generated the initial route, menu and internal-link manifest.
 - [x] Added a route-contract test before canonical navigation changes.
-- [x] Route-contract tests passed: 241 unique filesystem routes, 93 sidebar destinations and zero unresolved sidebar destinations.
+- [x] Initial route-contract tests passed: 241 unique filesystem routes, 93 sidebar destinations and zero unresolved sidebar destinations. The active compatibility inventory is now 242 after adding canonical `/communities` without prematurely removing legacy redirects.
 - [x] Strict `build:check` and the environment-gated production build passed under Next.js 14.2.6.
 - [ ] Handle optional `sharp` installation and Browserslist database refresh in the dedicated dependency-security slice, not this routing foundation change.
 - [ ] Begin the Application Shell slice after foundation verification is committed and deployed.
@@ -328,3 +328,12 @@
 - Data evidence: staffing, salary, performance, training, duty-hour and assignment values remain backend-owned and scoped by administrator access.
 - Corrections: removed property/demo imagery, stock guard portraits, unsupported world map, stale detail/list links and dead layout space; added initials fallbacks, community coverage, and explicit error/empty states.
 - Acceptance evidence: 3/3 guard dashboard contracts, 3/3 route contracts, 6/6 backend dashboard tests, backend TypeScript build, Superadmin `build:check`, and the standalone 237-page production build passed on 2026-07-23.
+
+### 2026-07-23 - Communities unified directory vertical slice
+
+- Status: Implementation complete; automated evidence passed.
+- Canonical route: `/communities?view=grid|list`, with grid as the first-visit default and authenticated-browser preference persistence.
+- Legacy compatibility: `/communities/grid` and `/communities/list` permanently redirect while preserving search parameters.
+- Backend contract: one shared `GET /admin/communities` paginated query supplies both views; no database or API change was introduced.
+- Corrections: removed duplicate sidebar destinations, template location filters, fake property-image fallbacks, query-string details links, duplicated requests and the nonfunctional grid-local view toggle.
+- Acceptance evidence: 4/4 Communities directory contracts, 3/3 route contracts against 242 unique routes with zero unresolved sidebar destinations, Superadmin `build:check`, and standalone 238-page production build passed on 2026-07-23.

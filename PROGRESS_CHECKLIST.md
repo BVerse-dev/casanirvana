@@ -1978,7 +1978,7 @@ Date: 2026-02-06
 - Detailed tracker: `SUPERADMIN_LAUNCH_AUDIT_CHECKLIST.md`.
 - Machine-readable route inventory: `SUPERADMIN_ROUTE_MANIFEST.json`.
 - [x] Confirmed the active Superadmin root is `apps/superadmin` and active root scripts, CI paths, split-repository prefixes and database-type synchronization use the monorepo structure.
-- [x] Established the 23 July 2026 baseline at 241 filesystem routes; the previous 237-route count is superseded.
+- [x] Established the 23 July 2026 baseline at 241 filesystem routes; the previous 237-route count is superseded. The active compatibility inventory is temporarily 242 after adding canonical `/communities` alongside both legacy redirects.
 - [x] Added repeatable route-manifest generation and route-contract tests before changing navigation.
 - [x] Passed all three route-contract tests, strict `build:check` and the environment-gated production build for the Phase 52 foundation slice.
 - [ ] Track the optional `sharp` recommendation and stale Browserslist data under the later dependency-security slice.
@@ -2037,4 +2037,15 @@ Date: 2026-02-06
 - [x] Removed unsupported/template visuals and fake guard identity fallbacks.
 - [x] Added truthful loading, empty and backend-failure states to the audited dashboard panels.
 - [x] Recorded passing automated evidence: 3 guard contracts, 3 route contracts, 6 backend dashboard tests, backend build, Superadmin `build:check`, and standalone 237-page production build.
+- [ ] Record production browser verification after deployment.
+
+### 2026-07-23 - Phase 52 Communities unified directory slice
+
+- [x] Added canonical `/communities` grid-default directory with accessible grid/list controls.
+- [x] Preserved view, search, status, sort and pagination state in the URL when switching modes.
+- [x] Persisted each administrator browser's last Communities view preference.
+- [x] Reused one backend query, mutation set and paginated result for both views.
+- [x] Added canonical create/detail/edit links and legacy grid/list redirects.
+- [x] Reduced the sidebar to one Communities directory entry.
+- [x] Recorded passing automated evidence: 4 Communities contracts, 3 route contracts, Superadmin `build:check`, and standalone 238-page production build.
 - [ ] Record production browser verification after deployment.
