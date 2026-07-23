@@ -2061,3 +2061,13 @@ Date: 2026-02-06
 - [ ] Implement canonical `/units/{id}/edit` only after validating the complete unit update contract.
 - [x] Recorded passing automated evidence: 5 Units contracts, 3 route contracts, Superadmin `build:check`, and standalone 240-page production build.
 - [ ] Record production browser verification after deployment.
+
+### 2026-07-23 - Phase 52 Community Join Requests slice
+
+- [x] Moved Join Request search, status filtering and pagination to the scoped backend contract.
+- [x] Preserved filter/page state in canonical URL parameters.
+- [x] Restricted approve/reject actions to pending and manual-review records.
+- [x] Required rejection notes and exposed reviewer name/time for completed reviews.
+- [x] Added truthful loading, empty, failure and mutation-pending states.
+- [x] Recorded passing automated evidence: 3 Join Request contracts, 7 backend community tests, 3 route contracts, Superadmin `build:check`, and standalone 240-page production build.
+- [ ] Record production browser verification after deployment.

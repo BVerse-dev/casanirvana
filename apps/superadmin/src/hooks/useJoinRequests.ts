@@ -1,14 +1,9 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-
 import { useAdminApi } from "./useAdminApi";
 
-export type JoinRequestStatus =
-  | "pending"
-  | "approved"
-  | "rejected"
-  | "pending_manual_review";
+export type JoinRequestStatus = "pending" | "approved" | "rejected" | "pending_manual_review";
 
 export type JoinRequest = {
   id: string;
@@ -36,10 +31,10 @@ export type JoinRequest = {
 export type UpdateJoinRequestData = {
   id: string;
   status?: JoinRequestStatus;
-  review_notes?: string;
+  review_notes?: string | null;
 };
 
-type JoinRequestsPayload = {
+export type JoinRequestsPayload = {
   data: JoinRequest[];
   count: number;
   page: number;
@@ -47,49 +42,43 @@ type JoinRequestsPayload = {
   totalPages: number;
 };
 
-const buildJoinRequestsQuery = ({
-  status,
-  search,
-  page,
-  limit,
-}: {
+type JoinRequestListOptions = {
   status?: JoinRequestStatus;
   search?: string;
   page?: number;
-  limit?: number;
-}) => {
-  const params = new URLSearchParams();
+  pageSize?: number;
+};
 
+const buildJoinRequestsQuery = ({ status, search, page, pageSize }: JoinRequestListOptions) => {
+  const params = new URLSearchParams();
   if (status) params.set("status", status);
   if (search?.trim()) params.set("search", search.trim());
   if (page) params.set("page", String(page));
-  if (limit) params.set("limit", String(limit));
-
+  if (pageSize) params.set("limit", String(pageSize));
   const query = params.toString();
   return query ? `?${query}` : "";
 };
 
-export const useListJoinRequests = () => {
+const normalizePayload = (response: JoinRequestsPayload | { data: JoinRequestsPayload }) =>
+  "data" in response && Array.isArray(response.data) ? response as JoinRequestsPayload : (response as { data: JoinRequestsPayload }).data;
+
+export const useListJoinRequests = (options: JoinRequestListOptions = {}) => {
+  const { page = 1, pageSize = 20, status, search } = options;
   const { fetchAdmin, hasToken } = useAdminApi();
 
   return useQuery({
-    queryKey: ["join-requests"],
-    queryFn: async () => {
-      const response = await fetchAdmin<{ data: JoinRequestsPayload }>("/admin/join-requests?limit=1000");
-      return response.data.data;
-    },
+    queryKey: ["join-requests", { page, pageSize, status, search }],
+    queryFn: async () => normalizePayload(await fetchAdmin<JoinRequestsPayload | { data: JoinRequestsPayload }>(
+      `/admin/join-requests${buildJoinRequestsQuery({ page, pageSize, status, search })}`
+    )),
     enabled: hasToken,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 60 * 1000,
   });
 };
 
 export const useGetJoinRequest = (id: string) => {
-  const { data: joinRequests = [], ...query } = useListJoinRequests();
-
-  return {
-    ...query,
-    data: joinRequests.find((request) => request.id === id),
-  };
+  const query = useListJoinRequests({ pageSize: 200 });
+  return { ...query, data: query.data?.data.find((request) => request.id === id) };
 };
 
 export const useUpdateJoinRequest = () => {
@@ -98,11 +87,8 @@ export const useUpdateJoinRequest = () => {
 
   return useMutation({
     mutationFn: async ({ id, ...updateData }: UpdateJoinRequestData) =>
-      fetchAdmin(`/admin/join-requests/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify(updateData),
-      }),
-    onSuccess: (data: any, variables) => {
+      fetchAdmin(`/admin/join-requests/${id}`, { method: "PATCH", body: JSON.stringify(updateData) }),
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["join-requests"] });
       queryClient.invalidateQueries({ queryKey: ["join-request", variables.id] });
     },
@@ -110,34 +96,17 @@ export const useUpdateJoinRequest = () => {
 };
 
 export const useJoinRequestsByStatus = (status: JoinRequestStatus) => {
-  const { fetchAdmin, hasToken } = useAdminApi();
-
-  return useQuery({
-    queryKey: ["join-requests", "status", status],
-    queryFn: async () => {
-      const response = await fetchAdmin<{ data: JoinRequestsPayload }>(
-        `/admin/join-requests${buildJoinRequestsQuery({ status, limit: 1000 })}`
-      );
-
-      return response.data.data;
-    },
-    enabled: hasToken,
-    staleTime: 5 * 60 * 1000,
-  });
+  const query = useListJoinRequests({ status, pageSize: 200 });
+  return { ...query, data: query.data?.data || [] };
 };
 
 export const usePendingJoinRequestsCount = () => {
   const { fetchAdmin, hasToken } = useAdminApi();
-
   return useQuery({
     queryKey: ["join-requests", "pending-count"],
-    queryFn: async () => {
-      const response = await fetchAdmin<{ data: JoinRequestsPayload }>(
-        `/admin/join-requests${buildJoinRequestsQuery({ status: "pending", limit: 1 })}`
-      );
-
-      return response.data.count || 0;
-    },
+    queryFn: async () => normalizePayload(await fetchAdmin<JoinRequestsPayload | { data: JoinRequestsPayload }>(
+      `/admin/join-requests${buildJoinRequestsQuery({ status: "pending", pageSize: 1 })}`
+    )).count,
     enabled: hasToken,
     staleTime: 60 * 1000,
     refetchInterval: 30 * 1000,

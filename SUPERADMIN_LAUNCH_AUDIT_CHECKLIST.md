@@ -348,3 +348,12 @@
 - Deliberate boundary: unit editing remains open until its complete validated update contract is implemented; no speculative partial form was shipped.
 - Route inventory: temporarily 245 while canonical routes and legacy compatibility redirects coexist.
 - Acceptance evidence: 5/5 Units directory contracts, 3/3 route contracts against 245 unique routes with zero unresolved sidebar destinations, Superadmin `build:check`, and standalone 240-page production build passed on 2026-07-23.
+
+### 2026-07-23 - Community Join Requests vertical slice
+
+- Status: Implementation complete; automated evidence passed.
+- Route: `/communities/join-requests`.
+- Backend contracts: scoped `GET /admin/join-requests` and `PATCH /admin/join-requests/{id}` through the shared authenticated backend client.
+- Data behavior: backend-owned search, status filtering, pagination, community/unit/profile enrichment, reviewer stamping and scope enforcement.
+- Corrections: removed the 1,000-row client-side filtering workaround, local pagination/count drift, completed-request actions and ambiguous rejection handling; added URL state, required rejection notes, review history and explicit failure/empty states.
+- Acceptance evidence: 3/3 Join Request UI contracts, 7/7 focused backend community tests, 3/3 route contracts, Superadmin `build:check`, and standalone 240-page production build passed on 2026-07-23.
