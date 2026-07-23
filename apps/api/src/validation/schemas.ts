@@ -994,10 +994,10 @@ export const schemas = {
     })
     .passthrough(),
   adminAgencyConfigurationUpdate: nonEmptyObject,
-  adminGuardOperationsQuery: z.object({
+  adminGuardOperationsQuery: pageLimitQuery.merge(withSearchQuery).extend({
     community_id: z.string().uuid().optional(),
     guard_id: z.string().uuid().optional(),
-    search: optionalString,
+    status: z.enum(['active', 'inactive', 'suspended']).optional(),
   }),
   adminGuardProfileCreate: z.object({
     first_name: nonEmptyString,

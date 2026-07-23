@@ -1978,7 +1978,7 @@ Date: 2026-02-06
 - Detailed tracker: `SUPERADMIN_LAUNCH_AUDIT_CHECKLIST.md`.
 - Machine-readable route inventory: `SUPERADMIN_ROUTE_MANIFEST.json`.
 - [x] Confirmed the active Superadmin root is `apps/superadmin` and active root scripts, CI paths, split-repository prefixes and database-type synchronization use the monorepo structure.
-- [x] Established the 23 July 2026 baseline at 241 filesystem routes; the previous 237-route count is superseded. The active compatibility inventory is temporarily 249 after adding canonical Communities, Units and Residents lifecycle routes alongside legacy redirects.
+- [x] Established the 23 July 2026 baseline at 241 filesystem routes; the previous 237-route count is superseded. The active compatibility inventory is temporarily 250 after adding canonical Communities, Units, Residents and Guards routes alongside legacy redirects.
 - [x] Added repeatable route-manifest generation and route-contract tests before changing navigation.
 - [x] Passed all three route-contract tests, strict `build:check` and the environment-gated production build for the Phase 52 foundation slice.
 - [ ] Track the optional `sharp` recommendation and stale Browserslist data under the later dependency-security slice.
@@ -1987,6 +1987,8 @@ Date: 2026-02-06
 - [x] Consolidated Residents at `/residents?view=grid|list` with grid default, remembered preference, shared backend pagination/search/status state, one sidebar destination and compatibility redirects for both legacy view routes (2026-07-23).
 - [x] Normalized Resident create/details/edit to `/residents/add`, `/residents/{id}` and `/residents/{id}/edit`; removed unwired upload/dead actions and retained legacy query-string redirects (2026-07-23).
 - [ ] Record authenticated production browser evidence for the Resident directory and create/details/edit lifecycle.
+- [x] Consolidated Guards at `/guards?view=grid|list` with grid default, remembered preference, normalized backend pagination/search/status state, one sidebar directory entry, preserved `/guards/manage`, and compatibility redirects for both legacy view routes (2026-07-23).
+- [ ] Normalize the Guard details lifecycle and record authenticated production browser evidence for the directory and management deep links.
 - [ ] Retire or redirect inherited/demo routes only after each route receives an explicit disposition and compatibility check.
 
 ## Phase 53 - Backend and Database Release Hardening

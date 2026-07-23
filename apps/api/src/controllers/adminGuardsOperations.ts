@@ -497,9 +497,13 @@ async function ensureGuardScope(scope: Awaited<ReturnType<typeof resolveAdminSco
 export async function listGuardProfiles(req: Request, res: Response, next: NextFunction) {
   try {
     const scope = await resolveAdminScope(req);
+    const page = typeof req.query.page === 'number' ? req.query.page : Number(req.query.page || 1);
+    const requestedLimit = typeof req.query.limit === 'number' ? req.query.limit : Number(req.query.limit || 50);
+    const limit = Math.min(Math.max(requestedLimit || 50, 1), 200);
     const requestedCommunityId = parseUuidQueryParam(req, 'community_id');
     const requestedGuardId = parseUuidQueryParam(req, 'guard_id');
     const search = parseStringQueryParam(req, 'search');
+    const requestedStatus = parseStringQueryParam(req, 'status')?.toLowerCase() || null;
 
     if (requestedCommunityId && !canAccessCommunity(scope, requestedCommunityId)) {
       return next(toScopeError('Access denied for the requested community.'));
@@ -526,7 +530,7 @@ export async function listGuardProfiles(req: Request, res: Response, next: NextF
     } else if (!scope.isGlobal) {
       const scopedGuardIds = await getScopedGuardIds(scope);
       if (scopedGuardIds.length === 0) {
-        return res.json({ data: [] });
+        return res.json({ data: [], count: 0, page, pageSize: limit, totalPages: 0 });
       }
       query = query.in('id', scopedGuardIds);
     }
@@ -545,7 +549,7 @@ export async function listGuardProfiles(req: Request, res: Response, next: NextF
 
     const rows = data || [];
     if (rows.length === 0) {
-      return res.json({ data: [] });
+      return res.json({ data: [], count: 0, page, pageSize: limit, totalPages: 0 });
     }
 
     const guardIds = rows
@@ -637,7 +641,23 @@ export async function listGuardProfiles(req: Request, res: Response, next: NextF
       };
     });
 
-    return res.json({ data: mappedRows });
+    const filteredRows = requestedStatus
+      ? mappedRows.filter((row) => {
+          const normalizedStatus = String(row.status || (row.is_active === false ? 'inactive' : 'active')).toLowerCase();
+          return requestedStatus === 'inactive'
+            ? normalizedStatus === 'inactive' || row.is_active === false
+            : normalizedStatus === requestedStatus;
+        })
+      : mappedRows;
+    const start = (page - 1) * limit;
+
+    return res.json({
+      data: filteredRows.slice(start, start + limit),
+      count: filteredRows.length,
+      page,
+      pageSize: limit,
+      totalPages: filteredRows.length > 0 ? Math.ceil(filteredRows.length / limit) : 0,
+    });
   } catch (error) {
     next(error);
   }

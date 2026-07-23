@@ -110,15 +110,9 @@ export const MENU_ITEMS: MenuItemType[] = [
     icon: "ri:shield-user-line",
     children: [
       {
-        key: "guards-list-view",
-        label: "List View",
-        url: "/guards/list-view",
-        parentKey: "guards",
-      },
-      {
-        key: "guards-grid-view",
-        label: "Grid View",
-        url: "/guards/grid-view",
+        key: "guards-directory",
+        label: "All Guards",
+        url: "/guards",
         parentKey: "guards",
       },
       {

@@ -9,7 +9,7 @@ test("the Superadmin route inventory is complete and unique", async () => {
 
   assert.equal(audit.summary.filesystemRoutes, routeNames.length);
   assert.equal(new Set(routeNames).size, routeNames.length);
-  assert.equal(audit.summary.filesystemRoutes, 249, "Update the tracked compatibility inventory intentionally when route dispositions change");
+  assert.equal(audit.summary.filesystemRoutes, 250, "Update the tracked compatibility inventory intentionally when route dispositions change");
 });
 
 test("every sidebar destination resolves to a filesystem route", async () => {

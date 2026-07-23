@@ -63,6 +63,9 @@ type GuardDirectoryFilters = {
   communityId?: string;
   guardId?: string;
   search?: string;
+  status?: string;
+  page?: number;
+  pageSize?: number;
 };
 
 const buildQuery = (filters?: GuardDirectoryFilters) => {
@@ -70,6 +73,9 @@ const buildQuery = (filters?: GuardDirectoryFilters) => {
   if (filters?.communityId) params.set("community_id", filters.communityId);
   if (filters?.guardId) params.set("guard_id", filters.guardId);
   if (filters?.search) params.set("search", filters.search);
+  if (filters?.status) params.set("status", filters.status);
+  if (filters?.page) params.set("page", String(filters.page));
+  if (filters?.pageSize) params.set("limit", String(filters.pageSize));
   const query = params.toString();
   return query ? `?${query}` : "";
 };
@@ -111,10 +117,17 @@ export const useListGuardsDirectory = (filters?: GuardDirectoryFilters) => {
     queryKey: ["guards-directory", filters || {}],
     enabled: hasToken,
     queryFn: async () => {
-      const payload = await fetchAdmin<{ data: GuardDirectoryApiRecord[] }>(
+      const payload = await fetchAdmin<{ data: GuardDirectoryApiRecord[]; count?: number; page?: number; pageSize?: number; totalPages?: number }>(
         `/admin/guards/profiles${buildQuery(filters)}`
       );
-      return (payload.data || []).map(mapGuardDirectoryRecord);
+      const data = (payload.data || []).map(mapGuardDirectoryRecord);
+      return {
+        data,
+        count: payload.count ?? data.length,
+        page: payload.page ?? filters?.page ?? 1,
+        pageSize: payload.pageSize ?? filters?.pageSize ?? data.length,
+        totalPages: payload.totalPages ?? (data.length > 0 ? 1 : 0),
+      };
     },
   });
 };

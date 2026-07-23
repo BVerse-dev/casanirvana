@@ -47,7 +47,7 @@ const TopGuardProfile = () => {
             </>
           )}
         </CardBody>
-        <CardFooter className="border-top"><Link href="/guards/grid-view" className="btn btn-primary w-100">View Guard Directory</Link></CardFooter>
+        <CardFooter className="border-top"><Link href="/guards" className="btn btn-primary w-100">View Guard Directory</Link></CardFooter>
       </Card>
     </Col>
   );

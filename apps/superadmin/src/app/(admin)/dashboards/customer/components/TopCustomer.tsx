@@ -113,7 +113,7 @@ const TopGuards = () => {
                     </div>
                     <div className="d-block">
                       <span className="text-dark">
-                        <Link href="/guards/grid-view" className="text-dark fw-medium fs-15">
+                        <Link href="/guards" className="text-dark fw-medium fs-15">
                           {guard.guardName}
                         </Link>
                       </span>
@@ -138,7 +138,7 @@ const TopGuards = () => {
           )}
         </CardBody>
         <CardFooter className="border-top">
-          <Link href="/guards/grid-view" className="btn btn-primary w-100">
+          <Link href="/guards" className="btn btn-primary w-100">
             View All Guards
           </Link>
         </CardFooter>

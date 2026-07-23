@@ -49,7 +49,7 @@ const GuardsByLocation = () => {
           )}
         </CardBody>
         <CardFooter className="border-top">
-          <Link href="/guards/grid-view" className="btn btn-light w-100">Manage Guards</Link>
+          <Link href="/guards" className="btn btn-light w-100">Manage Guards</Link>
         </CardFooter>
       </Card>
     </Col>
