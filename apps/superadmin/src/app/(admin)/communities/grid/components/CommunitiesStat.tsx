@@ -12,7 +12,7 @@ interface CommunitiesStatProps {
 
 const CommunitiesStat = ({ filters }: CommunitiesStatProps) => {
   const { data: communitiesData, isLoading: communitiesLoading } = useListCommunities({ 
-    pageSize: 9999,
+    pageSize: 200,
     filters,
   }); 
   const communities = communitiesData?.data || [];

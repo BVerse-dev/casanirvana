@@ -374,6 +374,7 @@
 - Restored the approved image-backed Community cards, statistics row, filter sidebar, spacing and card actions that existed before route consolidation.
 - Kept `/communities?view=grid|list`, canonical details links and the shared persisted view preference without introducing a replacement visual design.
 - Delivery rule clarified: directory consolidation may change menu destinations, routing and shared state only; existing resource presentation remains unchanged unless separately approved.
+- Production diagnosis: restored legacy requests used unsupported limits of `1000` and `9999`; both now use the backend-enforced maximum of `200`, preserving the approved UI while restoring data and view controls.
 
 ### 2026-07-23 - Guards visual-parity correction
 

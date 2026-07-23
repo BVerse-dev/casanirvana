@@ -131,12 +131,12 @@ const CommunitiesGrid = ({ filters, viewMode, onViewModeChange }: CommunitiesGri
   const itemsPerPage = 9; // Show 9 communities per page
   
   const { 
-    data: communitiesData = { data: [], count: 0, page: 1, pageSize: 1000, totalPages: 1 },
+    data: communitiesData = { data: [], count: 0, page: 1, pageSize: 200, totalPages: 1 },
     isLoading, 
     error 
   } = useListCommunities({ 
     page: 1,
-    pageSize: 1000,
+    pageSize: 200,
     filters,
     search: searchTerm,
   });
