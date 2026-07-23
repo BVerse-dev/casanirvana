@@ -2001,3 +2001,11 @@ Date: 2026-02-06
 
 - [ ] Begin screen-level launch audit after relevant backend contracts are stable.
 - [ ] Track authentication, camera/QR permissions, visitor operations, resident directory scope, emergency workflows, notifications and release configuration.
+### 2026-07-23 - Phase 52 Application Shell Reliability Slice
+
+- [x] Stabilized authenticated shell navigation without router mutation during render.
+- [x] Replaced template profile actions and static identity with the signed-in administrator session.
+- [x] Moved the top-bar notification bell to backend-owned, current-user-scoped read/update contracts.
+- [x] Added truthful loading, empty, error, breadcrumb, footer, and global not-found behavior.
+- [x] Recorded passing focused API tests, backend build, route-contract tests, Superadmin build check, and production build in `SUPERADMIN_LAUNCH_AUDIT_CHECKLIST.md`.
+- [ ] Complete centralized route-policy enforcement, forbidden-state coverage, and production browser evidence before closing the Application Shell group.

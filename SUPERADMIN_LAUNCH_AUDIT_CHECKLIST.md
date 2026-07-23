@@ -284,3 +284,13 @@
 - [x] Strict `build:check` and the environment-gated production build passed under Next.js 14.2.6.
 - [ ] Handle optional `sharp` installation and Browserslist database refresh in the dedicated dependency-security slice, not this routing foundation change.
 - [ ] Begin the Application Shell slice after foundation verification is committed and deployed.
+## Session Update - 2026-07-23 - Application Shell Reliability and Personal Notifications
+
+- Status: Complete for this sub-slice; centralized route-policy enforcement and production browser evidence remain open in the Application Shell group.
+- Replaced render-time authentication navigation with an effect-driven authenticated boundary and explicit loading/redirect states.
+- Replaced the static template profile identity and broken profile/pricing/support links with the active session identity, dashboard, Casa Nirvana support, and a real NextAuth sign-out action.
+- Replaced the hard-coded notification user and browser-side Supabase queries with authenticated backend endpoints that scope every read and update to `req.user.id`.
+- Corrected the legacy join-request notification destination, rejected unsafe external action URLs, and added truthful loading, empty, and failure states.
+- Corrected empty breadcrumb/footer destinations and added an application-level 404 route.
+- Acceptance evidence: `personal-notifications.test.ts` 3/3 passed; API TypeScript build passed; Superadmin route-contract tests 3/3 passed; `build:check` passed; production build passed with 237 generated pages.
+- Tracked debt: Next.js still reports the repository's existing skipped lint/type validation settings during production build; removal remains gated on tracked debt reaching zero.

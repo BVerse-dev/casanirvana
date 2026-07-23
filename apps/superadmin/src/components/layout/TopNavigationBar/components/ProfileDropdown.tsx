@@ -1,71 +1,53 @@
-import avatar1 from "@/assets/images/users/avatar-1.jpg";
-import IconifyIcon from "@/components/wrappers/IconifyIcon";
-import Image from "next/image";
+"use client";
+
+import { Icon } from "@iconify/react";
+import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
-import {
-  Dropdown,
-  DropdownHeader,
-  DropdownItem,
-  DropdownMenu,
-  DropdownToggle,
-} from "react-bootstrap";
+import { Dropdown, DropdownDivider, DropdownHeader, DropdownItem, DropdownMenu, DropdownToggle } from "react-bootstrap";
+
+const getInitials = (name?: string | null, email?: string | null) => {
+  const source = name?.trim() || email?.trim() || "Administrator";
+  return source
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
+};
 
 const ProfileDropdown = () => {
+  const { data: session } = useSession();
+  const displayName = session?.user?.name?.trim() || "Administrator";
+  const email = session?.user?.email || "Signed-in administrator";
+  const supportUrl = `${process.env.NEXT_PUBLIC_SITE_URL || "https://casanirvana.app"}/contact-us/?reason=Support`;
+
   return (
     <Dropdown className="topbar-item">
-      <DropdownToggle
-        as="a"
-        className="topbar-button content-none"
-        id="page-header-user-dropdown"
-      >
-        <span className="d-flex align-items-center">
-          <Image
-            className="rounded-circle"
-            width={32}
-            src={avatar1}
-            alt="avatar-3"
-          />
+      <DropdownToggle as="button" className="topbar-link drop-arrow-none px-2 border-0" aria-label="Open account menu">
+        <span className="avatar-sm rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center fw-semibold">
+          {getInitials(displayName, email)}
         </span>
       </DropdownToggle>
-      <DropdownMenu className="dropdown-menu-end">
-        <DropdownHeader as={"h6"} className="dropdown-header">
-          Welcome Gaston!
+      <DropdownMenu align="end" className="dropdown-menu-end profile-dropdown">
+        <DropdownHeader className="noti-title">
+          <h6 className="text-overflow m-0">{displayName}</h6>
+          <small className="text-muted text-truncate d-block">{email}</small>
         </DropdownHeader>
-        <DropdownItem as={Link} href="/profile">
-          <IconifyIcon
-            icon="solar:calendar-broken"
-            className="align-middle me-2 fs-18"
-          />
-          <span className="align-middle">My Schedules</span>
+        <DropdownItem as={Link} href="/dashboards/analytics">
+          <Icon icon="solar:home-2-broken" className="me-1 fs-18 align-middle" />
+          <span className="align-middle">Dashboard</span>
         </DropdownItem>
-        <DropdownItem as={Link} href="/pages/pricing">
-          <IconifyIcon
-            icon="solar:wallet-broken"
-            className="align-middle me-2 fs-18"
-          />
-          <span className="align-middle">Pricing</span>
+        <DropdownItem as="a" href={supportUrl} target="_blank" rel="noreferrer">
+          <Icon icon="solar:help-broken" className="me-1 fs-18 align-middle" />
+          <span className="align-middle">Help &amp; support</span>
         </DropdownItem>
-        <DropdownItem as={Link} href="/support/faqs">
-          <IconifyIcon
-            icon="solar:help-broken"
-            className="align-middle me-2 fs-18"
-          />
-          <span className="align-middle">Help</span>
-        </DropdownItem>
-        <DropdownItem as={Link} href="/auth/lock-screen">
-          <IconifyIcon
-            icon="solar:lock-keyhole-broken"
-            className="align-middle me-2 fs-18"
-          />
-          <span className="align-middle">Lock screen</span>
-        </DropdownItem>
-        <div className="dropdown-divider my-1" />
-        <DropdownItem as={Link} className=" text-danger" href="/auth/sign-in">
-          <IconifyIcon
-            icon="solar:logout-3-broken"
-            className="align-middle me-2 fs-18"
-          />
-          <span className="align-middle">Logout</span>
+        <DropdownDivider />
+        <DropdownItem
+          as="button"
+          className="text-danger fw-semibold"
+          onClick={() => signOut({ callbackUrl: "/auth/sign-in" })}
+        >
+          <Icon icon="solar:logout-2-broken" className="me-1 fs-18 align-middle" />
+          <span className="align-middle">Sign out</span>
         </DropdownItem>
       </DropdownMenu>
     </Dropdown>

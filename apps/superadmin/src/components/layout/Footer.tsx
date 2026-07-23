@@ -15,8 +15,8 @@ const Footer = () => {
               icon="solar:hearts-bold-duotone"
               className="fs-18 align-middle text-danger"
             />{" "}
-            <Link href="" className="fw-bold footer-text" target="_blank">
-              BVerse
+              <Link href="https://casanirvana.app" className="fw-bold footer-text" target="_blank" rel="noreferrer">
+                Casa Nirvana
             </Link>
           </Col>
         </Row>

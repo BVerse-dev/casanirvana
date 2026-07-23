@@ -10,7 +10,7 @@ const PageTitle = ({ title, subName }: { title: string; subName: string }) => {
           <h4 className="mb-0 fw-semibold">{title}</h4>
           <ol className="breadcrumb mb-0">
             <li className="breadcrumb-item">
-              <Link href="">{subName}</Link>
+            <Link href="/dashboards/analytics">{subName}</Link>
             </li>{" "}
             &nbsp;
             <IconifyIcon

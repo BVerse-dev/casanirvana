@@ -46,6 +46,21 @@ const settingsAssetUpload = multer({
 // Unread notifications count for dashboard
 router.get('/notifications/unread-count', requireAuth, requirePermission('read:all_profiles'), notificationsController.getUnreadNotificationsCount);
 
+// Personal notification bell. Ownership is always derived from the authenticated session.
+router.get('/notifications/me', requireAuth, requireAdmin, notificationsController.getMyNotifications);
+router.patch(
+  '/notifications/me/read-all',
+  requireAuth,
+  requireAdmin,
+  notificationsController.markAllMyNotificationsAsRead
+);
+router.patch(
+  '/notifications/me/:id/read',
+  requireAuth,
+  requireAdmin,
+  notificationsController.markMyNotificationAsRead
+);
+
 // Admin capability contract for frontend menu filtering
 router.get('/me/capabilities', requireAuth, requireAdmin, adminCapabilitiesController.getAdminCapabilities);
 
