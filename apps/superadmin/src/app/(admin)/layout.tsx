@@ -1,5 +1,6 @@
 import Footer from "@/components/layout/Footer";
 import AuthProtectionWrapper from "@/components/wrappers/AuthProtectionWrapper";
+import RouteAuthorizationBoundary from "@/components/wrappers/RouteAuthorizationBoundary";
 import { ChildrenType } from "@/types/component-props";
 import dynamicImport from "next/dynamic";
 import { Suspense } from "react";
@@ -25,7 +26,9 @@ const AdminLayout = ({ children }: ChildrenType) => {
         </Suspense>
         <VerticalNavigationBar />
         <div className="page-content">
-          <Container fluid>{children}</Container>
+          <Container fluid>
+            <RouteAuthorizationBoundary>{children}</RouteAuthorizationBoundary>
+          </Container>
           <Footer />
         </div>
       </div>

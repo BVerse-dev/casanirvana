@@ -294,3 +294,11 @@
 - Corrected empty breadcrumb/footer destinations and added an application-level 404 route.
 - Acceptance evidence: `personal-notifications.test.ts` 3/3 passed; API TypeScript build passed; Superadmin route-contract tests 3/3 passed; `build:check` passed; production build passed with 237 generated pages.
 - Tracked debt: Next.js still reports the repository's existing skipped lint/type validation settings during production build; removal remains gated on tracked debt reaching zero.
+## Session Update - 2026-07-23 - Central Route Policy and Forbidden State
+
+- Status: Complete for capability-backed Guard and Agency route families; broader policy coverage remains gated on backend capability contracts for later menu groups.
+- Added a centralized route-policy resolver for direct and nested Guard/Agency URLs, including tab-specific workspace capabilities and forward-compatible canonical `/agencies` paths.
+- Added a stable route authorization boundary inside the authenticated application shell so unauthorized direct navigation renders a proper 403 state without removing navigation context.
+- Added a fail-closed authorization-service state with explicit retry instead of rendering protected content when capability loading fails.
+- Backend scope and permission middleware remain the security authority; this boundary provides defense-in-depth and consistent administrator UX.
+- Acceptance evidence: route-policy tests 4/4 passed; route-contract tests 3/3 passed; `build:check` passed; standalone production build passed with 237 generated pages.

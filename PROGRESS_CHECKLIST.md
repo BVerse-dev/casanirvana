@@ -2009,3 +2009,10 @@ Date: 2026-02-06
 - [x] Added truthful loading, empty, error, breadcrumb, footer, and global not-found behavior.
 - [x] Recorded passing focused API tests, backend build, route-contract tests, Superadmin build check, and production build in `SUPERADMIN_LAUNCH_AUDIT_CHECKLIST.md`.
 - [ ] Complete centralized route-policy enforcement, forbidden-state coverage, and production browser evidence before closing the Application Shell group.
+### 2026-07-23 - Phase 52 Central Route Policy Slice
+
+- [x] Added the centralized frontend route-policy contract for all currently capability-backed Guard and Agency routes.
+- [x] Added direct-navigation blocking with consistent forbidden and authorization-unavailable states.
+- [x] Preserved backend authorization and tenant scope as the security authority.
+- [ ] Extend the route-policy map as each later menu group receives an explicit backend capability contract.
+- [ ] Record production browser evidence before closing the Application Shell group.
