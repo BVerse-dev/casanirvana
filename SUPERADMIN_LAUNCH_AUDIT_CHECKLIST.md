@@ -274,6 +274,16 @@
 
 ## Session history
 
+### 2026-07-23 - Agency create/details/edit lifecycle slice
+
+- Status: Implementation complete; automated evidence passed.
+- Canonical routes: `/agencies/add`, `/agencies/{id}`, and `/agencies/{id}/edit`.
+- Backend contracts: scoped directory create, summary read, and synchronized base/profile update through the shared authenticated backend client.
+- Legacy compatibility: singular add/full-form/details routes permanently redirect to canonical plural routes.
+- Data boundary: Agency identity/contact fields synchronize across base and profile records; managed communities remain in Community Management.
+- Route inventory: temporarily 255 while canonical routes and legacy compatibility redirects coexist.
+- Acceptance evidence: 9/9 Agency lifecycle, directory and route contracts passed; the mounted scoped base/profile synchronization test passed; API TypeScript build, Superadmin `build:check`, and standalone 244-page production build passed on 2026-07-23.
+
 ### 2026-07-23 - Agencies unified directory vertical slice
 
 - Status: Implementation complete; automated evidence passed.

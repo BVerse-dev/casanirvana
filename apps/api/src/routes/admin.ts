@@ -1119,6 +1119,13 @@ router.post(
   validateRequest({ body: schemas.adminAgencyDirectoryCreate }),
   adminAgenciesOperationsController.createAgencyDirectory
 );
+router.patch(
+  '/agencies/directory/:id',
+  requireAuth,
+  requirePermission('update:all_profiles'),
+  validateRequest({ params: schemas.idParam, body: schemas.adminAgencyDirectoryUpdate }),
+  adminAgenciesOperationsController.updateAgencyDirectory
+);
 router.delete(
   '/agencies/directory/:id',
   requireAuth,

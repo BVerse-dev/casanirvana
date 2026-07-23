@@ -1978,7 +1978,7 @@ Date: 2026-02-06
 - Detailed tracker: `SUPERADMIN_LAUNCH_AUDIT_CHECKLIST.md`.
 - Machine-readable route inventory: `SUPERADMIN_ROUTE_MANIFEST.json`.
 - [x] Confirmed the active Superadmin root is `apps/superadmin` and active root scripts, CI paths, split-repository prefixes and database-type synchronization use the monorepo structure.
-- [x] Established the 23 July 2026 baseline at 241 filesystem routes; the previous 237-route count is superseded. The active compatibility inventory is temporarily 252 after adding canonical Communities, Units, Residents, Guards and Agencies routes alongside legacy redirects.
+- [x] Established the 23 July 2026 baseline at 241 filesystem routes; the previous 237-route count is superseded. The active compatibility inventory is temporarily 255 after adding canonical Communities, Units, Residents, Guards and Agencies lifecycle routes alongside legacy redirects.
 - [x] Added repeatable route-manifest generation and route-contract tests before changing navigation.
 - [x] Passed all three route-contract tests, strict `build:check` and the environment-gated production build for the Phase 52 foundation slice.
 - [ ] Track the optional `sharp` recommendation and stale Browserslist data under the later dependency-security slice.
@@ -1993,7 +1993,9 @@ Date: 2026-02-06
 - [ ] Record authenticated production browser evidence for the Guard directory, canonical details and management deep links.
 - [x] Consolidated Agencies at `/agencies?view=grid|list` with grid default, remembered preference, normalized scoped backend pagination/search/status state, one sidebar directory entry, preserved `/agency/manage`, and compatibility redirects for both legacy view routes (2026-07-23).
 - [x] Recorded passing Agency directory evidence: 6 directory/route contracts, scoped mounted backend test, API build, Superadmin `build:check`, and standalone 243-page production build.
-- [ ] Normalize the Agency create/details/edit lifecycle and record authenticated production browser evidence.
+- [x] Normalized Agency create/details/edit to `/agencies/add`, `/agencies/{id}` and `/agencies/{id}/edit`, including scoped base/profile synchronization and legacy redirects (2026-07-23).
+- [x] Recorded passing Agency lifecycle evidence: 9 lifecycle/directory/route contracts, scoped mounted synchronization test, API build, Superadmin `build:check`, and standalone 244-page production build.
+- [ ] Record authenticated production browser evidence for the Agency directory and lifecycle.
 - [ ] Retire or redirect inherited/demo routes only after each route receives an explicit disposition and compatibility check.
 
 ## Phase 53 - Backend and Database Release Hardening

@@ -237,3 +237,20 @@ export const useCreateAgencyDirectory = () => {
     },
   });
 };
+
+export const useUpdateAgencyDirectory = () => {
+  const { fetchAdmin } = useAdminApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ agencyId, payload }: { agencyId: string; payload: Record<string, unknown> }) => {
+      const response = await fetchAdmin<{ data: AgencyDirectoryApiRecord }>(`/admin/agencies/directory/${agencyId}`, { method: "PATCH", body: JSON.stringify(payload) });
+      return mapAgencyDirectoryRecord(response.data);
+    },
+    onSuccess: (_agency, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["agencies-directory"] });
+      queryClient.invalidateQueries({ queryKey: ["agencies-directory", "summary", variables.agencyId] });
+      toast.success("Agency updated successfully!");
+    },
+    onError: (error) => toast.error(error instanceof Error ? error.message : "Failed to update agency"),
+  });
+};

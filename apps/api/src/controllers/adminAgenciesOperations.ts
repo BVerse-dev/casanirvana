@@ -748,6 +748,49 @@ export async function getAgencyDirectorySummary(req: Request, res: Response, nex
   }
 }
 
+export async function updateAgencyDirectory(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { id } = req.params;
+    if (!isUuid(id)) return next(createHttpError(400, 'AGENCY_ID_INVALID', 'Invalid agency id'));
+    const scope = await resolveAdminScope(req);
+    if (!canAccessAgency(scope, id)) return next(toScopeError('Access denied for the selected agency.'));
+
+    const { data: existing, error: existingError } = await supabase.from('agencies').select('*').eq('id', id).maybeSingle();
+    if (existingError) return next(createHttpError(500, 'AGENCY_DIRECTORY_LOOKUP_FAILED', 'Failed to load agency directory record', existingError));
+    if (!existing) return next(createHttpError(404, 'AGENCY_NOT_FOUND', 'Agency not found'));
+
+    const payload = { ...(req.body || {}) };
+    const has = (key: string) => Object.prototype.hasOwnProperty.call(payload, key);
+    const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    const fields: Record<string, string> = { agency_name: 'name', email: 'email', phone: 'phone', website: 'website', description: 'description', address: 'address', city: 'city', state: 'state', country: 'country', postal_code: 'postal_code', contact_person_name: 'contact_person_name', contact_person_email: 'contact_person_email', contact_person_phone: 'contact_person_phone', agency_type: 'agency_type' };
+    Object.entries(fields).forEach(([source, target]) => { if (has(source)) updates[target] = normalizeOptionalString(payload[source]); });
+    if (has('email') && typeof updates.email === 'string') updates.email = updates.email.toLowerCase();
+    if (has('contact_person_email') && typeof updates.contact_person_email === 'string') updates.contact_person_email = updates.contact_person_email.toLowerCase();
+    if (has('employee_count')) updates.employee_count = normalizeOptionalNumber(payload.employee_count);
+    if (has('is_active')) updates.is_active = payload.is_active === true;
+
+    const { data: agency, error: updateError } = await supabase.from('agencies').update(updates).eq('id', id).select('*').single();
+    if (updateError || !agency) return next(createHttpError(500, 'AGENCY_DIRECTORY_UPDATE_FAILED', 'Failed to update agency directory record', updateError));
+
+    const profile: Record<string, unknown> = { updated_at: updates.updated_at };
+    if (has('agency_name')) profile.name = updates.name;
+    for (const key of ['address', 'city', 'state', 'website', 'description', 'email', 'phone']) if (has(key)) profile[key] = updates[key];
+    if (has('postal_code')) profile.pincode = updates.postal_code;
+    if (has('agency_type')) profile.agency_type = toAgencyProfileType(updates.agency_type as string | null);
+    if (has('contact_person_name')) { profile.owner_name = updates.contact_person_name; profile.manager_name = updates.contact_person_name; }
+    if (has('employee_count')) profile.total_agents = updates.employee_count;
+    if (has('is_active')) profile.status = updates.is_active ? 'active' : 'inactive';
+
+    const { error: profileError } = await supabase.from('agency_profiles').update(profile).eq('id', id);
+    if (profileError) {
+      const { id: existingId, ...rollback } = existing as Record<string, unknown>;
+      await supabase.from('agencies').update(rollback).eq('id', existingId as string);
+      return next(createHttpError(500, 'AGENCY_PROFILE_SYNC_FAILED', 'Agency update was rolled back because its profile could not be synchronized', profileError));
+    }
+    return res.json({ data: agency });
+  } catch (error) { next(error); }
+}
+
 export async function deleteAgencyDirectory(req: Request, res: Response, next: NextFunction) {
   try {
     const { id } = req.params;

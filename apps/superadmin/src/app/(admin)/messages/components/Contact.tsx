@@ -20,7 +20,7 @@ const Contact = ({ onContactSelect, onAddContact }: ContactProps) => {
   const contactCreationLinks = [
     { href: "/residents/add", label: "Add Resident", description: "Create a resident profile that will appear in chat contacts.", icon: "ri:user-add-line" },
     { href: "/guards/add", label: "Add Guard", description: "Register a guard and make them available in messaging.", icon: "ri:shield-user-line" },
-    { href: "/agency/add", label: "Add Agency", description: "Create an agency profile for operational conversations.", icon: "ri:building-line" },
+    { href: "/agencies/add", label: "Add Agency", description: "Create an agency profile for operational conversations.", icon: "ri:building-line" },
     { href: "/settings/admin/users", label: "Admin Users", description: "Manage platform admin accounts and access.", icon: "ri:admin-line" },
   ];
 

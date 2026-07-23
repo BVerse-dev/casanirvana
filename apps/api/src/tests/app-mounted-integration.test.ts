@@ -1987,6 +1987,32 @@ describe('Mounted app integration', () => {
     ]);
   });
 
+  it('updates a scoped agency directory and synchronizes its operational profile', async () => {
+    const app = await loadApp();
+    const agencyId = '11111111-1111-4111-8111-111111111111';
+
+    seedAuthenticatedAdmin({
+      permissions: ['update:all_profiles'],
+      role: 'agency_manager',
+      isGlobal: false,
+      agencyIds: [agencyId],
+    });
+
+    mockState.tables.agencies = [{ id: agencyId, name: 'Old Agency', email: 'old@agency.test', phone: '233300000001', address: 'Airport', city: 'Accra', state: 'Greater Accra', country: 'Ghana', postal_code: 'GA-001', is_active: true }];
+    mockState.tables.agency_profiles = [{ id: agencyId, name: 'Old Agency', email: 'old@agency.test', phone: '233300000001', address: 'Airport', city: 'Accra', state: 'Greater Accra', pincode: 'GA-001', status: 'active' }];
+
+    const response = await performMountedRequest(app, {
+      method: 'PATCH',
+      path: `/admin/agencies/directory/${agencyId}`,
+      headers: { Authorization: 'Bearer valid-token' },
+      body: { agency_name: 'Casa Operations', email: 'operations@casa.test', phone: '233300000009', address: 'Cantonments', city: 'Accra', state: 'Greater Accra', country: 'Ghana', postal_code: 'GA-009', contact_person_name: 'Ama Manager', contact_person_email: 'ama@casa.test', contact_person_phone: '233300000010', agency_type: 'RESIDENTIAL', employee_count: 12, is_active: true },
+    });
+
+    expect(response.status).toBe(200);
+    expect((response.body as any).data).toEqual(expect.objectContaining({ id: agencyId, name: 'Casa Operations', email: 'operations@casa.test' }));
+    expect(mockState.tables.agency_profiles?.[0]).toEqual(expect.objectContaining({ id: agencyId, name: 'Casa Operations', email: 'operations@casa.test', pincode: 'GA-009', total_agents: 12 }));
+  });
+
   it('returns scoped agency directory summary through the mounted admin route with truthful stats and activity', async () => {
     const app = await loadApp();
     const agencyId = '11111111-1111-4111-8111-111111111111';

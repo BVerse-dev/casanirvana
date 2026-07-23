@@ -173,9 +173,9 @@ const AgencyAdd = ({ formId = 'agency-directory-form' }: AgencyAddProps) => {
         ...data,
         employee_count: typeof data.employee_count === 'number' ? data.employee_count : undefined,
       })
-      await createAgencyDirectory.mutateAsync(payload as Record<string, unknown>)
+      const created = await createAgencyDirectory.mutateAsync(payload as Record<string, unknown>)
       reset()
-      router.push('/agency/list-view')
+      router.push(`/agencies/${created.agency.id}`)
     } catch (error) {
       console.error('Error creating agency:', error)
     }
@@ -545,7 +545,7 @@ const AgencyAdd = ({ formId = 'agency-directory-form' }: AgencyAddProps) => {
       </div>
 
       <div className="text-end">
-        <Button type="button" variant="outline-secondary" className="me-2" onClick={() => router.back()}>
+        <Button type="button" variant="outline-secondary" className="me-2" onClick={() => router.push('/agencies')}>
           <IconifyIcon icon="ri:arrow-left-line" className="me-1" />
           Cancel
         </Button>

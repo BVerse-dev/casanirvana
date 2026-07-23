@@ -144,7 +144,7 @@ export const MENU_ITEMS: MenuItemType[] = [
       {
         key: "add-agency",
         label: "Add Agency",
-        url: "/agency/add",
+        url: "/agencies/add",
         parentKey: "agency",
       },
       {

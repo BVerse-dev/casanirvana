@@ -1277,6 +1277,18 @@ export const schemas = {
       })
     ).min(1),
   }),
+  adminAgencyDirectoryUpdate: atLeastOne(
+    z.object({
+      agency_name: nonEmptyString.optional(), email: email.optional(), phone: nonEmptyString.optional(),
+      website: z.string().url().optional().nullable(), description: z.string().optional().nullable(),
+      address: nonEmptyString.optional(), city: nonEmptyString.optional(), state: nonEmptyString.optional(),
+      country: nonEmptyString.optional(), postal_code: nonEmptyString.optional(),
+      contact_person_name: nonEmptyString.optional(), contact_person_email: email.optional(),
+      contact_person_phone: nonEmptyString.optional(),
+      agency_type: z.enum(['RESIDENTIAL', 'COMMERCIAL', 'MIXED']).optional(),
+      employee_count: z.coerce.number().int().min(1).optional().nullable(), is_active: z.boolean().optional(),
+    })
+  ),
   adminAgencyProfileCreate: z.object({
     id: z.string().uuid(),
     name: nonEmptyString,

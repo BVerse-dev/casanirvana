@@ -33,7 +33,7 @@ const AgencyAddCard = ({ formId = 'agency-directory-form' }: AgencyAddCardProps)
         </CardBody>
         <CardFooter>
           <div className="d-flex gap-2">
-            <Link href="/agency/list-view" className="btn btn-outline-secondary btn-sm flex-fill">
+            <Link href="/agencies" className="btn btn-outline-secondary btn-sm flex-fill">
               <IconifyIcon icon="ri:arrow-left-line" className="me-1" />
               Back
             </Link>
