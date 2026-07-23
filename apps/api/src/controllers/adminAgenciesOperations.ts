@@ -340,18 +340,23 @@ export async function listAgencyDirectory(req: Request, res: Response, next: Nex
     const scope = await resolveAdminScope(req);
     const requestedAgencyId = parseUuidQueryParam(req, 'agency_id');
     const search = parseStringQueryParam(req, 'search');
+    const requestedPage = Number(req.query.page || 1);
+    const requestedLimit = Number(req.query.limit || 12);
+    const page = Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+    const pageSize = Number.isInteger(requestedLimit) && requestedLimit > 0 ? Math.min(requestedLimit, 100) : 12;
+    const status = req.query.status === 'active' || req.query.status === 'inactive' ? req.query.status : null;
 
     if (requestedAgencyId && !canAccessAgency(scope, requestedAgencyId)) {
       return next(toScopeError('Access denied for the requested agency.'));
     }
 
-    let query = supabase.from('agencies').select('*').order('created_at', { ascending: false });
+    let query = supabase.from('agencies').select('*', { count: 'exact' }).order('created_at', { ascending: false });
 
     if (requestedAgencyId) {
       query = query.eq('id', requestedAgencyId);
     } else if (!scope.isGlobal) {
       if (scope.agencyIds.length === 0) {
-        return res.json({ data: [] });
+        return res.json({ data: [], count: 0, page, pageSize, totalPages: 0 });
       }
       query = query.in('id', scope.agencyIds);
     }
@@ -360,12 +365,17 @@ export async function listAgencyDirectory(req: Request, res: Response, next: Nex
       query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%,address.ilike.%${search}%`);
     }
 
-    const { data, error } = await query;
+    if (status) {
+      query = query.eq('is_active', status === 'active');
+    }
+
+    const { data, error, count } = await query.range((page - 1) * pageSize, page * pageSize - 1);
     if (error) {
       return next(createHttpError(500, 'AGENCY_DIRECTORY_LIST_FAILED', 'Failed to fetch agency directory', error));
     }
 
-    return res.json({ data: data || [] });
+    const total = count ?? data?.length ?? 0;
+    return res.json({ data: data || [], count: total, page, pageSize, totalPages: Math.ceil(total / pageSize) });
   } catch (error) {
     next(error);
   }

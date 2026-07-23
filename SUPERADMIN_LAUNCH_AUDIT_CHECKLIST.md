@@ -274,6 +274,16 @@
 
 ## Session history
 
+### 2026-07-23 - Agencies unified directory vertical slice
+
+- Status: Implementation complete; automated evidence passed.
+- Canonical route: `/agencies?view=grid|list`, with grid as the first-visit default and browser preference persistence.
+- Legacy compatibility: `/agency/grid-view` and `/agency/list-view` permanently redirect to canonical view state.
+- Backend contract: one scoped `GET /admin/agencies/directory` query supplies normalized search, status and pagination data to both views.
+- Specialized boundary: `/agency/manage` and its capability-specific operational tabs remain available and unchanged.
+- Route inventory: temporarily 252 while canonical routes and legacy compatibility redirects coexist.
+- Acceptance evidence: 6/6 Agency directory and route contracts passed; the scoped mounted Agency directory test passed; API TypeScript build, Superadmin `build:check`, and standalone 243-page production build passed on 2026-07-23.
+
 ### 2026-07-23 - Guard details lifecycle vertical slice
 
 - Status: Implementation complete; automated evidence passed.

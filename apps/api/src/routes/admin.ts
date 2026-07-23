@@ -1102,7 +1102,7 @@ router.get(
   '/agencies/directory',
   requireAuth,
   requirePermission('read:all_profiles'),
-  validateRequest({ query: schemas.adminAgencyOperationsQuery }),
+  validateRequest({ query: schemas.adminAgencyDirectoryQuery }),
   adminAgenciesOperationsController.listAgencyDirectory
 );
 router.get(

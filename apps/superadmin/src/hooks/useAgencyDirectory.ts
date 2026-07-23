@@ -77,15 +77,29 @@ export type AgencyDirectorySummary = {
   }>;
 };
 
-type AgencyDirectoryFilters = {
+export type AgencyDirectoryFilters = {
   agencyId?: string;
   search?: string;
+  status?: string;
+  page?: number;
+  pageSize?: number;
+};
+
+export type AgencyDirectoryResponse = {
+  data: AgencyDirectoryItem[];
+  count: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
 };
 
 const buildQuery = (filters?: AgencyDirectoryFilters) => {
   const params = new URLSearchParams();
   if (filters?.agencyId) params.set("agency_id", filters.agencyId);
   if (filters?.search) params.set("search", filters.search);
+  if (filters?.status) params.set("status", filters.status);
+  if (filters?.page) params.set("page", String(filters.page));
+  if (filters?.pageSize) params.set("limit", String(filters.pageSize));
   const query = params.toString();
   return query ? `?${query}` : "";
 };
@@ -107,11 +121,33 @@ const mapAgencyDirectoryRecord = (agency: AgencyDirectoryApiRecord): AgencyDirec
   },
 });
 
-export const useListAgenciesDirectory = (filters?: AgencyDirectoryFilters) => {
+export const usePaginatedAgenciesDirectory = (filters?: AgencyDirectoryFilters) => {
   const { fetchAdmin, hasToken } = useAdminApi();
 
   return useQuery({
     queryKey: ["agencies-directory", filters || {}],
+    enabled: hasToken,
+    queryFn: async () => {
+      const payload = await fetchAdmin<{ data: AgencyDirectoryApiRecord[]; count?: number; page?: number; pageSize?: number; totalPages?: number }>(
+        `/admin/agencies/directory${buildQuery(filters)}`
+      );
+      const data = (payload.data || []).map(mapAgencyDirectoryRecord);
+      return {
+        data,
+        count: payload.count ?? data.length,
+        page: payload.page ?? filters?.page ?? 1,
+        pageSize: payload.pageSize ?? filters?.pageSize ?? data.length,
+        totalPages: payload.totalPages ?? (data.length > 0 ? 1 : 0),
+      } satisfies AgencyDirectoryResponse;
+    },
+  });
+};
+
+export const useListAgenciesDirectory = (filters?: Pick<AgencyDirectoryFilters, "agencyId" | "search">) => {
+  const { fetchAdmin, hasToken } = useAdminApi();
+
+  return useQuery({
+    queryKey: ["agencies-directory", "legacy-list", filters || {}],
     enabled: hasToken,
     queryFn: async () => {
       const payload = await fetchAdmin<{ data: AgencyDirectoryApiRecord[] }>(

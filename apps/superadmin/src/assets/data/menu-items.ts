@@ -132,19 +132,13 @@ export const MENU_ITEMS: MenuItemType[] = [
   },
   {
     key: "agency",
-    label: "Agency",
+    label: "Agencies",
     icon: "ri:building-4-line",
     children: [
       {
-        key: "agency-list-view",
-        label: "List View",
-        url: "/agency/list-view",
-        parentKey: "agency",
-      },
-      {
-        key: "agency-grid-view",
-        label: "Grid View",
-        url: "/agency/grid-view",
+        key: "agencies-directory",
+        label: "All Agencies",
+        url: "/agencies",
         parentKey: "agency",
       },
       {

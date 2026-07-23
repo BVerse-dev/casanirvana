@@ -1233,6 +1233,10 @@ export const schemas = {
     agency_id: z.string().uuid().optional(),
     search: optionalString,
   }),
+  adminAgencyDirectoryQuery: pageLimitQuery.merge(withSearchQuery).extend({
+    agency_id: z.string().uuid().optional(),
+    status: z.enum(['active', 'inactive']).optional(),
+  }),
   adminAgencyDirectoryCreate: z.object({
     agency_name: nonEmptyString,
     email,
