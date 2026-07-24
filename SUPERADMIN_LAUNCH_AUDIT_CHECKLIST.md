@@ -429,7 +429,7 @@
 - Corrected blank Type cells by resolving `equipment_type`, legacy `category`, and legacy `type` fields without rewriting data.
 - Added readable equipment identity, condition and lifecycle presentation; aligned status controls with live `available`, `assigned`, `maintenance`, `retired`, and `lost` values while preserving legacy `active` support.
 - Exposed backend-supported brand, model, condition, purchase, warranty and next-maintenance fields, plus equipment-specific action wording and destructive confirmation.
-- Acceptance evidence pending: production build, deployment and non-mutating Codex browser verification.
+- Acceptance evidence: Superadmin production build passed with 244 generated pages; commit `91ffbca7` deployed successfully; the production Codex browser confirmed resolved legacy Type values, brand/model, condition and lifecycle presentation, expanded inventory/maintenance modal controls, safe close without mutation, responsive navigation to Performance, and zero warning/error logs.
 
 ### 2026-07-24 - Guard Schedules and Shifts workspace audit
 

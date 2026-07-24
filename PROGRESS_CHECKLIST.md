@@ -1980,7 +1980,7 @@ Date: 2026-02-06
 - [x] Verified there is no historical demo Equipment page to restore and retained the existing workspace and live records.
 - [x] Audited equipment endpoints, authorization scope and validation.
 - [x] Corrected legacy type-field display, aligned live lifecycle statuses and exposed condition/identity/maintenance controls.
-- [ ] Record production deployment and Codex browser evidence before closing the Equipment tab.
+- [x] Production deployment and non-mutating Codex browser evidence recorded for Equipment, including legacy-field display, expanded controls, responsive navigation and zero warning/error logs.
 
 ### 2026-07-24 - Guard Schedules and Shifts workspace
 
