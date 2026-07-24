@@ -129,13 +129,20 @@ const ResidentAddEnhanced = ({
     }
   }, [selectedCommunityFromForm])
 
-  const formValues = watch()
+  React.useEffect(() => {
+    onFormChangeRef.current = onFormChange
+  }, [onFormChange])
+
+  const onFormChangeRef = React.useRef(onFormChange)
 
   React.useEffect(() => {
-    if (onFormChange) {
-      onFormChange(formValues)
-    }
-  }, [formValues, onFormChange])
+    onFormChangeRef.current?.(watch())
+    const subscription = watch((values) => {
+      onFormChangeRef.current?.(values as CreateResidentData)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [watch])
 
   const onSubmit = async (data: CreateResidentData) => {
     if (onSubmittingChange) {
