@@ -2195,7 +2195,7 @@ Date: 2026-02-06
 - [x] Reconciled the selected-agency staff workspace with its scoped backend and database contract without redesigning the shared UI.
 - [x] Added missing supported joining/reporting fields, readable status presentation, numeric constraints and clear Staff Member actions.
 - [x] Confirmed the retired standalone route contained no separate demo implementation to restore.
-- [ ] Record production deployment and Codex browser evidence before closing the Agency Staff Management tab.
+- [x] Production commit `9f5aaaa1` deployed successfully; Codex browser evidence confirmed the truthful empty state, complete staff controls, numeric limits, safe close, selected-agency Services navigation and zero browser warnings/errors without production mutations.
 
 ### 2026-07-24 - Agencies canonical directory presentation
 

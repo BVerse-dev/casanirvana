@@ -508,7 +508,7 @@
 - [x] Confirmed the historical route was only a wrapper around the shared Agency operations workspace; no separate demo page exists to restore.
 - [x] Preserved the truthful empty state for an agency without staff records and retained backend-authorized destructive actions.
 - [x] Added supported joining-date/reporting-manager controls, readable status values, salary/commission constraints and explicit Staff Member action labels.
-- Acceptance evidence pending: production build, deployment and non-mutating Codex browser verification.
+- Acceptance evidence: the Superadmin production build generated all 244 routes; commit `9f5aaaa1` deployed successfully; the Codex browser confirmed the truthful no-staff state, explicit Add Staff Member action, joining/reporting controls, salary/commission constraints, safe modal close, selected-agency navigation to Services Management and zero browser warnings/errors without mutating production data.
 
 ### 2026-07-24 - Agencies canonical directory presentation audit
 
