@@ -581,6 +581,9 @@ const AgencyDocumentsSection = ({ agencyId }: { agencyId?: string }) => {
       id="agency-documents-workspace"
       title="Documents & Records"
       subTitle="Agency document management with scoped access enforcement."
+      itemLabel="Agency Document"
+      createLabel="Add Agency Document"
+      editLabel="Edit Agency Document"
       rows={documentsQuery.data || []}
       isLoading={documentsQuery.isLoading || agenciesQuery.isLoading}
       error={toErrorText(documentsQuery.error) || toErrorText(agenciesQuery.error)}

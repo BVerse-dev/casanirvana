@@ -2211,6 +2211,13 @@ Date: 2026-02-06
 - [x] Confirmed the retired standalone route contained no separate demo implementation to restore.
 - [x] Production evidence recorded: implementation commit `3b554752` deployed successfully; the Agency Finance & Billing workspace showed the truthful empty-ledger state, exposed the complete constrained transaction form, closed without mutation, and routed to Documents & Records with zero browser warnings or errors. The Superadmin production build generated all 244 routes.
 
+### 2026-07-24 - Agency Documents & Records workspace
+
+- [x] Confirmed the dedicated Documents route has no separate historical demo implementation and correctly delegates to the approved shared Agency workspace.
+- [x] Audited the scoped document metadata form and truthful empty state without mutating production data.
+- [x] Replaced generic Add/Edit language with explicit Agency Document actions while preserving the established UI and backend contract.
+- [ ] Record production deployment and Codex browser evidence before closing the Agency Documents & Records tab.
+
 ### 2026-07-24 - Agencies canonical directory presentation
 
 - [x] Reused the approved historical Agency card markup instead of inventing a replacement design.

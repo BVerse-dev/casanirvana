@@ -526,6 +526,13 @@
 - [x] Added readable dates/types/statuses, Ghana-cedi amount formatting, controlled transaction/status options, positive amount validation and explicit Finance Transaction actions.
 - Acceptance evidence: the Superadmin production build generated all 244 routes; implementation commit `3b554752` deployed successfully; the production Agency Finance & Billing workspace displayed the truthful empty-ledger state for Metro Realty, exposed the complete add-transaction form with constrained GHS amount input (`min=0.01`, `step=0.01`), closed without mutation, and navigated to Documents & Records with zero browser warnings or errors.
 
+### 2026-07-24 - Agency Documents & Records workspace audit
+
+- [x] Confirmed `/agency/documents` has always been a thin route wrapper around the shared Agency operations workspace; no separate historical demo page exists to restore.
+- [x] Audited the production Documents & Records tab for Metro Realty and confirmed the truthful empty state, scoped agency selection, document metadata fields, confidentiality and approval controls, and zero browser warnings or errors.
+- [x] Preserved the approved shared workspace design and replaced generic CRUD language with explicit Agency Document create/edit labels.
+- [ ] Acceptance evidence pending: production build, deployment and non-mutating Codex browser verification.
+
 ### 2026-07-24 - Agencies canonical directory presentation audit
 
 - [x] Audited authenticated production grid data, canonical routes, actions, filter controls and zero-warning baseline against the scoped Agency directory API.
