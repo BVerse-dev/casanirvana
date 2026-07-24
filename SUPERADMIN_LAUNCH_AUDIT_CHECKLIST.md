@@ -440,3 +440,9 @@
 
 - Restored the approved pre-consolidation Unit overview composition while retaining /units/{id}, /units/{id}/edit, backend-owned data, scoped authorization, and truthful missing-data states.
 - No database schema, API contract, directory view-state, or mutation behavior changed in this slice.
+
+### 2026-07-24 - Unit create/edit visual-parity recovery
+
+- Preserved the approved image-preview card, two-column information form, amenities card and quick-action panel for both canonical Unit create and edit routes.
+- Removed demo-era preview values and create defaults; the preview now reflects the selected live Community and current form values with truthful empty states.
+- Retained scoped create/update mutations, live Community selection, edit hydration, validation and canonical post-save routing.

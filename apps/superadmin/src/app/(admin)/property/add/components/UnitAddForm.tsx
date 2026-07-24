@@ -59,13 +59,7 @@ const UnitAddForm = ({ unitId }: { unitId?: string }) => {
   const { handleSubmit, control, register, reset, setValue, watch } = useForm({
     resolver: yupResolver(unitSchema),
     defaultValues: {
-      type: "2bhk",
-      bedrooms: 2,
-      bathrooms: 2,
-      area: undefined,
-      floor: 3,
       status: "vacant",
-      rent_amount: 25000,
       parking: false,
       gym: false,
       swimming_pool: false,
@@ -134,8 +128,8 @@ const UnitAddForm = ({ unitId }: { unitId?: string }) => {
         block: data.unit_number.split('-')[0] || 'A', // Extract block from unit number
         number: data.unit_number.split('-')[1] || data.unit_number, // Extract number
         floor_area: data.area,
-        bedrooms: data.bedrooms || 2,
-        bathrooms: data.bathrooms || 2,
+        bedrooms: data.bedrooms ?? null,
+        bathrooms: data.bathrooms ?? null,
         // Additional fields for extended schema
         unit_number: data.unit_number,
         unit_name: data.unit_name,
@@ -175,10 +169,16 @@ const UnitAddForm = ({ unitId }: { unitId?: string }) => {
   }
 
   const isSaving = createUnitMutation.isPending || updateUnitMutation.isPending;
+  const selectedCommunity = communities.find(
+    (community) => community.id === watchedValues.community_id
+  );
 
   return (
     <Row>
-      <UnitAddCard formData={watchedValues} />
+      <UnitAddCard
+        formData={watchedValues}
+        communityName={selectedCommunity?.name || undefined}
+      />
       <Col xl={9} lg={8}>
         <form onSubmit={handleSubmit(onSubmit)}>
           <Card>

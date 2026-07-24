@@ -2135,3 +2135,8 @@ Date: 2026-02-06
 - [ ] Complete Community lifecycle and Join Requests visual restoration.
 - [ ] Complete Residents, Guards, and Agencies visual restoration.
 - [ ] Complete dashboard visual restoration and production signoff.
+
+### 2026-07-24 - Phase 52 Unit create/edit visual recovery
+
+- [x] Preserved the approved Unit create/edit composition while removing sample Unit, Bangalore, dollar currency and fabricated form defaults.
+- [x] Kept canonical routes, live Community selection, scoped mutations and post-save behavior unchanged.
