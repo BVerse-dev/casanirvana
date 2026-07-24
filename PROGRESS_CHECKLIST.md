@@ -2037,7 +2037,7 @@ Date: 2026-02-06
 - [x] Recorded passing Agency directory evidence: 6 directory/route contracts, scoped mounted backend test, API build, Superadmin `build:check`, and standalone 243-page production build.
 - [x] Normalized Agency create/details/edit to `/agencies/add`, `/agencies/{id}` and `/agencies/{id}/edit`, including scoped base/profile synchronization and legacy redirects (2026-07-23).
 - [x] Recorded passing Agency lifecycle evidence: 9 lifecycle/directory/route contracts, scoped mounted synchronization test, API build, Superadmin `build:check`, and standalone 244-page production build.
-- [ ] Record authenticated production browser evidence for the Agency lifecycle. Directory grid/list evidence is pending deployment verification.
+- [ ] Record authenticated production browser evidence for the Agency lifecycle. Directory grid/list evidence is complete under commit `79207321`.
 - [ ] Retire or redirect inherited/demo routes only after each route receives an explicit disposition and compatibility check.
 
 ## Phase 53 - Backend and Database Release Hardening
@@ -2182,7 +2182,7 @@ Date: 2026-02-06
 - [x] Reused the approved historical Agency card markup instead of inventing a replacement design.
 - [x] Restored banner images, avatars, descriptions, metadata, contact/social actions and the original action menu around live scoped Agency records.
 - [x] Retained canonical routes, query state, backend pagination, search/status filters, grid/list toggle and mutations.
-- [ ] Record production deployment and Codex browser evidence before closing the directory presentation slice.
+- [x] Production commit `79207321` deployed successfully; Codex browser evidence confirmed 11 restored image cards, canonical non-mutating action targets, isolated table-based list mode and zero browser warnings/errors.
 - [ ] Complete dashboard visual restoration and production signoff.
 
 ### 2026-07-24 - Phase 52 Unit create/edit visual recovery

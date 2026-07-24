@@ -492,7 +492,7 @@
 - [x] Restored the approved historical banner-image, avatar, description, directory metadata, social/contact and card-action presentation inside the canonical grid.
 - [x] Preserved server-backed search/status filtering, pagination ownership, grid/list URL state, Add Agency, Agency Workspace and canonical detail/manage links.
 - [x] Kept the existing canonical list table unchanged so view switching does not force grid layout into list mode.
-- Acceptance evidence pending: production build, deployment and non-mutating Codex browser verification of both views.
+- Acceptance evidence: the Superadmin production build generated all 244 routes; commit `79207321` deployed successfully; the Codex browser confirmed 11 scoped agency cards with banner images and restored content, canonical View/Manage/Delete actions, a card-free list table at `?view=list`, preserved view controls and zero browser warnings/errors without mutating production data.
 - [ ] Restore and sign off Casa Nirvana, Residents, and Guards dashboard presentation.
 - [ ] Record authenticated production browser evidence for every restored slice.
 
