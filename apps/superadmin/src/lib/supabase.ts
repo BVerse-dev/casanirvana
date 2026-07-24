@@ -10,8 +10,11 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
-    autoRefreshToken: true,
-    persistSession: true,
+    // NextAuth owns access/refresh token rotation for the Superadmin.
+    // Persisting and auto-refreshing the same one-time Supabase refresh token
+    // here can invalidate the copy held in the encrypted NextAuth session.
+    autoRefreshToken: false,
+    persistSession: false,
     detectSessionInUrl: true,
   },
   realtime: {

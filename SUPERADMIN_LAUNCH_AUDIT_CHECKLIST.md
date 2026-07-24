@@ -446,3 +446,10 @@
 - Preserved the approved image-preview card, two-column information form, amenities card and quick-action panel for both canonical Unit create and edit routes.
 - Removed demo-era preview values and create defaults; the preview now reflects the selected live Community and current form values with truthful empty states.
 - Retained scoped create/update mutations, live Community selection, edit hydration, validation and canonical post-save routing.
+
+### 2026-07-24 - Superadmin expired-session recovery
+
+- Confirmed from production backend logs that a refreshed page repeatedly sent an invalid Supabase access token and did not recover.
+- Assigned Supabase refresh-token ownership exclusively to NextAuth by disabling browser-side persistence and automatic rotation for the shared Superadmin Supabase client.
+- Added one deduplicated shared API recovery attempt on 401; a successfully refreshed token retries the original request once, while an unrecoverable session is cleared and redirected to sign-in instead of polling indefinitely.
+- Protected queries now wait for an authenticated NextAuth session rather than running for unauthenticated state.

@@ -2140,3 +2140,8 @@ Date: 2026-02-06
 
 - [x] Preserved the approved Unit create/edit composition while removing sample Unit, Bangalore, dollar currency and fabricated form defaults.
 - [x] Kept canonical routes, live Community selection, scoped mutations and post-save behavior unchanged.
+
+### 2026-07-24 - Phase 52 expired-session recovery
+
+- [x] Diagnosed the production refresh failure as competing NextAuth/browser Supabase refresh-token ownership.
+- [x] Made NextAuth the sole refresh owner and added centralized one-retry/clean-sign-out handling for protected API 401 responses.

@@ -1,8 +1,9 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
+import { getSession, signOut, useSession } from 'next-auth/react';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+let sessionRecoveryInFlight: Promise<string | null> | null = null;
 
 const extractErrorMessage = (payload: any) => {
   if (typeof payload?.error === 'string' && payload.error.trim().length > 0) {
@@ -52,8 +53,32 @@ export const useAdminApi = () => {
     return resolvedToken;
   };
 
-  const fetchAdmin = async <T = any>(path: string, options: RequestInit = {}): Promise<T> => {
-    const resolvedToken = await resolveToken();
+  const recoverSessionToken = async (expiredToken: string) => {
+    if (!sessionRecoveryInFlight) {
+      sessionRecoveryInFlight = getSession()
+        .then((refreshedSession) => {
+          const refreshedToken =
+            typeof refreshedSession?.accessToken === 'string'
+              ? refreshedSession.accessToken
+              : null;
+
+          return refreshedToken && refreshedToken !== expiredToken
+            ? refreshedToken
+            : null;
+        })
+        .finally(() => {
+          sessionRecoveryInFlight = null;
+        });
+    }
+
+    return sessionRecoveryInFlight;
+  };
+
+  const requestWithToken = async (
+    path: string,
+    options: RequestInit,
+    resolvedToken: string,
+  ) => {
     const headers = new Headers(options.headers || {});
     const isFormDataBody = typeof FormData !== 'undefined' && options.body instanceof FormData;
 
@@ -63,12 +88,31 @@ export const useAdminApi = () => {
 
     headers.set('Authorization', `Bearer ${resolvedToken}`);
 
-    const response = await fetch(`${API_BASE_URL}${path}`, {
+    return fetch(`${API_BASE_URL}${path}`, {
       ...options,
       headers,
     });
+  };
 
-    const payload = await response.json().catch(() => ({}));
+  const fetchAdmin = async <T = any>(path: string, options: RequestInit = {}): Promise<T> => {
+    const resolvedToken = await resolveToken();
+    let response = await requestWithToken(path, options, resolvedToken);
+    let payload = await response.json().catch(() => ({}));
+
+    if (response.status === 401) {
+      const recoveredToken = await recoverSessionToken(resolvedToken);
+
+      if (recoveredToken) {
+        response = await requestWithToken(path, options, recoveredToken);
+        payload = await response.json().catch(() => ({}));
+      }
+
+      if (response.status === 401 || !recoveredToken) {
+        await signOut({ callbackUrl: '/auth/sign-in', redirect: true });
+        throw new Error('Your session has expired. Please sign in again.');
+      }
+    }
+
     if (!response.ok) {
       throw new Error(extractErrorMessage(payload));
     }
@@ -78,6 +122,6 @@ export const useAdminApi = () => {
 
   return {
     fetchAdmin,
-    hasToken: status !== 'loading',
+    hasToken: status === 'authenticated',
   };
 };
