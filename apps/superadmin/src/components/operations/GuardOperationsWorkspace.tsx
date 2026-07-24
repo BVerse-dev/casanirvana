@@ -86,6 +86,10 @@ const renderOperationalStatusBadge = (status: unknown) => {
     ? "success"
     : normalized === "completed"
       ? "primary"
+      : normalized === "scheduled"
+        ? "info"
+        : normalized === "cancelled"
+          ? "danger"
       : normalized === "inactive"
         ? "secondary"
         : "warning";
@@ -274,17 +278,36 @@ const GuardSchedulesSection = () => {
       label: "Community",
       render: (row) => communityMap.get(String(row.community_id || "")) || "—",
     },
-    { key: "assigned_date", label: "Assigned Date" },
-    { key: "shift_type", label: "Shift Type" },
-    { key: "start_time", label: "Start Time" },
-    { key: "end_time", label: "End Time" },
-    { key: "status", label: "Status" },
+    {
+      key: "shift_type",
+      label: "Shift",
+      render: (row) => (
+        <div>
+          <div className="fw-semibold">{titleCase(row.shift_type)}</div>
+          <small className="text-muted">{formatTime(row.start_time)}–{formatTime(row.end_time)}</small>
+        </div>
+      ),
+    },
+    {
+      key: "assigned_date",
+      label: "Schedule Period",
+      render: (row) => (
+        <span>{formatDate(row.assigned_date)}{row.end_date ? ` – ${formatDate(row.end_date)}` : " – Ongoing"}</span>
+      ),
+    },
+    {
+      key: "post_location",
+      label: "Post",
+      render: (row) => row.post_location || "Post not set",
+    },
+    { key: "status", label: "Status", render: (row) => renderOperationalStatusBadge(row.status) },
   ];
 
   const fields: CrudField[] = [
     { key: "guard_id", label: "Guard", type: "select", required: true, options: guardOptions },
     { key: "community_id", label: "Community", type: "select", options: communityOptions },
-    { key: "assigned_date", label: "Assigned Date", type: "date", required: true, initialValue: today },
+    { key: "assigned_date", label: "Start Date", type: "date", required: true, initialValue: today },
+    { key: "end_date", label: "End Date", type: "date" },
     {
       key: "shift_type",
       label: "Shift Type",
@@ -319,7 +342,7 @@ const GuardSchedulesSection = () => {
     <AdminCrudSection
       id="guards-schedules-workspace"
       title="Schedules & Shifts"
-      subTitle="Create and maintain guard shift schedules with tenant scope controls."
+      subTitle="Plan guard shifts, post coverage and schedule periods within your authorized communities."
       rows={schedulesQuery.data || []}
       isLoading={schedulesQuery.isLoading || profilesQuery.isLoading || communitiesQuery.isLoading}
       error={
@@ -337,6 +360,11 @@ const GuardSchedulesSection = () => {
         profilesQuery.refetch();
         communitiesQuery.refetch();
       }}
+      itemLabel="Schedule"
+      createLabel="Add Schedule"
+      deleteConfirmation={(row) =>
+        `Delete the ${titleCase(row.shift_type)} schedule for ${guardMap.get(String(row.guard_id || "")) || "this guard"}? This permanently removes the schedule record.`
+      }
       emptyText="No schedules found."
     />
   );
