@@ -2209,7 +2209,7 @@ Date: 2026-02-06
 - [x] Reconciled the selected-agency finance ledger with its scoped backend and authoritative transaction table without redesigning the shared UI.
 - [x] Added readable financial presentation, GHS formatting, controlled transaction/status values, amount validation and explicit Finance Transaction actions.
 - [x] Confirmed the retired standalone route contained no separate demo implementation to restore.
-- [ ] Record production deployment and Codex browser evidence before closing the Agency Finance & Billing tab.
+- [x] Production evidence recorded: implementation commit `3b554752` deployed successfully; the Agency Finance & Billing workspace showed the truthful empty-ledger state, exposed the complete constrained transaction form, closed without mutation, and routed to Documents & Records with zero browser warnings or errors. The Superadmin production build generated all 244 routes.
 
 ### 2026-07-24 - Agencies canonical directory presentation
 

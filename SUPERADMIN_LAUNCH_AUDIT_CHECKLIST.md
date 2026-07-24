@@ -524,7 +524,7 @@
 - [x] Confirmed the historical route was only a wrapper around the shared Agency operations workspace; no separate demo page exists to restore.
 - [x] Preserved the truthful empty ledger, complete supported fields and intentional absence of a delete action.
 - [x] Added readable dates/types/statuses, Ghana-cedi amount formatting, controlled transaction/status options, positive amount validation and explicit Finance Transaction actions.
-- Acceptance evidence pending: production build, deployment and non-mutating Codex browser verification.
+- Acceptance evidence: the Superadmin production build generated all 244 routes; implementation commit `3b554752` deployed successfully; the production Agency Finance & Billing workspace displayed the truthful empty-ledger state for Metro Realty, exposed the complete add-transaction form with constrained GHS amount input (`min=0.01`, `step=0.01`), closed without mutation, and navigated to Documents & Records with zero browser warnings or errors.
 
 ### 2026-07-24 - Agencies canonical directory presentation audit
 
