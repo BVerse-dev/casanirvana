@@ -2037,7 +2037,7 @@ Date: 2026-02-06
 - [x] Recorded passing Agency directory evidence: 6 directory/route contracts, scoped mounted backend test, API build, Superadmin `build:check`, and standalone 243-page production build.
 - [x] Normalized Agency create/details/edit to `/agencies/add`, `/agencies/{id}` and `/agencies/{id}/edit`, including scoped base/profile synchronization and legacy redirects (2026-07-23).
 - [x] Recorded passing Agency lifecycle evidence: 9 lifecycle/directory/route contracts, scoped mounted synchronization test, API build, Superadmin `build:check`, and standalone 244-page production build.
-- [ ] Record authenticated production browser evidence for the Agency lifecycle. Directory grid/list evidence is complete under commit `79207321`.
+- [x] Recorded authenticated production browser evidence for the complete Agency directory and lifecycle without mutating production data.
 - [ ] Retire or redirect inherited/demo routes only after each route receives an explicit disposition and compatibility check.
 
 ## Phase 53 - Backend and Database Release Hardening
@@ -2175,7 +2175,13 @@ Date: 2026-02-06
 - [x] Restored the canonical Unit details page composition using the live Unit/Community/Owner response.
 - [ ] Complete Unit create/edit visual restoration.
 - [ ] Complete Community lifecycle and Join Requests visual restoration.
-- [ ] Complete Residents, Guards, and Agencies visual restoration. Residents and Guards are signed off; Agencies directory restoration is implemented and its details/create/edit signoff remains.
+- [x] Completed Residents, Guards, and Agencies visual restoration and authenticated production signoff.
+
+### 2026-07-24 - Agency lifecycle presentation signoff
+
+- [x] Verified the existing approved details banner, overview cards, six-tab information architecture and canonical actions against live scoped data.
+- [x] Verified the full multi-card create experience and hydrated focused edit experience without form submission.
+- [x] Confirmed zero browser warnings/errors across details, create and edit routes; no speculative UI rewrite or backend change was required.
 
 ### 2026-07-24 - Agencies canonical directory presentation
 

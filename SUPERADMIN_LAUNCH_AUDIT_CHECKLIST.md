@@ -484,7 +484,15 @@
 - [ ] Restore and sign off Join Requests presentation.
 - [ ] Restore and sign off Residents directory/details/create/edit presentation.
 - [ ] Restore and sign off Guards details presentation.
-- [ ] Restore and sign off Agencies directory/details/create/edit presentation. Directory grid restoration is implemented; production evidence and lifecycle-page signoff remain.
+- [x] Restored and signed off Agencies directory/details/create/edit presentation with authenticated production evidence.
+
+### 2026-07-24 - Agency details/create/edit presentation signoff
+
+- [x] Confirmed the canonical details page still composes the approved image banner, rich overview, operational snapshot, quick actions and tabbed presentation around live scoped data.
+- [x] Verified Overview, Communities, Analytics, Financials, Activities and Management surfaces without changing production records.
+- [x] Confirmed `/agencies/add` reuses the approved multi-card form for basic, address, contact, community, operational and social data.
+- [x] Confirmed `/agencies/{id}/edit` hydrates the selected agency and preserves the focused identity/contact edit contract and canonical save/cancel routing.
+- Acceptance evidence: authenticated Codex browser checks on Metro Realty Group confirmed the live banner, all five secondary tabs, canonical actions, full create form, hydrated edit form and zero browser warnings/errors without submitting either form.
 
 ### 2026-07-24 - Agencies canonical directory presentation audit
 
