@@ -422,6 +422,15 @@
 
 ## Phase 52 Visual-Parity Recovery Track
 
+### 2026-07-24 - Guard Performance workspace audit
+
+- Confirmed repository history contains no pre-Phase 34 demo Performance page; retained the existing workspace and all live evaluation records.
+- Audited scoped performance reads and create/update mutations against `GET/POST /admin/guards/performance` and `PATCH /admin/guards/performance/:id`, permissions and validation.
+- Removed the unsupported status control and replaced blank Status/Reviewed By columns with backend-owned evaluation period and evaluator metadata.
+- Added readable evaluation dates and bounded 0–100 score presentation and validation across operational scoring dimensions.
+- Exposed backend-supported commendations, areas of improvement, improvement plan and follow-up date fields with review-specific action wording.
+- Acceptance evidence pending: production build, deployment and non-mutating Codex browser verification.
+
 ### 2026-07-24 - Guard Equipment Management workspace audit
 
 - Confirmed repository history contains no pre-Phase 34 demo Equipment page; retained the existing workspace and all live database records.

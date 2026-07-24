@@ -26,6 +26,9 @@ export type CrudField = {
   options?: CrudOption[];
   helpText?: string;
   initialValue?: string | number | boolean;
+  min?: number;
+  max?: number;
+  step?: number;
   fromValue?: (value: unknown, row: Record<string, any> | null) => string | boolean;
   toPayload?: (value: string | boolean, row: Record<string, any> | null) => unknown;
 };
@@ -151,6 +154,22 @@ const AdminCrudSection = ({
         initialState[field.key] = initialValue;
       } else {
         initialState[field.key] = "";
+      }
+
+      if (field.type === "number" && typeof value === "string" && value.trim()) {
+        const numericValue = Number(value);
+        if (!Number.isFinite(numericValue)) {
+          setModalError(`${field.label} must be a valid number.`);
+          return;
+        }
+        if (field.min !== undefined && numericValue < field.min) {
+          setModalError(`${field.label} must be at least ${field.min}.`);
+          return;
+        }
+        if (field.max !== undefined && numericValue > field.max) {
+          setModalError(`${field.label} must be no more than ${field.max}.`);
+          return;
+        }
       }
     }
     setModalMode("create");
@@ -424,6 +443,9 @@ const AdminCrudSection = ({
                       ) : (
                         <Form.Control
                           type={field.type}
+                          min={field.min}
+                          max={field.max}
+                          step={field.step}
                           value={String(formState[field.key] ?? "")}
                           placeholder={field.placeholder}
                           onChange={(event) => handleChange(field, event.currentTarget.value)}

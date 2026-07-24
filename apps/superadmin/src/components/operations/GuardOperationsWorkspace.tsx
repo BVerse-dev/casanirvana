@@ -110,6 +110,18 @@ const renderOperationalStatusBadge = (status: unknown) => {
   );
 };
 
+const renderPerformanceScore = (score: unknown) => {
+  if (score === null || score === undefined || score === "") return "—";
+  const numericScore = Number(score);
+  if (!Number.isFinite(numericScore)) return String(score);
+  const variant = numericScore >= 80 ? "success" : numericScore >= 60 ? "warning" : "danger";
+  return (
+    <Badge bg={`${variant}-subtle`} text={variant}>
+      {numericScore.toFixed(Number.isInteger(numericScore) ? 0 : 1)}/100
+    </Badge>
+  );
+};
+
 const toErrorText = (error: unknown) => (error instanceof Error ? error.message : null);
 
 export type GuardSectionKey = (typeof GUARD_TABS)[number]["key"];
@@ -680,41 +692,45 @@ const GuardPerformanceSection = () => {
       label: "Guard",
       render: (row) => guardMap.get(String(row.guard_id || "")) || "—",
     },
-    { key: "evaluation_date", label: "Evaluation Date" },
-    { key: "overall_score", label: "Overall Score" },
-    { key: "status", label: "Status" },
-    { key: "reviewed_by", label: "Reviewed By" },
+    { key: "evaluation_date", label: "Evaluation Date", render: (row) => formatDate(row.evaluation_date) },
+    {
+      key: "evaluation_period",
+      label: "Period",
+      render: (row) => row.evaluation_period || "Not specified",
+    },
+    { key: "overall_score", label: "Overall Score", render: (row) => renderPerformanceScore(row.overall_score) },
+    {
+      key: "reviewed_by",
+      label: "Evaluator",
+      render: (row) => row.evaluator || row.reviewed_by || "Not recorded",
+    },
   ];
 
   const fields: CrudField[] = [
     { key: "guard_id", label: "Guard", type: "select", required: true, options: guardOptions },
     { key: "evaluation_date", label: "Evaluation Date", type: "date", required: true },
-    { key: "overall_score", label: "Overall Score", type: "number" },
-    { key: "attendance_score", label: "Attendance Score", type: "number" },
-    { key: "punctuality_score", label: "Punctuality Score", type: "number" },
-    { key: "professionalism_score", label: "Professionalism Score", type: "number" },
-    {
-      key: "status",
-      label: "Status",
-      type: "select",
-      initialValue: "active",
-      options: [
-        { label: "Active", value: "active" },
-        { label: "Needs Improvement", value: "needs_improvement" },
-        { label: "Probation", value: "probation" },
-        { label: "Suspended", value: "suspended" },
-      ],
-    },
-    { key: "reviewed_by", label: "Reviewed By", type: "text" },
+    { key: "evaluation_period", label: "Evaluation Period", type: "text", placeholder: "Q3 2026 or July 2026" },
+    { key: "evaluator", label: "Evaluator", type: "text" },
+    { key: "overall_score", label: "Overall Score", type: "number", min: 0, max: 100, step: 0.1 },
+    { key: "attendance_score", label: "Attendance Score", type: "number", min: 0, max: 100, step: 0.1 },
+    { key: "punctuality_score", label: "Punctuality Score", type: "number", min: 0, max: 100, step: 0.1 },
+    { key: "discipline_score", label: "Discipline Score", type: "number", min: 0, max: 100, step: 0.1 },
+    { key: "vigilance_score", label: "Vigilance Score", type: "number", min: 0, max: 100, step: 0.1 },
+    { key: "communication_score", label: "Communication Score", type: "number", min: 0, max: 100, step: 0.1 },
+    { key: "reliability_score", label: "Reliability Score", type: "number", min: 0, max: 100, step: 0.1 },
+    { key: "professionalism_score", label: "Professionalism Score", type: "number", min: 0, max: 100, step: 0.1 },
     { key: "feedback", label: "Feedback", type: "textarea" },
+    { key: "commendations", label: "Commendations", type: "textarea" },
+    { key: "areas_of_improvement", label: "Areas of Improvement", type: "textarea" },
     { key: "improvement_plan", label: "Improvement Plan", type: "textarea" },
+    { key: "follow_up_date", label: "Follow-up Date", type: "date" },
   ];
 
   return (
     <AdminCrudSection
       id="guards-performance-workspace"
       title="Guard Performance"
-      subTitle="Capture and review guard performance records."
+      subTitle="Record scoped guard evaluations, operational scores, feedback and follow-up actions."
       rows={performanceQuery.data || []}
       isLoading={performanceQuery.isLoading || profilesQuery.isLoading}
       error={toErrorText(performanceQuery.error) || toErrorText(profilesQuery.error)}
@@ -727,6 +743,9 @@ const GuardPerformanceSection = () => {
         performanceQuery.refetch();
         profilesQuery.refetch();
       }}
+      itemLabel="Performance Review"
+      createLabel="Add Review"
+      editLabel="Edit Review"
       emptyText="No performance records found."
     />
   );
