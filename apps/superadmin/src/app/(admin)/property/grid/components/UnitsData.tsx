@@ -256,6 +256,13 @@ const UnitsData = ({ filters, viewMode, onViewModeChange }: UnitsDataProps) => {
           Showing {filteredUnits.length} of {allUnits.length} units
         </h5>
         <div className="d-flex align-items-center gap-2">
+          <Link
+            href={filters.communityId ? `/units/add?communityId=${filters.communityId}` : "/units/add"}
+            className="btn btn-sm btn-success"
+          >
+            <IconifyIcon icon="ri:add-line" className="me-1" />
+            Add Unit
+          </Link>
           <div className="btn-group" role="group" aria-label="Directory view">
             <button type="button" className={`btn btn-sm ${viewMode === "grid" ? "btn-primary" : "btn-outline-primary"}`} onClick={() => onViewModeChange("grid")} aria-label="Grid view" aria-pressed={viewMode === "grid"}>
               <IconifyIcon icon="ri:grid-line" />

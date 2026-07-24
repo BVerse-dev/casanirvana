@@ -453,3 +453,10 @@
 - Assigned Supabase refresh-token ownership exclusively to NextAuth by disabling browser-side persistence and automatic rotation for the shared Superadmin Supabase client.
 - Added one deduplicated shared API recovery attempt on 401; a successfully refreshed token retries the original request once, while an unrecoverable session is cleared and redirected to sign-in instead of polling indefinitely.
 - Protected queries now wait for an authenticated NextAuth session rather than running for unauthenticated state.
+
+### 2026-07-24 - Resource create-action and Community details recovery
+
+- Audited canonical Communities, Units, Residents, Guards, Agencies and both Visitor directory views for create actions. Units grid was the only missing resource action; it now exposes Add Unit and preserves the selected Community context.
+- Replaced the non-product Unit tour form with a Community and occupancy panel that adapts to vacant/occupied status and links to canonical Community and Unit directories.
+- Restored the approved Community image banner, scrollable details tabs, occupancy analytics, Unit and Resident records, financial cards, activity timeline and management panels using backend-owned records.
+- Updated restored Community shortcuts from legacy /property routes to canonical /units routes and corrected financial formatting to Ghana cedi.

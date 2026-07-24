@@ -2145,3 +2145,9 @@ Date: 2026-02-06
 
 - [x] Diagnosed the production refresh failure as competing NextAuth/browser Supabase refresh-token ownership.
 - [x] Made NextAuth the sole refresh owner and added centralized one-retry/clean-sign-out handling for protected API 401 responses.
+
+### 2026-07-24 - Phase 52 Community details and resource-action recovery
+
+- [x] Audited canonical resource grid create actions; added the missing Add Unit action with Community context preservation.
+- [x] Replaced Unit tour scheduling with a Casa Nirvana Community/occupancy panel.
+- [x] Restored Community details visual composition using live scoped records and canonical links.

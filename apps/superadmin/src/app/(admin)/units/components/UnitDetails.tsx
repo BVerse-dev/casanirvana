@@ -7,7 +7,7 @@ import { useGetUnit } from "@/hooks/useUnits";
 import { mapUnitToPropertyImage } from "@/utils/propertyImageMapper";
 import Image from "next/image";
 import Link from "next/link";
-import { Alert, Badge, Button, Card, CardBody, CardFooter, CardHeader, CardTitle, Col, Form, Row, Spinner } from "react-bootstrap";
+import { Alert, Badge, Button, Card, CardBody, CardFooter, CardHeader, CardTitle, Col, Row, Spinner } from "react-bootstrap";
 
 type UnitDetailsProps = { unitId: string };
 
@@ -144,22 +144,49 @@ const UnitDetails = ({ unitId }: UnitDetailsProps) => {
 
           <Card>
             <CardHeader className="bg-light-subtle">
-              <CardTitle as="h4">Schedule A Tour</CardTitle>
+              <CardTitle as="h4">Community &amp; Occupancy</CardTitle>
             </CardHeader>
             <CardBody>
-              <Alert variant="info" className="small">
-                Tour scheduling is not enabled yet. Contact the assigned owner using the details above.
-              </Alert>
-              <Form.Control className="mb-3" placeholder="Date" disabled />
-              <Form.Control className="mb-3" placeholder="Time" disabled />
-              <Form.Control className="mb-3" placeholder="Your full name" disabled />
-              <Form.Control className="mb-3" placeholder="Email" disabled />
-              <Form.Control as="textarea" rows={4} placeholder="Message" disabled />
+              <div className={"rounded p-3 mb-3 " + (unit.status === "vacant" ? "bg-success-subtle" : "bg-primary-subtle")}>
+                <div className="d-flex align-items-center gap-2 mb-2">
+                  <IconifyIcon
+                    icon={unit.status === "vacant" ? "solar:key-minimalistic-square-bold-duotone" : "solar:users-group-rounded-bold-duotone"}
+                    className={unit.status === "vacant" ? "text-success fs-24" : "text-primary fs-24"}
+                  />
+                  <strong>{unit.status === "vacant" ? "Vacant and ready for assignment" : statusLabel}</strong>
+                </div>
+                <p className="small text-muted mb-0">
+                  {unit.status === "vacant"
+                    ? "This Unit currently has no active occupancy. Review its pricing and Community context before assigning a Resident."
+                    : "This Unit is connected to an active Community record. Owner and occupancy details above reflect the current database assignment."}
+                </p>
+              </div>
+              <div className="d-flex justify-content-between border-bottom py-2">
+                <span className="text-muted">Community</span>
+                <strong className="text-end">{unit.communities?.name || "Not recorded"}</strong>
+              </div>
+              <div className="d-flex justify-content-between border-bottom py-2">
+                <span className="text-muted">Monthly rent</span>
+                <strong>{formatMoney(unit.rent_amount)}</strong>
+              </div>
+              <div className="d-flex justify-content-between py-2">
+                <span className="text-muted">Owner assignment</span>
+                <strong className="text-end">{ownerName}</strong>
+              </div>
             </CardBody>
-            <CardFooter className="bg-light-subtle">
-              <Button variant="primary" className="w-100" disabled>
-                Scheduling Unavailable
-              </Button>
+            <CardFooter className="bg-light-subtle d-grid gap-2">
+              {unit.community_id && (
+                <Link href={"/communities/" + unit.community_id} className="btn btn-primary">
+                  <IconifyIcon icon="solar:buildings-2-bold-duotone" className="me-1" />
+                  View Community
+                </Link>
+              )}
+              <Link
+                href={unit.community_id ? "/units?communityId=" + unit.community_id : "/units"}
+                className="btn btn-outline-secondary"
+              >
+                View Community Units
+              </Link>
             </CardFooter>
           </Card>
         </Col>

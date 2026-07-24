@@ -18,9 +18,9 @@ interface CommunityFinancialsProps {
 }
 
 const formatMoney = (amount: number) =>
-  new Intl.NumberFormat("en-US", {
+  new Intl.NumberFormat("en-GH", {
     style: "currency",
-    currency: "USD",
+    currency: "GHS",
     maximumFractionDigits: 0,
   }).format(amount);
 

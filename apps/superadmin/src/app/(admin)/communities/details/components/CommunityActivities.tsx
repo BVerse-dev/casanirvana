@@ -95,11 +95,11 @@ const CommunityActivities = ({ communityId, residents, units }: CommunityActivit
             <CardTitle className="mb-0">Verified Shortcuts</CardTitle>
           </CardHeader>
           <CardBody className="d-grid gap-2">
-            <Link href={`/property/add?communityId=${communityId}`} className="btn btn-outline-primary btn-sm text-start">
+            <Link href={`/units/add?communityId=${communityId}`} className="btn btn-outline-primary btn-sm text-start">
               <IconifyIcon icon="solar:add-circle-bold-duotone" className="me-2" />
               Add Unit
             </Link>
-            <Link href={`/property/list?communityId=${communityId}`} className="btn btn-outline-success btn-sm text-start">
+            <Link href={`/units?communityId=${communityId}`} className="btn btn-outline-success btn-sm text-start">
               <IconifyIcon icon="solar:home-2-bold-duotone" className="me-2" />
               View Units
             </Link>
