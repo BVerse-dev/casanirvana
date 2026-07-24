@@ -15,7 +15,7 @@ const VisitorDetailsPage = () => {
   const searchParams = useSearchParams()
   const visitorId = searchParams.get('id')
   const source = searchParams.get('source')
-  const returnHref = source === 'grid-view' ? '/visitors/grid-view' : '/visitors/list-view'
+  const returnHref = source === 'grid-view' ? '/visitors?view=grid' : '/visitors?view=list'
   const returnLabel = source === 'grid-view' ? 'Back to Visitor Grid' : 'Back to Visitor List'
 
   const { data: visitor, isLoading, error } = useGetVisitorPass(visitorId || '')

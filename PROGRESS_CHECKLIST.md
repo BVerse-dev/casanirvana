@@ -2218,6 +2218,14 @@ Date: 2026-02-06
 - [x] Replaced generic Add/Edit language with explicit Agency Document actions while preserving the established UI and backend contract.
 - [x] Production evidence recorded: commit `06d7843c` deployed successfully; the Documents & Records workspace showed the truthful empty state, explicit Agency Document actions, complete metadata/governance controls, safe close, clean Visitors handoff and zero browser warnings or errors. The Superadmin production build generated all 244 routes.
 
+### 2026-07-24 - Visitors canonical directory consolidation
+
+- [x] Preserved the existing live-data Visitor grid and table designs without replacing or flattening their approved UI.
+- [x] Added canonical `/visitors?view=grid|list` routing with explicit URL state and remembered grid-first preference behavior.
+- [x] Consolidated duplicate Visitor sidebar entries and aligned dashboard, creation, detail-return and view-switch destinations.
+- [x] Retained the old grid/list routes as launch-window compatibility boundaries.
+- [ ] Record production deployment and Codex browser evidence before closing the Visitors directory slice.
+
 ### 2026-07-24 - Agencies canonical directory presentation
 
 - [x] Reused the approved historical Agency card markup instead of inventing a replacement design.

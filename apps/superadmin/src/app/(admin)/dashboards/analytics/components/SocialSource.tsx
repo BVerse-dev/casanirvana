@@ -145,7 +145,7 @@ const SocialSourceCard = () => {
         <CardFooter className="border-top d-flex align-items-center justify-content-between">
           <h5 className="mb-0">Open visitor workspace</h5>
           <div>
-            <Link href="/visitors/grid-view" className="btn btn-primary btn-sm">
+            <Link href="/visitors" className="btn btn-primary btn-sm">
               View Visitors
             </Link>
           </div>

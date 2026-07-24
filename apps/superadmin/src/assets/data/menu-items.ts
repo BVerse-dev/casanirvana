@@ -162,15 +162,9 @@ export const MENU_ITEMS: MenuItemType[] = [
     icon: "ri:contacts-book-3-line",
     children: [
       {
-        key: "list-view",
-        label: "List View",
-        url: "/visitors/list-view",
-        parentKey: "visitors",
-      },
-      {
-        key: "grid-view",
-        label: "Grid View",
-        url: "/visitors/grid-view",
+        key: "all-visitors",
+        label: "All Visitors",
+        url: "/visitors",
         parentKey: "visitors",
       },
       {

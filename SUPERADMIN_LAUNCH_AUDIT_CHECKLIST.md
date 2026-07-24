@@ -533,6 +533,14 @@
 - [x] Preserved the approved shared workspace design and replaced generic CRUD language with explicit Agency Document create/edit labels.
 - Acceptance evidence: the Superadmin production build generated all 244 routes; commit `06d7843c` deployed successfully; the Codex browser confirmed the truthful empty document state, explicit Add Agency Document action and modal title, all supported metadata/governance fields, safe modal close, navigation to the Visitors directory and zero browser warnings/errors without mutating production data.
 
+### 2026-07-24 - Visitors canonical directory consolidation
+
+- [x] Audited the deployed Visitor grid and list routes against live scoped pass data, lifecycle controls, filters, pagination and truthful status presentation with zero browser warnings or errors.
+- [x] Preserved the exact approved Visitor card and table implementations and mounted them behind canonical `/visitors?view=grid|list` URL state using the shared remembered-view contract.
+- [x] Consolidated the sidebar into one All Visitors destination and updated dashboard, add-flow, detail-return and view-switch links to the canonical directory.
+- [x] Replaced text-only cross-view actions with accessible icon controls while preserving the existing toolbar layout; legacy grid/list routes remain available as compatibility boundaries.
+- [ ] Acceptance evidence pending: production build, deployment and non-mutating Codex browser verification.
+
 ### 2026-07-24 - Agencies canonical directory presentation audit
 
 - [x] Audited authenticated production grid data, canonical routes, actions, filter controls and zero-warning baseline against the scoped Agency directory API.

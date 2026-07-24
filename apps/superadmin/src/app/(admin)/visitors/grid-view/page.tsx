@@ -160,8 +160,14 @@ const VisitorsGridPage = () => {
                     >
                       Clear
                     </button>
-                    <Link href="/visitors/list-view" className="btn btn-outline-primary">
-                      List View
+                    <Link
+                      href="/visitors?view=list"
+                      className="btn btn-outline-primary"
+                      aria-label="Show visitors as a list"
+                      title="List view"
+                    >
+                      <IconifyIcon icon="ri:list-check-2" />
+                      <span className="visually-hidden">List View</span>
                     </Link>
                     <Link href="/visitors/add" className="btn btn-success">
                       <IconifyIcon icon="ri:add-line" className="me-1" />

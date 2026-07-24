@@ -49,7 +49,7 @@ const VisitorAdd = () => {
       await createVisitorPass.mutateAsync(data)
       toast.success('Visitor pass created successfully!')
       reset()
-      router.push('/visitors/list-view')
+      router.push('/visitors?view=list')
     } catch (error) {
       toast.error('Error creating visitor pass')
       console.error('Error creating visitor pass:', error)

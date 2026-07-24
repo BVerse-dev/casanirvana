@@ -895,7 +895,7 @@ const VisitorAddEnhanced = () => {
             Create Another
           </Button>
           <div className="d-flex gap-2">
-            <Button variant="outline-primary" onClick={() => router.push('/visitors/list-view')}>
+            <Button variant="outline-primary" onClick={() => router.push('/visitors?view=list')}>
               Visitor List
             </Button>
             <Button
