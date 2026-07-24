@@ -2231,7 +2231,7 @@ Date: 2026-02-06
 - [x] Audited the production type-first pass form and preserved its approved UI, lifecycle guidance and cross-app QR payload contract.
 - [x] Fixed the out-of-contract unit page size that incorrectly disabled visitor creation with a false empty-scope state.
 - [x] Added truthful unit dependency failure feedback without changing the visitor mutation contract.
-- [ ] Record production deployment and Codex browser evidence before closing the Visitor pass creation slice.
+- [x] Production evidence recorded: commit `6e4e702c` deployed successfully; the Guest flow loaded 100 scoped units, exposed the unit selector, retained validation and showed no false-empty state, dependency error or browser warning. The Superadmin production build generated all 245 routes.
 
 ### 2026-07-24 - Agencies canonical directory presentation
 

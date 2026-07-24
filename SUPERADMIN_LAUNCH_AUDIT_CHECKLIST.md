@@ -547,7 +547,7 @@
 - [x] Confirmed required visitor identity, visit date and scoped unit selection prevent incomplete production writes.
 - [x] Corrected the unit dependency request from an unsupported 1,000-row page to the backend’s bounded 100-row contract.
 - [x] Separated unit-load failures from a legitimate empty scope so API errors no longer masquerade as zero available units.
-- [ ] Acceptance evidence pending: production build, deployment and non-mutating Codex browser verification.
+- Acceptance evidence: the Superadmin production build generated all 245 routes; commit `6e4e702c` deployed successfully; the Codex browser confirmed 100 scoped units in the Guest form, an available unit selector, no false-empty or dependency-error state, preserved required-field validation, clean navigation to Visitor details and zero browser warnings/errors without creating a pass.
 
 ### 2026-07-24 - Agencies canonical directory presentation audit
 
