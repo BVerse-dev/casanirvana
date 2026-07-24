@@ -437,7 +437,7 @@
 - [x] Confirmed the historical dedicated route was only a wrapper around the shared Guard operations workspace; there is no separate pre-consolidation demo UI to restore.
 - [x] Preserved the approved shared workspace while exposing supported description, course dates, trainer/conductor, location, score and certification number/expiry fields.
 - [x] Replaced raw dates and machine-style status values with readable table presentation and added explicit Training Record action labels.
-- Acceptance evidence pending: production build, deployment and non-mutating Codex browser verification.
+- Acceptance evidence: the Superadmin production build generated all 244 routes; commits `6d55c547` and `bd04b096` deployed successfully; the Codex browser confirmed five live training records with readable dates/statuses, the complete Training Record form, safe modal close, navigation to the Agencies directory and zero browser warnings/errors without mutating production data.
 
 ### 2026-07-24 - Guard Equipment Management workspace audit
 

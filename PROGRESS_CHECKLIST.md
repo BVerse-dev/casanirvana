@@ -1987,7 +1987,7 @@ Date: 2026-02-06
 - [x] Reconciled the workspace with its scoped backend and database contract without changing the approved shared Guard management design.
 - [x] Confirmed the retired `/guards/training` page contained no separate demo implementation and only rendered the same shared workspace.
 - [x] Completed readable dates/statuses and the supported training, trainer, score and certification form controls.
-- [ ] Record production deployment and Codex browser evidence before closing the Training & Certification tab.
+- [x] Production commits `6d55c547` and `bd04b096` deployed successfully; Codex browser evidence confirmed readable live records, complete course/trainer/certification controls, safe close, Agencies navigation and zero browser warnings/errors without production mutations.
 
 ### 2026-07-24 - Guard Equipment Management workspace
 
