@@ -70,9 +70,18 @@ const ResidentsChart = ({ residents }: { residents: Resident[] }) => {
             </Col>
             <Col lg={5}>
               <div className="rounded bg-light-subtle p-3">
-                <h6 className="text-uppercase text-muted mb-2">Launch Readiness Note</h6>
-                <p className="mb-0 text-muted">
-                  This summary is generated from the current resident records only. No fallback counts or fixed demo totals remain in this header.
+                <h6 className="text-uppercase text-muted mb-3">Profile Coverage</h6>
+                <p className="mb-2 d-flex justify-content-between gap-2">
+                  <span className="text-muted">Assigned to a unit</span>
+                  <span className="fw-semibold text-dark">{residents.filter((resident) => Boolean(resident.unit_id)).length}</span>
+                </p>
+                <p className="mb-2 d-flex justify-content-between gap-2">
+                  <span className="text-muted">Community linked</span>
+                  <span className="fw-semibold text-dark">{residents.filter((resident) => Boolean(resident.community_id)).length}</span>
+                </p>
+                <p className="mb-0 d-flex justify-content-between gap-2">
+                  <span className="text-muted">Pending review</span>
+                  <span className="fw-semibold text-dark">{pendingResidents}</span>
                 </p>
               </div>
             </Col>
@@ -134,9 +143,7 @@ const CommunityCoverageCard = ({ residents }: { residents: Resident[] }) => {
             </div>
           </div>
           <p className="mb-2 text-white-50">Residents without community assignment: {unassignedResidents}</p>
-          <p className="mb-0 text-white-50">
-            This card now reflects current community coverage instead of a fixed resident total.
-          </p>
+          <p className="mb-0 text-white-50">Live coverage across the communities in the current result set.</p>
         </CardBody>
       </Card>
     </Col>

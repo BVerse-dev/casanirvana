@@ -473,3 +473,10 @@
 - Restored richer Resident request cards, Community/Unit context, message preview, status presentation and explicit review actions.
 - Preserved server-side search, status filtering, pagination, scoped reads, detail review, approval/rejection confirmation and required rejection notes.
 - Added a clear-filter action without introducing demo requests or client-only totals.
+### 2026-07-24 - Residents directory visual-parity recovery
+
+- Restored the approved resident portfolio overview and companion coverage cards to the canonical grid directory.
+- Kept the canonical `/residents?view=grid|list` route, shared view preference, live server filtering, pagination, and mutations unchanged.
+- Kept list mode as a full-width table and retained the original avatar-led resident cards in grid mode.
+- Replaced implementation-note copy in the overview with concise, live resident coverage values.
+- Acceptance evidence: Superadmin production build completed successfully after the directory restoration.

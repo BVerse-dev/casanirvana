@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import { Button, Card, CardBody, Col, Form, Row } from "react-bootstrap";
 
 import ResidentData from "../grid-view/Components/ResidentData";
+import ResidentGridCard from "../grid-view/Components/ResidentGridCard";
 import ResidentDirectoryList from "./ResidentDirectoryList";
 
 const PAGE_SIZE = 12;
@@ -62,6 +63,7 @@ const ResidentDirectory = () => {
   return (
     <>
       <PageTitle title="Residents" subName="People" />
+      {view === "grid" && <ResidentGridCard residents={residents} />}
       <DirectoryToolbar
         title="Resident directory"
         description="Search and manage residents within your authorized communities."

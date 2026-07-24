@@ -2161,3 +2161,7 @@ Date: 2026-02-06
 
 - [x] Restored status summaries and richer request cards using backend-owned counts and records.
 - [x] Preserved scoped review mutations, pagination, filtering and rejection-note enforcement.
+### 2026-07-24 - Phase 52 Residents directory visual recovery
+
+- Restored the approved Residents grid overview and retained the original avatar-led cards without changing canonical routes or live data behavior.
+- Preserved the clean full-width list view, shared grid/list toggle, filters, pagination, create action, and scoped mutations.
