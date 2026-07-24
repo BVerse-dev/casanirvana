@@ -1,5 +1,7 @@
 'use client'
 
+import trophyImg from '@/assets/images/trophy.png'
+import Image from 'next/image'
 import { Card, CardBody, CardHeader, CardTitle, Col, Row } from 'react-bootstrap'
 
 import GuardDetailsCard from './GuardDetailsCard'
@@ -102,6 +104,39 @@ const GuardDetails = ({ snapshot }: GuardDetailsProps) => {
         <GuardDetailsCard snapshot={snapshot} />
       </Col>
       <Col xl={4} lg={12}>
+        <Card>
+          <CardHeader>
+            <CardTitle as={'h5'}>Guard Performance Trophy</CardTitle>
+          </CardHeader>
+          <CardBody>
+            <div className="text-center">
+              <Image src={trophyImg} alt="Performance trophy" width={120} height={120} />
+              <h4 className="mt-3">Recorded Performance</h4>
+              <p className="text-muted">
+                This summary uses recorded performance, training, and employment data for {snapshot.guard.full_name || 'this guard'}.
+              </p>
+              <div className="d-flex justify-content-around mt-4">
+                <div className="text-center">
+                  <h5 className="fw-semibold text-success mb-2">{formatScore(latestPerformance?.overall_score)}</h5>
+                  <p className="text-muted mb-0">Latest Score</p>
+                </div>
+                <div className="text-center">
+                  <h5 className="fw-semibold text-primary mb-2">{snapshot.training.filter((record) => record.status === 'completed').length}</h5>
+                  <p className="text-muted mb-0">Training</p>
+                </div>
+                <div className="text-center">
+                  <h5 className="fw-semibold text-warning mb-2">
+                    {snapshot.guard.employment_date
+                      ? Math.max(0, Math.floor((Date.now() - new Date(snapshot.guard.employment_date).getTime()) / (1000 * 60 * 60 * 24 * 30)))
+                      : '—'}
+                  </h5>
+                  <p className="text-muted mb-0">Months</p>
+                </div>
+              </div>
+            </div>
+          </CardBody>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle as={'h5'}>Operational Snapshot</CardTitle>

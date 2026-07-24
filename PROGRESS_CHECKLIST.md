@@ -2178,3 +2178,7 @@ Date: 2026-02-06
 
 - Restored the original Guards grid overview and full avatar-led list table from pre-audit source history.
 - Kept live data, canonical routes, shared view switching, filters, pagination, assignment workspace, and scoped mutations.
+### 2026-07-24 - Phase 52 Guard profile and add-flow recovery
+
+- Restored the original Guard profile and add-flow visual shell from pre-audit source history.
+- Kept all operational and provisioning data live; excluded fabricated demo metrics and the nonfunctional photo uploader.

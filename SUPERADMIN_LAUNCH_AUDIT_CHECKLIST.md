@@ -510,3 +510,11 @@
 - Replaced fabricated leave and growth values with live shift and assignment percentages.
 - Preserved the canonical `/guards?view=grid|list` route, shared view preference, backend pagination/filtering, Guard Workspace, scoped deletion, and canonical guard links.
 - Acceptance evidence pending successful production build.
+### 2026-07-24 - Guard profile and add-flow demo-UI recovery
+
+- Retrieved the original Guard details and Add Guard implementations from pre-monorepo history before editing.
+- Restored the original gradient Back to Guards action and trophy-led performance card using recorded score, completed training, and employment duration.
+- Restored the avatar-led Add Guard sidebar, original profile metadata hierarchy, feature icon row, and two-button footer.
+- Preserved the live guard snapshot, assignments, schedules, equipment, training, performance, activity, community scope, provisioning invite, and first-assignment workflow.
+- Did not restore fabricated attendance, ratings, visitor totals, patrol counts, timestamps, compliance claims, empty links, or the non-persisting photo dropzone.
+- Acceptance evidence pending successful production build.

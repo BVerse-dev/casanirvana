@@ -28,7 +28,18 @@ const GuardProfile = ({ guardId }: GuardProfileProps) => {
     <>
       <PageTitle subName="Casa Nirvana" title={`${guard.full_name || 'Guard'} - Details`} />
       <Row className="mb-3"><Col xl={12}><div className="d-flex flex-wrap justify-content-between align-items-center gap-2">
-        <Link href="/guards" className="btn btn-outline-secondary"><IconifyIcon icon="ri:arrow-left-line" className="me-1" />Back to Guards</Link>
+        <Link
+          href="/guards"
+          className="btn text-white fw-semibold"
+          style={{
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            border: 'none',
+            borderRadius: '8px',
+            padding: '10px 20px',
+            boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
+            transition: 'all 0.3s ease',
+          }}
+        ><IconifyIcon icon="ri:arrow-left-line" className="me-1" />Back to Guards</Link>
         <div className="d-flex flex-wrap gap-2">
           <Link href={`/guards/manage?tab=assignments&guardId=${guard.id}`} className="btn btn-primary"><IconifyIcon icon="ri:settings-3-line" className="me-1" />Manage Assignments</Link>
           {guard.phone ? <a href={`tel:${guard.phone}`} className="btn btn-success"><IconifyIcon icon="ri:phone-line" className="me-1" />Call Guard</a> : <Button variant="success" disabled><IconifyIcon icon="ri:phone-line" className="me-1" />No Phone Available</Button>}
