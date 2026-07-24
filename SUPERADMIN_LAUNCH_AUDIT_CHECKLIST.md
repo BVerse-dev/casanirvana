@@ -494,6 +494,14 @@
 - [x] Confirmed `/agencies/{id}/edit` hydrates the selected agency and preserves the focused identity/contact edit contract and canonical save/cancel routing.
 - Acceptance evidence: authenticated Codex browser checks on Metro Realty Group confirmed the live banner, all five secondary tabs, canonical actions, full create form, hydrated edit form and zero browser warnings/errors without submitting either form.
 
+### 2026-07-24 - Agency Profiles workspace audit
+
+- [x] Audited the selected-agency profile workspace against scoped `GET`, `POST` and `PATCH /admin/agencies/profiles` contracts and the `agency_profiles` record shape.
+- [x] Confirmed the historical route was only a wrapper around the shared Agency operations workspace; no separate pre-consolidation demo page exists to restore.
+- [x] Preserved the truthful missing-profile state and prefilled profile creation flow for a directory agency without an operational profile.
+- [x] Removed raw Agency UUID presentation, formatted profile type/status values, constrained numeric fields and added explicit Agency Profile action labels.
+- Acceptance evidence pending: production build, deployment and non-mutating Codex browser verification.
+
 ### 2026-07-24 - Agencies canonical directory presentation audit
 
 - [x] Audited authenticated production grid data, canonical routes, actions, filter controls and zero-warning baseline against the scoped Agency directory API.

@@ -78,12 +78,27 @@ const AgencyProfilesSection = ({ agencyId }: { agencyId?: string }) => {
   );
 
   const columns: CrudColumn[] = [
-    { key: "id", label: "Agency ID" },
     { key: "name", label: "Agency" },
     { key: "city", label: "City" },
     { key: "state", label: "State" },
-    { key: "agency_type", label: "Type" },
-    { key: "status", label: "Status" },
+    {
+      key: "agency_type",
+      label: "Type",
+      render: (row) =>
+        row.agency_type
+          ? String(row.agency_type).replace(/\b\w/g, (character) => character.toUpperCase())
+          : "Not recorded",
+    },
+    {
+      key: "status",
+      label: "Status",
+      render: (row) =>
+        row.status
+          ? String(row.status)
+              .replace(/_/g, " ")
+              .replace(/\b\w/g, (character) => character.toUpperCase())
+          : "Not recorded",
+    },
     { key: "total_agents", label: "Agents" },
   ];
 
@@ -132,11 +147,11 @@ const AgencyProfilesSection = ({ agencyId }: { agencyId?: string }) => {
       ],
     },
     { key: "established_year", label: "Established Year", type: "text" },
-    { key: "commission_rate", label: "Commission Rate", type: "number" },
-    { key: "total_agents", label: "Total Agents", type: "number" },
-    { key: "total_clients", label: "Total Clients", type: "number" },
-    { key: "total_properties", label: "Total Properties", type: "number" },
-    { key: "average_deal_value", label: "Average Deal Value", type: "number" },
+    { key: "commission_rate", label: "Commission Rate", type: "number", min: 0, max: 100, step: 0.01 },
+    { key: "total_agents", label: "Total Agents", type: "number", min: 0, step: 1 },
+    { key: "total_clients", label: "Total Clients", type: "number", min: 0, step: 1 },
+    { key: "total_properties", label: "Total Properties", type: "number", min: 0, step: 1 },
+    { key: "average_deal_value", label: "Average Deal Value", type: "number", min: 0, step: 0.01 },
   ];
 
   return (
@@ -169,9 +184,12 @@ const AgencyProfilesSection = ({ agencyId }: { agencyId?: string }) => {
       }}
       emptyText={
         agencyId
-          ? "No agency profile exists for this agency yet. Use Add to create the operational profile."
+          ? "No agency profile exists for this agency yet. Use Add Agency Profile to create the operational profile."
           : "No agency profiles available."
       }
+      itemLabel="Agency Profile"
+      createLabel="Add Agency Profile"
+      editLabel="Edit Agency Profile"
     />
   );
 };

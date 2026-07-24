@@ -2183,6 +2183,13 @@ Date: 2026-02-06
 - [x] Verified the full multi-card create experience and hydrated focused edit experience without form submission.
 - [x] Confirmed zero browser warnings/errors across details, create and edit routes; no speculative UI rewrite or backend change was required.
 
+### 2026-07-24 - Agency Profiles workspace
+
+- [x] Reconciled selected-agency profile behavior with the scoped backend and database contract without redesigning the shared workspace.
+- [x] Preserved missing-profile truthfulness and prefilled creation while improving labels, readable values and numeric validation.
+- [x] Confirmed the retired standalone route contained no separate demo implementation to restore.
+- [ ] Record production deployment and Codex browser evidence before closing the Agency Profiles tab.
+
 ### 2026-07-24 - Agencies canonical directory presentation
 
 - [x] Reused the approved historical Agency card markup instead of inventing a replacement design.
