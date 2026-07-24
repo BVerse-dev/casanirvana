@@ -480,3 +480,11 @@
 - Kept list mode as a full-width table and retained the original avatar-led resident cards in grid mode.
 - Replaced implementation-note copy in the overview with concise, live resident coverage values.
 - Acceptance evidence: Superadmin production build completed successfully after the directory restoration.
+### 2026-07-24 - Resident details, create and edit audit
+
+- Confirmed the canonical resident details route retains the approved profile banner, avatar card, residence snapshot, audit information, live activity metrics, and access-directory tables.
+- Confirmed create and edit retain the approved two-column preview/form composition and share the same validated live mutation contract.
+- Preserved canonical post-create and post-edit navigation to `/residents/{id}`.
+- Rejected restoration of the old photo dropzone because it previews a local file but does not upload or persist it; the functional avatar URL field remains available until a backed upload contract is implemented.
+- Removed fake preview identity data and corrected legacy Society copy to Community while preserving the approved card layout.
+- Acceptance evidence: Superadmin production build completed successfully after the child-route audit.

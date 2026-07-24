@@ -18,7 +18,7 @@ interface ResidentDataProps {
   totalCount: number
 }
 
-const ResidentCard = ({ id, full_name, email, phone, avatar_url, units, societies, status, unit_number }: Resident) => {
+const ResidentCard = ({ id, full_name, email, phone, avatar_url, units, societies, communities, status, unit_number }: Resident) => {
   const deleteResidentMutation = useDeleteResident()
   const mappedAvatarUrl = mapAvatarUrl(avatar_url) || avatars.dummyAvatar
 
@@ -82,7 +82,7 @@ const ResidentCard = ({ id, full_name, email, phone, avatar_url, units, societie
           </p>
           <p className="d-flex align-items-center gap-2 mb-2">
             <IconifyIcon icon="solar:map-point-wave-bold-duotone" className="fs-18 text-primary" />
-            <span className="text-muted">Society:</span> {societies?.name || 'No Society'}
+            <span className="text-muted">Community:</span> {communities?.name || societies?.name || 'Not assigned'}
           </p>
           <p className="d-flex align-items-center gap-2 mb-2">
             <IconifyIcon icon="solar:phone-bold-duotone" className="fs-18 text-primary" />

@@ -1,4 +1,4 @@
-import avatar2 from '@/assets/images/users/avatar-2.jpg'
+import { avatars } from '@/assets/images/users'
 import IconifyIcon from '@/components/wrappers/IconifyIcon'
 import Image from 'next/image'
 import { Button, Card, CardBody, CardFooter, Col, Row } from 'react-bootstrap'
@@ -26,12 +26,12 @@ const ResidentAddCard = ({
     ? `${formData.first_name || ''} ${formData.last_name || ''}`.trim()
     : 'New Resident'
   
-  const displayEmail = formData?.email || 'resident@example.com'
+  const displayEmail = formData?.email || 'Email not entered'
   const displayPhone = formData?.phone || 'No phone provided'
   const displayAddress = formData?.address || 'No address provided'
   
   // Use provided avatar or default
-  const avatarSrc = formData?.avatar_url ? (mapAvatarUrl(formData.avatar_url) || avatar2) : avatar2
+  const avatarSrc = formData?.avatar_url ? (mapAvatarUrl(formData.avatar_url) || avatars.dummyAvatar) : avatars.dummyAvatar
 
   return (
     <Col xl={3} lg={4}>
@@ -51,7 +51,7 @@ const ResidentAddCard = ({
               </div>
               <p className="mb-0 text-muted">{displayEmail}</p>
               <p className="mb-0 text-primary">
-                {formData?.role ? `Role: ${formData.role}` : 'Role: Resident'}
+                Role: {formData?.role ? formData.role.charAt(0).toUpperCase() + formData.role.slice(1) : 'Resident'}
               </p>
             </div>
           </div>
@@ -74,7 +74,7 @@ const ResidentAddCard = ({
                   icon={formData.status === 'active' ? 'solar:check-circle-bold-duotone' : 'solar:close-circle-bold-duotone'} 
                   className={`fs-18 ${formData.status === 'active' ? 'text-success' : 'text-warning'}`} 
                 />
-                Status: {formData.status}
+                Status: {formData.status.charAt(0).toUpperCase() + formData.status.slice(1)}
               </p>
             )}
           </div>

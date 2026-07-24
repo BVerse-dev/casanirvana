@@ -2165,3 +2165,8 @@ Date: 2026-02-06
 
 - Restored the approved Residents grid overview and retained the original avatar-led cards without changing canonical routes or live data behavior.
 - Preserved the clean full-width list view, shared grid/list toggle, filters, pagination, create action, and scoped mutations.
+### 2026-07-24 - Phase 52 Resident child-route audit
+
+- Completed the Resident details, create, and edit audit without replacing their approved UI components.
+- Retained live profile activity and directory records, validated mutations, and canonical routes; removed fake preview identity copy and corrected Community terminology.
+- Deferred the decorative legacy photo dropzone because it has no persistence contract and would misrepresent functionality.
