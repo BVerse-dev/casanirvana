@@ -531,7 +531,7 @@
 - [x] Confirmed `/agency/documents` has always been a thin route wrapper around the shared Agency operations workspace; no separate historical demo page exists to restore.
 - [x] Audited the production Documents & Records tab for Metro Realty and confirmed the truthful empty state, scoped agency selection, document metadata fields, confidentiality and approval controls, and zero browser warnings or errors.
 - [x] Preserved the approved shared workspace design and replaced generic CRUD language with explicit Agency Document create/edit labels.
-- [ ] Acceptance evidence pending: production build, deployment and non-mutating Codex browser verification.
+- Acceptance evidence: the Superadmin production build generated all 244 routes; commit `06d7843c` deployed successfully; the Codex browser confirmed the truthful empty document state, explicit Add Agency Document action and modal title, all supported metadata/governance fields, safe modal close, navigation to the Visitors directory and zero browser warnings/errors without mutating production data.
 
 ### 2026-07-24 - Agencies canonical directory presentation audit
 
