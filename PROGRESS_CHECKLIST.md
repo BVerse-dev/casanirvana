@@ -1980,7 +1980,7 @@ Date: 2026-02-06
 - [x] Verified there is no historical demo Performance page to restore and retained the existing workspace and live reviews.
 - [x] Audited performance endpoints, authorization scope and payload validation.
 - [x] Corrected evaluator/period mappings, removed unsupported status input and added bounded operational score and follow-up controls.
-- [ ] Record production deployment and Codex browser evidence before closing the Performance tab.
+- [x] Production commit `c67641da` deployed successfully; Codex browser evidence confirmed live evaluation records, formatted dates, score badges, evaluator fallback, complete review controls, safe close, Training navigation and zero browser warnings/errors without production mutations.
 
 ### 2026-07-24 - Guard Equipment Management workspace
 

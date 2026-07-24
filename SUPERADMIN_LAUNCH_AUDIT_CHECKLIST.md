@@ -429,7 +429,7 @@
 - Removed the unsupported status control and replaced blank Status/Reviewed By columns with backend-owned evaluation period and evaluator metadata.
 - Added readable evaluation dates and bounded 0–100 score presentation and validation across operational scoring dimensions.
 - Exposed backend-supported commendations, areas of improvement, improvement plan and follow-up date fields with review-specific action wording.
-- Acceptance evidence pending: production build, deployment and non-mutating Codex browser verification.
+- Acceptance evidence: the Superadmin production build generated all 244 routes; commit `c67641da` deployed successfully; the Codex browser confirmed formatted evaluation dates, `/100` score badges, evaluator values, the complete Add Review score/follow-up controls, safe modal close, navigation to Training & Certification and zero browser warnings/errors without mutating production data.
 
 ### 2026-07-24 - Guard Equipment Management workspace audit
 
