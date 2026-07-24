@@ -422,6 +422,14 @@
 
 ## Phase 52 Visual-Parity Recovery Track
 
+### 2026-07-24 - Client navigation hang blocker
+
+- Reproduced the launch-blocking navigation hang in the production Codex browser from `/residents/add` to `/residents`: the route progress indicator continued while the URL and page remained unchanged.
+- Traced the blocked browser main thread to repeated Choices.js initialization from the shared `ChoicesFormInput` whenever inline options or change callbacks changed identity.
+- Stabilized the shared field lifecycle to create one Choices instance per mounted element, retain the latest callback without recreation, and remove listeners/destroy the instance during cleanup.
+- Scope is reliability-only: no route, directory, form layout or approved demo UI presentation changed.
+- Acceptance evidence pending: production build, deployment and browser navigation retest.
+
 - Rule: preserve canonical routes, live backend/database contracts, authorization, and unified grid/list state while restoring the approved pre-Phase 52 presentation. Demo values must not return; missing live values use truthful empty states.
 - [x] Communities directory presentation restored without changing its canonical directory contract.
 - [x] Units directory presentation restored without changing its canonical directory contract.

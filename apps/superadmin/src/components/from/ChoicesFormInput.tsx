@@ -31,6 +31,9 @@ const ChoicesFormInput = ({
   ...props
 }: ChoiceProps) => {
   const choicesRef = useRef<HTMLInputElement & HTMLSelectElement>(null);
+  const choicesInstanceRef = useRef<{ destroy: () => void } | null>(null);
+  const onChangeRef = useRef(onChange);
+  const optionsRef = useRef(options);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -38,30 +41,52 @@ const ChoicesFormInput = ({
   }, []);
 
   useEffect(() => {
-    if (mounted && choicesRef.current && typeof window !== 'undefined') {
-      // Dynamically import and initialize Choices.js
-      import("choices.js").then((ChoicesModule) => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
+
+  useEffect(() => {
+    if (!mounted || !choicesRef.current || typeof window === "undefined") return;
+
+    const element = choicesRef.current;
+    let disposed = false;
+    let choices: {
+      destroy: () => void;
+      passedElement: { element: HTMLInputElement | HTMLSelectElement };
+    } | null = null;
+    let boundElement: HTMLInputElement | HTMLSelectElement | null = null;
+
+    const handleChange = (event: Event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLInputElement) && !(target instanceof HTMLSelectElement)) return;
+      onChangeRef.current?.(target.value);
+    };
+
+    void import("choices.js")
+      .then((ChoicesModule) => {
+        if (disposed || choicesRef.current !== element || choicesInstanceRef.current) return;
+
         const ChoicesClass = ChoicesModule.default;
-        if (choicesRef.current) {
-          const choices = new ChoicesClass(choicesRef.current, {
-            ...options,
-            placeholder: true,
-            allowHTML: true,
-            shouldSort: false,
-          });
-          choices.passedElement.element.addEventListener("change", (e: Event) => {
-            if (!(e.target instanceof HTMLSelectElement)) return;
-            if (onChange) {
-              onChange(e.target.value);
-            }
-          });
-        }
-      }).catch(() => {
-        // Fallback if Choices.js fails to load
-        console.warn("Choices.js failed to load, using native select");
+        choices = new ChoicesClass(element, {
+          ...optionsRef.current,
+          placeholder: true,
+          allowHTML: true,
+          shouldSort: false,
+        });
+        choicesInstanceRef.current = choices;
+        boundElement = choices.passedElement.element;
+        boundElement.addEventListener("change", handleChange);
+      })
+      .catch(() => {
+        if (!disposed) console.warn("Choices.js failed to load, using native select");
       });
-    }
-  }, [mounted, options, onChange]);
+
+    return () => {
+      disposed = true;
+      boundElement?.removeEventListener("change", handleChange);
+      choices?.destroy();
+      if (choicesInstanceRef.current === choices) choicesInstanceRef.current = null;
+    };
+  }, [mounted]);
 
   if (!mounted) {
     // Return a simple select/input during SSR

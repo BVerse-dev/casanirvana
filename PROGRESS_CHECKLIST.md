@@ -1975,6 +1975,12 @@ Date: 2026-02-06
 
 ## Phase 52 - Superadmin Launch Audit and Information Architecture
 
+### 2026-07-24 - Client navigation reliability blocker
+
+- [x] Reproduced the production navigation hang in the Codex browser and identified repeated Choices.js initialization as the browser main-thread blocker.
+- [x] Corrected the shared `ChoicesFormInput` lifecycle so rerenders do not create duplicate plugin instances or leak native event listeners.
+- [ ] Record production deployment and multi-route browser evidence before closing this launch blocker.
+
 - Detailed tracker: `SUPERADMIN_LAUNCH_AUDIT_CHECKLIST.md`.
 - Machine-readable route inventory: `SUPERADMIN_ROUTE_MANIFEST.json`.
 - [x] Confirmed the active Superadmin root is `apps/superadmin` and active root scripts, CI paths, split-repository prefixes and database-type synchronization use the monorepo structure.
