@@ -563,7 +563,7 @@
 - [x] Preserved the approved overview cards, request table and complete detail presentation including requester scope, costs, assignments, timeline and attachments.
 - [x] Confirmed permission-gated status/delete contracts, visible mutation feedback and irreversible delete confirmation.
 - [x] Added search, status/priority/type filters, truthful filter-empty and load-error states, and ten-row pagination without issuing duplicate API requests.
-- [ ] Acceptance evidence pending: production build, deployment and non-mutating Codex browser verification.
+- Acceptance evidence: the Superadmin production build generated all 245 pages; commit `7f199e2a` deployed successfully; the Codex browser confirmed all 36 live requests, focused requester search, five exact urgent-priority matches, filter reset, ten-row pagination through page 2 of 4, preserved detail routing and zero browser warnings/errors without invoking a mutation.
 
 ### 2026-07-24 - Agencies canonical directory presentation audit
 

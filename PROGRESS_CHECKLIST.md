@@ -2245,7 +2245,7 @@ Date: 2026-02-06
 - [x] Preserved the approved live-data overview, request table and detail workspace.
 - [x] Verified scoped backend reads, status transitions, deletion safeguards, costs, assignments, timeline and attachment handling.
 - [x] Added operational search/filter controls, pagination and truthful error/empty states around the existing UI.
-- [ ] Record production deployment and Codex browser evidence before closing the Maintenance Requests slice.
+- [x] Production evidence recorded: commit `7f199e2a` deployed successfully; all 36 requests remained available with working search, exact urgent filtering, reset, page 2 of 4 navigation, preserved details and zero browser warnings or errors. The Superadmin build generated all 245 pages.
 
 ### 2026-07-24 - Agencies canonical directory presentation
 
