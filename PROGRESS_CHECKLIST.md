@@ -2188,7 +2188,7 @@ Date: 2026-02-06
 - [x] Reconciled selected-agency profile behavior with the scoped backend and database contract without redesigning the shared workspace.
 - [x] Preserved missing-profile truthfulness and prefilled creation while improving labels, readable values and numeric validation.
 - [x] Confirmed the retired standalone route contained no separate demo implementation to restore.
-- [ ] Record production deployment and Codex browser evidence before closing the Agency Profiles tab.
+- [x] Production commit `ea781ce2` deployed successfully; Codex browser evidence confirmed the truthful missing-profile flow, explicit action labels, prefilled supported controls, numeric limits, safe close, selected-agency Staff navigation and zero browser warnings/errors without production mutations.
 
 ### 2026-07-24 - Agencies canonical directory presentation
 

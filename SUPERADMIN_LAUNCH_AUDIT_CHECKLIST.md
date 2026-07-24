@@ -500,7 +500,7 @@
 - [x] Confirmed the historical route was only a wrapper around the shared Agency operations workspace; no separate pre-consolidation demo page exists to restore.
 - [x] Preserved the truthful missing-profile state and prefilled profile creation flow for a directory agency without an operational profile.
 - [x] Removed raw Agency UUID presentation, formatted profile type/status values, constrained numeric fields and added explicit Agency Profile action labels.
-- Acceptance evidence pending: production build, deployment and non-mutating Codex browser verification.
+- Acceptance evidence: the full platform build passed, including the API, all 244 Superadmin routes and 24 marketing pages; commit `ea781ce2` deployed successfully; the Codex browser confirmed the truthful missing-profile state, explicit Add Agency Profile action, prefilled supported fields, numeric constraints, safe modal close, selected-agency navigation to Staff Management and zero browser warnings/errors without mutating production data.
 
 ### 2026-07-24 - Agencies canonical directory presentation audit
 
