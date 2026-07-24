@@ -431,6 +431,14 @@
 - Exposed backend-supported commendations, areas of improvement, improvement plan and follow-up date fields with review-specific action wording.
 - Acceptance evidence: the Superadmin production build generated all 244 routes; commit `c67641da` deployed successfully; the Codex browser confirmed formatted evaluation dates, `/100` score badges, evaluator values, the complete Add Review score/follow-up controls, safe modal close, navigation to Training & Certification and zero browser warnings/errors without mutating production data.
 
+### 2026-07-24 - Guard Training & Certification workspace audit
+
+- [x] Audited the production Training & Certification tab against the mounted scoped `GET`, `POST` and `PATCH /admin/guards/training` contracts and the `guard_training` record shape.
+- [x] Confirmed the historical dedicated route was only a wrapper around the shared Guard operations workspace; there is no separate pre-consolidation demo UI to restore.
+- [x] Preserved the approved shared workspace while exposing supported description, course dates, trainer/conductor, location, score and certification number/expiry fields.
+- [x] Replaced raw dates and machine-style status values with readable table presentation and added explicit Training Record action labels.
+- Acceptance evidence pending: production build, deployment and non-mutating Codex browser verification.
+
 ### 2026-07-24 - Guard Equipment Management workspace audit
 
 - Confirmed repository history contains no pre-Phase 34 demo Equipment page; retained the existing workspace and all live database records.

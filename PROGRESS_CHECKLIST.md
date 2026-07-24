@@ -1982,6 +1982,13 @@ Date: 2026-02-06
 - [x] Corrected evaluator/period mappings, removed unsupported status input and added bounded operational score and follow-up controls.
 - [x] Production commit `c67641da` deployed successfully; Codex browser evidence confirmed live evaluation records, formatted dates, score badges, evaluator fallback, complete review controls, safe close, Training navigation and zero browser warnings/errors without production mutations.
 
+### 2026-07-24 - Guard Training & Certification workspace
+
+- [x] Reconciled the workspace with its scoped backend and database contract without changing the approved shared Guard management design.
+- [x] Confirmed the retired `/guards/training` page contained no separate demo implementation and only rendered the same shared workspace.
+- [x] Completed readable dates/statuses and the supported training, trainer, score and certification form controls.
+- [ ] Record production deployment and Codex browser evidence before closing the Training & Certification tab.
+
 ### 2026-07-24 - Guard Equipment Management workspace
 
 - [x] Verified there is no historical demo Equipment page to restore and retained the existing workspace and live records.

@@ -767,15 +767,28 @@ const GuardTrainingSection = () => {
     },
     { key: "training_name", label: "Training" },
     { key: "training_type", label: "Type" },
-    { key: "start_date", label: "Start Date" },
-    { key: "completion_date", label: "Completion Date" },
-    { key: "status", label: "Status" },
+    {
+      key: "start_date",
+      label: "Start Date",
+      render: (row) => formatDate(row.start_date),
+    },
+    {
+      key: "completion_date",
+      label: "Completion Date",
+      render: (row) => formatDate(row.completion_date),
+    },
+    {
+      key: "status",
+      label: "Status",
+      render: (row) => renderStatus(row.status),
+    },
   ];
 
   const fields: CrudField[] = [
     { key: "guard_id", label: "Guard", type: "select", required: true, options: guardOptions },
     { key: "training_name", label: "Training Name", type: "text", required: true },
     { key: "training_type", label: "Training Type", type: "text" },
+    { key: "description", label: "Description", type: "textarea" },
     {
       key: "status",
       label: "Status",
@@ -790,10 +803,16 @@ const GuardTrainingSection = () => {
       ],
     },
     { key: "start_date", label: "Start Date", type: "date" },
+    { key: "end_date", label: "End Date", type: "date" },
     { key: "completion_date", label: "Completion Date", type: "date" },
+    { key: "conducted_by", label: "Conducted By", type: "text" },
+    { key: "trainer", label: "Trainer", type: "text" },
+    { key: "location", label: "Location", type: "text" },
     { key: "expiry_date", label: "Expiry Date", type: "date" },
     { key: "certification", label: "Certification", type: "text" },
-    { key: "score", label: "Score", type: "number" },
+    { key: "certification_number", label: "Certification Number", type: "text" },
+    { key: "certification_expiry", label: "Certification Expiry", type: "date" },
+    { key: "score", label: "Score", type: "number", min: 0, max: 100, step: 0.1 },
     { key: "notes", label: "Notes", type: "textarea" },
   ];
 
@@ -801,7 +820,7 @@ const GuardTrainingSection = () => {
     <AdminCrudSection
       id="guards-training-workspace"
       title="Training & Certification"
-      subTitle="Track training enrollment, completion, and certification details."
+      subTitle="Track scoped guard training, completion, scores and certification validity."
       rows={trainingQuery.data || []}
       isLoading={trainingQuery.isLoading || profilesQuery.isLoading}
       error={toErrorText(trainingQuery.error) || toErrorText(profilesQuery.error)}
@@ -815,6 +834,9 @@ const GuardTrainingSection = () => {
         profilesQuery.refetch();
       }}
       emptyText="No training records found."
+      itemLabel="Training Record"
+      createLabel="Add Training Record"
+      editLabel="Edit Training Record"
     />
   );
 };
