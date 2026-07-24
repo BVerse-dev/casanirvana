@@ -2202,7 +2202,7 @@ Date: 2026-02-06
 - [x] Reconciled the selected-agency service catalog with its scoped backend/database contract without redesigning the shared UI.
 - [x] Added missing supported requirements/market fields, controlled pricing/status inputs, readable table values and explicit Agency Service actions.
 - [x] Confirmed the retired standalone route contained no separate demo implementation to restore.
-- [ ] Record production deployment and Codex browser evidence before closing the Agency Services Management tab.
+- [x] Production commit `4a702c15` deployed successfully; Codex browser evidence confirmed the truthful empty catalog, complete service controls, numeric limits, safe close, selected-agency Finance navigation and zero browser warnings/errors without production mutations.
 
 ### 2026-07-24 - Agencies canonical directory presentation
 

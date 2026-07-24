@@ -516,7 +516,7 @@
 - [x] Confirmed the historical route was only a wrapper around the shared Agency operations workspace; no separate demo page exists to restore.
 - [x] Preserved the truthful empty catalog and backend-authorized destructive actions without introducing fallback services.
 - [x] Added supported requirements/target-market controls, pricing and commission limits, readable pricing/status values and explicit Agency Service actions.
-- Acceptance evidence pending: production build, deployment and non-mutating Codex browser verification.
+- Acceptance evidence: the Superadmin production build generated all 244 routes; commit `4a702c15` deployed successfully; the Codex browser confirmed the truthful empty catalog, explicit Add Agency Service action, complete supported service controls, pricing/commission limits, safe modal close, selected-agency navigation to Finance & Billing and zero browser warnings/errors without mutating production data.
 
 ### 2026-07-24 - Agencies canonical directory presentation audit
 
