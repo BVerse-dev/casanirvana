@@ -422,6 +422,15 @@
 
 ## Phase 52 Visual-Parity Recovery Track
 
+### 2026-07-24 - Guard Equipment Management workspace audit
+
+- Confirmed repository history contains no pre-Phase 34 demo Equipment page; retained the existing workspace and all live database records.
+- Audited scoped equipment reads and mutations against `GET/POST /admin/guards/equipment` and `PATCH/DELETE /admin/guards/equipment/:id`, permissions and validation.
+- Corrected blank Type cells by resolving `equipment_type`, legacy `category`, and legacy `type` fields without rewriting data.
+- Added readable equipment identity, condition and lifecycle presentation; aligned status controls with live `available`, `assigned`, `maintenance`, `retired`, and `lost` values while preserving legacy `active` support.
+- Exposed backend-supported brand, model, condition, purchase, warranty and next-maintenance fields, plus equipment-specific action wording and destructive confirmation.
+- Acceptance evidence pending: production build, deployment and non-mutating Codex browser verification.
+
 ### 2026-07-24 - Guard Schedules and Shifts workspace audit
 
 - Confirmed repository history contains no pre-Phase 34 demo Schedules page; retained the existing shared workspace rather than inventing an unapproved replacement design.

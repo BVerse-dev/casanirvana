@@ -84,12 +84,22 @@ const renderOperationalStatusBadge = (status: unknown) => {
   const normalized = String(status || "").toLowerCase();
   const variant = normalized === "active"
     ? "success"
+    : normalized === "assigned"
+      ? "success"
+      : normalized === "available"
+        ? "info"
     : normalized === "completed"
       ? "primary"
       : normalized === "scheduled"
         ? "info"
         : normalized === "cancelled"
           ? "danger"
+        : normalized === "maintenance"
+          ? "warning"
+        : normalized === "lost"
+          ? "danger"
+        : normalized === "retired"
+          ? "secondary"
       : normalized === "inactive"
         ? "secondary"
         : "warning";
@@ -554,15 +564,35 @@ const GuardEquipmentSection = () => {
   const guardOptions = buildGuardOptions(profilesQuery.data || []);
 
   const columns: CrudColumn[] = [
-    { key: "name", label: "Equipment" },
-    { key: "equipment_type", label: "Type" },
+    {
+      key: "name",
+      label: "Equipment",
+      render: (row) => (
+        <div>
+          <div className="fw-semibold">{row.name || "Unnamed equipment"}</div>
+          <small className="text-muted">
+            {[row.brand, row.model].filter(Boolean).join(" · ") || "Brand/model not set"}
+          </small>
+        </div>
+      ),
+    },
+    {
+      key: "equipment_type",
+      label: "Type",
+      render: (row) => titleCase(row.equipment_type || row.category || row.type),
+    },
     { key: "serial_number", label: "Serial Number" },
     {
       key: "assigned_to",
       label: "Assigned Guard",
       render: (row) => guardMap.get(String(row.assigned_to || "")) || "Unassigned",
     },
-    { key: "status", label: "Status" },
+    {
+      key: "condition",
+      label: "Condition",
+      render: (row) => titleCase(row.condition),
+    },
+    { key: "status", label: "Status", render: (row) => renderOperationalStatusBadge(row.status) },
     { key: "location", label: "Location" },
   ];
 
@@ -570,14 +600,31 @@ const GuardEquipmentSection = () => {
     { key: "name", label: "Equipment Name", type: "text", required: true },
     { key: "equipment_type", label: "Equipment Type", type: "text" },
     { key: "serial_number", label: "Serial Number", type: "text" },
+    { key: "brand", label: "Brand", type: "text" },
+    { key: "model", label: "Model", type: "text" },
+    {
+      key: "condition",
+      label: "Condition",
+      type: "select",
+      initialValue: "good",
+      options: [
+        { label: "New", value: "new" },
+        { label: "Good", value: "good" },
+        { label: "Fair", value: "fair" },
+        { label: "Poor", value: "poor" },
+        { label: "Damaged", value: "damaged" },
+      ],
+    },
     { key: "assigned_to", label: "Assigned Guard", type: "select", options: guardOptions },
     { key: "location", label: "Location", type: "text" },
     {
       key: "status",
       label: "Status",
       type: "select",
-      initialValue: "active",
+      initialValue: "available",
       options: [
+        { label: "Available", value: "available" },
+        { label: "Assigned", value: "assigned" },
         { label: "Active", value: "active" },
         { label: "In Maintenance", value: "maintenance" },
         { label: "Retired", value: "retired" },
@@ -585,7 +632,10 @@ const GuardEquipmentSection = () => {
       ],
     },
     { key: "cost", label: "Cost", type: "number" },
+    { key: "purchase_date", label: "Purchase Date", type: "date" },
+    { key: "warranty_expiry", label: "Warranty Expiry", type: "date" },
     { key: "assignment_date", label: "Assignment Date", type: "date" },
+    { key: "next_maintenance", label: "Next Maintenance", type: "date" },
     { key: "notes", label: "Notes", type: "textarea" },
   ];
 
@@ -593,7 +643,7 @@ const GuardEquipmentSection = () => {
     <AdminCrudSection
       id="guards-equipment-workspace"
       title="Equipment Management"
-      subTitle="Track and update guard equipment allocations and status."
+      subTitle="Track guard equipment identity, condition, assignment and maintenance status."
       rows={equipmentQuery.data || []}
       isLoading={equipmentQuery.isLoading || profilesQuery.isLoading}
       error={toErrorText(equipmentQuery.error) || toErrorText(profilesQuery.error)}
@@ -606,6 +656,11 @@ const GuardEquipmentSection = () => {
         equipmentQuery.refetch();
         profilesQuery.refetch();
       }}
+      itemLabel="Equipment"
+      createLabel="Add Equipment"
+      deleteConfirmation={(row) =>
+        `Delete ${row.name || "this equipment record"}${row.serial_number ? ` (${row.serial_number})` : ""}? This permanently removes its assignment and maintenance history from this workspace.`
+      }
       emptyText="No equipment records found."
     />
   );
