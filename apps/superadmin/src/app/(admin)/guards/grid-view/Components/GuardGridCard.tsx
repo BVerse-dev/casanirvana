@@ -82,10 +82,8 @@ const GuardsChart = ({ guards }: GuardGridCardProps) => {
         <CardBody>
           <Row className="align-items-center">
             <Col lg={7}>
-              <h4 className="text-dark mb-1">Guard Directory Overview</h4>
-              <p className="fs-14">
-                This summary reflects live guard provisioning and assignment data from the admin backend.
-              </p>
+              <h4 className="text-dark mb-1">Welcome Back, Admin</h4>
+              <p className="fs-14">This is your guards management dashboard</p>
               <Row className="align-items-center text-center mb-2">
                 <Col lg={7} className="border-end border-light">
                   <Row className="align-items-center">
@@ -138,42 +136,39 @@ const GuardsChart = ({ guards }: GuardGridCardProps) => {
 
 const GuardStatistics = ({ guards }: GuardGridCardProps) => {
   const totalGuards = guards.length
-  const activeGuards = guards.filter((guard) => guard.is_active).length
+  const dayShiftGuards = guards.filter((guard) => (guard.active_assignment_shift_type || guard.shift_type || '').toLowerCase().match(/day|morning/)).length
+  const nightShiftGuards = guards.filter((guard) => (guard.active_assignment_shift_type || guard.shift_type || '').toLowerCase().match(/night|evening/)).length
   const awaitingAssignment = guards.filter((guard) => guard.assignment_status === 'awaiting_assignment').length
-  const communitiesCovered = new Set(
-    guards
-      .map((guard) => guard.resolved_community_id || guard.community_id || guard.societies?.id)
-      .filter(Boolean)
-  ).size
+  const percentOfTotal = (value: number) => totalGuards > 0 ? `${Math.round((value / totalGuards) * 100)}%` : '0%'
 
   const cardData = [
     {
       title: 'Total Guards',
       value: totalGuards.toString(),
-      helpText: 'Profiles in scope',
+      percentage: totalGuards > 0 ? '100%' : '0%',
       icon: 'ri:shield-user-line',
       color: 'primary',
     },
     {
-      title: 'Active Guards',
-      value: activeGuards.toString(),
-      helpText: 'Ready for duty',
-      icon: 'ri:shield-check-line',
-      color: 'success',
+      title: 'Day Shift',
+      value: dayShiftGuards.toString(),
+      percentage: percentOfTotal(dayShiftGuards),
+      icon: 'ri:sun-line',
+      color: 'warning',
+    },
+    {
+      title: 'Night Shift',
+      value: nightShiftGuards.toString(),
+      percentage: percentOfTotal(nightShiftGuards),
+      icon: 'ri:moon-line',
+      color: 'info',
     },
     {
       title: 'Awaiting Assignment',
       value: awaitingAssignment.toString(),
-      helpText: 'Need first community assignment',
+      percentage: percentOfTotal(awaitingAssignment),
       icon: 'ri:user-received-2-line',
-      color: 'warning',
-    },
-    {
-      title: 'Communities Covered',
-      value: communitiesCovered.toString(),
-      helpText: 'Distinct communities',
-      icon: 'ri:community-line',
-      color: 'info',
+      color: 'success',
     },
   ]
 
@@ -188,13 +183,16 @@ const GuardStatistics = ({ guards }: GuardGridCardProps) => {
                   <Col xl={7} lg={7}>
                     <p className="text-muted mb-2">{card.title}</p>
                     <h3 className="mb-0 text-dark">{card.value}</h3>
-                    <small className="text-muted">{card.helpText}</small>
                   </Col>
                   <Col xl={5} lg={5}>
                     <div className="text-end">
                       <div className={`avatar avatar-md bg-${card.color}-subtle rounded`}>
                         <IconifyIcon icon={card.icon} className={`fs-20 text-${card.color}`} />
                       </div>
+                      <p className="mb-0 mt-2 text-success">
+                        <IconifyIcon icon="ri:percent-line" className="me-1" />
+                        {card.percentage}
+                      </p>
                     </div>
                   </Col>
                 </Row>

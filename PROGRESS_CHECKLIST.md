@@ -2174,3 +2174,7 @@ Date: 2026-02-06
 
 - Added a mandatory rule that every page audit starts from the original pre-audit demo implementation, not a later hardened approximation.
 - Corrected the Residents grid by restoring its original illustrated three-card overview with live data and canonical routing.
+### 2026-07-24 - Phase 52 Guards directory demo-UI recovery
+
+- Restored the original Guards grid overview and full avatar-led list table from pre-audit source history.
+- Kept live data, canonical routes, shared view switching, filters, pagination, assignment workspace, and scoped mutations.

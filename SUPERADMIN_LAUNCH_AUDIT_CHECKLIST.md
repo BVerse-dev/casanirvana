@@ -502,3 +502,11 @@
 - Restored the original three-card overview: illustrated welcome/status card, Unit Statistics card with header/footer, and active-resident sparkline card.
 - Preserved the original dimensions, image asset, chart types, progress treatment, colors, and hierarchy while replacing fixed demo totals and timestamps with live resident values.
 - Kept the consolidated canonical route, grid/list toggle, server filters, pagination, cards, and scoped mutations unchanged.
+### 2026-07-24 - Guards directory exact demo-UI recovery
+
+- Retrieved the original pre-monorepo Guards grid and list implementations before editing.
+- Restored the original welcome/illustration card and four compact statistics-tile composition in grid mode.
+- Restored the original avatar-led list table, card header, actions menu, shift badge, employment date, assignment status, and row actions.
+- Replaced fabricated leave and growth values with live shift and assignment percentages.
+- Preserved the canonical `/guards?view=grid|list` route, shared view preference, backend pagination/filtering, Guard Workspace, scoped deletion, and canonical guard links.
+- Acceptance evidence pending successful production build.
