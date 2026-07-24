@@ -555,7 +555,7 @@
 - [x] Preserved the approved detail presentation and existing backend-owned approve, deny, check-in, check-out and delete contracts.
 - [x] Confirmed irreversible deletion requires explicit confirmation and lifecycle failures surface through user-visible feedback.
 - [x] Added canonical `/visitors/{id}` details while retaining the query-string route as a compatibility boundary and preserving grid/list return context.
-- [ ] Acceptance evidence pending: production build, deployment and non-mutating Codex browser verification.
+- Acceptance evidence: the Superadmin production build generated all 245 pages and included canonical `/visitors/[id]`; commit `c02896a7` deployed successfully; the Codex browser confirmed the complete live checked-in Visitor record, tenant scope, pass data, QR, entry code, delete action, canonical list return and zero browser warnings/errors without invoking a lifecycle mutation.
 
 ### 2026-07-24 - Agencies canonical directory presentation audit
 

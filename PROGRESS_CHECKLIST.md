@@ -2238,7 +2238,7 @@ Date: 2026-02-06
 - [x] Preserved the complete live Visitor detail, tenant-scope, timeline and pass-data UI.
 - [x] Confirmed lifecycle hooks, visible error handling and irreversible delete confirmation remain intact.
 - [x] Added canonical `/visitors/{id}` navigation across grid, table, shared actions and post-create flow while retaining old detail URLs.
-- [ ] Record production deployment and Codex browser evidence before closing the Visitor details and lifecycle slice.
+- [x] Production evidence recorded: commit `c02896a7` deployed successfully; canonical details rendered the complete live checked-in record, tenant scope, QR/pass data, list-return context and zero browser warnings or errors without a production mutation. The Superadmin build generated all 245 pages and included `/visitors/[id]`.
 
 ### 2026-07-24 - Agencies canonical directory presentation
 
