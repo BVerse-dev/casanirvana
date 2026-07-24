@@ -19,11 +19,14 @@ import {
   CardHeader,
   CardTitle,
   Col,
+  Form,
   Row,
 } from "react-bootstrap";
 import MaintenanceRequestGridCard from "./components/MaintenanceRequestGridCard";
 import { useMaintenanceRequestsSubscription } from "@/hooks/useMaintenanceRequests";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+
+const PAGE_SIZE = 10;
 
 type MaintenanceWithProfiles =
   Database["public"]["Tables"]["maintenance_requests"]["Row"] & {
@@ -78,7 +81,7 @@ const truncateText = (value?: string | null, maxLength = 50) => {
 
 const MaintenanceRequestsPage = () => {
   useMaintenanceRequestsSubscription();
-  const { data: maintenanceRequests = [], isLoading } =
+  const { data: maintenanceRequests = [], isLoading, error } =
     useListMaintenanceRequests();
   const updateMaintenanceRequestById = useUpdateMaintenanceRequestById();
   const deleteMaintenanceRequest = useDeleteMaintenanceRequest();
@@ -86,6 +89,65 @@ const MaintenanceRequestsPage = () => {
     variant: "success" | "danger";
     message: string;
   } | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [priorityFilter, setPriorityFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const typeOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          maintenanceRequests
+            .map((request) => request.request_type?.trim())
+            .filter((value): value is string => Boolean(value)),
+        ),
+      ).sort((a, b) => a.localeCompare(b)),
+    [maintenanceRequests],
+  );
+
+  const filteredRequests = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    return maintenanceRequests.filter((request) => {
+      const unitLabel = request.unit?.unit_number || request.unit?.number || "";
+      const searchable = [
+        request.requester_profile?.full_name,
+        unitLabel,
+        request.title,
+        request.description,
+        request.request_type,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return (
+        (!normalizedSearch || searchable.includes(normalizedSearch)) &&
+        (statusFilter === "all" || request.status === statusFilter) &&
+        (priorityFilter === "all" || request.priority === priorityFilter) &&
+        (typeFilter === "all" || request.request_type === typeFilter)
+      );
+    });
+  }, [maintenanceRequests, priorityFilter, searchTerm, statusFilter, typeFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredRequests.length / PAGE_SIZE));
+  const paginatedRequests = useMemo(() => {
+    const startIndex = (currentPage - 1) * PAGE_SIZE;
+    return filteredRequests.slice(startIndex, startIndex + PAGE_SIZE);
+  }, [currentPage, filteredRequests]);
+  const hasActiveFilters = Boolean(
+    searchTerm.trim() || statusFilter !== "all" || priorityFilter !== "all" || typeFilter !== "all",
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [priorityFilter, searchTerm, statusFilter, typeFilter]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
 
   const handleToggleCompletion = async (
     request: MaintenanceWithProfiles,
@@ -140,6 +202,15 @@ const MaintenanceRequestsPage = () => {
     return <div>Loading maintenance requests...</div>;
   }
 
+  if (error) {
+    return (
+      <>
+        <PageTitle title="Maintenance Requests" subName="Casa Nirvana" />
+        <Alert variant="danger">Unable to load maintenance requests. Please try again.</Alert>
+      </>
+    );
+  }
+
   return (
     <>
       <PageTitle title="Maintenance Requests" subName="Casa Nirvana" />
@@ -169,6 +240,63 @@ const MaintenanceRequestsPage = () => {
                   {feedback.message}
                 </Alert>
               ) : null}
+              <div className="p-3 border-bottom">
+                <Row className="g-3 align-items-end">
+                  <Col xl={4} lg={6}>
+                    <Form.Label className="mb-1">Search</Form.Label>
+                    <Form.Control
+                      type="search"
+                      value={searchTerm}
+                      placeholder="Requester, unit, title, description or type"
+                      onChange={(event) => setSearchTerm(event.target.value)}
+                    />
+                  </Col>
+                  <Col xl={2} lg={6}>
+                    <Form.Label className="mb-1">Status</Form.Label>
+                    <Form.Select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+                      <option value="all">All Statuses</option>
+                      <option value="pending">Pending</option>
+                      <option value="in_progress">In Progress</option>
+                      <option value="completed">Completed</option>
+                      <option value="cancelled">Cancelled</option>
+                    </Form.Select>
+                  </Col>
+                  <Col xl={2} lg={6}>
+                    <Form.Label className="mb-1">Priority</Form.Label>
+                    <Form.Select value={priorityFilter} onChange={(event) => setPriorityFilter(event.target.value)}>
+                      <option value="all">All Priorities</option>
+                      <option value="urgent">Urgent</option>
+                      <option value="high">High</option>
+                      <option value="medium">Medium</option>
+                      <option value="low">Low</option>
+                    </Form.Select>
+                  </Col>
+                  <Col xl={2} lg={6}>
+                    <Form.Label className="mb-1">Type</Form.Label>
+                    <Form.Select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)}>
+                      <option value="all">All Types</option>
+                      {typeOptions.map((type) => (
+                        <option key={type} value={type}>{formatStatusLabel(type)}</option>
+                      ))}
+                    </Form.Select>
+                  </Col>
+                  <Col xl={2} lg={12}>
+                    <Button
+                      variant="outline-secondary"
+                      className="w-100"
+                      disabled={!hasActiveFilters}
+                      onClick={() => {
+                        setSearchTerm("");
+                        setStatusFilter("all");
+                        setPriorityFilter("all");
+                        setTypeFilter("all");
+                      }}
+                    >
+                      Clear Filters
+                    </Button>
+                  </Col>
+                </Row>
+              </div>
               <div className="table-responsive">
                 <table className="table align-middle text-nowrap table-hover table-centered mb-0">
                   <thead className="bg-light-subtle">
@@ -184,13 +312,13 @@ const MaintenanceRequestsPage = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {maintenanceRequests.length === 0 ? (
+                    {filteredRequests.length === 0 ? (
                       <tr>
                         <td colSpan={8} className="text-center py-5 text-muted">
-                          No maintenance requests found.
+                          {hasActiveFilters ? "No maintenance requests match the selected filters." : "No maintenance requests found."}
                         </td>
                       </tr>
-                    ) : maintenanceRequests.map((request) => {
+                    ) : paginatedRequests.map((request) => {
                       return (
                         <tr key={request.id}>
                           <td>
@@ -308,12 +436,28 @@ const MaintenanceRequestsPage = () => {
             <CardFooter className="border-top">
               <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <span className="text-muted fs-13">
-                  Showing {maintenanceRequests.length.toLocaleString()} live request
-                  {maintenanceRequests.length === 1 ? "" : "s"}.
+                  Showing {paginatedRequests.length.toLocaleString()} of {filteredRequests.length.toLocaleString()} matching request
+                  {filteredRequests.length === 1 ? "" : "s"}.
                 </span>
-                <span className="text-muted fs-13">
-                  Updates sync automatically when request records change.
-                </span>
+                <div className="d-flex align-items-center gap-2">
+                  <Button
+                    variant="outline-secondary"
+                    size="sm"
+                    disabled={currentPage <= 1}
+                    onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-muted fs-13">Page {currentPage} of {totalPages}</span>
+                  <Button
+                    variant="outline-secondary"
+                    size="sm"
+                    disabled={currentPage >= totalPages}
+                    onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                  >
+                    Next
+                  </Button>
+                </div>
               </div>
             </CardFooter>
           </Card>

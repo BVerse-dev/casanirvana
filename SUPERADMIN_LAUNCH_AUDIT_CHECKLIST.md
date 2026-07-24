@@ -557,6 +557,14 @@
 - [x] Added canonical `/visitors/{id}` details while retaining the query-string route as a compatibility boundary and preserving grid/list return context.
 - Acceptance evidence: the Superadmin production build generated all 245 pages and included canonical `/visitors/[id]`; commit `c02896a7` deployed successfully; the Codex browser confirmed the complete live checked-in Visitor record, tenant scope, pass data, QR, entry code, delete action, canonical list return and zero browser warnings/errors without invoking a lifecycle mutation.
 
+### 2026-07-24 - Maintenance Requests directory and lifecycle audit
+
+- [x] Audited 36 live scoped requests, backend-derived overview metrics, GHS costs, status/priority presentation and canonical detail routes with zero browser warnings or errors.
+- [x] Preserved the approved overview cards, request table and complete detail presentation including requester scope, costs, assignments, timeline and attachments.
+- [x] Confirmed permission-gated status/delete contracts, visible mutation feedback and irreversible delete confirmation.
+- [x] Added search, status/priority/type filters, truthful filter-empty and load-error states, and ten-row pagination without issuing duplicate API requests.
+- [ ] Acceptance evidence pending: production build, deployment and non-mutating Codex browser verification.
+
 ### 2026-07-24 - Agencies canonical directory presentation audit
 
 - [x] Audited authenticated production grid data, canonical routes, actions, filter controls and zero-warning baseline against the scoped Agency directory API.

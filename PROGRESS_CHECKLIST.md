@@ -2240,6 +2240,13 @@ Date: 2026-02-06
 - [x] Added canonical `/visitors/{id}` navigation across grid, table, shared actions and post-create flow while retaining old detail URLs.
 - [x] Production evidence recorded: commit `c02896a7` deployed successfully; canonical details rendered the complete live checked-in record, tenant scope, QR/pass data, list-return context and zero browser warnings or errors without a production mutation. The Superadmin build generated all 245 pages and included `/visitors/[id]`.
 
+### 2026-07-24 - Maintenance Requests directory and lifecycle
+
+- [x] Preserved the approved live-data overview, request table and detail workspace.
+- [x] Verified scoped backend reads, status transitions, deletion safeguards, costs, assignments, timeline and attachment handling.
+- [x] Added operational search/filter controls, pagination and truthful error/empty states around the existing UI.
+- [ ] Record production deployment and Codex browser evidence before closing the Maintenance Requests slice.
+
 ### 2026-07-24 - Agencies canonical directory presentation
 
 - [x] Reused the approved historical Agency card markup instead of inventing a replacement design.
