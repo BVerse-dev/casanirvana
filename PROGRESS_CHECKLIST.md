@@ -2233,6 +2233,13 @@ Date: 2026-02-06
 - [x] Added truthful unit dependency failure feedback without changing the visitor mutation contract.
 - [x] Production evidence recorded: commit `6e4e702c` deployed successfully; the Guest flow loaded 100 scoped units, exposed the unit selector, retained validation and showed no false-empty state, dependency error or browser warning. The Superadmin production build generated all 245 routes.
 
+### 2026-07-24 - Visitor details and lifecycle
+
+- [x] Preserved the complete live Visitor detail, tenant-scope, timeline and pass-data UI.
+- [x] Confirmed lifecycle hooks, visible error handling and irreversible delete confirmation remain intact.
+- [x] Added canonical `/visitors/{id}` navigation across grid, table, shared actions and post-create flow while retaining old detail URLs.
+- [ ] Record production deployment and Codex browser evidence before closing the Visitor details and lifecycle slice.
+
 ### 2026-07-24 - Agencies canonical directory presentation
 
 - [x] Reused the approved historical Agency card markup instead of inventing a replacement design.

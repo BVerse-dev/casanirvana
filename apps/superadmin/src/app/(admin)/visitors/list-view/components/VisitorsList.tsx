@@ -128,11 +128,11 @@ const VisitorsList = ({
                         role="button"
                         tabIndex={0}
                         style={{ cursor: 'pointer' }}
-                        onClick={() => router.push(`/visitors/details?id=${visitor.id}&source=list-view`)}
+                        onClick={() => router.push(`/visitors/${visitor.id}?source=list-view`)}
                         onKeyDown={(event) => {
                           if (event.key === 'Enter' || event.key === ' ') {
                             event.preventDefault()
-                            router.push(`/visitors/details?id=${visitor.id}&source=list-view`)
+                            router.push(`/visitors/${visitor.id}?source=list-view`)
                           }
                         }}
                       >
@@ -155,7 +155,7 @@ const VisitorsList = ({
                             </div>
                             <div>
                               <Link
-                                href={`/visitors/details?id=${visitor.id}&source=list-view`}
+                                href={`/visitors/${visitor.id}?source=list-view`}
                                 className="mb-0 text-dark fw-medium fs-15 d-inline-block"
                                 onClick={(event) => event.stopPropagation()}
                               >

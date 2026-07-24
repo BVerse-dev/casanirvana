@@ -128,7 +128,7 @@ const VisitorActionButtons = ({ visitor, mode = 'table', source }: VisitorAction
       )}
 
       <Link
-        href={`/visitors/details?id=${visitor.id}${source ? `&source=${source}` : ''}`}
+        href={`/visitors/${visitor.id}${source ? `?source=${source}` : ''}`}
         className={`btn btn-outline-secondary${buttonSize === 'sm' ? ' btn-sm' : ''}${buttonClassName ? ` ${buttonClassName}` : ''}`}
         title="View details"
         onClick={stopEvent}

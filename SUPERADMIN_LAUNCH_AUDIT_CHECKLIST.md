@@ -549,6 +549,14 @@
 - [x] Separated unit-load failures from a legitimate empty scope so API errors no longer masquerade as zero available units.
 - Acceptance evidence: the Superadmin production build generated all 245 routes; commit `6e4e702c` deployed successfully; the Codex browser confirmed 100 scoped units in the Guest form, an available unit selector, no false-empty or dependency-error state, preserved required-field validation, clean navigation to Visitor details and zero browser warnings/errors without creating a pass.
 
+### 2026-07-24 - Visitor details and lifecycle audit
+
+- [x] Audited live Visitor identity, pass status, visit window, creator attribution, tenant scope, QR payload, entry code and lifecycle controls without mutating production data.
+- [x] Preserved the approved detail presentation and existing backend-owned approve, deny, check-in, check-out and delete contracts.
+- [x] Confirmed irreversible deletion requires explicit confirmation and lifecycle failures surface through user-visible feedback.
+- [x] Added canonical `/visitors/{id}` details while retaining the query-string route as a compatibility boundary and preserving grid/list return context.
+- [ ] Acceptance evidence pending: production build, deployment and non-mutating Codex browser verification.
+
 ### 2026-07-24 - Agencies canonical directory presentation audit
 
 - [x] Audited authenticated production grid data, canonical routes, actions, filter controls and zero-warning baseline against the scoped Agency directory API.

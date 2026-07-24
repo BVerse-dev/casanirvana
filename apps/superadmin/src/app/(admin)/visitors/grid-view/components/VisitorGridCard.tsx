@@ -30,11 +30,11 @@ const VisitorGridCard = ({ visitor }: { visitor: any }) => {
       role="button"
       tabIndex={0}
       style={{ cursor: 'pointer' }}
-      onClick={() => router.push(`/visitors/details?id=${visitor.id}&source=grid-view`)}
+      onClick={() => router.push(`/visitors/${visitor.id}?source=grid-view`)}
       onKeyDown={(event) => {
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault()
-          router.push(`/visitors/details?id=${visitor.id}&source=grid-view`)
+          router.push(`/visitors/${visitor.id}?source=grid-view`)
         }
       }}
     >
@@ -55,7 +55,7 @@ const VisitorGridCard = ({ visitor }: { visitor: any }) => {
           )}
           <div className="flex-grow-1">
             <Link
-              href={`/visitors/details?id=${visitor.id}&source=grid-view`}
+              href={`/visitors/${visitor.id}?source=grid-view`}
               className="h5 mb-1 d-inline-block text-dark text-decoration-none"
               onClick={(event) => event.stopPropagation()}
             >

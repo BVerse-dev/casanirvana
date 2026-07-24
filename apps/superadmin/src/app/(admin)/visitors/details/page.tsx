@@ -10,11 +10,16 @@ import Link from 'next/link'
 import IconifyIcon from '@/components/wrappers/IconifyIcon'
 import { toast } from 'react-hot-toast'
 
-const VisitorDetailsPage = () => {
+type VisitorDetailsPageProps = {
+  visitorId?: string | null
+  source?: string | null
+}
+
+const VisitorDetailsPage = ({ visitorId: providedVisitorId, source: providedSource }: VisitorDetailsPageProps = {}) => {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const visitorId = searchParams.get('id')
-  const source = searchParams.get('source')
+  const visitorId = providedVisitorId || searchParams.get('id')
+  const source = providedSource || searchParams.get('source')
   const returnHref = source === 'grid-view' ? '/visitors?view=grid' : '/visitors?view=list'
   const returnLabel = source === 'grid-view' ? 'Back to Visitor Grid' : 'Back to Visitor List'
 

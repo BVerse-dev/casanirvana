@@ -912,7 +912,7 @@ const VisitorAddEnhanced = () => {
               variant="primary"
               onClick={() => {
                 if (!createdPass?.id) return
-                router.push(`/visitors/details?id=${createdPass.id}`)
+                router.push(`/visitors/${createdPass.id}`)
               }}
             >
               View Details
