@@ -20,7 +20,7 @@ type CrudOption = {
 export type CrudField = {
   key: string;
   label: string;
-  type: "text" | "textarea" | "number" | "date" | "time" | "select" | "checkbox";
+  type: "text" | "textarea" | "number" | "date" | "time" | "select" | "checkbox" | "checkbox-group";
   required?: boolean;
   placeholder?: string;
   options?: CrudOption[];
@@ -48,6 +48,11 @@ type AdminCrudSectionProps = {
   onUpdate?: (id: string, payload: Record<string, unknown>) => Promise<unknown>;
   onDelete?: (id: string) => Promise<unknown>;
   onRefresh?: () => void;
+  itemLabel?: string;
+  createLabel?: string;
+  editLabel?: string;
+  deleteLabel?: string;
+  deleteConfirmation?: string | ((row: Record<string, any>) => string);
 };
 
 const formatValue = (value: unknown) => {
@@ -116,6 +121,11 @@ const AdminCrudSection = ({
   onUpdate,
   onDelete,
   onRefresh,
+  itemLabel = title,
+  createLabel = "Add",
+  editLabel = "Edit",
+  deleteLabel = "Delete",
+  deleteConfirmation = "Delete this record?",
 }: AdminCrudSectionProps) => {
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
   const [activeRow, setActiveRow] = useState<Record<string, any> | null>(null);
@@ -181,6 +191,18 @@ const AdminCrudSection = ({
     setFormState((previous) => ({ ...previous, [field.key]: value }));
   };
 
+  const handleCheckboxGroupChange = (field: CrudField, optionValue: string, checked: boolean) => {
+    const selectedValues = new Set(
+      String(formState[field.key] ?? "")
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean)
+    );
+    if (checked) selectedValues.add(optionValue);
+    else selectedValues.delete(optionValue);
+    handleChange(field, Array.from(selectedValues).join(","));
+  };
+
   const handleSubmit = async () => {
     if (modalMode === "create" && typeof onCreate !== "function") return;
     if (modalMode === "edit" && typeof onUpdate !== "function") return;
@@ -228,7 +250,10 @@ const AdminCrudSection = ({
 
   const handleDelete = async (row: Record<string, any>) => {
     if (!onDelete || !row?.id) return;
-    const confirmed = window.confirm("Delete this record?");
+    const confirmationText = typeof deleteConfirmation === "function"
+      ? deleteConfirmation(row)
+      : deleteConfirmation;
+    const confirmed = window.confirm(confirmationText);
     if (!confirmed) return;
     try {
       await onDelete(String(row.id));
@@ -265,7 +290,7 @@ const AdminCrudSection = ({
             {canCreate && onCreate ? (
               <Button onClick={openCreateModal}>
                 <IconifyIcon icon="ri:add-line" className="me-1" />
-                Add
+                {createLabel}
               </Button>
             ) : null}
           </div>
@@ -307,7 +332,7 @@ const AdminCrudSection = ({
                         <div className="d-flex justify-content-end gap-2">
                           {canUpdate && onUpdate ? (
                             <Button variant="outline-primary" size="sm" onClick={() => openEditModal(row)}>
-                              Edit
+                              {editLabel}
                             </Button>
                           ) : null}
                           {canDelete && onDelete ? (
@@ -316,7 +341,7 @@ const AdminCrudSection = ({
                               size="sm"
                               onClick={() => handleDelete(row)}
                             >
-                              Delete
+                              {deleteLabel}
                             </Button>
                           ) : null}
                         </div>
@@ -332,7 +357,7 @@ const AdminCrudSection = ({
 
       <Modal show={showModal} onHide={closeModal} size="lg" centered>
         <Modal.Header closeButton={!isSaving}>
-          <Modal.Title>{modalMode === "create" ? `Add ${title}` : `Edit ${title}`}</Modal.Title>
+          <Modal.Title>{modalMode === "create" ? `Add ${itemLabel}` : `Edit ${itemLabel}`}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {modalError ? <Alert variant="danger">{modalError}</Alert> : null}
@@ -351,6 +376,28 @@ const AdminCrudSection = ({
                       checked={Boolean(formState[field.key])}
                       onChange={(event) => handleChange(field, event.currentTarget.checked)}
                     />
+                  ) : field.type === "checkbox-group" ? (
+                    <fieldset>
+                      <legend className="form-label fs-14 mb-2">{field.label}</legend>
+                      <div className="d-flex flex-wrap gap-3">
+                        {(field.options || []).map((option) => (
+                          <Form.Check
+                            inline
+                            type="checkbox"
+                            id={`${id}-${field.key}-${option.value}`}
+                            key={`${field.key}-${option.value}`}
+                            label={option.label}
+                            checked={String(formState[field.key] ?? "").split(",").includes(option.value)}
+                            onChange={(event) =>
+                              handleCheckboxGroupChange(field, option.value, event.currentTarget.checked)
+                            }
+                          />
+                        ))}
+                      </div>
+                      {field.helpText ? (
+                        <Form.Text className="text-muted d-block mt-2">{field.helpText}</Form.Text>
+                      ) : null}
+                    </fieldset>
                   ) : (
                     <Fragment>
                       <Form.Label>{field.label}</Form.Label>
@@ -413,4 +460,3 @@ const AdminCrudSection = ({
 };
 
 export default AdminCrudSection;
-

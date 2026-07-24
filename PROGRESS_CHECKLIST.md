@@ -1975,6 +1975,13 @@ Date: 2026-02-06
 
 ## Phase 52 - Superadmin Launch Audit and Information Architecture
 
+### 2026-07-24 - Guard Community Assignments workspace
+
+- [x] Verified there is no historical demo Assignments page to restore and retained the existing Phase 34 workspace structure.
+- [x] Audited assignment reads and mutations against backend authorization, tenant scope, payload validation and Guard app community-scope synchronization.
+- [x] Replaced raw assignment row values and comma-separated weekday entry with readable operational presentation and weekday controls.
+- [ ] Record production deployment and Codex browser evidence before closing the Assignments tab.
+
 ### 2026-07-24 - Client navigation reliability blocker
 
 - [x] Reproduced the production navigation hang in the Codex browser and identified repeated Choices.js initialization as the browser main-thread blocker.

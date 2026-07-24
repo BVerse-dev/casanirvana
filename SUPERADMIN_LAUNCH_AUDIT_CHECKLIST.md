@@ -422,6 +422,15 @@
 
 ## Phase 52 Visual-Parity Recovery Track
 
+### 2026-07-24 - Guard Community Assignments workspace audit
+
+- Confirmed repository history contains no pre-audit demo Assignments page; the workspace originated as the Phase 34 shared CRUD surface, so no unapproved replacement design was introduced.
+- Audited the live page against `GET/POST /admin/guards/assignments` and `PATCH/DELETE /admin/guards/assignments/:id`, including backend scope checks, permissions, validation and Guard app community-scope synchronization.
+- Retained the approved workspace structure while replacing raw machine values with readable assignment, schedule, date-period and status presentation.
+- Replaced comma-separated weekday entry with explicit weekday checkboxes and exposed the supported gate/post and operational-instructions fields.
+- Added assignment-specific action wording and a destructive confirmation that explains permanent deletion and community-access recalculation.
+- Acceptance evidence pending: production build, deployment and Codex browser verification.
+
 ### 2026-07-24 - Client navigation hang blocker
 
 - Reproduced the launch-blocking navigation hang in the production Codex browser from `/residents/add` to `/residents`: the route progress indicator continued while the URL and page remained unchanged.

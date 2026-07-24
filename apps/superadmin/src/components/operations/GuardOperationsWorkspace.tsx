@@ -46,6 +46,56 @@ const defaultColumns: CrudColumn[] = [
   { key: "created_at", label: "Created" },
 ];
 
+const WEEKDAY_OPTIONS = [
+  { label: "Sun", value: "0" },
+  { label: "Mon", value: "1" },
+  { label: "Tue", value: "2" },
+  { label: "Wed", value: "3" },
+  { label: "Thu", value: "4" },
+  { label: "Fri", value: "5" },
+  { label: "Sat", value: "6" },
+];
+
+const formatDate = (value: unknown) => {
+  const text = String(value || "").trim();
+  if (!text) return "—";
+  const date = new Date(`${text.slice(0, 10)}T00:00:00`);
+  return Number.isNaN(date.getTime())
+    ? text
+    : new Intl.DateTimeFormat("en", { day: "numeric", month: "short", year: "numeric" }).format(date);
+};
+
+const formatTime = (value: unknown) => String(value || "").slice(0, 5) || "—";
+
+const formatWeekdays = (value: unknown) => {
+  if (!Array.isArray(value) || value.length === 0) return "Days not set";
+  return value
+    .map((day) => WEEKDAY_OPTIONS.find((option) => option.value === String(day))?.label)
+    .filter(Boolean)
+    .join(", ");
+};
+
+const titleCase = (value: unknown) =>
+  String(value || "Not set")
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (character) => character.toUpperCase());
+
+const renderOperationalStatusBadge = (status: unknown) => {
+  const normalized = String(status || "").toLowerCase();
+  const variant = normalized === "active"
+    ? "success"
+    : normalized === "completed"
+      ? "primary"
+      : normalized === "inactive"
+        ? "secondary"
+        : "warning";
+  return (
+    <Badge bg={`${variant}-subtle`} text={variant}>
+      {titleCase(status)}
+    </Badge>
+  );
+};
+
 const toErrorText = (error: unknown) => (error instanceof Error ? error.message : null);
 
 export type GuardSectionKey = (typeof GUARD_TABS)[number]["key"];
@@ -312,7 +362,18 @@ const GuardAssignmentsSection = ({ initialGuardId }: { initialGuardId?: string |
     profilesQuery.data?.filter((row) => row.assignment_status === "awaiting_assignment").length || 0;
 
   const columns: CrudColumn[] = [
-    { key: "assignment_name", label: "Assignment" },
+    {
+      key: "assignment_name",
+      label: "Assignment",
+      render: (row) => (
+        <div>
+          <div className="fw-semibold">{row.assignment_name || "Community assignment"}</div>
+          <small className="text-muted">
+            {row.assigned_gate || row.assigned_location || "Location not set"}
+          </small>
+        </div>
+      ),
+    },
     {
       key: "guard_id",
       label: "Guard",
@@ -323,9 +384,24 @@ const GuardAssignmentsSection = ({ initialGuardId }: { initialGuardId?: string |
       label: "Community",
       render: (row) => communityMap.get(String(row.community_id || "")) || "—",
     },
-    { key: "shift_type", label: "Shift" },
-    { key: "start_date", label: "Start Date" },
-    { key: "status", label: "Status" },
+    {
+      key: "shift_type",
+      label: "Schedule",
+      render: (row) => (
+        <div>
+          <div>{titleCase(row.shift_type)} · {formatTime(row.start_time)}–{formatTime(row.end_time)}</div>
+          <small className="text-muted">{formatWeekdays(row.days_of_week)}</small>
+        </div>
+      ),
+    },
+    {
+      key: "start_date",
+      label: "Assignment Period",
+      render: (row) => (
+        <span>{formatDate(row.start_date)}{row.end_date ? ` – ${formatDate(row.end_date)}` : " – Ongoing"}</span>
+      ),
+    },
+    { key: "status", label: "Status", render: (row) => renderOperationalStatusBadge(row.status) },
   ];
 
   const fields: CrudField[] = [
@@ -371,10 +447,11 @@ const GuardAssignmentsSection = ({ initialGuardId }: { initialGuardId?: string |
     {
       key: "days_of_week",
       label: "Days of Week",
-      type: "text",
+      type: "checkbox-group",
       required: true,
       initialValue: "0,1,2,3,4,5,6",
-      helpText: "Comma-separated weekday numbers (0=Sun ... 6=Sat).",
+      options: WEEKDAY_OPTIONS,
+      helpText: "Select every weekday covered by this assignment.",
       fromValue: (value) => (Array.isArray(value) ? value.join(",") : ""),
       toPayload: (value) =>
         String(value)
@@ -383,6 +460,8 @@ const GuardAssignmentsSection = ({ initialGuardId }: { initialGuardId?: string |
           .filter((entry) => Number.isInteger(entry) && entry >= 0 && entry <= 6),
     },
     { key: "assigned_location", label: "Assigned Location", type: "text" },
+    { key: "assigned_gate", label: "Assigned Gate or Post", type: "text" },
+    { key: "special_instructions", label: "Operational Instructions", type: "textarea" },
     {
       key: "status",
       label: "Status",
@@ -426,6 +505,11 @@ const GuardAssignmentsSection = ({ initialGuardId }: { initialGuardId?: string |
           profilesQuery.refetch();
           communitiesQuery.refetch();
         }}
+        itemLabel="Assignment"
+        createLabel="Add Assignment"
+        deleteConfirmation={(row) =>
+          `Delete ${row.assignment_name || "this guard assignment"}? This permanently removes the assignment record and recalculates the guard's community access.`
+        }
         emptyText="No assignments found."
       />
     </>
