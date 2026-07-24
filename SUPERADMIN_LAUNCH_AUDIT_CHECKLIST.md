@@ -484,7 +484,15 @@
 - [ ] Restore and sign off Join Requests presentation.
 - [ ] Restore and sign off Residents directory/details/create/edit presentation.
 - [ ] Restore and sign off Guards details presentation.
-- [ ] Restore and sign off Agencies directory/details/create/edit presentation.
+- [ ] Restore and sign off Agencies directory/details/create/edit presentation. Directory grid restoration is implemented; production evidence and lifecycle-page signoff remain.
+
+### 2026-07-24 - Agencies canonical directory presentation audit
+
+- [x] Audited authenticated production grid data, canonical routes, actions, filter controls and zero-warning baseline against the scoped Agency directory API.
+- [x] Restored the approved historical banner-image, avatar, description, directory metadata, social/contact and card-action presentation inside the canonical grid.
+- [x] Preserved server-backed search/status filtering, pagination ownership, grid/list URL state, Add Agency, Agency Workspace and canonical detail/manage links.
+- [x] Kept the existing canonical list table unchanged so view switching does not force grid layout into list mode.
+- Acceptance evidence pending: production build, deployment and non-mutating Codex browser verification of both views.
 - [ ] Restore and sign off Casa Nirvana, Residents, and Guards dashboard presentation.
 - [ ] Record authenticated production browser evidence for every restored slice.
 
