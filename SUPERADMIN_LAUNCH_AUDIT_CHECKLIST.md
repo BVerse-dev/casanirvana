@@ -488,3 +488,17 @@
 - Rejected restoration of the old photo dropzone because it previews a local file but does not upload or persist it; the functional avatar URL field remains available until a backed upload contract is implemented.
 - Removed fake preview identity data and corrected legacy Society copy to Community while preserving the approved card layout.
 - Acceptance evidence: Superadmin production build completed successfully after the child-route audit.
+## Mandatory Demo-UI Restoration Rule
+
+- For every Phase 52 page task, retrieve and document the pre-audit demo implementation before editing the canonical page.
+- The original demo component hierarchy, imagery, spacing, cards, tables, controls, and responsive layout are the visual source of truth.
+- Fit live backend data, authorization, canonical routes, and truthful states into that UI; do not substitute a newly designed approximation.
+- Do not restore fabricated values, broken links, or nonfunctional controls. Replace those internals without changing the approved visual composition.
+- Record any unavoidable visual difference as a blocker or explicit approval item before marking the route complete.
+
+### 2026-07-24 - Residents grid exact demo-UI correction
+
+- Retrieved the original pre-hardening Residents grid from the pre-monorepo source history.
+- Restored the original three-card overview: illustrated welcome/status card, Unit Statistics card with header/footer, and active-resident sparkline card.
+- Preserved the original dimensions, image asset, chart types, progress treatment, colors, and hierarchy while replacing fixed demo totals and timestamps with live resident values.
+- Kept the consolidated canonical route, grid/list toggle, server filters, pagination, cards, and scoped mutations unchanged.

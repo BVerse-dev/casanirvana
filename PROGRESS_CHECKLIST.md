@@ -2170,3 +2170,7 @@ Date: 2026-02-06
 - Completed the Resident details, create, and edit audit without replacing their approved UI components.
 - Retained live profile activity and directory records, validated mutations, and canonical routes; removed fake preview identity copy and corrected Community terminology.
 - Deferred the decorative legacy photo dropzone because it has no persistence contract and would misrepresent functionality.
+### 2026-07-24 - Phase 52 demo-UI source-of-truth correction
+
+- Added a mandatory rule that every page audit starts from the original pre-audit demo implementation, not a later hardened approximation.
+- Corrected the Residents grid by restoring its original illustrated three-card overview with live data and canonical routing.
