@@ -2156,3 +2156,8 @@ Date: 2026-02-06
 
 - [x] Restored the approved image-led Community form preview and removed fabricated create defaults.
 - [x] Preserved live create/edit behavior, scoped Agency selection and canonical routing.
+
+### 2026-07-24 - Phase 52 Join Requests visual recovery
+
+- [x] Restored status summaries and richer request cards using backend-owned counts and records.
+- [x] Preserved scoped review mutations, pagination, filtering and rejection-note enforcement.

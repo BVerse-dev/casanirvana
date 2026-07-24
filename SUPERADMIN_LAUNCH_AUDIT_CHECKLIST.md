@@ -466,3 +466,10 @@
 - Preserved the approved two-column Community create/edit form and restored an image-led live preview card consistent with the Community directory and details pages.
 - Removed demo-era initial values for Community type, year, Unit/floor/block counts and financial amounts so required operational data must be entered explicitly.
 - Kept edit hydration, scoped Agency selection, validation, create/update mutations and canonical post-save routing intact.
+
+### 2026-07-24 - Community Join Requests visual-parity recovery
+
+- Restored the approved operational overview with exact backend counts for Pending, Manual Review, Approved and Rejected requests.
+- Restored richer Resident request cards, Community/Unit context, message preview, status presentation and explicit review actions.
+- Preserved server-side search, status filtering, pagination, scoped reads, detail review, approval/rejection confirmation and required rejection notes.
+- Added a clear-filter action without introducing demo requests or client-only totals.
