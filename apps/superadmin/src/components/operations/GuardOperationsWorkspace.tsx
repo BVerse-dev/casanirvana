@@ -780,7 +780,12 @@ const GuardTrainingSection = () => {
     {
       key: "status",
       label: "Status",
-      render: (row) => renderStatus(row.status),
+      render: (row) =>
+        row.status
+          ? String(row.status)
+              .replace(/_/g, " ")
+              .replace(/\b\w/g, (character) => character.toUpperCase())
+          : "—",
     },
   ];
 
