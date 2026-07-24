@@ -1980,7 +1980,7 @@ Date: 2026-02-06
 - [x] Reproduced the production navigation hang in the Codex browser and identified repeated Choices.js initialization as the browser main-thread blocker.
 - [x] Corrected the shared `ChoicesFormInput` lifecycle so rerenders do not create duplicate plugin instances or leak native event listeners.
 - [x] Removed the Add Resident form's continuous parent/child synchronization loop by subscribing to actual form value changes instead of publishing `watch()` output after every render.
-- [ ] Record production deployment and multi-route browser evidence before closing this launch blocker.
+- [x] Production deployment and multi-route Codex browser evidence recorded: `/residents/add` -> `/residents?view=grid` -> `/maintenance-requests` -> `/complaints`, with no warning or error logs.
 
 - Detailed tracker: `SUPERADMIN_LAUNCH_AUDIT_CHECKLIST.md`.
 - Machine-readable route inventory: `SUPERADMIN_ROUTE_MANIFEST.json`.

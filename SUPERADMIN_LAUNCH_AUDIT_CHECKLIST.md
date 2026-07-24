@@ -429,7 +429,7 @@
 - Stabilized the shared field lifecycle to create one Choices instance per mounted element, retain the latest callback without recreation, and remove listeners/destroy the instance during cleanup.
 - Production retesting cleared the Choices.js warning storm and exposed a second Add Resident-specific parent/child render loop; replaced render-time `watch()` synchronization with a form value-change subscription while preserving the live resident preview card.
 - Scope is reliability-only: no route, directory, form layout or approved demo UI presentation changed.
-- Acceptance evidence pending: production build, deployment and browser navigation retest.
+- Acceptance evidence: local production builds passed with 244 generated pages; commits `acfe6696` and `4f124029` deployed successfully; a fresh authenticated Codex browser tab completed `/residents/add` -> `/residents?view=grid` -> `/maintenance-requests` -> `/complaints` with no warning or error logs.
 
 - Rule: preserve canonical routes, live backend/database contracts, authorization, and unified grid/list state while restoring the approved pre-Phase 52 presentation. Demo values must not return; missing live values use truthful empty states.
 - [x] Communities directory presentation restored without changing its canonical directory contract.
