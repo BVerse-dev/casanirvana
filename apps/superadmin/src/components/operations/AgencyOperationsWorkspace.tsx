@@ -429,11 +429,40 @@ const AgencyFinanceSection = ({ agencyId }: { agencyId?: string }) => {
       label: "Agency",
       render: (row) => agencyMap.get(String(row.agency_id || "")) || "—",
     },
-    { key: "date", label: "Date" },
-    { key: "type", label: "Type" },
+    {
+      key: "date",
+      label: "Date",
+      render: (row) => {
+        if (!row.date) return "Not recorded";
+        const date = new Date(String(row.date));
+        return Number.isNaN(date.getTime()) ? String(row.date) : date.toLocaleDateString();
+      },
+    },
+    {
+      key: "type",
+      label: "Type",
+      render: (row) =>
+        row.type
+          ? String(row.type).replace(/_/g, " ").replace(/\b\w/g, (character) => character.toUpperCase())
+          : "Not recorded",
+    },
     { key: "category", label: "Category" },
-    { key: "amount", label: "Amount" },
-    { key: "status", label: "Status" },
+    {
+      key: "amount",
+      label: "Amount",
+      render: (row) =>
+        typeof row.amount === "number"
+          ? new Intl.NumberFormat("en-GH", { style: "currency", currency: "GHS" }).format(row.amount)
+          : "Not recorded",
+    },
+    {
+      key: "status",
+      label: "Status",
+      render: (row) =>
+        row.status
+          ? String(row.status).replace(/_/g, " ").replace(/\b\w/g, (character) => character.toUpperCase())
+          : "Not recorded",
+    },
   ];
 
   const fields: CrudField[] = [
@@ -446,10 +475,32 @@ const AgencyFinanceSection = ({ agencyId }: { agencyId?: string }) => {
       options: agencyOptions,
     },
     { key: "date", label: "Date", type: "date", required: true },
-    { key: "type", label: "Type", type: "text", required: true },
+    {
+      key: "type",
+      label: "Type",
+      type: "select",
+      required: true,
+      options: [
+        { label: "Income", value: "income" },
+        { label: "Expense", value: "expense" },
+        { label: "Credit", value: "credit" },
+        { label: "Debit", value: "debit" },
+      ],
+    },
     { key: "category", label: "Category", type: "text", required: true },
-    { key: "amount", label: "Amount", type: "number", required: true },
-    { key: "status", label: "Status", type: "text", required: true, initialValue: "completed" },
+    { key: "amount", label: "Amount", type: "number", required: true, min: 0.01, step: 0.01 },
+    {
+      key: "status",
+      label: "Status",
+      type: "select",
+      required: true,
+      initialValue: "completed",
+      options: [
+        { label: "Pending", value: "pending" },
+        { label: "Completed", value: "completed" },
+        { label: "Cancelled", value: "cancelled" },
+      ],
+    },
     { key: "payment_method", label: "Payment Method", type: "text" },
     { key: "reference", label: "Reference", type: "text" },
     { key: "description", label: "Description", type: "textarea" },
@@ -473,6 +524,9 @@ const AgencyFinanceSection = ({ agencyId }: { agencyId?: string }) => {
         agenciesQuery.refetch();
       }}
       emptyText="No agency finance transactions found."
+      itemLabel="Finance Transaction"
+      createLabel="Add Finance Transaction"
+      editLabel="Edit Finance Transaction"
     />
   );
 };

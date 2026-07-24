@@ -518,6 +518,14 @@
 - [x] Added supported requirements/target-market controls, pricing and commission limits, readable pricing/status values and explicit Agency Service actions.
 - Acceptance evidence: the Superadmin production build generated all 244 routes; commit `4a702c15` deployed successfully; the Codex browser confirmed the truthful empty catalog, explicit Add Agency Service action, complete supported service controls, pricing/commission limits, safe modal close, selected-agency navigation to Finance & Billing and zero browser warnings/errors without mutating production data.
 
+### 2026-07-24 - Agency Finance & Billing workspace audit
+
+- [x] Audited the selected-agency ledger against scoped `GET`, `POST` and `PATCH /admin/agencies/finance` contracts and the authoritative `agency_transactions` table.
+- [x] Confirmed the historical route was only a wrapper around the shared Agency operations workspace; no separate demo page exists to restore.
+- [x] Preserved the truthful empty ledger, complete supported fields and intentional absence of a delete action.
+- [x] Added readable dates/types/statuses, Ghana-cedi amount formatting, controlled transaction/status options, positive amount validation and explicit Finance Transaction actions.
+- Acceptance evidence pending: production build, deployment and non-mutating Codex browser verification.
+
 ### 2026-07-24 - Agencies canonical directory presentation audit
 
 - [x] Audited authenticated production grid data, canonical routes, actions, filter controls and zero-warning baseline against the scoped Agency directory API.

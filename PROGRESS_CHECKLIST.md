@@ -2204,6 +2204,13 @@ Date: 2026-02-06
 - [x] Confirmed the retired standalone route contained no separate demo implementation to restore.
 - [x] Production commit `4a702c15` deployed successfully; Codex browser evidence confirmed the truthful empty catalog, complete service controls, numeric limits, safe close, selected-agency Finance navigation and zero browser warnings/errors without production mutations.
 
+### 2026-07-24 - Agency Finance & Billing workspace
+
+- [x] Reconciled the selected-agency finance ledger with its scoped backend and authoritative transaction table without redesigning the shared UI.
+- [x] Added readable financial presentation, GHS formatting, controlled transaction/status values, amount validation and explicit Finance Transaction actions.
+- [x] Confirmed the retired standalone route contained no separate demo implementation to restore.
+- [ ] Record production deployment and Codex browser evidence before closing the Agency Finance & Billing tab.
+
 ### 2026-07-24 - Agencies canonical directory presentation
 
 - [x] Reused the approved historical Agency card markup instead of inventing a replacement design.
