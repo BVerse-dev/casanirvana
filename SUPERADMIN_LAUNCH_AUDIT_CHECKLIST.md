@@ -539,7 +539,7 @@
 - [x] Preserved the exact approved Visitor card and table implementations and mounted them behind canonical `/visitors?view=grid|list` URL state using the shared remembered-view contract.
 - [x] Consolidated the sidebar into one All Visitors destination and updated dashboard, add-flow, detail-return and view-switch links to the canonical directory.
 - [x] Replaced text-only cross-view actions with accessible icon controls while preserving the existing toolbar layout; legacy grid/list routes remain available as compatibility boundaries.
-- [ ] Acceptance evidence pending: production build, deployment and non-mutating Codex browser verification.
+- Acceptance evidence: the Superadmin production build generated all 245 routes; commit `308d522c` deployed successfully; the Codex browser confirmed 18 live Visitor cards at canonical `?view=grid`, icon-driven transition to the preserved table at `?view=list`, one All Visitors sidebar destination, retained New Pass access and zero browser warnings/errors without mutating production data.
 
 ### 2026-07-24 - Agencies canonical directory presentation audit
 

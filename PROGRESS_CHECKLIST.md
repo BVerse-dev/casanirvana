@@ -2224,7 +2224,7 @@ Date: 2026-02-06
 - [x] Added canonical `/visitors?view=grid|list` routing with explicit URL state and remembered grid-first preference behavior.
 - [x] Consolidated duplicate Visitor sidebar entries and aligned dashboard, creation, detail-return and view-switch destinations.
 - [x] Retained the old grid/list routes as launch-window compatibility boundaries.
-- [ ] Record production deployment and Codex browser evidence before closing the Visitors directory slice.
+- [x] Production evidence recorded: commit `308d522c` deployed successfully; canonical grid and list modes preserved the approved live-data card/table designs, icon switching, one All Visitors sidebar destination, New Pass access and zero browser warnings or errors. The Superadmin production build generated all 245 routes.
 
 ### 2026-07-24 - Agencies canonical directory presentation
 
