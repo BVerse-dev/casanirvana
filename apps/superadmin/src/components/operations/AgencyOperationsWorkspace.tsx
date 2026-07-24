@@ -203,6 +203,10 @@ const AgencyStaffSection = ({ agencyId }: { agencyId?: string }) => {
   const deleteMutation = useDeleteAgencyStaffOperation();
   const agencyMap = new Map((agenciesQuery.data || []).map((agency) => [agency.id, agency.name]));
   const agencyOptions = buildAgencyOptions(agenciesQuery.data || []);
+  const reportingManagerOptions = (staffQuery.data || []).map((staff) => ({
+    value: String(staff.id),
+    label: [staff.first_name, staff.last_name].filter(Boolean).join(" ") || String(staff.email || staff.id),
+  }));
 
   const columns: CrudColumn[] = [
     {
@@ -214,7 +218,18 @@ const AgencyStaffSection = ({ agencyId }: { agencyId?: string }) => {
     { key: "last_name", label: "Last Name" },
     { key: "email", label: "Email" },
     { key: "role", label: "Role" },
-    { key: "status", label: "Status" },
+    {
+      key: "status",
+      label: "Status",
+      render: (row) =>
+        row.status
+          ? String(row.status)
+              .replace(/_/g, " ")
+              .replace(/\b\w/g, (character) => character.toUpperCase())
+          : row.is_active === false
+            ? "Inactive"
+            : "Active",
+    },
   ];
 
   const fields: CrudField[] = [
@@ -234,9 +249,26 @@ const AgencyStaffSection = ({ agencyId }: { agencyId?: string }) => {
     { key: "department", label: "Department", type: "text" },
     { key: "position", label: "Position", type: "text" },
     { key: "employee_id", label: "Employee ID", type: "text" },
-    { key: "salary", label: "Salary", type: "number" },
-    { key: "commission_percentage", label: "Commission %", type: "number" },
-    { key: "status", label: "Status", type: "text", initialValue: "Active" },
+    { key: "date_of_joining", label: "Joining Date", type: "date" },
+    {
+      key: "reporting_manager_id",
+      label: "Reporting Manager",
+      type: "select",
+      options: reportingManagerOptions,
+    },
+    { key: "salary", label: "Salary", type: "number", min: 0, step: 0.01 },
+    { key: "commission_percentage", label: "Commission %", type: "number", min: 0, max: 100, step: 0.01 },
+    {
+      key: "status",
+      label: "Status",
+      type: "select",
+      initialValue: "active",
+      options: [
+        { label: "Active", value: "active" },
+        { label: "Inactive", value: "inactive" },
+        { label: "On Leave", value: "on_leave" },
+      ],
+    },
     { key: "is_active", label: "Is Active", type: "checkbox", initialValue: true },
   ];
 
@@ -258,6 +290,9 @@ const AgencyStaffSection = ({ agencyId }: { agencyId?: string }) => {
         agenciesQuery.refetch();
       }}
       emptyText="No agency staff records found."
+      itemLabel="Staff Member"
+      createLabel="Add Staff Member"
+      editLabel="Edit Staff Member"
     />
   );
 };

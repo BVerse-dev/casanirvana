@@ -2190,6 +2190,13 @@ Date: 2026-02-06
 - [x] Confirmed the retired standalone route contained no separate demo implementation to restore.
 - [x] Production commit `ea781ce2` deployed successfully; Codex browser evidence confirmed the truthful missing-profile flow, explicit action labels, prefilled supported controls, numeric limits, safe close, selected-agency Staff navigation and zero browser warnings/errors without production mutations.
 
+### 2026-07-24 - Agency Staff Management workspace
+
+- [x] Reconciled the selected-agency staff workspace with its scoped backend and database contract without redesigning the shared UI.
+- [x] Added missing supported joining/reporting fields, readable status presentation, numeric constraints and clear Staff Member actions.
+- [x] Confirmed the retired standalone route contained no separate demo implementation to restore.
+- [ ] Record production deployment and Codex browser evidence before closing the Agency Staff Management tab.
+
 ### 2026-07-24 - Agencies canonical directory presentation
 
 - [x] Reused the approved historical Agency card markup instead of inventing a replacement design.

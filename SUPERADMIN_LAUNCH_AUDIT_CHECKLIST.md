@@ -502,6 +502,14 @@
 - [x] Removed raw Agency UUID presentation, formatted profile type/status values, constrained numeric fields and added explicit Agency Profile action labels.
 - Acceptance evidence: the full platform build passed, including the API, all 244 Superadmin routes and 24 marketing pages; commit `ea781ce2` deployed successfully; the Codex browser confirmed the truthful missing-profile state, explicit Add Agency Profile action, prefilled supported fields, numeric constraints, safe modal close, selected-agency navigation to Staff Management and zero browser warnings/errors without mutating production data.
 
+### 2026-07-24 - Agency Staff Management workspace audit
+
+- [x] Audited the selected-agency staff workspace against scoped `GET`, `POST`, `PATCH` and `DELETE /admin/agencies/staff` contracts and the `agency_staff` record shape.
+- [x] Confirmed the historical route was only a wrapper around the shared Agency operations workspace; no separate demo page exists to restore.
+- [x] Preserved the truthful empty state for an agency without staff records and retained backend-authorized destructive actions.
+- [x] Added supported joining-date/reporting-manager controls, readable status values, salary/commission constraints and explicit Staff Member action labels.
+- Acceptance evidence pending: production build, deployment and non-mutating Codex browser verification.
+
 ### 2026-07-24 - Agencies canonical directory presentation audit
 
 - [x] Audited authenticated production grid data, canonical routes, actions, filter controls and zero-warning baseline against the scoped Agency directory API.
