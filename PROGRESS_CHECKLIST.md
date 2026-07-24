@@ -1980,7 +1980,7 @@ Date: 2026-02-06
 - [x] Verified there is no historical demo Schedules page to restore and retained the Phase 34 workspace structure.
 - [x] Audited schedule reads and mutations against backend scope, permissions and payload validation.
 - [x] Added readable shift/period/post/status presentation, end-date input and schedule-specific action safety.
-- [ ] Record production deployment and Codex browser evidence before closing the Schedules tab.
+- [x] Production deployment and non-mutating Codex browser evidence recorded for Schedules, including responsive navigation and zero warning/error logs.
 
 ### 2026-07-24 - Guard Community Assignments workspace
 

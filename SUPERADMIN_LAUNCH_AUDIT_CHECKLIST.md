@@ -428,7 +428,7 @@
 - Audited the live tab against scoped `GET/POST /admin/guards/schedules` and `PATCH/DELETE /admin/guards/schedules/:id` contracts, permissions and validation.
 - Replaced raw shift/time/date/status columns with readable shift, schedule-period, post and lifecycle presentation.
 - Exposed the backend-supported end date, added schedule-specific create/modal wording and added a destructive confirmation naming the guard and shift.
-- Acceptance evidence pending: production build, deployment and non-mutating Codex browser verification.
+- Acceptance evidence: Superadmin production build passed with 244 generated pages; commit `ac4b6d9d` deployed successfully; the production Codex browser confirmed the truthful empty state, Guard/Community/Start Date/End Date/Post Location modal controls, safe close without mutation, responsive navigation to Equipment, and zero warning/error logs.
 
 ### 2026-07-24 - Guard Community Assignments workspace audit
 
