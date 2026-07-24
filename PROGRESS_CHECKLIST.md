@@ -2197,6 +2197,13 @@ Date: 2026-02-06
 - [x] Confirmed the retired standalone route contained no separate demo implementation to restore.
 - [x] Production commit `9f5aaaa1` deployed successfully; Codex browser evidence confirmed the truthful empty state, complete staff controls, numeric limits, safe close, selected-agency Services navigation and zero browser warnings/errors without production mutations.
 
+### 2026-07-24 - Agency Services Management workspace
+
+- [x] Reconciled the selected-agency service catalog with its scoped backend/database contract without redesigning the shared UI.
+- [x] Added missing supported requirements/market fields, controlled pricing/status inputs, readable table values and explicit Agency Service actions.
+- [x] Confirmed the retired standalone route contained no separate demo implementation to restore.
+- [ ] Record production deployment and Codex browser evidence before closing the Agency Services Management tab.
+
 ### 2026-07-24 - Agencies canonical directory presentation
 
 - [x] Reused the approved historical Agency card markup instead of inventing a replacement design.

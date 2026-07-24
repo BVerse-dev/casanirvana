@@ -315,9 +315,34 @@ const AgencyServicesSection = ({ agencyId }: { agencyId?: string }) => {
     },
     { key: "service_name", label: "Service" },
     { key: "category", label: "Category" },
-    { key: "rate_type", label: "Rate Type" },
-    { key: "base_price", label: "Base Price" },
-    { key: "status", label: "Status" },
+    {
+      key: "rate_type",
+      label: "Rate Type",
+      render: (row) =>
+        row.rate_type
+          ? String(row.rate_type)
+              .replace(/_/g, " ")
+              .replace(/\b\w/g, (character) => character.toUpperCase())
+          : "Not recorded",
+    },
+    {
+      key: "base_price",
+      label: "Base Price",
+      render: (row) =>
+        typeof row.base_price === "number"
+          ? new Intl.NumberFormat("en-GH", { style: "currency", currency: "GHS" }).format(row.base_price)
+          : "Not recorded",
+    },
+    {
+      key: "status",
+      label: "Status",
+      render: (row) =>
+        row.status
+          ? String(row.status)
+              .replace(/_/g, " ")
+              .replace(/\b\w/g, (character) => character.toUpperCase())
+          : "Not recorded",
+    },
   ];
 
   const fields: CrudField[] = [
@@ -332,13 +357,36 @@ const AgencyServicesSection = ({ agencyId }: { agencyId?: string }) => {
     { key: "service_name", label: "Service Name", type: "text", required: true },
     { key: "category", label: "Category", type: "text" },
     { key: "description", label: "Description", type: "textarea" },
-    { key: "rate", label: "Rate", type: "number" },
-    { key: "rate_type", label: "Rate Type", type: "text", initialValue: "hourly" },
-    { key: "base_price", label: "Base Price", type: "number" },
-    { key: "commission_rate", label: "Commission Rate", type: "number" },
+    { key: "rate", label: "Rate", type: "number", min: 0, step: 0.01 },
+    {
+      key: "rate_type",
+      label: "Rate Type",
+      type: "select",
+      initialValue: "hourly",
+      options: [
+        { label: "Hourly", value: "hourly" },
+        { label: "Fixed", value: "fixed" },
+        { label: "Monthly", value: "monthly" },
+        { label: "Per Unit", value: "per_unit" },
+      ],
+    },
+    { key: "base_price", label: "Base Price", type: "number", min: 0, step: 0.01 },
+    { key: "commission_rate", label: "Commission Rate", type: "number", min: 0, max: 100, step: 0.01 },
     { key: "duration", label: "Duration", type: "text" },
     { key: "availability", label: "Availability", type: "text" },
-    { key: "status", label: "Status", type: "text", initialValue: "active" },
+    { key: "requirements", label: "Requirements", type: "textarea" },
+    { key: "target_market", label: "Target Market", type: "text" },
+    {
+      key: "status",
+      label: "Status",
+      type: "select",
+      initialValue: "active",
+      options: [
+        { label: "Active", value: "active" },
+        { label: "Inactive", value: "inactive" },
+        { label: "Draft", value: "draft" },
+      ],
+    },
   ];
 
   return (
@@ -359,6 +407,9 @@ const AgencyServicesSection = ({ agencyId }: { agencyId?: string }) => {
         agenciesQuery.refetch();
       }}
       emptyText="No agency services found."
+      itemLabel="Agency Service"
+      createLabel="Add Agency Service"
+      editLabel="Edit Agency Service"
     />
   );
 };

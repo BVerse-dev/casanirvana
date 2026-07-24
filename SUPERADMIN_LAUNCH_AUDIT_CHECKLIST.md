@@ -510,6 +510,14 @@
 - [x] Added supported joining-date/reporting-manager controls, readable status values, salary/commission constraints and explicit Staff Member action labels.
 - Acceptance evidence: the Superadmin production build generated all 244 routes; commit `9f5aaaa1` deployed successfully; the Codex browser confirmed the truthful no-staff state, explicit Add Staff Member action, joining/reporting controls, salary/commission constraints, safe modal close, selected-agency navigation to Services Management and zero browser warnings/errors without mutating production data.
 
+### 2026-07-24 - Agency Services Management workspace audit
+
+- [x] Audited the selected-agency service catalog against scoped `GET`, `POST`, `PATCH` and `DELETE /admin/agencies/services` contracts and the `agency_services` record shape.
+- [x] Confirmed the historical route was only a wrapper around the shared Agency operations workspace; no separate demo page exists to restore.
+- [x] Preserved the truthful empty catalog and backend-authorized destructive actions without introducing fallback services.
+- [x] Added supported requirements/target-market controls, pricing and commission limits, readable pricing/status values and explicit Agency Service actions.
+- Acceptance evidence pending: production build, deployment and non-mutating Codex browser verification.
+
 ### 2026-07-24 - Agencies canonical directory presentation audit
 
 - [x] Audited authenticated production grid data, canonical routes, actions, filter controls and zero-warning baseline against the scoped Agency directory API.
