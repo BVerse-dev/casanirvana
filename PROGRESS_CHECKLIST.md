@@ -1980,7 +1980,7 @@ Date: 2026-02-06
 - [x] Verified there is no historical demo Assignments page to restore and retained the existing Phase 34 workspace structure.
 - [x] Audited assignment reads and mutations against backend authorization, tenant scope, payload validation and Guard app community-scope synchronization.
 - [x] Replaced raw assignment row values and comma-separated weekday entry with readable operational presentation and weekday controls.
-- [ ] Record production deployment and Codex browser evidence before closing the Assignments tab.
+- [x] Production deployment and Codex browser evidence recorded for the Assignments tab, including the non-mutating Add Assignment modal check and zero warning/error logs.
 
 ### 2026-07-24 - Client navigation reliability blocker
 

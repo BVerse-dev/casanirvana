@@ -429,7 +429,7 @@
 - Retained the approved workspace structure while replacing raw machine values with readable assignment, schedule, date-period and status presentation.
 - Replaced comma-separated weekday entry with explicit weekday checkboxes and exposed the supported gate/post and operational-instructions fields.
 - Added assignment-specific action wording and a destructive confirmation that explains permanent deletion and community-access recalculation.
-- Acceptance evidence pending: production build, deployment and Codex browser verification.
+- Acceptance evidence: Superadmin production build passed with 244 generated pages; commit `33b506e5` deployed successfully; the production Codex browser confirmed readable live assignment rows, seven weekday checkboxes, gate/post and operational-instructions fields, safe modal close without mutation, and zero warning/error logs.
 
 ### 2026-07-24 - Client navigation hang blocker
 
