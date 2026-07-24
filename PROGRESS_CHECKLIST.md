@@ -2151,3 +2151,8 @@ Date: 2026-02-06
 - [x] Audited canonical resource grid create actions; added the missing Add Unit action with Community context preservation.
 - [x] Replaced Unit tour scheduling with a Casa Nirvana Community/occupancy panel.
 - [x] Restored Community details visual composition using live scoped records and canonical links.
+
+### 2026-07-24 - Phase 52 Community create/edit visual recovery
+
+- [x] Restored the approved image-led Community form preview and removed fabricated create defaults.
+- [x] Preserved live create/edit behavior, scoped Agency selection and canonical routing.

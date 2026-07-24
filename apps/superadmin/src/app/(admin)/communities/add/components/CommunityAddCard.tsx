@@ -1,5 +1,7 @@
 import IconifyIcon from "@/components/wrappers/IconifyIcon";
-import { Button, Card, CardBody, CardFooter, Col, Row } from "react-bootstrap";
+import { mapSocietyToPropertyImage } from "@/utils/propertyImageMapper";
+import Image from "next/image";
+import { Card, CardBody, CardFooter, Col, Row } from "react-bootstrap";
 
 interface SocietyFormData {
   name?: string;
@@ -31,7 +33,7 @@ const CommunityAddCard = ({ formData }: CommunityAddCardProps) => {
       case 'it-hub-apartments': return 'IT Hub Apartments';
       case 'coastal-residences': return 'Coastal Residences';
       case 'heritage-villas': return 'Heritage Villas';
-      default: return 'Residential';
+      default: return 'Type not selected';
     }
   };
 
@@ -55,7 +57,7 @@ const CommunityAddCard = ({ formData }: CommunityAddCardProps) => {
 
   const formatAddress = () => {
     const parts = [formData?.address, formData?.city, formData?.state].filter(Boolean);
-    return parts.length > 0 ? parts.join(', ') : 'Address will appear here';
+    return parts.length > 0 ? parts.join(', ') : 'Address not entered';
   };
 
   return (
@@ -63,9 +65,14 @@ const CommunityAddCard = ({ formData }: CommunityAddCardProps) => {
       <Card>
         <CardBody>
           <div className="position-relative">
-            <div className="d-flex align-items-center justify-content-center bg-light rounded" style={{ height: '200px' }}>
-              <IconifyIcon icon="solar:buildings-2-bold-duotone" className="fs-48 text-muted" />
-            </div>
+            <Image
+              src={mapSocietyToPropertyImage(formData?.name || "Casa Nirvana")}
+              alt=""
+              className="img-fluid rounded"
+              width={600}
+              height={400}
+              style={{ width: "100%", height: 200, objectFit: "cover" }}
+            />
             <span className="position-absolute top-0 end-0 p-1">
               <span className={`badge bg-${getStatusBadgeVariant(formData?.status)} text-light fs-13`}>
                 {getStatusLabel(formData?.status)}
@@ -74,12 +81,12 @@ const CommunityAddCard = ({ formData }: CommunityAddCardProps) => {
           </div>
           <div className="mt-3">
             <h4 className="mb-1">
-              {formData?.name || 'Preview Community'}
+              {formData?.name || 'Community name not entered'}
               <span className="fs-14 text-muted ms-1">({getTypeLabel(formData?.society_type)})</span>
             </h4>
             <p className="mb-1">{formatAddress()}</p>
             <h5 className="text-dark fw-medium mt-3">Total Units:</h5>
-            <h4 className="fw-semibold mt-2 text-muted">{formData?.total_units || 0}</h4>
+            <h4 className="fw-semibold mt-2 text-muted">{formData?.total_units ?? "Not entered"}</h4>
           </div>
           <Row className="mt-2 g-2">
             <Col lg={6} xs={6}>
@@ -90,7 +97,7 @@ const CommunityAddCard = ({ formData }: CommunityAddCardProps) => {
                     className="align-middle"
                   />
                 </span>
-                &nbsp;{formData?.total_units || 0} Units
+                &nbsp;{formData?.total_units ?? "—"} Units
               </span>
             </Col>
             <Col lg={6} xs={6}>
@@ -101,7 +108,7 @@ const CommunityAddCard = ({ formData }: CommunityAddCardProps) => {
                     className="align-middle"
                   />
                 </span>
-                &nbsp;{formData?.total_floors || 0} Floors
+                &nbsp;{formData?.total_floors ?? "—"} Floors
               </span>
             </Col>
             <Col lg={6} xs={6}>
@@ -112,7 +119,7 @@ const CommunityAddCard = ({ formData }: CommunityAddCardProps) => {
                     className="align-middle"
                   />
                 </span>
-                &nbsp;{formData?.established_year || new Date().getFullYear()}
+                &nbsp;{formData?.established_year ?? "Year not entered"}
               </span>
             </Col>
           </Row>
@@ -122,9 +129,9 @@ const CommunityAddCard = ({ formData }: CommunityAddCardProps) => {
             <Col lg={12}>
               <div className="text-center">
                 <small className="text-muted">
-                  {formData?.maintenance_charge ? `GH₵ ${formData.maintenance_charge}/month` : 'No maintenance charge set'}
-                  {formData?.parking_slots ? ` • ${formData.parking_slots} Parking Slots` : ''}
-                  {formData?.total_blocks ? ` • ${formData.total_blocks} Blocks` : ''}
+                  {formData?.maintenance_charge == null ? "Maintenance charge not entered" : `GH₵ ${formData.maintenance_charge.toLocaleString()}/month`}
+                  {formData?.parking_slots == null ? "" : ` • ${formData.parking_slots} Parking Slots`}
+                  {formData?.total_blocks == null ? "" : ` • ${formData.total_blocks} Blocks`}
                 </small>
               </div>
             </Col>
