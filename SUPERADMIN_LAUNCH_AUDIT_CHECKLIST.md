@@ -541,6 +541,14 @@
 - [x] Replaced text-only cross-view actions with accessible icon controls while preserving the existing toolbar layout; legacy grid/list routes remain available as compatibility boundaries.
 - Acceptance evidence: the Superadmin production build generated all 245 routes; commit `308d522c` deployed successfully; the Codex browser confirmed 18 live Visitor cards at canonical `?view=grid`, icon-driven transition to the preserved table at `?view=list`, one All Visitors sidebar destination, retained New Pass access and zero browser warnings/errors without mutating production data.
 
+### 2026-07-24 - Visitor pass creation audit
+
+- [x] Preserved the approved type-first Guest, Cab, Delivery and Service creation interface, lifecycle guidance, QR/entry-code contract and canonical post-create routing.
+- [x] Confirmed required visitor identity, visit date and scoped unit selection prevent incomplete production writes.
+- [x] Corrected the unit dependency request from an unsupported 1,000-row page to the backend’s bounded 100-row contract.
+- [x] Separated unit-load failures from a legitimate empty scope so API errors no longer masquerade as zero available units.
+- [ ] Acceptance evidence pending: production build, deployment and non-mutating Codex browser verification.
+
 ### 2026-07-24 - Agencies canonical directory presentation audit
 
 - [x] Audited authenticated production grid data, canonical routes, actions, filter controls and zero-warning baseline against the scoped Agency directory API.

@@ -217,7 +217,11 @@ const vehicleTypeOptions = [
 const VisitorAddEnhanced = () => {
   const router = useRouter()
   const createVisitorPass = useCreateVisitorPass()
-  const { data: unitsResponse, isLoading: unitsLoading } = useListUnits({ page: 1, pageSize: 1000 })
+  const {
+    data: unitsResponse,
+    isLoading: unitsLoading,
+    error: unitsError,
+  } = useListUnits({ page: 1, pageSize: 100 })
   const units = useMemo(() => {
     return (unitsResponse?.data as UnitRecord[] | undefined) ?? []
   }, [unitsResponse?.data])
@@ -562,7 +566,13 @@ const VisitorAddEnhanced = () => {
                     </div>
                   </Alert>
 
-                  {!unitOptions.length && !unitsLoading && (
+                  {unitsError && (
+                    <Alert variant="danger" className="mb-4">
+                      Unable to load units for your current scope. {unitsError instanceof Error ? unitsError.message : 'Please try again.'}
+                    </Alert>
+                  )}
+
+                  {!unitOptions.length && !unitsLoading && !unitsError && (
                     <Alert variant="warning" className="mb-4">
                       No units found for your current scope. Assign units to your accessible community before creating visitor passes.
                     </Alert>

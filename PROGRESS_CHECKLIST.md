@@ -2226,6 +2226,13 @@ Date: 2026-02-06
 - [x] Retained the old grid/list routes as launch-window compatibility boundaries.
 - [x] Production evidence recorded: commit `308d522c` deployed successfully; canonical grid and list modes preserved the approved live-data card/table designs, icon switching, one All Visitors sidebar destination, New Pass access and zero browser warnings or errors. The Superadmin production build generated all 245 routes.
 
+### 2026-07-24 - Visitor pass creation
+
+- [x] Audited the production type-first pass form and preserved its approved UI, lifecycle guidance and cross-app QR payload contract.
+- [x] Fixed the out-of-contract unit page size that incorrectly disabled visitor creation with a false empty-scope state.
+- [x] Added truthful unit dependency failure feedback without changing the visitor mutation contract.
+- [ ] Record production deployment and Codex browser evidence before closing the Visitor pass creation slice.
+
 ### 2026-07-24 - Agencies canonical directory presentation
 
 - [x] Reused the approved historical Agency card markup instead of inventing a replacement design.
